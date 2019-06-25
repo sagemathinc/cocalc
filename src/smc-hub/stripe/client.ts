@@ -6,14 +6,16 @@ const { get_stripe } = require("./connect");
 
 interface HubClient {
   public account_id: string;
-  dbg: (f: string) => Function;
-  database: any;
+  public dbg: (f: string) => Function;
+  public database: any;
 }
 
 interface StripeConnection {}
 interface StripeCustomer {}
 
 type Message = any;
+type Coupon = any;
+type CouponHistory = any;
 
 function get_string_field(mesg: Message, name: string): string {
   if (mesg == null) throw Error("invalid message; must not be null");
@@ -85,6 +87,15 @@ export class StripeClient {
     return customer_id;
   }
 
+  private stripe_api_pager_options(mesg: Message): any {
+    return {
+      customer: await this.need_customer_id(),
+      limit: mesg.limit,
+      ending_before: mesg.ending_before,
+      starting_after: mesg.starting_after
+    };
+  }
+
   private async get_customer(): Promise<StripeCustomer> {
     const dbg = this.dbg("get_customer");
     dbg("getting customer id");
@@ -95,7 +106,10 @@ export class StripeClient {
 
   public async handle_mesg(mesg: Message): Promise<void> {
     try {
-      const f = this[`mesg_${mesg.event}`];
+      if (mesg.event.slice(0, 7) != "stripe_") {
+        throw Error("mesg event must start with stripe_");
+      }
+      const f = this[`mesg_${mesg.event.slice(7)}`];
       if (f == null) {
         throw Error(`no such message type ${mesg.event}`);
       } else {
@@ -107,14 +121,14 @@ export class StripeClient {
         this.client.push_to_client(resp);
       }
     } catch (err) {
-      let e: string;
+      let error: string;
       if (err.stack != null) {
-        e = err.stack.split("\n")[0];
+        error = err.stack.split("\n")[0];
       } else {
-        e = `${err}`;
+        error = `${err}`;
       }
-      this.dbg("handle_mesg")("Error", e);
-      this.client.error_to_client({ id: mesg.id, error: e });
+      this.dbg("handle_mesg")("Error", error);
+      this.client.error_to_client({ id: mesg.id, error });
     }
   }
 
@@ -148,7 +162,7 @@ export class StripeClient {
     dbg("create new stripe customer from card token");
 
     dbg("get identifying info about user");
-    const r = await callback2(this.database.get_account, {
+    const r = await callback2(this.client.database.get_account, {
       columns: ["email_address", "first_name", "last_name"],
       account_id: this.client.account_id
     });
@@ -172,7 +186,7 @@ export class StripeClient {
     )).id;
 
     dbg("success; now save customer_id to database");
-    await callback2(this.database.set_stripe_customer_id, {
+    await callback2(this.client.database.set_stripe_customer_id, {
       account_id: this.client.account_id,
       customer_id
     });
@@ -230,7 +244,7 @@ export class StripeClient {
     dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
-    await callback2(this.database.stripe_update_customer, {
+    await callback2(this.client.database.stripe_update_customer, {
       account_id: this.client.account_id,
       stripe: this.stripe,
       customer_id
@@ -330,8 +344,8 @@ export class StripeClient {
       // SECURITY NOTE: incrementing a counter... subject to attack?
       // I.e., use a coupon more times than should be able to?
       coupon_history[coupon.id] += 1;
-      await callback2(this.database.update_coupon_history, {
-        account_id: this.account_id,
+      await callback2(this.client.database.update_coupon_history, {
+        account_id: this.client.account_id,
         coupon_history
       });
     }
@@ -379,8 +393,8 @@ export class StripeClient {
         mesg.coupon_id
       );
       coupon_history[coupon.id] += 1;
-      await callback2(this.database.update_coupon_history, {
-        account_id: this.account_id,
+      await callback2(this.client.database.update_coupon_history, {
+        account_id: this.client.account_id,
         coupon_history
       });
     }
@@ -392,11 +406,7 @@ export class StripeClient {
 
     const customer_id: string = await this.need_customer_id();
 
-    const options = {
-      limit: mesg.limit,
-      ending_before: mesg.ending_before,
-      starting_after: mesg.starting_after
-    };
+    const options = this.stripe_api_pager_options(mesg);
     const subscriptions = await callback(
       this.stripe.customers.listSubscriptions,
       customer_id,
@@ -420,382 +430,164 @@ export class StripeClient {
   // - Is valid
   // - Used by this account less than the max per account (hard coded default is 1)
   // Calls cb(err, coupon, coupon_history)
-  validate_coupon(coupon_id, cb) {
+  private async validate_coupon(
+    coupon_id: string
+  ): Promise<{ coupon: Coupon; coupon_history: CouponHistory }> {
     const dbg = this.dbg("validate_coupon");
-    this.stripe = get_stripe();
-    return async.series(
-      [
-        local_cb => {
-          dbg("retrieve the coupon");
-          return this.stripe.coupons.retrieve(coupon_id, local_cb);
-        },
-        local_cb => {
-          dbg("check account coupon_history");
-          return this.database.get_coupon_history({
-            account_id: this.account_id,
-            cb: local_cb
-          });
-        }
-      ],
-      (err, [coupon, coupon_history]) => {
-        if (err) {
-          cb(err);
-          return;
-        }
-        if (!coupon.valid) {
-          cb("Sorry! This coupon has expired.");
-          return;
-        }
-        if (coupon_history == null) {
-          coupon_history = {};
-        }
-        const times_used =
-          coupon_history[coupon.id] != null ? coupon_history[coupon.id] : 0;
-        if (
-          times_used >=
-          (coupon.metadata.max_per_account != null
-            ? coupon.metadata.max_per_account
-            : 1)
-        ) {
-          cb("You've already used this coupon.");
-          return;
-        }
+    dbg("retrieve the coupon");
+    const coupon: Coupon = await callback(
+      this.stripe.coupons.retrieve,
+      coupon_id
+    );
 
-        coupon_history[coupon.id] = times_used;
-        return cb(err, coupon, coupon_history);
+    dbg("check account coupon_history");
+    const coupon_history: CouponHistory = await callback2(
+      this.client.database.get_coupon_history,
+      {
+        account_id: this.client.account_id
       }
     );
+    if (!coupon.valid) throw Error("Sorry! This coupon has expired.");
+
+    if (coupon_history == null) {
+      coupon_history = {};
+    }
+
+    const times_used: number =
+      coupon_history[coupon.id] != null ? coupon_history[coupon.id] : 0;
+
+    if (
+      times_used >=
+      (coupon.metadata.max_per_account != null
+        ? coupon.metadata.max_per_account
+        : 1)
+    ) {
+      throw Error("You've already used this coupon.");
+    }
+
+    coupon_history[coupon.id] = times_used;
+    return { coupon, coupon_history };
   }
 
-  mesg_get_charges(mesg) {
+  private async mesg_get_charges(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_charges");
-    dbg("get a list of charges for this customer.");
-    return this.stripe_need_customer_id(mesg.id, (err, customer_id) => {
-      if (err) {
-        return;
-      }
-      const options = {
-        customer: customer_id,
-        limit: mesg.limit,
-        ending_before: mesg.ending_before,
-        starting_after: mesg.starting_after
-      };
-      return this.stripe.charges.list(options, (err, charges) => {
-        if (err) {
-          return this.stripe_error_to_client({ id: mesg.id, error: err });
-        } else {
-          return this.push_to_client(
-            message.stripe_charges({ id: mesg.id, charges })
-          );
-        }
-      });
-    });
+    dbg("get a list of charges for this customer");
+
+    const options = this.stripe_api_pager_options(mesg);
+    const charges = await callback(this.stripe.charges.list, options);
+    return message.stripe_charges({ charges });
   }
 
-  mesg_get_invoices(mesg) {
+  private async mesg_get_invoices(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_invoices");
-    dbg("get a list of invoices for this customer.");
-    return this.stripe_need_customer_id(mesg.id, (err, customer_id) => {
-      if (err) {
-        return;
-      }
-      const options = {
-        customer: customer_id,
-        limit: mesg.limit,
-        ending_before: mesg.ending_before,
-        starting_after: mesg.starting_after
-      };
-      return this.stripe.invoices.list(options, (err, invoices) => {
-        if (err) {
-          return this.stripe_error_to_client({ id: mesg.id, error: err });
-        } else {
-          return this.push_to_client(
-            message.stripe_invoices({ id: mesg.id, invoices })
-          );
-        }
-      });
-    });
+    dbg("get a list of invoices for this customer");
+    const options = this.stripe_api_pager_options(mesg);
+    const invoices = await callback(this.stripe.invoices.list, options);
+    return message.stripe_invoices({ invoices });
   }
 
-  mesg_admin_create_invoice_item(mesg) {
+  // This is not actually used **YET**.
+  private async mesg_admin_create_invoice_item(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_admin_create_invoice_item");
-    this.stripe = get_stripe();
-    if (this.stripe == null) {
-      const err = "stripe billing not configured";
-      dbg(err);
-      this.error_to_client({ id, error: err });
-      return;
-    }
-    let customer_id = undefined;
-    let description = undefined;
-    let email = undefined;
-    let new_customer = true;
-    return async.series(
-      [
-        cb => {
-          return this.assert_user_is_in_group("admin", cb);
-        },
-        cb => {
-          dbg("check for existing stripe customer_id");
-          return this.database.get_account({
-            columns: [
-              "stripe_customer_id",
-              "email_address",
-              "first_name",
-              "last_name",
-              "account_id"
-            ],
-            account_id: mesg.account_id,
-            email_address: mesg.email_address,
-            cb: (err, r) => {
-              if (err) {
-                return cb(err);
-              } else {
-                customer_id = r.stripe_customer_id;
-                email = r.email_address;
-                description = `${r.first_name} ${r.last_name}`;
-                mesg.account_id = r.account_id;
-                return cb();
-              }
-            }
-          });
-        },
-        cb => {
-          if (customer_id != null) {
-            new_customer = false;
-            dbg(
-              "already signed up for stripe -- sync local user account with stripe"
-            );
-            return this.database.stripe_update_customer({
-              account_id: mesg.account_id,
-              stripe: get_stripe(),
-              customer_id,
-              cb
-            });
-          } else {
-            dbg("create stripe entry for this customer");
-            const x = {
-              description,
-              email,
-              metadata: {
-                account_id: mesg.account_id
-              }
-            };
-            return this.stripe.customers.create(x, (err, customer) => {
-              if (err) {
-                return cb(err);
-              } else {
-                customer_id = customer.id;
-                return cb();
-              }
-            });
-          }
-        },
-        cb => {
-          if (!new_customer) {
-            return cb();
-          } else {
-            dbg("store customer id in our database");
-            return this.database.set_stripe_customer_id({
-              account_id: mesg.account_id,
-              customer_id,
-              cb
-            });
-          }
-        },
-        cb => {
-          if (!(mesg.amount != null && mesg.description != null)) {
-            dbg("no amount or description -- not creating an invoice");
-            return cb();
-          } else {
-            dbg("now create the invoice item");
-            return this.stripe.invoiceItems.create(
-              {
-                customer: customer_id,
-                amount: mesg.amount * 100,
-                currency: "usd",
-                description: mesg.description
-              },
-              (err, invoice_item) => {
-                if (err) {
-                  return cb(err);
-                } else {
-                  return cb();
-                }
-              }
-            );
-          }
-        }
+    await callback(this.client.assert_user_is_in_group, "admin");
+
+    dbg("check for existing stripe customer_id");
+    const r = await callback2(this.client.database.get_account, {
+      columns: [
+        "stripe_customer_id",
+        "email_address",
+        "first_name",
+        "last_name",
+        "account_id"
       ],
-      err => {
-        if (err) {
-          return this.error_to_client({ id: mesg.id, error: err });
-        } else {
-          return this.success_to_client({ id: mesg.id });
-        }
-      }
-    );
-  }
-
-  mesg_api_key(mesg) {
-    return api_key_action({
-      database: this.database,
-      account_id: this.account_id,
-      password: mesg.password,
-      action: mesg.action,
-      cb: (err, api_key) => {
-        if (err) {
-          return this.error_to_client({ id: mesg.id, error: err });
-        } else {
-          if (api_key != null) {
-            return this.push_to_client(
-              message.api_key_info({ id: mesg.id, api_key })
-            );
-          } else {
-            return this.success_to_client({ id: mesg.id });
-          }
-        }
-      }
+      account_id: mesg.account_id,
+      email_address: mesg.email_address
     });
-  }
-
-  mesg_user_auth(mesg) {
-    return auth_token.get_user_auth_token({
-      database: this.database,
-      account_id: this.account_id, // strictly not necessary yet... but good if user has to be signed in,
-      // since more secure and we can rate limit attempts from a given user.
-      user_account_id: mesg.account_id,
-      password: mesg.password,
-      cb: (err, auth_token) => {
-        if (err) {
-          return this.error_to_client({ id: mesg.id, error: err });
-        } else {
-          return this.push_to_client(
-            message.user_auth_token({ id: mesg.id, auth_token })
-          );
+    let customer_id = r.stripe_customer_id;
+    const email = r.email_address;
+    const description = `${r.first_name} ${r.last_name}`;
+    mesg.account_id = r.account_id;
+    if (customer_id != null) {
+      dbg(
+        "already signed up for stripe -- sync local user account with stripe"
+      );
+      await callback2(this.client.database.stripe_update_customer, {
+        account_id: mesg.account_id,
+        stripe: this.stripe,
+        customer_id
+      });
+    } else {
+      dbg("create stripe entry for this customer");
+      const x = {
+        description,
+        email,
+        metadata: {
+          account_id: mesg.account_id
         }
-      }
-    });
-  }
-
-  mesg_revoke_auth_token(mesg) {
-    return auth_token.revoke_user_auth_token({
-      database: this.database,
-      auth_token: mesg.auth_token,
-      cb: err => {
-        if (err) {
-          return this.error_to_client({ id: mesg.id, error: err });
-        } else {
-          return this.push_to_client(message.success({ id: mesg.id }));
-        }
-      }
-    });
-  }
-
-  // Receive and store in memory the latest metrics status from the client.
-  mesg_metrics(mesg) {
-    const dbg = this.dbg("mesg_metrics");
-    dbg();
-    if (!(mesg != null ? mesg.metrics : undefined)) {
+      };
+      const customer = await callback(this.stripe.customers.create, x);
+      customer_id = customer.id;
+      dbg("store customer id in our database");
+      await callback2(this.client.database.set_stripe_customer_id, {
+        account_id: mesg.account_id,
+        customer_id
+      });
+    }
+    if (!(mesg.amount != null && mesg.description != null)) {
+      dbg("no amount or no description, so not creating an invoice");
       return;
     }
-    const { metrics } = mesg;
-    //dbg('GOT: ', misc.to_json(metrics))
-    if (!misc.is_array(metrics)) {
-      // client is messing with us...?
-      return;
-    }
-    for (let metric of metrics) {
-      if (!misc.is_array(metric != null ? metric.values : undefined)) {
-        // what?
-        return;
-      }
-      if (metric.values.length === 0) {
-        return;
-      }
-      for (let v of metric.values) {
-        if (!misc.is_object(v != null ? v.labels : undefined)) {
-          // what?
-          return;
-        }
-      }
-      switch (metric.type) {
-        case "gauge":
-          metric.aggregator = "average";
-          break;
-        default:
-          metric.aggregator = "sum";
-      }
-    }
 
-    return (client_metrics[this.id] = metrics);
+    dbg("now create the invoice item");
+    await callback(this.stripe.invoiceItems.create, {
+      customer: customer_id,
+      amount: mesg.amount * 100,
+      currency: "usd",
+      description: mesg.description
+    });
   }
-  //dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
 
-  mesg_get_available_upgrades(mesg) {
+  private async mesg_get_available_upgrades(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_available_upgrades");
-    const locals = {};
-    return async.series(
-      [
-        cb => {
-          dbg("get stripe customer data");
-          return this.stripe_get_customer(mesg.id, (err, stripe_customer) => {
-            locals.stripe_data = __guard__(
-              stripe_customer != null
-                ? stripe_customer.subscriptions
-                : undefined,
-              x => x.data
-            );
-            return cb(err);
-          });
-        },
-        cb => {
-          dbg("get user project upgrades");
-          return this.database.get_user_project_upgrades({
-            account_id: this.account_id,
-            cb: (err, projects) => {
-              locals.projects = projects;
-              return cb(err);
-            }
-          });
-        }
-      ],
-      err => {
-        if (err) {
-          return this.error_to_client({ id: mesg.id, error: err });
-        } else {
-          locals.x = compute_upgrades.available_upgrades(
-            locals.stripe_data,
-            locals.projects
-          );
-          locals.resp = message.available_upgrades({
-            id: mesg.id,
-            total: compute_upgrades.get_total_upgrades(locals.stripe_data),
-            excess: locals.x.excess,
-            available: locals.x.available
-          });
-          return this.push_to_client(locals.resp);
-        }
+
+    dbg("get stripe customer data");
+    const customer = await this.get_customer();
+    if (customer == null && customer.subscriptions == null) {
+      // no upgrades since not even a stripe account.
+      return message.available_upgrades({
+        total: {},
+        excess: {},
+        available: {}
+      });
+    }
+    const stripe_data = customer.subscriptions.data;
+
+    dbg("get user project upgrades");
+    const projects = await callback2(
+      this.client.database.get_user_project_upgrades,
+      {
+        account_id: this.client.account_id
       }
     );
+    const { excess, available } = compute_upgrades.available_upgrades(
+      stripe_data,
+      projects
+    );
+    const total = compute_upgrades.get_total_upgrades(stripe_data);
+    return message.available_upgrades({
+      total,
+      excess,
+      available
+    });
   }
 
-  mesg_remove_all_upgrades(mesg) {
+  private async mesg_remove_all_upgrades(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_remove_all_upgrades");
-    if (this.account_id == null) {
-      this.error_to_client({ id: mesg.id, error: "you must be signed in" });
-      return;
-    }
-    return this.database.remove_all_user_project_upgrades({
-      account_id: this.account_id,
-      projects: mesg.projects,
-      cb: err => {
-        if (err) {
-          return this.error_to_client({ id: mesg.id, error: err });
-        } else {
-          return this.push_to_client(message.success({ id: mesg.id }));
-        }
-      }
+    dbg();
+    if (this.client.account_id == null) throw Error("you must be signed in");
+    await callback2(this.client.database.remove_all_user_project_upgrades, {
+      account_id: this.client.account_id,
+      projects: mesg.projects
     });
   }
 }
