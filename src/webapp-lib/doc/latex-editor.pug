@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'latex';
-    subtitle = 'Collaborative Online LaTeX Editor';
+    subtitle = 'Online LaTeX Editor';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -32,18 +32,19 @@ block content
       div.col-md-12.center
         h1 #{subtitle}
       div.col-sm-6
-        img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
+        img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
       div.col-sm-6
         p.
-          #{NAME} let's you
-          #[strong collaboratively edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
+          Collaboratively #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
         p.
-          #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
-          and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file to get started.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] has a
           #[strong side-by-side preview],
           compiles on the fly, marks errors in the sources,
           and #[strong forward/inverse search] helps to navigate around.
+        p.
+          #[strong Ready out of the box]:
+          #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
+          and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file and you're ready to tex.
         p.
           All tedious details are taken care of:
         ul
@@ -85,9 +86,9 @@ block content
     div.container.space#computational
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-users] Full computational environment
+          h2 #[i.fa.fa-laptop] Full computational environment
         div.col-md-6
-          img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
         div.col-md-6
           div.
             What sets #{NAME} apart from other online LaTeX editors is #[strong full access to computational software].
@@ -167,7 +168,7 @@ block content
               run Python from within a document and typeset the results.
           div.
             For example, #[code \py{2 + 4**2}] produces "18".
-            You can use all #[a(href=PREFIX + "./software-python.html") available python libraries] for Python 3,
+            You can use all #[a(href="./software-python.html") available python libraries] for Python 3,
             and in particular, check out PythonTeX's support for SymPy and drawing plots via #[code pylab].
           div.
             Again, #{NAME} automatically detects that you want to run PythonTeX and handles all the details for you.
@@ -240,7 +241,7 @@ block content
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comments-o] Side-Chat panel
+          h2 #[i.fa.fa-comment] Side-Chat panel
         div.col-md-6
           img(src=require("webapp-lib/assets/cocalc-latex-side-chat-v2.png")).fit
         div.col-md-6
@@ -271,7 +272,7 @@ block content
     div.container.space#publishing
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-camera-retro] Publishing
+          h2 #[i.fa.fa-bullhorn] Publishing
         div.col-md-6
           img(src=require("webapp-lib/assets/cocalc-share-latex-document.png")).fit
         div.col-md-6

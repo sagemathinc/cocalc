@@ -4,9 +4,9 @@ extends ../_base.pug
 
 block vars
   -
-    navbar_active = 'features';
-    subnavbar_active = 'r';
-    subtitle = 'R Statistical Computing Online Environment';
+    var navbar_active = 'features';
+    var subnavbar_active = 'r';
+    var subtitle = 'R Statistical Computing Online Environment';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -36,9 +36,9 @@ block content
         p.
           It handles all the tedious details for you,
           regardless of whether you want to work on the command line,
-          run #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks],
+          run #[a(href="./jupyter-notebook.html") Jupyter Notebooks],
           create RMarkdown files, or use
-          #[a(href=PREFIX + "latex-editor.html#a-knitr") Knitr in LaTeX documents].
+          #[a(href="./latex-editor.html#a-knitr") Knitr in LaTeX documents].
         p.
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
@@ -77,15 +77,17 @@ block content
     div.container.space#jupyternotebook
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] R in Jupyter Notebooks
+          h2 R in Jupyter Notebooks
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter.png").fit
         div.col-md-6
           div.
-            #{NAME} offers a #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
+            #{NAME} offers a
+            #[strong #[a(href="./jupyter-notebook.html") complete rewrite]]
+            of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
             It is tightly integrated into #{NAME} and adds real-time collaboration,
             time-travel history and
-            #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
+            #[a(href="http://doc.cocalc.com/jupyter.html") much more].
           div.
             This rewrite does not change the underlying Jupyter notebook file format.
             Therefore, you can download your #[code *.ipynb] file at any time and continue working in another environment.
@@ -97,7 +99,7 @@ block content
     div.container.space#latex
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Extensive LaTeX support for R
+          h2 Extensive LaTeX support for R
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-latex.png").fit
         div.col-md-6
@@ -142,7 +144,7 @@ block content
     div.container.space#rmarkdown
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-users] RMarkdown support
+          h2 RMarkdown support
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-rmd-demo-R-python3-plotting.png").fit
         div.col-md-6
@@ -166,7 +168,7 @@ block content
     div.container.space#codeformatting
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-history] Code formatting
+          h2 Code formatting
         div.col-md-6
           div
             +video-player
@@ -206,7 +208,7 @@ block content
     div.container.space#commandline
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Command-line support
+          h2 Command-line support
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-rcode.png").fit
         div.col-md-6
@@ -232,7 +234,7 @@ block content
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comments-o] Chat panel
+          h2 #[i.fa.fa-comment] Chat panel
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-side-chat.png").fit
         div.col-md-6
@@ -304,7 +306,7 @@ block content
     div.container.space#publishing
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-camera-retro] Publishing
+          h2 #[i.fa.fa-bullhorn] Publishing
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-share-notebook.png").fit
         div.col-md-6
