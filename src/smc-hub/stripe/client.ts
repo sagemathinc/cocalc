@@ -115,10 +115,12 @@ export class StripeClient {
     return await callback(f.bind(obj), ...args);
   }
 
-  private async get_customer(): Promise<StripeCustomer> {
+  private async get_customer(customer_id?: string): Promise<StripeCustomer> {
     const dbg = this.dbg("get_customer");
-    dbg("getting customer id");
-    const customer_id: string = await this.need_customer_id();
+    if (customer_id == null) {
+      dbg("getting customer id");
+      customer_id = await this.need_customer_id();
+    }
     dbg("now getting stripe customer object");
     return await this.call_stripe_api("customers", "retrieve", customer_id);
   }
@@ -154,7 +156,11 @@ export class StripeClient {
   public async mesg_get_customer(_mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_customer");
     dbg("get information from stripe: subscriptions, payment methods, etc.");
-    const customer = await this.get_customer();
+    const customer_id = await this.get_customer_id();
+    let customer: undefined | StripeCustomer;
+    if (customer_id != null) {
+      customer = await this.get_customer(customer_id);
+    }
     return message.stripe_customer({
       stripe_publishable_key: this.stripe.publishable_key,
       customer
