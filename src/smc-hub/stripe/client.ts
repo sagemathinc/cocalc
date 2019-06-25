@@ -1,18 +1,22 @@
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
-import { callback2 } from "async-utils";
+import { callback2 } from "smc-util/async-utils";
+import * as message from "smc-util/message";
+import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
 
 const { get_stripe } = require("./connect");
 
 interface HubClient {
-  public account_id: string;
-  public dbg: (f: string) => Function;
-  public database: any;
+  account_id: string;
+  dbg: (f: string) => Function;
+  database: any;
+  push_to_client: Function;
+  error_to_client: Function;
+  assert_user_is_in_group: Function;
 }
 
-interface StripeConnection {}
-interface StripeCustomer {}
-
+type StripeConnection = any;
+type StripeCustomer = any;
 type Message = any;
 type Coupon = any;
 type CouponHistory = any;
@@ -36,12 +40,12 @@ export class StripeClient {
   private stripe: StripeConnection;
   private stripe_customer_id?: string;
 
-  constructor(client): void {
+  constructor(client: HubClient) {
     this.client = client;
     this.stripe = get_stripe();
     if (this.stripe == null) throw Error("stripe billing not configured");
 
-    this.get_customer_id = reuseInFlight(this.get_customer_id);
+    this.get_customer_id = reuseInFlight(this.get_customer_id.bind(this));
   }
 
   private dbg(f: string): Function {
@@ -87,7 +91,7 @@ export class StripeClient {
     return customer_id;
   }
 
-  private stripe_api_pager_options(mesg: Message): any {
+  private async stripe_api_pager_options(mesg: Message): Promise<any> {
     return {
       customer: await this.need_customer_id(),
       limit: mesg.limit,
@@ -99,9 +103,10 @@ export class StripeClient {
   private async get_customer(): Promise<StripeCustomer> {
     const dbg = this.dbg("get_customer");
     dbg("getting customer id");
-    const customer_id: string = await this.get_customer_id();
+    const customer_id: string = await this.need_customer_id();
     dbg("now getting stripe customer object");
-    return await callback(this.stripe.customers.retrieve, customer_id);
+    const f = this.stripe.customers.retrieve.bind(this.stripe.customers);
+    return await callback(f, customer_id);
   }
 
   public async handle_mesg(mesg: Message): Promise<void> {
@@ -113,7 +118,7 @@ export class StripeClient {
       if (f == null) {
         throw Error(`no such message type ${mesg.event}`);
       } else {
-        let resp: any = await f(mesg);
+        let resp: any = await f.bind(this)(mesg);
         if (resp == null) {
           resp = {};
         }
@@ -127,12 +132,12 @@ export class StripeClient {
       } else {
         error = `${err}`;
       }
-      this.dbg("handle_mesg")("Error", error);
+      this.dbg("handle_mesg")("Error", error, err.stack);
       this.client.error_to_client({ id: mesg.id, error });
     }
   }
 
-  private async mesg_get_customer(mesg: Message): Promise<Message> {
+  public async mesg_get_customer(_mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_customer");
     dbg("get information from stripe: subscriptions, payment methods, etc.");
     const customer = await this.get_customer();
@@ -142,12 +147,12 @@ export class StripeClient {
     });
   }
 
-  private mesg_create_source(mesg: Message): Promise<void> {
+  public async mesg_create_source(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_create_source");
     dbg("create a payment method (credit card) in stripe for this user");
     const token = get_string_field(mesg, "token");
     dbg("looking up customer");
-    const customer_id = await this.stripe_get_customer_id();
+    const customer_id = await this.get_customer_id();
     if (customer_id == null) {
       await this.create_new_stripe_customer_from_card_token(token);
     } else {
@@ -199,7 +204,7 @@ export class StripeClient {
   ): Promise<void> {
     const dbg = this.dbg("add_card_to_existing_stripe_customer");
     dbg("add card to existing stripe customer");
-
+    const customer_id = await this.need_customer_id();
     await callback(this.stripe.customers.createCard, customer_id, {
       card: token
     });
@@ -207,13 +212,9 @@ export class StripeClient {
     await this.update_database();
   }
 
-  private async mesg_delete_source(mesg: Message): Promise<void> {
+  public async mesg_delete_source(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_delete_source");
     dbg("delete a payment method for this user");
-    if (!this.ensure_fields(mesg, "card_id")) {
-      dbg("missing card_id field");
-      return;
-    }
     const card_id: string = get_string_field(mesg, "card_id");
 
     const customer_id = await this.get_customer_id();
@@ -224,24 +225,21 @@ export class StripeClient {
     await this.update_database();
   }
 
-  private async mesg_set_default_source(mesg: Message): Promise<void> {
+  public async mesg_set_default_source(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_set_default_source");
     dbg("set a payment method for this user to be the default");
     const card_id: string = get_string_field(mesg, "card_id");
-    const customer_id = await this.get_customer_id();
-    if (customer_id == null)
-      throw Error("no customer information so can't set a default source");
-
+    const customer_id: string = await this.need_customer_id();
     dbg("now setting the default source in stripe");
     await callback(this.stripe.customers.update, customer_id, {
-      default_source: mesg.card_id
+      default_source: card_id
     });
 
     await this.update_database();
   }
 
   private async update_database(): Promise<void> {
-    dbg("update_database")();
+    this.dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
     await callback2(this.client.database.stripe_update_customer, {
@@ -251,7 +249,7 @@ export class StripeClient {
     });
   }
 
-  private async mesg_update_source(mesg: Message): Promise<void> {
+  public async mesg_update_source(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_update_source");
     dbg("modify a payment method");
 
@@ -274,14 +272,14 @@ export class StripeClient {
     await this.update_database();
   }
 
-  private async mesg_get_plans(mesg: Message): Promise<Message> {
+  public async mesg_get_plans(_mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_plans");
     dbg("get descriptions of plans that the user might subscribe to");
     const plans = await callback(this.stripe.plans.list);
     return message.stripe_plans({ plans });
   }
 
-  private async mesg_create_subscription(mesg: Message): Promise<void> {
+  public async mesg_create_subscription(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_create_subscription");
     dbg("create a subscription for this user, using some billing method");
 
@@ -351,13 +349,15 @@ export class StripeClient {
     }
   }
 
-  private async mesg_cancel_subscription(mesg: Message): Promise<void> {
+  public async mesg_cancel_subscription(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_cancel_subscription");
     dbg("cancel a subscription for this user");
 
     const subscription_id: string = get_string_field(mesg, "subscription_id");
 
-    const customer_id: string = await this.need_customer_id();
+    // TODO/SECURITY: We should check that this subscription actually
+    // belongs to this user.  As it is, they could be cancelling somebody
+    // else's subscription!
 
     dbg("cancel the subscription at stripe");
     // This also returns the subscription, which lets
@@ -369,7 +369,7 @@ export class StripeClient {
     await this.update_database();
   }
 
-  private async mesg_update_subscription(mesg: Message): Promise<void> {
+  public async mesg_update_subscription(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_update_subscription");
     dbg("edit a subscription for this user");
 
@@ -400,13 +400,13 @@ export class StripeClient {
     }
   }
 
-  private async mesg_get_subscriptions(mesg: Message): Promise<Message> {
+  public async mesg_get_subscriptions(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_subscriptions");
     dbg("get a list of all the subscriptions that this customer has");
 
     const customer_id: string = await this.need_customer_id();
 
-    const options = this.stripe_api_pager_options(mesg);
+    const options = await this.stripe_api_pager_options(mesg);
     const subscriptions = await callback(
       this.stripe.customers.listSubscriptions,
       customer_id,
@@ -415,13 +415,13 @@ export class StripeClient {
     return message.stripe_subscriptions({ subscriptions });
   }
 
-  private async mesg_get_coupon(mesg: Message): Message {
+  public async mesg_get_coupon(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_coupon");
     dbg(`get the coupon with id=${mesg.coupon_id}`);
 
     const coupon_id: string = get_string_field(mesg, "coupon_id");
 
-    const coupon = await callback(this.validate_coupon, mesg.coupon_id);
+    const coupon = await callback(this.validate_coupon, coupon_id);
     return message.stripe_coupon({ coupon });
   }
 
@@ -429,7 +429,6 @@ export class StripeClient {
   // - Exists
   // - Is valid
   // - Used by this account less than the max per account (hard coded default is 1)
-  // Calls cb(err, coupon, coupon_history)
   private async validate_coupon(
     coupon_id: string
   ): Promise<{ coupon: Coupon; coupon_history: CouponHistory }> {
@@ -441,7 +440,7 @@ export class StripeClient {
     );
 
     dbg("check account coupon_history");
-    const coupon_history: CouponHistory = await callback2(
+    let coupon_history: CouponHistory = await callback2(
       this.client.database.get_coupon_history,
       {
         account_id: this.client.account_id
@@ -469,25 +468,25 @@ export class StripeClient {
     return { coupon, coupon_history };
   }
 
-  private async mesg_get_charges(mesg: Message): Promise<Message> {
+  public async mesg_get_charges(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_charges");
     dbg("get a list of charges for this customer");
 
-    const options = this.stripe_api_pager_options(mesg);
+    const options = await this.stripe_api_pager_options(mesg);
     const charges = await callback(this.stripe.charges.list, options);
     return message.stripe_charges({ charges });
   }
 
-  private async mesg_get_invoices(mesg: Message): Promise<Message> {
+  public async mesg_get_invoices(mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_invoices");
     dbg("get a list of invoices for this customer");
-    const options = this.stripe_api_pager_options(mesg);
+    const options = await this.stripe_api_pager_options(mesg);
     const invoices = await callback(this.stripe.invoices.list, options);
     return message.stripe_invoices({ invoices });
   }
 
   // This is not actually used **YET**.
-  private async mesg_admin_create_invoice_item(mesg: Message): Promise<void> {
+  public async mesg_admin_create_invoice_item(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_admin_create_invoice_item");
     await callback(this.client.assert_user_is_in_group, "admin");
 
@@ -547,7 +546,7 @@ export class StripeClient {
     });
   }
 
-  private async mesg_get_available_upgrades(mesg: Message): Promise<Message> {
+  public async mesg_get_available_upgrades(_mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_available_upgrades");
 
     dbg("get stripe customer data");
@@ -569,11 +568,8 @@ export class StripeClient {
         account_id: this.client.account_id
       }
     );
-    const { excess, available } = compute_upgrades.available_upgrades(
-      stripe_data,
-      projects
-    );
-    const total = compute_upgrades.get_total_upgrades(stripe_data);
+    const { excess, available } = available_upgrades(stripe_data, projects);
+    const total = get_total_upgrades(stripe_data);
     return message.available_upgrades({
       total,
       excess,
@@ -581,7 +577,7 @@ export class StripeClient {
     });
   }
 
-  private async mesg_remove_all_upgrades(mesg: Message): Promise<void> {
+  public async mesg_remove_all_upgrades(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_remove_all_upgrades");
     dbg();
     if (this.client.account_id == null) throw Error("you must be signed in");

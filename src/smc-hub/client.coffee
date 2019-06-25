@@ -14,7 +14,6 @@ misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
-compute_upgrades     = require('smc-util/upgrades')
 base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
