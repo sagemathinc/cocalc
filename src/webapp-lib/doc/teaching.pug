@@ -25,7 +25,7 @@ block content
       div.col-sm-2.col-sm-offset-5.center
         img(src="https://storage.googleapis.com/cocalc-extra/fa-graduation-cap.svg").fit
       div.col-md-12.center
-        h1 Teaching online with #{NAME}
+        h1 #{subtitle}
         h3 A virtual online computer lab
       div.col-sm-6
         img(src="https://storage.googleapis.com/cocalc-extra/cocalc-course-assignments-2019.png").fit
@@ -39,13 +39,13 @@ block content
           distributing, collecting, grading and returning everyone's assignments.
         p.
           #[strong Follow the progress of each student in real-time]:
-          If a student needs help, instructors and TAs can open the student's file and see exactly what the student sees.
+          If a student needs help, open the student's file and see exactly what the student sees.
           This helps enormously with giving quick and precise help.
         p.
           #[strong Common underlying software environment]:
-          no complicated software setup necessary!
+          There is no complicated software setup necessary!
           Everyone works with the very same software,
-          and no slight incompatibilities between your and your student's environment.
+          which eliminates slight inconsistencies between your and the students' environments.
         p.
           Learn more in the #[strong #[a(href="https://doc.cocalc.com/teaching-instructors.html") Instructor Guide]].
 
@@ -98,7 +98,7 @@ block content
   div.container.space#course
     div.row
       div.col-md-12.center
-        h2 Available tools
+        h2 #[i.fa.fa-tools] Available tools
 
       div.col-sm-3
         div.row
@@ -129,12 +129,12 @@ block content
       div.col-sm-3
         div.row
           div.col-sm-6.col-sm-offset-3.center
-            a(href="./latex.html")
+            a(href="./latex-editor.html")
               img(src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit
         h3.center.
-          #[a(href="./latex.html") LaTeX Documents]
+          #[a(href="./latex-editor.html") LaTeX Documents]
         p.
-          #{NAME}'s online #[a(href="./latex.html") LaTeX editor]
+          #{NAME}'s online #[a(href="./latex-editor.html") LaTeX editor]
           gives you a full LaTeX environment with zero-setup.
           It supports online preview rendering, forward/inverse search, error reporting,
           and #[a(href="https://doc.cocalc.com/latex.html") much more]!
