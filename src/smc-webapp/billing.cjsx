@@ -1216,6 +1216,14 @@ exports.ExplainResources = ExplainResources = rclass
         <div>
             <Row>
                 <Col md={8} sm={12}>
+                    <h4>Questions</h4>
+                    <div style={fontSize:'12pt'}>
+                        Please immediately email us at <HelpEmailLink/>, click the Help button above, {" "}
+                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
+                        if anything is unclear to you, or you just have a quick question and do not want to wade through all the text below.
+                    </div>
+                    <Space/>
+
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
@@ -1261,12 +1269,6 @@ exports.ExplainResources = ExplainResources = rclass
                     </div>
                     <Space/>
 
-                    <div style={fontWeight:"bold"}>
-                        Please immediately email us at <HelpEmailLink/> {" "}
-                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
-                        if anything is unclear to you.
-                    </div>
-                    <Space/>
                 </Col>
                 <Col md={4} sm={12}>
                     <Row>
