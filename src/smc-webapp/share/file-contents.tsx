@@ -27,8 +27,7 @@ import { CodeMirrorStatic } from "../jupyter/codemirror-static";
 
 //import { Worksheet as Worksheet } from "../sagews/worksheet";
 const { Worksheet } = require("../sagews/worksheet");
-//import { parse_sagews } from "../sagews/parse-sagews";
-const { parse_sagews } = require("../sagews/parse-sagews");
+import { parse_sagews } from "../sagews/parse-sagews";
 
 export function has_viewer(ext: string): boolean {
   return (
