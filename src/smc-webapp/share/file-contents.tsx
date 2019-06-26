@@ -135,13 +135,13 @@ export class FileContents extends Component<Props> {
         />
       );
     } else if (extensions.codemirror[ext] && this.props.highlight) {
-      const options = fromJS(extensions.codemirror[ext]);
-      //options = options.set('lineNumbers', true)
+      let options = fromJS(extensions.codemirror[ext]);
+      options = options.set("lineNumbers", true);
       elt = (
         <CodeMirrorStatic
           value={this.props.content}
           options={options}
-          style={{ background: "white", margin: "10px 20px" }}
+          style={{ background: "white" }}
         />
       );
     } else {
