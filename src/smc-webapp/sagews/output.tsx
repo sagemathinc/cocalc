@@ -156,7 +156,7 @@ export class CellOutput extends Component<Props> {
         f = this.render_stderr;
         value = `unknown message type '${type}'`;
       }
-      elts.push(f(value, elts.length));
+      elts.push(f.bind(this)(value, elts.length));
     }
   }
 
