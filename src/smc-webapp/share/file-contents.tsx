@@ -11,7 +11,7 @@ import { filename_extension, path_split } from "smc-util/misc2";
 
 import { Component, Rendered, React, Redux, redux } from "../app-framework";
 
-const { Markdown } = require("../r_misc");
+const { HTML, Markdown } = require("../r_misc");
 
 import * as file_editors from "../file-editors";
 
@@ -81,12 +81,12 @@ export class FileContents extends Component<Props> {
     const src = path_split(path).tail + "?viewer=raw";
 
     if (extensions.image.has(ext)) {
-      return <img src={src} />;
+      elt = <img src={src} />;
     } else if (extensions.pdf.has(ext)) {
-      return <PDF src={src} />;
+      elt = <PDF src={src} />;
     } else if (extensions.video.has(ext)) {
       const video_style = { maxWidth: "100%", height: "auto" };
-      return (
+      elt = (
         <video
           controls={true}
           autoPlay={true}
@@ -96,13 +96,23 @@ export class FileContents extends Component<Props> {
         />
       );
     } else if (extensions.audio.has(ext)) {
-      return <audio src={src} autoPlay={true} controls={true} loop={false} />;
+      elt = <audio src={src} autoPlay={true} controls={true} loop={false} />;
     } else if (ext === "md" && this.props.highlight) {
       // WARNING: slow if big!
       elt = <Markdown value={this.props.content} />;
     } else if (extensions.html.has(ext)) {
-      // Fast, and we don't do any sanitization anyways.
-      elt = <div dangerouslySetInnerHTML={{ __html: this.props.content }} />;
+      if (this.props.highlight) {
+        elt = <HTML value={this.props.content} />;
+      } else {
+        // Fast, and we don't do any sanitization anyways.
+        elt = (
+          <div>
+            (File too big to render with math typesetting.)
+            <br />
+            <div dangerouslySetInnerHTML={{ __html: this.props.content }} />;
+          </div>
+        );
+      }
     } else if (ext === "ipynb" && this.props.highlight) {
       const name = file_editors.initialize(
         path,
