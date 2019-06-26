@@ -917,7 +917,6 @@ ProjectsSearch = rclass
 
     render: ->
         <SearchInput
-            cocalc-test = 'project-search'
             ref         = 'projects_search'
             autoFocus   = {true}
             value       = {@state.search}
