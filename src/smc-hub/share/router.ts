@@ -9,12 +9,16 @@ import { callback } from "awaiting";
 import * as express from "express";
 
 import { React } from "smc-webapp/app-framework";
-import { filename_extension, is_valid_uuid_string } from "smc-util/misc2";
+import {
+  filename_extension,
+  is_valid_uuid_string,
+  path_split
+} from "smc-util/misc2";
 
 import * as react_support from "./react";
 
 import { PublicPathsBrowser } from "smc-webapp/share/public-paths-browser";
-import { has_viewer } from "smc-webapp/share/public-path";
+import { has_special_viewer } from "smc-webapp/share/file-contents";
 import { IsPublicFunction, Page } from "smc-webapp/share/page";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
@@ -228,39 +232,47 @@ export function share_router(opts: {
     let { viewer } = req.query;
     if (viewer == null) {
       const ext = filename_extension(path);
-      if (has_viewer(ext)) {
+      if (has_special_viewer(ext)) {
         viewer = "share";
       } else {
         viewer = "raw";
       }
     }
 
-    if (viewer != "raw") {
-      render_public_path({
-        req,
-        res,
-        info,
-        dir,
-        path,
-        react: react_viewer(
-          base_url,
-          `/${req.params.id}/${path}`,
-          project_id,
-          false,
+    switch (viewer) {
+      case "raw":
+        render_static_path({
+          req,
+          res,
+          dir,
+          path
+        });
+        break;
+
+      case "download":
+        const filename = path_split(path).tail;
+        res.download(dir + "/" + path, filename);
+        break;
+
+      default:
+        render_public_path({
+          req,
+          res,
+          info,
+          dir,
+          path,
+          react: react_viewer(
+            base_url,
+            `/${req.params.id}/${path}`,
+            project_id,
+            false,
+            viewer,
+            public_paths.is_public
+          ),
           viewer,
-          public_paths.is_public
-        ),
-        viewer,
-        hidden: req.query.hidden,
-        sort: req.query.sort != null ? req.query.sort : "-mtime"
-      });
-    } else {
-      render_static_path({
-        req,
-        res,
-        dir,
-        path
-      });
+          hidden: req.query.hidden,
+          sort: req.query.sort != null ? req.query.sort : "-mtime"
+        });
     }
   });
 

@@ -629,21 +629,27 @@ exports.HTML = HTML = rclass
         if not @props.value
             return {__html: ''}
 
-        if @props.safeHTML
-            html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
-        else
-            html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-
         if share_server.SHARE_SERVER
+            # No sanitization at all for share server.  For now we
+            # have set things up so that the share server is served
+            # from a different subdomain and user can't sign into it,
+            # so XSS is not an issue.  Note that the sanitizing
+            # in the else below is quite expensive and often crashes
+            # on "big" documents (e.g., 500K).
             {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
             elt = jQuery("<div>")
-            elt.html(html)
+            elt.html(@props.value)
             if @props.auto_render_math
                 elt.katex()
             elt.find("table").addClass("table")
             if @props.highlight_code
                 elt.highlight_code()
             html = elt.html()
+        else
+            if @props.safeHTML
+                html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
+            else
+                html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         return {__html: html}
 

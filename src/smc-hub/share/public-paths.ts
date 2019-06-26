@@ -46,7 +46,7 @@ export class PublicPaths extends EventEmitter {
     return this.synctable.get(id);
   }
 
-  public get_all(): Map<string, any> {
+  public get_all(): immutable.Map<string, any> {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get();
   }

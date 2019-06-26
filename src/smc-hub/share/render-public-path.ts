@@ -5,8 +5,12 @@ Render a public path
 // Do not backend render any file beyond this size, instead showing
 // a download link.   This is to avoid a share server blocking for
 // a long time or using a lot of RAM.
-const MAX_SIZE_MB: number = 10;
-const MAX_SIZE: number = 1000000 * MAX_SIZE_MB; // size in bytes
+const MB: number = 1000000;
+const MAX_SIZE_MB: number = 5;
+
+// I want to raise this, but right now our Markdown and HTML renderers
+// are VERY slow on big files:
+const MAX_SIZE_HIGHLIGHT_MB: number = 0.5;
 
 import * as os_path from "path";
 import { stat, readFile } from "fs";
@@ -16,9 +20,8 @@ import { filename_extension, field_cmp } from "smc-util/misc";
 
 import { React } from "smc-webapp/app-framework";
 import { PublicPath } from "smc-webapp/share/public-path";
+import { has_viewer, needs_content } from "smc-webapp/share/file-contents";
 import { DirectoryListing } from "smc-webapp/share/directory-listing";
-
-import * as extensions from "smc-webapp/share/extensions";
 
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
@@ -79,31 +82,36 @@ export async function render_public_path(opts: {
     if (reverse) {
       files.reverse();
     }
-    const C = React.createElement(DirectoryListing, {
+    const component = React.createElement(DirectoryListing, {
       hidden: opts.hidden,
       info: opts.info as any, // typescript gets confused between two copies of immutable, breaking checking in this case.
       files: files,
       viewer: opts.viewer,
       path: opts.path
     });
-    opts.react(opts.res, C, opts.path);
+    opts.react(opts.res, component, opts.path);
     return;
   }
 
   dbg("is file");
+  let why: string | undefined = undefined;
   let content: string | undefined = undefined;
-  if (stats.size <= MAX_SIZE) {
-    let ext = filename_extension(path_to_file);
-    if (ext != null) ext = ext.toLowerCase();
-    if (
-      !(extensions.image[ext] || extensions.pdf[ext] || extensions.video[ext])
-    ) {
+  let ext = filename_extension(path_to_file);
+  if (ext != null) ext = ext.toLowerCase();
+  if (!has_viewer(ext)) {
+    why = "We do not have a way to display this file.";
+  } else if (stats.size > MAX_SIZE_MB * MB) {
+    why = "File too big to be shown.";
+  } else {
+    if (needs_content(ext)) {
       try {
         content = (await callback(readFile, path_to_file)).toString();
       } catch (err) {
         opts.res.sendStatus(404);
         return;
       }
+    } else {
+      content = "";
     }
   }
 
@@ -112,9 +120,9 @@ export async function render_public_path(opts: {
     content,
     viewer: opts.viewer,
     path: opts.path,
+    why,
     size: stats.size,
-    max_size: MAX_SIZE
+    highlight: stats.size < MAX_SIZE_HIGHLIGHT_MB * MB
   });
-
   opts.react(opts.res, component, opts.path);
 }

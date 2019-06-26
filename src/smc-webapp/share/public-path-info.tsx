@@ -7,48 +7,43 @@ import { Map } from "immutable";
 import { Rendered, React, Component } from "../app-framework";
 
 import { Space } from "../r_misc/space";
+const { r_join } = require("../r_misc");
 
 //import { Markdown } from "../r_misc/markdown";
-const { Markdown } = require('../r_misc');
+const { Markdown } = require("../r_misc");
 
-import { path_split, filename_extension } from "smc-util/misc";
+import { path_split } from "smc-util/misc";
 
 interface Props {
   info?: Map<string, any>;
   path: string;
+  isdir?: boolean;
 }
 
 export class PublicPathInfo extends Component<Props> {
   private render_external_links(): Rendered {
+    if (this.props.isdir) return;
     let href = path_split(this.props.path).tail;
     if (href.length === 0) {
       href = ".";
     }
 
-    // follow raw links only in a few special cases (not html!)
-    const ext: string = filename_extension(this.props.path).toLowerCase();
-    const raw_rel = ext === "pdf" || ext === "md" ? undefined : "nofollow";
+    const v: Rendered[] = [];
+    for (let type of ["Download", "Raw", "Embed"]) {
+      v.push(
+        <a
+          key={type}
+          href={href + `?viewer=${type.toLowerCase()}`}
+          style={{ textDecoration: "none" }}
+        >
+          {type}
+        </a>
+      );
+    }
 
     return (
       <div className="pull-right" style={{ marginRight: "5px" }}>
-        <a
-          href={href + "?viewer=raw"}
-          target="_blank"
-          rel={raw_rel}
-          style={{ textDecoration: "none" }}
-        >
-          Raw
-        </a>
-        <Space />
-        <Space />
-        <a
-          href={href + "?viewer=embed"}
-          target="_blank"
-          rel="nofollow"
-          style={{ textDecoration: "none" }}
-        >
-          Embed
-        </a>
+        {r_join(v, <Space />)}
       </div>
     );
   }
