@@ -14,8 +14,8 @@ import { MARKERS } from "smc-util/sagews";
 // Output: a list of objects
 //   [{type:'cell', pos:0, id:'...', flags:'...', input:'...', output:{0:mesg, 1:mesg, ...}}]
 
-type OutputMessage = any;
-type OutputMessages = { [n: number]: OutputMessage };
+export type OutputMessage = any;
+export type OutputMessages = { [n: number]: OutputMessage };
 
 type CellTypes = "cell";
 
