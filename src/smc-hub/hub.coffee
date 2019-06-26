@@ -580,6 +580,14 @@ exports.start_server = start_server = (cb) ->
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
             x.http_server.listen(program.share_port, program.host, cb)
         (cb) ->
+            # TODO: Un-fix this
+            program.lti_port = 1435;
+            if not program.lti_port
+                cb(); return
+            lti_router = await require('./lti').SimpleRouter();
+            winston.debug("starting lti webserver listening on #{program.host}:#{program.lti_port}")
+            lti_router.http_server.listen(program.port, program.host, cb)
+        (cb) ->
             if database.is_standby
                 cb(); return
             if not program.port
