@@ -6,7 +6,7 @@ Render a public path
 // a download link.   This is to avoid a share server blocking for
 // a long time or using a lot of RAM.
 const MB: number = 1000000;
-const MAX_SIZE_MB: number = 5;
+const MAX_SIZE_MB: number = 10;
 
 // I want to raise this, but right now our Markdown and HTML renderers
 // are VERY slow on big files:
@@ -115,6 +115,16 @@ export async function render_public_path(opts: {
     }
   }
 
+  let highlight : boolean;
+  if (ext == 'ipynb') {
+    // ipynb files tend to be very large, but still easy to render, due to images.
+    // This is a little dangerous though! We will eventually need to do something
+    // maybe async with a timeout...
+    highlight = true;
+  } else {
+    highlight = stats.size < MAX_SIZE_HIGHLIGHT_MB * MB;
+  }
+
   const component = React.createElement(PublicPath, {
     info: opts.info as any, // see comment where this is done above.
     content,
@@ -122,7 +132,7 @@ export async function render_public_path(opts: {
     path: opts.path,
     why,
     size: stats.size,
-    highlight: stats.size < MAX_SIZE_HIGHLIGHT_MB * MB
+    highlight
   });
   opts.react(opts.res, component, opts.path);
 }
