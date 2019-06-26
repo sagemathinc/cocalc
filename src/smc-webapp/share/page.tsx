@@ -100,7 +100,7 @@ export class Page extends Component<PageProps> {
           }}
         >
           <a
-            href={"https://cocalc.com/doc/features.html"}
+            href={"https://cocalc.com/doc/"}
             target={"_blank"}
             rel={"noopener"}
           >
