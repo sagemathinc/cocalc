@@ -85,4 +85,12 @@ exports.parse_sagews = (sagews) ->
         obj.push(cell)
         pos += 1
         i = output_end + 1
+    if pos == 0 and sagews.trim().length > 0
+        # special case -- no defined cells, e.g., just code that hasn't been run
+        cell =
+            type   : 'cell'
+            pos    : 0
+            id     : ''
+            input  : sagews
+        obj.push(cell)
     return obj
