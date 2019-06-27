@@ -55,7 +55,16 @@ interface Props {
   has_network_access?: boolean;
 }
 
-export class Configure extends Component<Props> {
+interface State {
+  sharing_options_state: string;
+}
+
+export class Configure extends Component<Props, State> {
+  constructor(props, state) {
+    super(props, state);
+    this.state = { sharing_options_state: this.get_sharing_options_state() };
+  }
+
   private render_how_shared_heading(): Rendered {
     return (
       <div style={{ color: "#444", fontSize: "15pt" }}>
@@ -78,6 +87,7 @@ export class Configure extends Component<Props> {
   private handle_sharing_options_change(e): void {
     let description;
     const state = e.target.value;
+    this.setState({ sharing_options_state: state });
     if (state === "private") {
       this.props.disable_public_path();
     } else if (state === "public_listed") {
@@ -185,7 +195,7 @@ export class Configure extends Component<Props> {
   }
 
   private render_sharing_options(): Rendered {
-    const state: string = this.get_sharing_options_state();
+    const state: string = this.state.sharing_options_state;
     return (
       <FormGroup>
         {this.render_public_listed_option(state)}
@@ -261,7 +271,7 @@ export class Configure extends Component<Props> {
   }
 
   private render_public_config(parent_is_public: boolean): Rendered {
-    if (!this.props.is_public) return;
+    if (this.state.sharing_options_state === "private") return;
 
     return (
       <Row>
@@ -318,15 +328,15 @@ export class Configure extends Component<Props> {
           </VisibleMDLG>
         </Row>
         <Row>
-          <Col sm={6}>{this.render_how_shared(parent_is_public)}</Col>
+          <Col sm={6}>
+            {this.render_how_shared(parent_is_public)}
+            {this.render_share_warning(parent_is_public)}
+          </Col>
           <Col sm={6}>{this.render_share_defn()}</Col>
         </Row>
         {this.render_public_config(parent_is_public)}
         <Row>
-          <Col sm={12}>
-            {this.render_share_warning(parent_is_public)}
-            {this.render_close_button()}
-          </Col>
+          <Col sm={12}>{this.render_close_button()}</Col>
         </Row>
       </div>
     );
