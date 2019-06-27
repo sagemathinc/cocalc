@@ -18,7 +18,7 @@ import {
 import * as react_support from "./react";
 
 import { PublicPathsBrowser } from "smc-webapp/share/public-paths-browser";
-import { has_special_viewer } from "smc-webapp/share/file-contents";
+import { default_to_raw, has_special_viewer } from "smc-webapp/share/file-contents";
 import { IsPublicFunction, Page } from "smc-webapp/share/page";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
@@ -232,7 +232,7 @@ export function share_router(opts: {
     let { viewer } = req.query;
     if (viewer == null) {
       const ext = filename_extension(path);
-      if (has_special_viewer(ext)) {
+      if (!default_to_raw(ext) && has_special_viewer(ext)) {
         viewer = "share";
       } else {
         viewer = "raw";
