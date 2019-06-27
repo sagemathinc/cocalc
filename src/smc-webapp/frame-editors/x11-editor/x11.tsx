@@ -4,8 +4,6 @@ X11 Window frame.
 
 import { Map, Set } from "immutable";
 
-import { ResizeObserver } from "resize-observer";
-
 import { delay } from "awaiting";
 
 import {
@@ -33,6 +31,7 @@ interface Props {
   font_size: number;
   reload: string;
   editor_settings: Map<string, any>;
+  resize: number;
   // reduxProps:
   windows: Map<string, any>;
   x11_is_idle: boolean;
@@ -56,6 +55,12 @@ class X11Component extends Component<Props, {}> {
         config_unknown: rtypes.bool
       }
     };
+  }
+
+  componentWillReceiveProps(next: Props): void {
+    if (this.props.resize != next.resize) {
+      this.measure_size();
+    }
   }
 
   shouldComponentUpdate(next): boolean {
@@ -123,20 +128,17 @@ class X11Component extends Component<Props, {}> {
     this.is_mounted = true;
 
     // "wait" until window node is available
-    const node: any = await retry_until_success({
+    await retry_until_success({
       f: async () => {
         const node: any = ReactDOM.findDOMNode(this.refs.window);
-        if (node != null) {
-          return node;
-        } else {
+        if (node == null) {
           throw new Error("x11 window node not yet available");
         }
       },
       max_time: 60000,
-      max_delay: 100
+      max_delay: 150
     });
     this.insert_window_in_dom(this.props);
-    this.init_resize_observer(node);
     this.disable_browser_context_menu();
 
     // set keyboard layout
@@ -155,10 +157,6 @@ class X11Component extends Component<Props, {}> {
     $(node).bind("contextmenu", function() {
       return false;
     });
-  }
-
-  init_resize_observer(node: any): void {
-    new ResizeObserver(() => this.measure_size()).observe(node);
   }
 
   async insert_window_in_dom(props: Props): Promise<void> {

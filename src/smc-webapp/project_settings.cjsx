@@ -156,7 +156,6 @@ QuotaConsole = rclass
                     </li>
                 upgrade_list.push(li)
 
-        amount = misc.round2(base_value * factor)
         if base_value
             # amount given by free project
             upgrade_list.unshift(<li key='free'>{text(base_value)} given by free project</li>)

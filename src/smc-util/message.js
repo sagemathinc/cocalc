@@ -411,14 +411,6 @@ API(
         init: required,
         desc: "must be true for request to succeed"
       },
-      utm: {
-        init: undefined,
-        desc: "UTM parameters"
-      },
-      referrer: {
-        init: undefined,
-        desc: "Referrer URL"
-      },
       token: {
         init: undefined, // only required when token is set.
         desc: "account creation token - see src/dev/docker/README.md"
@@ -528,8 +520,6 @@ message({
   email_address: required,
   password: required,
   remember_me: false,
-  utm: undefined,
-  referrer: undefined,
   get_api_key: undefined
 }); // same as for create_account
 
@@ -564,10 +554,8 @@ message({
   email_address: undefined, // email address they signed in under
   first_name: undefined,
   last_name: undefined,
-  utm: undefined,
-  referrer: undefined,
-  api_key: undefined
-}); // user's api key, if requested in sign_in or create_account messages.
+  api_key: undefined // user's api key, if requested in sign_in or create_account messages.
+});
 
 // client --> hub
 message({
@@ -2518,6 +2506,8 @@ This queries directly the database (sort of Facebook's GraphQL)
 Options for the 'query' API message must be sent as JSON object.
 A query is either _get_ (read from database), or _set_ (write to database).
 A query is _get_ if any query keys are null, otherwise the query is _set_.
+
+Note: queries with \`multi_response\` set to \`true\` are not supported.
 
 #### Examples of _get_ query:
 

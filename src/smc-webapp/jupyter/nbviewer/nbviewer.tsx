@@ -68,7 +68,8 @@ export class NBViewer0 extends Component<NBViewerProps> {
   }
 
   private render_cells(): Rendered {
-    if (this.props.cell_list == null || this.props.cells == null) return <Loading />;
+    if (this.props.cell_list == null || this.props.cells == null)
+      return <Loading />;
     const directory = path_split(this.props.path).head;
     return (
       <CellList
@@ -76,7 +77,10 @@ export class NBViewer0 extends Component<NBViewerProps> {
         cells={this.props.cells}
         font_size={this.props.font_size}
         mode="escape"
-        cm_options={this.props.cm_options ? this.props.cm_options : Map()}
+        cm_options={
+          this.props.cm_options
+            ? this.props.cm_options
+            : Map() }
         project_id={this.props.project_id}
         directory={directory}
         trust={false}

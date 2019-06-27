@@ -63,6 +63,8 @@ exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
 exports.TimeElapsed = TimeElapsed
 
+share_server = require('./share-server');
+
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
 build_date  = BUILD_DATE  ? 'N/A'
@@ -529,9 +531,6 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-# This is set to true when run from the share server.  All rendering of HTML must then be synchronous.
-exports.SHARE_SERVER = false
-
 exports.HTML = HTML = rclass
     displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
@@ -600,7 +599,7 @@ exports.HTML = HTML = rclass
             $(ReactDOM.findDOMNode(@)).highlight_code()
 
     _do_updates: ->
-        if exports.SHARE_SERVER
+        if share_server.SHARE_SERVER
             return
         @_update_mathjax()
         @_update_links()
@@ -630,21 +629,27 @@ exports.HTML = HTML = rclass
         if not @props.value
             return {__html: ''}
 
-        if @props.safeHTML
-            html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
-        else
-            html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-
-        if exports.SHARE_SERVER
+        if share_server.SHARE_SERVER
+            # No sanitization at all for share server.  For now we
+            # have set things up so that the share server is served
+            # from a different subdomain and user can't sign into it,
+            # so XSS is not an issue.  Note that the sanitizing
+            # in the else below is quite expensive and often crashes
+            # on "big" documents (e.g., 500K).
             {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
             elt = jQuery("<div>")
-            elt.html(html)
+            elt.html(@props.value)
             if @props.auto_render_math
                 elt.katex()
             elt.find("table").addClass("table")
             if @props.highlight_code
                 elt.highlight_code()
             html = elt.html()
+        else
+            if @props.safeHTML
+                html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
+            else
+                html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         return {__html: html}
 

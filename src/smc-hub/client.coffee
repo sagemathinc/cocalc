@@ -14,7 +14,6 @@ misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
-compute_upgrades     = require('smc-util/upgrades')
 base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
@@ -24,7 +23,7 @@ password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
-{get_stripe}         = require('./stripe/connect')
+{StripeClient}       = require('./stripe/client')
 {get_support}        = require('./support')
 {send_email}         = require('./email')
 {api_key_action}     = require('./api/manage')
@@ -370,14 +369,12 @@ class exports.Client extends EventEmitter
         @account_id = signed_in_mesg.account_id
 
         sign_in.record_sign_in
-            ip_address    : @ip_address
-            successful    : true
-            remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
-            email_address : signed_in_mesg.email_address
-            account_id    : signed_in_mesg.account_id
-            utm           : signed_in_mesg.utm
-            referrer      : signed_in_mesg.referrer
-            database      : @database
+            ip_address      : @ip_address
+            successful      : true
+            remember_me     : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
+            email_address   : signed_in_mesg.email_address
+            account_id      : signed_in_mesg.account_id
+            database        : @database
 
         # Get user's group from database.
         @get_groups()
@@ -1933,627 +1930,64 @@ class exports.Client extends EventEmitter
     ###
     Stripe-integration billing code
     ###
-    ensure_fields: (mesg, fields) =>
-        if not mesg.id?
-            return false
-        if typeof(fields) == 'string'
-            fields = fields.split(' ')
-        for f in fields
-            if not mesg[f.trim()]?
-                err = "invalid message; must have #{f} field"
-                @error_to_client(id:mesg.id, error:err)
-                return false
-        return true
-
-    stripe_get_customer_id: (id, cb) =>  # id = message id
-        # cb(err, customer_id)
-        #  - if err, then an error message with id the given id is sent to the
-        #    user, so client code doesn't have to
-        #  - if no customer info yet with stripe, then NOT an error; instead,
-        #    customer_id is undefined.
-        dbg = @dbg("stripe_get_customer_id")
-        dbg()
-        if not @account_id?
-            err = "You must be signed in to use billing related functions."
-            @error_to_client(id:id, error:err)
-            cb(err)
-            return
-        @_stripe = get_stripe()
-        if not @_stripe?
-            err = "stripe billing not configured"
-            dbg(err)
-            @error_to_client(id:id, error:err)
-            cb(err)
-        else
-            if @stripe_customer_id?
-                dbg("using cached @stripe_customer_id")
-                cb(undefined, @stripe_customer_id)
-            else
-                if @_stripe_customer_id_cbs?
-                    @_stripe_customer_id_cbs.push({id:id, cb:cb})
-                    return
-                @_stripe_customer_id_cbs = [{id:id, cb:cb}]
-                dbg('getting stripe_customer_id from db...')
-                @database.get_stripe_customer_id
-                    account_id : @account_id
-                    cb         : (err, customer_id) =>
-                        @stripe_customer_id = customer_id  # cache for later
-                        for x in @_stripe_customer_id_cbs
-                            {id, cb} = x
-                            if err
-                                dbg("fail -- #{err}")
-                                @error_to_client(id:id, error:err)
-                                cb(err)
-                            else
-                                dbg("got result #{customer_id}")
-                                cb(undefined, customer_id)
-                        delete @_stripe_customer_id_cbs
-
-                        # Log that the user is requesting this info, which means
-                        # they are billing the subscription page.  This is
-                        # potentially useful to record.
-                        @database.log
-                            event : 'billing'
-                            value : {account_id: @account_id}
-
-    stripe_need_customer_id: (id, cb) =>
-        # Like stripe_get_customer_id, except sends an error to the
-        # user if they aren't registered yet, instead of returning undefined.
-        @dbg("stripe_need_customer_id")()
-        @stripe_get_customer_id id, (err, customer_id) =>
-            if err
-                cb(err); return
-            if not customer_id?
-                err = "customer not defined"
-                @stripe_error_to_client(id:id, error:err)
-                cb(err); return
-            cb(undefined, customer_id)
-
-    # id : user's CoCalc account id
-    stripe_get_customer: (id, cb) =>
-        dbg = @dbg("stripe_get_customer")
-        dbg("getting id")
-        @stripe_get_customer_id id, (err, customer_id) =>
-            if err
-                dbg("failed -- #{err}")
-                cb(err)
-                return
-            if not customer_id?
-                dbg("no customer_id set yet")
-                cb(undefined, undefined)
-                return
-            dbg("now getting stripe customer object")
-            @_stripe.customers.retrieve customer_id, (err, customer) =>
-                if err
-                    dbg("failed -- #{err}")
-                    @error_to_client(id:id, error:err)
-                    cb(err)
-                else
-                    dbg("got it")
-                    cb(undefined, customer)
-
-    stripe_error_to_client: (opts) =>
-        opts = defaults opts,
-            id    : required
-            error : required
-        err = opts.error
-        if typeof(err) != 'string'
-            if err.stack?
-                err = err.stack.split('\n')[0]
-            else
-                err = misc.to_json(err)
-        @dbg("stripe_error_to_client")(err)
-        @error_to_client(id:opts.id, error:err)
+    handle_stripe_mesg: (mesg) =>
+        try
+            await @_stripe_client ?= new StripeClient(@)
+        catch err
+            @error_to_client(id:mesg.id, error:"${err}")
+        @_stripe_client.handle_mesg(mesg)
 
     mesg_stripe_get_customer: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_customer")
-        dbg("get information from stripe about this customer, e.g., subscriptions, payment methods, etc.")
-        @stripe_get_customer mesg.id, (err, customer) =>
-            if err
-                return
-            resp = message.stripe_customer
-                id                     : mesg.id
-                stripe_publishable_key : @_stripe?.publishable_key
-                customer               : customer
-            @push_to_client(resp)
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_create_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_customer")
-        dbg("create a payment method (credit card) in stripe for this user")
-        if not @ensure_fields(mesg, 'token')
-            dbg("missing token field -- bailing")
-            return
-        dbg("looking up customer")
-        @stripe_get_customer_id mesg.id, (err, customer_id) =>
-            if err  # database or other major error (e.g., no stripe conf)
-                    # @get_stripe_customer sends error message to user
-                dbg("failed -- #{err}")
-                return
-            if not customer_id?
-                dbg("create new stripe customer (from card token)")
-                description = undefined
-                email = undefined
-                async.series([
-                    (cb) =>
-                        dbg("get identifying info about user")
-                        @database.get_account
-                            columns    : ['email_address', 'first_name', 'last_name']
-                            account_id : @account_id
-                            cb         : (err, r) =>
-                                if err
-                                    cb(err)
-                                else
-                                    email = r.email_address
-                                    description = "#{r.first_name} #{r.last_name}"
-                                    dbg("they are #{description} with email #{email}")
-                                    cb()
-                    (cb) =>
-                        dbg("creating stripe customer")
-                        x =
-                            source      : mesg.token
-                            description : description
-                            email       : email
-                            metadata    :
-                                account_id : @account_id
-                        @_stripe.customers.create x, (err, customer) =>
-                            if err
-                                cb(err)
-                            else
-                                customer_id = customer.id
-                                cb()
-                    (cb) =>
-                        dbg("success; now save customer id token to database")
-                        @database.set_stripe_customer_id
-                            account_id  : @account_id
-                            customer_id : customer_id
-                            cb          : cb
-                    (cb) =>
-                        dbg("success; sync user account with stripe")
-                        @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
-                ], (err) =>
-                    if err
-                        dbg("failed -- #{err}")
-                        @stripe_error_to_client(id:mesg.id, error:err)
-                    else
-                        @success_to_client(id:mesg.id)
-                )
-            else
-                dbg("add card to existing stripe customer")
-                async.series([
-                    (cb) =>
-                        @_stripe.customers.createCard(customer_id, {card:mesg.token}, cb)
-                    (cb) =>
-                        dbg("success; sync user account with stripe")
-                        @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
-                ], (err) =>
-                    if err
-                        @stripe_error_to_client(id:mesg.id, error:err)
-                    else
-                        @success_to_client(id:mesg.id)
-                )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_delete_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_delete_source")
-        dbg("delete a payment method for this user")
-        if not @ensure_fields(mesg, 'card_id')
-            dbg("missing card_id field")
-            return
-        customer_id = undefined
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, (err, x) => customer_id = x; cb(err))
-            (cb) =>
-                if not customer_id?
-                    cb("no customer information so can't delete source")
-                else
-                    @_stripe.customers.deleteCard(customer_id, mesg.card_id, cb)
-            (cb) =>
-                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-        ], (err) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_set_default_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_set_default_source")
-        dbg("set a payment method for this user to be the default")
-        if not @ensure_fields(mesg, 'card_id')
-            dbg("missing field card_id")
-            return
-        customer_id = undefined
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, (err, x) => customer_id = x; cb(err))
-            (cb) =>
-                if not customer_id?
-                    cb("no customer information so can't update source")
-                else
-                    dbg("now setting the default source in stripe")
-                    @_stripe.customers.update(customer_id, {default_source:mesg.card_id}, cb)
-            (cb) =>
-                dbg("update database")
-                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
-        ], (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                dbg("success")
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_update_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_update_source")
-        dbg("modify a payment method")
-
-        if not @ensure_fields(mesg, 'card_id info')
-            return
-        if mesg.info.metadata?
-            @error_to_client(id:mesg.id, error:"you may not change card metadata")
-            return
-        customer_id = undefined
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, (err, x) => customer_id = x; cb(err))
-            (cb) =>
-                if not customer_id?
-                    cb("no customer information so can't update source")
-                else
-                    @_stripe.customers.updateCard(customer_id, mesg.card_id, mesg.info, cb)
-            (cb) =>
-                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-        ], (err) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_plans: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_plans")
-        dbg("get descriptions of the available plans that the user might subscribe to")
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, cb)   # ensures @_stripe is defined below
-            (cb) =>
-                @_stripe.plans.list (err, plans) =>
-                    if err
-                        @stripe_error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
-        ])
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_create_subscription: (mesg) =>
-        dbg = @dbg("mesg_stripe_create_subscription")
-        dbg("create a subscription for this user, using some billing method")
-        if not @ensure_fields(mesg, 'plan')
-            @stripe_error_to_client(id:mesg.id, error:"missing field 'plan'")
-            return
-
-        schema = require('smc-util/schema').PROJECT_UPGRADES.subscription[mesg.plan.split('-')[0]]
-        if not schema?
-            @stripe_error_to_client(id:mesg.id, error:"unknown plan -- '#{mesg.plan}'")
-            return
-
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                dbg("fail -- #{err}")
-                return
-            projects = mesg.projects
-            if not mesg.quantity?
-                mesg.quantity = 1
-
-            options =
-                plan     : mesg.plan
-                quantity : mesg.quantity
-                coupon   : mesg.coupon_id
-
-            subscription = undefined
-            tax_rate = undefined
-            async.series([
-                (cb) =>
-                    dbg('determine applicable tax')
-                    require('./stripe/sales-tax').stripe_sales_tax
-                        customer_id : customer_id
-                        cb          : (err, rate) =>
-                            tax_rate = rate
-                            dbg("tax_rate = #{tax_rate}")
-                            if tax_rate
-                                # CRITICAL: if we don't just multiply by 100, since then sometimes
-                                # stripe comes back with an error like this
-                                #    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
-                                options.tax_percent = Math.round(tax_rate*100*100)/100
-                            cb(err)
-                (cb) =>
-                    dbg("add customer subscription to stripe")
-                    @_stripe.customers.createSubscription customer_id, options, (err, s) =>
-                        if err
-                            cb(err)
-                        else
-                            subscription = s
-                            cb()
-                (cb) =>
-                    if schema.cancel_at_period_end
-                        dbg("Setting subscription to cancel at period end")
-                        @_stripe.subscriptions.update(subscription.id, {cancel_at_period_end:true}, cb)
-                    else
-                        cb()
-                (cb) =>
-                    dbg("Successfully added subscription; now save info in our database about subscriptions....")
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-                (cb) =>
-                    if not options.coupon
-                        cb()
-                        return
-                    dbg("add coupon to customer history")
-                    @validate_coupon options.coupon, (err, coupon, coupon_history) =>
-                        if err
-                            cb(err)
-                            return
-                        coupon_history[coupon.id] += 1
-                        @database.update_coupon_history
-                            account_id     : @account_id
-                            coupon_history : coupon_history
-                            cb             : cb
-            ], (err) =>
-                if err
-                    dbg("fail -- #{err}")
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-            )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_cancel_subscription: (mesg) =>
-        dbg = @dbg("mesg_stripe_cancel_subscription")
-        dbg("cancel a subscription for this user")
-        if not @ensure_fields(mesg, 'subscription_id')
-            dbg("missing field subscription_id")
-            return
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            projects        = undefined
-            subscription_id = mesg.subscription_id
-            async.series([
-                (cb) =>
-                    dbg("cancel the subscription at stripe")
-                    # This also returns the subscription, which lets
-                    # us easily get the metadata of all projects associated to this subscription.
-                    @_stripe.subscriptions.update(subscription_id, {cancel_at_period_end:mesg.at_period_end}, cb)
-                (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-            ], (err) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-            )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_update_subscription: (mesg) =>
-        dbg = @dbg("mesg_stripe_update_subscription")
-        dbg("edit a subscription for this user")
-        if not @ensure_fields(mesg, 'subscription_id')
-            dbg("missing field subscription_id")
-            return
-        subscription_id = mesg.subscription_id
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            subscription = undefined
-            async.series([
-                (cb) =>
-                    dbg("Update the subscription.")
-                    changes =
-                        quantity : mesg.quantity
-                        plan     : mesg.plan
-                        coupon   : mesg.coupon_id
-                    @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
-                (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-                (cb) =>
-                    if not mesg.coupon_id
-                        cb()
-
-                    if mesg.coupon_id
-                        @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
-                            if err
-                                cb(err)
-                                return
-                            coupon_history[coupon.id] += 1
-                            @database.update_coupon_history
-                                account_id     : @account_id
-                                coupon_history : coupon_history
-                                cb             : cb
-            ], (err) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-            )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_subscriptions: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_subscriptions")
-        dbg("get a list of all the subscriptions that this customer has")
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            options =
-                limit          : mesg.limit
-                ending_before  : mesg.ending_before
-                starting_after : mesg.starting_after
-            @_stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_coupon: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_coupon")
-        dbg("get the coupon with id == #{mesg.coupon_id}")
-        if not @ensure_fields(mesg, 'coupon_id')
-            dbg("missing field coupon_id")
-            return
-        @validate_coupon mesg.coupon_id, (err, coupon) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
-
-    # Checks these coupon criteria:
-    # - Exists
-    # - Is valid
-    # - Used by this account less than the max per account (hard coded default is 1)
-    # Calls cb(err, coupon, coupon_history)
-    validate_coupon: (coupon_id, cb) =>
-        dbg = @dbg("validate_coupon")
-        @_stripe = get_stripe()
-        async.series([
-            (local_cb) =>
-                dbg("retrieve the coupon")
-                @_stripe.coupons.retrieve(coupon_id, local_cb)
-            (local_cb) =>
-                dbg("check account coupon_history")
-                @database.get_coupon_history
-                    account_id : @account_id
-                    cb         : local_cb
-        ], (err, [coupon, coupon_history]) =>
-            if err
-                cb(err)
-                return
-            if not coupon.valid
-                cb("Sorry! This coupon has expired.")
-                return
-            coupon_history ?= {}
-            times_used = coupon_history[coupon.id] ? 0
-            if times_used >= (coupon.metadata.max_per_account ? 1)
-                cb("You've already used this coupon.")
-                return
-
-            coupon_history[coupon.id] = times_used
-            cb(err, coupon, coupon_history)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_charges: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_charges")
-        dbg("get a list of charges for this customer.")
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            options =
-                customer       : customer_id
-                limit          : mesg.limit
-                ending_before  : mesg.ending_before
-                starting_after : mesg.starting_after
-            @_stripe.charges.list options, (err, charges) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_charges(id:mesg.id, charges:charges))
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_invoices: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_invoices")
-        dbg("get a list of invoices for this customer.")
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            options =
-                customer       : customer_id
-                limit          : mesg.limit
-                ending_before  : mesg.ending_before
-                starting_after : mesg.starting_after
-            @_stripe.invoices.list options, (err, invoices) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_admin_create_invoice_item: (mesg) =>
-        dbg = @dbg("mesg_stripe_admin_create_invoice_item")
-        @_stripe = get_stripe()
-        if not @_stripe?
-            err = "stripe billing not configured"
-            dbg(err)
-            @error_to_client(id:id, error:err)
-            return
-        customer_id = undefined
-        description = undefined
-        email       = undefined
-        new_customer = true
-        async.series([
-            (cb) =>
-                @assert_user_is_in_group('admin', cb)
-            (cb) =>
-                dbg("check for existing stripe customer_id")
-                @database.get_account
-                    columns       : ['stripe_customer_id', 'email_address', 'first_name', 'last_name', 'account_id']
-                    account_id    : mesg.account_id
-                    email_address : mesg.email_address
-                    cb            : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            customer_id = r.stripe_customer_id
-                            email = r.email_address
-                            description = "#{r.first_name} #{r.last_name}"
-                            mesg.account_id = r.account_id
-                            cb()
-            (cb) =>
-                if customer_id?
-                    new_customer = false
-                    dbg("already signed up for stripe -- sync local user account with stripe")
-                    @database.stripe_update_customer
-                        account_id  : mesg.account_id
-                        stripe      : get_stripe()
-                        customer_id : customer_id
-                        cb          : cb
-                else
-                    dbg("create stripe entry for this customer")
-                    x =
-                        description : description
-                        email       : email
-                        metadata    :
-                            account_id : mesg.account_id
-                    @_stripe.customers.create x, (err, customer) =>
-                        if err
-                            cb(err)
-                        else
-                            customer_id = customer.id
-                            cb()
-            (cb) =>
-                if not new_customer
-                    cb()
-                else
-                    dbg("store customer id in our database")
-                    @database.set_stripe_customer_id
-                        account_id  : mesg.account_id
-                        customer_id : customer_id
-                        cb          : cb
-            (cb) =>
-                if not (mesg.amount? and mesg.description?)
-                    dbg("no amount or description -- not creating an invoice")
-                    cb()
-                else
-                    dbg("now create the invoice item")
-                    @_stripe.invoiceItems.create
-                        customer    : customer_id
-                        amount      : mesg.amount*100
-                        currency    : "usd"
-                        description : mesg.description
-                    ,
-                        (err, invoice_item) =>
-                            if err
-                                cb(err)
-                            else
-                                cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
+    mesg_get_available_upgrades: (mesg) =>
+        mesg.event = 'stripe_get_available_upgrades'  # for backward compat
+        @handle_stripe_mesg(mesg)
+
+    mesg_remove_all_upgrades: (mesg) =>
+        mesg.event = 'stripe_remove_all_upgrades'     # for backward compat
+        @handle_stripe_mesg(mesg)
+
+    #  END stripe-related functionality
 
     mesg_api_key: (mesg) =>
         api_key_action
@@ -2622,54 +2056,6 @@ class exports.Client extends EventEmitter
 
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
-
-    mesg_get_available_upgrades: (mesg) =>
-        dbg = @dbg("mesg_get_available_upgrades")
-        locals = {}
-        async.series([
-            (cb) =>
-                dbg("get stripe id")
-                @stripe_get_customer_id @account_id, (err, id) =>
-                    locals.id = id
-                    cb(err)
-            (cb) =>
-                dbg("get stripe customer data")
-                @stripe_get_customer locals.id, (err, stripe_customer) =>
-                    locals.stripe_data = stripe_customer?.subscriptions?.data
-                    cb(err)
-            (cb) =>
-                dbg("get user project upgrades")
-                @database.get_user_project_upgrades
-                    account_id : @account_id
-                    cb         : (err, projects) =>
-                        locals.projects = projects
-                        cb(err)
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                locals.x = compute_upgrades.available_upgrades(locals.stripe_data, locals.projects)
-                locals.resp = message.available_upgrades
-                    id        : mesg.id
-                    total     : compute_upgrades.get_total_upgrades(locals.stripe_data)
-                    excess    : locals.x.excess
-                    available : locals.x.available
-                @push_to_client(locals.resp)
-        )
-
-    mesg_remove_all_upgrades: (mesg) =>
-        dbg = @dbg("mesg_remove_all_upgrades")
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:'you must be signed in')
-            return
-        @database.remove_all_user_project_upgrades
-            account_id : @account_id
-            projects   : mesg.projects
-            cb         : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
 
     _check_project_access: (project_id, cb) =>
         if not @account_id?

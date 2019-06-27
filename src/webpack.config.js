@@ -427,6 +427,7 @@ if (COMP_ENV) {
     })
   );
 
+  // table of installed software packages and libraries
   for (let infn of glob.sync("webapp-lib/doc/software-*.pug")) {
     const sw_env = path
       .basename(infn)

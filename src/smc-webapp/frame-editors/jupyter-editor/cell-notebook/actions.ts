@@ -281,14 +281,15 @@ export class NotebookFrameActions {
     this.setState({ scrollTop });
   }
 
-  set_md_cell_editing(id: string): void {
+  public set_md_cell_editing(id: string): void {
     this.jupyter_actions.set_jupyter_metadata(
       id,
       "input_hidden",
       undefined,
       false
     );
-    const md_edit_ids = this.store.get("md_edit_ids", Set());
+    let md_edit_ids = this.store.get("md_edit_ids");
+    if (md_edit_ids == null) md_edit_ids = Set();
     if (md_edit_ids.contains(id)) {
       return;
     }
@@ -298,15 +299,15 @@ export class NotebookFrameActions {
     this.setState({ md_edit_ids: md_edit_ids.add(id) });
   }
 
-  set_md_cell_not_editing(id: string): void {
+  public set_md_cell_not_editing(id: string): void {
     this.jupyter_actions.set_jupyter_metadata(
       id,
       "input_hidden",
       undefined,
       false
     );
-    let md_edit_ids = this.store.get("md_edit_ids", Set());
-    if (!md_edit_ids.contains(id)) {
+    let md_edit_ids = this.store.get("md_edit_ids");
+    if (md_edit_ids == null || !md_edit_ids.contains(id)) {
       return;
     }
     md_edit_ids = md_edit_ids.delete(id);
@@ -330,12 +331,14 @@ export class NotebookFrameActions {
 
   // Called when the cell list changes due to external events.
   // E.g., another user deleted the cell that is currently selected.
+  // This does nothing if cur_id is set to an actual cell.
   private update_cur_id(): void {
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return; // can't do anything yet.
     const cur_id = this.store.get("cur_id");
     if (cur_id == null || cells.get(cur_id) == null) {
       const new_cur_id = this.jupyter_actions.store.get_cell_list().get(0);
+      if (new_cur_id == null) return; // can't do anything -- no cells
       this.set_cur_id(new_cur_id);
     }
   }
