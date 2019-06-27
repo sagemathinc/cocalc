@@ -19,7 +19,7 @@ import {
   FormControl,
   Radio
 } from "react-bootstrap";
-import { React, Component, Rendered } from "../../app-framework";
+import { React, ReactDOM, Component, Rendered } from "../../app-framework";
 const { open_new_tab } = require("../../misc_page");
 const { CopyToClipBoard, Icon } = require("../../r_misc");
 import { Space } from "../../r_misc/space";
@@ -192,27 +192,15 @@ export class Configure extends Component<Props> {
     );
   }
 
-  private render_share_warning(parent_is_public): Rendered {
+  private render_share_warning(parent_is_public:boolean): Rendered {
     if (!parent_is_public) return;
     return <div>share warning</div>;
   }
 
-  private update_description(): void {}
-
-  private render_description_save_button(parent_is_public: boolean): Rendered {
-    return (
-      <>
-        {this.render_share_warning(parent_is_public)}
-        <Button
-          bsStyle="primary"
-          onClick={this.update_description.bind(this)}
-          disabled={parent_is_public}
-          style={{ marginBottom: "5px" }}
-        >
-          <Icon name="share-square-o" /> Update Description
-        </Button>
-      </>
-    );
+  private save_description(): void {
+    const elt = ReactDOM.findDOMNode(this.refs.share_description);
+    if (elt == null) return;
+    this.props.set_public_path({ description: elt.value });
   }
 
   private get_description(): string {
@@ -235,9 +223,9 @@ export class Configure extends Component<Props> {
             disabled={parent_is_public}
             placeholder="Description..."
             onKeyUp={this.props.action_key}
+            onBlur={this.save_description.bind(this)}
           />
         </FormGroup>
-        {this.render_description_save_button(parent_is_public)}
       </>
     );
   }
@@ -319,7 +307,10 @@ export class Configure extends Component<Props> {
         </Row>
         {this.render_public_config(parent_is_public)}
         <Row>
-          <Col sm={12}>{this.render_close_button()}</Col>
+          <Col sm={12}>
+            {this.render_share_warning(parent_is_public)}
+            {this.render_close_button()}
+          </Col>
         </Row>
       </div>
     );
