@@ -218,8 +218,8 @@ export class Configure extends Component<Props, State> {
         </h4>
         <p>
           This {this.props.isdir ? "directory" : "file"} is public because it is
-          in the public folder "{path}".  You must adjust the sharing configuration
-          of that folder instead.
+          in the public folder "{path}". You must adjust the sharing
+          configuration of that folder instead.
         </p>
       </Alert>
     );
@@ -323,7 +323,26 @@ export class Configure extends Component<Props, State> {
     return <Button onClick={this.props.close}>Close</Button>;
   }
 
+  private render_needs_network_access(): Rendered {
+    return (
+      <Alert
+        bsStyle={"danger"}
+        style={{ padding: "30px", marginBottom: "30px" }}
+      >
+        <h3>Publicly sharing files requires internet access</h3>
+        <div style={{ fontSize: "12pt" }}>
+          You <b>must</b> first enable the 'Internet access' upgrade in project
+          settings in order to publicly share files from this project.
+        </div>
+      </Alert>
+    );
+  }
+
   public render(): Rendered {
+    if (!this.props.has_network_access) {
+      return this.render_needs_network_access();
+    }
+
     // This path is public because some parent folder is public.
     const parent_is_public: boolean =
       !!this.props.is_public &&
