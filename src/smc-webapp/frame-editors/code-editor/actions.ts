@@ -203,7 +203,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Init setting of value whenever syncstring changes -- only used in derived classes
-  _init_syncstring_value(): void {
+  protected _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
       if (!this._syncstring) {
         // edge case where actions closed but this event was still triggered.
@@ -215,14 +215,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
   // spelling makes sense...
-  _init_spellcheck(): void {
+  protected _init_spellcheck(): void {
     this._spellcheck_is_supported = true;
     this._syncstring.on("save-to-disk", time =>
       this.update_misspelled_words(time)
     );
   }
 
-  _init_syncstring(): void {
+  protected _init_syncstring(): void {
     if (this.doctype == "none") {
       this._syncstring = <SyncString>syncstring({
         project_id: this.project_id,
@@ -1036,7 +1036,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   help(type: string): void {
-    const url = WIKI_HELP_URL + type + "-help";
+    const url: string = (function() {
+      switch (type) {
+        case "terminal":
+          return "https://doc.cocalc.com/terminal.html";
+        default:
+          return WIKI_HELP_URL + type + "-help";
+      }
+    })();
     open_new_tab(url);
   }
 

@@ -46,7 +46,7 @@ export class PublicPaths extends EventEmitter {
     return this.synctable.get(id);
   }
 
-  public get_all(): Map<string, any> {
+  public get_all(): immutable.Map<string, any> {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get();
   }
@@ -130,7 +130,8 @@ export class PublicPaths extends EventEmitter {
   }
 
   // Immutables List of ids that sorts the public_paths from
-  // newest (last edited) to oldest
+  // newest (last edited) to oldest. This only includes paths
+  // that are not unlisted.
   public order(): immutable.List<string> {
     if (this._order != null) {
       return this._order;
@@ -139,7 +140,9 @@ export class PublicPaths extends EventEmitter {
     this.synctable
       .get()
       .forEach((info: immutable.Map<string, any>, id: string) => {
-        v.push([info.get("last_edited", 0), id]);
+        if (!info.get("unlisted")) {
+          v.push([info.get("last_edited", 0), id]);
+        }
       });
     v.sort((a, b) => -cmp(a[0], b[0]));
     const ids = v.map(x => x[1]);
