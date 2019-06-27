@@ -14,6 +14,7 @@ is shared.
 const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import {
+  Alert,
   Button,
   Row,
   Col,
@@ -208,8 +209,20 @@ export class Configure extends Component<Props, State> {
   }
 
   private render_share_warning(parent_is_public: boolean): Rendered {
-    if (!parent_is_public) return;
-    return <div>share warning</div>;
+    if (!parent_is_public || this.props.public == null) return;
+    const path = this.props.public.path;
+    return (
+      <Alert bsStyle="warning" style={{ wordWrap: "break-word" }}>
+        <h4>
+          <Icon name="exclamation-triangle" /> Public folder
+        </h4>
+        <p>
+          This {this.props.isdir ? "directory" : "file"} is public because it is
+          in the public folder "{path}".  You must adjust the sharing configuration
+          of that folder instead.
+        </p>
+      </Alert>
+    );
   }
 
   private save_description(): void {
