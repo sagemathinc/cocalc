@@ -357,6 +357,9 @@ exports.init_express_http_server = (opts) ->
         res.send('')
     ###
 
+    # TODO: Hook this up as a separate web server
+    router.use(require('./lti').init_LTI_router())
+
     # Get the http server and return it.
     if opts.base_url
         app.use(opts.base_url, router)

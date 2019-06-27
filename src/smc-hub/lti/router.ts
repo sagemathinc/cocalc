@@ -1,3 +1,6 @@
+// TODO #V0 for must dos
+// TODO #V1 for second round
+
 import * as jwt from "jsonwebtoken";
 import * as fs from "fs";
 import * as express from "express";
@@ -8,17 +11,9 @@ import * as jwksClient from "jwks-rsa";
 
 import { Database, Logger } from "./types";
 
-// use 'utf8' to get string instead of byte array
 const privateKEY = fs.readFileSync("./private.key", "utf8");
 
-// Copied from the provider tool config details
-// TODO: Store instances in Database
-const base_url = "https://moodletest.cocalc.com/";
-const CLIENT_ID = "Ho3mDRdDHybcG5U";
-const WELL_KNOWN_JWKS_URL = base_url + "mod/lti/certs.php";
-const OAUTH2_ACCESS_TOKEN_URL = base_url + "mod/lti/token.php";
-const OIDC_AUTH_URL = base_url + "mod/lti/auth.php";
-
+/*
 const jwkClient = jwksClient({
   jwksUri: WELL_KNOWN_JWKS_URL
 });
@@ -29,108 +24,106 @@ function getKey(header, callback) {
     callback(null, signingKey);
   });
 }
+*/
 
-var last_state = "";
+// TODO #V0 Move to types
+interface IssuerData {
+  client_id: string,
+  token_url: string,
+  auth_url: string,
+  jwk_url: string
+}
 
-export function create_lti_router(opts: {
-  database: Database;
-  logger?: Logger;
-  base_url?: string;
-}) {
-  let dbg;
-  const base_url: string = opts.base_url != null ? opts.base_url : "";
-
-  if ((global as any).window != null) {
-    (global as any).window["app_base_url"] = base_url;
+// TODO #V0 Remove when you write a way to save it to the database
+const known_iss = {
+  "https://moodletest.cocalc.com": {
+    client_id: "Ho3mDRdDHybcG5U",
+    token_url: "https://moodletest.cocalc.com/mod/lti/token.php",
+    auth_url: "https://moodletest.cocalc.com/mod/lti/auth.php",
+    jwk_url: "https://moodletest.cocalc.com/mod/lti/certs.php"
+  },
+  "https://canvas.instructure.com": {
+    client_id: "10000000000008",
+    token_url: "http://34.83.75.255/api/lti/login/oauth2/auth",
+    auth_url: "http://34.83.75.255/api/lti/authorize",
+    jwk_url: "http://34.83.75.255/api/lti/securit/jwks"
   }
+}
 
-  if (opts.logger != null) {
-    const logger = opts.logger;
-    dbg = (...args) => logger.debug("lti_router: ", ...args);
-  } else {
-    dbg = (..._args) => {};
-  }
+function get_iss_data(iss: string): IssuerData {
+  return known_iss[iss];
+}
 
-  dbg("base_url = ", base_url);
+const current_auth_flows = {};
 
+function begin_auth_flow(state: string, data) {
+  current_auth_flows[state] = data;
+}
+
+function get_auth_step(state: string) {
+  return current_auth_flows[state];
+}
+
+export function init_LTI_router(): express.Router {
   router = express.Router();
-
-  router.use(express.json()); // for parsing application/json
-  router.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
-
-  // GIVE TO PLATFORM
-  // Tool Login URL
-  // /Login – Receives the third party login request from a platform and sends the authentication request to the platform
-  router.get("/login-lti", (req, res) => {
-    dbg("login-lti post get");
-    res.send(`Got a GET request at login-lti ${inspect(req.query)}`);
-  });
+  router.use(express.json());
+  router.use(express.urlencoded({ extended: true }));
 
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
-  router.post("/login-lti", (req, res) => {
+  router.route("/api/lti/login").all(function(req, res, next) {
+    res.send(`login-lti post get ${inspect(req.body)}`);
+/*
     const token = req.body;
+    dbg("==============\nGiven token:", inspect(token));
 
-    // TODO: Check issuer against known issuers add by the user
-    // Error if unknown
-
+    const iss_data = get_iss_data(token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
-    last_state = state;
-
-    dbg("==============\nGiven token:", inspect(token));
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
     const auth_params = {
       scope: "openid", // OIDC Scope.
       response_type: "id_token", // OIDC response is always an id token.
-      client_id: CLIENT_ID,
-      redirect_uri:
-        "https://floating-cove-52371.herokurouter.com/deep_link_launches",
+      client_id: iss_data.client_id,
+      redirect_uri: token.target_link_uri,
       login_hint: token.login_hint,
       state: state,
       response_mode: "form_post", // OIDC response is always a form post.
       nonce: nonce,
       prompt: "none", // Don't prompt user on redirect.
-
       lti_message_hint: token.lti_message_hint,
       id_token_hint: token.lti_message_hint
     };
-
+    begin_auth_flow(token.state, auth_params)
     const query_string = querystring.stringify(auth_params);
-
-    res.redirect(OIDC_AUTH_URL + "?" + query_string);
-  });
+    res.redirect(iss_data.auth_url + "?" + query_string);
+*/
+});
 
   // Tool Launch URL
-  router.post("/launch-lti", (req, res) => {
-    dbg(req);
+  router.post("/api/lti/launch", (req, res) => {
     res.send("Got a POST request at launch-lti");
   });
 
-  // Deep Linking Launch URL
-  router.post("/launch-lti", (req, res) => {
-    dbg(
-      `Got a POST request at deep_link_launches with body: ${inspect(req.body)}`
-    );
-    if (req.body.state !== last_state) {
-      console.warn(
-        "ERROR LAST STATE != received state. Possible attack in progress"
-      );
-      dbg(" -- Last state was " + last_state);
-      dbg(" -- But received " + req.body.state);
-    } else if (req.body.error) {
-      console.error(`Recieved error ${req.body.error}`);
-    } else {
-      dbg("Matching state " + last_state);
+  // Deep Linking Selection URL
+  router.post("/api/lti/deep-link-launches", (req, res) => {
+    res.send("Hit deep-link-launches");
+
+    // TODO #V0 Worry about matching state
+    // if (req.body.state)
+
+    /*
+    if (req.body.error) {
+      res.send(`Recieved error ${req.body.error}`);
     }
+
     const options = { algorithms: ["RS256"] };
 
-    // Todo: Use await for this callback...
-    jwt.verify(req.body.id_token, getKey, options, function(err, token) {
+    // TODO #V0: Use verify for security
+    jwt.decode(req.body.id_token, options, function(err, token) {
       if (err) {
         res.send("Error parsing jwt:" + err);
-        return;
       }
       const nonce = uuid.v4();
 
@@ -152,9 +145,11 @@ export function create_lti_router(opts: {
           "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
         ].deep_link_return_url;
 
+      const iss_data = get_iss_data(token.iss)
+
       // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
       const jwt_data = {
-        iss: CLIENT_ID,
+        iss: iss_data.client_id,
         aud: [token.iss],
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
@@ -191,5 +186,6 @@ export function create_lti_router(opts: {
       const query_string = querystring.stringify(formatted_token);
       res.redirect(redirect_url + "&" + query_string);
     });
+    */
   });
 }
