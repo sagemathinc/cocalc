@@ -442,8 +442,6 @@ ProjectFilesActions = rclass
             </div>
         </div>
 
-WIKI_SHARE_HELP_URL = 'https://doc.cocalc.com/share.html'
-
 ProjectFilesActionBox = rclass
     displayName : 'ProjectFiles-ProjectFilesActionBox'
 
@@ -926,11 +924,6 @@ ProjectFilesActionBox = rclass
         else
             <h4>Public link (not active)</h4>
 
-    render_share_defn: ->
-        <div style={color:'#555'}>
-            <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">Use sharing</a> to make a file or directory <a href="https://share.cocalc.com/share" target="_blank" rel="noopener"><b><i>visible to the world</i></b></a>.  Files are automatically copied to <a href="https://share.cocalc.com/share" target="_blank" rel="noopener">the share server</a> about 30 seconds after you edit them.   If you would instead like to privately collaborate and chat with people in this project, go to the Project Settings tab and "Add new collaborators".
-        </div>
-
     set_public_file_unlisting_to: (new_value) ->
         description = ReactDOM.findDOMNode(@refs.share_description).value
         @props.actions.set_public_path(@props.checked_files.first(), {description : description, unlisted : new_value})
@@ -983,8 +976,8 @@ ProjectFilesActionBox = rclass
             mtime = {single_file_data.mtime}
             is_public = {single_file_data.is_public}
             public = {single_file_data.public}
-            close = {@cancel_action.bind(@)}
-            action_key = {@action_key.bind(@)}
+            close = {@cancel_action}
+            action_key = {@action_key}
             set_public_path = {(opts) => @props.actions.set_public_path(single_file_data.name, opts)}
             disable_public_path = {=>@props.actions.disable_public_path(single_file_data.name)}
             has_network_access = {@props.get_total_project_quotas(@props.project_id)?.network}

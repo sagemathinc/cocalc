@@ -11,6 +11,8 @@ is shared.
 
 */
 
+const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
+
 import {
   Button,
   Row,
@@ -21,10 +23,10 @@ import {
 } from "react-bootstrap";
 import { React, ReactDOM, Component, Rendered } from "../../app-framework";
 const { open_new_tab } = require("../../misc_page");
-const { CopyToClipBoard, Icon } = require("../../r_misc");
+const { CopyToClipBoard, Icon, VisibleMDLG } = require("../../r_misc");
 import { Space } from "../../r_misc/space";
 
-import { construct_public_share_url } from "./util";
+import { public_share_url, share_server_url } from "./util";
 
 interface PublicInfo {
   created: Date;
@@ -54,19 +56,22 @@ interface Props {
 }
 
 export class Configure extends Component<Props> {
+  private render_how_shared_heading(): Rendered {
+    return (
+      <div style={{ color: "#444", fontSize: "15pt" }}>
+        How the {this.props.isdir ? "directory" : "file"}{" "}
+        <span style={{ fontFamily: "monospace" }}>"{this.props.path}"</span> is
+        shared
+      </div>
+    );
+  }
+
   private render_how_shared(parent_is_public: boolean): Rendered {
     if (parent_is_public) {
       return;
     }
     return (
-      <div>
-        <br />
-        <div style={{ color: "#444", fontSize: "15pt" }}>
-          Choose how to share {this.props.path}:
-        </div>
-        <br />
-        {this.render_sharing_options()}
-      </div>
+      <div style={{ fontSize: "12pt" }}>{this.render_sharing_options()}</div>
     );
   }
 
@@ -116,8 +121,8 @@ export class Configure extends Component<Props> {
         >
           <Icon name="eye" />
           <Space />
-          <i>Public (listed)</i> - This will appear on the{" "}
-          <a href="https://share.cocalc.com/share" target="_blank">
+          <i>Public (listed)</i> - on the{" "}
+          <a href={share_server_url()} target="_blank">
             public share server
           </a>
           .
@@ -136,7 +141,7 @@ export class Configure extends Component<Props> {
           <Space />
           <del>
             <i>Public (listed)</i> - This will appear on the{" "}
-            <a href="https://share.cocalc.com/share" target="_blank">
+            <a href={share_server_url()} target="_blank">
               share server
             </a>
             .
@@ -192,7 +197,7 @@ export class Configure extends Component<Props> {
     );
   }
 
-  private render_share_warning(parent_is_public:boolean): Rendered {
+  private render_share_warning(parent_is_public: boolean): Rendered {
     if (!parent_is_public) return;
     return <div>share warning</div>;
   }
@@ -230,12 +235,8 @@ export class Configure extends Component<Props> {
     );
   }
 
-  private render_path(): Rendered {
-    return <span>{this.props.path}</span>;
-  }
-
   private render_link(): Rendered {
-    const url = construct_public_share_url(
+    const url = public_share_url(
       this.props.project_id,
       this.props.path,
       this.props.isdir
@@ -249,7 +250,7 @@ export class Configure extends Component<Props> {
 
     return (
       <>
-        <h4>Shared publicly</h4>
+        <h4>Link</h4>
         <CopyToClipBoard
           value={url}
           button_before={button_before}
@@ -264,14 +265,10 @@ export class Configure extends Component<Props> {
 
     return (
       <Row>
-        <Col sm={4} style={{ color: "#666" }}>
+        <Col sm={6} style={{ color: "#666" }}>
           {this.render_description(parent_is_public)}
         </Col>
-        <Col sm={4} style={{ color: "#666" }}>
-          <h4>Items</h4>
-          {this.render_path()}
-        </Col>
-        <Col sm={4} style={{ color: "#666" }}>
+        <Col sm={6} style={{ color: "#666" }}>
           {this.render_link()}
         </Col>
       </Row>
@@ -279,7 +276,24 @@ export class Configure extends Component<Props> {
   }
 
   private render_share_defn(): Rendered {
-    return <div>share defn</div>;
+    const server = share_server_url();
+    return (
+      <div style={{ color: "#555", fontSize: "12pt" }}>
+        <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">
+          Share
+        </a>{" "}
+        files or directories{" "}
+        <a href={server} target="_blank" rel="noopener">
+          <b>
+            <i>to the world</i>,
+          </b>
+        </a>{" "}
+        either indexed by search engines (listed), or only visible with the link
+        (unlisted). Files are made public about 30 seconds after you change
+        them. (To instead privately collaborate, go to Project settings and "Add
+        new collaborators".)
+      </div>
+    );
   }
 
   private render_close_button(): Rendered {
@@ -296,14 +310,16 @@ export class Configure extends Component<Props> {
     return (
       <div>
         <Row>
-          <Col sm={8} style={{ color: "#666", fontSize: "12pt" }}>
-            {this.render_share_defn()}
-          </Col>
+          <VisibleMDLG>
+            <Col sm={6}>{this.render_how_shared_heading()}</Col>
+            <Col sm={6}>
+              <span style={{ fontSize: "15pt" }}>How it works</span>
+            </Col>
+          </VisibleMDLG>
         </Row>
         <Row>
-          <Col sm={12} style={{ fontSize: "12pt" }}>
-            {this.render_how_shared(parent_is_public)}
-          </Col>
+          <Col sm={6}>{this.render_how_shared(parent_is_public)}</Col>
+          <Col sm={6}>{this.render_share_defn()}</Col>
         </Row>
         {this.render_public_config(parent_is_public)}
         <Row>
