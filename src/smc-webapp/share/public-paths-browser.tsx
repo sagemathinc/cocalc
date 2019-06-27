@@ -32,7 +32,7 @@ export class PublicPathsBrowser extends Component<Props> {
         }}
       >
         Page {this.props.page_number} of{" "}
-        {Math.ceil(this.props.public_paths.size / this.props.page_size)}.
+        {Math.ceil(this.props.paths_order.size / this.props.page_size)}.
       </span>
     );
   }

@@ -358,7 +358,7 @@ MessageInfo = rclass
                 {@props.info.get('enqueued')} messages queued to send
             </pre>
             <div style={color:"#666"}>
-                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
+                Connection icon color changes as the number of messages in flight to a hub increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
             </div>
         </div>
 

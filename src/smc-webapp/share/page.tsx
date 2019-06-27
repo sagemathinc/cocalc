@@ -53,6 +53,12 @@ export class Page extends Component<PageProps> {
     site_name: SITE_NAME
   };
 
+  private render_viewport(): Rendered {
+    return (
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+    );
+  }
+
   private render_title(): Rendered {
     let title = "Shared";
     if (this.props.subtitle) {
@@ -94,11 +100,11 @@ export class Page extends Component<PageProps> {
           }}
         >
           <a
-            href={"https://cocalc.com/doc/features.html"}
+            href={"https://cocalc.com/doc/"}
             target={"_blank"}
             rel={"noopener"}
           >
-            CoCalc -- Collaborative Calculation in the Cloud
+            CoCalc
           </a>
         </div>
       );
@@ -177,6 +183,7 @@ gtag('config', '${this.props.google_analytics}');\
     return (
       <html lang="en">
         <head>
+          {this.render_viewport()}
           {this.render_title()}
           {this.render_cocalc_link()}
           {this.render_notranslate()}

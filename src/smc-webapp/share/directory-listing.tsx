@@ -10,10 +10,10 @@ import { Component, React, Rendered } from "../app-framework";
 const { PublicPathInfo } = require("./public-path-info");
 
 interface DirectoryListingEntry {
-  name : string;
-  size : number;
-  mtime : number;
-  isdir? : boolean;
+  name: string;
+  size: number;
+  mtime: number;
+  isdir?: boolean;
 }
 
 interface DirectoryListingProps {
@@ -61,7 +61,7 @@ export class DirectoryListing extends Component<DirectoryListingProps> {
     }
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <PublicPathInfo path={this.props.path} info={this.props.info} />
+        <PublicPathInfo path={this.props.path} info={this.props.info} isdir={true} />
         <div
           style={{ margin: "15px 30px", background: "white", overflow: "auto" }}
         >

@@ -37,12 +37,13 @@ interface CodeMirrorStaticProps {
   no_border?: boolean; // if given, do not draw border around whole thing
 }
 
+// This is used heavily by the share server.
 export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
   line_number = (key: string | number, line: number, width: number) => {
     return (
       <div key={key} className="CodeMirror-gutter-wrapper">
         <div
-          style={{ left: `-${width + 4}px`, width: `${width - 9}px` }}
+          style={{ left: `-${width + 10}px`, width: `${width - 9}px` }}
           className="CodeMirror-linenumber CodeMirror-gutter-elt"
         >
           {line}
@@ -114,14 +115,14 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     ) {
       const num_lines = this.props.value.split("\n").length;
       if (num_lines < 100) {
-        width = 30;
+        width = 40;
       } else if (num_lines < 1000) {
-        width = 39;
-      } else if (num_lines < 10000) {
         width = 49;
-      } else {
-        // nobody better do this...
+      } else if (num_lines < 10000) {
         width = 59;
+      } else {
+        // nobody better do this...?
+        width = 69;
       }
       style = merge({ paddingLeft: `${width + 4}px` }, BLURRED_STYLE);
       if (this.props.style != null) {
@@ -137,8 +138,10 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
 
     return (
       <pre className="CodeMirror cm-s-default CodeMirror-wrap" style={style}>
-        {this.render_lines(width)}
-        {this.render_gutter(width)}
+        <div style={{ marginLeft: width }}>
+          {this.render_lines(width)}
+          {this.render_gutter(width)}
+        </div>
       </pre>
     );
   }
