@@ -39,6 +39,13 @@ export function has_viewer(ext: string): boolean {
   );
 }
 
+// If the viewer isn't specified, definitely, always default
+// raw for these file types.
+export function default_to_raw(ext:string) : boolean {
+  if (ext === 'css' || ext == 'js') return true;
+  return false;
+}
+
 // Has a special viewer -- not the sort of file that could
 // just be embedded via html (e.g., NOT an image).
 export function has_special_viewer(ext: string): boolean {
