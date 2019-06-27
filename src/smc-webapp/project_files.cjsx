@@ -53,6 +53,7 @@ underscore            = require('underscore')
 {CustomSoftwareInfo}  = require('./custom-software/info-bar')
 {CustomSoftwareReset} = require('./custom-software/reset-bar')
 
+ConfigureShare = require('./share/config/config').Configure
 
 ROW_INFO_STYLE = Object.freeze
     color      : COLORS.GRAY
@@ -919,14 +920,6 @@ ProjectFilesActionBox = rclass
             <p>In order to stop sharing it, you must stop sharing the parent.</p>
         </Alert>
 
-    construct_public_share_url: (single_file) ->
-        url = document.URL
-        url = url[0...url.indexOf('/projects/')]
-        display_url = "#{url}/share/#{@props.project_id}/#{misc.encode_path(single_file)}?viewer=share"
-        if @props.file_map[misc.path_split(single_file).tail]?.isdir
-            display_url += '/'
-        return display_url
-
     render_public_link_header: (url, as_link) ->
         if as_link
             <h4><a href={url} target="_blank">Public link</a></h4>
@@ -982,9 +975,25 @@ ProjectFilesActionBox = rclass
         if not single_file_data?
             # directory listing not loaded yet... (will get re-rendered when loaded)
             return <Loading />
-        else
-            if single_file_data.is_public and single_file_data.public?.path isnt single_file
-                parent_is_public = true
+        return <ConfigureShare
+            project_id = {@props.project_id}
+            path = {single_file_data.name}
+            isdir = {single_file_data.isdir}
+            size = {single_file_data.size}
+            mtime = {single_file_data.mtime}
+            is_public = {single_file_data.is_public}
+            public = {single_file_data.public}
+            close = {@cancel_action.bind(@)}
+            action_key = {@action_key.bind(@)}
+            set_public_path = {(opts) => @props.actions.set_public_path(single_file_data.name, opts)}
+            disable_public_path = {=>@props.actions.disable_public_path(single_file_data.name)}
+            has_network_access = {@props.get_total_project_quotas(@props.project_id)?.network}
+            />;
+
+        # TODO -- delete below
+
+        if single_file_data.is_public and single_file_data.public?.path isnt single_file
+            parent_is_public = true
         show_social_media = require('./customize').commercial and single_file_data.is_public
 
         url = @construct_public_share_url(single_file)
