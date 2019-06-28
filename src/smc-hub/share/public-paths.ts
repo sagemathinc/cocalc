@@ -165,7 +165,8 @@ export class PublicPaths extends EventEmitter {
         "counter",
         "vhost",
         "auth",
-        "unlisted"
+        "unlisted",
+        "license"
       ],
       where: "disabled IS NOT TRUE"
     });
