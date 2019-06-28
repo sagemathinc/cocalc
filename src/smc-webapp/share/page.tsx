@@ -91,12 +91,7 @@ export class Page extends Component<PageProps> {
             position: "absolute",
             left: "50%",
             transform: "translate(-50%)",
-            fontSize: "12pt",
-            maxHeight: "68px",
-            overflowY: "hidden",
-            background: "white",
-            padding: "0 5px",
-            border: "1px solid #aaa"
+            fontSize: "12pt"
           }}
         >
           <a
@@ -317,7 +312,7 @@ class TopBar extends Component<TopBarProps> {
         style={{
           padding: "5px 5px 0px 5px",
           height: "50px",
-          background: "#dfdfdf"
+          background: "#efefef"
         }}
       >
         <span style={{ marginRight: "10px" }}>

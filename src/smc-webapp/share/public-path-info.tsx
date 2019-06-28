@@ -9,10 +9,9 @@ import { Rendered, React, Component } from "../app-framework";
 import { Space } from "../r_misc/space";
 const { r_join } = require("../r_misc");
 
-//import { Markdown } from "../r_misc/markdown";
-const { Markdown } = require("../r_misc");
-
 import { path_split } from "smc-util/misc";
+
+import { LICENSES } from "./config/licenses";
 
 interface Props {
   info?: Map<string, any>;
@@ -52,18 +51,25 @@ export class PublicPathInfo extends Component<Props> {
     if (this.props.info == null) return;
     let desc = this.props.info.get("description");
     if (!desc) return;
-    desc = desc[0].toUpperCase() + desc.slice(1);
-    console.log("render_desc", desc, this.props.info.toJS());
-    return (
-      <Markdown style={{ color: "#444", marginLeft: "30px" }} value={desc} />
-    );
+    return <div>{desc}</div>;
+  }
+
+  private render_license(): Rendered {
+    if (this.props.info == null) return;
+    const license = this.props.info.get("license", "");
+    if (license == "") return;
+    let desc: string | undefined = LICENSES[license];
+    // fallback in case of weird license not listed in our table:
+    if (desc == undefined) desc = license;
+    return <div>{desc}</div>;
   }
 
   public render(): Rendered {
     return (
-      <div style={{ background: "#ddd" }}>
+      <div style={{ background: "#efefef", paddingLeft: "5px" }}>
         {this.render_external_links()}
         {this.render_desc()}
+        {this.render_license()}
       </div>
     );
   }
