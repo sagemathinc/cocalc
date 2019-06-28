@@ -6,7 +6,7 @@ interface TextPlainProps {
 }
 
 export class TextPlain extends Component<TextPlainProps> {
-  render() : Rendered {
+  render(): Rendered {
     // span? -- see https://github.com/sagemathinc/cocalc/issues/1958
     return (
       <div style={STDOUT_STYLE}>

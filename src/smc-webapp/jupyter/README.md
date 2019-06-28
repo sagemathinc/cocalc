@@ -5,3 +5,4 @@ To run the mocha tests:
     
     npm install
     npm run test
+

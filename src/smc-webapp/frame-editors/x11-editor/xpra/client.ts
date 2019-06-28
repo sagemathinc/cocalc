@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra Client
  */
@@ -81,7 +81,7 @@ export class Client {
   private activeWindow: number = 0;
   private lastActiveWindow: number = 0;
   private audioCodecs = { codecs: [] };
-  private ping_interval: any = 0;   // really Timer type
+  private ping_interval: any = 0; // really Timer type
 
   private layout: string = "";
   private variant: string = "";
@@ -124,7 +124,16 @@ export class Client {
     return v;
   }
 
+  private destroy_surfaces(): void {
+    for (let wid in this.surfaces) {
+      const surface = this.surfaces[wid];
+      surface.destroy();
+    }
+    this.surfaces = {};
+  }
+
   destroy(): void {
+    this.disconnect();
     if (this.ping_interval) {
       clearInterval(this.ping_interval);
       delete this.ping_interval;
@@ -185,7 +194,7 @@ export class Client {
 
     this.emitState();
 
-    this.surfaces = {};
+    this.destroy_surfaces();
     this.connection.flush();
   }
 
@@ -429,7 +438,7 @@ export class Client {
 
         this.send("map-window", wid, x, y, w, h, props);
 
-        let parent : Surface | undefined = undefined;
+        let parent: Surface | undefined = undefined;
         if (metadata["transient-for"]) {
           parent = this.findSurface(metadata["transient-for"]);
           if (parent != null) {
@@ -451,7 +460,7 @@ export class Client {
           metadata,
           properties,
           send: this.send,
-          is_overlay : false
+          is_overlay: false
         });
         this.surfaces[wid] = surface;
 
@@ -508,7 +517,7 @@ export class Client {
           metadata,
           properties,
           send: this.send,
-          is_overlay : true
+          is_overlay: true
         });
 
         this.surfaces[wid] = surface;

@@ -4,9 +4,9 @@ extends ../_base.pug
 
 block vars
   -
-    navbar_active = 'features';
-    subnavbar_active = 'r';
-    subtitle = 'R Statistical Computing Online Environment';
+    var navbar_active = 'features';
+    var subnavbar_active = 'r';
+    var subtitle = 'R Statistical Computing Online Environment';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -19,74 +19,75 @@ block content
   style
     :sass
       @import "webapp-lib/doc/_style.sass"
-      #nosetup
-        background-color  : $COL_GRAY_LL
-        padding-bottom    : 4rem
+
 
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
-      div.col-md-12.center
-        h1 #{subtitle}
-      div.col-sm-2.col-sm-offset-2
+      div.col-sm-2.col-sm-offset-5.center
         a(href="https://www.r-project.org/")
           img(src=require("webapp-lib/assets/r-logo.svg")).fit
-      div.col-sm-6
+      div.col-sm-8.col-sm-offset-2.center
+        h1 #{subtitle}
+      div.col-sm-8.col-sm-offset-2
         p.
           #{NAME} is an online web service where you can
           #[strong run #[a(href="https://www.r-project.org/") R code] online via your browser].
         p.
           It handles all the tedious details for you,
-          regardless of whether you want to work on the command line, run Jupyter Notebooks, create RMarkdown files, or use Knitr in LaTeX documents.
+          regardless of whether you want to work on the command line,
+          run #[a(href="./jupyter-notebook.html") Jupyter Notebooks],
+          create RMarkdown files, or use
+          #[a(href="./latex-editor.html#a-knitr") Knitr in LaTeX documents].
         p.
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
 
+
   a.anchor#a-nosetup
-  div.space#nosetup
+  div
     div.container
       div.row
         div.col-md-12.center
           h2 #[i.fa.fa-lightbulb-o] Zero setup
       div.col-sm-5.col-sm-offset-1
-        p.
-          You no longer have to
         ul
-          li Download and install the R software
-          li Setup additional packages you want to use
-          li Integrate additional software like a LaTeX editor with R
-          li Maintain everything on your own
+          li No need to download and install #[a(href="https://www.r-project.org/") R]
+          li #{NAME} already #[a(href=PREFIX + "/doc/software-r.html") provides many packages] for you
+          li The #[a(href=PREFIX + "/doc/latex-editor.html") LaTeX editor] is already integrated with R
+          li No longer maintain everything on your own
       div.col-sm-5
         p.
-          Instead, all you need to do to get started is to
+          To get started,
         ol
-          li Create an account
-          li Create a project
-          li Start working by creating or uploading LaTeX files, RMarkdown or Jupyter Notebooks
+          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project]
+          li.
+            Start working by creating or
+            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading LaTeX files],
+            RMarkdown,
+            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks],
+            or #[a(href="https://doc.cocalc.com/howto/overleaf.html") import from Overlaf/ShareLatex].
+
+
+  +start_free_banner
+
 
   div.space
     a.anchor#a-jupyternotebook
     div.container.space#jupyternotebook
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] R in Jupyter Notebooks
+          h2 R in Jupyter Notebooks
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter.png").fit
         div.col-md-6
           div.
-            #{NAME} offers a #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
+            #{NAME} offers a
+            #[strong #[a(href="./jupyter-notebook.html") complete rewrite]]
+            of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
             It is tightly integrated into #{NAME} and adds real-time collaboration,
             time-travel history and
-            #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
+            #[a(href="http://doc.cocalc.com/jupyter.html") much more].
           div.
             This rewrite does not change the underlying Jupyter notebook file format.
             Therefore, you can download your #[code *.ipynb] file at any time and continue working in another environment.
@@ -98,7 +99,7 @@ block content
     div.container.space#latex
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Extensive LaTeX support for R
+          h2 Extensive LaTeX support for R
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-latex.png").fit
         div.col-md-6
@@ -127,7 +128,7 @@ block content
           div.
             Combined, this means you can do #[strong your entire workflow online on #{NAME}]:
           ol
-            li Upload or fetch your datasets,
+            li #[a(href="https://doc.cocalc.com/howto/upload.html") Upload] or fetch your datasets,
             li.
               Use #[a(href="#a-jupyternotebook") Jupyter Notebooks]
               to explore the data and test your hypothesis,
@@ -143,7 +144,7 @@ block content
     div.container.space#rmarkdown
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-users] RMarkdown support
+          h2 RMarkdown support
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-rmd-demo-R-python3-plotting.png").fit
         div.col-md-6
@@ -167,7 +168,7 @@ block content
     div.container.space#codeformatting
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-history] Code formatting
+          h2 Code formatting
         div.col-md-6
           div
             +video-player
@@ -207,7 +208,7 @@ block content
     div.container.space#commandline
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Command-line support
+          h2 Command-line support
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-rcode.png").fit
         div.col-md-6
@@ -220,7 +221,9 @@ block content
           div.
             Terminals can be used #[em by multiple users at once].
             This means you can work with your collaborators in the same session at the same time.
-            Everyone sees the same output, and via side-chat next to the terminal, the whole team can coordinate what you're doing.
+            Everyone sees the same output, and via
+            #[a(href="https://doc.cocalc.com/chat.html") side chat]
+            next to the terminal, the whole team can coordinate what you're doing.
           div.
             Beyond that, you can simultaneously work with several terminal sessions.
             This gives you the ability to run your code concurrently.
@@ -231,19 +234,19 @@ block content
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comments-o] Chat panel
+          h2 #[i.fa.fa-comment] Chat panel
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-side-chat.png").fit
         div.col-md-6
           div.
             Collaboration is a first class citizen on #{NAME}.
-            A #[strong side-by-side chat] for each file gives you the ability to discuss the content with your colleagues or students.
+            A #[a(href="https://doc.cocalc.com/chat.html") side-by-side chat] for each file gives you the ability to discuss the content with your colleagues or students.
           div.
             Additionally, little avatars give you #[strong presence information] about who is currently also working on that file.
           div.
             Collaborators who are not online will be notified about new messages the next time they sign in.
           div.
-            Chat supports markdown formatting and LaTeX formulas.
+            #[a(href="https://doc.cocalc.com/chat.html") Chat] supports markdown formatting and LaTeX formulas.
 
     a.anchor#a-environment
     div.container.space#environment
@@ -272,15 +275,18 @@ block content
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-timetravel-r-jupyter-3x.mp4" type="video/mp4")
         div.col-md-6
           div.
-            The #[strong Time-travel] feature is specific to the #{NAME} platform.
-            It records all your changes in editable files like the Jupyter notebooks and LaTeX documents in fine detail.
+            The #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel feature]]
+            is specific to the #{NAME} platform.
+            It records all your changes in editable files like
+            R source code, Jupyter notebook and LaTeX documents in fine detail.
             You can go back and forth in time across hundreds of changes to recover your previous edits.
           div.
             This allows you to easily recover parts of previous versions of your file,
             by copy/pasting the part you accidentally changed.
           div.
             You can also relive the entire process of editing the file from the very start.
-            This lets you discover how you arrived at a particular solution and see what you (or your student) attempted before the final solution.
+            This lets you discover how you arrived at a particular solution
+            and see what you (or your student) attempted before the final solution.
 
     a.anchor#a-backups
     div.container.space#backups
@@ -300,7 +306,7 @@ block content
     div.container.space#publishing
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-camera-retro] Publishing
+          h2 #[i.fa.fa-bullhorn] Publishing
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-share-notebook.png").fit
         div.col-md-6
@@ -316,9 +322,4 @@ block content
           div.
             Example: #[a(href="https://share.cocalc.com/share/20e4a191-73ea-4921-80e9-0a5d792fc511/ir-display.ipynb?viewer=share") Published R notebook].
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
-
+  +start_free_banner

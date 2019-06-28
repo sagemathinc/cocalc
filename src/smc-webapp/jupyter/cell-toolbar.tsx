@@ -1,16 +1,19 @@
 /*
 The toolbar at the top of each cell
 */
-
 import { Map as ImmutableMap } from "immutable";
 
 import { React, Component } from "../app-framework"; // TODO: this will move
 const { COLORS } = require("smc-util/theme");
-const { Slideshow } = require("./cell-toolbar-slideshow"); // TODO: use import
-const { Attachments } = require("./cell-toolbar-attachments"); // TODO: use import
-const { TagsToolbar } = require("./cell-toolbar-tags"); // TODO: use import
-const { Metadata } = require("./cell-toolbar-metadata"); // TODO: use import
 const { NBGrader } = require("./cell-toolbar-nbgrader");
+import { React, Component, Rendered } from "../app-framework";
+
+import { Slideshow } from "./cell-toolbar-slideshow";
+import { Attachments } from "./cell-toolbar-attachments";
+import { TagsToolbar } from "./cell-toolbar-tags";
+import { Metadata } from "./cell-toolbar-metadata";
+import { Map } from "immutable";
+import { JupyterActions } from "./browser-actions";
 
 function BAR_STYLE() {
   return {
@@ -24,11 +27,10 @@ function BAR_STYLE() {
   };
 }
 
-export interface IToolbar {
-  actions: any;
-  cell: ImmutableMap<string, any>; // TODO: what is this
-  student_mode?: boolean;
-  name?: string;
+export interface CellToolbarProps {
+  actions: JupyterActions;
+  cell_toolbar: string;
+  cell: Map<string, any>; // TODO: what is this
 }
 
 export type CellToolbarProps = IToolbar & { cell_toolbar: string };
@@ -42,8 +44,7 @@ const TOOLBARS = {
 };
 
 export class CellToolbar extends Component<CellToolbarProps> {
-  render() {
-    const style = BAR_STYLE() as any;
+  public render(): Rendered {
     const T = TOOLBARS[this.props.cell_toolbar];
     const props: IToolbar = {
       actions: this.props.actions,

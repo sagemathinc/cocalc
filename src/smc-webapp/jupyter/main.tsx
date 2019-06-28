@@ -2,91 +2,113 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, Rendered, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
-const { ErrorDisplay, Loading } = require("../r_misc");
+
+import { ErrorDisplay } from "../r_misc/error-display";
+import { Loading } from "../r_misc/loading";
+
 // React components that implement parts of the Jupyter notebook.
-const { TopMenubar } = require("./top-menubar");
-const { TopButtonbar } = require("./top-buttonbar");
-const { CellList } = require("./cell-list");
-const { Introspect } = require("./introspect");
-const { Kernel, Mode } = require("./status");
-const { About } = require("./about");
-const { NBConvert } = require("./nbconvert");
-const { InsertImage } = require("./insert-image");
-const { EditAttachments } = require("./edit-attachments");
-const { EditCellMetadata } = require("./edit-cell-metadata");
-const { FindAndReplace } = require("./find-and-replace");
-const { ConfirmDialog } = require("./confirm-dialog");
-const { KernelSelector } = require("./select-kernel");
-const { KeyboardShortcuts } = require("./keyboard-shortcuts");
-const { JSONView } = require("./json-view");
-const { RawEditor } = require("./raw-editor");
-const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
+import { TopMenubar } from "./top-menubar";
+import { TopButtonbar } from "./top-buttonbar";
+import { CellList } from "./cell-list";
+import { Introspect } from "./introspect";
+import { Kernel, Mode } from "./status";
+import { About } from "./about";
+import { NBConvert } from "./nbconvert";
+import { InsertImage } from "./insert-image";
+import { EditAttachments } from "./edit-attachments";
+import { EditCellMetadata } from "./edit-cell-metadata";
+import { FindAndReplace } from "./find-and-replace";
+import { ConfirmDialog } from "./confirm-dialog";
+import { KernelSelector } from "./select-kernel";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import { JSONView } from "./json-view";
+import { RawEditor } from "./raw-editor";
+// import { SnippetsDialog } from "smc-webapp/assistant/dialog";
+const { SnippetsDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
+import { Scroll } from "./types";
 
 const KERNEL_STYLE: React.CSSProperties = {
-  position: "absolute",
-  right: 0,
+  float: "right",
   paddingLeft: "5px",
   backgroundColor: "#eee",
-  height: "32px",
   display: "block",
   overflow: "hidden",
-  borderLeft: "1px solid #aaa",
+  borderLeft: "1px solid rgb(231,231,231)",
+  borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap"
 };
 
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 interface JupyterEditorProps {
-  // OWN PROPS
+  // PROPS
   error?: string;
-  actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   name: string; // name of the redux store
+
+  // Comes explicitly from frontend Jupyter state stored in
+  // the frame tree, hence it can be different between
+  // each view of the notebook, and survives closing and
+  // opening the file (or refreshing browser), which is nice!
+  is_focused?: boolean;
+  is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
+  mode: "edit" | "escape"; // oneOf(['edit', 'escape']).isRequired;
+  font_size?: number;
+
+  cur_id?: string;
+  sel_ids?: immutable.Set<any>; // set of selected cells
+  md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
+
+  scroll?: Scroll; // Causes a scroll when it *changes*
+  scrollTop?: number;
+  hook_offset?: number;
+  view_mode?: "normal" | "json" | "raw";
+
+  // TODO
+  complete?: immutable.Map<any, any>; // status of tab completion
+  introspect?: immutable.Map<any, any>; // status of introspection
+  more_output?: immutable.Map<any, any>;
+  find_and_replace?: boolean;
+  show_kernel_selector?: boolean;
+
   // REDUX PROPS
-  view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
   kernels?: KernelsType;
-  site_name: string;
+  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
+  site_name?: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
   toolbar?: boolean;
   has_unsaved_changes?: boolean;
   cell_list?: immutable.List<any>; // list of ids of cells in order
   cells?: immutable.Map<any, any>; // map from ids to cells
-  cur_id?: string;
-  sel_ids: immutable.Set<any>; // set of selected cells
-  mode: any; // oneOf(['edit', 'escape']).isRequired;
-  font_size?: number;
-  md_edit_ids: immutable.Set<any>; // ids of markdown cells in edit mode
-  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
   project_id?: string;
   directory?: string;
   version?: any;
-  complete?: immutable.Map<any, any>; // status of tab completion
-  introspect?: immutable.Map<any, any>; // status of introspection
-  is_focused?: boolean;
-  more_output?: immutable.Map<any, any>;
   about?: boolean;
   backend_kernel_info?: immutable.Map<any, any>;
   confirm_dialog?: immutable.Map<any, any>;
-  find_and_replace?: boolean;
   keyboard_shortcuts?: immutable.Map<any, any>;
-  scroll?: number | string;
   nbconvert?: immutable.Map<any, any>; // backend convert state
   nbconvert_dialog?: immutable.Map<any, any>; // frontend modal dialog state
   path?: string;
   cell_toolbar?: string;
-  insert_image?: boolean; // show insert image dialog
+  insert_image?: string; // show insert image dialog
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
-  editor_settings: immutable.Map<any, any>;
+  editor_settings?: immutable.Map<any, any>;
   raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
   student_mode?: boolean;
-  kernel_info: immutable.Map<any, any>;
-  check_select_kernel_init: boolean;
   show_kernel_selector?: boolean;
+  kernel_info?: immutable.Map<any, any>;
+  check_select_kernel_init?: boolean;
   kernel_selection?: immutable.Map<string, any>;
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
@@ -98,7 +120,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   public static reduxProps({ name }) {
     return {
       [name]: {
-        view_mode: rtypes.oneOf(["normal", "json", "raw"]),
         kernel: rtypes.string, // string name of the kernel
         kernels: rtypes.immutable.List,
         error: rtypes.string,
@@ -107,30 +128,23 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         has_unsaved_changes: rtypes.bool,
         cell_list: rtypes.immutable.List, // list of ids of cells in order
         cells: rtypes.immutable.Map, // map from ids to cells
-        cur_id: rtypes.string,
-        sel_ids: rtypes.immutable.Set.isRequired, // set of selected cells
-        mode: rtypes.oneOf(["edit", "escape"]).isRequired,
-        font_size: rtypes.number,
-        md_edit_ids: rtypes.immutable.Set.isRequired, // ids of markdown cells in edit mode
         cm_options: rtypes.immutable.Map, // settings for all the codemirror editors
         project_id: rtypes.string,
         directory: rtypes.string,
         version: rtypes.object,
         complete: rtypes.immutable.Map, // status of tab completion
         introspect: rtypes.immutable.Map, // status of introspection
-        is_focused: rtypes.bool,
         more_output: rtypes.immutable.Map,
         about: rtypes.bool,
         backend_kernel_info: rtypes.immutable.Map,
         confirm_dialog: rtypes.immutable.Map,
         find_and_replace: rtypes.bool,
         keyboard_shortcuts: rtypes.immutable.Map,
-        scroll: rtypes.oneOfType([rtypes.number, rtypes.string]),
         nbconvert: rtypes.immutable.Map, // backend convert state
         nbconvert_dialog: rtypes.immutable.Map, // frontend modal dialog state
         path: rtypes.string,
         cell_toolbar: rtypes.string,
-        insert_image: rtypes.bool, // show insert image dialog
+        insert_image: rtypes.string, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
         raw_ipynb: rtypes.immutable.Map,
@@ -178,28 +192,66 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   render_kernel() {
     return (
       <span style={KERNEL_STYLE}>
-        <Kernel name={this.props.name} actions={this.props.actions} />
+        <Kernel
+          is_fullscreen={this.props.is_fullscreen}
+          name={this.props.name}
+          actions={this.props.actions}
+        />
         <Mode name={this.props.name} />
       </span>
     );
   }
 
   render_menubar() {
-    return <TopMenubar actions={this.props.actions} name={this.props.name} />;
+    if (
+      this.props.actions == null ||
+      this.props.frame_actions == null ||
+      this.props.cells == null ||
+      this.props.sel_ids == null ||
+      this.props.cur_id == null
+    ) {
+      return;
+    } else {
+      return (
+        <TopMenubar
+          actions={this.props.actions}
+          name={this.props.name}
+          frame_actions={this.props.frame_actions}
+          cells={this.props.cells}
+          cur_id={this.props.cur_id}
+          view_mode={this.props.view_mode}
+        />
+      );
+    }
   }
 
   render_buttonbar() {
-    return <TopButtonbar actions={this.props.actions} name={this.props.name} />;
+    if (
+      this.props.actions == null ||
+      this.props.frame_actions == null ||
+      this.props.cells == null ||
+      this.props.sel_ids == null ||
+      this.props.cur_id == null
+    ) {
+      return;
+    } else {
+      return (
+        <TopButtonbar
+          actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
+          name={this.props.name}
+          cells={this.props.cells}
+          cur_id={this.props.cur_id}
+          sel_ids={this.props.sel_ids}
+        />
+      );
+    }
   }
 
   render_heading() {
+    //if (!this.props.is_focused) return;
     return (
-      <div
-        style={{
-          boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-          zIndex: 100
-        }}
-      >
+      <div style={{ border: "1px solid rgb(231, 231, 231)" }}>
         {this.render_kernel()}
         {this.render_menubar()}
         {this.props.toolbar ? this.render_buttonbar() : undefined}
@@ -225,7 +277,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.cell_list == null ||
       this.props.font_size == null ||
       this.props.cm_options == null ||
-      this.props.kernels == null
+      this.props.kernels == null ||
+      this.props.cells == null
     ) {
       return (
         <Loading
@@ -241,6 +294,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     return (
       <CellList
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         name={this.props.name}
         cell_list={this.props.cell_list}
         cells={this.props.cells}
@@ -249,10 +303,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         md_edit_ids={this.props.md_edit_ids}
         cur_id={this.props.cur_id}
         mode={this.props.mode}
+        hook_offset={this.props.hook_offset}
         cm_options={this.props.cm_options}
         project_id={this.props.project_id}
         directory={this.props.directory}
-        scrollTop={this.props.actions.store.get_scroll_state()}
+        scrollTop={this.props.scrollTop}
         complete={this.props.complete}
         is_focused={this.props.is_focused}
         more_output={this.props.more_output}
@@ -288,26 +343,26 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_nbconvert() {
+    if (this.props.path == null || this.props.project_id == null) return;
     return (
       <NBConvert
         actions={this.props.actions}
         path={this.props.path}
+        project_id={this.props.project_id}
         nbconvert={this.props.nbconvert}
         nbconvert_dialog={this.props.nbconvert_dialog}
         backend_kernel_info={this.props.backend_kernel_info}
-        project_id={this.props.project_id}
       />
     );
   }
 
   render_insert_image() {
-    if (this.props.cur_id == null || this.props.project_id == null) {
+    if (this.props.insert_image == null || this.props.project_id == null) {
       return;
     }
     return (
       <InsertImage
         actions={this.props.actions}
-        cur_id={this.props.cur_id}
         project_id={this.props.project_id}
         insert_image={this.props.insert_image}
       />
@@ -315,13 +370,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_edit_attachments() {
-    if (this.props.edit_attachments == null) {
+    if (this.props.edit_attachments == null || this.props.cells == null) {
       return;
     }
-    const cell =
-      this.props.cells != null
-        ? this.props.cells.get(this.props.edit_attachments)
-        : undefined;
+    const cell = this.props.cells.get(this.props.edit_attachments);
     if (cell == null) {
       return;
     }
@@ -348,7 +400,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_find_and_replace() {
-    if (this.props.cells == null) {
+    if (this.props.cells == null || this.props.cur_id == null) {
       return;
     }
     return (
@@ -364,6 +416,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_confirm_dialog() {
+    if (this.props.confirm_dialog == null || this.props.actions == null) return;
     return (
       <ConfirmDialog
         actions={this.props.actions}
@@ -373,6 +426,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_select_kernel() {
+    if (this.props.editor_settings == null || this.props.site_name == null)
+      return;
+
     const ask_jupyter_kernel = this.props.editor_settings.get(
       "ask_jupyter_kernel"
     );
@@ -395,36 +451,42 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_keyboard_shortcuts() {
+    if (this.props.actions == null || this.props.frame_actions == null) return;
     return (
       <KeyboardShortcuts
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         keyboard_shortcuts={this.props.keyboard_shortcuts}
       />
     );
   }
 
-  render_assistant_dialog() {
+  render_snippets_dialog() {
     return (
-      <ExamplesDialog
-        name={this.props.actions.assistant_actions.name}
-        actions={this.props.actions.assistant_actions}
+      <SnippetsDialog
+        name={this.props.actions.snippet_actions.name}
+        actions={this.props.actions.snippet_actions}
       />
     );
   }
 
   render_json_viewer() {
+    if (this.props.cells == null) return <Loading />;
     return (
       <JSONView
         actions={this.props.actions}
         cells={this.props.cells}
         font_size={this.props.font_size}
-        kernel={this.props.kernel}
       />
     );
   }
 
   render_raw_editor() {
-    if (this.props.raw_ipynb == null || this.props.cm_options == null) {
+    if (
+      this.props.raw_ipynb == null ||
+      this.props.cm_options == null ||
+      this.props.font_size == null
+    ) {
       return <Loading />;
     }
     return (
@@ -465,6 +527,23 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
   }
 
+  render_modals() {
+    if (!this.props.is_focused) return;
+    return (
+      <>
+        {this.render_about()}
+        {this.render_nbconvert()}
+        {this.render_insert_image()}
+        {this.render_edit_attachments()}
+        {this.render_edit_cell_metadata()}
+        {this.render_find_and_replace()}
+        {this.render_keyboard_shortcuts()}
+        {this.render_snippets_dialog()}
+        {this.render_confirm_dialog()}
+      </>
+    );
+  }
+
   render() {
     if (this.props.fatal) {
       return this.render_fatal();
@@ -479,15 +558,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         }}
       >
         {this.render_error()}
-        {this.render_about()}
-        {this.render_nbconvert()}
-        {this.render_insert_image()}
-        {this.render_edit_attachments()}
-        {this.render_edit_cell_metadata()}
-        {this.render_find_and_replace()}
-        {this.render_keyboard_shortcuts()}
-        {this.render_assistant_dialog()}
-        {this.render_confirm_dialog()}
+        {this.render_modals()}
         {this.render_heading()}
         {this.render_main()}
       </div>

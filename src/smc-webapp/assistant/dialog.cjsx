@@ -34,9 +34,9 @@ immutable = require('immutable')
 {ExamplesBody}   = require('./body')
 {ExamplesFooter} = require('./footer')
 
-# The root element of the Assistant dialog.
-exports.ExamplesDialog = rclass ({name}) ->
-    displayName : 'Examples'
+# The root element of the Snippets dialog.
+exports.SnippetsDialog = rclass ({name}) ->
+    displayName : 'SnippetsDialog'
 
     reduxProps :
         "#{name}" :

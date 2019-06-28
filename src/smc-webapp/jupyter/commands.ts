@@ -1,49 +1,70 @@
 /*
-Comprehensive list of Jupyter notebook (version 5) command,
-   f : implementation of each using our actions/store
-   k : default keyboard shortcut for that command
+Comprehensive list of Jupyter notebook (version 5) commands
+we support and how they work.
 */
 
+// still in coffeescript...
 // for now we also use require here (see comment in actions.ts)
+const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
-const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
+import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { NotebookMode } from "./types";
 
-const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
-  .FORMAT_SOURCE_ICON;
+export interface KeyboardCommand {
+  mode?: NotebookMode;
+  which: number;
+  ctrl?: boolean;
+  alt?: boolean;
+  shift?: boolean;
+  twice?: boolean;
+  meta?: boolean;
+}
 
-// TODO: type
-export function commands(actions: any) {
-  // TODO: if actions is not defined, what does this do?
-  let id: any, store: any;
-  if (actions != null) {
-    ({ store } = actions);
-    id = () => store.get("cur_id");
+export interface CommandDescription {
+  i?: string; // icon name
+  k?: KeyboardCommand[]; // keyboard commands
+  m?: string; // fuller description for use in menus
+  d?: string; // even more extensive description (e.g., for a tooltip).
+  f: Function; // function that implements command.
+}
+
+export function commands(
+  jupyter_actions: JupyterActions,
+  frame_actions: NotebookFrameActions
+): { [name: string]: CommandDescription } {
+  if (jupyter_actions == null || frame_actions == null) {
+    throw Error("both actions must be defined");
+  }
+  function id(): string {
+    return frame_actions.store.get("cur_id");
   }
 
   return {
     "cell toolbar none": {
-      m: "None",
-      f: () => actions.cell_toolbar()
+      m: "No cell toolbar",
+      f: () => jupyter_actions.cell_toolbar()
     },
 
     "cell toolbar attachments": {
       m: "Delete attachments",
-      f: () => actions.cell_toolbar("attachments")
+      f: () => jupyter_actions.cell_toolbar("attachments")
     },
 
     "cell toolbar tags": {
-      m: "Tags",
-      f: () => actions.cell_toolbar("tags")
+      m: "Edit cell tags",
+      f: () => jupyter_actions.cell_toolbar("tags")
     },
 
     "cell toolbar metadata": {
       m: "Edit custom metadata",
-      f: () => actions.cell_toolbar("metadata")
+      f: () => jupyter_actions.cell_toolbar("metadata")
     },
 
     "cell toolbar slideshow": {
-      m: "Slideshow",
-      f: () => actions.cell_toolbar("slideshow")
+      m: "Slideshow toolbar",
+      f: () => jupyter_actions.cell_toolbar("slideshow")
     },
 
     "cell toolbar nbgrader": {
@@ -54,66 +75,66 @@ export function commands(actions: any) {
     "change cell to code": {
       m: "Change to code",
       k: [{ which: 89, mode: "escape" }],
-      f: () => actions.set_selected_cell_type("code")
+      f: () => frame_actions.set_selected_cell_type("code")
     },
 
     "change cell to heading 1": {
       m: "Heading 1",
       k: [{ which: 49, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 1)
+      f: () => frame_actions.change_cell_to_heading(id(), 1)
     },
     "change cell to heading 2": {
       m: "Heading 2",
       k: [{ which: 50, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 2)
+      f: () => frame_actions.change_cell_to_heading(id(), 2)
     },
     "change cell to heading 3": {
       m: "Heading 3",
       k: [{ which: 51, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 3)
+      f: () => frame_actions.change_cell_to_heading(id(), 3)
     },
     "change cell to heading 4": {
       m: "Heading 4",
       k: [{ which: 52, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 4)
+      f: () => frame_actions.change_cell_to_heading(id(), 4)
     },
     "change cell to heading 5": {
       m: "Heading 5",
       k: [{ which: 53, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 5)
+      f: () => frame_actions.change_cell_to_heading(id(), 5)
     },
     "change cell to heading 6": {
       m: "Heading 6",
       k: [{ which: 54, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 6)
+      f: () => frame_actions.change_cell_to_heading(id(), 6)
     },
 
     "change cell to markdown": {
       m: "Change to markdown",
       k: [{ which: 77, mode: "escape" }],
-      f: () => actions.set_selected_cell_type("markdown")
+      f: () => frame_actions.set_selected_cell_type("markdown")
     },
 
     "change cell to raw": {
       m: "Change to raw",
       k: [{ which: 82, mode: "escape" }],
-      f: () => actions.set_selected_cell_type("raw")
+      f: () => frame_actions.set_selected_cell_type("raw")
     },
 
     "clear all cells output": {
       m: "Clear all output",
-      f: () => actions.clear_all_outputs()
+      f: () => jupyter_actions.clear_all_outputs()
     },
 
     "clear cell output": {
       m: "Clear output",
-      f: () => actions.clear_selected_outputs()
+      f: () => frame_actions.clear_selected_outputs()
     },
 
     "close and halt": {
       i: "hand-stop-o",
       m: "Close and halt",
-      f: () => actions.close_and_halt()
+      f: () => jupyter_actions.close_and_halt()
     },
 
     "NBGrader tests": {
@@ -125,36 +146,37 @@ export function commands(actions: any) {
     "close pager": {
       m: "Close pager",
       k: [{ which: 27, mode: "escape" }],
-      f: () =>
-        store.get("introspect") != null ? actions.clear_introspect() : undefined
+      f: () => {
+        if (jupyter_actions.store.get("introspect") != null) {
+          jupyter_actions.clear_introspect();
+        }
+      }
     },
 
     "confirm restart kernel": {
       m: "Restart kernel...",
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
-      f() {
-        return actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Restart kernel?",
           body:
             "Do you want to restart the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Restart", style: "danger", default: true }
-          ],
-          cb(choice) {
-            if (choice === "Restart") {
-              return actions.restart();
-            }
-          }
+          ]
         });
+        if (choice === "Restart") {
+          jupyter_actions.restart();
+        }
       }
     },
 
     "confirm restart kernel and clear output": {
       m: "Restart and clear output...",
-      f() {
-        return actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Restart kernel and clear all output?",
           body:
             "Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
@@ -165,23 +187,20 @@ export function commands(actions: any) {
               style: "danger",
               default: true
             }
-          ],
-          cb(choice) {
-            if (choice === "Restart and clear all outputs") {
-              actions.restart();
-              return actions.clear_all_outputs();
-            }
-          }
+          ]
         });
+        if (choice === "Restart and clear all outputs") {
+          jupyter_actions.restart();
+          jupyter_actions.clear_all_outputs();
+        }
       }
     },
 
     "confirm restart kernel and run all cells": {
       m: "Restart and run all...",
       i: "forward",
-      f() {
-        // TODO: async/await?
-        actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Restart kernel and re-run the whole notebook?",
           body:
             "Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.",
@@ -192,34 +211,30 @@ export function commands(actions: any) {
               style: "danger",
               default: true
             }
-          ],
-          async cb(choice) {
-            if (choice === "Restart and run all cells") {
-              await actions.restart();
-              actions.run_all_cells();
-            }
-          }
+          ]
         });
+        if (choice === "Restart and run all cells") {
+          await jupyter_actions.restart();
+          jupyter_actions.run_all_cells();
+        }
       }
     },
 
     "confirm shutdown kernel": {
       m: "Shutdown kernel...",
-      f() {
-        actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Shutdown kernel?",
           body:
             "Do you want to shutdown the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Shutdown", style: "danger", default: true }
-          ],
-          cb(choice) {
-            if (choice === "Shutdown") {
-              actions.shutdown();
-            }
-          }
+          ]
         });
+        if (choice === "Shutdown") {
+          jupyter_actions.shutdown();
+        }
       }
     },
 
@@ -227,35 +242,35 @@ export function commands(actions: any) {
       i: "files-o",
       m: "Copy cells",
       k: [{ mode: "escape", which: 67 }],
-      f: () => actions.copy_selected_cells()
+      f: () => frame_actions.copy_selected_cells()
     },
 
-    "copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
+    //"copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
 
     "cut cell": {
       i: "scissors",
       m: "Cut cells",
       k: [{ mode: "escape", which: 88 }],
-      f: () => actions.cut_selected_cells()
+      f: () => frame_actions.cut_selected_cells()
     },
 
-    "cut cell attachments": undefined, // no clue
+    //"cut cell attachments": undefined, // no clue
 
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
       m: "Delete cells",
       k: [{ mode: "escape", which: 68, twice: true }],
-      f: () => actions.delete_selected_cells()
+      f: () => frame_actions.delete_selected_cells()
     },
 
     "duplicate notebook": {
       m: "Make a copy...",
-      f: () => actions.file_action("duplicate")
+      f: () => jupyter_actions.file_action("duplicate")
     },
 
     "edit keyboard shortcuts": {
       m: "Keyboard shortcuts and commands...",
-      f: () => actions.show_keyboard_shortcuts()
+      f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
     "enter command mode": {
@@ -265,23 +280,34 @@ export function commands(actions: any) {
         { alt: true, mode: "edit", which: 77 }
       ],
       f() {
-        if (store.get("mode") === "escape" && store.get("introspect") != null) {
-          actions.clear_introspect();
+        if (
+          frame_actions.store.get("mode") === "escape" &&
+          jupyter_actions.store.get("introspect") != null
+        ) {
+          jupyter_actions.clear_introspect();
         }
 
-        if (store.getIn(["cm_options", "options", "keyMap"]) === "vim") {
+        if (
+          jupyter_actions.store.getIn(["cm_options", "options", "keyMap"]) ===
+          "vim"
+        ) {
           // Vim mode is trickier...
-          if (store.get("cur_cell_vim_mode", "escape") !== "escape") {
+          if (
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
+          ) {
             return;
           }
         }
-        actions.set_mode("escape");
+        frame_actions.set_mode("escape");
       }
     },
 
     "enter edit mode": {
       k: [{ which: 13, mode: "escape" }],
-      f: () => actions.set_mode("edit")
+      f: () => {
+        frame_actions.unhide_current_input();
+        frame_actions.set_mode("edit");
+      }
     },
 
     "extend selection above": {
@@ -289,7 +315,7 @@ export function commands(actions: any) {
         { mode: "escape", shift: true, which: 75 },
         { mode: "escape", shift: true, which: 38 }
       ],
-      f: () => actions.extend_selection(-1)
+      f: () => frame_actions.extend_selection(-1)
     },
 
     "extend selection below": {
@@ -297,7 +323,7 @@ export function commands(actions: any) {
         { mode: "escape", shift: true, which: 74 },
         { mode: "escape", shift: true, which: 40 }
       ],
-      f: () => actions.extend_selection(1)
+      f: () => frame_actions.extend_selection(1)
     },
 
     "find and replace": {
@@ -306,7 +332,7 @@ export function commands(actions: any) {
         { mode: "escape", which: 70 },
         { alt: true, mode: "escape", which: 70 }
       ],
-      f: () => actions.show_find_and_replace()
+      f: () => jupyter_actions.show_find_and_replace()
     },
 
     "global undo": {
@@ -318,7 +344,7 @@ export function commands(actions: any) {
         { alt: true, mode: "escape", which: 90 },
         { ctrl: true, mode: "escape", which: 90 }
       ],
-      f: () => actions.undo()
+      f: () => jupyter_actions.undo()
     },
 
     "global redo": {
@@ -332,161 +358,163 @@ export function commands(actions: any) {
         { alt: true, mode: "escape", which: 89 },
         { ctrl: true, mode: "escape", which: 89 }
       ],
-      f: () => actions.redo()
+      f: () => jupyter_actions.redo()
     },
 
     "hide all line numbers": {
       m: "Hide all line numbers",
-      f: () => actions.set_line_numbers(false)
+      f: () => jupyter_actions.set_line_numbers(false)
     },
 
     "hide header": {
       m: "Hide header",
-      f: () => actions.set_header_state(true)
+      f: () => jupyter_actions.set_header_state(true)
     },
 
     "hide toolbar": {
       m: "Hide toolbar",
-      f: () => actions.set_toolbar_state(false)
+      f: () => jupyter_actions.set_toolbar_state(false)
     },
 
-    ignore: undefined, // no clue what this means
+    //ignore: undefined, // no clue what this means
 
     "insert cell above": {
       m: "Insert cell above",
       k: [{ mode: "escape", which: 65 }],
-      f: () => actions.insert_cell(-1)
+      f: () => frame_actions.insert_cell(-1)
     },
 
     "insert cell below": {
       i: "plus",
       m: "Insert cell below",
       k: [{ mode: "escape", which: 66 }],
-      f: () => actions.insert_cell(1)
+      f: () => frame_actions.insert_cell(1)
     },
 
     "insert image": {
-      m: "Insert images in markdown cell...",
-      f: () => actions.insert_image()
+      m: "Insert images in selected markdown cell...",
+      f: () => frame_actions.insert_image()
     },
 
     "interrupt kernel": {
       i: "stop",
       m: "Interrupt kernel",
       k: [{ mode: "escape", which: 73, twice: true }],
-      f: () => actions.signal("SIGINT")
+      f: () => jupyter_actions.signal("SIGINT")
     },
 
     "merge cell with next cell": {
       m: "Merge cell below",
-      f: () => actions.merge_cell_below()
+      f: () => frame_actions.merge_cell_below()
     },
 
     "merge cell with previous cell": {
       m: "Merge cell above",
-      f: () => actions.merge_cell_above()
+      f: () => frame_actions.merge_cell_above()
     },
 
     "merge cells": {
       m: "Merge selected cells",
       k: [{ mode: "escape", shift: true, which: 77 }],
-      f: () => actions.merge_cells()
+      f: () => frame_actions.merge_selected_cells()
     },
 
     "merge selected cells": {
       // why is this in jupyter; it's the same as the above?
       m: "Merge selected cells",
-      f: () => actions.merge_cells()
+      f: () => frame_actions.merge_selected_cells()
     },
 
     "move cell down": {
       i: "arrow-down",
-      m: "Move cell down",
+      m: "Move cells down",
       k: [{ alt: true, mode: "escape", which: 40 }],
-      f: () => actions.move_selected_cells(1)
+      f: () => frame_actions.move_selected_cells(1)
     },
 
     "move cell up": {
       i: "arrow-up",
-      m: "Move cell up",
+      m: "Move cells up",
       k: [{ alt: true, mode: "escape", which: 38 }],
-      f: () => actions.move_selected_cells(-1)
+      f: () => frame_actions.move_selected_cells(-1)
     },
 
     "move cursor down": {
-      f: () => actions.move_edit_cursor(1)
+      m: "Move cursor down",
+      f: () => frame_actions.move_edit_cursor(1)
     },
 
     "move cursor up": {
-      f: () => actions.move_edit_cursor(-1)
+      m: "Move cursor up",
+      f: () => frame_actions.move_edit_cursor(-1)
     },
 
     "new notebook": {
       m: "New...",
-      f: () => actions.file_new()
+      f: () => jupyter_actions.file_new()
     },
 
     "nbconvert ipynb": {
       m: "Notebook (.ipynb)...",
       f() {
-        actions.save();
-        actions.file_action("download");
+        jupyter_actions.save();
+        jupyter_actions.file_action("download");
       }
     },
 
     "nbconvert asciidoc": {
       m: "AsciiDoc (.asciidoc)...",
-      f: () => actions.show_nbconvert_dialog("asciidoc")
+      f: () => jupyter_actions.show_nbconvert_dialog("asciidoc")
     },
 
     "nbconvert python": {
       m: "Python (.py)...",
-      f: () => actions.show_nbconvert_dialog("python")
+      f: () => jupyter_actions.show_nbconvert_dialog("python")
     },
 
     "nbconvert html": {
       m: "HTML (.html)...",
-      f: () => actions.show_nbconvert_dialog("html")
+      f: () => jupyter_actions.show_nbconvert_dialog("html")
     },
 
     "nbconvert markdown": {
       m: "Markdown (.md)...",
-      f: () => actions.show_nbconvert_dialog("markdown")
+      f: () => jupyter_actions.show_nbconvert_dialog("markdown")
     },
 
     "nbconvert rst": {
       m: "reST (.rst)...",
-      f: () => actions.show_nbconvert_dialog("rst")
+      f: () => jupyter_actions.show_nbconvert_dialog("rst")
     },
 
     "nbconvert slides": {
       m: "Slideshow...",
-      f: () => actions.show_nbconvert_dialog("slides")
+      f: () => jupyter_actions.show_nbconvert_dialog("slides")
     },
 
     "nbconvert tex": {
       m: "LaTeX (.tex)...",
-      f: () => actions.show_nbconvert_dialog("latex")
+      f: () => jupyter_actions.show_nbconvert_dialog("latex")
     },
 
     "nbconvert pdf": {
       m: "PDF via LaTeX (.pdf)...",
-      f: () => actions.show_nbconvert_dialog("pdf")
+      f: () => jupyter_actions.show_nbconvert_dialog("pdf")
     },
 
     "nbconvert script": {
       m: "Executable script (.txt)...",
-      f: () => actions.show_nbconvert_dialog("script")
+      f: () => jupyter_actions.show_nbconvert_dialog("script")
     },
 
     "nbconvert sagews": {
       m: "Sage worksheet (.sagews)...",
-      f: () => actions.show_nbconvert_dialog("sagews")
+      f: () => jupyter_actions.show_nbconvert_dialog("sagews")
     },
 
     "open file": {
       m: "Open...",
-      f: () => actions.file_open()
+      f: () => jupyter_actions.file_open()
     },
 
     "paste cell above": {
@@ -496,15 +524,15 @@ export function commands(actions: any) {
         { mode: "escape", shift: true, ctrl: true, which: 86 },
         { mode: "escape", shift: true, alt: true, which: 86 }
       ],
-      f: () => actions.paste_cells(-1)
+      f: () => frame_actions.paste_cells(-1)
     },
 
-    "paste cell attachments": undefined, // TODO ? not sure what the motivation is...
+    //"paste cell attachments": undefined, // TODO ? not sure what the motivation is...
 
     "paste cell below": {
       // jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
       m: "Paste cells below",
-      f: () => actions.paste_cells(1)
+      f: () => frame_actions.paste_cells(1)
     },
 
     "paste cell and replace": {
@@ -517,79 +545,79 @@ export function commands(actions: any) {
         { mode: "escape", ctrl: true, which: 86 }
       ],
       f() {
-        if (store.get("sel_ids", { size: 0 }).size > 0) {
-          actions.paste_cells(0);
+        if (frame_actions.store.get("sel_ids", { size: 0 }).size > 0) {
+          frame_actions.paste_cells(0);
         } else {
-          actions.paste_cells(1);
+          frame_actions.paste_cells(1);
         }
       }
     },
 
     "print preview": {
       m: "Print preview...",
-      f: () => actions.show_nbconvert_dialog("html")
+      f: () => jupyter_actions.show_nbconvert_dialog("html")
     },
 
     "refresh kernels": {
       m: "Refresh kernel list",
-      f: () => actions.fetch_jupyter_kernels()
+      f: () => jupyter_actions.fetch_jupyter_kernels()
     },
 
     "rename notebook": {
       m: "Rename...",
-      f: () => actions.file_action("rename")
+      f: () => jupyter_actions.file_action("rename")
     },
 
     "restart kernel": {
       m: "Restart kernel",
-      f: () => actions.restart()
+      f: () => jupyter_actions.restart()
     },
 
     "restart kernel and clear output": {
       m: "Restart kernel and clear output",
       f() {
-        actions.restart();
-        actions.clear_all_outputs();
+        jupyter_actions.restart();
+        jupyter_actions.clear_all_outputs();
       }
     },
 
     "restart kernel and run all cells": {
       m: "Restart and run all",
       async f() {
-        await actions.restart();
-        actions.run_all_cells();
+        await jupyter_actions.restart();
+        jupyter_actions.run_all_cells();
       }
     },
 
     "run all cells": {
       m: "Run all",
-      f: () => actions.run_all_cells()
+      f: () => jupyter_actions.run_all_cells()
     },
 
     "run all cells above": {
       m: "Run all above",
-      f: () => actions.run_all_above()
+      f: () => frame_actions.run_all_above()
     },
 
     "run all cells below": {
       m: "Run all below",
-      f: () => actions.run_all_below()
+      f: () => frame_actions.run_all_below()
     },
 
     "run cell": {
       m: "Run cells",
       k: [{ which: 13, ctrl: true }],
       f() {
-        actions.run_selected_cells();
-        actions.set_mode("escape");
-        actions.scroll("cell visible");
+        frame_actions.run_selected_cells();
+        frame_actions.set_mode("escape");
+        frame_actions.scroll("cell visible");
       }
     },
 
     "run cell and insert below": {
       m: "Run cells and insert new cell below",
       k: [{ which: 13, alt: true }],
-      f: () => actions.run_cell_and_insert_new_cell_below()
+      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below()
     },
 
     "run cell and select next": {
@@ -597,41 +625,41 @@ export function commands(actions: any) {
       m: "Run cells and select below",
       k: [{ which: 13, shift: true }],
       f() {
-        actions.shift_enter_run_selected_cells();
-        actions.scroll("cell visible");
+        frame_actions.shift_enter_run_selected_cells();
+        frame_actions.scroll("cell visible");
       }
     },
 
     "save notebook": {
       m: "Save",
       k: [{ which: 83, alt: true }, { which: 83, ctrl: true }],
-      f: () => actions.save()
+      f: () => jupyter_actions.save()
     },
 
     "scroll cell center": {
-      f: () => actions.scroll("cell center")
+      f: () => frame_actions.scroll("cell center")
     },
 
     "scroll cell top": {
-      f: () => actions.scroll("cell top")
+      f: () => frame_actions.scroll("cell top")
     },
 
     "scroll cell bottom": {
-      f: () => actions.scroll("cell bottom")
+      f: () => frame_actions.scroll("cell bottom")
     },
 
     "scroll cell visible": {
-      f: () => actions.scroll("cell visible")
+      f: () => frame_actions.scroll("cell visible")
     },
 
     "scroll notebook down": {
       k: [{ mode: "escape", which: 32 }],
-      f: () => actions.scroll("list down")
+      f: () => frame_actions.scroll("list down")
     },
 
     "scroll notebook up": {
       k: [{ mode: "escape", shift: true, which: 32 }],
-      f: () => actions.scroll("list up")
+      f: () => frame_actions.scroll("list up")
     },
 
     "select all cells": {
@@ -640,207 +668,231 @@ export function commands(actions: any) {
         { alt: true, mode: "escape", which: 65 },
         { ctrl: true, mode: "escape", which: 65 }
       ],
-      f: () => actions.select_all_cells()
+      f: () => frame_actions.select_all_cells()
     },
 
     "select next cell": {
       k: [{ which: 40, mode: "escape" }, { which: 74, mode: "escape" }],
       f() {
-        actions.move_cursor(1);
-        actions.unselect_all_cells();
-        actions.scroll("cell visible");
+        frame_actions.move_cursor(1);
+        frame_actions.unselect_all_cells();
+        frame_actions.scroll("cell visible");
       }
     },
 
     "select previous cell": {
       k: [{ which: 38, mode: "escape" }, { which: 75, mode: "escape" }],
       f() {
-        actions.move_cursor(-1);
-        actions.unselect_all_cells();
-        actions.scroll("cell visible");
+        frame_actions.move_cursor(-1);
+        frame_actions.unselect_all_cells();
+        frame_actions.scroll("cell visible");
       }
     },
 
     "show all line numbers": {
       m: "Show all line numbers",
-      f: () => actions.set_line_numbers(true)
+      f: () => jupyter_actions.set_line_numbers(true)
     },
 
     "show command palette": {
       m: "Show command palette...",
-      k: [{ alt: true, mode: "escape", shift: true, which: 80 }],
-      f: () => actions.show_keyboard_shortcuts()
+      k: [
+        { alt: true, shift: true, which: 80 },
+        { ctrl: true, shift: true, which: 80 }
+      ],
+      f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
     "show header": {
       m: "Show header",
-      f: () => actions.set_header_state(false)
+      f: () => jupyter_actions.set_header_state(false)
     },
 
     "show keyboard shortcuts": {
       i: "keyboard-o",
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
-      f: () => actions.show_keyboard_shortcuts()
+      f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
-    "show code assistant": {
-      i: ASSISTANT_ICON_NAME,
-      m: "Show code assistant",
-      f: () => actions.show_code_assistant()
+    "show code snippets": {
+      i: SNIPPET_ICON_NAME,
+      m: "Show code snippets",
+      f: async () => {
+        await frame_actions.show_code_snippets();
+        frame_actions.scroll("cell visible");
+      }
     },
 
     "show toolbar": {
       m: "Show toolbar",
-      f: () => actions.set_toolbar_state(true)
+      f: () => jupyter_actions.set_toolbar_state(true)
     },
 
     "shutdown kernel": {
       m: "Shutdown kernel",
-      f: () => actions.shutdown()
+      f: () => jupyter_actions.shutdown()
     },
 
     "split cell at cursor": {
       m: "Split cell",
       k: [{ ctrl: true, shift: true, which: 189 }],
       f() {
-        actions.set_mode("escape");
-        actions.split_current_cell();
+        frame_actions.set_mode("escape");
+        frame_actions.split_current_cell();
       }
     },
 
     "switch to classical notebook": {
       m: "Switch to classical notebook...",
-      f: () => actions.switch_to_classical_notebook()
+      f: () => jupyter_actions.switch_to_classical_notebook()
     },
 
     "tab key": {
       m: "Tab key (completion)",
-      f: () => actions.tab_key()
+      f: () => frame_actions.tab_key()
     },
 
     "shift+tab key": {
       m: "Shift+Tab introspection (show function docstring)",
-      f: () => actions.shift_tab_key()
+      f: () => frame_actions.shift_tab_key()
     },
 
     "time travel": {
       m: "TimeTravel...",
-      f: () => actions.show_history_viewer()
+      f: () => jupyter_actions.show_history_viewer()
     },
 
     "toggle all cells output collapsed": {
       m: "Toggle all collapsed",
-      f: () => actions.toggle_all_outputs("collapsed")
+      f: () => jupyter_actions.toggle_all_outputs("collapsed")
     },
 
     "toggle all cells output scrolled": {
       m: "Toggle all scrolled",
-      f: () => actions.toggle_all_outputs("scrolled")
+      f: () => jupyter_actions.toggle_all_outputs("scrolled")
     },
 
     "toggle all line numbers": {
       m: "Toggle all line numbers",
       k: [{ mode: "escape", shift: true, which: 76 }],
-      f: () => actions.toggle_line_numbers()
+      f: () => jupyter_actions.toggle_line_numbers()
     },
 
     "toggle cell line numbers": {
       m: "Toggle cell line numbers",
       k: [{ mode: "escape", which: 76 }],
-      f: () => actions.toggle_cell_line_numbers(id())
+      f: () => jupyter_actions.toggle_cell_line_numbers(id())
     },
 
     "toggle cell output collapsed": {
       m: "Toggle collapsed",
       k: [{ mode: "escape", which: 79 }],
-      f: () => actions.toggle_selected_outputs("collapsed")
+      f: () => frame_actions.toggle_selected_outputs("collapsed")
     },
 
     "toggle cell output scrolled": {
       m: "Toggle scrolled",
       k: [{ mode: "escape", which: 79, shift: true }],
-      f: () => actions.toggle_selected_outputs("scrolled")
+      f: () => frame_actions.toggle_selected_outputs("scrolled")
     },
 
     "toggle header": {
       m: "Toggle header",
-      f: () => actions.toggle_header()
+      f: () => jupyter_actions.toggle_header()
     },
 
-    "toggle rtl layout": {
+    /* "toggle rtl layout": {
       // TODO
       m: "Toggle RTL layout"
-    },
+    }, */
 
     "toggle toolbar": {
       m: "Toggle toolbar",
-      f: () => actions.toggle_toolbar()
+      f: () => jupyter_actions.toggle_toolbar()
     },
 
     "trust notebook": {
       m: "Trust notebook",
-      f: () => actions.trust_notebook()
+      f: () => jupyter_actions.trust_notebook()
     },
 
     "undo cell deletion": {
       m: "Undo cell deletion",
       k: [{ mode: "escape", which: 90 }],
-      f: () => actions.undo()
+      f: () => jupyter_actions.undo()
     },
 
+    /*
     "user interface tour": {
       // TODO
       m: "User interface tour"
-    },
+    },*/
 
     "view notebook normal": {
       m: "Cells (normal)",
-      f: () => actions.set_view_mode("normal")
+      f: () => frame_actions.set_view_mode("normal")
     },
 
     "view notebook json": {
       m: "Object browser",
-      f: () => actions.set_view_mode("json")
+      f: () => frame_actions.set_view_mode("json")
     },
 
     "view notebook raw": {
       m: "Raw .ipynb (file)",
-      f: () => actions.set_view_mode("raw")
+      f: () => frame_actions.set_view_mode("raw")
     },
 
     "zoom in": {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
-      f: () => actions.zoom(1)
+      f: () => frame_actions.zoom(1)
     },
 
     "zoom out": {
       m: "Zoom out",
       k: [{ ctrl: true, shift: true, which: 188 }],
-      f: () => actions.zoom(-1)
+      f: () => frame_actions.zoom(-1)
     },
 
     "write protect": {
-      m: "Toggle write protection",
-      f: () => actions.toggle_write_protection()
+      m: "Toggle whether cells are editable",
+      f: () => frame_actions.toggle_write_protection_on_selected_cells()
     },
 
     "delete protect": {
-      m: "Toggle delete protection",
-      f: () => actions.toggle_delete_protection()
+      m: "Toggle whether cells are deletable",
+      f: () => frame_actions.toggle_delete_protection_on_selected_cells()
+    },
+
+    /* NOTE:  JupyterLab sticks fricking 9 lines related to this
+    functionality in the View menu.  I tried to implement this, but
+    it is such bad UX, I couldn't bring myself to do it.  It's bad
+    because: (1) the view menu should just show different ways of viewing
+    the doc, not change it, (2) the edit menu is for editing, (3) having
+    9 lines just for this means way more scrolling/searching in the menu.
+    */
+    "toggle hide input": {
+      m: "Toggle hide input of cells",
+      f: () => frame_actions.toggle_source_hidden()
+    },
+
+    "toggle hide output": {
+      m: "Toggle hide output of cells",
+      f: () => frame_actions.toggle_outputs_hidden()
     },
 
     "format cells": {
       i: FORMAT_SOURCE_ICON,
       m: "Format selected cells",
-      f: () => actions.format_selected_cells()
+      f: () => frame_actions.format_selected_cells()
     },
 
     "format all cells": {
       i: FORMAT_SOURCE_ICON,
       m: "Format all cells",
-      f: () => actions.format_all_cells()
+      f: () => frame_actions.format_all_cells()
     }
   };
 }

@@ -29,7 +29,7 @@ many HUBs running.
 require('coffee2-cache')
 
 # Make loading typescript just work.
-require('ts-node').register()
+require('ts-node').register({ cacheDirectory: process.env.HOME + '/.ts-node-cache' })
 
 DEBUG = false
 
@@ -440,7 +440,11 @@ exports.start_server = start_server = (cb) ->
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
 
-    fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
+    if program.port
+        # ONLY write the base_url file if we are serving the main hub.
+        # This file is used by webpack to know what base_url to use, and
+        # we don't want webpack using the base_url for the share server (say).
+        fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
@@ -567,7 +571,7 @@ exports.start_server = start_server = (cb) ->
             t0 = new Date()
             winston.debug("initializing the share server on port #{program.share_port}")
             winston.debug("...... (takes about 10 seconds) ......")
-            x = require('./share/server').init
+            x = await require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 share_path     : program.share_path

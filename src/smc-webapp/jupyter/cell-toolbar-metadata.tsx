@@ -2,14 +2,15 @@
 The metadata editing toolbar.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 import { Button } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
+import { JupyterActions } from "./browser-actions";
 
 interface MetadataProps {
-  actions: any; // TODO: types
-  cell: ImmutableMap<any, any>; // TODO: types
+  actions: JupyterActions;
+  cell: ImmutableMap<string, any>;
 }
 
 export class Metadata extends Component<MetadataProps> {

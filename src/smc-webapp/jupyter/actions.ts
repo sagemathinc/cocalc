@@ -1,40 +1,33 @@
 /*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS204: Change includes calls to have a more natural evaluation order
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
-/*
-Jupyter client
-
-The goal here is to make a simple proof of concept editor for working with
-Jupyter notebooks.  The goals are:
- 1. to **look** like the normal jupyter notebook
- 2. work like the normal jupyter notebook
- 3. work perfectly regarding realtime sync and history browsing
-
+Jupyter client -- these are the actions for the underlying document structure.
+This can be used both on the frontend and the backend.
 */
 
-declare const $: any;
-declare const window: any;
+// Uncomment to temporarily force build, since otherwise webpack doesn't find:
+// require('./test/export-to-ipynb-ts');
+// require("./project-actions");
+
 declare const localStorage: any;
 
 import * as immutable from "immutable";
-import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
 
-// for now we also use require here, so also works in
-// project -- do not change willy nilly!
-const { callback2, retry_until_success } = require("smc-util/async-utils");
+// NOTE! The smc-util relative path is so we can import this same
+// code in the project as well as here, due to me not
+// being able to properly figure out some typescript path issue.
+// **It's just a hack.**
+import { callback2, retry_until_success } from "../../smc-util/async-utils";
+import * as misc from "../../smc-util/misc";
+const { required, defaults } = misc;
 
 import * as awaiting from "awaiting";
+import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
+
+import { KernelInfo } from "./types";
+import {
+  Parser,
+  format_parser_for_extension
+} from "../../smc-util/code-formatter";
 
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
@@ -51,16 +44,17 @@ import * as nbgrader from "./nbgrader";
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
+=======
+import * as parsing from "./parsing";
+import * as cell_utils from "./cell-utils";
+import { cm_options } from "./cm_options";
+>>>>>>> origin/master
 
 // map project_id (string) -> kernels (immutable)
 import { Kernels, Kernel } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
-const { IPynbImporter } = require("./import-from-ipynb");
-
-// Using require due to project import path issue... :-(
-// import { three_way_merge } from "smc-util/sync/editor/generic/util";
-const { three_way_merge } = require("smc-util/sync/editor/generic/util");
+import { IPynbImporter } from "./import-from-ipynb";
 
 import { JupyterKernelInterface } from "./project-interface";
 
@@ -69,6 +63,8 @@ import { connection_to_project } from "../project/websocket/connect";
 import { codemirror_to_jupyter_pos } from "./util";
 
 import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
+
+import { SyncDB } from "../../smc-util/sync/editor/db/sync";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -80,28 +76,25 @@ const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export class JupyterActions extends Actions<JupyterStoreState> {
-  // TODO: type these
-  private _blur_lock: any;
-  private _cursor_locs?: any;
-  private _hook_after_change: any;
-  private _hook_before_change: any;
-  private _input_editors?: any;
-  private _introspect_request?: any;
-  private _is_project: any;
-  private _key_handler: any;
-  private _last_start?: number;
+  private is_project: boolean;
   protected path: string;
   protected project_id: string;
+  private _last_start?: number;
+  protected jupyter_kernel?: JupyterKernelInterface;
+  private last_cursor_move_time: Date = new Date(0);
+
+  public _account_id: string; // Note: this is used in test
+
+  // TODO: type these
+  private _cursor_locs?: any;
+  private _introspect_request?: any;
   protected set_save_status: any;
   private project_conn: any;
-  private last_cursor_move_time: Date = new Date(0);
 
   protected _client: any;
   protected _file_watcher: any;
-  protected _jupyter_kernel?: JupyterKernelInterface;
   protected _state: any;
 
-  public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
   public _output_handler?: any;
   public ensure_backend_kernel_setup?: any;
@@ -110,7 +103,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public manager_run_cell_process_queue: any;
   public nbconvert_change: any;
   public store: any;
-  public syncdb: any;
   public util: any; // TODO: check if this is used publicly
   nbgrader_detect_cells: typeof nbgrader.nbgrader_detect_cells;
 
@@ -118,14 +110,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     super(name, redux);
     this.nbgrader_detect_cells = nbgrader.nbgrader_detect_cells.bind(this);
   }
+  public syncdb: SyncDB;
 
-  _init = (
+  public _init(
     project_id: string,
     path: string,
-    syncdb: any,
+    syncdb: SyncDB,
     store: any,
     client: any
-  ): void => {
+  ): void {
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -134,7 +127,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store.dbg = f => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
-    this.util = util; // TODO: for debugging only
     this._state = "init"; // 'init', 'load', 'ready', 'closed'
     this.store = store;
     this.project_id = project_id;
@@ -143,8 +135,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb = syncdb;
     this._client = client;
     // the project client is designated to manage execution/conflict, etc.
-    this._is_project = client.is_project();
-    store._is_project = this._is_project;
+    this.is_project = client.is_project();
+    store._is_project = this.is_project;
     this._account_id = client.client_id(); // project or account's id
 
     let font_size: any = this.store.get_local_storage("font_size");
@@ -186,16 +178,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       directory,
       path,
       is_focused: false, // whether or not the editor is focused.
-      max_output_length: 10000,
       student_mode: student_mode
+      max_output_length: 10000
     });
 
     this.syncdb.on("change", this._syncdb_change);
 
-    if (!this._is_project) {
+    if (!this.is_project) {
       this.init_client_only();
     }
-  };
+  }
 
   protected init_client_only(): void {
     throw Error("must define in a derived class");
@@ -226,12 +218,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   );
 
-  // private api call function
-  protected _api_call = async (
+  protected async api_call(
     endpoint: string,
     query?: any,
     timeout_ms?: number
-  ): Promise<any> => {
+  ): Promise<any> {
     if (this._state === "closed") {
       throw Error("closed");
     }
@@ -241,35 +232,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       query,
       timeout_ms
     );
-  };
+  }
 
-  init_scroll_pos_hook = () => {
-    // maintain scroll hook on change; critical for multiuser editing
-    let after: any;
-    let before: any = (after = undefined);
-    this._hook_before_change = () => {
-      return (before = __guard__(
-        $(".cocalc-jupyter-hook").offset(),
-        x => x.top
-      ));
-    };
-    return (this._hook_after_change = () => {
-      after = __guard__($(".cocalc-jupyter-hook").offset(), x => x.top);
-      if (before != null && after != null && before !== after) {
-        return this.scroll(after - before);
-      }
-    });
-  };
-
-  dbg = (f: any) => {
+  public dbg(f: string): (...args) => void {
     return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
-  };
+  }
 
   protected close_client_only(): void {
     throw Error("must define in derived client class");
   }
 
-  close = async (): Promise<void> => {
+  public async close(): Promise<void> {
     if (this._state === "closed") {
       return;
     }
@@ -281,45 +254,23 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.set_local_storage("cur_id", this.store.get("cur_id"));
     this._state = "closed";
-    this.syncdb.close();
-    delete this.syncdb;
-    if (this._key_handler != null) {
-      (this.redux.getActions("page") as any).erase_active_key_handler(
-        this._key_handler
-      );
-      delete this._key_handler;
+    if (this.syncdb != null) {
+      this.syncdb.close();
+      delete this.syncdb;
     }
     if (this._file_watcher != null) {
       this._file_watcher.close();
       delete this._file_watcher;
     }
-    if (!this._is_project) {
+    if (!this.is_project) {
       this.close_client_only();
     }
-  };
-
-  enable_key_handler = () => {
-    if (this._state === "closed") return;
-    if (this._key_handler == null) {
-      this._key_handler = keyboard.create_key_handler(this);
-    }
-    return (this.redux.getActions("page") as any).set_active_key_handler(
-      this._key_handler,
-      this.project_id,
-      this.path
-    );
-  };
-
-  disable_key_handler = () => {
-    return (this.redux.getActions("page") as any).erase_active_key_handler(
-      this._key_handler
-    );
-  };
+  }
 
   fetch_jupyter_kernels = async (): Promise<void> => {
     let data;
     try {
-      data = await this._api_call("kernels");
+      data = await this.api_call("kernels");
     } catch (err) {
       this.set_error(err);
       return;
@@ -367,11 +318,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
-  set_cell_input = (id: string, input: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+  public set_cell_input(id: string, input: any, save = true): void {
+    if (this.check_edit_protection(id)) {
       return;
     }
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -381,10 +332,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
   set_cell_output = (id: any, output: any, save = true) => {
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -395,15 +346,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_selected_outputs = () => {
+    this.deprecated("clear_selected_outputs");
+  };
+
+  // Clear output in the list of cell id's.
+  public clear_outputs(cell_ids: string[]): void {
     const cells = this.store.get("cells");
     if (cells == null) return; // nothing to do
-    const v = this.store.get_selected_cell_ids_list();
-    for (let id of v) {
+    let not_editable: number = 0;
+    for (let id of cell_ids) {
       const cell = cells.get(id);
       if (!this.store.is_cell_editable(id)) {
-        if (v.length === 1) {
-          this.show_edit_protection_error();
-        }
+        not_editable += 1;
         continue;
       }
       if (cell.get("output") != null || cell.get("exec_count")) {
@@ -411,72 +365,64 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     this._sync();
-  };
-
-  clear_all_outputs = (): void => {
-    let not_editable = 0;
-    const cells = this.store.get("cells");
-    if (cells == null) return; // nothing to do
-    cells.forEach((cell, id) => {
-      if (cell.get("output") != null || cell.get("exec_count")) {
-        if (!this.store.is_cell_editable(id)) {
-          not_editable += 1;
-        } else {
-          this._set(
-            { type: "cell", id, output: null, exec_count: null },
-            false
-          );
-        }
-      }
-    });
-    this._sync();
     if (not_editable > 0) {
-      this.set_error("One or more cells are protected from editing.");
+      this.show_not_editable_error(not_editable);
     }
-  };
+  }
 
-  // prop can be: 'collapsed', 'scrolled'
-  toggle_output = (id: any, prop: any) => {
-    const cell_type = this.store.getIn(["cells", id, "cell_type"]);
-    if (cell_type == null || cell_type == "code") {
-      this._set({
-        type: "cell",
-        id,
-        [prop]: !this.store.getIn(["cells", id, prop])
-      });
-    }
-  };
+  public clear_all_outputs(): void {
+    this.clear_outputs(this.store.get_cell_list().toJS());
+  }
 
-  toggle_selected_outputs = (prop: any) => {
+  private show_not_xable_error(x: string, n: number): void {
+    if (n <= 0) return;
+    const verb: string = n === 1 ? "is" : "are";
+    const noun: string = misc.plural(n, "cell");
+    this.set_error(`${n} ${noun} ${verb} protected from ${x}.`);
+  }
+
+  private show_not_editable_error(n: number = 1): void {
+    this.show_not_xable_error("editing", n);
+  }
+
+  private show_not_deletable_error(n: number = 1): void {
+    this.show_not_xable_error("deletion", n);
+  }
+
+  public toggle_output(id: string, property: "collapsed" | "scrolled"): void {
+    this.toggle_outputs([id], property);
+  }
+
+  public toggle_outputs(
+    cell_ids: string[],
+    property: "collapsed" | "scrolled"
+  ): void {
     const cells = this.store.get("cells");
-    if (cells == null) return; // nothing to do
-    for (let id of this.store.get_selected_cell_ids_list()) {
-      var left;
+    if (cells == null) {
+      throw Error("cells not defined");
+    }
+    for (let id of cell_ids) {
       const cell = cells.get(id);
-      if ((left = cell.get("cell_type")) != null ? left : "code" === "code") {
-        this._set({ type: "cell", id, [prop]: !cell.get(prop) }, false);
+      if (cell == null) {
+        throw Error(`no cell with id ${id}`);
+      }
+      if (cell.get("cell_type", "code") == "code") {
+        this._set({ type: "cell", id, [property]: !cell.get(property) }, false);
       }
     }
-    return this._sync();
-  };
+    this._sync();
+  }
 
-  toggle_all_outputs = (prop: any) => {
-    const cells = this.store.get("cells");
-    if (cells == null) return; // nothing to do
-    cells.forEach((cell, id) => {
-      let left: any;
-      if ((left = cell.get("cell_type")) != null ? left : "code" === "code") {
-        this._set({ type: "cell", id, [prop]: !cell.get(prop) }, false);
-      }
-    });
-    return this._sync();
-  };
+  public toggle_all_outputs(property: "collapsed" | "scrolled"): void {
+    this.toggle_outputs(this.store.get_cell_ids_list(), property);
+  }
 
-  set_cell_pos = (id: any, pos: any, save = true) => {
-    return this._set({ type: "cell", id, pos }, save);
-  };
+  public set_cell_pos(id: string, pos: number, save: boolean = true): void {
+    this._set({ type: "cell", id, pos }, save);
+  }
 
-  set_cell_type = (id, cell_type = "code") => {
+  public set_cell_type(id: string, cell_type: string = "code"): void {
+    if (this.check_edit_protection(id)) return;
     if (
       cell_type !== "markdown" &&
       cell_type !== "raw" &&
@@ -485,9 +431,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error(
         `cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`
       );
-    }
-    if (this.store.check_edit_protection(id, this)) {
-      return;
     }
     const obj: any = {
       type: "cell",
@@ -498,220 +441,30 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // delete output and exec time info when switching to non-code cell_type
       obj.output = obj.start = obj.end = obj.collapsed = obj.scrolled = null;
     }
-    return this._set(obj);
-  };
+    this._set(obj);
+  }
 
-  set_selected_cell_type = (cell_type: any) => {
-    const sel_ids = this.store.get("sel_ids");
-    const cur_id = this.store.get("cur_id");
-    if (sel_ids.size === 0) {
-      if (cur_id != null) {
-        return this.set_cell_type(cur_id, cell_type);
-      }
-    } else {
-      return sel_ids.forEach(id => {
-        this.set_cell_type(id, cell_type);
-      });
-    }
-  };
+  public set_selected_cell_type(cell_type: string): void {
+    this.deprecated("set_selected_cell_type", cell_type);
+  }
 
-  // Might throw a CellWriteProtectedException
   set_md_cell_editing = (id: any): void => {
-    const md_edit_ids = this.store.get("md_edit_ids");
-    if (md_edit_ids.contains(id)) {
-      return;
-    }
-    if (this.store.check_edit_protection(id, this)) {
-      return;
-    }
-    this.setState({ md_edit_ids: md_edit_ids.add(id) });
+    this.deprecated("set_md_cell_editing", id);
   };
 
   set_md_cell_not_editing = (id: string): void => {
-    let md_edit_ids = this.store.get("md_edit_ids");
-    if (!md_edit_ids.contains(id)) {
-      return;
-    }
-    md_edit_ids = md_edit_ids.delete(id);
-    this.setState({ md_edit_ids });
-  };
-
-  change_cell_to_heading = (id: any, n = 1) => {
-    if (this.store.check_edit_protection(id, this)) {
-      return;
-    }
-    this.set_md_cell_editing(id);
-    this.set_cell_type(id, "markdown");
-    let input = misc.lstrip(this._get_cell_input(id));
-    let i = 0;
-    while (i < input.length && input[i] === "#") {
-      i += 1;
-    }
-    input =
-      __range__(0, n, false)
-        .map(_ => "#")
-        .join("") +
-      (!misc.is_whitespace(input[i]) ? " " : "") +
-      input.slice(i);
-    return this.set_cell_input(id, input);
+    this.deprecated("set_md_cell_not_editing", id);
   };
 
   // Set which cell is currently the cursor.
   set_cur_id = (id: any): void => {
-    if (
-      this.store.getIn(["cells", id, "cell_type"]) === "markdown" &&
-      this.store.get("mode") === "edit"
-    ) {
-      if (this.store.is_cell_editable(id)) {
-        this.set_md_cell_editing(id);
-      }
-    }
-    this.setState({ cur_id: id });
+    this.deprecated("set_cur_id", id);
   };
 
-  set_cur_id_from_index = (i?: any): void => {
-    if (i == null) {
-      return;
-    }
-    const cell_list = this.get_cell_list();
-    if (i < 0) {
-      i = 0;
-    } else if (i >= cell_list.size) {
-      i = cell_list.size - 1;
-    }
-    this.set_cur_id(cell_list.get(i));
-  };
-
-  select_cell = (id: any): void => {
-    const sel_ids = this.store.get("sel_ids");
-    if (sel_ids.contains(id)) {
-      return;
-    }
-    this.setState({ sel_ids: sel_ids.add(id) });
-  };
-
-  unselect_cell = (id: any): void => {
-    const sel_ids = this.store.get("sel_ids");
-    if (!sel_ids.contains(id)) {
-      return;
-    }
-    this.setState({ sel_ids: sel_ids.remove(id) });
-  };
-
-  unselect_all_cells = (): void => {
-    this.setState({ sel_ids: immutable.Set() });
-  };
-
-  select_all_cells = (): void => {
-    this.setState({ sel_ids: this.get_cell_list().toSet() });
-  };
-
-  // select all cells from the currently focused one (where the cursor is -- cur_id)
-  // to the cell with the given id, then set the cursor to be at id.
-  select_cell_range = (id: any): void => {
-    let endpoint0, endpoint1, x;
-    let i;
-    const cur_id = this.store.get("cur_id");
-    if (cur_id == null) {
-      // no range -- just select the new id
-      this.set_cur_id(id);
-      return;
-    }
-    let sel_ids = this.store.get("sel_ids");
-    if (cur_id === id) {
-      // little to do...
-      if (sel_ids.size > 0) {
-        this.setState({ sel_ids: immutable.Set() }); // empty (cur_id always included)
-      }
-      return;
-    }
-    const v = this.get_cell_list().toJS();
-    for ([i, x] of misc.enumerate(v)) {
-      if (x === id) {
-        endpoint0 = i;
-      }
-      if (x === cur_id) {
-        endpoint1 = i;
-      }
-    }
-    sel_ids = immutable.Set(
-      (() => {
-        let asc, end;
-        const result: any[] = [];
-        for (
-          i = endpoint0, end = endpoint1, asc = endpoint0 <= end;
-          asc ? i <= end : i >= end;
-          asc ? i++ : i--
-        ) {
-          result.push(v[i]);
-        }
-        return result;
-      })()
-    );
-    return this.setState({
-      sel_ids,
-      cur_id: id
-    });
-  };
-
-  extend_selection = (delta: any): void => {
-    const cur_id = this.store.get("cur_id");
-    this.move_cursor(delta);
-    const target_id = this.store.get("cur_id");
-    if (cur_id === target_id) {
-      // no move
-      return;
-    }
-    const sel_ids = this.store.get("sel_ids");
-    if (sel_ids != null ? sel_ids.get(target_id) : undefined) {
-      // moved cursor onto a selected cell
-      if (sel_ids.size <= 2) {
-        // selection clears if shrinks to 1
-        this.unselect_all_cells();
-        return;
-      } else {
-        this.unselect_cell(cur_id);
-        return;
-      }
-    } else {
-      // moved onto a not-selected cell
-      this.select_cell(cur_id);
-      this.select_cell(target_id);
-    }
-  };
-
-  set_mode = (mode: any) => {
-    if (mode === "escape") {
-      if (this.store.get("mode") === "escape") {
-        return;
-      }
-      // switching from edit to escape mode.
-      // save code being typed
-      this._get_cell_input();
-      // Now switch.
-      this.setState({ mode });
-      return this.set_cursor_locs([]); // none
-    } else if (mode === "edit") {
-      // switch to focused
-      this.focus_unlock();
-      if (this.store.get("mode") === "edit") {
-        return;
-      }
-      // from escape to edit
-      const id = this.store.get("cur_id");
-      if (!this.store.is_cell_editable(id)) {
-        //@set_error("This cell is protected from being edited.")
-      } else {
-        this.setState({ mode });
-        const type = this.store.getIn(["cells", id, "cell_type"]);
-        if (type === "markdown") {
-          return this.set_md_cell_editing(id);
-        }
-      }
-    } else {
-      return this.set_error(`unknown mode '${mode}'`);
-    }
-  };
+  protected deprecated(f: string, ...args): void {
+    const s = "DEPRECATED JupyterActions(" + this.path + ")." + f;
+    console.warn(s, ...args);
+  }
 
   set_cell_list = (): void => {
     const cells = this.store.get("cells");
@@ -719,8 +472,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     const cell_list = cell_utils.sorted_cell_list(cells);
-    if (!cell_list.equals(this.get_cell_list())) {
+    if (!cell_list.equals(this.store.get_cell_list())) {
       this.setState({ cell_list });
+      this.store.emit("cell-list-recompute");
     }
   };
 
@@ -741,7 +495,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.reset_more_output(id); // free up memory locally
       if (old_cell != null) {
         obj = { cells: cells.delete(id) };
-        const cell_list = this.get_cell_list();
+        const cell_list = this.store.get_cell_list();
         obj.cell_list = cell_list.filter(x => x !== id);
         this.setState(obj);
       }
@@ -765,7 +519,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    if (this._is_project) {
+    if (this.is_project) {
       this.manager_on_cell_change(id, new_cell, old_cell);
     }
     this.store.emit("cell_change", id, new_cell, old_cell);
@@ -774,23 +528,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_change = (changes: any) => {
-    if (typeof this._hook_before_change === "function") {
-      this._hook_before_change();
-    }
+    if (this.syncdb == null) return;
+    this.store.emit("syncdb-before-change");
     this.__syncdb_change(changes);
-    if (typeof this._hook_after_change === "function") {
-      this._hook_after_change();
+    this.store.emit("syncdb-after-change");
+    if (this.set_save_status != null) {
+      this.set_save_status();
     }
-    return typeof this.set_save_status === "function"
-      ? this.set_save_status()
-      : undefined;
   };
 
   __syncdb_change = (changes: any): void => {
     if (this.syncdb == null) {
       return;
     }
-    const do_init = this._is_project && this._state === "init";
+    const do_init = this.is_project && this._state === "init";
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
     if (changes != null) {
@@ -816,7 +567,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             break;
           case "nbconvert":
-            if (this._is_project) {
+            if (this.is_project) {
               // before setting in store, let backend react to change
               this.nbconvert_change(this.store.get("nbconvert"), record);
             }
@@ -849,7 +600,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               obj.backend_kernel_info = undefined;
             }
             this.setState(obj);
-            if (!this._is_project && orig_kernel !== kernel) {
+            if (!this.is_project && orig_kernel !== kernel) {
               this.set_backend_kernel_info();
               this.set_cm_options();
             }
@@ -862,12 +613,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_cell_list();
       this.nbgrader_detect_cells();
     }
-    const cur_id = this.store.get("cur_id");
-    if (cur_id == null || this.store.getIn(["cells", cur_id]) == null) {
-      this.set_cur_id(this.get_cell_list().get(0));
-    }
 
-    if (this._is_project) {
+    if (this.is_project) {
       if (do_init) {
         this.initialize_manager();
       }
@@ -891,7 +638,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      if (!this._is_project) {
+      if (!this.is_project) {
         // we either let the user select a kernel, or use a stored one
         let using_default_kernel = false;
 
@@ -976,14 +723,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._syncdb_change(immutable.fromJS([{ type: obj.type, id: obj.id }]));
   };
 
-  _sync = () => {
+  public _sync = () => {
     if (this._state === "closed") {
       return;
     }
     this.syncdb.commit();
   };
 
-  save = async () => {
+  public save = async (): Promise<void> => {
     if (this.store.get("read_only")) {
       // can't save when readonly
       return;
@@ -994,8 +741,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
+      // Make sure syncdb content is all sent to the project.
+      await this.syncdb.save();
       // Export the ipynb file to disk.
-      await this._api_call("save_ipynb_file", {});
+      await this.api_call("save_ipynb_file", {});
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
@@ -1025,112 +774,76 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _id_is_available = (id: any) => {
+  private id_is_available(id: string): boolean {
     return this.store.getIn(["cells", id]) == null;
-  };
+  }
 
-  _new_id = (is_available?: any) => {
-    if (is_available == null) {
-      is_available = this._id_is_available;
-    }
+  protected new_id(is_available?: (string) => boolean): string {
     while (true) {
       const id = misc.uuid().slice(0, 6);
-      if (is_available(id)) {
+      if (
+        (is_available != null && is_available(id)) ||
+        this.id_is_available(id)
+      ) {
         return id;
       }
     }
-  };
+  }
 
-  insert_cell = (delta: any) => {
-    if (this.store.get("read_only")) return;
-    // delta = -1 (above) or +1 (below)
-    const pos = cell_utils.new_cell_pos(
-      this.store.get("cells"),
-      this.get_cell_list(),
-      this.store.get("cur_id"),
-      delta
-    );
-    const new_id = this._new_id();
+  insert_cell(delta: any): string {
+    this.deprecated("insert-cell", delta);
+    return "";
+  }
+
+  insert_cell_at(pos: number): string {
+    if (this.store.get("read_only")) {
+      throw Error("document is read only");
+    }
+    const new_id = this.new_id();
     this._set({
       type: "cell",
       id: new_id,
       pos,
       input: ""
     });
-    this.set_cur_id(new_id);
     return new_id; // violates CQRS... (this *is* used elsewhere)
-  };
+  }
+
+  // insert a cell adjacent to the cell with given id.
+  // -1 = above and +1 = below.
+  insert_cell_adjacent(id: string, delta: -1 | 1): string {
+    const pos = cell_utils.new_cell_pos(
+      this.store.get("cells"),
+      this.store.get_cell_list(),
+      id,
+      delta
+    );
+    return this.insert_cell_at(pos);
+  }
 
   delete_selected_cells = (sync = true): void => {
-    const selected = this.store.get_selected_cell_ids_list();
-    if (selected.length === 0) {
-      return;
-    }
-    let id = this.store.get("cur_id");
-    this.move_cursor_after(selected[selected.length - 1]);
-    if (this.store.get("cur_id") === id) {
-      this.move_cursor_before(selected[0]);
-    }
-    let not_deletable = 0;
-    for (id of selected) {
-      if (!this.store.is_cell_deletable(id)) {
-        not_deletable += 1;
-      } else {
+    this.deprecated("delete_selected_cells", sync);
+  };
+
+  delete_cells(cells: string[], sync: boolean = true): void {
+    let not_deletable: number = 0;
+    for (let id of cells) {
+      if (this.store.is_cell_deletable(id)) {
         this._delete({ type: "cell", id }, false);
+      } else {
+        not_deletable += 1;
       }
     }
     if (sync) {
       this._sync();
     }
-    if (not_deletable > 0) {
-      if (selected.length === 1) {
-        this.show_delete_protection_error();
-        this.move_cursor_to_cell(id);
-      } else {
-        const verb = not_deletable === 1 ? "is" : "are";
-        this.set_error(
-          `${not_deletable} ${misc.plural(
-            not_deletable,
-            "cell"
-          )} ${verb} protected from deletion.`
-        );
-      }
-    }
-  };
+    if (not_deletable === 0) return;
 
-  move_selected_cells = (delta: any) => {
-    // Move all selected cells delta positions up or down, e.g., delta = +1 or delta = -1
-    // This action changes the pos attributes of 0 or more cells.
-    if (delta === 0) {
-      return;
-    }
-    const v = this.get_cell_list().toJS();
-    const w = cell_utils.move_selected_cells(
-      v,
-      this.store.get_selected_cell_ids(),
-      delta
-    );
-    if (w == null) {
-      return;
-    }
-    // now w is a complete list of the id's of the whole worksheet in the proper order; use it to set pos
-    if (underscore.isEqual(v, w)) {
-      // no change
-      return;
-    }
-    const cells = this.store.get("cells");
-    // const changes = immutable.Set(); // TODO: unused
-    for (
-      let pos = 0, end = w.length, asc = 0 <= end;
-      asc ? pos < end : pos > end;
-      asc ? pos++ : pos--
-    ) {
-      const id = w[pos];
-      if (cells.get(id).get("pos") !== pos) {
-        this.set_cell_pos(id, pos, false);
-      }
-    }
-    return this._sync();
+    this.show_not_deletable_error(not_deletable);
+  }
+
+  move_selected_cells = (delta: number) => {
+    this.deprecated("move_selected_cells", delta);
   };
 
   undo = (): void => {
@@ -1147,24 +860,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
-  run_cell = (id: any, save: boolean = true): void => {
+  public run_cell(id: string, save: boolean = true): void {
     if (this.store.get("read_only")) return;
-    let left: any;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return;
+      throw Error(`can't run cell ${id} since it does not exist`);
     }
 
-    // for whatever reason, any running of a cell deselects
-    // in official jupyter
-    this.unselect_all_cells();
-
-    const cell_type = (left = cell.get("cell_type")) != null ? left : "code";
+    const cell_type = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        var code = this._get_cell_input(id).trim();
-        var cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-        var language = this.store.get_kernel_language();
+        const code = this.get_cell_input(id).trim();
+        const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
+        const language = this.store.get_kernel_language();
         switch (parsing.run_mode(code, cm_mode, language)) {
           case "show_source":
             this.introspect(code.slice(0, code.length - 2), 1);
@@ -1180,19 +888,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             break;
         }
         break;
-      case "markdown":
-        this.set_md_cell_not_editing(id);
-        break;
     }
     if (save) {
       this.save_asap();
     }
-  };
+  }
 
-  run_code_cell = (id: any, save: boolean = true) => {
+  public run_code_cell(id: string, save: boolean = true): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return;
+      throw Error(`can't run cell ${id} since it does not exist`);
     }
     if (cell.get("state", "done") != "done") {
       // already running -- stop it first somehow if you want to run it again...
@@ -1207,6 +912,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       start = this._last_start + 1;
     }
     this._last_start = start;
+    this.set_jupyter_metadata(id, "outputs_hidden", undefined, false);
 
     this._set(
       {
@@ -1221,11 +927,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-    return this.set_trust_notebook(true, save);
-  };
+    this.set_trust_notebook(true, save);
+  }
 
   clear_cell = (id: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -1244,7 +950,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_cell_run_state = (id: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -1258,149 +964,44 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_selected_cells = (): void => {
-    const v = this.store.get_selected_cell_ids_list();
-    for (let id of v) {
-      this.run_cell(id, false);
-    }
-    this.save_asap();
-  };
-
-  // Run the selected cells, by either clicking the play button or
-  // press shift+enter.  Note that this has somewhat weird/inconsitent
-  // behavior in official Jupyter for usability reasons and due to
-  // their "modal" approach.
-  // In paricular, if the selections goes to the end of the document, we
-  // create a new cell and set it the mode to edit; otherwise, we advance
-  // the cursor and switch to escape mode.
-  shift_enter_run_selected_cells = () => {
-    const v = this.store.get_selected_cell_ids_list();
-    if (v.length === 0) {
-      return;
-    }
-    const last_id = v[v.length - 1];
-
-    this.run_selected_cells();
-
-    const cell_list = this.get_cell_list();
-    if (cell_list.get(cell_list.size - 1) === last_id) {
-      const new_id = this.insert_cell(1);
-      this.set_cur_id(new_id);
-      this.set_mode("edit");
-    } else {
-      this.set_mode("escape");
-      this.move_cursor(1);
-    }
-  };
-
-  run_cell_and_insert_new_cell_below = () => {
-    let needle, new_id;
-    const v = this.store.get_selected_cell_ids_list();
-    this.run_selected_cells();
-    if (((needle = this.store.get("cur_id")), v.indexOf(needle) > -1)) {
-      new_id = this.insert_cell(1);
-    } else {
-      new_id = this.insert_cell(-1);
-    }
-    // Set mode back to edit in the next loop since something above
-    // sets it to escape.  See https://github.com/sagemathinc/cocalc/issues/2372
-    const f = () => {
-      this.set_cur_id(new_id);
-      this.set_mode("edit");
-      return this.scroll("cell visible");
-    };
-    return setTimeout(f, 0);
+    this.deprecated("run_selected_cells");
   };
 
   run_all_cells = (): void => {
-    this.get_cell_list().forEach(id => {
+    this.store.get_cell_list().forEach(id => {
       this.run_cell(id, false);
     });
     this.save_asap();
   };
 
   clear_all_cell_run_state = (): void => {
-    this.get_cell_list().forEach(id => {
+    this.store.get_cell_list().forEach(id => {
       this.clear_cell_run_state(id, false);
     });
     this.save_asap();
   };
 
-  private get_cell_list = (): immutable.List<any> => {
-    return this.store.get("cell_list", immutable.List([]));
-  };
-
-  // Run all cells strictly above the current cursor position.
-  run_all_above = (): void => {
-    const i = this.store.get_cur_cell_index();
-    if (i == null) {
-      return;
-    }
-    const v: string[] = this.get_cell_list().toJS();
+  // Run all cells strictly above the specified cell.
+  run_all_above_cell(id: string): void {
+    const i: number = this.store.get_cell_index(id);
+    const v: string[] = this.store.get_cell_list().toJS();
     for (let id of v.slice(0, i)) {
       this.run_cell(id, false);
     }
-
     this.save_asap();
-  };
+  }
 
-  // Run all cells below (and *including*) the current cursor position.
-  run_all_below = (): void => {
-    const i = this.store.get_cur_cell_index();
-    if (i == null) {
-      return;
-    }
-    const v: string[] = this.get_cell_list().toJS();
+  // Run all cells below (and *including*) the specified cell.
+  public run_all_below_cell(id: string): void {
+    const i: number = this.store.get_cell_index(id);
+    const v: string[] = this.store.get_cell_list().toJS();
     for (let id of v.slice(i)) {
       this.run_cell(id, false);
     }
-
     this.save_asap();
-  };
+  }
 
-  move_cursor_after_selected_cells = (): void => {
-    const v = this.store.get_selected_cell_ids_list();
-    if (v.length > 0) {
-      this.move_cursor_after(v[v.length - 1]);
-    }
-  };
-
-  move_cursor_to_last_selected_cell = (): void => {
-    const v = this.store.get_selected_cell_ids_list();
-    if (v.length > 0) {
-      this.set_cur_id(v[v.length - 1]);
-    }
-  };
-
-  // move cursor delta positions from current position
-  move_cursor = (delta: any): void => {
-    this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
-  };
-
-  move_cursor_after = (id: any): void => {
-    const i = this.store.get_cell_index(id);
-    if (i == null) {
-      return;
-    }
-    this.set_cur_id_from_index(i + 1);
-  };
-
-  move_cursor_before = (id: any): void => {
-    const i = this.store.get_cell_index(id);
-    if (i == null) {
-      return;
-    }
-    this.set_cur_id_from_index(i - 1);
-  };
-
-  move_cursor_to_cell = (id: any): void => {
-    const i = this.store.get_cell_index(id);
-    if (i == null) {
-      return;
-    }
-    this.set_cur_id_from_index(i);
-  };
-
-  set_cursor_locs = (locs: any = [], side_effect?: any) => {
+  public set_cursor_locs(locs: any = [], side_effect?: any): void {
     this.last_cursor_move_time = new Date();
     if (this.syncdb == null) {
       // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
@@ -1412,28 +1013,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     this._cursor_locs = locs; // remember our own cursors for splitting cell
     this.syncdb.set_cursor_locs(locs, side_effect);
-  };
+  }
 
-  split_current_cell = (): void => {
-    const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
-    if (cursor == null) {
-      return;
-    }
-    const cur_id = this.store.get("cur_id");
-    if (cursor.id !== cur_id) {
-      // cursor isn't in currently selected cell, so don't know how to split
-      return;
-    }
-    if (this.store.check_edit_protection(cur_id, this)) {
+  public split_cell(id: string, cursor: { line: number; ch: number }): void {
+    if (this.check_edit_protection(id)) {
       return;
     }
     // insert a new cell before the currently selected one
-    const new_id = this.insert_cell(-1);
+    const new_id: string = this.insert_cell_adjacent(id, -1);
 
     // split the cell content at the cursor loc
-    const cell = this.store.get("cells").get(cursor.id);
+    const cell = this.store.get("cells").get(id);
     if (cell == null) {
-      return; // this would be a bug?
+      throw Error(`no cell with id=${id}`);
     }
     const cell_type = cell.get("cell_type");
     if (cell_type !== "code") {
@@ -1443,73 +1035,58 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const input = cell.get("input");
     if (input == null) {
-      return;
+      return; // very easy case.
     }
 
     const lines = input.split("\n");
-    let v = lines.slice(0, cursor.y);
-    const line: string | undefined = lines[cursor.y];
+    let v = lines.slice(0, cursor.line);
+    const line: string | undefined = lines[cursor.line];
     if (line != null) {
-      const left = line.slice(0, cursor.x);
+      const left = line.slice(0, cursor.ch);
       if (left) {
         v.push(left);
       }
     }
     const top = v.join("\n");
 
-    v = lines.slice(cursor.y + 1);
+    v = lines.slice(cursor.line + 1);
     if (line != null) {
-      const right = line.slice(cursor.x);
+      const right = line.slice(cursor.ch);
       if (right) {
         v = [right].concat(v);
       }
     }
     const bottom = v.join("\n");
     this.set_cell_input(new_id, top, false);
-    this.set_cell_input(cursor.id, bottom, true);
-    return this.set_cur_id(cursor.id);
-  };
+    this.set_cell_input(id, bottom, true);
+  }
 
-  // Copy content from the cell below the current cell into the currently
-  // selected cell, then delete the cell below the current cell.s
-  merge_cell_below = (save = true): void => {
-    let end, left, left1;
-    const cur_id = this.store.get("cur_id");
-    if (cur_id == null) {
-      return;
-    }
-    const next_id = this.store.get_cell_id(1);
+  // Copy content from the cell below the given cell into the currently
+  // selected cell, then delete the cell below the given cell.
+  public merge_cell_below_cell(cell_id: string, save: boolean = true): void {
+    const next_id = this.store.get_cell_id(1, cell_id);
     if (next_id == null) {
+      // no cell below given cell, so trivial.
       return;
     }
-    for (let cell_id of [cur_id, next_id]) {
-      // TODO/WARNING: this doesn't look correct:
-      cell_id = cell_id; // TODO: use?
-      if (!this.store.is_cell_editable(cur_id)) {
-        this.set_error("Cells protected from editing cannot be merged.");
-        return;
-      }
-      if (!this.store.is_cell_deletable(cur_id)) {
-        this.set_error("Cells protected from deletion cannot be merged.");
-        return;
-      }
+    for (let id of [cell_id, next_id]) {
+      if (this.check_edit_protection(id)) return;
     }
+    if (this.check_delete_protection(next_id)) return;
+
     const cells = this.store.get("cells");
     if (cells == null) {
       return;
     }
-    const input =
-      ((left = __guard__(cells.get(cur_id), x => x.get("input"))) != null
-        ? left
-        : "") +
-      "\n" +
-      ((left1 = __guard__(cells.get(next_id), x1 => x1.get("input"))) != null
-        ? left1
-        : "");
 
+    const input: string =
+      cells.getIn([cell_id, "input"], "") +
+      "\n" +
+      cells.getIn([next_id, "input"], "");
+
+    const output0 = cells.getIn([cell_id, "output"]);
+    const output1 = cells.getIn([next_id, "output"]);
     let output: any = undefined;
-    const output0 = __guard__(cells.get(cur_id), x2 => x2.get("output"));
-    const output1 = __guard__(cells.get(next_id), x3 => x3.get("output"));
     if (output0 == null) {
       output = output1;
     } else if (output1 == null) {
@@ -1517,25 +1094,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       // both output0 and output1 are defined; need to merge.
       // This is complicated since output is a map from string numbers.
-      let asc, i;
       output = output0;
       let n = output0.size;
-      for (
-        i = 0, end = output1.size, asc = 0 <= end;
-        asc ? i < end : i > end;
-        asc ? i++ : i--
-      ) {
+      for (let i = 0; i < output1.size; i++) {
         output = output.set(`${n}`, output1.get(`${i}`));
         n += 1;
       }
     }
 
-    // we checked above that cell is deletable
     this._delete({ type: "cell", id: next_id }, false);
     this._set(
       {
         type: "cell",
-        id: cur_id,
+        id: cell_id,
         input,
         output: output != null ? output : null,
         start: null,
@@ -1543,136 +1114,158 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
-  merge_cell_above = (): void => {
-    this.move_cursor(-1);
-    this.merge_cell_below();
-  };
-
-  // Merge all selected cells into one cell.
+  // Merge the given cells into one cell, which replaces
+  // the frist cell in cell_ids.
   // We also merge all output, instead of throwing away
   // all but first output (which jupyter does, and makes no sense).
-  merge_cells = () => {
-    const v = this.store.get_selected_cell_ids_list();
-    const n = v != null ? v.length : undefined;
-    if (n == null || n <= 1) {
-      return;
+  public merge_cells(cell_ids: string[]): void {
+    const n = cell_ids.length;
+    if (n <= 1) return; // trivial special case.
+    for (let i = 0; i < n - 1; i++) {
+      this.merge_cell_below_cell(cell_ids[0], i == n - 2);
     }
-    this.set_cur_id(v[0]);
-    return __range__(0, n - 1, false).map(i =>
-      this.merge_cell_below(i === n - 2)
-    );
-  };
+  }
 
-  // Copy all currently selected cells into our internal clipboard
-  copy_selected_cells = (): void => {
+  // Copy the list of cells into our internal clipboard
+  public copy_cells(cell_ids: string[]): void {
     const cells = this.store.get("cells");
     let global_clipboard = immutable.List();
-    for (let id of this.store.get_selected_cell_ids_list()) {
+    for (let id of cell_ids) {
       global_clipboard = global_clipboard.push(cells.get(id));
     }
     this.store.set_global_clipboard(global_clipboard);
-  };
+  }
 
-  // Cut currently selected cells, putting them in internal clipboard
-  cut_selected_cells = (): void => {
-    this.copy_selected_cells();
-    this.delete_selected_cells();
-  };
-
-  // write protection disables any modifications, entering "edit" mode, and prohibits cell evaluations
-  // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  toggle_write_protection = (): void => {
-    // also make sure to switch to escape mode and eval markdown cells
-    this.set_mode("escape");
-    const f = id => {
-      const type = this.store.getIn(["cells", id, "cell_type"]);
-      if (type === "markdown") {
-        return this.set_md_cell_not_editing(id);
-      }
-    };
-    this.toggle_metadata_boolean("editable", f);
-  };
+  /* write protection disables any modifications, entering "edit"
+     mode, and prohibits cell evaluations example: teacher handout
+     notebook and student should not be able to modify an
+     instruction cell in any way. */
+  public toggle_write_protection_on_cells(cell_ids: string[]): void {
+    this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true);
+  }
 
   // this prevents any cell from being deleted, either directly, or indirectly via a "merge"
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  toggle_delete_protection = (): void => {
-    this.toggle_metadata_boolean("deletable");
-  };
-
-  show_edit_protection_error = (): void => {
-    this.set_error("This cell is protected from editing.");
-  };
-
-  show_delete_protection_error = (): void => {
-    this.set_error("This cell is protected from deletion.");
-  };
+  public toggle_delete_protection_on_cells(cell_ids: string[]): void {
+    this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true);
+  }
 
   // This toggles the boolean value of given metadata field.
   // If not set, it is assumed to be true and toggled to false
   // For more than one cell, the first one is used to toggle all cells to the inverted state
-  toggle_metadata_boolean = (key: any, extra_processing?: any): void => {
-    let new_value: any = undefined;
-    for (let id of this.store.get_selected_cell_ids_list()) {
-      if (new_value == null) {
-        var left;
-        const current_value =
-          (left = this.store.getIn(["cells", id, "metadata", key])) != null
-            ? left
-            : true;
-        new_value = !current_value;
-      }
-      if (typeof extra_processing === "function") {
-        extra_processing(id);
-      }
+  private toggle_metadata_boolean_on_cells(
+    cell_ids: string[],
+    key: string,
+    default_value: boolean // default metadata value, if the metadata field is not set.
+  ): void {
+    for (let id of cell_ids) {
       this.set_cell_metadata({
         id,
-        metadata: { [key]: new_value },
+        metadata: {
+          [key]: !this.store.getIn(
+            ["cells", id, "metadata", key],
+            default_value
+          )
+        },
         merge: true,
         save: true
       });
     }
     this.save_asap();
-  };
+  }
+
+  public toggle_jupyter_metadata_boolean(
+    id: string,
+    key: string,
+    save: boolean = true
+  ): void {
+    let jupyter = this.store
+      .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
+      .toJS();
+    jupyter[key] = !jupyter[key];
+    this.set_cell_metadata({
+      id,
+      metadata: { jupyter },
+      merge: true,
+      save
+    });
+  }
+
+  public set_jupyter_metadata(
+    id: string,
+    key: string,
+    value: any,
+    save: boolean = true
+  ): void {
+    let jupyter = this.store
+      .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
+      .toJS();
+    if (value == null && jupyter[key] == null) return; // nothing to do.
+    if (value != null) {
+      jupyter[key] = value;
+    } else {
+      delete jupyter[key];
+    }
+    this.set_cell_metadata({
+      id,
+      metadata: { jupyter },
+      merge: true,
+      save
+    });
+  }
 
   // Paste cells from the internal clipboard; also
-  //   delta = 0 -- replace currently selected cells
-  //   delta = 1 -- paste cells below last selected cell
-  //   delta = -1 -- paste cells above first selected cell
-  paste_cells = (delta = 1) => {
-    let cell_before_pasted_id;
-    const cells = this.store.get("cells");
-    const v = this.store.get_selected_cell_ids_list();
-    if (v.length === 0) {
-      return; // no selected cells
+  //   delta = 0 -- replace cell_ids cells
+  //   delta = 1 -- paste cells below last cell in cell_ids
+  //   delta = -1 -- paste cells above first cell in cell_ids.
+  public paste_cells_at(cell_ids: string[], delta: 0 | 1 | -1 = 1): void {
+    const clipboard = this.store.get_global_clipboard();
+    if (clipboard == null || clipboard.size === 0) {
+      return; // nothing to do
     }
-    if (delta === 0 || delta === -1) {
-      cell_before_pasted_id = this.store.get_cell_id(-1, v[0]); // one before first selected
-    } else if (delta === 1) {
-      cell_before_pasted_id = v[v.length - 1]; // last selected
-    } else {
-      console.warn(`paste_cells: invalid delta=${delta}`);
+
+    if (cell_ids.length === 0) {
+      // There are no cells currently selected.  This can
+      // happen in an edge case with slow network -- see
+      // https://github.com/sagemathinc/cocalc/issues/3899
+      clipboard.forEach((cell, i) => {
+        cell = cell.set("id", this.new_id()); // randomize the id of the cell
+        cell = cell.set("pos", i);
+        this._set(cell, false);
+      });
+      this.ensure_positions_are_unique();
+      this._sync();
       return;
     }
+
+    let cell_before_pasted_id: string;
+    const cells = this.store.get("cells");
+    if (delta === -1 || delta === 0) {
+      // one before first selected
+      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]);
+    } else if (delta === 1) {
+      // last selected
+      cell_before_pasted_id = cell_ids[cell_ids.length - 1];
+    } else {
+      // Typescript should prevent this, but just to be sure.
+      throw Error(`delta (=${delta}) must be 0, -1, or 1`);
+    }
     try {
-      let after_pos, before_pos;
+      let after_pos: number, before_pos: number | undefined;
       if (delta === 0) {
-        // replace, so delete currently selected, unless just the cursor, since
-        // cursor vs selection is confusing with Jupyer's model.
-        if (v.length > 1) {
-          this.delete_selected_cells(false);
+        // replace, so delete cell_ids, unless just one, since
+        // cursor cell_ids selection is confusing with Jupyter's model.
+        if (cell_ids.length > 1) {
+          this.delete_cells(cell_ids, false);
         }
-      }
-      const clipboard = this.store.get_global_clipboard();
-      if (clipboard == null || clipboard.size === 0) {
-        return; // nothing more to do
       }
       // put the cells from the clipboard into the document, setting their positions
       if (cell_before_pasted_id == null) {
         // very top cell
         before_pos = undefined;
-        after_pos = cells.getIn([v[0], "pos"]);
+        after_pos = cells.getIn([cell_ids[0], "pos"]);
       } else {
         before_pos = cells.getIn([cell_before_pasted_id, "pos"]);
         after_pos = cells.getIn([
@@ -1685,8 +1278,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         after_pos,
         clipboard.size
       );
-      return clipboard.forEach((cell, i) => {
-        cell = cell.set("id", this._new_id()); // randomize the id of the cell
+      clipboard.forEach((cell, i) => {
+        cell = cell.set("id", this.new_id()); // randomize the id of the cell
         cell = cell.set("pos", positions[i]);
         this._set(cell, false);
       });
@@ -1694,29 +1287,27 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // very important that we save whatever is done above, so other viewers see it.
       this._sync();
     }
-  };
+  }
 
   toggle_toolbar = () => {
     return this.set_toolbar_state(!this.store.get("toolbar"));
   };
 
-  set_toolbar_state = (val: any) => {
-    // val = true = visible
-    this.setState({ toolbar: val });
-    return this.set_local_storage("hide_toolbar", !val);
-  };
+  public set_toolbar_state(toolbar: boolean): void {
+    // true = visible
+    this.setState({ toolbar });
+    this.set_local_storage("hide_toolbar", !toolbar);
+  }
 
-  toggle_header = () => {
-    return this.redux != null
-      ? (this.redux.getActions("page") as any).toggle_fullscreen()
-      : undefined;
-  };
+  public toggle_header(): void {
+    (this.redux.getActions("page") as any).toggle_fullscreen();
+  }
 
-  set_header_state = (val: any) => {
-    return this.redux != null
-      ? (this.redux.getActions("page") as any).set_fullscreen(val)
-      : undefined;
-  };
+  public set_header_state(visible: boolean): void {
+    (this.redux.getActions("page") as any).set_fullscreen(
+      visible ? "default" : undefined
+    );
+  }
 
   set_line_numbers = (show: any): void => {
     this.set_local_storage("line_numbers", !!show);
@@ -1730,38 +1321,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     // now cause cells to update
     this.set_cm_options();
-  };
-
-  toggle_line_numbers = (): void => {
-    this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
-  };
-
-  toggle_cell_line_numbers = (id: any): void => {
-    let left, left1;
-    const cells = this.store.get("cells");
-    const cell = cells.get(id);
-    if (cell == null) {
-      return;
-    }
-    const line_numbers =
-      (left =
-        (left1 = cell.get("line_numbers")) != null
-          ? left1
-          : this.store.get_local_storage("line_numbers")) != null
-        ? left
-        : false;
-    this.setState({
-      cells: cells.set(id, cell.set("line_numbers", !line_numbers))
-    });
-  };
-
-  // zoom in or out delta font sizes
-  set_font_size = (pixels: any) => {
-    this.setState({
-      font_size: pixels
-    });
-    // store in localStorage
-    return this.set_local_storage("font_size", pixels);
   };
 
   set_local_storage = (key, value) => {
@@ -1779,14 +1338,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       return (localStorage[this.name] = misc.to_json(current));
     }
-  };
-
-  zoom = (delta: any) => {
-    return this.set_font_size(this.store.get("font_size") + delta);
-  };
-
-  set_scroll_state = state => {
-    return this.set_local_storage("scroll", state);
   };
 
   // File --> Open: just show the file listing page.
@@ -1807,60 +1358,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     project_actions.toggle_new(true);
   };
 
-  register_input_editor = (id: any, editor: any): void => {
-    if (this._input_editors == null) {
-      this._input_editors = {};
-    }
-    this._input_editors[id] = editor;
-  };
-
-  unregister_input_editor = (id: any) => {
-    return this._input_editors != null
-      ? delete this._input_editors[id]
-      : undefined;
-  };
-
-  // Meant to be used for implementing actions -- do not call externally
   private _get_cell_input = (id?: string | undefined): string => {
-    if (id === undefined) {
-      id = this.store.get("cur_id");
-    }
-    if (id == null) return "";
-    this.call_input_editor_method(id, "save");
+    this.deprecated("_get_cell_input", id);
+    return "";
+  };
+
+  // Version of the cell's input stored in store.
+  // (A live codemirror editor could have a slightly
+  // newer version, so this is only a fallback).
+  private get_cell_input(id: string): string {
     return this.store.getIn(["cells", id, "input"], "");
-  };
-
-  private call_input_editor_method(id: string, name: string, ...args): void {
-    if (this._input_editors == null) return;
-    const editor = this._input_editors[id];
-    if (editor == null) return;
-    const method = editor[name];
-    if (method != null) {
-      method(...args);
-    } else {
-      console.warn("Jupyter: call_input_editor_method -- no such method", name);
-    }
   }
-
-  // Press tab key in editor of currently selected cell.
-  tab_key = () => {
-    this.call_input_editor_method(this.store.get("cur_id"), "tab_key");
-  };
-
-  // Press tab key in editor of currently selected cell.
-  shift_tab_key = () => {
-    this.call_input_editor_method(this.store.get("cur_id"), "shift_tab_key");
-  };
-
-  set_cursor = (id: string, pos: any): void => {
-    /*
-        id = cell id
-        pos = {x:?, y:?} coordinates in a cell
-
-        use y=-1 for last line.
-        */
-    this.call_input_editor_method(id, "set_cursor", pos);
-  };
 
   set_kernel = (kernel: any) => {
     if (this.syncdb.get_state() != "ready") {
@@ -1878,16 +1386,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  show_history_viewer = () => {
-    return __guard__(
-      this.redux.getProjectActions(this.store.get("project_id")),
-      x =>
-        x.open_file({
-          path: misc.history_path(this.store.get("path")),
-          foreground: true
-        })
-    );
-  };
+  public show_history_viewer(): void {
+    const project_actions = this.redux.getProjectActions(this.project_id);
+    if (project_actions == null) return;
+    project_actions.open_file({
+      path: misc.history_path(this.path),
+      foreground: true
+    });
+  }
 
   // Attempt to fetch completions for give code and cursor_pos
   // If successful, the completions are put in store.get('completions') and looks like
@@ -1908,15 +1414,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Only the most recent fetch has any impact, and calling
   // clear_complete() ensures any fetch made before that
   // is ignored.
-  complete = async (
-    code: any,
+
+  // Returns true if a dialog with options appears, and false otherwise.
+  public async complete(
+    code: string,
     pos?: any,
-    id?: any,
+    id?: string,
     offset?: any
-  ): Promise<void> => {
+  ): Promise<boolean> {
     if (this.project_conn === undefined) {
       this.setState({ complete: { error: "no project connection" } });
-      return;
+      return false;
     }
 
     let cursor_pos;
@@ -1936,24 +1444,27 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const start = new Date();
     let complete;
     try {
-      complete = await this._api_call("complete", {
+      complete = await this.api_call("complete", {
         code,
         cursor_pos
       });
     } catch (err) {
-      if (this._complete_request > req) return;
+      if (this._complete_request > req) return false;
       this.setState({ complete: { error: err } });
       // no op for now...
-      return;
+      throw Error("ignore");
+      //return false;
     }
 
     if (this.last_cursor_move_time >= start) {
       // see https://github.com/sagemathinc/cocalc/issues/3611
-      return;
+      throw Error("ignore");
+      //return false;
     }
     if (this._complete_request > req) {
       // future completion or clear happened; so ignore this result.
-      return;
+      throw Error("ignore");
+      //return false;
     }
 
     if (complete.status !== "ok") {
@@ -1962,11 +1473,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           error: complete.error ? complete.error : "completion failed"
         }
       });
-      return;
+      return false;
     }
 
     if (complete.matches == 0) {
-      return;
+      return false;
     }
 
     delete complete.status;
@@ -1985,8 +1496,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (complete.matches && complete.matches.length === 1 && id != null) {
       // special case -- a unique completion and we know id of cell in which completing is given
       this.select_complete(id, complete.matches[0]);
+      return false;
+    } else {
+      return true;
     }
-  };
+  }
 
   clear_complete = (): void => {
     this._complete_request =
@@ -1994,12 +1508,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ complete: undefined });
   };
 
-  select_complete = (id: any, item: any): void => {
+  public select_complete(id: string, item: string): void {
     const complete = this.store.get("complete");
     this.clear_complete();
     if (complete == null) {
-      this.clear_complete();
-      this.set_mode("edit");
       return;
     }
     const input = complete.get("code");
@@ -2010,17 +1522,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       const base = complete.get("base");
       this.complete_cell(id, base, new_input);
     }
-  };
+  }
 
-  complete_cell = (id: any, base: any, new_input: any) => {
-    this.set_mode("edit");
-    // We don't actually make the completion until the next render loop,
-    // so that the editor is already in edit mode.  This way the cursor is
-    // in the right position after making the change.
-    return setTimeout(() => this.merge_cell_input(id, base, new_input), 0);
-  };
+  complete_cell(id: string, base: string, new_input: string): void {
+    this.merge_cell_input(id, base, new_input);
+  }
 
-  merge_cell_input = (id: any, base: any, input: any, save = true): void => {
+  merge_cell_input(
+    id: string,
+    base: string,
+    input: string,
+    save: boolean = true
+  ): void {
     const remote = this.store.getIn(["cells", id, "input"]);
     // console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
     if (remote == null || base == null || input == null) {
@@ -2032,7 +1545,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       remote
     });
     this.set_cell_input(id, new_input, save);
-  };
+  }
 
   complete_handle_key = (_: string, keyCode: any): void => {
     // User presses a key while the completions dialog is open.
@@ -2062,7 +1575,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     })();
     if (complete.matches.length === 0) {
       this.clear_complete();
-      this.set_mode("edit");
     } else {
       const orig_base = complete.base;
       complete.base = complete.code;
@@ -2109,7 +1621,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     let introspect;
     try {
-      introspect = await this._api_call("introspect", {
+      introspect = await this.api_call("introspect", {
         code,
         cursor_pos,
         level
@@ -2134,7 +1646,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   signal = async (signal = "SIGINT"): Promise<void> => {
     // TODO: some setStates, awaits, and UI to reflect this happening...
     try {
-      await this._api_call("signal", { signal: signal }, 5000);
+      await this.api_call("signal", { signal: signal }, 5000);
     } catch (err) {
       this.set_error(err);
     }
@@ -2156,7 +1668,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   );
 
-  shutdown = reuseInFlight(
+  public shutdown = reuseInFlight(
     async (): Promise<void> => {
       if (this._state === "closed") return;
       await this.signal("SIGKILL");
@@ -2171,23 +1683,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    if (this._is_project) {
+    if (this.is_project) {
       const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
       if (
-        this._jupyter_kernel == null ||
-        this._jupyter_kernel.get_state() == "closed"
+        this.jupyter_kernel == null ||
+        this.jupyter_kernel.get_state() == "closed"
       ) {
         dbg("no Jupyter kernel defined");
         return;
       }
       dbg("getting kernel_info...");
+      let backend_kernel_info: KernelInfo;
       try {
-        this.setState({
-          backend_kernel_info: await this._jupyter_kernel.kernel_info()
-        });
+        backend_kernel_info = immutable.fromJS(
+          await this.jupyter_kernel.kernel_info()
+        );
       } catch (err) {
         dbg(`error = ${err}`);
+        return;
       }
+      this.setState({ backend_kernel_info });
     } else {
       await this._set_backend_kernel_info_client();
     }
@@ -2210,7 +1725,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "closed") {
         return;
       }
-      const data = await this._api_call("kernel_info", {});
+      const data = await this.api_call("kernel_info", {});
       this.setState({
         backend_kernel_info: data,
         // this is when the server for this doc started, not when kernel last started!
@@ -2239,18 +1754,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // the corresponding dialog in
   // the file manager, so gives a step to confirm, etc.
   // The path may optionally be *any* file in this project.
-  file_action = async (action_name: any, path?: any): Promise<void> => {
+  public async file_action(action_name: string, path?: string): Promise<void> {
     const a = this.redux.getProjectActions(this.store.get("project_id"));
     if (path == null) {
       path = this.store.get("path");
+      if (path == null) {
+        throw Error("path must be defined in the store to use default");
+      }
     }
     if (action_name === "reopen_file") {
       a.close_file(path);
       // ensure the side effects from changing registered
       // editors in project_file.* finish happening
-      window.setTimeout(() => {
-        return a.open_file({ path });
-      }, 0);
+      await awaiting.delay(0);
+      a.open_file({ path });
       return;
     }
     if (action_name === "close_file") {
@@ -2267,51 +1784,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     a.set_all_files_unchecked();
     a.set_file_checked(path, true);
     return a.set_file_action(action_name, () => tail);
-  };
-
-  show_about = () => {
-    this.setState({ about: true });
-    return this.set_backend_kernel_info();
-  };
-
-  focus = (wait?: any) => {
-    //console.log 'focus', wait, (new Error()).stack
-    if (this._state === "closed") {
-      return;
-    }
-    if (this._blur_lock) {
-      return;
-    }
-    if (wait) {
-      return setTimeout(this.focus, 1);
-    } else {
-      return this.setState({ is_focused: true });
-    }
-  };
-
-  blur = (wait?: any) => {
-    if (this._state === "closed") {
-      return;
-    }
-    if (wait) {
-      return setTimeout(this.blur, 1);
-    } else {
-      return this.setState({
-        is_focused: false,
-        mode: "escape"
-      });
-    }
-  };
-
-  blur_lock = () => {
-    this.blur();
-    return (this._blur_lock = true);
-  };
-
-  focus_unlock = () => {
-    this._blur_lock = false;
-    return this.focus();
-  };
+  }
 
   set_max_output_length = n => {
     return this._set({
@@ -2323,11 +1796,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   fetch_more_output = async (id: any): Promise<void> => {
     const time = this._client.server_time() - 0;
     try {
-      const more_output = await this._api_call(
-        "more_output",
-        { id: id },
-        60000
-      );
+      const more_output = await this.api_call("more_output", { id: id }, 60000);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
         // make output area scrolled, since there is going to be a lot of output
         this.toggle_output(id, "scrolled");
@@ -2358,15 +1827,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_cm_options = (): void => {
+  protected set_cm_options(): void {
     const mode = this.store.get_cm_mode();
-    const editor_settings = __guardMethod__(
-      __guard__(this.redux.getStore("account"), x1 =>
-        x1.get("editor_settings")
-      ),
-      "toJS",
-      o => o.toJS()
-    );
+    const account = this.redux.getStore("account");
+    if (account == null) return;
+    let editor_settings = account.get("editor_settings");
+    if (editor_settings == null) return;
+    editor_settings = editor_settings.toJS();
     const line_numbers = this.store.get_local_storage("line_numbers");
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
@@ -2383,65 +1850,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // actually changed
       this.setState({ cm_options: x });
     }
-  };
-
-  // Display a confirmation dialog, then call opts.cb with the choice.
-  // See confirm-dialog.cjsx for options.
-  confirm_dialog = async (opts: any) => {
-    this.blur_lock();
-    this.setState({ confirm_dialog: opts });
-    function dialog_is_closed(state): string | undefined {
-      const c = state.get("confirm_dialog");
-      if (c == null) {
-        // deleting confirm_dialog prop is same as cancelling.
-        return "cancel";
-      } else {
-        return c.get("choice");
-      }
-    }
-    try {
-      const choice = await callback2(this.store.wait, {
-        until: dialog_is_closed,
-        timeout: 0
-      });
-      opts.cb(choice);
-    } catch (err) {
-      console.warn("Error -- ", err); // TODO??!
-    } finally {
-      this.focus_unlock();
-    }
-  };
-
-  close_confirm_dialog = (choice: any): void => {
-    if (choice == null) {
-      return this.setState({ confirm_dialog: undefined });
-    } else {
-      const confirm_dialog = this.store.get("confirm_dialog");
-      if (confirm_dialog != null) {
-        this.setState({
-          confirm_dialog: confirm_dialog.set("choice", choice)
-        });
-      }
-    }
-  };
-
-  trust_notebook = () => {
-    return this.confirm_dialog({
-      icon: "warning",
-      title: "Trust this Notebook?",
-      body:
-        "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
-      choices: [
-        { title: "Trust", style: "danger", default: true },
-        { title: "Cancel" }
-      ],
-      cb: choice => {
-        if (choice === "Trust") {
-          return this.set_trust_notebook(true);
-        }
-      }
-    });
-  };
+  }
 
   set_trust_notebook = (trust: any, save: boolean = true) => {
     return this._set(
@@ -2453,24 +1862,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     ); // case to bool
   };
 
-  insert_image = (): void => {
-    this.setState({ insert_image: true });
-  };
+  public insert_image(id: string): void {
+    if (this.store.get_cell_type(id) != "markdown") {
+      throw Error("must be a markdown cell -- id " + id);
+    }
+    this.setState({ insert_image: id }); // causes a modal dialog to appear.
+  }
 
-  // if cell is being edited, use this to move the cursor *in that cell*
-  move_edit_cursor = (delta: any): void => {
-    delta = delta; // TODO: implement/use this
-    this.set_error("move_edit_cursor not implemented");
-  };
-
-  // supported scroll positions are in commands.ts
   scroll(pos): any {
-    return this.setState({ scroll: pos });
+    this.deprecated("scroll", pos);
   }
 
   // submit input for a particular cell -- this is used by the
   // Input component output message type for interactive input.
-  submit_input = async (id: any, value: any): Promise<void> => {
+  public async submit_input(id: string, value: string): Promise<void> {
     const output = this.store.getIn(["cells", id, "output"]);
     if (output == null) {
       return;
@@ -2489,9 +1894,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_error(`Error setting backend key/value store (${err})`);
         return;
       }
-      value = __range__(0, value.length, false)
-        .map((_: any) => "●")
-        .join("");
+      const m = value.length;
+      value = "";
+      for (let i = 0; i < m; i++) {
+        value == "●";
+      }
       this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
       this.save_asap();
       return;
@@ -2499,7 +1906,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
     this.save_asap();
-  };
+  }
 
   submit_password = async (id: any, value: any): Promise<void> => {
     await this.set_in_backend_key_value_store(id, value);
@@ -2510,13 +1917,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     value: any
   ): Promise<void> => {
     try {
-      await this._api_call("store", { key, value });
+      await this.api_call("store", { key, value });
     } catch (err) {
       this.set_error(err);
     }
   };
 
-  set_to_ipynb = async (ipynb: any, data_only = false) => {
+  public async set_to_ipynb(
+    ipynb: any,
+    data_only: boolean = false
+  ): Promise<void> {
     /*
      * set_to_ipynb - set from ipynb object.  This is
      * mainly meant to be run on the backend in the project,
@@ -2526,28 +1936,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
      * See the documentation for load_ipynb_file in project-actions.ts for
      * documentation about the data_only input variable.
      */
-    //dbg = @dbg("set_to_ipynb")
-    let set, trust;
+    if (typeof ipynb != "object") {
+      throw Error("ipynb must be an object");
+    }
+
     this._state = "load";
 
     //dbg(misc.to_json(ipynb))
 
-    // We have to parse out the kernel so we can use process_output below.
+    // We try to parse out the kernel so we can use process_output below.
     // (TODO: rewrite so process_output is not associated with a specific kernel)
-    const kernel =
-      __guard__(
-        ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined,
-        x => x.name
-      ) != null
-        ? __guard__(
-            ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined,
-            x => x.name
-          )
-        : undefined;
+    let kernel: string | undefined;
+    const ipynb_metadata = ipynb.metadata;
+    if (ipynb_metadata != null) {
+      const kernelspec = ipynb_metadata.kernelspec;
+      if (kernelspec != null) {
+        kernel = kernelspec.name;
+      }
+    }
     //dbg("kernel in ipynb: name='#{kernel}'")
 
-    const existing_ids = this.get_cell_list().toJS();
+    const existing_ids = this.store.get_cell_list().toJS();
 
+    let set, trust;
     if (data_only) {
       trust = undefined;
       set = function() {};
@@ -2578,10 +1989,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     importer.import({
       ipynb,
       existing_ids,
-      new_id: this._new_id,
+      new_id: this.new_id.bind(this),
       process_attachment:
-        this._jupyter_kernel != null
-          ? this._jupyter_kernel.process_attachment
+        this.jupyter_kernel != null
+          ? this.jupyter_kernel.process_attachment
           : undefined,
       output_handler: this._output_handler // undefined in client; defined in project
     });
@@ -2615,95 +2026,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.ensure_backend_kernel_setup();
     }
     this._state = "ready";
-  };
+  }
 
-  nbconvert = (args: any) => {
-    const state = this.store.getIn(["nbconvert", "state"]);
-    if (state === "start" || state === "run") {
-      // not allowed
-      return;
-    }
-    this.syncdb.set({
-      type: "nbconvert",
-      args,
-      state: "start",
-      error: null
-    });
-    this.syncdb.commit();
-  };
-
-  show_nbconvert_dialog = (to: any) => {
-    let needle;
-    if (to == null) {
-      // use last or a default
-      const args = this.store.getIn(["nbconvert", "args"]);
-      if (args != null) {
-        for (
-          let i = 0, end = args.length - 1, asc = 0 <= end;
-          asc ? i < end : i > end;
-          asc ? i++ : i--
-        ) {
-          if (args[i] === "--to") {
-            to = args[i + 1];
-          }
-        }
-      }
-    }
-    if (to == null) {
-      to = "html";
-    }
-    this.setState({ nbconvert_dialog: { to } });
-    if (
-      ((needle = this.store.getIn(["nbconvert", "state"])),
-      ["start", "run"].indexOf(needle) === -1)
-    ) {
-      // start it
-      return this.nbconvert(["--to", to]);
-    }
-  };
-
-  nbconvert_get_error = async (): Promise<void> => {
-    const key = this.store.getIn(["nbconvert", "error", "key"]);
-    if (key == null) {
-      return;
-    }
-    let value;
-    try {
-      value = await this._api_call("store", { key });
-    } catch (err) {
-      this.set_error(err);
-      return;
-    }
-    if (this._state === "closed") {
-      return;
-    }
-    const nbconvert = this.store.get("nbconvert");
-    if (nbconvert.getIn(["error", "key"]) === key) {
-      this.setState({ nbconvert: nbconvert.set("error", value) });
-    }
-  };
-
-  cell_toolbar = (name: string): void => {
+  cell_toolbar = (name?: string): void => {
     // Set which cell toolbar is visible.  At most one may be visible.
     // name=undefined to not show any.
     this.setState({ cell_toolbar: name });
   };
 
-  set_cell_slide = (id: any, value: any) => {
+  public set_cell_slide(id: string, value: any): void {
     if (!value) {
       value = null; // delete
     }
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
-    return this._set({
+    this._set({
       type: "cell",
       id,
       slide: value
     });
-  };
+  }
 
-  ensure_positions_are_unique = () => {
+  public ensure_positions_are_unique(): void {
     const changes = cell_utils.ensure_positions_are_unique(
       this.store.get("cells")
     );
@@ -2713,12 +2058,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_cell_pos(id, pos, false);
       }
     }
-    return this._sync();
-  };
+    this._sync();
+  }
 
   set_default_kernel = (kernel: any): void => {
     // doesn't make sense for project (right now at least)
-    if (this._is_project) return;
+    if (this.is_project) return;
     const account_store = this.redux.getStore("account") as any;
     if (account_store == null) return;
     const cur: any = {};
@@ -2746,7 +2091,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     let input = this._get_cell_input(id);
@@ -2763,22 +2108,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Sets attachments[name] = val
-  set_cell_attachment = (id: any, name: any, val: any, save = true) => {
-    let left: any;
+  public set_cell_attachment(
+    id: string,
+    name: string,
+    val: any,
+    save: boolean = true
+  ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      // no such cell
-      return;
+      throw Error(`no cell ${id}`);
     }
-    if (this.store.check_edit_protection(id, this)) {
-      return;
-    }
-    const attachments =
-      (left = __guard__(cell.get("attachments"), x => x.toJS())) != null
-        ? left
-        : {};
+    if (this.check_edit_protection(id)) return;
+    const attachments = cell.get("attachments", immutable.Map()).toJS();
     attachments[name] = val;
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -2786,17 +2129,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
-  add_attachment_to_cell = async (id: any, path: any): Promise<void> => {
-    if (this.store.check_edit_protection(id, this)) {
+  public async add_attachment_to_cell(id: string, path: string): Promise<void> {
+    if (this.check_edit_protection(id)) {
       return;
     }
-    let name = misc.path_split(path).tail;
-    name = name.toLowerCase();
-    name = encodeURIComponent(name)
-      .replace(/\(/g, "%28")
-      .replace(/\)/g, "%29");
+    let name: string = encodeURIComponent(
+      misc.path_split(path).tail.toLowerCase()
+    );
+    name = name.replace(/\(/g, "%28").replace(/\)/g, "%29");
     this.set_cell_attachment(id, name, { type: "load", value: path });
     await callback2(this.store.wait, {
       until: () =>
@@ -2807,10 +2149,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // can update before the attachments props are updated.
     await awaiting.delay(10);
     this.insert_input_at_cursor(id, this._attachment_markdown(name), true);
-  };
+  }
 
   delete_attachment_from_cell = (id: any, name: any) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     this.set_cell_attachment(id, name, null, false);
@@ -2824,8 +2166,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  add_tag = (id: any, tag: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+  add_tag(id: string, tag: string, save: boolean = true): void {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -2836,10 +2178,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
-  remove_tag = (id: any, tag: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+  remove_tag(id: string, tag: string, save: boolean = true): void {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -2850,14 +2192,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
-  set_view_mode = (mode: any): void => {
-    this.setState({ view_mode: mode });
-    if (mode === "raw") {
-      this.set_raw_ipynb();
+  toggle_tag(id: string, tag: string, save: boolean = true): void {
+    console.log("toggle_tag", id, tag);
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      throw Error(`no cell with id ${id}`);
     }
-  };
+    const tags = cell.get("tags");
+    if (tags == null || !tags.get(tag)) {
+      this.add_tag(id, tag, save);
+    } else {
+      this.remove_tag(id, tag, save);
+    }
+  }
 
   edit_cell_metadata = (id: string): void => {
     let left: any;
@@ -2865,7 +2214,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       (left = this.store.getIn(["cells", id, "metadata"])) != null
         ? left
         : immutable.Map();
-    this.blur_lock();
     this.setState({ edit_cell_metadata: { id, metadata } });
   };
 
@@ -2940,20 +2288,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_raw_ipynb = (): void => {
+  public set_raw_ipynb(): void {
     if (this._state === "load") {
       return;
     }
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });
-  };
+  }
 
-  _api_call_prettier = async (
+  private async api_call_prettier(
     str: string,
     options: object,
     timeout_ms?: number
-  ): Promise<any> => {
+  ): Promise<string | undefined> {
     if (this._state === "closed") {
       throw Error("closed");
     }
@@ -2962,65 +2310,53 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       options,
       timeout_ms
     );
-  };
+  }
 
-  _format_cell = async (id: string): Promise<void> => {
+  private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return;
+      throw Error(`no cell with id ${id}`);
     }
-    const code = this._get_cell_input(id).trim();
+    const code: string = cell.get("input", "").trim();
     let options: FormatterOptions;
-    const cell_type = cell.get("cell_type", "code");
-    const language = this.store.get_kernel_language();
+    const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        if (language == null) {
-          throw new Error(
-            `Formatting code cells is impossible, because their language is not known.`
-          );
-        } else {
-          switch (language.toLowerCase()) {
-            case "python":
-            case "python3":
-              options = { parser: "python" };
-              break;
-            case "r": // in the wild, the language is "R"
-              options = { parser: "r" };
-              break;
-            case "c++":
-            case "C++":
-            case "C++17":
-              options = { parser: "clang-format" };
-              break;
-            default:
-              throw new Error(
-                `Formatting "${language}" cells is not supported yet.`
-              );
-          }
+        const ext = this.store.get_kernel_ext();
+        if (ext == null) {
+          return; // no-op on these.
+        }
+        try {
+          const parser: Parser = format_parser_for_extension(ext);
+          options = { parser };
+        } catch (err) {
+          return; // no parser available.
         }
         break;
       case "markdown":
         options = { parser: "markdown" };
         break;
       default:
-        throw new Error(`Unknown cell_type: '${cell_type}'`);
+        // no-op -- do not format unknown cells
+        return;
     }
-    // console.log("FMT", cell_type, options, code);
+    //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
-      resp = await this._api_call_prettier(code, options);
+      resp = await this.api_call_prettier(code, options);
     } catch (err) {
       this.set_error(err);
-      // do not process response (probably empty anyways) if there is a problem
+      // Do not process response (probably empty anyways) if
+      // there is a problem
       return;
     }
     if (resp == null) return; // make everyone happy …
-    // we additionally trim the output, because prettier introduces a trailing newline
+    // We additionally trim the output, because prettier introduces
+    // a trailing newline
     this.set_cell_input(id, JupyterActions.trim_code(resp), false);
-  };
+  }
 
-  public static trim_code(str: string): string {
+  private static trim_code(str: string): string {
     str = str.trim();
     if (str.length > 0 && str.slice(-1) == "\n") {
       return str.slice(0, -2);
@@ -3028,7 +2364,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return str;
   }
 
-  format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
+  public async format_cells(
+    cell_ids: string[],
+    sync: boolean = true
+  ): Promise<void> {
     this.set_error(null);
     let jobs: string[] = [];
     for (let id of cell_ids) {
@@ -3039,7 +2378,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     try {
-      await awaiting.map(jobs, 4, this._format_cell);
+      await awaiting.map(jobs, 4, this.format_cell.bind(this));
     } catch (err) {
       this.set_error(err.message);
       return;
@@ -3048,50 +2387,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (sync) {
       this._sync();
     }
-  };
+  }
 
-  format_selected_cells = async (sync = true): Promise<void> => {
-    const selected = this.store.get_selected_cell_ids_list();
-    await this.format_cells(selected, sync);
-  };
-
-  format_all_cells = async (sync = true): Promise<void> => {
-    const all_cells = this.get_cell_list();
-    await this.format_cells(all_cells.toJS(), sync);
-  };
-
-  switch_to_classical_notebook = () => {
-    return this.confirm_dialog({
-      title: "Switch to the Classical Notebook?",
-      body:
-        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
-        JUPYTER_CLASSIC_MODERN +
-        ")",
-      choices: [
-        { title: "Switch to Classical Notebook", style: "warning" },
-        { title: "Continue using CoCalc Jupyter Notebook", default: true }
-      ],
-      cb: choice => {
-        if (choice !== "Switch to Classical Notebook") {
-          return;
-        }
-        (this.redux.getTable("account") as any).set({
-          editor_settings: { jupyter_classic: true }
-        });
-        this.save();
-        return this.file_action("reopen_file", this.store.get("path"));
-      }
-    });
-  };
-
-  close_and_halt = async (): Promise<void> => {
-    // Display the main file listing page
-    this.file_open();
-    // Fully shutdown and save this fact.
-    await this.shutdown();
-    // Close the file
-    this.file_action("close_file");
-  };
+  public async format_all_cells(sync: boolean = true): Promise<void> {
+    await this.format_cells(this.store.get_cell_ids_list(), sync);
+  }
 
   check_select_kernel = (): void => {
     const kernel = this.store.get("kernel");
@@ -3149,6 +2449,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
+  set_mode(mode: "escape" | "edit"): void {
+    this.deprecated("set_mode", mode);
+  }
+
+  public focus(wait?: boolean): void {
+    this.deprecated("focus", wait);
+  }
+
+  public blur(): void {
+    this.deprecated("blur");
+  }
+
   show_select_kernel = (reason: show_kernel_selector_reasons): void => {
     this.update_select_kernel_data();
     // we might not have the "kernels" data yet (but we will, once fetching it is complete)
@@ -3183,51 +2495,27 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  async show(): Promise<void> {
-    // called when tab is shown
-    // refresh all input codemirrors (after they appear)
-    await awaiting.delay(0); // wait until next render loop
-    this.focus();
-    if (this._state === "closed") return;
-    if (this._input_editors == null) return;
-    for (let id in this._input_editors) {
-      const editor = this._input_editors[id];
-      if (editor != null) {
-        editor.refresh();
-      }
+  public check_edit_protection(id: string): boolean {
+    if (!this.store.is_cell_editable(id)) {
+      this.show_not_editable_error();
+      return true;
+    } else {
+      return false;
     }
   }
 
-  hide(): void {
-    this.blur();
+  public check_delete_protection(id: string): boolean {
+    if (!this.store.is_cell_deletable(id)) {
+      this.show_not_deletable_error();
+      return true;
+    } else {
+      return false;
+    }
   }
-}
 
-function __guard__(value: any, transform: any) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
-function __range__(left: number, right: number, inclusive: boolean) {
-  let range: any[] = [];
-  let ascending = left < right;
-  let end = !inclusive ? right : ascending ? right + 1 : right - 1;
-  for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {
-    range.push(i);
-  }
-  return range;
-}
-
-function __guardMethod__(obj: any, methodName: any, transform: any) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
-  }
+  split_current_cell = () => {
+    this.deprecated("split_current_cell");
+  };
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {

@@ -92,32 +92,6 @@ describe("test code for ensuring positions are unique -- ", () => {
 });
 
 describe("test new_cell_pos -- ", () => {
-  it("tests some undefined", () => {
-    expect(cell_utils.new_cell_pos()).to.equal(undefined);
-    expect(
-      cell_utils.new_cell_pos(undefined, immutable.List(), "abc", 1)
-    ).to.equal(undefined);
-    expect(
-      cell_utils.new_cell_pos(immutable.Map(), immutable.List(), undefined, 1)
-    ).to.equal(undefined);
-    expect(
-      cell_utils.new_cell_pos(
-        immutable.Map(),
-        immutable.List(),
-        "abc",
-        undefined
-      )
-    ).to.equal(undefined);
-  });
-  it("tests an undefined that works", () =>
-    expect(
-      cell_utils.new_cell_pos(
-        immutable.fromJS({ abc: { pos: 0 } }),
-        undefined,
-        "abc",
-        1
-      )
-    ).to.equal(1));
   it("test a real insert in the middle", () => {
     const cells = immutable.fromJS({ abc: { pos: 1 }, xyz: { pos: -1 } });
     const cell_list = cell_utils.sorted_cell_list(cells);

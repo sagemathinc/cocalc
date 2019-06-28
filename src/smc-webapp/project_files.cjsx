@@ -53,6 +53,7 @@ underscore            = require('underscore')
 {CustomSoftwareInfo}  = require('./custom-software/info-bar')
 {CustomSoftwareReset} = require('./custom-software/reset-bar')
 
+ConfigureShare = require('./share/config/config').Configure
 
 ROW_INFO_STYLE = Object.freeze
     color      : COLORS.GRAY
@@ -440,8 +441,6 @@ ProjectFilesActions = rclass
                 {@render_currently_selected() if @props.project_is_running}
             </div>
         </div>
-
-WIKI_SHARE_HELP_URL = 'https://doc.cocalc.com/share.html'
 
 ProjectFilesActionBox = rclass
     displayName : 'ProjectFiles-ProjectFilesActionBox'
@@ -903,201 +902,26 @@ ProjectFilesActionBox = rclass
         if @valid_copy_input()
             @copy_click()
 
-    share_click: ->
-        description = ReactDOM.findDOMNode(@refs.share_description).value
-        @props.actions.set_public_path(@props.checked_files.first(), {description: description})
-        analytics_event('project_file_listing', 'share item')
-
-    stop_sharing_click: ->
-        @props.actions.disable_public_path(@props.checked_files.first())
-        analytics_event('project_file_listing', 'stop sharing item')
-
-    render_share_warning: ->
-        <Alert bsStyle='warning' style={wordWrap:'break-word'}>
-            <h4><Icon name='exclamation-triangle' /> Notice!</h4>
-            <p>This file is in a public folder.</p>
-            <p>In order to stop sharing it, you must stop sharing the parent.</p>
-        </Alert>
-
-    construct_public_share_url: (single_file) ->
-        url = document.URL
-        url = url[0...url.indexOf('/projects/')]
-        display_url = "#{url}/share/#{@props.project_id}/#{misc.encode_path(single_file)}?viewer=share"
-        if @props.file_map[misc.path_split(single_file).tail]?.isdir
-            display_url += '/'
-        return display_url
-
-    render_public_link_header: (url, as_link) ->
-        if as_link
-            <h4><a href={url} target="_blank">Public link</a></h4>
-        else
-            <h4>Public link (not active)</h4>
-
-    render_share_defn: ->
-        <div style={color:'#555'}>
-            <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">Use sharing</a> to make a file or directory <a href="https://share.cocalc.com/share" target="_blank" rel="noopener"><b><i>visible to the world</i></b></a>.  Files are automatically copied to <a href="https://share.cocalc.com/share" target="_blank" rel="noopener">the share server</a> about 30 seconds after you edit them.   If you would instead like to privately collaborate and chat with people in this project, go to the Project Settings tab and "Add new collaborators".
-        </div>
-
-    set_public_file_unlisting_to: (new_value) ->
-        description = ReactDOM.findDOMNode(@refs.share_description).value
-        @props.actions.set_public_path(@props.checked_files.first(), {description : description, unlisted : new_value})
-
-    render_unlisting_checkbox: (single_file_data) ->
-        is_unlisted = !!(single_file_data.public?.unlisted)
-
-        <form>
-            <Checkbox
-                checked  = {is_unlisted}
-                onChange = {=>@set_public_file_unlisting_to(not is_unlisted)} >
-                <i>Unlisted:</i> Only allow those with a link to view this.
-            </Checkbox>
-        </form>
-
-    render_share_error: ->
-        <Alert bsStyle={'danger'} style={padding:'30px', marginBottom:'30px'}>
-            <h3>
-                Publicly sharing files requires internet access
-            </h3>
-            <div style={fontSize:'12pt'}>
-                You <b>must</b> first enable the 'Internet access' upgrade in project
-                settings in order to publicly share files from this project.
-            </div>
-        </Alert>
-
-    render_how_shared: (parent_is_public, single_file_data) ->
-        if parent_is_public
-            return
-        single_file = @props.checked_files.first()
-        <div>
-            <br/>
-            <div style={color:'#444', fontSize:'15pt'}>Choose how to share {single_file}:</div>
-            <br/>
-            {@render_sharing_options(single_file_data)}
-        </div>
-
     render_share: ->
         # currently only works for a single selected file
-        single_file = @props.checked_files.first()
-        single_file_data = @props.file_map[misc.path_split(single_file).tail]
-        if not single_file_data?
+        path = @props.checked_files.first()
+        public_data = @props.file_map[misc.path_split(path).tail]
+        if not public_data?
             # directory listing not loaded yet... (will get re-rendered when loaded)
             return <Loading />
-        else
-            if single_file_data.is_public and single_file_data.public?.path isnt single_file
-                parent_is_public = true
-        show_social_media = require('./customize').commercial and single_file_data.is_public
-
-        url = @construct_public_share_url(single_file)
-        {open_new_tab} = require('smc-webapp/misc_page')
-        button_before =
-            <Button bsStyle='default' onClick={=>open_new_tab(url)}>
-                <Icon name='external-link' />
-            </Button>
-
-        <div>
-            <Row>
-                <Col sm={8} style={color:'#666', fontSize:'12pt'}>
-                    {@render_share_defn()}
-                </Col>
-            </Row>
-            <Row>
-                <Col sm={12} style={fontSize:'12pt'}>
-                    {@render_how_shared(parent_is_public, single_file_data)}
-                </Col>
-            </Row>
-            {if not single_file_data.is_public then undefined else <Fragment>
-                <Row>
-                    <Col sm={4} style={color:'#666'}>
-                        <h4>Description</h4>
-                        <FormGroup>
-                            <FormControl
-                                autoFocus     = {true}
-                                ref          = 'share_description'
-                                key          = 'share_description'
-                                type         = 'text'
-                                defaultValue = {single_file_data.public?.description ? ''}
-                                disabled     = {parent_is_public}
-                                placeholder  = 'Description...'
-                                onKeyUp      = {@action_key}
-                            />
-                        </FormGroup>
-                        {@render_share_warning() if parent_is_public}
-                    </Col>
-                    <Col sm={4} style={color:'#666'}>
-                        <h4>Items</h4>
-                        {@render_selected_files_list()}
-                    </Col>
-                    {<Col sm={4} style={color:'#666'}>
-                        <h4>Shared publicly</h4>
-                        <CopyToClipBoard
-                            value         = {url}
-                            button_before = {button_before}
-                            hide_after    = {true}
-                        />
-                    </Col> if single_file_data.is_public}
-                </Row>
-                <Row>
-                    <Col sm={12}>
-                        <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public} style={marginBottom:"5px"}>
-                            <Icon name='share-square-o' /> Update Description
-                        </Button>
-                    </Col>
-                </Row>
-            </Fragment>}
-            <Row>
-                <Col sm={12}>
-                    <Button onClick={@cancel_action}>
-                        Close
-                    </Button>
-                </Col>
-            </Row>
-        </div>
-
-    handle_sharing_options_change: (single_file_data) -> (e) =>
-        # The reason we need single_file_data is because I think "set_public_path" does not
-        # merge the "options", so you have to pass in the current description.
-        state = e.target.value
-        if state == "private"
-            @props.actions.disable_public_path(@props.checked_files.first())
-        else if state == "public_listed"
-            # single_file_data.public is suppose to work in this state
-            description = single_file_data.public?.description ? ''
-            @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: false})
-        else if state == "public_unlisted"
-            description = single_file_data.public?.description ? ''
-            @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: true})
-
-    get_sharing_options_state: (single_file_data) ->
-        if single_file_data.is_public and single_file_data.public?.unlisted
-            return "public_unlisted"
-        if single_file_data.is_public and not single_file_data.public?.unlisted
-            return "public_listed"
-        return "private"
-
-    render_sharing_options: (single_file_data) ->
-        state = @get_sharing_options_state(single_file_data)
-        handler = @handle_sharing_options_change(single_file_data)
-        <Fragment>
-            <FormGroup>
-            {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
-                    <Icon name='eye'/><Space/>
-                    <i>Public (listed)</i> - This will appear on the <a href="https://share.cocalc.com/share" target="_blank">public share server</a>.
-              </Radio> else <Radio disabled={true} name="sharing_options" value="public_listed" checked={state == "public_listed"} inline>
-                    <Icon name='eye'/><Space/>
-                    <del><i>Public (listed)</i> - This will appear on the <a href="https://share.cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
-                </Radio>}
-              <br/>
-              <Radio name="sharing_options" value="public_unlisted" checked={state == "public_unlisted"} onChange={handler} inline>
-                <Icon name='eye-slash'/><Space/>
-                <i>Public (unlisted)</i> - Only people with the link can view this.
-              </Radio>
-              <br/>
-              <Radio name="sharing_options" value="private" checked={state == "private"} onChange={handler} inline>
-                <Icon name='lock'/><Space/>
-                <i>Private</i> - Only collaborators on this project can view this.
-              </Radio>
-            </FormGroup>
-        </Fragment>
+        return <ConfigureShare
+            project_id = {@props.project_id}
+            path = {path}
+            isdir = {public_data.isdir}
+            size = {public_data.size}
+            mtime = {public_data.mtime}
+            is_public = {public_data.is_public}
+            public = {public_data.public}
+            close = {@cancel_action}
+            action_key = {@action_key}
+            set_public_path = {(opts) => @props.actions.set_public_path(path, opts)}
+            has_network_access = {@props.get_total_project_quotas(@props.project_id)?.network}
+            />;
 
     render_social_buttons: (single_file) ->
         # sort like in account settings
@@ -1149,13 +973,6 @@ ProjectFilesActionBox = rclass
             open_popup_window(url)
         else
             console.warn("Unknown social media channel '#{where}'")
-
-    submit_action_share: () ->
-        single_file = @props.checked_files.first()
-        single_file_data = @props.file_map[misc.path_split(single_file).tail]
-        if single_file_data?
-            if not (single_file_data.is_public and single_file_data.public?.path isnt single_file)
-                @share_click()
 
     download_single_click: ->
         @props.actions.download_file
@@ -1619,7 +1436,10 @@ exports.ProjectFiles = rclass ({name}) ->
     create_file: (ext, switch_over=true) ->
         file_search = @props.file_search
         if not ext? and file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
-            disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            if @props.configuration?
+                disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            else
+                disabled_ext = []
             ext = default_ext(disabled_ext)
 
         @actions(name).create_file
@@ -1975,13 +1795,22 @@ exports.ProjectFiles = rclass ({name}) ->
         if pay? and pay <= webapp_client.server_time()
             return @render_course_payment_required()
 
-        public_view = @props.get_my_group(@props.project_id) == 'public'
+        my_group = @props.get_my_group(@props.project_id)
 
-        if not public_view
+        # regardless of consequences, for admins a project is always running
+        # see https://github.com/sagemathinc/cocalc/issues/3863
+        if my_group == 'admin'
+            project_state = immutable.Map('state': 'running')
+            project_is_running = true
+        # next, we check if this is a common user (not public)
+        else if my_group != 'public'
             project_state = @props.project_map?.getIn([@props.project_id, 'state'])
             project_is_running = project_state?.get('state') and project_state.get('state') in ['running', 'saving']
         else
             project_is_running = false
+
+        # enables/disables certain aspects if project is viewed publicly by a non-collaborator
+        public_view = my_group == 'public'
 
         {listing, error, file_map} = @props.displayed_listing
 

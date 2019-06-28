@@ -8,7 +8,9 @@ Functions for getting or formatting url's for various backend endpoints
 declare const window: any;
 
 export function get_server_url(project_id: string) {
-  return `${window ? window.app_base_url || "" : ""}/${project_id}/raw/.smc/jupyter`;
+  return `${
+    window ? window.app_base_url || "" : ""
+  }/${project_id}/raw/.smc/jupyter`;
 }
 
 export function get_blob_url(project_id: string, extension: any, sha1: string) {

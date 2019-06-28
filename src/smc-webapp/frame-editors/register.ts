@@ -23,4 +23,6 @@ import "./x11-editor/register";
 
 import "./lean-editor/register";
 
+import "./jupyter-editor/register";
+
 import "./generic/test/init";
