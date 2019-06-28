@@ -2787,6 +2787,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (obj == null) return; // make typescript happy
 
+    // not allowed to write these back
+    obj = obj.delete("last_saved");
+    obj = obj.delete("counter");
+
     obj = obj.set("last_edited", now);
 
     for (let k in opts) {
