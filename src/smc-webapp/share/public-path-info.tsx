@@ -53,10 +53,13 @@ export class PublicPathInfo extends Component<Props> {
     let desc = this.props.info.get("description");
     if (!desc) return;
     desc = desc[0].toUpperCase() + desc.slice(1);
-    console.log("render_desc", desc, this.props.info.toJS());
     return (
       <Markdown style={{ color: "#444", marginLeft: "30px" }} value={desc} />
     );
+  }
+
+  private render_license(): Rendered {
+    return <div>License: {this.props.info.get("license", "None")}</div>;
   }
 
   public render(): Rendered {
@@ -64,6 +67,7 @@ export class PublicPathInfo extends Component<Props> {
       <div style={{ background: "#ddd" }}>
         {this.render_external_links()}
         {this.render_desc()}
+        {this.render_license()}
       </div>
     );
   }

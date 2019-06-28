@@ -904,23 +904,22 @@ ProjectFilesActionBox = rclass
 
     render_share: ->
         # currently only works for a single selected file
-        single_file = @props.checked_files.first()
-        single_file_data = @props.file_map[misc.path_split(single_file).tail]
-        if not single_file_data?
+        path = @props.checked_files.first()
+        public_data = @props.file_map[misc.path_split(path).tail]
+        if not public_data?
             # directory listing not loaded yet... (will get re-rendered when loaded)
             return <Loading />
         return <ConfigureShare
             project_id = {@props.project_id}
-            path = {single_file_data.name}
-            isdir = {single_file_data.isdir}
-            size = {single_file_data.size}
-            mtime = {single_file_data.mtime}
-            is_public = {single_file_data.is_public}
-            public = {single_file_data.public}
+            path = {path}
+            isdir = {public_data.isdir}
+            size = {public_data.size}
+            mtime = {public_data.mtime}
+            is_public = {public_data.is_public}
+            public = {public_data.public}
             close = {@cancel_action}
             action_key = {@action_key}
-            set_public_path = {(opts) => @props.actions.set_public_path(single_file_data.name, opts)}
-            disable_public_path = {=>@props.actions.disable_public_path(single_file_data.name)}
+            set_public_path = {(opts) => @props.actions.set_public_path(path, opts)}
             has_network_access = {@props.get_total_project_quotas(@props.project_id)?.network}
             />;
 
