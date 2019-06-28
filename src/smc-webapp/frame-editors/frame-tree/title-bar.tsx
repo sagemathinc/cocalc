@@ -219,6 +219,7 @@ export class FrameTitleBar extends Component<Props, State> {
       }
       const item = (
         <MenuItem
+          cocalc-test={type}
           selected={selected_type === type}
           key={type}
           eventKey={type}
@@ -241,6 +242,7 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <DropdownButton
+        cocalc-test={"latex-dropdown"}
         title={title}
         key={"types"}
         id={"types"}
