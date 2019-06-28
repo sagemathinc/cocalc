@@ -2,16 +2,17 @@
 // TODO #V1 for second round
 
 import * as jwt from "jsonwebtoken";
-import * as fs from "fs";
+//import * as fs from "fs";
 import * as express from "express";
 import * as uuid from "uuid";
 import { inspect } from "util";
 import * as querystring from "querystring";
-import * as jwksClient from "jwks-rsa";
+// import * as jwksClient from "jwks-rsa";
 
-import { Database, Logger } from "./types";
+// import { Database, Logger } from "./types";
 
-const privateKEY = fs.readFileSync("./private.key", "utf8");
+// const privateKEY = fs.readFileSync("./private.key", "utf8");
+const privateKEY = "a;ldksfjal;kj"
 
 /*
 const jwkClient = jwksClient({
@@ -60,22 +61,21 @@ function begin_auth_flow(state: string, data) {
   current_auth_flows[state] = data;
 }
 
-function get_auth_step(state: string) {
+export function get_auth_step(state: string) {
   return current_auth_flows[state];
 }
 
 export function init_LTI_router(): express.Router {
-  router = express.Router();
-  router.use(express.json());
-  router.use(express.urlencoded({ extended: true }));
+  const router = express.Router();
+  //router.use(express.json());
+  //router.use(express.urlencoded({ extended: true }));
 
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
-  router.route("/api/lti/login").all(function(req, res, next) {
+  router.route("/login").all(function(req, res, _) {
     res.send(`login-lti post get ${inspect(req.body)}`);
-/*
+
     const token = req.body;
-    dbg("==============\nGiven token:", inspect(token));
 
     const iss_data = get_iss_data(token.iss);
     const nonce = uuid.v4();
@@ -98,22 +98,22 @@ export function init_LTI_router(): express.Router {
     begin_auth_flow(token.state, auth_params)
     const query_string = querystring.stringify(auth_params);
     res.redirect(iss_data.auth_url + "?" + query_string);
-*/
+
 });
 
   // Tool Launch URL
-  router.post("/api/lti/launch", (req, res) => {
+  router.post("/launch", (_, res) => {
     res.send("Got a POST request at launch-lti");
   });
 
   // Deep Linking Selection URL
-  router.post("/api/lti/deep-link-launches", (req, res) => {
+  router.post("/deep-link-launches", (req, res) => {
     res.send("Hit deep-link-launches");
 
     // TODO #V0 Worry about matching state
     // if (req.body.state)
 
-    /*
+
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
@@ -127,7 +127,6 @@ export function init_LTI_router(): express.Router {
       }
       const nonce = uuid.v4();
 
-      dbg("==============\nGot token:", inspect(token));
       var redirect_url;
       if (
         !token[
@@ -135,7 +134,7 @@ export function init_LTI_router(): express.Router {
         ]
       ) {
         res.redirect(
-          decoded["https://purl.imsglobal.org/spec/lti/claim/target_link_uri"]
+          token["https://purl.imsglobal.org/spec/lti/claim/target_link_uri"]
         );
         return;
       }
@@ -180,12 +179,11 @@ export function init_LTI_router(): express.Router {
       const deep_link_response_token = jwt.sign(jwt_data, privateKEY, {
         algorithm: "RS256"
       });
-      dbg("==============\n Sending JWT:", deep_link_response_token);
 
       const formatted_token = { JWT: deep_link_response_token };
       const query_string = querystring.stringify(formatted_token);
       res.redirect(redirect_url + "&" + query_string);
     });
-    */
   });
+  return router;
 }

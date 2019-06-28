@@ -358,7 +358,7 @@ exports.init_express_http_server = (opts) ->
     ###
 
     # TODO: Hook this up as a separate web server
-    router.use(require('./lti').init_LTI_router())
+    router.use("/api/lti", require('./lti').init_LTI_router())
 
     # Get the http server and return it.
     if opts.base_url
