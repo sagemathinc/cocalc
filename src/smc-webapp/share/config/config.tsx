@@ -9,6 +9,9 @@ is shared.
 - Public, but needs a secret random token link
 - Private
 
+NOTE: Our approach to state regarding how shared means that two people can't
+simultaneously edit this and have it be synced properly
+between them.
 */
 
 const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
@@ -29,6 +32,8 @@ import { Space } from "../../r_misc/space";
 
 import { public_share_url, share_server_url } from "./util";
 
+import { License } from "./license";
+
 interface PublicInfo {
   created: Date;
   description: string;
@@ -36,6 +41,7 @@ interface PublicInfo {
   last_edited: Date;
   path: string;
   unlisted: boolean;
+  license?: string;
 }
 
 interface Props {
@@ -51,8 +57,9 @@ interface Props {
   set_public_path: (options: {
     description?: string;
     unlisted?: boolean;
+    license?: string;
+    disabled?: boolean;
   }) => void;
-  disable_public_path: () => void;
   has_network_access?: boolean;
 }
 
@@ -86,20 +93,20 @@ export class Configure extends Component<Props, State> {
   }
 
   private handle_sharing_options_change(e): void {
-    let description;
     const state = e.target.value;
     this.setState({ sharing_options_state: state });
     if (state === "private") {
-      this.props.disable_public_path();
+      this.props.set_public_path({ disabled: true });
     } else if (state === "public_listed") {
       // this.props.public is suppose to work in this state
-      description = this.get_description();
-      this.props.set_public_path({ description, unlisted: false });
-    } else if (state === "public_unlisted") {
-      description = this.get_description();
       this.props.set_public_path({
-        description,
-        unlisted: true
+        unlisted: false,
+        disabled: false
+      });
+    } else if (state === "public_unlisted") {
+      this.props.set_public_path({
+        unlisted: true,
+        disabled: false
       });
     }
   }
@@ -237,10 +244,16 @@ export class Configure extends Component<Props, State> {
       : "";
   }
 
+  private get_license(): string {
+    return this.props.public != null && this.props.public.license != null
+      ? this.props.public.license
+      : "";
+  }
+
   private render_description(parent_is_public: boolean): Rendered {
     return (
       <>
-        <h4>Description</h4>
+        <h4>Description{this.get_description() ? "" : " (optional)"}</h4>
         <FormGroup>
           <FormControl
             autoFocus={true}
@@ -249,11 +262,32 @@ export class Configure extends Component<Props, State> {
             type="text"
             defaultValue={this.get_description()}
             disabled={parent_is_public}
-            placeholder="Description..."
+            placeholder="Describe what you are sharing.  You can change this at any time."
             onKeyUp={this.props.action_key}
             onBlur={this.save_description.bind(this)}
           />
         </FormGroup>
+      </>
+    );
+  }
+
+  private set_license(license: string): void {
+    this.props.set_public_path({ license });
+  }
+
+  private render_license(parent_is_public: boolean): Rendered {
+    return (
+      <>
+        <h4>
+          <a href="https://choosealicense.com/" target="_blank" rel="noopener">
+            Choose a license {this.get_license() ? "" : " (optional)"}
+          </a>
+        </h4>
+        <License
+          disabled={parent_is_public}
+          license={this.get_license()}
+          set_license={this.set_license.bind(this)}
+        />
       </>
     );
   }
@@ -290,6 +324,7 @@ export class Configure extends Component<Props, State> {
       <Row>
         <Col sm={6} style={{ color: "#666" }}>
           {this.render_description(parent_is_public)}
+          {this.render_license(parent_is_public)}
         </Col>
         <Col sm={6} style={{ color: "#666" }}>
           {this.render_link()}
@@ -320,7 +355,12 @@ export class Configure extends Component<Props, State> {
   }
 
   private render_close_button(): Rendered {
-    return <Button onClick={this.props.close}>Close</Button>;
+    return (
+      <div>
+        <br />
+        <Button onClick={this.props.close}>Close</Button>
+      </div>
+    );
   }
 
   private render_needs_network_access(): Rendered {

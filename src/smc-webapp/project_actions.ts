@@ -6,6 +6,8 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
+import { client_db } from "smc-util/schema";
+
 const { reuseInFlight } = require("async-await-utils/hof");
 import {
   ConfigurationAspect,
@@ -89,6 +91,7 @@ export const QUERIES = {
       disabled: null,
       unlisted: null,
       created: null,
+      license: null,
       last_edited: null,
       last_saved: null,
       counter: null
@@ -254,7 +257,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.create_file = this.create_file.bind(this);
     this.new_file_from_web = this.new_file_from_web.bind(this);
     this.set_public_path = this.set_public_path.bind(this);
-    this.disable_public_path = this.disable_public_path.bind(this);
     this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
       this
     );
@@ -2760,48 +2762,43 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts: {
       description?: string;
       unlisted?: boolean;
-    } = {}
+      license?: string;
+      disabled?: boolean;
+    }
   ) {
     let store = this.get_store();
     if (!store) {
       return;
     }
-    let cur_obj: any = {};
-    // only set created if this obj is new; have to just linearly search through paths right now...
-    if (store.get("public_paths") != null) {
-      store.get("public_paths").forEach(function(v) {
-        if (v.get("path") === path) {
-          cur_obj = v.toJS();
-          return false; // found it, exit forEach
-        } else {
-          return true; // next element
-        }
+
+    const project_id = this.project_id;
+    const id = client_db.sha1(project_id, path);
+
+    const table = this.redux.getProjectTable(project_id, "public_paths");
+    let obj: undefined | immutable.Map<string, any> = table._table.get(id);
+
+    const now = misc.server_time();
+    if (obj == null) {
+      obj = immutable.fromJS({
+        project_id,
+        path,
+        created: now
       });
     }
-    const now = misc.server_time();
-    // unlisted and description are *optional*: fallback to already saved values if available
-    const unlisted = opts.unlisted != null ? opts.unlisted : cur_obj.unlisted;
-    const description =
-      opts.description != null ? opts.description : cur_obj.description;
-    const obj = {
-      project_id: this.project_id,
-      path,
-      description: description != null ? description : "",
-      disabled: false,
-      unlisted: unlisted != null ? unlisted : false,
-      last_edited: now,
-      created: cur_obj.created || now
-    };
-    this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
-  }
+    if (obj == null) return; // make typescript happy
 
-  disable_public_path(path) {
-    this.redux.getProjectTable(this.project_id, "public_paths").set({
-      project_id: this.project_id,
-      path,
-      disabled: true,
-      last_edited: misc.server_time()
-    });
+    // not allowed to write these back
+    obj = obj.delete("last_saved");
+    obj = obj.delete("counter");
+
+    obj = obj.set("last_edited", now);
+
+    for (let k in opts) {
+      if (opts[k] != null) {
+        obj = obj.set(k, opts[k]);
+      }
+    }
+    table.set(obj);
   }
 
   /*
