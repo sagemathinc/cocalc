@@ -306,7 +306,7 @@ ProjectFilesActions = rclass
             else
                 button_icon = 'minus-square-o'
 
-        <Button bsSize='small' onClick={@check_all_click_handler} >
+        <Button bsSize='small' cocalc-test="check-all" onClick={@check_all_click_handler} >
             <Icon name={button_icon} /> {button_text}
         </Button>
 
