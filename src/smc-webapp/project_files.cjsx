@@ -183,7 +183,7 @@ ProjectFilesButtons = rclass
         @props.actions.open_directory('.snapshots')
 
     render_refresh: ->
-        <Button bsSize='small' onClick={@handle_refresh}>
+        <Button bsSize='small' cocalc-test='files-refresh' onClick={@handle_refresh}>
             <Icon name='refresh' />
         </Button>
 
