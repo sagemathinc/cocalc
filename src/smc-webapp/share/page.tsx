@@ -145,6 +145,7 @@ gtag('config', '${this.props.google_analytics}');\
       <script
         key={0}
         async={true}
+        defer={true}
         src={`https://www.googletagmanager.com/gtag/js?id=${
           this.props.google_analytics
         }`}
@@ -154,7 +155,9 @@ gtag('config', '${this.props.google_analytics}');\
   }
 
   render_cocalc_analytics(): Rendered {
-    return <script async={true} src={`https://${DNS}/analytics.js`} />;
+    return (
+      <script async={true} defer={true} src={`https://${DNS}/analytics.js`} />
+    );
   }
 
   private render_cdn_links(): Rendered[] {
