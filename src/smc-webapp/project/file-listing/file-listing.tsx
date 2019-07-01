@@ -23,12 +23,14 @@ import { ListingHeader } from "./listing-header";
 import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
+import { MainConfiguration } from "../../project_configuration";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
   actions: ProjectActions;
   redux: AppRedux;
 
+  name: string;
   active_file_sort?: any;
   listing: any[];
   file_map: object;
@@ -48,7 +50,10 @@ interface Props {
   other_settings?: immutable.Map<any, any>;
   show_new: boolean;
   last_scroll_top?: number;
+  configuration_main?: MainConfiguration;
 }
+
+const RESIZE_DEBOUNCE_MS = 80;
 
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
@@ -57,6 +62,7 @@ export class FileListing extends React.Component<Props> {
   private list_ref;
   private current_scroll_top: number | undefined;
   private selected_index_is_rendered: boolean | undefined;
+  private resize_listener_id: any;
 
   constructor(props) {
     super(props);
@@ -69,12 +75,27 @@ export class FileListing extends React.Component<Props> {
     this.list_ref = React.createRef();
   }
 
-  // Restore scroll position if one was set.
   componentDidMount() {
+    // Clear cached size computations after a resizing event
+    this.resize_listener_id = window.addEventListener(
+      "resize",
+      debounce(() => {
+        if (this.props.listing.length > 0) {
+          this.cache.clearAll();
+        }
+      }, RESIZE_DEBOUNCE_MS)
+    );
+
+    // Restore scroll position if one as set.
+    /*
+    Completely DISABLED since it horribly breaks things; Please
+        see https://github.com/sagemathinc/cocalc/issues/3804
+    for steps to reproduce.
     if (this.props.last_scroll_top != undefined && this.list_ref.current != null) {
       this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
       this.current_scroll_top = this.props.last_scroll_top;
     }
+    */
   }
 
   // Updates usually mean someone changed so we update (not rerender) everything.
@@ -85,11 +106,11 @@ export class FileListing extends React.Component<Props> {
     }
   }
 
-  // Clear the selected file index if we scrolled and the index
-  // is not in the render view. Prevents being unable to decide
-  // Whether to scroll to selected index or old scroll position
-  // on future rerender
   componentWillUnmount() {
+    // Clear the selected file index if we scrolled and the index
+    // is not in the render view. Prevents being unable to decide
+    // Whether to scroll to selected index or old scroll position
+    // on future rerender
     if (
       this.current_scroll_top != this.props.last_scroll_top &&
       !this.selected_index_is_rendered
@@ -97,6 +118,9 @@ export class FileListing extends React.Component<Props> {
       this.props.actions.clear_selected_file_index();
     }
     this.props.actions.set_file_listing_scroll(this.current_scroll_top);
+
+    // Remove listeners
+    window.removeEventListener("resize", this.resize_listener_id);
   }
 
   render_cached_row_at = ({ index, key, parent, style }) => {
@@ -247,6 +271,7 @@ export class FileListing extends React.Component<Props> {
     }
     return (
       <NoFiles
+        name={this.props.name}
         current_path={this.props.current_path}
         actions={this.props.actions}
         public_view={this.props.public_view}
@@ -254,6 +279,7 @@ export class FileListing extends React.Component<Props> {
         create_folder={this.props.create_folder}
         create_file={this.props.create_file}
         project_id={this.props.project_id}
+        configuration_main={this.props.configuration_main}
       />
     );
   }

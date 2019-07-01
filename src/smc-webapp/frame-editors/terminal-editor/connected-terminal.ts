@@ -22,7 +22,7 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions } from "../code-editor/actions";
 
-import { endswith } from "smc-util/misc2";
+import { endswith, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
@@ -82,11 +82,16 @@ export class Terminal {
   public is_mounted: boolean = false;
   public element: HTMLElement;
 
+  private command?: string;
+  private args?: string[];
+
   constructor(
     actions: Actions,
     number: number,
     id: string,
-    parent: HTMLElement
+    parent: HTMLElement,
+    command?: string,
+    args?: string[]
   ) {
     bind(this, [
       "handle_mesg",
@@ -104,8 +109,11 @@ export class Terminal {
     this.terminal_settings = Map(); // what was last set.
     this.project_id = actions.project_id;
     this.path = actions.path;
+    this.command = command;
+    this.args = args;
     this.rendererType = "dom";
-    this.term_path = aux_file(`${this.path}-${number}`, "term");
+    const cmd = command ? "-" + replace_all(command, "/", "-") : "";
+    this.term_path = aux_file(`${this.path}-${number}${cmd}`, "term");
     this.number = number;
     this.id = id;
     this.terminal = new XTerminal(this.get_xtermjs_options());
@@ -165,7 +173,7 @@ export class Terminal {
     delete this.number;
     delete this.render_buffer;
     delete this.history;
-    this.terminal.destroy();
+    this.terminal.dispose();
     if (this.conn != null) {
       this.disconnect();
     }
@@ -227,6 +235,12 @@ export class Terminal {
         return;
       }
       const options: any = {};
+      if (this.command != null) {
+        options.command = this.command;
+      }
+      if (this.args != null) {
+        options.args = this.args;
+      }
       options.env = this.actions.get_term_env();
       this.conn = await ws.api.terminal(this.term_path, options);
       if (this.state === "closed") {
@@ -237,7 +251,7 @@ export class Terminal {
         return;
       }
       this.set_connection_status("disconnected");
-      console.log(`terminal connect error -- ${err}; will try again in 2s...`);
+      // console.log(`terminal connect error -- ${err}; will try again in 2s...`);
       await delay(2000);
       if (this.state === "closed") {
         return;
@@ -479,7 +493,7 @@ export class Terminal {
         await delay(0);
         try {
           this.terminal.refresh(0, this.terminal.rows - 1);
-        } catch(err) {
+        } catch (err) {
           // See https://github.com/sagemathinc/cocalc/issues/3572
           console.warn(`TERMINAL WARNING -- ${err}`);
         }
@@ -577,6 +591,14 @@ export class Terminal {
     this.conn_write({ cmd: "boot" });
   }
 
+  kill(): void {
+    this.conn_write({ cmd: "kill" });
+  }
+
+  set_command(command: string | undefined, args: string[] | undefined): void {
+    this.conn_write({ cmd: "set_command", command, args });
+  }
+
   init_terminal_data(): void {
     this.terminal.on("data", data => {
       if (this.ignore_terminal_data) {
@@ -595,6 +617,10 @@ export class Terminal {
       return;
     }
     this.terminal.focus();
+  }
+
+  refresh() : void {
+    this.terminal.refresh(0, this.terminal.rows - 1);
   }
 
   async edit_init_script(): Promise<void> {

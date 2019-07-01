@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, socket, sys, time
+import os, socket, time
 
 os.chdir(os.environ['SALVUS_ROOT'])
 

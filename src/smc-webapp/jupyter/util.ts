@@ -39,3 +39,10 @@ export function codemirror_to_jupyter_pos(
   }
   return s;
 }
+
+// Return s + ... + s = s*n (in python notation), where there are n>=0 summands.
+export function times_n(s: string, n: number): string {
+  let t = "";
+  for (let i = 0; i < n; i++) t += s;
+  return t;
+}

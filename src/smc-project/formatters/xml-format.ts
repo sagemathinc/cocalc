@@ -90,6 +90,6 @@ export async function xml_format(
     return s;
   } finally {
     // logger.debug(`xml formatter done, unlinking ${input_path}`);
-    unlink(input_path);
+    unlink(input_path, () => {});
   }
 }

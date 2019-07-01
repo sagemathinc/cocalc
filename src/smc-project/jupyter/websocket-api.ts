@@ -12,7 +12,7 @@ export async function handle_request(
   query?: any
 ): Promise<any> {
   // First handle endpoints that do not depend on a specific kernel.
-  switch(endpoint) {
+  switch (endpoint) {
     case "kernels":
       return await get_kernel_data();
   }
@@ -65,6 +65,9 @@ export async function handle_request(
         kernel.store.set(key, value);
         return {};
       }
+    case "comm":
+      const [msg_id, comm_id, data] = query;
+      return kernel.send_comm_message_to_kernel(msg_id, comm_id, data);
     default:
       throw Error(`unknown endpoint "${endpoint}"`);
   }
@@ -90,5 +93,3 @@ function get_code_and_cursor_pos(
 
   return { code, cursor_pos };
 }
-
-

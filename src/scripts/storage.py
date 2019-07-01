@@ -58,7 +58,7 @@ if not os.path.exists(CACHE_PATH):
 
 
 def print_json(s):
-    print json.dumps(s, separators=(',', ':'))
+    print(json.dumps(s, separators=(',', ':')))
 
 
 log = None
@@ -84,8 +84,8 @@ class MultiHashRing(object):
         data = {}
         for x in v:
             ip, vnodes, datacenter = x.split()
-            print "UPDATE storage_topology set vnodes=%s where data_center='%s' and host='%s';" % (
-                vnodes, datacenter, ip)
+            print("UPDATE storage_topology set vnodes=%s where data_center='%s' and host='%s';" % (
+                vnodes, datacenter, ip))
             vnodes = int(vnodes)
             if datacenter not in data:
                 data[datacenter] = {}
@@ -183,7 +183,7 @@ def dataset_exists(project_id):
         cmd("sudo zfs list '%s'" % dataset_name(project_id))
         # exit code of 0... so success
         return True
-    except RuntimeError, msg:
+    except RuntimeError as msg:
         if 'does not exist' in str(msg).lower():
             return False
         raise  # something else bad happened.
@@ -342,7 +342,7 @@ def list_snapshots(project_id, host=''):
             v = cmd(c)
         else:
             v = cmd('ssh %s %s' % (host, c))
-    except RuntimeError, msg:
+    except RuntimeError as msg:
         if 'dataset does not exist' in str(msg):
             # project isn't available here
             return []
@@ -468,13 +468,13 @@ def newest_snapshot(project_id, hosts=None, timeout=20):
                 result.append(x.next(t))
             else:
                 raise TimeoutError
-        except TimeoutError, mesg:
+        except TimeoutError as mesg:
             log.info("timed out connecting to some destination -- %s", mesg)
             pool.terminate()
             break
         except StopIteration:
             break
-        except RuntimeError, mesg:
+        except RuntimeError as mesg:
             log.info("RuntimeError connecting to destination -- %s", mesg)
             # usually due to not being able to ssh, e.g., host down, so just
             # don't include in the result.
@@ -872,7 +872,7 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
                         x.next(timeout=t)
                     else:
                         raise TimeoutError("ran out of time before next fetch")
-                except TimeoutError, mesg:
+                except TimeoutError as mesg:
                     log.info("timed out connecting to some destination -- %s",
                              mesg)
                     pool.terminate()
@@ -939,7 +939,7 @@ def replicate_many(project_ids, pool_size=1):
                             # child
                             try:
                                 replicate(project_id=project_id)
-                            except Exception, mesg:
+                            except Exception as mesg:
                                 # make errors non-fatal; due to network issues usually; try again later.
                                 log.warning("Failed to replicate '%s' -- %s" %
                                             (project_id, str(mesg)))
@@ -947,11 +947,11 @@ def replicate_many(project_ids, pool_size=1):
                     else:
                         try:
                             replicate(project_id=project_id)
-                        except Exception, mesg:
+                        except Exception as mesg:
                             # make errors non-fatal; due to network issues usually; try again later.
                             log.warning("Failed to replicate '%s' -- %s" %
                                         (project_id, str(mesg)))
-                except OSError, mesg:
+                except OSError as mesg:
                     log.warning("ERROR: forking to handle %s failed -- %s" %
                                 (project_id, mesg))
             if pids:
@@ -1075,7 +1075,7 @@ def replicate_active(active_path='/home/storage/active'):
             name = snapshot(project_id)
             replicate(project_id, snap_src=name)
             os.unlink(os.path.join(active_path, project_id))
-        except Exception, mesg:
+        except Exception as mesg:
             log.info("ERROR: replicate_active %s -- %s" % (project_id, mesg))
 
 
@@ -1113,7 +1113,7 @@ def replicate_active_watcher(min_time_s=60,
                             os.unlink(f)
                             name = snapshot(project_id)
                             replicate(project_id, snap_src=name)
-                        except Exception, mesg:
+                        except Exception as mesg:
                             open(
                                 f, 'w'
                             )  # create file, so that snapshot & replicate will be attempted again soon.
@@ -1121,7 +1121,7 @@ def replicate_active_watcher(min_time_s=60,
                                 "ERROR: replicate_active_watcher %s -- %s" %
                                 (project_id, mesg))
                         return
-                except OSError, mesg:
+                except OSError as mesg:
                     log.warning("ERROR: forking to handle %s failed -- %s",
                                 project_id, mesg)
         if pids:

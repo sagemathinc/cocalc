@@ -118,7 +118,7 @@ export class XpraClient extends EventEmitter {
     }
     this.server.destroy();
     this.blur();
-    this.client.disconnect();
+    this.client.destroy();
     this.removeAllListeners();
     clearInterval(this.touch_interval);
     clearInterval(this.idle_interval);

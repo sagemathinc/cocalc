@@ -8,6 +8,7 @@ Import all data from **all** json files in the given path:
   (4) write the corresponding relational tables
 
 """
+from __future__ import print_function
 
 import os
 
@@ -59,31 +60,31 @@ def process(table):
     if count:
         # only count
         timing.start(table, 'count')
-        print "%s:"%table,
+        print("%s:"%table, end=" ")
         sys.stdout.flush()
         s = "echo 'select count(*) FROM %s' | psql %s"%(table, db)
         c = os.popen(s).read()
         i = c.rfind('-') + 1; j = c.rfind("(")
-        print c[i:j].strip()
+        print(c[i:j].strip())
         timing.done(table, 'count')
         return
 
     T = tables[table]
-    print T
+    print(T)
     if T.get('skip', False):
         return
     if update and not T.get('update', False):
         return
-    print "get from rethinkdb as json"
+    print("get from rethinkdb as json")
     path_to_json = export_from_rethinkdb.process(table, export, update)
-    print "convert json to csv"
+    print("convert json to csv")
     path_to_csv = json_to_csv.process(path_to_json, export)
     if T.get('fix_timestamps', False):
-        print "fix timestamps in the csv file"
+        print("fix timestamps in the csv file")
         path_to_csv = fix_timestamps.process(path_to_csv)  # path changes
-    print "load csv into database"
+    print("load csv into database")
     read_from_csv.process(path_to_csv)
-    print "parse JSONB data in the database to relational data"
+    print("parse JSONB data in the database to relational data")
     populate_relational_table.process(table, T.get('replace',False) or not update)
 
 def run(table):
@@ -92,7 +93,7 @@ def run(table):
     threading.Thread(target = lambda : process(table)).start()
 
 def usage():
-    print 'Usage: ' + sys.argv[0] + ' ' + ' '.join(sorted(list(tables)))
+    print('Usage: ' + sys.argv[0] + ' ' + ' '.join(sorted(list(tables))))
     sys.exit(1)
 
 if __name__ == "__main__":

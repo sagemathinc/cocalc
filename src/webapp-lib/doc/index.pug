@@ -1,22 +1,93 @@
-//- doc landing page
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-debug
 
 extends ../_base.pug
 
 block vars
-  - subtitle = 'Documentation'
+  -
+    navbar_active = 'features';
+    subtitle = NAME + " Special Features";
+
+block header
+  meta(name="description" content=NAME + " Features")
 
 block content
 
-  div.content
-    div.row#top
-      ul
-        li #[a(href="api.html") API Documentation]
-        if COMP_ENV
-          li #[a(href="software.html") Software Environments]
-
-  //- CSS comes at the bottom: overwrites styles defined in the header
   style
     :sass
       @import "smc-webapp/_colors.sass"
-      div#top
-        margin-top        : 15rem
+      div.row#top
+        min-height: 75vh
+        ul
+          li
+            margin-top    : 10px
+            margin-bottom : 10px
+            > a:first-child
+              font-weight   : bold
+              padding-right : 10px
+
+  a.anchor#a-top
+  div.container
+    div.row#top
+      h1 #{NAME} Features
+      div= "These pages feature in-depth explanations about what " + NAME + " is able to do."
+      ul
+        li
+          a(href='jupyter-notebook.html') Jupyter Notebooks:
+          span.
+            #{NAME} offers a platform-specific edition of notebooks with real-time collaboration, chat, and precise edit-history.
+            Explore it in more detail in #[a(href="https://doc.cocalc.com/jupyter.html") the documentation].
+
+        li
+          a(href="python.html") Extensive Python stack:
+          span.
+            data science, statistics, mathematics, physics, machine learning,
+            and #[a(href="software-python.html") much more].
+
+        li
+          a(href='r-statistical-software.html') R statistical software:
+          span notebook, command-line, LaTeX with Knitr and RMarkdown, and much more.
+
+        li
+          a(href='latex-editor.html') LaTeX Editor:
+          span.
+             learn how #{NAME}'s LaTeX editor can help you being a productive author online,
+             or check out #[a(href="https://doc.cocalc.com/latex.html") its documentation].
+
+        li
+          a(href='x11.html') Graphical Software:
+          span.
+            run graphical applications in #{NAME}'s remote virtual display environment.
+            Read more about it in the #[a(href="https://doc.cocalc.com/x11.html") X11 documentation].
+
+        li
+          a(href="linux.html") Online Linux Environment:
+          span.
+            a collaborative online #[a(href="https://doc.cocalc.com/terminal.html") Linux terminal],
+            edit and run Bash scripts, or work in a Jupyter Notebooks running the Bash kernel.
+
+        li
+          a(href="linux-terminal.html") Linux Terminal:
+          span.
+            work in a collaborative remote Linux shell.
+            Read more in its #[a(href="https://doc.cocalc.com/terminal.html") documentation].
+
+        li
+          a(href="teaching.html") Teaching a course:
+          span.
+            #{NAME} helps you organizing and teaching a course.
+            Read more in the #[a(href="https://doc.cocalc.com/teaching-instructors.html") instructor guide].
+
+        li
+          a(href='https://doc.cocalc.com/api/') API interface:
+          span programmatically control #{NAME} via your own software.
+
+        li
+          a(href='https://doc.cocalc.com/api/') There is much more to explore:
+          span.
+            Just to name a few, there are
+            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets],
+            #[a(href="https://doc.cocalc.com/teaching-instructors.html") Course management],
+            #[a(href="https://doc.cocalc.com/tasks.html") Task management],
+            #[a(href="https://doc.cocalc.com/chat.html") Chat], etc.
+
+

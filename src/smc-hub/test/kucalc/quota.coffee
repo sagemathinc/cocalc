@@ -119,13 +119,13 @@ describe 'default quota', ->
                     memory          : 20000 # max 16gb
                     mintime         : 24*3600*100 # max 90 days
                     memory_request  : 10000 # max 8gb
-                    cores           : 7  # max 2
-                    cpu_shares      : 1024 * 4 # max 3 requests
+                    cores           : 7  # max 3
+                    cpu_shares      : 1024 * 4 # max 2 requests
 
         maxedout = quota({}, over_max)
         exp =
-            cpu_limit: 2
-            cpu_request: 3 # set at the top of quota config
+            cpu_limit: 3
+            cpu_request: 2 # set at the top of quota config
             disk_quota: 20000
             idle_timeout: 24*3600*90
             member_host: true
@@ -193,7 +193,7 @@ describe 'default quota', ->
             memory_request  : 4210
             memory_limit    : 1500 # 1500 mb free for members
             cpu_request     : .5
-            cpu_limit       : 2
+            cpu_limit       : 3
             privileged      : false
             idle_timeout    : 24*3600*90  # 1800 secs free
             disk_quota      : 23000

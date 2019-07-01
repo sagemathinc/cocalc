@@ -1,7 +1,6 @@
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
@@ -34,9 +33,17 @@ const misc = require("smc-util/misc");
 
 const schema = require("smc-util/schema");
 
-import { Component, React, ReactDOM, AppRedux } from "../app-framework";
+import {
+  Component,
+  React,
+  ReactDOM,
+  AppRedux,
+  rtypes,
+  redux,
+  rclass,
+  Rendered
+} from "../app-framework";
 import { CourseActions } from "./actions";
-import { redux } from "../frame-editors/generic/test/util";
 import { CourseStore } from "./store";
 import { Map } from "immutable";
 
@@ -68,19 +75,24 @@ interface StudentProjectUpgradesProps {
   upgrade_goal?: Map<any, any>;
   institute_pay?: boolean;
   student_pay?: boolean;
+
+  // redux props
+  all_projects_have_been_loaded?: boolean;
 }
 
 interface StudentProjectUpgradesState {
   upgrade_quotas: boolean; // true if display the quota upgrade panel
   upgrades: object;
   upgrade_plan?: object;
+  loading_all_projects?: boolean;
 }
 
-export class StudentProjectUpgrades extends Component<
+class StudentProjectUpgrades extends Component<
   StudentProjectUpgradesProps,
   StudentProjectUpgradesState
 > {
   public _upgrade_is_invalid: boolean;
+  private is_mounted: boolean = false;
 
   constructor(props) {
     super(props);
@@ -89,6 +101,18 @@ export class StudentProjectUpgrades extends Component<
       upgrades: {},
       upgrade_plan: undefined
     };
+  }
+
+  componentDidMount() {
+    this.is_mounted = true;
+  }
+
+  componentWillUnmount() {
+    this.is_mounted = false;
+  }
+
+  static reduxProps() {
+    return { projects: { all_projects_have_been_loaded: rtypes.bool } };
   }
 
   get_actions(): CourseActions {
@@ -197,8 +221,8 @@ export class StudentProjectUpgrades extends Component<
         this.state.upgrades[quota] != null
           ? this.state.upgrades[quota]
           : yours > 0
-            ? 1
-            : 0;
+          ? 1
+          : 0;
       const is_valid = this.is_upgrade_input_valid(val, limit);
       if (!is_valid) {
         this._upgrade_is_invalid = true;
@@ -259,8 +283,8 @@ export class StudentProjectUpgrades extends Component<
       x === ""
         ? 0
         : (left = misc.parse_number_input(x)) != null
-          ? left
-          : yours / num_projects; // currently typed in
+        ? left
+        : yours / num_projects; // currently typed in
     if (input_type === "checkbox") {
       input = input > 0 ? 1 : 0;
     }
@@ -369,7 +393,8 @@ export class StudentProjectUpgrades extends Component<
     if (!num_projects) {
       return (
         <span>
-          There are no student projects yet.<br />
+          There are no student projects yet.
+          <br />
           <br />
           {this.render_upgrade_submit_buttons()}
         </span>
@@ -418,11 +443,7 @@ export class StudentProjectUpgrades extends Component<
         <div style={{ marginTop: "15px", color: "#333" }}>
           {this.render_upgrade_plan()}
         </div>
-        {__guard__(redux.getStore("account").get("groups"), x =>
-          x.contains("admin")
-        )
-          ? this.render_admin_upgrade()
-          : undefined}
+        {this.render_admin_upgrade()}
       </Alert>
     );
   }
@@ -437,7 +458,11 @@ export class StudentProjectUpgrades extends Component<
     return false;
   };
 
-  render_admin_upgrade() {
+  render_admin_upgrade(): Rendered {
+    const groups = redux.getStore("account").get("groups");
+    if (groups == null || !groups.contains("admin")) {
+      return;
+    }
     return (
       <div>
         <br />
@@ -479,7 +504,17 @@ export class StudentProjectUpgrades extends Component<
   }
 
   // call this function to switch state from not viewing the upgrader to viewing the upgrader.
-  adjust_quotas = () => {
+  adjust_quotas = async () => {
+    if (!this.props.all_projects_have_been_loaded) {
+      // See https://github.com/sagemathinc/cocalc/issues/3802
+      const a = this.props.redux.getActions("projects");
+      if (a != null) {
+        this.setState({ loading_all_projects: true });
+        await a.load_all_projects();
+        if (!this.is_mounted) return;
+        this.setState({ loading_all_projects: false });
+      }
+    }
     let left;
     const upgrades =
       (left =
@@ -529,6 +564,13 @@ export class StudentProjectUpgrades extends Component<
   }
 
   render_upgrade_quotas_button() {
+    if (this.state.loading_all_projects) {
+      return (
+        <Button disabled={true} bsStyle="primary">
+          <Icon name="arrow-circle-up" /> Adjust upgrades... (Loading)
+        </Button>
+      );
+    }
     return (
       <Button bsStyle="primary" onClick={this.adjust_quotas}>
         <Icon name="arrow-circle-up" /> Adjust upgrades...
@@ -602,8 +644,5 @@ export class StudentProjectUpgrades extends Component<
   }
 }
 
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
+const StudentProjectUpgrades0 = rclass(StudentProjectUpgrades);
+export { StudentProjectUpgrades0 as StudentProjectUpgrades };

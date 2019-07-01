@@ -18,7 +18,7 @@ import { EventEmitter } from "events";
 
 import { SyncTable, Client } from "./synctable";
 
-import { bind_methods } from "../../async-utils";
+import { bind_methods } from "../../misc2";
 
 export function synctable_no_changefeed(
   query,

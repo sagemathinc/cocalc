@@ -133,7 +133,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
       retries: Infinity
     }
   }));
-  conn.api = new API(conn);
+  conn.api = new API(conn, project_id);
   conn.verbose = false;
 
   // Given conn a state API, which is very handy for my use.

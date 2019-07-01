@@ -767,6 +767,7 @@ interface ChatRoomReduxProps {
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   unsent_user_mentions: MentionList;
+  other_settings: Map<string, any>;
 }
 
 type ChatRoomProps = ChatRoomOwnProps & ChatRoomReduxProps;
@@ -808,7 +809,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
       account: {
         account_id: rtypes.string,
-        font_size: rtypes.number
+        font_size: rtypes.number,
+        other_settings: rtypes.immutable.Map
       },
 
       file_use: {
@@ -1013,6 +1015,18 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       : undefined;
   };
 
+  render_mention_email() {
+    if (
+      this.props.redux
+        .getStore("projects")
+        .has_internet_access(this.props.project_id)
+    ) {
+      return <span>(they may receive an email)</span>;
+    } else {
+      return <span>(enable the Internet Access upgrade to send emails)</span>;
+    }
+  }
+
   // All render methods
   render_bottom_tip() {
     const tip = (
@@ -1032,7 +1046,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
           Shift+Enter to send your message. Use @name to mention a collaborator
-          on this project. Double click chat bubbles to edit them. Format using{" "}
+          on this project {this.render_mention_email()}. Double click chat
+          bubbles to edit them. Format using{" "}
           <a
             href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
             target="_blank"
@@ -1360,7 +1375,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 name={this.props.name}
                 input={this.props.input}
                 input_ref={this.input_ref}
-                enable_mentions={has_collaborators}
+                enable_mentions={
+                  has_collaborators &&
+                  this.props.other_settings.get("allow_mentions")
+                }
                 project_users={project_users}
                 user_store={this.props.redux.getStore("users")}
                 font_size={this.props.font_size}

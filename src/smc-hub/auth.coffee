@@ -67,6 +67,8 @@ Cookies = require('cookies')
 
 express_session = require('express-session')
 
+{ HELP_EMAIL } = require("smc-util/theme")
+
 {defaults, required} = misc
 
 api_key_cookie_name = (base_url) ->
@@ -279,8 +281,6 @@ passport_login = (opts) ->
                         last_name     : opts.last_name
                         email_address : locals.email_address ? null
                         created_by    : opts.req.ip
-                    data.utm      = opts.res.locals.utm      if opts.res.locals.utm
-                    data.referrer = opts.res.locals.referrer if opts.res.locals.referrer
                     opts.database.log
                         event : 'create_account'
                         value : data
@@ -290,16 +290,14 @@ passport_login = (opts) ->
         (cb) ->
             if locals.new_account_created
                 cb(); return
-            dbg("record_sign_in: #{opts.req.url} -- res.locals.utm: #{misc.to_json(opts.res.locals.utm)}")
+            dbg("record_sign_in: #{opts.req.url}")
             sign_in.record_sign_in
-                ip_address    : opts.req.ip
-                successful    : true
-                remember_me   : locals.has_valid_remember_me
-                email_address : locals.email_address
-                account_id    : locals.account_id
-                utm           : opts.res.locals.utm
-                referrer      : opts.res.locals.referrer
-                database      : opts.database
+                ip_address      : opts.req.ip
+                successful      : true
+                remember_me     : locals.has_valid_remember_me
+                email_address   : locals.email_address
+                account_id      : locals.account_id
+                database        : opts.database
             cb() # don't make client wait for this -- it's just a log message for us.
 
         (cb) ->
@@ -342,6 +340,18 @@ passport_login = (opts) ->
                     cb()
             )
 
+        (cb) ->
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : locals.account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User (account_id=#{locals.account_id}, email_address=#{locals.email_address}) is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}.")
+                        return
+                    cb()
         (cb) ->
             if locals.has_valid_remember_me
                 cb()

@@ -1,16 +1,26 @@
 import { List } from "immutable";
 //declare const $: any;
-const $ = require('jquery');
+const $ = require("jquery");
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { is_array } from "smc-util/misc2";
 import { javascript_eval } from "./javascript-eval";
+import { STDERR_STYLE } from "./style";
 
 interface JavascriptProps {
   value: string | List<string>;
 }
 
-export class Javascript extends Component<JavascriptProps> {
+interface JavascriptState {
+  errors?: string;
+}
+
+export class Javascript extends Component<JavascriptProps, JavascriptState> {
   private node: HTMLElement;
+
+  constructor(props) {
+    super(props);
+    this.state = {};
+  }
 
   componentDidMount(): void {
     const element = $(this.node);
@@ -28,12 +38,29 @@ export class Javascript extends Component<JavascriptProps> {
       }
     }
     let block: string;
+    let errors: string = "";
     for (block of value) {
-      javascript_eval(block, element);
+      errors += javascript_eval(block, element);
+      if (errors.length > 0) {
+        this.setState({ errors });
+      }
     }
   }
 
   render(): Rendered {
-    return <div />;
+    if (this.state.errors) {
+      // This conflicts with official Jupyter
+      return (
+        <div style={STDERR_STYLE}>
+          <span>
+            {this.state.errors}
+            <br />
+            See your browser Javascript console for more details.
+          </span>
+        </div>
+      );
+    } else {
+      return <div />;
+    }
   }
 }

@@ -12,11 +12,18 @@ const VIEWERS: ReadonlyArray<string> = [
 ];
 
 import { fromJS, List, Map } from "immutable";
+import { once } from "smc-util/async-utils";
+
 import {
   Actions as BaseActions,
   CodeEditorState
 } from "../code-editor/actions";
-import { latexmk, build_command } from "./latexmk";
+import {
+  latexmk,
+  build_command,
+  Engine,
+  get_engine_from_config
+} from "./latexmk";
 import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
 import { pythontex, pythontex_errors } from "./pythontex";
 import { knitr, patch_synctex, knitr_errors } from "./knitr";
@@ -27,7 +34,8 @@ import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
-import { pdf_path, KNITR_EXTS } from "./util";
+import { pdf_path } from "./util";
+import { KNITR_EXTS } from "./constants";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../app-framework";
@@ -37,6 +45,8 @@ import { raw_url } from "../frame-tree/util";
 import {
   path_split,
   separate_file_extension,
+  splitlines,
+  startswith,
   change_filename_extension
 } from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
@@ -80,28 +90,29 @@ export class Actions extends BaseActions<LatexEditorState> {
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
   private bad_filename: boolean; // true, if the <filename.tex> can't be processed -- see #3230
+  // optional engine configuration string -- https://github.com/sagemathinc/cocalc/issues/2839
+  private engine_config: Engine | null | undefined = undefined;
 
   _init2(): void {
     if (!this.is_public) {
-      this._init_bad_filename();
-      this._init_ext_filename(); // safe to set before syncstring init
+      this.init_bad_filename();
+      this.init_ext_filename(); // safe to set before syncstring init
       this._init_syncstring_value();
-      this._init_ext_path(); // must come after syncstring init
-      this._init_latexmk();
+      this.init_ext_path(); // must come after syncstring init
+      this.init_latexmk();
       this._init_spellcheck();
-      this._init_config();
-      this._init_first_build();
+      this.init_config();
     }
   }
 
-  _init_bad_filename(): void {
+  private init_bad_filename(): void {
     // #3230 two or more spaces
     // note: if there are additional reasons why a filename is bad, add it to the
     // alert msg in run_build.
     this.bad_filename = /\s\s+/.test(this.path);
   }
 
-  _init_ext_filename(): void {
+  private init_ext_filename(): void {
     /* number one reason to check is to detect .rnw/.rtex files */
     const ext = separate_file_extension(this.path).ext;
     if (ext) {
@@ -122,7 +133,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  _init_ext_path(): void {
+  private init_ext_path(): void {
     if (this.knitr) {
       // changing the path to the (to be generated) tex file makes everyting else
       // here compatible with the latex commands
@@ -131,19 +142,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  _init_first_build(): void {
-    const f = () => {
-      if (this.store.get("is_loaded")) {
-        this.build("", false);
-      }
-    };
-    this._syncstring.once("ready", f);
-
-    if (this._syncdb == null) throw Error("syncdb must be defined");
-    this._syncdb.once("ready", f);
-  }
-
-  _init_latexmk(): void {
+  private init_latexmk(): void {
     const account: any = this.redux.getStore("account");
 
     this._syncstring.on("save-to-disk", time => {
@@ -154,15 +153,69 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  _init_config(): void {
+  private async init_build_directive(): Promise<void> {
+    // check if there is an engine configured
+    // https://github.com/sagemathinc/cocalc/issues/2839
+    if (this.engine_config !== undefined) return;
+
+    // Wait until the syncstring is loaded from disk.
+    if (this._syncstring.get_state() == "init") {
+      await once(this._syncstring, "ready");
+    }
+    if (this._state == "closed") return;
+
+    const s = this._syncstring.to_str();
+    let line: string;
+    for (line of splitlines(s)) {
+      if (startswith(line, "% !TeX program =")) {
+        const tokens = line.split("=");
+        if (tokens.length >= 2) {
+          this.engine_config = get_engine_from_config(tokens[1].trim());
+          if (this.engine_config != null) {
+            // Now set the build command to what is configured.
+            this.set_build_command(
+              build_command(
+                this.engine_config,
+                path_split(this.path).tail,
+                this.knitr
+              )
+            );
+          }
+          return;
+        }
+      }
+    }
+  }
+
+  private async init_config(): Promise<void> {
     this.setState({ build_command: "" }); // empty means not yet initialized
+
     // .rnw/.rtex files: we aux-syncdb them, not the autogenerated .tex file
     const path: string = this.knitr ? this.filename_knitr : this.path;
     this._init_syncdb(["key"], undefined, path);
 
+    // Wait for the syncdb to be loaded and ready.
+    if (this._syncdb.get_state() == "init") {
+      await once(this._syncdb, "ready");
+      if (this._state == "closed") return;
+    }
+
+    // If the build command is NOT already
+    // set in syncdb, we wait for file to load,
+    // looks for "% !TeX program =", and if so
+    // sets up the build command based on that:
+    if (this._syncdb.get_one({ key: "build_command" }) == null) {
+      await this.init_build_directive();
+      if (this._state == "closed") return;
+    }
+
+    // Also, whenever the syncdb changes or loads, we load the build
+    // command from there, if it is explicitly set there.  This takes
+    // precedence over the "% !TeX program =".
     const set_cmd = (): void => {
       if (this._syncdb == null) throw Error("syncdb must be defined");
       const x = this._syncdb.get_one({ key: "build_command" });
+
       if (x !== undefined && x.get("value") !== undefined) {
         const cmd: List<string> | string = x.get("value");
         if (typeof cmd === "string") {
@@ -179,15 +232,19 @@ export class Actions extends BaseActions<LatexEditorState> {
 
       // fallback
       const default_cmd = build_command(
-        "PDFLaTeX",
+        this.engine_config || "PDFLaTeX",
         path_split(this.path).tail,
         this.knitr
       );
       this.set_build_command(default_cmd);
     };
 
-    this._syncdb.on("ready", set_cmd);
+    set_cmd();
     this._syncdb.on("change", set_cmd);
+
+    // We now definitely have the build command set and the document loaded,
+    // so let's kick off our initial build.
+    this.force_build();
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -257,12 +314,12 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   // supports the "Force Rebuild" button.
-  async force_build(id: string): Promise<void> {
+  async force_build(id?: string): Promise<void> {
     await this.build(id, true);
   }
 
   // used by generic framework.
-  async build(id: string, force: boolean): Promise<void> {
+  async build(id?: string, force: boolean = false): Promise<void> {
     if (id) {
       const cm = this._get_cm(id);
       if (cm) {

@@ -6,12 +6,23 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
+import { client_db } from "smc-util/schema";
+
+const { reuseInFlight } = require("async-await-utils/hof");
+import {
+  ConfigurationAspect,
+  Configuration,
+  ProjectConfiguration,
+  get_configuration,
+  LIBRARY_INDEX_FILE,
+  is_available as feature_is_available
+} from "./project_configuration";
+const { SITE_NAME } = require("smc-util/theme");
 import { startswith, to_user_string } from "smc-util/misc2";
-
 import { query as client_query } from "./frame-editors/generic/client";
-
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
+import { exec } from "./frame-editors/generic/client";
 
 import { NewFilenames } from "smc-webapp/project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
@@ -80,6 +91,7 @@ export const QUERIES = {
       disabled: null,
       unlisted: null,
       created: null,
+      license: null,
       last_edited: null,
       last_saved: null,
       counter: null
@@ -156,6 +168,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _log_open_time: { [key: string]: { id: string; start: number } };
   private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
+  private _init_done = false;
   private new_filename_generator;
 
   constructor(a, b) {
@@ -226,6 +239,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this
     );
     this.init_library = this.init_library.bind(this);
+    this.init_configuration = reuseInFlight(this.init_configuration.bind(this));
     this.copy_from_library = this.copy_from_library.bind(this);
     this.set_library_is_copying = this.set_library_is_copying.bind(this);
     this.copy_paths = this.copy_paths.bind(this);
@@ -243,7 +257,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.create_file = this.create_file.bind(this);
     this.new_file_from_web = this.new_file_from_web.bind(this);
     this.set_public_path = this.set_public_path.bind(this);
-    this.disable_public_path = this.disable_public_path.bind(this);
     this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
       this
     );
@@ -307,7 +320,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  get_store(): ProjectStore | undefined {
+  public get_store(): ProjectStore | undefined {
     if (this.redux.hasStore(this.name)) {
       return this.redux.getStore<ProjectStoreState, ProjectStore>(this.name);
     } else {
@@ -317,6 +330,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   clear_all_activity(): void {
     this.setState({ activity: undefined });
+  }
+
+  async custom_software_reset(): Promise<void> {
+    // 1. delete the sentinel file that marks copying over the accompanying files
+    // 2. restart project. This isn't strictly necessary and a TODO for later, because
+    // this would have to do preciesly what kucalc's project init does.
+    const sentinel = ".cocalc-project-init-done";
+    await exec({
+      allow_post: true,
+      timeout: 10,
+      project_id: this.project_id,
+      command: "rm",
+      args: ["-f", sentinel],
+      err_on_exit: false,
+      bash: false
+    });
+    this.toggle_custom_software_reset(false);
+    const projects_actions = this.redux.getActions("projects") as any;
+    projects_actions.restart_project(this.project_id);
+  }
+
+  toggle_custom_software_reset(show: boolean): void {
+    this.setState({ show_custom_software_reset: show });
   }
 
   toggle_panel(name: keyof ProjectStoreState, show?: boolean): void {
@@ -881,6 +917,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history: true
     });
     opts.path = normalize(opts.path);
+    const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
 
     // intercept any requests if in kiosk mode
     if (
@@ -897,18 +934,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
+    let store = this.get_store();
+    if (store == undefined) return;
+
+    const can_open_file = await store.can_open_file_ext(ext, this);
+    if (!can_open_file) {
+      const SiteName =
+        redux.getStore("customize").get("site_name") || SITE_NAME;
+      alert_message({
+        type: "error",
+        message: `This ${SiteName} project cannot open ${ext} files!`,
+        timeout: 20
+      });
+      // console.log(
+      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
+      // );
+      return;
+    }
+
     if (opts.new_browser_window) {
       // options other than path are ignored in this case.
       this.open_in_new_browser_window(opts.path);
       return;
     }
 
-    let store = this.get_store();
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
-      return;
-    }
-
+    store = this.get_store();
+    if (store == undefined) return;
     let open_files = store.get("open_files");
     if (!open_files.has(opts.path)) {
       // Make the tab appear ASAP
@@ -928,11 +979,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
+    if (this.get_store() == null) return;
 
     // Next get the group.
     let group: string;
     try {
       group = await this.get_my_group();
+      if (this.get_store() == null) return;
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
@@ -941,7 +994,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
     const is_public = group === "public";
 
     if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
@@ -960,10 +1012,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     store = this.get_store(); // because async stuff happened above.
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
-      return;
-    }
+    if (store == undefined) return;
 
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes
@@ -1379,7 +1428,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (typeof path !== "string") {
       (window as any).cpath_args = arguments;
       throw Error(
-        "Current path should be a string. Revieved arguments are available in window.cpath_args"
+        "Current path should be a string. Received arguments are available in window.cpath_args"
       );
     }
     // Set the current path for this project. path is either a string or array of segments.
@@ -1914,8 +1963,117 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // this is called in "projects.cjsx" (more then once)
+  // in turn, it is calling init methods just once, though
+  init(): void {
+    if (this._init_done) {
+      // console.warn("ProjectActions::init called more than once");
+      return;
+    }
+    this._init_done = true;
+    // initialize project configuration data
+    this.init_configuration();
+    this.init_runstate_watcher();
+    // init the library after project started.
+    this.init_library();
+    this.init_library_index();
+  }
+
+  // listen on certain runstate events and trigger associated actions
+  // this method should only be called once
+  private init_runstate_watcher(): void {
+    const store = this.get_store();
+    if (store == null) return;
+
+    store.on("started", () => {
+      this.clear_configuration();
+      this.init_configuration("main");
+    });
+
+    store.on("stopped", () => {
+      this.clear_configuration();
+    });
+  }
+
+  // invalidates configuration cache
+  private clear_configuration(): void {
+    this.setState({
+      configuration: undefined,
+      available_features: undefined
+    });
+  }
+
+  // retrieve project configuration (capabilities, etc.) from the back-end
+  // also return it as a convenience
+  async init_configuration(
+    aspect: ConfigurationAspect = "main"
+  ): Promise<Configuration | void> {
+    this.setState({ configuration_loading: true });
+
+    const store = this.get_store();
+    if (store == null) {
+      // console.warn("project_actions::init_configuration: no store");
+      this.setState({ configuration_loading: false });
+      return;
+    }
+
+    // already done before?
+    const prev = store.get("configuration") as ProjectConfiguration;
+    if (prev != null) {
+      const conf = prev.get(aspect) as Configuration;
+      if (conf != null) {
+        this.setState({ configuration_loading: false });
+        return conf;
+      }
+    }
+
+    // we do not know the configuration aspect. "next" will be the updated datastructure.
+    let next;
+
+    await retry_until_success({
+      f: async () => {
+        try {
+          next = await get_configuration(
+            webapp_client,
+            this.project_id,
+            aspect,
+            prev
+          );
+        } catch (e) {
+          // not implemented error happens, when the project is still the old one
+          // in that case, do as if everything is available
+          if (e.message.indexOf("not implemented") >= 0) {
+            return null;
+          }
+          // console.log("project_actions::init_configuration err:", e);
+          throw e;
+        }
+      },
+      start_delay: 1000,
+      max_delay: 5000,
+      desc: "project_actions::init_configuration"
+    });
+
+    // there was a problem or configuration is not known
+    if (next == null) {
+      this.setState({ configuration_loading: false });
+      return;
+    }
+
+    this.setState({
+      configuration: next,
+      available_features: feature_is_available(next),
+      configuration_loading: false
+    });
+
+    return next.get(aspect) as Configuration;
+  }
+
   // this is called once by the project initialization
-  init_library() {
+  private async init_library() {
+    const conf = await this.init_configuration("main");
+    if (conf != null && conf.capabilities.library === false) return;
+
     //if DEBUG then console.log("init_library")
     // Deprecated: this only tests the existence
     const check = (v, k, cb) => {
@@ -1962,7 +2120,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     async.series([cb => async.eachOfSeries(LIBRARY, check, cb)]);
   }
 
-  init_library_index() {
+  private async init_library_index() {
+    const conf = await this.init_configuration("main");
+    if (conf != null && conf.capabilities.library === false) return;
+
     let library, store: ProjectStore | undefined;
     if (_init_library_index_cache[this.project_id] != null) {
       const data = _init_library_index_cache[this.project_id];
@@ -1984,7 +2145,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const index_json_url = webapp_client.read_file_from_project({
       project_id: this.project_id,
-      path: "/ext/library/cocalc-examples/index.json"
+      path: LIBRARY_INDEX_FILE
     });
 
     const fetch = cb => {
@@ -2600,49 +2761,44 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     path,
     opts: {
       description?: string;
-      unlisted?: string;
-    } = {}
+      unlisted?: boolean;
+      license?: string;
+      disabled?: boolean;
+    }
   ) {
     let store = this.get_store();
     if (!store) {
       return;
     }
-    let cur_obj: any = {};
-    // only set created if this obj is new; have to just linearly search through paths right now...
-    if (store.get("public_paths") != null) {
-      store.get("public_paths").forEach(function(v) {
-        if (v.get("path") === path) {
-          cur_obj = v.toJS();
-          return false; // found it, exit forEach
-        } else {
-          return true; // next element
-        }
+
+    const project_id = this.project_id;
+    const id = client_db.sha1(project_id, path);
+
+    const table = this.redux.getProjectTable(project_id, "public_paths");
+    let obj: undefined | immutable.Map<string, any> = table._table.get(id);
+
+    const now = misc.server_time();
+    if (obj == null) {
+      obj = immutable.fromJS({
+        project_id,
+        path,
+        created: now
       });
     }
-    const now = misc.server_time();
-    // unlisted and description are *optional*: fallback to already saved values if available
-    const unlisted = opts.unlisted != null ? opts.unlisted : cur_obj.unlisted;
-    const description =
-      opts.description != null ? opts.description : cur_obj.description;
-    const obj = {
-      project_id: this.project_id,
-      path,
-      description: description != null ? description : "",
-      disabled: false,
-      unlisted: unlisted != null ? unlisted : false,
-      last_edited: now,
-      created: cur_obj.created || now
-    };
-    this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
-  }
+    if (obj == null) return; // make typescript happy
 
-  disable_public_path(path) {
-    this.redux.getProjectTable(this.project_id, "public_paths").set({
-      project_id: this.project_id,
-      path,
-      disabled: true,
-      last_edited: misc.server_time()
-    });
+    // not allowed to write these back
+    obj = obj.delete("last_saved");
+    obj = obj.delete("counter");
+
+    obj = obj.set("last_edited", now);
+
+    for (let k in opts) {
+      if (opts[k] != null) {
+        obj = obj.set(k, opts[k]);
+      }
+    }
+    table.set(obj);
   }
 
   /*

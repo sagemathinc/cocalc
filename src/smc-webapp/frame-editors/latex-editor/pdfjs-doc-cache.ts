@@ -45,7 +45,7 @@ export function url_to_pdf(
   return `${raw_url(project_id, encode_path(pdf_path(path)))}?param=${reload}`;
 }
 
-const doc_cache = LRU(options);
+const doc_cache = new LRU(options);
 
 export const getDocument: (
   url: string

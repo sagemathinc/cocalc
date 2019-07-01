@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { full_path_text } from "./utils";
 
 const { Alert } = require("react-bootstrap");
 
@@ -9,7 +8,13 @@ const help_alert_error_syle: React.CSSProperties = {
   fontWeight: "bold"
 };
 
-export function HelpAlert({ file_search }: { file_search: string }) {
+export function HelpAlert({
+  file_search,
+  actual_new_filename
+}: {
+  file_search: string;
+  actual_new_filename: string;
+}) {
   const last_folder_index = file_search.lastIndexOf("/");
   if (file_search.indexOf("\\") !== -1) {
     return (
@@ -35,6 +40,7 @@ export function HelpAlert({ file_search }: { file_search: string }) {
       <CreationHelpAlert
         last_folder_index={last_folder_index}
         file_search={file_search}
+        actual_new_filename={actual_new_filename}
       />
     );
   }
@@ -46,10 +52,12 @@ const emphasis_style: React.CSSProperties = { fontWeight: "bold" };
 
 function CreationHelpAlert({
   last_folder_index,
-  file_search
+  file_search,
+  actual_new_filename
 }: {
   last_folder_index: number;
   file_search: string;
+  actual_new_filename:string;
 }) {
   // Ends with a '/' ie. only folders
   if (last_folder_index === file_search.length - 1) {
@@ -74,7 +82,7 @@ function CreationHelpAlert({
     return (
       <Alert style={creation_alert_style} bsStyle="info">
         <span style={emphasis_style}>
-          {full_path_text(file_search).slice(last_folder_index + 1)}
+          {actual_new_filename.slice(last_folder_index + 1)}
         </span>{" "}
         will be created under the folder path{" "}
         <span style={emphasis_style}>

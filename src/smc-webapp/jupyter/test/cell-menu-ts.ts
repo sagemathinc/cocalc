@@ -80,13 +80,14 @@ describe("test setting cell type for multiple selected cells -- ", () => {
     actions.insert_cell(1);
     expect(store.get("cells").size).to.equal(3);
   });
+  /*
   it("selects cells 1 and 2 (of the 3)", () => {
     const list = store.get("cell_list").toJS();
     actions.select_cell_range(list[1]);
     actions.set_selected_cell_type("markdown");
     const v = list.map(id => store.getIn(["cells", id, "cell_type"]));
     expect(v).to.deep.equal([undefined, "markdown", "markdown"]);
-  });
+  });*/
 });
 
 describe("test clearing output of cells -- ", () => {
@@ -119,6 +120,7 @@ describe("test clearing output of cells -- ", () => {
     expect(v).to.deep.equal([[0], [1], undefined]);
   });
 
+  /*
   it("select first two cells and clear their output", () => {
     actions.set_cur_id(list[0]);
     actions.select_cell_range(list[1]);
@@ -127,7 +129,7 @@ describe("test clearing output of cells -- ", () => {
       __guard__(store.getIn(["cells", id, "output"]), x => x.toJS())
     );
     return expect(v).to.deep.equal([undefined, undefined, undefined]);
-  });
+  }); */
 
   return it("set output again and clear all", () => {
     for (let i of [0, 1, 2]) {

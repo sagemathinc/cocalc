@@ -10,6 +10,8 @@ Add collaborators to a project
 
 {webapp_client}      = require('../webapp_client')
 
+{ has_internet_access } = require("../upgrades/upgrade-utils");
+
 {SITE_NAME} = require('smc-util/theme')
 
 exports.AddCollaborators = rclass
@@ -148,6 +150,7 @@ exports.AddCollaborators = rclass
     render_send_email: ->
         if not @state.email_to
             return
+
         <div>
             <hr />
             <Well>
@@ -194,6 +197,19 @@ exports.AddCollaborators = rclass
         if @state.search and (@state.searching or @state.select)
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
+    render_send_email_invite: ->
+        if has_internet_access(this.props.project)
+            <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
+                <Icon name='envelope' />  Send Email Invitation...
+            </Button>
+        else
+            <div>
+                Enable the Internet Access upgrade to this project
+                in project settings
+                in order to send an email invitation.
+            </div>
+
+
     render_select_list: ->
         if @state.searching
             return <Loading />
@@ -213,9 +229,7 @@ exports.AddCollaborators = rclass
                 <Fragment>
                     Sorry, no accounts found.
                     <br/>
-                    <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                        <Icon name='envelope' />  Send Email Invitation...
-                    </Button>
+                    {@render_send_email_invite()}
                 </Fragment>
             else
                 # no hit, but at least one existing collaborator

@@ -29,6 +29,11 @@ export async function terminal(
 ): Promise<string> {
   const name = `terminal:${path}`;
   if (terminals[name] !== undefined) {
+    if (options.command != terminals[name].options.command) {
+      terminals[name].options.command = options.command;
+      terminals[name].options.args = options.args;
+      process.kill(terminals[name].term.pid, "SIGKILL");
+    }
     return name;
   }
   const channel = primus.channel(name);
@@ -38,11 +43,14 @@ export async function terminal(
     client_sizes: {},
     last_truncate_time: new Date().valueOf(),
     truncating: 0,
-    last_exit: 0
+    last_exit: 0,
+    options: options != null ? options : {}
   };
+
   async function init_term() {
     const args: string[] = [];
 
+    const options = terminals[name].options;
     if (options.args != null) {
       for (let arg of options.args) {
         if (typeof arg === "string") {
@@ -72,7 +80,17 @@ export async function terminal(
       console.log(`failed to load ${path} from disk`);
     }
     const term = spawn(command, args, { cwd, env });
-    logger.debug("terminal", "init_term", name, "pid=", term.pid, "args", args);
+    logger.debug(
+      "terminal",
+      "init_term",
+      name,
+      "pid=",
+      term.pid,
+      "command=",
+      command,
+      "args",
+      args
+    );
     terminals[name].term = term;
 
     const save_history_to_disk = throttle(async () => {
@@ -288,8 +306,24 @@ export async function terminal(
               rows: data.rows,
               cols: data.cols
             };
-            resize();
+            try {
+              resize();
+            } catch (err) {
+              // no-op -- can happen if terminal is restarting.
+              logger.debug("terminal size", name, terminals[name].options, err);
+            }
             break;
+
+          case "set_command":
+            terminals[name].options.command = data.command;
+            terminals[name].options.args = data.args;
+            break;
+
+          case "kill":
+            // send kill signal
+            process.kill(terminals[name].term.pid, "SIGKILL");
+            break;
+
           case "boot":
             // delete all sizes except this one, so at least kick resets
             // the sizes no matter what.

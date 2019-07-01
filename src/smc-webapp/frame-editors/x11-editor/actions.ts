@@ -20,6 +20,12 @@ const copypaste = require("smc-webapp/copy-paste-buffer");
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback, delay } from "awaiting";
 
+import {
+  X11Configuration,
+  Capabilities,
+  isMainConfiguration
+} from "../../project_configuration";
+
 const WID_HISTORY_LENGTH = 40;
 
 import {
@@ -38,6 +44,9 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;
   x11_is_idle: boolean;
+  disabled?: boolean;
+  config_unknown?: boolean;
+  x11_apps: Readonly<Capabilities>;
 }
 
 export class Actions extends BaseActions<X11EditorState> {
@@ -49,6 +58,7 @@ export class Actions extends BaseActions<X11EditorState> {
   client: XpraClient;
 
   async _init2(): Promise<void> {
+    await this.check_capabilities();
     this.launch = reuseInFlight(this.launch);
     this.setState({ windows: Map() });
     this.init_client();
@@ -62,6 +72,36 @@ export class Actions extends BaseActions<X11EditorState> {
           " -- you might need to refresh your browser or close and open this file."
       );
     }
+  }
+
+  // sets disabled to true or false, if x11 is available
+  async check_capabilities(): Promise<void> {
+    const proj_actions = this.redux.getProjectActions(this.project_id);
+
+    let x11_apps: Readonly<Capabilities> = {};
+    let config_unknown = true;
+    const ok = await (async () => {
+      // we should already know that:
+      const main_conf = await proj_actions.init_configuration("main");
+      if (main_conf == null) return false;
+      if (!isMainConfiguration(main_conf)) return false;
+      if (main_conf.capabilities.x11 === false) {
+        // we learned there is no xpra
+        return false;
+      }
+
+      // next, we check for specific apps
+      const x11_conf = (await proj_actions.init_configuration(
+        "x11"
+      )) as X11Configuration;
+      if (x11_conf == null) return false;
+      // from here, we know that we have x11 status information
+      config_unknown = false;
+      x11_apps = Object.freeze(x11_conf.capabilities);
+      if (x11_apps == null) return false;
+      return true;
+    })();
+    this.setState({ disabled: !ok, config_unknown, x11_apps });
   }
 
   /*
@@ -605,10 +645,11 @@ export class Actions extends BaseActions<X11EditorState> {
     open_new_tab(HELP_URL);
   }
 
-  public hide() : void {
+  public hide(): void {
     // This is called when the X11 editor tab is hidden.
     // In this case, we disable the keyboard handler.
     this.blur();
+    super.hide(); // Critical to also call parent hide.
   }
 
   public async show(): Promise<void> {
