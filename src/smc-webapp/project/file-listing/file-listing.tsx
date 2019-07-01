@@ -53,6 +53,8 @@ interface Props {
   configuration_main?: MainConfiguration;
 }
 
+const RESIZE_DEBOUNCE_MS = 80;
+
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
 
@@ -60,6 +62,7 @@ export class FileListing extends React.Component<Props> {
   private list_ref;
   private current_scroll_top: number | undefined;
   private selected_index_is_rendered: boolean | undefined;
+  private resize_listener_id: any;
 
   constructor(props) {
     super(props);
@@ -72,18 +75,28 @@ export class FileListing extends React.Component<Props> {
     this.list_ref = React.createRef();
   }
 
-  // Restore scroll position if one was set.
-  /*
-  Completely DISABLED since it horribly breaks things; Please
-      see https://github.com/sagemathinc/cocalc/issues/3804
-  for steps to reproduce.
   componentDidMount() {
+    // Clear cached size computations after a resizing event
+    this.resize_listener_id = window.addEventListener(
+      "resize",
+      debounce(() => {
+        if (this.props.listing.length > 0) {
+          this.cache.clearAll();
+        }
+      }, RESIZE_DEBOUNCE_MS)
+    );
+
+    // Restore scroll position if one as set.
+    /*
+    Completely DISABLED since it horribly breaks things; Please
+        see https://github.com/sagemathinc/cocalc/issues/3804
+    for steps to reproduce.
     if (this.props.last_scroll_top != undefined && this.list_ref.current != null) {
       this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
       this.current_scroll_top = this.props.last_scroll_top;
     }
+    */
   }
-  */
 
   // Updates usually mean someone changed so we update (not rerender) everything.
   // This avoids doing a bunch of diffs since things probably changed.
@@ -93,11 +106,11 @@ export class FileListing extends React.Component<Props> {
     }
   }
 
-  // Clear the selected file index if we scrolled and the index
-  // is not in the render view. Prevents being unable to decide
-  // Whether to scroll to selected index or old scroll position
-  // on future rerender
   componentWillUnmount() {
+    // Clear the selected file index if we scrolled and the index
+    // is not in the render view. Prevents being unable to decide
+    // Whether to scroll to selected index or old scroll position
+    // on future rerender
     if (
       this.current_scroll_top != this.props.last_scroll_top &&
       !this.selected_index_is_rendered
@@ -105,6 +118,9 @@ export class FileListing extends React.Component<Props> {
       this.props.actions.clear_selected_file_index();
     }
     this.props.actions.set_file_listing_scroll(this.current_scroll_top);
+
+    // Remove listeners
+    window.removeEventListener("resize", this.resize_listener_id);
   }
 
   render_cached_row_at = ({ index, key, parent, style }) => {
