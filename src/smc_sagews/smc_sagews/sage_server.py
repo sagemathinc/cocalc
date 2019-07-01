@@ -58,7 +58,7 @@ def log(*args):
                                                     for x in args]))
         debug_log.write(mesg)
         debug_log.flush()
-    except Exception, err:
+    except Exception as err:
         print("an error writing a log message (ignoring) -- %s" % err, args)
 
 
@@ -202,9 +202,9 @@ class ConnectionJSON(object):
                 r = self._conn.recv(n)
                 #log("n=%s; received: '%s' of len %s"%(n,r, len(r)))
                 return r
-            except socket.error as (errno, msg):
+            except OSError as e:
                 #print("socket.error, msg=%s"%msg)
-                if errno != 4:
+                if e.errno != 4:
                     raise
         raise EOFError
 
@@ -1162,8 +1162,8 @@ class Salvus(object):
                             # sage.misc.session.init() is not called until first call of show_identifiers
                             # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
-                            exec compile(block2, '',
-                                         'single') in namespace, locals
+                            exec(compile(block2, '', 'single'),
+                                 namespace, locals)
                             b2a = """
 if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP_FILE']):
     try:
@@ -1174,7 +1174,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         sys.stderr.flush()
         raise
 """
-                            exec compile(b2a, '', 'exec') in namespace, locals
+                            exec(compile(b2a, '', 'exec'), namespace, locals)
                     features = sage_parsing.get_future_features(
                         block, 'single')
                     if features:
@@ -1183,9 +1183,9 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                             (feature.compiler_flag
                              for feature in features.itervalues()),
                             compile_flags)
-                    exec compile(
+                    exec(compile(
                         block + '\n', '', 'single',
-                        flags=compile_flags) in namespace, locals
+                        flags=compile_flags), namespace, locals)
                     if features:
                         Salvus._py_features.update(features)
                 sys.stdout.flush()
@@ -2127,7 +2127,7 @@ def serve(port, host, extra_imports=False):
         tm0 = time.time()
         for cmd in cmds:
             log(cmd)
-            exec cmd in namespace
+            exec(cmd, namespace)
 
         global pylab
         pylab = namespace['pylab']  # used for clearing
@@ -2208,7 +2208,7 @@ def serve(port, host, extra_imports=False):
                     # this will happen periodically since we did s.settimeout above, so
                     # that we wait for children above periodically.
                     continue
-            except socket.error, msg:
+            except socket.error:
                 continue
             child_pid = os.fork()
             if child_pid:  # parent
