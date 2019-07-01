@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import json, os, sys
+import json
+import os
 join = os.path.join
 
 SNAPSHOTS = join(os.environ['HOME'], '.snapshots')
