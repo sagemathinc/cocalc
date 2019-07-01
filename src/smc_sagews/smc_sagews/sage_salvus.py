@@ -319,7 +319,7 @@ class InteractFunction(object):
 
             @interact
             def f(n=True, m=False, xyz=[1,2,3]):
-                print n, m, xyz, interact.changed()
+                print(n, m, xyz, interact.changed())
         """
         return self.__dict__['interact_cell'].changed
 
@@ -443,7 +443,7 @@ class Interact(object):
 
         @interact(auto_update=False)
         def f(a=True, b=False):
-            print a, b
+            print(a, b)
 
     You can access the value of a control associated to a variable foo
     that you create using interact.foo, and check whether there is a
@@ -550,7 +550,7 @@ class Interact(object):
 
             @interact
             def f(n=True, m=False, xyz=[1,2,3]):
-                print n, m, xyz, interact.changed()
+                print(n, m, xyz, interact.changed())
         """
         return interact_exec_stack[-1].changed
 
@@ -3878,12 +3878,12 @@ def load(*args, **kwds):
         i = arg.find('.')
 
     # now handle remaining non-web arguments.
-    if len(other_args) > 0:
+    if other_args:
         try:
-            exec 'salvus.namespace["%s"] = sage.misc.persist.load(*__args, **__kwds)' % t in salvus.namespace, {
-                '__args': other_args,
-                '__kwds': kwds
-            }
+            exec('salvus.namespace["%s"] = sage.misc.persist.load(*__args, **__kwds)' % t,
+                 salvus.namespace,
+                 {'__args': other_args,
+                  '__kwds': kwds})
             return salvus.namespace[t]
         finally:
             try:
@@ -4246,7 +4246,7 @@ def java(s):
     if name:
         name = name.group('name')
     else:
-        print 'error public class name not found'
+        print('error public class name not found')
         return
     try:
         open(name + '.java', 'w').write(s.encode("UTF-8"))
@@ -4347,7 +4347,6 @@ def license():
 
 
 # search_src
-import os
 import glob
 
 

@@ -44,7 +44,6 @@ class TestSingularMode:
         )
 
 
-import pytest
 import platform
 
 # this comparison doesn't work in sage env
