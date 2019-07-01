@@ -217,7 +217,7 @@ class PageActions extends Actions
     set_new_version: (version) =>
         @setState(new_version : version)
 
-    set_fullscreen: (val) =>
+    set_fullscreen: (val) =>  # val = 'default', 'kiosk', undefined
         # if kiosk is ever set, disable toggling back
         if redux.getStore('page').get('fullscreen') == 'kiosk'
             return

@@ -6,10 +6,15 @@ AGPLv3, (c) 2017, SageMath, Inc.
 
 async = require('async')
 
+Cache = require('expiring-lru-cache')
+auth_cache = new Cache(size:100, expiry:60000)
+
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
 messages = require('smc-util/message')
+
+{ HELP_EMAIL } = require("smc-util/theme")
 
 {Client} = require('../client')
 
@@ -76,7 +81,6 @@ exports.http_message_api_v1 = (opts) ->
         opts.cb(err, resp)
     )
 
-auth_cache = {}
 get_client = (opts) ->
     opts = defaults opts,
         api_key        : required
@@ -87,7 +91,8 @@ get_client = (opts) ->
         cb             : required
     dbg = log('get_client', opts.logger)
 
-    account_id = auth_cache[opts.api_key]
+    account_id = auth_cache.get(opts.api_key)
+
     async.series([
         (cb) ->
             if account_id?
@@ -98,12 +103,32 @@ get_client = (opts) ->
                     cb      : (err, a) ->
                         if err
                             cb(err)
-                        else
-                            account_id = a
-                            # cache api key being valid for a minute
-                            auth_cache[opts.api_key] = account_id
-                            setTimeout((->delete auth_cache[opts.api_key]), 60000)
-                            cb()
+                            return
+
+                        if not a?
+                            cb("No account found. Is your API key wrong?")
+                            return
+
+                        # we got an account id associated with the given api key
+                        account_id = a
+
+                        # briefly cache api key. see "expire" time in ms above.
+                        auth_cache.set(opts.api_key, account_id)
+                        cb()
+
+        (cb) ->
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}")
+                        return
+                    cb()
+
     ], (err) ->
         if err
             opts.cb(err)

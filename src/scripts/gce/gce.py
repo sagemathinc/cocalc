@@ -95,7 +95,7 @@ class GCE(object):
             if base_ssd:
                 opts.extend(['--type', 'pd-ssd'])
             cmd(opts)
-        except Exception, mesg:
+        except Exception as mesg:
             if 'already exists' not in str(mesg):
                 raise
             log("%s already exists", name)
@@ -108,7 +108,7 @@ class GCE(object):
             if projects_ssd:
                 opts.extend(['--type', 'pd-ssd'])
             cmd(opts)
-        except Exception, mesg:
+        except Exception as mesg:
             if 'already exists' not in str(mesg):
                 raise
 
@@ -204,7 +204,7 @@ class GCE(object):
             try:
                 log('snapshotting %s%s'%(prefix, node))
                 self.create_boot_snapshot(node=node, prefix=prefix, zone='us-central1-c', devel=False)
-            except Exception, mesg:
+            except Exception as mesg:
                 errors.append(mesg)
                 log("WARNING: issue making snapshot -- %s", mesg)
         if len(errors) > 0:
@@ -241,7 +241,7 @@ class GCE(object):
                     src,
                      '--snapshot-names', target,
                      '--zone', zone], system=True)
-            except Exception, mesg:
+            except Exception as mesg:
                 log("WARNING: issue making snapshot %s -- %s", target, mesg)
                 errors.append(mesg)
         if len(errors) > 0:
@@ -281,7 +281,7 @@ class GCE(object):
             cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
                  '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
                  '--type', 'pd-standard'])
-        except Exception, mesg:
+        except Exception as mesg:
             if 'already exists' not in str(mesg):
                 raise
 
@@ -290,7 +290,7 @@ class GCE(object):
             try:
                 cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
                     '--size', disk_size, '--zone', zone, '--type', 'pd-ssd'])
-            except Exception, mesg:
+            except Exception as mesg:
                 if 'already exists' not in str(mesg):
                     raise
 
@@ -334,7 +334,7 @@ class GCE(object):
             cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
                  '--zone', zone, '--source-snapshot', self.newest_snapshot('storage'),
                  '--type', 'pd-standard'])
-        except Exception, mesg:
+        except Exception as mesg:
             if 'already exists' not in str(mesg):
                 raise
 
@@ -343,7 +343,7 @@ class GCE(object):
             try:
                 cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
                     '--size', disk_size, '--zone', zone, '--type', 'pd-standard'])
-            except Exception, mesg:
+            except Exception as mesg:
                 if 'already exists' not in str(mesg):
                     raise
 
@@ -362,7 +362,7 @@ class GCE(object):
             opts.extend(['--disk=name=%s,device-name=%s,mode=rw'%(disk_name, disk_name)])
         try:
             cmd(opts)
-        except Exception, mesg:
+        except Exception as mesg:
             if 'already exists' not in str(mesg):
                 raise
 
@@ -408,7 +408,7 @@ class GCE(object):
                 i = name.find('-devel')
                 hosts.append("%s %s %s"%(v[4], v[0], v[0][:i+6]))
         if hosts:
-            print "\n".join(hosts)
+            print("\n".join(hosts))
             x = open("/etc/hosts").readlines()
             y = [a.strip() for a in x if '-devel-' not in a]
             open('/tmp/hosts','w').write('\n'.join(y+hosts))
@@ -442,7 +442,7 @@ class GCE(object):
             cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
                  '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
                  '--size', size, '--type', 'pd-standard'])
-        except Exception, mesg:
+        except Exception as mesg:
             if 'already exists' not in str(mesg):
                 raise
 
@@ -492,7 +492,7 @@ class GCE(object):
                 else:
                     w[base] = [s[-n:]]
             except: pass
-        print w
+        print(w)
 
         # now decide what to delete
         to_delete = []
@@ -681,11 +681,11 @@ if __name__ == "__main__":
             kwds = dict([(k,getattr(args, k)) for k in special])
             try:
                 result = getattr(GCE(), function)(**kwds)
-            except Exception, mesg:
+            except Exception as mesg:
                 raise #-- for debugging
                 errors = True
                 result = {'error':str(mesg)}
-            print json.dumps(result)
+            print(json.dumps(result))
             if errors:
                 sys.exit(1)
         subparser.set_defaults(func=g)

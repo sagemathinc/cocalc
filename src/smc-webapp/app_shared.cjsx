@@ -35,6 +35,7 @@ misc = require('smc-util/misc')
 {AdminPage} = require('./admin')
 {show_announce_end} = require('./redux_account')
 {analytics_event} = require('./tracker')
+{user_tracking} = require('./user-tracking')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -46,11 +47,12 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
     v = []
     if open_projects?
         open_projects.forEach (project_id) ->
+            is_active = project_id == active_top_tab
             project_name = redux.getProjectStore(project_id).name
             if render_small
-                x = <MobileProjectPage name={project_name} project_id={project_id}/>
+                x = <MobileProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
             else
-                x = <ProjectPage name={project_name} project_id={project_id}/>
+                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
             cls = 'smc-vfill'
             if project_id != active_top_tab
                 cls += ' hide'
@@ -60,9 +62,9 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
             project_id = active_top_tab
             project_name = redux.getProjectStore(project_id).name
             if render_small
-                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id}/>
+                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
             else
-                x = <ProjectPage key={project_id} name={project_name} project_id={project_id}/>
+                x = <ProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
             v.push(x)
 
     switch active_top_tab
@@ -88,6 +90,7 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
+        name            : rtypes.string
         label           : rtypes.string
         label_class     : rtypes.string
         icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
@@ -127,6 +130,13 @@ exports.NavTab = rclass
                 @props.icon
 
     on_click: (e) ->
+        @props.on_click?()
+
+        if @props.is_project
+            user_tracking('top_nav', {name:'project', project_id:@props.name})
+        else
+            user_tracking('top_nav', {name:@props.name ? @props.label})
+
         if @props.name?
             @actions('page').set_active_tab(@props.name)
             if @props.is_project
@@ -135,7 +145,6 @@ exports.NavTab = rclass
                 analytics_event('top_nav', @props.name)
         else if @props.label?
             analytics_event('top_nav', @props.label)
-        @props.on_click?()
 
     render: ->
         is_active = @props.active_top_tab == @props.name
@@ -192,6 +201,8 @@ exports.NotificationBell = rclass
         @actions('page').toggle_show_file_use()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
         @props.on_click?()
+        if !@props.active
+            user_tracking("top_nav", {name:"file_use"})
 
     notification_count: ->
         count_styles =
@@ -302,6 +313,7 @@ exports.ConnectionIndicator = rclass
         @props.actions.show_connection(true)
         @props.on_click?()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
+        user_tracking("top_nav", {name:"connection"})
 
     render: ->
         outer_styles =
@@ -346,7 +358,7 @@ MessageInfo = rclass
                 {@props.info.get('enqueued')} messages queued to send
             </pre>
             <div style={color:"#666"}>
-                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
+                Connection icon color changes as the number of messages in flight to a hub increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
             </div>
         </div>
 
@@ -431,10 +443,8 @@ exports.FullscreenButton = rclass
         return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
-        if ev.shiftKey
-            @actions('page').set_fullscreen('kiosk')
-        else
-            @actions('page').toggle_fullscreen()
+        user_tracking("top_nav",{name:'fullscreen', enabled:!@props.fullscreen})
+        @actions('page').toggle_fullscreen()
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
@@ -460,7 +470,7 @@ exports.FullscreenButton = rclass
 
         <Tip
             style     = {tip_style}
-            title     = {'Removes navigational chrome from the UI. Shift-click to enter "kiosk-mode".'}
+            title     = {'Fullscreen mode, focused on the current document or page.'}
             placement = {'left'}
         >
             <Icon

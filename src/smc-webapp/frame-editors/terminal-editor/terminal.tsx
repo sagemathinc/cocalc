@@ -3,7 +3,6 @@ A single terminal frame.
 */
 
 import { Map } from "immutable";
-import { ResizeObserver } from "resize-observer";
 
 import { Terminal } from "./connected-terminal";
 
@@ -24,6 +23,8 @@ interface Props {
   editor_state: any;
   is_current: boolean;
   terminal: Map<string, any>;
+  desc: Map<string, any>;
+  resize: number;
 }
 
 export class TerminalFrame extends Component<Props, {}> {
@@ -38,16 +39,26 @@ export class TerminalFrame extends Component<Props, {}> {
       "project_id",
       "path",
       "font_size",
-      "terminal"
+      "terminal",
+      "desc",
+      "resize"
     ]);
   }
 
   componentWillReceiveProps(next: Props): void {
-    if (this.props.font_size !== next.font_size) {
+    if (this.props.id != next.id || this.terminal == null) {
+      /* yes, this can change!! -- see https://github.com/sagemathinc/cocalc/issues/3819 */
+      this.delete_terminal();
+      this.init_terminal();
+    }
+    if (this.props.font_size !== next.font_size && this.terminal != null) {
       this.set_font_size(next.font_size);
     }
-    if (!this.props.is_current && next.is_current) {
+    if (!this.props.is_current && next.is_current && this.terminal != null) {
       this.terminal.focus();
+    }
+    if (this.props.resize != next.resize) {
+      this.measure_size();
     }
   }
 
@@ -61,13 +72,16 @@ export class TerminalFrame extends Component<Props, {}> {
 
   componentWillUnmount(): void {
     this.is_mounted = false;
-    if (this.terminal !== undefined) {
-      this.terminal.element.remove();
-      this.terminal.is_mounted = false;
-      // Ignore size for this terminal.
-      this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
-      delete this.terminal;
-    }
+    this.delete_terminal();
+  }
+
+  delete_terminal(): void {
+    if (this.terminal == null) return;
+    this.terminal.element.remove();
+    this.terminal.is_mounted = false;
+    // Ignore size for this terminal.
+    this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
+    delete this.terminal;
   }
 
   init_terminal(): void {
@@ -75,10 +89,13 @@ export class TerminalFrame extends Component<Props, {}> {
     if (node == null) {
       throw Error("refs.terminal MUST be defined");
     }
-    this.terminal = this.props.actions._get_terminal(this.props.id, node);
+    try {
+      this.terminal = this.props.actions._get_terminal(this.props.id, node);
+    } catch (err) {
+      return; // not yet ready.
+    }
     this.set_font_size(this.props.font_size);
     this.measure_size();
-    new ResizeObserver(() => this.measure_size()).observe(node);
     if (this.props.is_current) {
       this.terminal.focus();
     }
@@ -114,20 +131,42 @@ export class TerminalFrame extends Component<Props, {}> {
     this.terminal.measure_size();
   }
 
+  render_command(): Rendered {
+    const command = this.props.desc.get("command");
+    if (!command) return;
+    const args: string[] | undefined = this.props.desc.get("args"); // TODO: need to quote if args have spaces...
+    return (
+      <div
+        style={{
+          borderBottom: "1px solid grey",
+          paddingLeft: "5px",
+          background: "rgb(248, 248, 248)",
+          height: "20px",
+          overflow: "hidden"
+        }}
+      >
+        {command} {args != null ? args.join(" ") : ""}
+      </div>
+    );
+  }
+
   render(): Rendered {
     const color = background_color(this.props.terminal.get("color_scheme"));
     /* 4px padding is consistent with CodeMirror */
     return (
-      <div
-        className={"smc-vfill"}
-        style={{ backgroundColor: color, padding: "0 0 0 4px" }}
-        onClick={() => {
-          /* otherwise, clicking right outside term defocuses,
+      <div className={"smc-vfill"}>
+        {this.render_command()}
+        <div
+          className={"smc-vfill"}
+          style={{ backgroundColor: color, padding: "0 0 0 4px" }}
+          onClick={() => {
+            /* otherwise, clicking right outside term defocuses,
              which is confusing */
-          this.terminal.focus();
-        }}
-      >
-        <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />
+            if (this.terminal != null) this.terminal.focus();
+          }}
+        >
+          <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />
+        </div>
       </div>
     );
   }

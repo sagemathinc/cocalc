@@ -2,26 +2,38 @@
 React component that describes the output of a cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { CellOutputMessages } from "./output-messages/message";
 
-const { OutputPrompt } = require("./prompt");
-const { OutputToggle, CollapsedOutput } = require("./cell-output-toggle");
+import { OutputPrompt } from "./prompt";
+import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
+import { CellHiddenPart } from "./cell-hidden-part";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CellOutputProps {
-  actions?: any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
+  name?: string;
   id: string;
-  cell: ImmutableMap<any, any>;
+  cell: ImmutableMap<string, any>;
   project_id?: string;
   directory?: string;
-  more_output?: ImmutableMap<any, any>;
+  more_output?: ImmutableMap<string, any>;
   trust?: boolean;
 }
 
 export class CellOutput extends Component<CellOutputProps> {
-  shouldComponentUpdate(nextProps) {
-    for (let field of ["collapsed", "scrolled", "exec_count", "state"]) {
+  public shouldComponentUpdate(nextProps: CellOutputProps): boolean {
+    for (let field of [
+      "collapsed",
+      "scrolled",
+      "exec_count",
+      "state",
+      "metadata"
+    ]) {
       if (nextProps.cell.get(field) !== this.props.cell.get(field)) {
         return true;
       }
@@ -43,7 +55,7 @@ export class CellOutput extends Component<CellOutputProps> {
     return !new_output.equals(cur_output);
   }
 
-  render_output_prompt() {
+  private render_output_prompt(): Rendered {
     const collapsed = this.props.cell.get("collapsed");
     let exec_count = undefined;
     const output = this.props.cell.get("output");
@@ -83,11 +95,11 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
-  render_collapsed() {
+  private render_collapsed(): Rendered {
     return <CollapsedOutput actions={this.props.actions} id={this.props.id} />;
   }
 
-  render_output_value() {
+  private render_output_value(): Rendered {
     if (this.props.cell.get("collapsed")) {
       return this.render_collapsed();
     } else {
@@ -121,6 +133,8 @@ export class CellOutput extends Component<CellOutputProps> {
           project_id={this.props.project_id}
           directory={this.props.directory}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
+          name={this.props.name}
           trust={this.props.trust}
           id={this.props.id}
         />
@@ -128,7 +142,20 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
-  render() {
+  private render_hidden(): Rendered {
+    return (
+      <CellHiddenPart
+        title={
+          "Output is hidden; show via Edit --> Toggle hide output in the menu."
+        }
+      />
+    );
+  }
+
+  public render(): Rendered {
+    if (this.props.cell.getIn(["metadata", "jupyter", "outputs_hidden"])) {
+      return this.render_hidden();
+    }
     if (this.props.cell.get("output") == null) {
       return <div />;
     }

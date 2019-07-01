@@ -28,6 +28,8 @@ copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+{A} = require('./A')
+exports.A = A
 {Icon} = require('./icon')
 exports.Icon = Icon
 {Tip} = require('./tip')
@@ -60,6 +62,8 @@ exports.NumberInput = NumberInput
 exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
 exports.TimeElapsed = TimeElapsed
+
+share_server = require('./share-server');
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -314,15 +318,22 @@ exports.TimeAgoElement = rclass
 
     render_timeago: (d) ->
         if @props.popover
-            s = d.toLocaleString()
-            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
+            try
+                s = d.toLocaleString()
+            catch err
+                s = "#{err}"
+            <Tip title={s} tip={@props.tip} placement={@props.placement}>
                 {@render_timeago_element(d)}
             </Tip>
         else
             @render_timeago_element(d)
 
     render_absolute: (d) ->
-        <span>{d.toLocaleString()}</span>
+        try
+            s = d.toLocaleString()
+        catch err
+            s = "#{err}"
+        <span>{s}</span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
@@ -520,9 +531,6 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-# This is set to true when run from the share server.  All rendering of HTML must then be synchronous.
-exports.SHARE_SERVER = false
-
 exports.HTML = HTML = rclass
     displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
@@ -591,7 +599,7 @@ exports.HTML = HTML = rclass
             $(ReactDOM.findDOMNode(@)).highlight_code()
 
     _do_updates: ->
-        if exports.SHARE_SERVER
+        if share_server.SHARE_SERVER
             return
         @_update_mathjax()
         @_update_links()
@@ -621,21 +629,27 @@ exports.HTML = HTML = rclass
         if not @props.value
             return {__html: ''}
 
-        if @props.safeHTML
-            html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
-        else
-            html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-
-        if exports.SHARE_SERVER
+        if share_server.SHARE_SERVER
+            # No sanitization at all for share server.  For now we
+            # have set things up so that the share server is served
+            # from a different subdomain and user can't sign into it,
+            # so XSS is not an issue.  Note that the sanitizing
+            # in the else below is quite expensive and often crashes
+            # on "big" documents (e.g., 500K).
             {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
             elt = jQuery("<div>")
-            elt.html(html)
+            elt.html(@props.value)
             if @props.auto_render_math
                 elt.katex()
             elt.find("table").addClass("table")
             if @props.highlight_code
                 elt.highlight_code()
             html = elt.html()
+        else
+            if @props.safeHTML
+                html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
+            else
+                html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         return {__html: html}
 
@@ -1007,7 +1021,7 @@ exports.NonMemberProjectWarning = (opts) ->
 
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your upgrade contributions...' below.</span>
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
@@ -1030,7 +1044,7 @@ exports.NoNetworkProjectWarning = (opts) ->
     {total, used, avail} = project_warning_opts(opts)
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your upgrade contributions...' below.</span>
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
@@ -1041,7 +1055,7 @@ exports.NoNetworkProjectWarning = (opts) ->
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
         <p>
-            Projects without internet access enabled, cannot connect to external websites or download software packages.
+            Projects without internet access enabled cannot connect to external websites, download software packages, or invite and notify collaborators via email.
             {suggestion}
         </p>
     </Alert>
@@ -1502,7 +1516,7 @@ exports.UpgradeAdjustor = rclass
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<div>
-                    <h3><Icon name='arrow-circle-up' /> Adjust your quota contributions to this project</h3>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your upgrade contributions to this project</h3>
 
                     <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
                     </div>
@@ -1618,6 +1632,12 @@ exports.HiddenSM = rclass
             {@props.children}
         </span>
 
+exports.HiddenXSSM = rclass
+    render: ->
+        <span className={'hidden-xs hidden-sm'}>
+            {@props.children}
+        </span>
+
 # VisibleMDLG = visible on medium or large devices (anything with width > 992px)
 exports.VisibleMDLG = VisibleMDLG = rclass
     render: ->
@@ -1629,6 +1649,12 @@ exports.VisibleMDLG = VisibleMDLG = rclass
 exports.VisibleLG = rclass
     render: ->
         <span className={'visible-lg-inline'}>
+            {@props.children}
+        </span>
+
+exports.VisibleXSSM = rclass
+    render: ->
+        <span className={'visible-xs-inline visible-sm-inline'}>
             {@props.children}
         </span>
 

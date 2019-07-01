@@ -338,7 +338,8 @@ schema.accounts = {
           newsletter: false,
           time_ago_absolute: false,
           // if true, do not show warning when using non-member projects
-          no_free_warnings: false
+          no_free_warnings: false,
+          allow_mentions: true
         },
         first_name: "",
         last_name: "",
@@ -944,7 +945,7 @@ schema.project_log = {
 
   user_query: {
     get: {
-      pg_where: ["time >= NOW() - interval '30 days'", "projects"],
+      pg_where: ["time >= NOW() - interval '2 months'", "projects"],
       pg_changefeed: "projects",
       options: [{ order_by: "-time" }, { limit: 300 }],
       throttle_changes: 2000,
@@ -1150,7 +1151,7 @@ schema.projects = {
   user_query: {
     get: {
       // if you change the interval, change the text in projects.cjsx
-      pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '2 months'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1352,6 +1353,10 @@ schema.public_paths = {
       type: "boolean",
       desc: "if true then unlisted, so does not appear in /share listing page."
     },
+    license: {
+      type: "string",
+      desc: "The license that the content of the share is made available under."
+    },
     created: {
       type: "timestamp",
       desc: "when this path was created"
@@ -1407,6 +1412,7 @@ schema.public_paths = {
         description: null,
         disabled: null, // if true then disabled
         unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+        license: null,
         last_edited: null,
         created: null,
         last_saved: null,
@@ -1423,6 +1429,7 @@ schema.public_paths = {
         description: true,
         disabled: true,
         unlisted: true,
+        license:true,
         last_edited: true,
         created: true
       },
@@ -1852,6 +1859,136 @@ schema.mentions = {
         path: true,
         target: true
       }
+    }
+  }
+};
+
+// Tracking web-analytics
+// this records data about users hitting cocalc and cocalc-related websites
+// this table is 100% back-end only
+schema.analytics = {
+  primary_key: ["token"],
+  pg_indexes: ["token", "data_time"],
+  durability: "soft",
+  fields: {
+    token: {
+      type: "uuid"
+    },
+    data: {
+      type: "map",
+      desc: "referrer, landing page, utm, etc."
+    },
+    data_time: {
+      type: "timestamp",
+      desc: "when the data field was set"
+    },
+    account_id: {
+      type: "uuid",
+      desc: "set only once, when the user (eventually) signs in"
+    },
+    account_id_time: {
+      type: "timestamp",
+      desc: "when the account id was set"
+    }
+  }
+};
+
+// what software environments there are available
+schema.compute_images = {
+  primary_key: ["id"],
+  anonymous: true,
+  fields: {
+    id: {
+      type: "string",
+      desc: "docker image 'name:tag', where tag defaults to 'latest'"
+    },
+    src: {
+      type: "string",
+      desc: "source of the image (likely https://github [...] .git)"
+    },
+    type: {
+      type: "string",
+      desc: "for now, this is either 'legacy' or 'custom'"
+    },
+    display: {
+      type: "string",
+      desc: "(optional) user-visible name (defaults to id)"
+    },
+    url: {
+      type: "string",
+      desc: "(optional) where the user can learn more about it"
+    },
+    desc: {
+      type: "string",
+      desc: "(optional) markdown text to talk more about this"
+    },
+    path: {
+      type: "string",
+      desc:
+        "(optional) point user to either a filename like index.ipynb or a directory/"
+    },
+    disabled: {
+      type: "boolean",
+      desc: "(optional) if set and true, do not offer as a selection"
+    }
+  },
+  user_query: {
+    get: {
+      throttle_changes: 30000,
+      pg_where: [],
+      fields: {
+        id: null,
+        src: null,
+        type: null,
+        display: null,
+        url: null,
+        desc: null,
+        path: null,
+        disabled: null
+      }
+    }
+  }
+};
+
+// Table for tracking events related to a particular
+// account which help us optimize for growth.
+// Example entry;
+//  account_id: 'some uuid'
+//  time: a timestamp
+//  key: 'sign_up_how_find_cocalc'
+//  value: 'via a google search'
+//
+// Or if user got to cocalc via a chat mention link:
+//
+//  account_id: 'some uuid'
+//  time: a timestamp
+//  key: 'mention'
+//  value: 'url of a chat file'
+//
+// The user cannot read or write directly to this table.
+// Writes are done via an API call, which (in theory can)
+// enforces some limit (to avoid abuse) at some point...
+schema.user_tracking = {
+  primary_key: ["account_id", "time"],
+  pg_indexes: ["event", "time"],
+  durability: "soft",
+  fields: {
+    account_id: {
+      type: "uuid",
+      desc: "id of the user's account"
+    },
+    time: {
+      type: "timestamp",
+      desc: "time of this message"
+    },
+    event: {
+      type: "string",
+      desc: "event we are tracking",
+      pg_check: "NOT NULL"
+    },
+    value: {
+      type: "map",
+      desc: "optional further info about the event (as a map)"
     }
   }
 };

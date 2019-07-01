@@ -11,21 +11,29 @@ import { is_different } from "smc-util/misc2";
 // import from icon only necessary for testing via Jest
 // Change to import from r_misc when it's all typescript
 import { Icon } from "../../r_misc/icon";
+import { Loading } from "../../r_misc/loading";
 
 import { SpellCheck } from "./spell-check";
+
+import { Available as AvailableFeatures } from "../../project_configuration";
 
 interface Props {
   id: string;
   actions: any;
   settings: Map<string, any>;
+  available_features?: AvailableFeatures;
 }
 
 export class Settings extends Component<Props, {}> {
   shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["settings"]);
+    return is_different(this.props, props, ["settings", "available_features"]);
   }
 
   render_settings(): Rendered[] {
+    const af = this.props.available_features;
+    if (af == null) {
+      return [<Loading key={"loading"} />];
+    }
     const v: Rendered[] = [];
     this.props.settings.forEach((value, key) => {
       switch (key) {
@@ -34,6 +42,7 @@ export class Settings extends Component<Props, {}> {
             <SpellCheck
               key={key}
               value={value}
+              available={af.spellcheck}
               set={value => this.props.actions.set_settings({ [key]: value })}
             />
           );

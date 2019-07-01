@@ -57,12 +57,28 @@ generic HTML message rather than a JSON string.
 ## Authentication
 
 A valid API key is required on all API requests.
-To obtain a key, log into
+
+To obtain a key manually, log into
 CoCalc and click on Settings (gear icon next to user name at upper
 right), and look under \`Account Settings\`.
 With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
+
+It is also possible to obtain an API key using a javascript-enabled automated web client.
+This option is useful for applications that embed CoCalc
+in a custom environment, for example [juno.sh](https://juno.sh),
+the iOS application for Jupyter notebooks.
+Visiting the link :samp:\`https://cocalc.com/app?get_api_key=myapp\`,
+where "myapp" is an identifier for your application,
+returns a modified sign-in page with the banner
+"CoCalc API Key Access for Myapp".
+The web client must
+sign in with credentials for the account in question.
+Response headers from a successful sign-in will include a url of the form
+:samp:\`https://authenticated/?api_key=sk_abcdefQWERTY090900000000\`.
+The client should intercept this response and capture the string
+after the equals sign as the API key.
 
 Your API key carries access privileges, just like your login and password.
 __Keep it secret.__
@@ -395,14 +411,6 @@ API(
         init: required,
         desc: "must be true for request to succeed"
       },
-      utm: {
-        init: undefined,
-        desc: "UTM parameters"
-      },
-      referrer: {
-        init: undefined,
-        desc: "Referrer URL"
-      },
       token: {
         init: undefined, // only required when token is set.
         desc: "account creation token - see src/dev/docker/README.md"
@@ -425,7 +433,7 @@ Create a new account:
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
-    -d email_address=jd@some_email \\
+    -d email_address=jd@example.com \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
 \`\`\`
@@ -440,7 +448,7 @@ Attempting to create the same account a second time results in an error:
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
-    -d email_address=jd@some_email \\
+    -d email_address=jd@example.com \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
   ==> {"event":"account_creation_failed",
@@ -465,20 +473,19 @@ message({
 });
 
 // client --> hub
-API(
-  message2({
-    event: "delete_account",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      },
-      account_id: {
-        init: required,
-        desc: "account_id for account to be deleted"
-      }
+message2({
+  event: "delete_account",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
     },
-    desc: `\
+    account_id: {
+      init: required,
+      desc: "account_id for account to be deleted"
+    }
+  },
+  desc: `\
 Example:
 
 Delete an existing account:
@@ -497,8 +504,7 @@ will not be able to login, but will still be listed as collaborator
 or owner on projects which the user collaborated on or owned
 respectively.\
 `
-  })
-);
+});
 
 // hub --> client
 message({
@@ -514,8 +520,6 @@ message({
   email_address: required,
   password: required,
   remember_me: false,
-  utm: undefined,
-  referrer: undefined,
   get_api_key: undefined
 }); // same as for create_account
 
@@ -550,10 +554,8 @@ message({
   email_address: undefined, // email address they signed in under
   first_name: undefined,
   last_name: undefined,
-  utm: undefined,
-  referrer: undefined,
-  api_key: undefined
-}); // user's api key, if requested in sign_in or create_account messages.
+  api_key: undefined // user's api key, if requested in sign_in or create_account messages.
+});
 
 // client --> hub
 message({
@@ -623,20 +625,19 @@ message({
 });
 
 // client --> hub: "please send a password reset email"
-API(
-  message2({
-    event: "forgot_password",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      },
-      email_address: {
-        init: required,
-        desc: "email address for account requesting password reset"
-      }
+message2({
+  event: "forgot_password",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
     },
-    desc: `\
+    email_address: {
+      init: required,
+      desc: "email address for account requesting password reset"
+    }
+  },
+  desc: `\
 Given the email address of an existing account, send password reset email.
 
 Example:
@@ -649,8 +650,7 @@ Example:
        "error":false}
 \`\`\`\
 `
-  })
-);
+});
 
 // hub --> client  "a password reset email was sent, or there was an error"
 message({
@@ -660,24 +660,23 @@ message({
 });
 
 // client --> hub: "reset a password using this id code that was sent in a password reset email"
-API(
-  message2({
-    event: "reset_forgot_password",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      },
-      reset_code: {
-        init: required,
-        desc: "id code that was sent in a password reset email"
-      },
-      new_password: {
-        init: required,
-        desc: "must be between 6 and 64 characters in length"
-      }
+message2({
+  event: "reset_forgot_password",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
     },
-    desc: `\
+    reset_code: {
+      init: required,
+      desc: "id code that was sent in a password reset email"
+    },
+    new_password: {
+      init: required,
+      desc: "must be between 6 and 64 characters in length"
+    }
+  },
+  desc: `\
 Reset password, given reset code.
 
 Example:
@@ -689,8 +688,7 @@ Example:
   ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
 \`\`\`\
 `
-  })
-);
+});
 
 message({
   event: "reset_forgot_password_response",
@@ -769,20 +767,19 @@ message({
 
 // Unlink a passport auth for this account.
 // client --> hub
-API(
-  message2({
-    event: "unlink_passport",
-    fields: {
-      strategy: {
-        init: required,
-        desc: "passport strategy"
-      },
-      id: {
-        init: required,
-        desc: "numeric id for user and passport strategy"
-      }
+message2({
+  event: "unlink_passport",
+  fields: {
+    strategy: {
+      init: required,
+      desc: "passport strategy"
     },
-    desc: `\
+    id: {
+      init: required,
+      desc: "numeric id for user and passport strategy"
+    }
+  },
+  desc: `\
 Unlink a passport auth for the account.
 
 Strategies are defined in the database and may be viewed at [/auth/strategies](https://cocalc.com/auth/strategies).
@@ -815,8 +812,8 @@ Unlink passport for that strategy and id.
 Note that success is returned regardless of whether or not passport was linked
 for the given strategy and id before issuing the API command.\
 `
-  })
-);
+});
+
 message({
   event: "error",
   id: undefined,
@@ -1093,8 +1090,8 @@ message({
   url: required
 });
 
-// The client sends this message to the hub in order to write (or
-// create) a plain text file (binary files not allowed, since sending
+// The client sends this message to the hub in order to read
+// a plain text file (binary files not allowed, since sending
 // them via JSON makes no sense).
 // client --> hub
 API(
@@ -1107,7 +1104,8 @@ API(
       },
       project_id: {
         init: required,
-        desc: "id of project containing file to be read (or array of project_id's)"
+        desc:
+          "id of project containing file to be read (or array of project_id's)"
       },
       path: {
         init: required,
@@ -1123,10 +1121,10 @@ and containing directories if they do not already exist.
 
 You can also read multiple project_id/path's at once by
 making project_id and path arrays (of the same length).
-In that case, the resulting content will be an array
-of the resulting content strings, in the same order
-in which they were requested.
-
+In that case, the result will be an array
+of {project_id, path, content} objects, in some
+random order.  If there is an error reading a particular
+file, instead {project_id, path, error} is included.
 
 Example:
 
@@ -1150,7 +1148,6 @@ message({
   id: required,
   content: required
 });
-
 
 // The write_file_to_project message is sent from the hub to the
 // project_server to tell the project_server to write a file to a
@@ -1242,6 +1239,10 @@ API(
         init: "",
         desc: "project description"
       },
+      image: {
+        init: undefined,
+        desc: "(optional) image ID"
+      },
       start: {
         init: false,
         desc:
@@ -1292,7 +1293,7 @@ API(
           "if true and user is an admin, includes email addresses in result, and does more permissive search"
       },
       active: {
-        init: "6 months",
+        init: "",
         desc: "only include users active for this interval of time"
       },
       limit: {
@@ -1308,7 +1309,7 @@ account with that email address, if there is one. A string query item
 will return account id, first name, and last name for all matching
 accounts.
 
-We do not reveal email addresses of users queried by name.
+We do not reveal email addresses of users queried by name to non admins.
 
 String query matches first and last names that start with the given string.
 If a string query item consists of two strings separated by space,
@@ -1316,8 +1317,6 @@ the search will return accounts in which the first name begins with one
 of the two strings and the last name begins with the other.
 String and email queries may be mixed in the list for a single
 user_search call. Searches are case-insensitive.
-
-Security key may be blank.
 
 Note: there is a hard limit of 50 returned items in the results.
 
@@ -1456,11 +1455,13 @@ API(
       },
       project_id: {
         init: required,
-        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
+        desc:
+          "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
       },
       account_id: {
         init: required,
-        desc: "account_id of user (can be an array to add multiple users to multiple projects)"
+        desc:
+          "account_id of user (can be an array to add multiple users to multiple projects)"
       }
     },
     desc: `\
@@ -1813,16 +1814,15 @@ message({
 /*
 Ping/pong -- used for clock sync, etc.
 */
-API(
-  message2({
-    event: "ping",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      }
-    },
-    desc: `\
+message2({
+  event: "ping",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
+    }
+  },
+  desc: `\
 Test API connection, return time as ISO string when server responds to ping.
 
 Security key may be blank.
@@ -1856,8 +1856,7 @@ Using JSON format to provide request id:
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
 `
-  })
-);
+});
 
 message({
   event: "pong",
@@ -2402,7 +2401,7 @@ Example:
 
 \`\`\`
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
-    -d '{"email_address":"jd@some_email", \\
+    -d '{"email_address":"jd@example.com", \\
          "subject":"package xyz", \\
          "account_id":"291f43c1-deae-431c-b763-712307fa6859", \\
          "body":"please install package xyz for use with Python3", \\
@@ -2507,6 +2506,8 @@ This queries directly the database (sort of Facebook's GraphQL)
 Options for the 'query' API message must be sent as JSON object.
 A query is either _get_ (read from database), or _set_ (write to database).
 A query is _get_ if any query keys are null, otherwise the query is _set_.
+
+Note: queries with \`multi_response\` set to \`true\` are not supported.
 
 #### Examples of _get_ query:
 
@@ -2841,30 +2842,26 @@ Revoke a temporary authentication token for an account.
 */
 
 // client --> hub
-API(
-  message2({
-    event: "metrics",
-    fields: {
-      metrics: {
-        init: required,
-        desc: "object containing the metrics"
-      }
+message2({
+  event: "metrics",
+  fields: {
+    metrics: {
+      init: required,
+      desc: "object containing the metrics"
     }
-  })
-);
+  }
+});
 
-API(
-  message2({
-    event: "start_metrics",
-    fields: {
-      interval_s: {
-        init: required,
-        desc:
-          "tells client that it should submit metrics to the hub every interval_s seconds"
-      }
+message2({
+  event: "start_metrics",
+  fields: {
+    interval_s: {
+      init: required,
+      desc:
+        "tells client that it should submit metrics to the hub every interval_s seconds"
     }
-  })
-);
+  }
+});
 
 // Info about available upgrades for a given user
 API(
@@ -3033,4 +3030,37 @@ message({
   event: "syncdoc_history",
   id: undefined,
   history: required
+});
+
+// client --> hub
+// It's an error if user is not signed in, since
+// then we don't know who to track.
+message({
+  event: "user_tracking",
+  id: undefined,
+  evt: required, // string -- the event being tracked (max length 80 characters)
+  value: required // map -- additional info about that event
+});
+
+// Client <--> hub.
+// Enables admins (and only admins!) to generate and get a password reset
+// for another user.  The response message contains a password reset link,
+// though without the site part of the url (the client should fill that in).
+// This makes it possible for admins to reset passwords of users, even if
+// email is not setup, e.g., for cocalc-docker, and also deals with the
+// possibility that users have no email address, or broken email, or they
+// can't receive email due to crazy spam filtering.
+// Non-admins always get back an error.  The reset expires after **8 hours**.
+message({
+  event: "admin_reset_password",
+  id: undefined,
+  email_address: required,
+  link: undefined
+});
+
+message({
+  event: "admin_ban_user",
+  id: undefined,
+  account_id: required,
+  ban: required // if true ban; if false, unban
 });

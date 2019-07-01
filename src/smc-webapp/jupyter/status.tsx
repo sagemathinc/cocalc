@@ -2,14 +2,19 @@
 Kernel display
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
-const { Icon, Loading, Tip } = require("../r_misc");
-const { closest_kernel_match } = require("smc-util/misc");
-const { Logo } = require("./logo");
+import { Icon } from "../r_misc/icon";
+import { Loading } from "../r_misc/loading";
+import { Tip } from "../r_misc/tip";
+import { closest_kernel_match } from "smc-util/misc";
+import { Logo } from "./logo";
+import { trunc } from "smc-util/misc2";
+import { JupyterActions } from "./browser-actions";
 
 interface ModeProps {
   mode?: string;
+  name: string;
 }
 
 class Mode0 extends Component<ModeProps> {
@@ -70,17 +75,20 @@ const BACKEND_STATE_STYLE: React.CSSProperties = {
 
 interface KernelProps {
   // OWN PROPS
-  actions: any;
+  actions: JupyterActions;
+  is_fullscreen?: boolean;
+  name: string;
+
   // REDUX PROPS
-  kernel: string;
-  kernels: immutable.List<any>;
-  project_id: string;
-  kernel_info: immutable.Map<any, any>;
-  backend_state: string;
-  kernel_state: string;
-  kernel_usage: immutable.Map<any, any>;
-  trust: boolean;
-  read_only: boolean;
+  kernel?: string;
+  kernels?: immutable.List<any>;
+  project_id?: string;
+  kernel_info?: immutable.Map<string, any>;
+  backend_state?: string;
+  kernel_state?: string;
+  kernel_usage?: immutable.Map<string, any>;
+  trust?: boolean;
+  read_only?: boolean;
 }
 
 class Kernel0 extends Component<KernelProps> {
@@ -140,18 +148,22 @@ class Kernel0 extends Component<KernelProps> {
         this.props.kernel,
         this.props.kernels
       );
-      const closestKernelDisplayName = closestKernel.get("display_name");
-      const closestKernelName = closestKernel.get("name");
-      return (
-        <span
-          style={KERNEL_ERROR_STYLE}
-          onClick={() => this.props.actions.set_kernel(closestKernelName)}
-        >
-          Unknown kernel{" "}
-          <span style={{ fontWeight: "bold" }}>{this.props.kernel}</span>, click
-          here to use {closestKernelDisplayName} instead.
-        </span>
-      );
+      if (closestKernel == null) {
+        return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;
+      } else {
+        const closestKernelDisplayName = closestKernel.get("display_name");
+        const closestKernelName = closestKernel.get("name");
+        return (
+          <span
+            style={KERNEL_ERROR_STYLE}
+            onClick={() => this.props.actions.set_kernel(closestKernelName)}
+          >
+            Unknown kernel{" "}
+            <span style={{ fontWeight: "bold" }}>{this.props.kernel}</span>,
+            click here to use {closestKernelDisplayName} instead.
+          </span>
+        );
+      }
     } else {
       // List of known kernels just not loaded yet.
       if (display_name == null) {
@@ -162,7 +174,9 @@ class Kernel0 extends Component<KernelProps> {
           style={KERNEL_NAME_STYLE}
           onClick={() => this.props.actions.show_select_kernel("user request")}
         >
-          {display_name != null ? display_name : "No Kernel"}
+          {display_name != null
+            ? trunc(display_name, this.props.is_fullscreen ? 16 : 8)
+            : "No Kernel"}
         </span>
       );
     }
@@ -225,6 +239,7 @@ class Kernel0 extends Component<KernelProps> {
 
   render_trust() {
     if (this.props.trust) {
+      if (!this.props.is_fullscreen) return;
       return <span style={{ color: "#888" }}>Trusted</span>;
     } else {
       return (
@@ -246,6 +261,17 @@ class Kernel0 extends Component<KernelProps> {
   }
 
   render_tip(title: any, body: any) {
+    let kernel_name;
+    if (this.props.kernel_info != null) {
+      kernel_name = (
+        <div>
+          <b>Kernel: </b>
+          {this.props.kernel_info.get("display_name", "No Kernel")}
+        </div>
+      );
+    } else {
+      kernel_name = <span />;
+    }
     let kernel_tip;
     const { backend_state } = this.props;
     const backend_tip = `Backend is ${backend_state}.`;
@@ -266,13 +292,14 @@ class Kernel0 extends Component<KernelProps> {
 
     const tip = (
       <span>
+        {kernel_name}
         {backend_tip}
         {kernel_tip ? <br /> : undefined}
         {kernel_tip}
       </span>
     );
     return (
-      <Tip title={title} tip={tip} placement="bottom">
+      <Tip title={title} tip={tip} placement="left">
         {body}
       </Tip>
     );
@@ -328,18 +355,38 @@ class Kernel0 extends Component<KernelProps> {
     );
     return (
       <Tip title="Kernel CPU and Memory Usage" tip={tip} placement="bottom">
-        <span style={KERNEL_USAGE_STYLE}>
-          CPU: <span style={cpu_style}>{cpu}%</span>
+        {this.render_usage_text(cpu, memory, cpu_style, memory_style)}
+      </Tip>
+    );
+  }
+
+  render_usage_text(cpu, memory, cpu_style, memory_style) {
+    if (this.props.is_fullscreen) {
+      return (
+        <span>
+          <span style={KERNEL_USAGE_STYLE}>
+            CPU: <span style={cpu_style}>{cpu}%</span>
+          </span>
+          <span style={KERNEL_USAGE_STYLE}>
+            Memory:{" "}
+            <span style={memory_style}>
+              {memory}
+              MB
+            </span>
+          </span>
         </span>
-        <span style={KERNEL_USAGE_STYLE}>
-          Memory:{" "}
+      );
+    } else {
+      return (
+        <span>
+          <span style={cpu_style}>{cpu}%</span>{" "}
           <span style={memory_style}>
             {memory}
             MB
           </span>
         </span>
-      </Tip>
-    );
+      );
+    }
   }
 
   render() {

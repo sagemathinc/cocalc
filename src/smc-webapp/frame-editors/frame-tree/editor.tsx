@@ -3,7 +3,8 @@ import {
   rclass,
   rtypes,
   Component,
-  Rendered
+  Rendered,
+  project_redux_name
 } from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
@@ -11,11 +12,13 @@ const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
-import { ErrorStyles } from "../frame-tree/types";
+import { EditorSpec, ErrorStyles } from "./types";
 
 import { copy, is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
+
+import { Available as AvailableFeatures } from "../../project_configuration";
 
 interface FrameTreeEditorReactProps {
   name: string;
@@ -50,6 +53,7 @@ interface FrameTreeEditorReduxProps {
   settings: Map<string, any>;
   complete: Map<string, any>;
   derived_file_types: Set<string>;
+  available_features: AvailableFeatures;
 }
 
 type FrameTreeEditorProps = FrameTreeEditorReactProps &
@@ -73,7 +77,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     }
   }
 
-  static reduxProps({ name }) {
+  static reduxProps({ name, project_id }) {
+    const project_store_name = project_redux_name(project_id);
     return {
       account: {
         editor_settings: rtypes.immutable.Map,
@@ -106,6 +111,9 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         complete: rtypes.immutable.Map.isRequired,
 
         derived_file_types: rtypes.immutable.Set
+      },
+      [project_store_name]: {
+        available_features: rtypes.object
       }
     };
   }
@@ -142,7 +150,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         "terminal",
         "settings",
         "complete",
-        "derived_file_types"
+        "derived_file_types",
+        "available_features"
       ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
@@ -201,6 +210,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           status={this.props.status}
           complete={this.props.complete}
           derived_file_types={this.props.derived_file_types}
+          available_features={this.props.available_features}
         />
       </div>
     );
@@ -275,7 +285,7 @@ interface Options {
   display_name: string;
   format_bar: boolean;
   format_bar_exclude?: SetMap;
-  editor_spec: any;
+  editor_spec: EditorSpec;
 }
 
 interface EditorProps {

@@ -3,8 +3,7 @@ Minimal client class that we use for testing.
 */
 
 import { EventEmitter } from "events";
-import { keys } from "../../../misc2";
-import { bind_methods } from "../../../async-utils";
+import { bind_methods, keys } from "../../../misc2";
 
 export class ClientTest extends EventEmitter {
   private initial_get_query: any[];

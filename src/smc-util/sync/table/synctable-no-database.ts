@@ -15,9 +15,7 @@ import { EventEmitter } from "events";
 
 import { SyncTable, Client } from "./synctable";
 
-import { bind_methods } from "../../async-utils";
-
-import { keys } from "../../misc2";
+import { bind_methods, keys } from "../../misc2";
 
 export function synctable_no_database(
   query,

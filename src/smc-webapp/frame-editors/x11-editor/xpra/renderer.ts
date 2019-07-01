@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /*
 CoCalc -- Xpra HTML Client
 
@@ -21,8 +21,8 @@ stuff that needs to be rendered.
 import { arraybufferBase64, timestamp } from "./util";
 
 import { lz4decode } from "./util";
-import {inflateSync } from "zlibjs";
-
+import { inflateSync } from "zlibjs";
+import { delay } from "awaiting";
 
 export class Renderer {
   private listening: boolean = true;
@@ -33,6 +33,7 @@ export class Renderer {
   public canvas: HTMLCanvasElement;
   public context: CanvasRenderingContext2D;
   private send: Function;
+  private delay: number = 50;
 
   constructor({ wid, canvas, context }, send) {
     this.drawCanvas = document.createElement("canvas");
@@ -67,9 +68,16 @@ export class Renderer {
     }
 
     if (this.paintQueue.length === 0) {
-      // Check again later.
+      // Check again later, with exponential backoff to avoid wasting resources
+      // e.g., when this is a background tab or nothing happening on this surface.
+      // NOTE: in upstream client this is called ASAP, which wastes a lot
+      // of resources.
+      this.delay = Math.min(1000, this.delay*1.3);
+      await delay(this.delay);
       window.requestAnimationFrame(this.render);
       return;
+    } else {
+      this.delay = 25; // reset delay
     }
 
     const [start, packet] = this.paintQueue.shift();

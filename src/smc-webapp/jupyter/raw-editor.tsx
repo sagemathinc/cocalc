@@ -6,15 +6,16 @@ the file codemirror-editor.cjsx, and also many differences.  Part of the
 subtlely comes from editing JSON, but not saving when state is invalid.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-const { JSONEditor } = require("./json-editor");
+import { JSONEditor } from "./json-editor";
+import { JupyterActions } from "./browser-actions";
 
 interface RawEditorProps {
-  actions: any;
+  actions: JupyterActions;
   font_size: number;
-  raw_ipynb: ImmutableMap<any, any>;
-  cm_options: ImmutableMap<any, any>;
+  raw_ipynb: ImmutableMap<string, any>;
+  cm_options: ImmutableMap<string, any>;
 }
 
 export class RawEditor extends Component<RawEditorProps> {
@@ -30,8 +31,8 @@ export class RawEditor extends Component<RawEditorProps> {
   render_desc() {
     return (
       <div style={{ color: "#666", fontSize: "12pt", marginBottom: "15px" }}>
-        This is an editable view IPynb notebook's underlying .ipynb file (images are replaced by
-        sha1 hashes).
+        This is an editable view IPynb notebook's underlying .ipynb file (images
+        are replaced by sha1 hashes).
       </div>
     );
   }
@@ -57,13 +58,13 @@ export class RawEditor extends Component<RawEditorProps> {
       backgroundColor: "#eee",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden",
+      overflowX: "hidden"
     };
 
     const viewer_style: React.CSSProperties = {
       backgroundColor: "#fff",
       boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-      height: "100%",
+      height: "100%"
     };
 
     return (

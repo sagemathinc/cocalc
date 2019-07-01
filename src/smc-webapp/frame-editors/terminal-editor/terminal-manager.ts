@@ -23,7 +23,7 @@ export class TerminalManager {
     delete this.terminals;
   }
 
-  _node_number(id: string): number {
+  _node_number(id: string, command: string | undefined): number {
     /* All this complicated code starting here is just to get
        a stable number for this frame. Sorry it is so complicated! */
     let node = this.actions._get_frame_node(id);
@@ -35,7 +35,11 @@ export class TerminalManager {
     const numbers = {};
     for (let id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
-      if (node0 == null || node0.get("type") != "terminal") {
+      if (
+        node0 == null ||
+        node0.get("type") != "terminal" ||
+        node0.get("command") != command
+      ) {
         continue;
       }
       let n = node0.get("number");
@@ -61,20 +65,29 @@ export class TerminalManager {
   }
 
   get_terminal(id: string, parent: HTMLElement): Terminal {
+    let node = this.actions._get_frame_node(id);
+
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
     } else {
+      let command: string | undefined = undefined;
+      let args: string[] | undefined = undefined;
+      if (node != null) {
+        command = node.get("command");
+        args = node.get("args");
+      }
       this.terminals[id] = new Terminal(
         this.actions,
-        this._node_number(id),
+        this._node_number(id, command),
         id,
-        parent
+        parent,
+        command,
+        args
       );
       this.terminals[id].connect();
     }
     const terminal = this.terminals[id];
     // pause: sync local view state with terminal state
-    let node = this.actions._get_frame_node(id);
     if (node != null) {
       if (node.get("is_paused")) {
         terminal.pause();
@@ -109,5 +122,25 @@ export class TerminalManager {
 
   get(id: string): Terminal | undefined {
     return this.terminals[id];
+  }
+
+  kill(id: string): void {
+    if (this.terminals[id] == null) {
+      // graceful no-op if no such terminal.
+      return;
+    }
+    this.terminals[id].kill();
+  }
+
+  set_command(
+    id: string,
+    command: string | undefined,
+    args: string[] | undefined
+  ): void {
+    if (this.terminals[id] == null) {
+      // graceful no-op if no such terminal.
+      return;
+    }
+    this.terminals[id].set_command(command, args);
   }
 }

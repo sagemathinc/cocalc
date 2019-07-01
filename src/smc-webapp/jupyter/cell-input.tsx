@@ -4,33 +4,40 @@ React component that describes the input of a cell
 
 declare const $: any;
 
-import { React, Component } from "../app-framework"; // TODO: this will move
-import { Map as ImmutableMap, fromJS } from "immutable";
+import { React, Component, Rendered } from "../app-framework";
+import { Map, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
+import { startswith, filename_extension } from "smc-util/misc";
+const { Markdown } = require("../r_misc");
+import { Icon } from "../r_misc/icon";
+import { CodeMirror } from "./codemirror";
+import { InputPrompt } from "./prompt";
+import { Complete } from "./complete";
+import { CellToolbar } from "./cell-toolbar";
+import { CellTiming } from "./cell-output-time";
+import { get_blob_url } from "./server-urls";
+import { CellHiddenPart } from "./cell-hidden-part";
 
-// TODO: import jquery
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
-// TODO: use imports
-const misc = require("smc-util/misc");
-const { Icon, Markdown } = require("../r_misc");
-const { CodeMirror } = require("./codemirror");
-const { InputPrompt } = require("./prompt");
-const { Complete } = require("./complete");
-const { CellToolbar } = require("./cell-toolbar");
-const { CellTiming } = require("./cell-output-time");
-const { get_blob_url } = require("./server-urls");
-
-function href_transform(project_id: string, cell: any) {
+function href_transform(
+  project_id: string | undefined,
+  cell: Map<string, any>
+): Function {
   return (href: string) => {
-    if (!misc.startswith(href, "attachment:")) {
+    if (!startswith(href, "attachment:")) {
       return href;
     }
     const name = href.slice("attachment:".length);
     const data = cell.getIn(["attachments", name]);
-    let ext = misc.filename_extension(name);
+    let ext = filename_extension(name);
     switch (data != null ? data.get("type") : undefined) {
       case "sha1":
         const sha1 = data.get("value");
+        if (project_id == null) {
+          return href; // can't do anything.
+        }
         return get_blob_url(project_id, ext, sha1);
       case "base64":
         if (ext === "jpg") {
@@ -61,26 +68,28 @@ function markdown_post_hook(elt) {
 }
 
 export interface CellInputProps {
-  actions: any;
-  cm_options: ImmutableMap<string, any>; // TODO: what is this
-  cell: ImmutableMap<string, any>; // TODO: what is this
+  actions?: JupyterActions; // if not defined, then everything read only
+  frame_actions?: NotebookFrameActions;
+  cm_options: Map<string, any>; // TODO: what is this
+  cell: Map<string, any>; // TODO: what is this
   is_markdown_edit: boolean;
   is_focused: boolean;
   is_current: boolean;
   font_size: number;
-  project_id: string;
-  directory: string;
-  complete: ImmutableMap<string, any>; // TODO: what is this
-  cell_toolbar: string;
-  trust: boolean;
+  project_id?: string;
+  directory?: string;
+  complete?: Map<string, any>;
+  cell_toolbar?: string;
+  trust?: boolean;
   is_readonly: boolean;
   id: any; // TODO: what is this
 }
 
 export class CellInput extends Component<CellInputProps> {
-  shouldComponentUpdate(nextProps: CellInputProps) {
+  public shouldComponentUpdate(nextProps: CellInputProps): boolean {
     return (
       nextProps.cell.get("input") !== this.props.cell.get("input") ||
+      nextProps.cell.get("metadata") !== this.props.cell.get("metadata") ||
       nextProps.cell.get("exec_count") !== this.props.cell.get("exec_count") ||
       nextProps.cell.get("cell_type") !== this.props.cell.get("cell_type") ||
       nextProps.cell.get("state") !== this.props.cell.get("state") ||
@@ -105,32 +114,35 @@ export class CellInput extends Component<CellInputProps> {
     );
   }
 
-  render_input_prompt = (type: any) => (
-    <InputPrompt
-      type={type}
-      state={this.props.cell.get("state")}
-      exec_count={this.props.cell.get("exec_count")}
-      kernel={this.props.cell.get("kernel")}
-      start={this.props.cell.get("start")}
-      end={this.props.cell.get("end")}
-    />
-  );
+  private render_input_prompt(type: string): Rendered {
+    return (
+      <InputPrompt
+        type={type}
+        state={this.props.cell.get("state")}
+        exec_count={this.props.cell.get("exec_count")}
+        kernel={this.props.cell.get("kernel")}
+        start={this.props.cell.get("start")}
+        end={this.props.cell.get("end")}
+      />
+    );
+  }
 
-  handle_md_double_click = () => {
-    if (this.props.actions == null) {
+  private handle_md_double_click(): void {
+    if (this.props.frame_actions == null) {
       return;
     }
     if (this.props.cell.getIn(["metadata", "editable"]) === false) {
+      // TODO: NEVER ever silently fail!
       return;
     }
     const id = this.props.cell.get("id");
-    this.props.actions.set_md_cell_editing(id);
-    this.props.actions.set_cur_id(id);
-    return this.props.actions.set_mode("edit");
-  };
+    this.props.frame_actions.set_md_cell_editing(id);
+    this.props.frame_actions.set_cur_id(id);
+    this.props.frame_actions.set_mode("edit");
+  }
 
-  options = (type?: "code" | "markdown") => {
-    let opt: any;
+  private options(type: "code" | "markdown" | "raw"): Map<string, any> {
+    let opt: Map<string, any>;
     switch (type) {
       case "code":
         opt = this.props.cm_options.get("options");
@@ -138,11 +150,12 @@ export class CellInput extends Component<CellInputProps> {
       case "markdown":
         opt = this.props.cm_options.get("markdown");
         break;
+      case "raw":
       default:
-        // raw
         opt = this.props.cm_options.get("options");
         opt = opt.set("mode", {});
         opt = opt.set("foldGutter", false); // no use with no mode
+        break;
     }
     if (this.props.is_readonly) {
       opt = opt.set("readOnly", "nocursor");
@@ -151,14 +164,15 @@ export class CellInput extends Component<CellInputProps> {
       opt = opt.set("lineNumbers", this.props.cell.get("line_numbers"));
     }
     return opt;
-  };
+  }
 
-  render_codemirror(type: any) {
+  private render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
     return (
       <CodeMirror
         value={this.props.cell.get("input", "")}
         options={this.options(type)}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         id={this.props.cell.get("id")}
         is_focused={this.props.is_focused}
         font_size={this.props.font_size}
@@ -167,7 +181,7 @@ export class CellInput extends Component<CellInputProps> {
     );
   }
 
-  render_markdown_edit_button() {
+  private render_markdown_edit_button(): Rendered {
     if (
       !this.props.is_current ||
       this.props.actions == null ||
@@ -176,20 +190,23 @@ export class CellInput extends Component<CellInputProps> {
       return;
     }
     return (
-      <Button onClick={this.handle_md_double_click} style={{ float: "right" }}>
+      <Button
+        onClick={this.handle_md_double_click.bind(this)}
+        style={{ float: "right" }}
+      >
         <Icon name="edit" /> Edit
       </Button>
     );
   }
 
-  render_markdown() {
+  private render_markdown(): Rendered {
     let value = this.props.cell.get("input", "").trim();
     if (value === "" && this.props.actions) {
       value = "Type *Markdown* and LaTeX: $\\alpha^2$";
     }
     return (
       <div
-        onDoubleClick={this.handle_md_double_click}
+        onDoubleClick={this.handle_md_double_click.bind(this)}
         style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
         className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
       >
@@ -209,11 +226,11 @@ export class CellInput extends Component<CellInputProps> {
     );
   }
 
-  render_unsupported(type: any) {
+  private render_unsupported(type: string): Rendered {
     return <div>Unsupported cell type {type}</div>;
   }
 
-  render_input_value(type: any) {
+  private render_input_value(type: string): Rendered {
     switch (type) {
       case "code":
         return this.render_codemirror(type);
@@ -227,8 +244,10 @@ export class CellInput extends Component<CellInputProps> {
     }
   }
 
-  render_complete() {
+  private render_complete(): Rendered {
     if (
+      this.props.actions != null &&
+      this.props.frame_actions != null &&
       this.props.complete &&
       this.props.complete.get("matches", fromJS([])).size > 0
     ) {
@@ -236,13 +255,14 @@ export class CellInput extends Component<CellInputProps> {
         <Complete
           complete={this.props.complete}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           id={this.props.id}
         />
       );
     }
   }
 
-  render_cell_toolbar() {
+  private render_cell_toolbar(): Rendered {
     if (this.props.cell_toolbar && this.props.actions) {
       return (
         <CellToolbar
@@ -254,42 +274,55 @@ export class CellInput extends Component<CellInputProps> {
     }
   }
 
-  render_time() {
-    if (this.props.cell.get("start") !== undefined) {
-      return (
+  private render_time(): Rendered {
+    if (this.props.cell.get("start") == null) return;
+    return (
+      <div
+        style={{
+          position: "absolute",
+          zIndex: 1,
+          right: "2px",
+          width: "100%",
+          paddingLeft: "5px"
+        }}
+        className="pull-right hidden-xs"
+      >
         <div
           style={{
+            color: "#999",
+            fontSize: "8pt",
             position: "absolute",
-            zIndex: 1,
-            right: "2px",
-            width: "100%",
-            paddingLeft: "5px"
+            right: "5px",
+            lineHeight: 1.25,
+            top: "1px",
+            textAlign: "right"
           }}
-          className="pull-right hidden-xs"
         >
-          <div
-            style={{
-              color: "#999",
-              fontSize: "8pt",
-              position: "absolute",
-              right: "5px",
-              lineHeight: 1.25,
-              top: "1px",
-              textAlign: "right"
-            }}
-          >
-            <CellTiming
-              start={this.props.cell.get("start")}
-              end={this.props.cell.get("end")}
-              state={this.props.cell.get("state")}
-            />
-          </div>
+          <CellTiming
+            start={this.props.cell.get("start")}
+            end={this.props.cell.get("end")}
+            state={this.props.cell.get("state")}
+          />
         </div>
-      );
-    }
+      </div>
+    );
   }
 
-  render() {
+  private render_hidden(): Rendered {
+    return (
+      <CellHiddenPart
+        title={
+          "Input is hidden; show via Edit --> Toggle hide input in the menu."
+        }
+      />
+    );
+  }
+
+  public render(): Rendered {
+    if (this.props.cell.getIn(["metadata", "jupyter", "source_hidden"])) {
+      return this.render_hidden();
+    }
+
     const type = this.props.cell.get("cell_type") || "code";
     return (
       <div>

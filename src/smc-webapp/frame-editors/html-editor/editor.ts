@@ -30,7 +30,6 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "reload",
       "format"
     ])
   },

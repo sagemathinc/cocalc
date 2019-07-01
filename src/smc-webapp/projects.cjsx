@@ -41,12 +41,18 @@ markdown = require('./markdown')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+{fromPairs} = require('lodash')
+ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
 
 { reuseInFlight } = require("async-await-utils/hof")
 
 {UpgradeStatus} = require('./upgrades/status')
 
+COMPUPTE_IMAGES = require("./custom-software/init").NAME
+
 {ResetProjectsConfirmation} = require('./r_upgrades')
+
+{has_internet_access} = require('./upgrades/upgrade-utils')
 
 ###
 TODO:  This entire file should be broken into many small files/components,
@@ -234,6 +240,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
+            image       : undefined  # if given, sets the compute image (the ID string)
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token; delete opts.token
@@ -266,10 +273,8 @@ class ProjectsActions extends Actions
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
         if opts.restore_session
             redux.getActions('page').restore_session(opts.project_id)
-        # init the library after project started.
-        # TODO write a generalized store function that does this in a more robust way
-        project_actions.init_library()
-        project_actions.init_library_index()
+        # initialize project
+        project_actions.init()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
@@ -449,7 +454,7 @@ class ProjectsActions extends Actions
             cb           : (err, resp) =>
                 if not silent
                     if err
-                        alert_message(type:'error', message:err)
+                        alert_message(type:'error', message:err, timeout:60)
                     else
                         alert_message(message:resp.mesg)
 
@@ -775,15 +780,11 @@ class ProjectsStore extends Store
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
-        upgrades = {}
+        # clone zeroed quota upgrades, to make sure they're always defined
+        upgrades = Object.assign({}, ZERO_QUOTAS)
         for account_id, info of users
             for prop, val of info.upgrades ? {}
                 upgrades[prop] = (upgrades[prop] ? 0) + val
-
-        # Ensure every upgrade is at least set, possibly to the default.
-        for prop, val of require('smc-util/schema').DEFAULT_QUOTAS
-            if not upgrades[prop]?
-                upgrades[prop] = val
 
         return upgrades
 
@@ -834,6 +835,9 @@ class ProjectsStore extends Store
                     break
         return v
 
+    has_internet_access: (project_id) =>
+        return has_internet_access(@getIn(['project_map', project_id]))
+
 # WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =
     project_map   : undefined   # when loaded will be an immutable.js map that is synchronized with the database
@@ -874,10 +878,11 @@ all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
     if all_projects_have_been_loaded
         return
-    all_projects_have_been_loaded = true
+    all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
     redux.createTable('projects', ProjectsAllTable)
     await once(redux.getTable('projects')._table, 'connected')
+    redux.getActions('projects')?.setState({all_projects_have_been_loaded:true}) # used by client code
 
 load_recent_projects = =>
     redux.createTable('projects', ProjectsTable)
@@ -1199,6 +1204,7 @@ ProjectList = rclass
     propTypes :
         projects    : rtypes.array.isRequired
         show_all    : rtypes.bool.isRequired
+        images      : rtypes.immutable.Map
         redux       : rtypes.object
 
     getDefaultProps: ->
@@ -1227,6 +1233,7 @@ ProjectList = rclass
                 break
             listing.push <ProjectRow
                              project  = {project}
+                             images   = {@props.images}
                              user_map = {@props.user_map}
                              index    = {i}
                              key      = {i}
@@ -1288,6 +1295,8 @@ exports.ProjectsPage = ProjectsPage = rclass
             load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
+        compute_images :
+            images        : rtypes.immutable.Map
 
     propTypes :
         redux             : rtypes.object
@@ -1497,7 +1506,8 @@ exports.ProjectsPage = ProjectsPage = rclass
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
                                 default_value={@props.search}
-                                />
+                                images = {@props.images}
+                            />
                         </Col>
                     </Row>
                     <Row>
@@ -1519,6 +1529,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 projects    = {visible_projects}
                                 show_all    = {@props.show_all}
                                 user_map    = {@props.user_map}
+                                images      = {@props.images}
                                 redux       = {redux} />
                         </Col>
                     </Row>
@@ -1556,7 +1567,7 @@ LoadAllProjects = rclass
             bsStyle='info'
             bsSize='large'>
             {@render_loading()}
-            Load projects older than 3 weeks...
+            Show projects not used in the last few months...
         </Button>
 
     render: ->

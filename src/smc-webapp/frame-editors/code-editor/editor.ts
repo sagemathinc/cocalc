@@ -31,12 +31,30 @@ const FORMAT = set([
   "bib"
 ]);
 
+export const SHELLS = {
+  erl: "erl",
+  hrl: "erl",
+  py: "python3",
+  sage: "sage",
+  r: "R",
+  m: "octave",
+  jl: "julia",
+  js: "node",
+  ts: "ts-node",
+  coffee: "coffee",
+  gp: "gp",
+  lua: "lua",
+  ml: "ocaml",
+  pl: "perl",
+  rb: "ruby"
+};
+
 export const cm = {
   short: "Code",
   name: "Source Code",
   icon: "code",
   component: CodemirrorEditor,
-  buttons: function(path: string): any {
+  buttons: function(path: string): { [name: string]: true } {
     const buttons: any = set([
       "print",
       "decrease_font_size",
@@ -50,9 +68,11 @@ export const cm = {
       "paste",
       "copy",
       "undo",
-      "redo"
+      "redo",
+      "shell"
     ]);
-    if (FORMAT[filename_extension(path)]) {
+    const ext = filename_extension(path);
+    if (FORMAT[ext]) {
       buttons.format = true;
     }
     return buttons;
