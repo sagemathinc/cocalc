@@ -62,6 +62,11 @@ export function commands(
       f: () => jupyter_actions.cell_toolbar("metadata")
     },
 
+    "cell toolbar create_assignment": {
+      m: "Create assignment",
+      f: () => jupyter_actions.cell_toolbar("create_assignment")
+    },
+
     "cell toolbar slideshow": {
       m: "Slideshow toolbar",
       f: () => jupyter_actions.cell_toolbar("slideshow")

@@ -13,9 +13,11 @@ import { callback } from "awaiting";
 import { callback2 } from "smc-util/async-utils";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
+import { NBGraderActions } from "./nbgrader/actions";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
+  public nbgrader_actions: NBGraderActions;
   public snippet_actions: any;
 
   private cursor_manager: CursorManager;
@@ -82,6 +84,8 @@ export class JupyterActions extends JupyterActions0 {
     // this initializes actions+store for the snippet dialog
     // this is also only a UI specific action
     this.snippet_actions = instantiate_snippets(this.project_id, this.path);
+
+    this.nbgrader_actions = new NBGraderActions(this);
 
     if (window != null && (window as any).$ != null) {
       // frontend browser client with jQuery

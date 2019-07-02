@@ -241,7 +241,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     };
 
     const cell_toolbars: any = [];
-    for (let name of ["none", "metadata", "slideshow", "attachments", "tags"]) {
+    for (let name of ["none", "metadata", "slideshow", "attachments", "tags", "create_assignment"]) {
       const item_name = `>cell toolbar ${name}`;
       if (
         (this.props.cell_toolbar != null ? this.props.cell_toolbar : "none") ===

@@ -8,6 +8,8 @@ import { Slideshow } from "./cell-toolbar-slideshow";
 import { Attachments } from "./cell-toolbar-attachments";
 import { TagsToolbar } from "./cell-toolbar-tags";
 import { Metadata } from "./cell-toolbar-metadata";
+import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
+
 import { Map } from "immutable";
 import { JupyterActions } from "./browser-actions";
 
@@ -31,7 +33,8 @@ const TOOLBARS = {
   slideshow: Slideshow,
   attachments: Attachments,
   tags: TagsToolbar,
-  metadata: Metadata
+  metadata: Metadata,
+  create_assignment: CreateAssignmentToolbar
 };
 
 export class CellToolbar extends Component<CellToolbarProps> {
