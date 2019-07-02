@@ -30,7 +30,8 @@ const TYPES = [
     icon: "magic",
     grade: false,
     locked: false,
-    solution: true
+    solution: true,
+    code_only: true
   },
   {
     title: "Autograder tests",
@@ -39,7 +40,8 @@ const TYPES = [
     grade: true,
     locked: true,
     solution: false,
-    points: 0
+    points: 0,
+    code_only: true
   },
   {
     title: "Readonly",
@@ -67,8 +69,7 @@ function state_to_value(state: Metadata): string {
       return x.value;
     }
   }
-  console.warn("invalid state", state);
-  return ""; // don't crash notebook if state is invalid
+  throw Error(`invalid state - "${key}"`);
 }
 
 function value_to_state(value: string): Metadata {
@@ -85,11 +86,20 @@ function value_to_state(value: string): Metadata {
   throw Error(`unknown value "${value}"`);
 }
 
-const rendered_options = TYPES.map(x => (
-  <option key={x.value} value={x.value}>
-    {x.title}
-  </option>
-));
+const OPTIONS_CODE: Rendered[] = [];
+const OPTIONS_NOTCODE: Rendered[] = [];
+
+for (let x of TYPES) {
+  const option = (
+    <option key={x.value} value={x.value}>
+      {x.title}
+    </option>
+  );
+  OPTIONS_CODE.push(option);
+  if (!x.code_only) {
+    OPTIONS_NOTCODE.push(option);
+  }
+}
 
 interface CreateAssignmentProps {
   actions: JupyterActions;
@@ -129,7 +139,12 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   private get_value(): string {
     const x = this.props.cell.getIn(["metadata", "nbgrader"], Map());
     if (x == null) return "";
-    return state_to_value(x.toJS());
+    try {
+      return state_to_value(x.toJS());
+    } catch (err) {
+      this.select(""); // clear all the metadata.
+      return "";
+    }
   }
 
   private render_points(): Rendered {
@@ -141,7 +156,9 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     if (points == null) return;
     return (
       <FormGroup>
-        <ControlLabel>Points:</ControlLabel>
+        <ControlLabel style={{ color: "white", fontWeight: 400 }}>
+          Points:
+        </ControlLabel>
         <FormControl
           type="number"
           value={points}
@@ -169,7 +186,11 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     if (grade_id == null) return;
     return (
       <FormGroup>
-        <ControlLabel style={{ marginLeft: "15px" }}>ID:</ControlLabel>
+        <ControlLabel
+          style={{ marginLeft: "15px", color: "white", fontWeight: 400 }}
+        >
+          ID:
+        </ControlLabel>
         <input
           spellCheck={false}
           type="input"
@@ -182,6 +203,10 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   }
 
   private render_dropdown(): Rendered {
+    const options =
+      this.props.cell.get("cell_type", "code") == "code"
+        ? OPTIONS_CODE
+        : OPTIONS_NOTCODE;
     return (
       <span style={{ marginLeft: "15px" }}>
         <FormControl
@@ -191,7 +216,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
           value={this.get_value()}
           style={{ marginLeft: "15px" }}
         >
-          {rendered_options}
+          {options}
         </FormControl>
       </span>
     );
