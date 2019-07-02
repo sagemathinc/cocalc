@@ -1,24 +1,6 @@
 import * as express from "express";
 
-// TODO #V0 Remove when you write a way to save it to the database
-const known_iss = {
-  "https://moodletest.cocalc.com": {
-    client_id: "Ho3mDRdDHybcG5U",
-    token_url: "https://moodletest.cocalc.com/mod/lti/token.php",
-    auth_url: "https://moodletest.cocalc.com/mod/lti/auth.php",
-    jwk_url: "https://moodletest.cocalc.com/mod/lti/certs.php"
-  },
-  "https://canvas.instructure.com": {
-    client_id: "10000000000008",
-    token_url: "http://34.83.75.255/api/lti/login/oauth2/auth",
-    auth_url: "http://34.83.75.255/api/lti/authorize",
-    jwk_url: "http://34.83.75.255/api/lti/securit/jwks"
-  }
-}
-
-function get_iss_data(iss: string): IssuerData {
-  return known_iss[iss];
-}
+import { IssuerData, AuthRequestTokenData } from "./types";
 
 export function init_LTI_router(): express.Router {
   const router = express.Router();
@@ -34,13 +16,13 @@ export function init_LTI_router(): express.Router {
   router.route("/login").all((_, res) => {
     res.send("Login via lti");
 
-    const token = req.body;
+    const token: LoginInitiationFromPlatform = req.body;
     const iss_data = get_iss_data(token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
-    const auth_params = {
+    const auth_params: AuthRequestTokenData = {
       scope: "openid", // OIDC Scope.
       response_type: "id_token", // OIDC response is always an id token.
       client_id: iss_data.client_id,
@@ -56,7 +38,6 @@ export function init_LTI_router(): express.Router {
     // begin_auth_flow(token.state, auth_params)
     const query_string = querystring.stringify(auth_params);
     res.redirect(iss_data.auth_url + "?" + query_string);
-
   });
 
   // Tool Launch URL
@@ -69,4 +50,24 @@ export function init_LTI_router(): express.Router {
   });
 
   return router;
+}
+
+function get_iss_data(iss: string): IssuerData {
+  // TODO #V0 Remove when you write a way to save it to the database
+  const known_iss = {
+    "https://moodletest.cocalc.com": {
+      client_id: "Ho3mDRdDHybcG5U",
+      token_url: "https://moodletest.cocalc.com/mod/lti/token.php",
+      auth_url: "https://moodletest.cocalc.com/mod/lti/auth.php",
+      jwk_url: "https://moodletest.cocalc.com/mod/lti/certs.php"
+    },
+    "https://canvas.instructure.com": {
+      client_id: "10000000000008",
+      token_url: "http://34.83.75.255/api/lti/login/oauth2/auth",
+      auth_url: "http://34.83.75.255/api/lti/authorize",
+      jwk_url: "http://34.83.75.255/api/lti/securit/jwks"
+    }
+  };
+
+  return known_iss[iss];
 }

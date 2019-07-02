@@ -9,6 +9,13 @@ export interface Logger {
   warn: Function;
 }
 
+export interface IssuerData {
+  client_id: string;
+  token_url: string;
+  auth_url: string;
+  jwk_url: string;
+}
+
 // https://www.imsglobal.org/spec/security/v1p0/#step-1-third-party-initiated-login
 export interface LoginInitiationFromPlatform {
   iss: string;

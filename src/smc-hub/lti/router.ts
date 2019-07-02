@@ -27,13 +27,6 @@ function getKey(header, callback) {
 }
 */
 
-// TODO #V0 Move to types
-interface IssuerData {
-  client_id: string,
-  token_url: string,
-  auth_url: string,
-  jwk_url: string
-}
 
 // TODO #V0 Remove when you write a way to save it to the database
 const known_iss = {
@@ -98,7 +91,6 @@ export function init_LTI_router(): express.Router {
     begin_auth_flow(token.state, auth_params)
     const query_string = querystring.stringify(auth_params);
     res.redirect(iss_data.auth_url + "?" + query_string);
-
 });
 
   // Tool Launch URL
