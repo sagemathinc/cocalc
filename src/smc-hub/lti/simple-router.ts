@@ -1,6 +1,14 @@
 import * as express from "express";
+import * as uuid from "uuid";
+import * as querystring from "querystring";
 
-import { IssuerData, AuthRequestTokenData } from "./types";
+import { inspect } from "util";
+
+import {
+  IssuerData,
+  LoginInitiationFromPlatform,
+  AuthRequestTokenData
+} from "./types";
 
 export function init_LTI_router(): express.Router {
   const router = express.Router();
@@ -13,36 +21,49 @@ export function init_LTI_router(): express.Router {
 
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
-  router.route("/login").all((_, res) => {
-    res.send("Login via lti");
-
+  router.route("/login").all((req, res) => {
     const token: LoginInitiationFromPlatform = req.body;
     const iss_data = get_iss_data(token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
 
-    // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
     const auth_params: AuthRequestTokenData = {
-      scope: "openid", // OIDC Scope.
-      response_type: "id_token", // OIDC response is always an id token.
+      scope: "openid",
+      response_type: "id_token",
+      response_mode: "form_post",
+      prompt: "none",
       client_id: iss_data.client_id,
       redirect_uri: token.target_link_uri,
       login_hint: token.login_hint,
       state: state,
-      response_mode: "form_post", // OIDC response is always a form post.
       nonce: nonce,
-      prompt: "none", // Don't prompt user on redirect.
       lti_message_hint: token.lti_message_hint,
       id_token_hint: token.lti_message_hint
     };
     // begin_auth_flow(token.state, auth_params)
     const query_string = querystring.stringify(auth_params);
+    res.send("Eh?")
     res.redirect(iss_data.auth_url + "?" + query_string);
   });
 
   // Tool Launch URL
-  router.post("/launch", (_, res) => {
+  router.post("/launch", (req, res) => {
     res.send("Got a POST request at launch-lti");
+
+    if (req.body.error) {
+      res.send(`Recieved error ${req.body.error}`);
+    }
+
+    const options = { algorithms: ["RS256"] };
+
+    // TODO #V0: Use verify for security
+    jwt.decode(req.body.id_token, options, function(err, token) {
+      if (err) {
+        res.send("Error parsing jwt:" + err);
+      }
+
+      res.send(inspect(token));
+    });
   });
 
   router.post("/deep-link-launches", (_, res) => {
@@ -56,7 +77,7 @@ function get_iss_data(iss: string): IssuerData {
   // TODO #V0 Remove when you write a way to save it to the database
   const known_iss = {
     "https://moodletest.cocalc.com": {
-      client_id: "Ho3mDRdDHybcG5U",
+      client_id: "6WDU5UmGFK9mFFd",
       token_url: "https://moodletest.cocalc.com/mod/lti/token.php",
       auth_url: "https://moodletest.cocalc.com/mod/lti/auth.php",
       jwk_url: "https://moodletest.cocalc.com/mod/lti/certs.php"

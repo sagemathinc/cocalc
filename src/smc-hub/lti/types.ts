@@ -1,14 +1,3 @@
-// These are the same types in
-export interface Database {
-  synctable: Function;
-}
-
-export interface Logger {
-  debug: Function;
-  info: Function;
-  warn: Function;
-}
-
 export interface IssuerData {
   client_id: string;
   token_url: string;
@@ -19,7 +8,7 @@ export interface IssuerData {
 // https://www.imsglobal.org/spec/security/v1p0/#step-1-third-party-initiated-login
 export interface LoginInitiationFromPlatform {
   iss: string;
-  target_link_uri: string; // Potentially fixed?
+  target_link_uri: string;
   login_hint: string;
   lti_message_hint: string;
 }

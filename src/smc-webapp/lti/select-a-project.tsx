@@ -5,3 +5,7 @@ import { TypedMap } from "../app-framework/TypedMap";
 export interface Props {
   ProjectList: Map<string, TypedMap<{}>>;
 }
+
+export function SelectAProject() {
+  return <div />;
+}
