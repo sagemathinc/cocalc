@@ -1,6 +1,5 @@
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
-import socket
 import conftest
 import os
 import re
@@ -128,10 +127,10 @@ class TestBasic:
     def test_issue819(self, exec2):
         code = dedent(r"""
         def never_called(a):
-            print 'should not execute 1', a
+            print('should not execute 1', a)
             # comment
         # comment at indent 0
-            print 'should not execute 2', a
+            print('should not execute 2', a)
         22
         """)
         output = "22\n"

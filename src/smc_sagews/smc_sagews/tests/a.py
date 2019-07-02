@@ -1,2 +1,2 @@
 def f2(*args, **kwargs):
-    print "test f2 1"
+    print("test f2 1")

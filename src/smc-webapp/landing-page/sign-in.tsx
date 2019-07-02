@@ -188,6 +188,7 @@ export class SignIn extends React.Component<Props, State> {
                   type="email"
                   name="email"
                   placeholder="Email address"
+                  cocalc-test={"sign-in-email"}
                   autoFocus={true}
                   onChange={this.change_email}
                 />
@@ -201,12 +202,14 @@ export class SignIn extends React.Component<Props, State> {
                   type="password"
                   name="password"
                   placeholder="Password"
+                  cocalc-test={"sign-in-password"}
                   onChange={this.remove_error}
                 />
               </FormGroup>
             </Col>
             <Col xs={3}>
               <Button
+                cocalc-test={"sign-in-submit"}
                 type="submit"
                 disabled={this.props.signing_in}
                 bsStyle="default"

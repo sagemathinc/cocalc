@@ -8,7 +8,7 @@ SMC = os.environ['SMC']
 
 
 def cmd(s):
-    print s
+    print(s)
     if os.system(s):
         sys.exit(1)
 

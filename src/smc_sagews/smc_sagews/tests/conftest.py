@@ -30,7 +30,6 @@ def unicode8(s):
 
 
 PID = os.getpid()
-from datetime import datetime
 
 
 def log(*args):
@@ -763,9 +762,6 @@ def sagews(request):
 
     request.addfinalizer(fin)
     return conn
-
-
-import time
 
 
 @pytest.fixture(scope="class")
