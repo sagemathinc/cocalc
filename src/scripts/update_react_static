@@ -4,5 +4,5 @@ cd $SALVUS_ROOT/smc-webapp
 
 # Render the pricing/subscription info -- this renders a React component on the *server*
 # into the pricing.html static file.  The same component also gets rendered in the billing tab.
-coffee -e "require('./render.coffee').render_static_react_pages()"
+node -e "require('./render.js').render_static_react_pages()"
 
