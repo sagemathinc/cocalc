@@ -30,6 +30,7 @@ export class NBGraderActions {
   ): void {
     let nbgrader: Metadata | undefined = undefined;
     if (metadata != null) {
+      debugger;
       nbgrader = this.get_metadata(id).toJS();
       if (nbgrader == null) throw Error("must not be null");
       nbgrader.schema_version = 1; // always

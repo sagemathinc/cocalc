@@ -153,7 +153,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       project_id,
       directory,
       path,
-      max_output_length: 10000
+      max_output_length: 10000,
+      cell_toolbar: this.store.get_local_storage("cell_toolbar")
     });
 
     this.syncdb.on("change", this._syncdb_change);
@@ -1296,20 +1297,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_local_storage = (key, value) => {
-    if (typeof localStorage !== "undefined" && localStorage !== null) {
-      let current = localStorage[this.name];
-      if (current != null) {
-        current = misc.from_json(current);
-      } else {
-        current = {};
-      }
-      if (value === null) {
-        delete current[key];
-      } else {
-        current[key] = value;
-      }
-      return (localStorage[this.name] = misc.to_json(current));
+    if (localStorage == null) return;
+    let current = localStorage[this.name];
+    if (current != null) {
+      current = misc.from_json(current);
+    } else {
+      current = {};
     }
+    if (value === null) {
+      delete current[key];
+    } else {
+      current[key] = value;
+    }
+    localStorage[this.name] = misc.to_json(current);
   };
 
   // File --> Open: just show the file listing page.
@@ -2003,6 +2003,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   cell_toolbar = (name?: string): void => {
     // Set which cell toolbar is visible.  At most one may be visible.
     // name=undefined to not show any.
+    this.set_local_storage("cell_toolbar", name);
     this.setState({ cell_toolbar: name });
   };
 

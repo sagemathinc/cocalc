@@ -4,7 +4,7 @@ nbgrader functionality: the create assignment toolbar.
   <FormGroup controlId="formInlineName">
 */
 
-import { FormControl, Form } from "react-bootstrap";
+import { FormControl, FormGroup, ControlLabel, Form } from "react-bootstrap";
 import { Map } from "immutable";
 
 import { Space } from "../../r_misc/space";
@@ -117,6 +117,17 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     );
   }
 
+  private set_points(points: number): void {
+    if (points < 0) {
+      points = 0;
+    }
+    this.props.actions.nbgrader_actions.set_metadata(
+      this.props.cell.get("id"),
+      { points },
+      true
+    );
+  }
+
   private get_value(): string {
     const x = this.props.cell.getIn(["metadata", "nbgrader"], Map());
     if (x == null) return "";
@@ -130,7 +141,17 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       "points"
     ]);
     if (points != null) {
-      return <span>{points}</span>;
+      return (
+        <FormGroup>
+          <ControlLabel>Points:</ControlLabel>
+          <FormControl
+            type="number"
+            value={points}
+            onChange={e => this.set_points((e.target as any).value)}
+            style={{ width: "5em", marginLeft: "5px" }}
+          />
+        </FormGroup>
+      );
     }
   }
 
