@@ -7,7 +7,6 @@ nbgrader functionality: the create assignment toolbar.
 import { FormControl, FormGroup, ControlLabel, Form } from "react-bootstrap";
 import { Map } from "immutable";
 
-import { Space } from "../../r_misc/space";
 import { React, Component, Rendered } from "../../app-framework";
 
 import { JupyterActions } from "../browser-actions";
@@ -123,8 +122,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     }
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),
-      { points },
-      true
+      { points }
     );
   }
 
@@ -140,42 +138,62 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       "nbgrader",
       "points"
     ]);
-    if (points != null) {
-      return (
-        <FormGroup>
-          <ControlLabel>Points:</ControlLabel>
-          <FormControl
-            type="number"
-            value={points}
-            onChange={e => this.set_points((e.target as any).value)}
-            style={{ width: "5em", marginLeft: "5px" }}
-          />
-        </FormGroup>
-      );
-    }
+    if (points == null) return;
+    return (
+      <FormGroup>
+        <ControlLabel>Points:</ControlLabel>
+        <FormControl
+          type="number"
+          value={points}
+          onChange={e => this.set_points((e.target as any).value)}
+          style={{ width: "5em", marginLeft: "5px" }}
+        />
+      </FormGroup>
+    );
+  }
+
+  private set_grade_id(grade_id: string): void {
+    // TODO: check globally unique... or change to always just equal the cell id...
+    this.props.actions.nbgrader_actions.set_metadata(
+      this.props.cell.get("id"),
+      { grade_id }
+    );
   }
 
   private render_id(): Rendered {
-    const id: number | undefined = this.props.cell.getIn([
+    const grade_id: number | undefined = this.props.cell.getIn([
       "metadata",
       "nbgrader",
       "grade_id"
     ]);
-    if (id != null) {
-      return <span>{id}</span>;
-    }
+    if (grade_id == null) return;
+    return (
+      <FormGroup>
+        <ControlLabel style={{ marginLeft: "15px" }}>ID:</ControlLabel>
+        <input
+          spellCheck={false}
+          type="input"
+          value={grade_id}
+          onChange={e => this.set_grade_id((e.target as any).value)}
+          style={{ width: "5em", marginLeft: "10px" }}
+        />
+      </FormGroup>
+    );
   }
 
   private render_dropdown(): Rendered {
     return (
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={e => this.select((e as any).target.value)}
-        value={this.get_value()}
-      >
-        {rendered_options}
-      </FormControl>
+      <span style={{ marginLeft: "15px" }}>
+        <FormControl
+          componentClass="select"
+          placeholder="select"
+          onChange={e => this.select((e as any).target.value)}
+          value={this.get_value()}
+          style={{ marginLeft: "15px" }}
+        >
+          {rendered_options}
+        </FormControl>
+      </span>
     );
   }
 
@@ -183,9 +201,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     return (
       <Form inline>
         {this.render_points()}
-        <Space />
         {this.render_id()}
-        <Space />
         {this.render_dropdown()}
       </Form>
     );
