@@ -1,5 +1,5 @@
 /*
-Jupyter client -- these are the actions for the underlying document structure.
+Jupyter actions -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
 
@@ -1125,7 +1125,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // This toggles the boolean value of given metadata field.
   // If not set, it is assumed to be true and toggled to false
-  // For more than one cell, the first one is used to toggle all cells to the inverted state
+  // For more than one cell, the first one is used to toggle
+  // all cells to the inverted state
   private toggle_metadata_boolean_on_cells(
     cell_ids: string[],
     key: string,
@@ -2180,18 +2181,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   edit_cell_metadata = (id: string): void => {
-    let left: any;
-    const metadata =
-      (left = this.store.getIn(["cells", id, "metadata"])) != null
-        ? left
-        : immutable.Map();
+    const metadata = this.store.getIn(
+      ["cells", id, "metadata"],
+      immutable.Map()
+    );
     this.setState({ edit_cell_metadata: { id, metadata } });
   };
 
-  set_cell_metadata = (opts: any): void => {
-    /*
-        Sets the metadata to exactly the metadata object.  It doesn't just merge it in.
-        */
+  public set_cell_metadata(opts: {
+    id: string;
+    metadata?: object; // not given = delete it
+    save?: boolean; // defaults to true if not given
+    merge?: boolean; // defaults to false if not given, in which case sets metadata, rather than merge.  If true, does a SHALLOW merge.
+  }): void {
     let { id, metadata, save, merge } = (opts = defaults(opts, {
       id: required,
       metadata: required,
@@ -2213,12 +2215,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     if (merge) {
-      let left: any;
-      const current =
-        (left = this.store.getIn(["cells", id, "metadata"])) != null
-          ? left
-          : immutable.Map();
-      metadata = current.merge(metadata);
+      const current = this.store.getIn(
+        ["cells", id, "metadata"],
+        immutable.Map()
+      );
+      metadata = current.merge(immutable.fromJS(metadata)).toJS();
     }
 
     // special fields
@@ -2255,9 +2256,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       save
     );
     if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
-      return this.edit_cell_metadata(id); // updates the state while editing
+      this.edit_cell_metadata(id); // updates the state while editing
     }
-  };
+  }
 
   public set_raw_ipynb(): void {
     if (this._state === "load") {

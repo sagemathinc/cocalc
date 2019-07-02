@@ -34,7 +34,7 @@ interface CreateAssignmentProps {
 
 export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   private select(value: string): void {
-    this.props.actions.nbgrader_actions.create_assignment_toolbar(
+    this.props.actions.nbgrader_actions.toolbar_create_assignment(
       this.props.cell.get("id"),
       value
     );
