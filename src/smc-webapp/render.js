@@ -40,7 +40,7 @@ const static_react_pages = [
     require("./r_help.cjsx").render_static_third_party_software(),
     "_static_third_party_software.html"
   ]
-];*/
+];
 
 // Code for static server-side rendering of the subscription options.
 // note, that we use renderToStaticMarkup, not renderToString
