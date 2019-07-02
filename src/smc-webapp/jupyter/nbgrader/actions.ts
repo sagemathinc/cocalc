@@ -18,7 +18,7 @@ export class NBGraderActions {
 
   private get_metadata(id: string): ImmutableMetadata {
     return this.jupyter_actions.store.getIn(
-      ["cells", id, "metadata", "nbconvert"],
+      ["cells", id, "metadata", "nbgrader"],
       immutable.Map()
     );
   }
@@ -30,7 +30,6 @@ export class NBGraderActions {
   ): void {
     let nbgrader: Metadata | undefined = undefined;
     if (metadata != null) {
-      debugger;
       nbgrader = this.get_metadata(id).toJS();
       if (nbgrader == null) throw Error("must not be null");
       nbgrader.schema_version = 1; // always
