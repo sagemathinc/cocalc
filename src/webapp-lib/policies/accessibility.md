@@ -1,14 +1,3 @@
-import { React } from "../app-framework";
-
-import { markdown_to_html } from "../markdown";
-
-
-export function render_static() {
-  const __html: string = markdown_to_html(value);
-  return <div dangerouslySetInnerHTML={{ __html }} />;
-}
-
-const value = `
 # CoCalc Voluntary Product Accessibility Template (VPAT)
 
 The data below is valid on the date provided: 3 July 2019.
@@ -150,4 +139,3 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 ## Legal Disclaimer (Sagemath, Inc.)
 
 This document is provided for information purposes only and the contents hereof are subject to change without notice. Sagemath, Inc. does not warrant that this document is error free, nor does it provide any other warranties or conditions, whether expressed orally or implied in law, including implied warranties and conditions of merchantability or fitness for a particular purpose. Sagemath, Inc. specifically disclaims any liability with respect to this document and no contractual obligations are formed either directly or indirectly by this document. Sagemath, Inc. further makes no representation concerning the ability of assistive technologies or other products to interoperate with Sagemath, Inc. products. This document addresses the named product(s) or platforms only.
-`;
