@@ -9,6 +9,8 @@ import { Map } from "immutable";
 
 import { React, Component, Rendered } from "../../app-framework";
 
+import { Icon } from "../../r_misc/icon";
+
 import { JupyterActions } from "../browser-actions";
 
 import { Metadata } from "./types";
@@ -116,10 +118,14 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       return;
     }
     const metadata: Metadata = value_to_state(value);
-    metadata.grade_id = this.props.cell.getIn(
-      ["metadata", "nbgrader", "grade_id"],
-      this.props.cell.get("id")
-    ); // TODO -- check if default is globally unique...?
+    if (value == "readonly") {
+      metadata.grade_id = undefined;
+    } else {
+      metadata.grade_id = this.props.cell.getIn(
+        ["metadata", "nbgrader", "grade_id"],
+        this.props.cell.get("id")
+      ); // TODO -- check if default is globally unique...?
+    }
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),
       metadata
@@ -145,6 +151,16 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       this.select(""); // clear all the metadata.
       return "";
     }
+  }
+
+  private render_locked(): Rendered {
+    const locked: boolean = !!this.props.cell.getIn([
+      "metadata",
+      "nbgrader",
+      "locked"
+    ]);
+    if (!locked) return;
+    return <Icon name={"lock"} style={{ float: "left", padding: "5px" }} />;
   }
 
   private render_points(): Rendered {
@@ -223,12 +239,25 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   }
 
   render() {
+    const value = this.get_value();
+    let background: string;
+    let color: string;
+    if (value == "" || value == "readonly") {
+      color = "#000";
+      background = "#eee";
+    } else {
+      color = "#fff";
+      background = "#337ab7";
+    }
     return (
-      <Form inline>
-        {this.render_points()}
-        {this.render_id()}
-        {this.render_dropdown()}
-      </Form>
+      <div style={{ width: "100%", background, color, padding: "3px" }}>
+        {this.render_locked()}
+        <Form inline style={{ float: "right" }}>
+          {this.render_points()}
+          {this.render_id()}
+          {this.render_dropdown()}
+        </Form>
+      </div>
     );
   }
 }

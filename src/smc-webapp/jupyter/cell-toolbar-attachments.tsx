@@ -21,9 +21,15 @@ export class Attachments extends Component<AttachmentsProps> {
 
   render() {
     return (
-      <Button bsSize="small" onClick={() => this.edit()}>
-        Delete Attachments...
-      </Button>
+      <div style={{ width: "100%" }}>
+        <Button
+          bsSize="small"
+          onClick={() => this.edit()}
+          style={{ float: "right" }}
+        >
+          Delete Attachments...
+        </Button>
+      </div>
     );
   }
 }
