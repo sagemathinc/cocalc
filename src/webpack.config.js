@@ -295,6 +295,7 @@ const pug2app = new HtmlWebpackPlugin({
   git_rev: GIT_REV,
   mathjax: MATHJAX_URL,
   filename: "app.html",
+  excludeChunks: ["lti"],
   chunksSortMode: smcChunkSorter,
   inject: "body",
   hash: PRODMODE,
@@ -304,7 +305,7 @@ const pug2app = new HtmlWebpackPlugin({
 });
 
 const lti_deep_link_page = new HtmlWebpackPlugin({
-  chunks: ["lti"],
+  chunks: ["vendor", "lti"],
   date: BUILD_DATE,
   title: TITLE,
   description: DESCRIPTION,
@@ -556,7 +557,11 @@ if (STATICPAGES) {
     ],
     "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
   };
-  plugins = plugins.concat([pug2app, mathjaxVersionedSymlink, lti_deep_link_page]);
+  plugins = plugins.concat([
+    pug2app,
+    mathjaxVersionedSymlink,
+    lti_deep_link_page
+  ]);
 }
 
 if (DEVMODE) {
