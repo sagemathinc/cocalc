@@ -255,7 +255,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
-  const order = ["css", "fill", "vendor", "smc"];
+  const order = ["css", "fill", "vendor", "lti", "smc"];
   if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
     return -1;
   } else {
@@ -299,6 +299,25 @@ const pug2app = new HtmlWebpackPlugin({
   inject: "body",
   hash: PRODMODE,
   template: path.join(INPUT, "app.pug"),
+  minify: htmlMinifyOpts,
+  GOOGLE_ANALYTICS
+});
+
+const lti_deep_link_page = new HtmlWebpackPlugin({
+  chunks: ["lti"],
+  date: BUILD_DATE,
+  title: TITLE,
+  description: DESCRIPTION,
+  BASE_URL: base_url_html,
+  theme,
+  COMP_ENV,
+  components: {}, // no data needed, empty is fine
+  inventory: {}, // no data needed, empty is fine
+  git_rev: GIT_REV,
+  filename: "lti.html",
+  inject: "body",
+  hash: PRODMODE,
+  template: path.join(INPUT, "lti.pug"),
   minify: htmlMinifyOpts,
   GOOGLE_ANALYTICS
 });
@@ -527,6 +546,7 @@ if (STATICPAGES) {
     css: "webapp-css.coffee",
     fill: "@babel/polyfill",
     smc: "webapp-smc.coffee",
+    lti: "lti-deep-linking.tsx",
     // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
     // this way it will have better caching/cache hits since it changes infrequently
     vendor: [
@@ -536,7 +556,7 @@ if (STATICPAGES) {
     ],
     "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
   };
-  plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
+  plugins = plugins.concat([pug2app, mathjaxVersionedSymlink, lti_deep_link_page]);
 }
 
 if (DEVMODE) {

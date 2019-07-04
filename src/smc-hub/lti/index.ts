@@ -1,1 +1,1 @@
-export { init_LTI_router } from "./simple-router";
+export { init_LTI_router } from "./router";
