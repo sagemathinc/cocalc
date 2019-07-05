@@ -37,6 +37,7 @@ const markdownlib = require("../markdown");
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 const { webapp_client } = require("../webapp_client");
+import { callback2 } from "smc-util/async-utils";
 
 // Course Library
 import { previous_step, Step, assignment_identifier } from "./util";
@@ -1435,50 +1436,31 @@ export class CourseActions extends Actions<CourseState> {
   // project as indicated by the quotas object.  E.g., to increase the core quota from 1 to 2, do
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
-  admin_upgrade_all_student_projects(quotas) {
+  public async admin_upgrade_all_student_projects(quotas): Promise<void> {
     if (
-      !__guard__(this.redux.getStore("account").get("groups"), x =>
-        x.contains("admin")
-      )
+      !this.redux
+        .getStore("account")
+        .get("groups", [])
+        .contains("admin")
     ) {
-      console.warn("must be an admin to upgrade");
+      throw Error("must be an admin to upgrade");
       return;
     }
     const store = this.get_store();
     if (store == null) {
-      console.warn("unable to get store");
+      throw Error("unable to get store");
       return;
     }
-    const f = (project_id, cb) => {
+    const ids: string[] | undefined = store.get_student_project_ids();
+    if (ids == null) {
+      throw Error("student project ids not defined");
+      return;
+    }
+    for (let project_id of ids) {
       const x = misc.copy(quotas);
       x.project_id = project_id;
-      x.cb = (err, mesg) => {
-        if (err || mesg.event === "error") {
-          console.warn(
-            `failed to set quotas for ${project_id} -- ${misc.to_json(mesg)}`
-          );
-        } else {
-          console.log(`set quotas for ${project_id}`);
-        }
-        return cb(err);
-      };
-      return webapp_client.project_set_quotas(x);
-    };
-    const ids = store.get_student_ids();
-    if (ids == undefined) {
-      return;
+      await callback2(webapp_client.project_set_quotas, x);
     }
-    return (
-      async.mapSeries(ids),
-      f,
-      err => {
-        if (err) {
-          return console.warn(`FAIL -- ${err}`);
-        } else {
-          return console.log("SUCCESS");
-        }
-      }
-    );
   }
 
   set_student_note(student, note) {

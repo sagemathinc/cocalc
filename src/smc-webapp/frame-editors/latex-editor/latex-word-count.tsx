@@ -38,6 +38,7 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
   render(): React.ReactElement<any> {
     return (
       <div
+        cocalc-test={"word-count-output"}
         className={"smc-vfill"}
         style={{
           overflowY: "scroll",

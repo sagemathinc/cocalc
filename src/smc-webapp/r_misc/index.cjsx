@@ -515,6 +515,7 @@ exports.SearchInput = rclass
         <FormGroup style={@props.style}>
             <InputGroup className={@props.input_class}>
                 <FormControl
+                    cocalc-test = 'search-input'
                     autoFocus   = {@props.autoFocus}
                     ref         = 'input'
                     type        = 'text'

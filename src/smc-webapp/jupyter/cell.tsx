@@ -234,6 +234,7 @@ export class Cell extends Component<CellProps> {
         onMouseUp={this.props.is_current ? undefined : this.click_on_cell}
         onDoubleClick={this.double_click}
         id={this.props.id}
+        cocalc-test={"jupyter-cell"}
       >
         {this.render_hook()}
         {this.render_metadata_state()}

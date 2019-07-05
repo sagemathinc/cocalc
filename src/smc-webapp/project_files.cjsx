@@ -183,7 +183,7 @@ ProjectFilesButtons = rclass
         @props.actions.open_directory('.snapshots')
 
     render_refresh: ->
-        <Button bsSize='small' onClick={@handle_refresh}>
+        <Button bsSize='small' cocalc-test='files-refresh' onClick={@handle_refresh}>
             <Icon name='refresh' />
         </Button>
 
@@ -306,7 +306,7 @@ ProjectFilesActions = rclass
             else
                 button_icon = 'minus-square-o'
 
-        <Button bsSize='small' onClick={@check_all_click_handler} >
+        <Button bsSize='small' cocalc-test="check-all" onClick={@check_all_click_handler} >
             <Icon name={button_icon} /> {button_text}
         </Button>
 
