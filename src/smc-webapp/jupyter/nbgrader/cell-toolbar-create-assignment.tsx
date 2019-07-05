@@ -4,7 +4,13 @@ nbgrader functionality: the create assignment toolbar.
   <FormGroup controlId="formInlineName">
 */
 
-import { FormControl, FormGroup, ControlLabel, Form } from "react-bootstrap";
+import {
+  Button,
+  FormControl,
+  FormGroup,
+  ControlLabel,
+  Form
+} from "react-bootstrap";
 import { Map } from "immutable";
 
 import { React, Component, Rendered } from "../../app-framework";
@@ -15,10 +21,39 @@ import { JupyterActions } from "../browser-actions";
 
 import { Metadata } from "./types";
 
-const TYPES = [
-  { title: "-", value: "", grade: false, locked: false, solution: false },
+import { popup } from "../../frame-editors/frame-tree/print";
+
+interface CelltypeInfo {
+  title: string; // human readable title for this type of cell
+  value: string; // what type of cell it is
+  grade: boolean; // is it graded?
+  locked: boolean; // is it locked?
+  solution: boolean; // is it a solution?
+  link: string; // link to some html help (the nbgrader docs)
+  hover: string; // hover text that is helpful about this cell type (summary of nbgrader docs)
+  points?: number; // default number of points
+  icon?: string; // icon that would make sense for this type of cell
+  code_only?: boolean; // only code cells can be set to this type
+}
+
+const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
+  {
+    title: "-",
+    value: "",
+    grade: false,
+    locked: false,
+    solution: false,
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
+    hover:
+      "Instructors develop assignments using the assignment toolbar, which allows them to specify the type of problem in each cell and how it will be graded."
+  },
   {
     title: "Manually graded answer",
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
+    hover:
+      "Cell contains an answer that must be manually graded by a human grader.",
     value: "manual",
     icon: "book-reader",
     grade: true,
@@ -28,6 +63,9 @@ const TYPES = [
   },
   {
     title: "Autograded answer",
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
+    hover: "Cell contains an answer that will be autograded.",
     value: "auto",
     icon: "magic",
     grade: false,
@@ -37,6 +75,9 @@ const TYPES = [
   },
   {
     title: "Autograder tests",
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
+    hover: "Cell that contains tests to be run during autograding.",
     value: "test",
     icon: "check",
     grade: true,
@@ -47,6 +88,10 @@ const TYPES = [
   },
   {
     title: "Readonly",
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#read-only-cells",
+    hover:
+      "Cell is marked as one that cannot be modified; during autograding the original version is recovered in case it was changed by the student.",
     value: "readonly",
     icon: "lock",
     grade: false,
@@ -54,6 +99,11 @@ const TYPES = [
     solution: false
   }
 ];
+
+const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
+for (let x of CELLTYPE_INFO_LIST) {
+  CELLTYPE_INFO_MAP[x.value] = x;
+}
 
 // I could implement this with another map hardcoded
 // in Javascript, but instead use a function with a cache
@@ -65,7 +115,7 @@ function state_to_value(state: Metadata): string {
   const solution: boolean = !!state.solution;
   const key = JSON.stringify({ grade, locked, solution });
   if (value_cache[key] != undefined) return value_cache[key];
-  for (let x of TYPES) {
+  for (let x of CELLTYPE_INFO_LIST) {
     if (x.grade == grade && x.locked == locked && x.solution == solution) {
       value_cache[key] = x.value;
       return x.value;
@@ -75,23 +125,22 @@ function state_to_value(state: Metadata): string {
 }
 
 function value_to_state(value: string): Metadata {
-  for (let x of TYPES) {
-    if (x.value === value) {
-      return {
-        grade: x.grade,
-        locked: x.locked,
-        solution: x.solution,
-        points: x.points
-      };
-    }
+  const x = CELLTYPE_INFO_MAP[value];
+  if (x == null) {
+    throw Error(`unknown value "${value}"`);
   }
-  throw Error(`unknown value "${value}"`);
+  return {
+    grade: x.grade,
+    locked: x.locked,
+    solution: x.solution,
+    points: x.points
+  };
 }
 
 const OPTIONS_CODE: Rendered[] = [];
 const OPTIONS_NOTCODE: Rendered[] = [];
 
-for (let x of TYPES) {
+for (let x of CELLTYPE_INFO_LIST) {
   const option = (
     <option key={x.value} value={x.value}>
       {x.title}
@@ -118,13 +167,13 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       return;
     }
     const metadata: Metadata = value_to_state(value);
-    if (value == "readonly") {
-      metadata.grade_id = undefined;
-    } else {
-      metadata.grade_id = this.props.cell.getIn(
-        ["metadata", "nbgrader", "grade_id"],
-        this.props.cell.get("id")
-      ); // TODO -- check if default is globally unique...?
+    metadata.grade_id = this.props.cell.getIn(
+      ["metadata", "nbgrader", "grade_id"],
+      ""
+    );
+    if (!metadata.grade_id) {
+      // TODO -- check if default is globally unique...?
+      metadata.grade_id = this.props.cell.get("id");
     }
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),
@@ -172,14 +221,17 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     if (points == null) return;
     return (
       <FormGroup>
-        <ControlLabel style={{ color: "white", fontWeight: 400 }}>
-          Points:
-        </ControlLabel>
+        <ControlLabel style={{ fontWeight: 400 }}>Points:</ControlLabel>
         <FormControl
           type="number"
           value={points}
           onChange={e => this.set_points((e.target as any).value)}
-          style={{ width: "5em", marginLeft: "5px" }}
+          style={{
+            color: "#666",
+            width: "64px",
+            marginLeft: "5px",
+            fontSize: "14px"
+          }}
         />
       </FormGroup>
     );
@@ -194,7 +246,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   }
 
   private render_id(): Rendered {
-    const grade_id: number | undefined = this.props.cell.getIn([
+    const grade_id: string | undefined = this.props.cell.getIn([
       "metadata",
       "nbgrader",
       "grade_id"
@@ -202,9 +254,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     if (grade_id == null) return;
     return (
       <FormGroup>
-        <ControlLabel
-          style={{ marginLeft: "15px", color: "white", fontWeight: 400 }}
-        >
+        <ControlLabel style={{ marginLeft: "15px", fontWeight: 400 }}>
           ID:
         </ControlLabel>
         <input
@@ -212,7 +262,13 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
           type="input"
           value={grade_id}
           onChange={e => this.set_grade_id((e.target as any).value)}
-          style={{ width: "5em", marginLeft: "10px" }}
+          style={{
+            width: `${grade_id.length <= 6 ? 64 : 180}px`,
+            marginLeft: "10px",
+            paddingLeft: "5px",
+            color: "#666",
+            fontSize: "14px"
+          }}
         />
       </FormGroup>
     );
@@ -224,17 +280,37 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
         ? OPTIONS_CODE
         : OPTIONS_NOTCODE;
     return (
-      <span style={{ marginLeft: "15px" }}>
-        <FormControl
-          componentClass="select"
-          placeholder="select"
-          onChange={e => this.select((e as any).target.value)}
-          value={this.get_value()}
-          style={{ marginLeft: "15px" }}
-        >
-          {options}
-        </FormControl>
-      </span>
+      <FormControl
+        componentClass="select"
+        placeholder="select"
+        onChange={e => this.select((e as any).target.value)}
+        value={this.get_value()}
+        style={{ marginLeft: "15px" }}
+      >
+        {options}
+      </FormControl>
+    );
+  }
+
+  private click_help(): void {
+    const value = this.get_value();
+    const info = CELLTYPE_INFO_MAP[value];
+    if (info == null) return;
+    popup(info.link, 750);
+  }
+
+  private render_help(): Rendered {
+    const value = this.get_value();
+    const info = CELLTYPE_INFO_MAP[value];
+    if (info == null) return;
+    return (
+      <Button
+        onClick={() => this.click_help()}
+        style={{ marginLeft: "15px" }}
+        title={info.hover}
+      >
+        <Icon name="question-circle" />
+      </Button>
     );
   }
 
@@ -256,6 +332,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
           {this.render_points()}
           {this.render_id()}
           {this.render_dropdown()}
+          {this.render_help()}
         </Form>
       </div>
     );

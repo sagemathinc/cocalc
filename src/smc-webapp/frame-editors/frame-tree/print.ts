@@ -16,11 +16,11 @@ import { React, Redux, redux } from "../../app-framework";
 
 let BLOCKED: boolean | undefined = undefined;
 
-export function popup(url: string): any {
+export function popup(url: string, width:number=800, height:number=640): any {
   const w: any = window.open(
     url,
     "_blank",
-    "menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800"
+    `menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=${height},width=${width}`
   );
   if (!w || w.closed === undefined) {
     if (BLOCKED || BLOCKED === undefined) {
