@@ -13,7 +13,6 @@ export class NBGraderActions {
 
   public close(): void {
     delete this.jupyter_actions;
-    console.log("TODO -- close NBGraderActions");
   }
 
   private get_metadata(id: string): ImmutableMetadata {
