@@ -7,6 +7,7 @@ import { PublicPathInfo } from "./public-path-info";
 import { LinkToFile } from "./link-to-file";
 import { FileContents } from "./file-contents";
 import { Map } from "immutable";
+import { Author } from "./types";
 
 interface Props {
   info?: Map<string, any>;
@@ -18,6 +19,7 @@ interface Props {
   why?: string;
   size: number;
   highlight: boolean;
+  authors: Author[];
 }
 
 export class PublicPath extends Component<Props> {
@@ -36,15 +38,21 @@ export class PublicPath extends Component<Props> {
   }
 
   public render(): Rendered {
-    const view = this.render_file_view()
+    const view = this.render_file_view();
     if (this.props.viewer === "embed") {
       return view;
     }
 
     return (
       <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-        <PublicPathInfo path={this.props.path} info={this.props.info} />
-        <div style={{ background: "white", flex: 1, margin: "10px"}}>{view}</div>
+        <PublicPathInfo
+          path={this.props.path}
+          info={this.props.info}
+          authors={this.props.authors}
+        />
+        <div style={{ background: "white", flex: 1, margin: "10px" }}>
+          {view}
+        </div>
       </div>
     );
   }

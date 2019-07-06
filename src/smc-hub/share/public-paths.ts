@@ -13,6 +13,7 @@ import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
 import { cmp, bind_methods } from "smc-util/misc2";
 import { containing_public_path } from "smc-util/misc";
+import { Author } from "smc-webapp/share/types";
 
 export type HostInfo = immutable.Map<string, any>;
 
@@ -178,6 +179,25 @@ export class PublicPaths extends EventEmitter {
       this.update_public_paths(id);
     });
     this.init_public_paths();
+  }
+
+  // TODO: need to cache this.
+  public async get_authors(
+    project_id: string,
+    path: string
+  ): Promise<Author[]> {
+    const id: string = this.database.sha1(project_id, path);
+    const result = await callback2(this.database._query, {
+      query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
+    });
+    if (result == null || result.rowCount < 1) return [];
+    const authors: Author[] = [];
+    for (let account_id of result.rows[0].users) {
+      if (account_id != project_id) {
+        authors.push({ name: "foo", account_id });
+      }
+    }
+    return authors;
   }
 }
 

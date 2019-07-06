@@ -13,10 +13,15 @@ import { path_split } from "smc-util/misc";
 
 import { LICENSES } from "./config/licenses";
 
+import { Author } from "./types";
+
+import { AuthorLink } from "./author-link";
+
 interface Props {
   info?: Map<string, any>;
   path: string;
   isdir?: boolean;
+  authors: Author[];
 }
 
 export class PublicPathInfo extends Component<Props> {
@@ -41,7 +46,7 @@ export class PublicPathInfo extends Component<Props> {
     }
 
     return (
-      <div className="pull-right" style={{ marginRight: "5px" }}>
+      <div className="pull-right" style={{ marginRight: "5px" }} key={"links"}>
         {r_join(v, <Space />)}
       </div>
     );
@@ -51,7 +56,7 @@ export class PublicPathInfo extends Component<Props> {
     if (this.props.info == null) return;
     let desc = this.props.info.get("description");
     if (!desc) return;
-    return <div>{desc}</div>;
+    return <div key={"desc"}>{desc}</div>;
   }
 
   private render_license(): Rendered {
@@ -61,7 +66,21 @@ export class PublicPathInfo extends Component<Props> {
     let desc: string | undefined = LICENSES[license];
     // fallback in case of weird license not listed in our table:
     if (desc == undefined) desc = license;
-    return <div>{desc}</div>;
+    return <div key={"license"}>{desc}</div>;
+  }
+
+  private render_authors(): Rendered {
+    const v: Rendered[] = [];
+    for (let author of this.props.authors) {
+      v.push(
+        <AuthorLink
+          key={author.account_id}
+          name={author.name}
+          account_id={author.account_id}
+        />
+      );
+    }
+    return <div key={"authors"}>{r_join(v, <Space />)}</div>;
   }
 
   public render(): Rendered {
@@ -70,6 +89,7 @@ export class PublicPathInfo extends Component<Props> {
         {this.render_external_links()}
         {this.render_desc()}
         {this.render_license()}
+        {this.render_authors()}
       </div>
     );
   }
