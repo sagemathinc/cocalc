@@ -191,11 +191,21 @@ export class PublicPaths extends EventEmitter {
       query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
     });
     if (result == null || result.rowCount < 1) return [];
-    const authors: Author[] = [];
+    const account_ids: string[] = [];
     for (let account_id of result.rows[0].users) {
       if (account_id != project_id) {
-        authors.push({ name: "foo", account_id });
+        account_ids.push(account_id);
       }
+    }
+    const authors: Author[] = [];
+    const names = await callback2(this.database.get_usernames, {
+      account_ids,
+      cache_time_s: 60 * 5
+    });
+    for (let account_id in names) { // todo really need to sort by last name
+      const { first_name, last_name } = names[account_id];
+      const name = `${first_name} ${last_name}`;
+      authors.push({ name, account_id });
     }
     return authors;
   }
