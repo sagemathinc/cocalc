@@ -184,6 +184,18 @@ export function share_router(opts: {
     r(res, page, `${page_number} of ${PAGE_SIZE}`);
   });
 
+  router.get("/users", async function(req, res): Promise<void> {
+    log_ip(req);
+    await ready();
+    res.send("the users who share are: ");
+  });
+
+  router.get("/users/:account_id", async function(req, res): Promise<void> {
+    log_ip(req);
+    await ready();
+    res.send(`account_id = ${req.params.account_id}`);
+  });
+
   router.get("/:id/*?", async function(req, res): Promise<void> {
     log_ip(req);
     await ready();
@@ -276,7 +288,8 @@ export function share_router(opts: {
           viewer,
           hidden: req.query.hidden,
           sort: req.query.sort != null ? req.query.sort : "-mtime",
-          authors
+          authors,
+          base_url
         });
     }
   });

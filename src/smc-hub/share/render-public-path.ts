@@ -39,6 +39,7 @@ export async function render_public_path(opts: {
   hidden?: boolean;
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
   authors: Author[];
+  base_url: string;
 }): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
 
@@ -135,7 +136,8 @@ export async function render_public_path(opts: {
     why,
     size: stats.size,
     highlight,
-    authors: opts.authors
+    authors: opts.authors,
+    base_url: opts.base_url
   });
   opts.react(opts.res, component, opts.path);
 }

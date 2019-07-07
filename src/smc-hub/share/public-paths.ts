@@ -202,11 +202,15 @@ export class PublicPaths extends EventEmitter {
       account_ids,
       cache_time_s: 60 * 5
     });
-    for (let account_id in names) { // todo really need to sort by last name
+    for (let account_id in names) {
+      // todo really need to sort by last name
       const { first_name, last_name } = names[account_id];
       const name = `${first_name} ${last_name}`;
       authors.push({ name, account_id });
     }
+    authors.sort((a, b) =>
+      cmp(names[a.account_id].last_name, names[b.account_id].last_name)
+    );
     return authors;
   }
 }
