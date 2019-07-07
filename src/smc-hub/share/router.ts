@@ -26,6 +26,7 @@ import { IsPublicFunction, Page } from "smc-webapp/share/page";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";
+import { render_user } from "./render-user";
 
 import * as util from "./util";
 
@@ -192,8 +193,17 @@ export function share_router(opts: {
 
   router.get("/users/:account_id", async function(req, res): Promise<void> {
     log_ip(req);
+    const account_id: string = req.params.account_id;
+    if (!is_valid_uuid_string(account_id)) {
+      res.sendStatus(404);
+      return;
+    }
     await ready();
-    res.send(`account_id = ${req.params.account_id}`);
+    dbg("get user ", account_id);
+    render_user({
+      res,
+      account_id
+    });
   });
 
   router.get("/:id/*?", async function(req, res): Promise<void> {

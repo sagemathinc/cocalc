@@ -33,7 +33,7 @@ export async function render_public_path(opts: {
   res: any; // html response object
   info?: HostInfo; // immutable.js info about the public share, if url starts with share id (as opposed to project_id)
   dir: string; // directory on disk containing files for this path
-  react: any;
+  react: Function;
   path: string;
   viewer: string;
   hidden?: boolean;

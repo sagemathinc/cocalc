@@ -1,10 +1,6 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
-Share server top-level landing page.
+Share server wrapper page -- any page the share server generates with a custom
+share-server look is a child of this.
 */
 
 import { React, Component, Rendered } from "../app-framework";
@@ -38,13 +34,9 @@ export type IsPublicFunction = (project_id: string, path: string) => boolean;
 interface PageProps {
   site_name?: string;
   base_url: string;
-  path: string; // the path with no base url to the currently displayed file, directory, etc.
-  viewer: string; // 'share' or 'embed'
-  project_id?: string; // only defined if we are viewing something in a project
   subtitle?: string;
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
-  is_public: IsPublicFunction;
 }
 
 export class Page extends Component<PageProps> {
@@ -207,6 +199,7 @@ gtag('config', '${this.props.google_analytics}');\
     );
   }
 }
+
 
 import { CoCalcLogo } from "./logo";
 
