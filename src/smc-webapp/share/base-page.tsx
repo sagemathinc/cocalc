@@ -30,7 +30,7 @@ export type IsPublicFunction = (project_id: string, path: string) => boolean;
 interface BasePageProps {
   base_url: string;
   subtitle?: string;
-  viewer?: 'share' | 'embed';
+  viewer?: string;
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
 }
