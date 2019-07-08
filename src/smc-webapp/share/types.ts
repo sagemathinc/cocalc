@@ -3,3 +3,4 @@ export interface Author {
   account_id: string;
 }
 
+export type IsPublicFunction = (project_id: string, path: string) => boolean;

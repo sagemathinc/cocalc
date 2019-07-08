@@ -22,7 +22,8 @@ import {
   default_to_raw,
   has_special_viewer
 } from "smc-webapp/share/file-contents";
-import { IsPublicFunction, Page } from "smc-webapp/share/page";
+import { ContentPage } from "smc-webapp/share/content-page";
+import { IsPublicFunction } from "smc-webapp/share/types";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";
@@ -45,7 +46,7 @@ function react_viewer(
 ): Function {
   return function(res, component, subtitle: string): void {
     const the_page = React.createElement(
-      Page,
+      ContentPage,
       {
         base_url,
         path,

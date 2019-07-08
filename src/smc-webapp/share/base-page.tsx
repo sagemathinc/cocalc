@@ -4,11 +4,7 @@ share-server look is a child of this.
 */
 
 import { React, Component, Rendered } from "../app-framework";
-
-import { SITE_NAME, BASE_URL, DNS } from "smc-util/theme";
-
-//import { r_join } from "../r_misc";
-const { r_join } = require("../r_misc");
+import { DNS } from "smc-util/theme";
 
 const CDN_LINKS = [
   {
@@ -31,20 +27,15 @@ const CDN_LINKS = [
 
 export type IsPublicFunction = (project_id: string, path: string) => boolean;
 
-interface PageProps {
-  site_name?: string;
+interface BasePageProps {
   base_url: string;
   subtitle?: string;
+  viewer: string; // 'share' or 'embed'
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
 }
 
-export class Page extends Component<PageProps> {
-  static defaultProps = {
-    base_url: BASE_URL,
-    site_name: SITE_NAME
-  };
-
+export class BasePage extends Component<BasePageProps> {
   private render_viewport(): Rendered {
     return (
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -168,8 +159,6 @@ gtag('config', '${this.props.google_analytics}');\
   }
 
   public render(): Rendered {
-    if (this.props.site_name == null) throw Error("bug -- site_name is null"); // make typescript happy.
-    if (this.props.base_url == null) throw Error("bug -- base_url is null"); // make typescript happy.
     return (
       <html lang="en">
         <head>
@@ -184,140 +173,8 @@ gtag('config', '${this.props.google_analytics}');\
           {this.render_google_analytics()}
           {this.render_cocalc_analytics()}
         </head>
-        <body>
-          <TopBar
-            viewer={this.props.viewer}
-            path={this.props.path}
-            project_id={this.props.project_id}
-            base_url={this.props.base_url}
-            site_name={this.props.site_name}
-            is_public={this.props.is_public}
-          />
-          {this.props.children}
-        </body>
+        <body>{this.props.children}</body>
       </html>
-    );
-  }
-}
-
-
-import { CoCalcLogo } from "./logo";
-
-interface TopBarProps {
-  viewer?: string;
-  path: string; // The share url. Must have a leading `/`. {base_url}/share{path}
-  project_id?: string;
-  base_url: string;
-  site_name: string;
-  is_public: IsPublicFunction;
-}
-
-class TopBar extends Component<TopBarProps> {
-  public render(): Rendered {
-    // TODO: break up this long function!
-    const {
-      viewer,
-      path,
-      project_id,
-      base_url,
-      site_name,
-      is_public
-    } = this.props;
-    let path_component, top;
-    if (viewer === "embed") {
-      return <span />;
-    }
-    let project_link: Rendered = undefined;
-    if (path === "/") {
-      top = ".";
-      path_component = <span />;
-    } else {
-      let i;
-      let v = path.split("/").slice(2);
-      top = v.map(() => "..").join("/");
-      if (v.length > 0 && v[v.length - 1] === "") {
-        v = v.slice(0, v.length - 1);
-      }
-      const segments: Rendered[] = [];
-      let t = "";
-
-      v.reverse();
-      for (i = 0; i < v.length; i++) {
-        const val = v[i];
-        const segment_path = v
-          .slice(i)
-          .reverse()
-          .join("/");
-        if (t && (!project_id || is_public(project_id, segment_path))) {
-          const href = `${t}?viewer=share`;
-          segments.push(
-            <a key={t} href={href}>
-              {val}
-            </a>
-          );
-        } else {
-          segments.push(<span key={t}>{val}</span>);
-        }
-        if (!t) {
-          if (path.slice(-1) === "/") {
-            t = "..";
-          } else {
-            t = ".";
-          }
-        } else {
-          t += "/..";
-        }
-      }
-      segments.reverse();
-      path_component = r_join(
-        segments,
-        <span style={{ margin: "0 5px" }}> / </span>
-      );
-
-      if (project_id) {
-        i = path.slice(1).indexOf("/");
-        const proj_url = `${top}/../projects/${project_id}/files/${path.slice(
-          2 + i
-        )}?session=share`;
-        project_link = (
-          <a
-            target="_blank"
-            href={proj_url}
-            className="pull-right"
-            rel="nofollow"
-            style={{ textDecoration: "none" }}
-          >
-            Open in {site_name}
-          </a>
-        );
-      }
-    }
-
-    return (
-      <div
-        key="top"
-        style={{
-          padding: "5px 5px 0px 5px",
-          height: "50px",
-          background: "#efefef"
-        }}
-      >
-        <span style={{ marginRight: "10px" }}>
-          <a href={top} style={{ textDecoration: "none" }}>
-            <CoCalcLogo base_url={base_url} /> Shared
-          </a>
-        </span>
-        <span
-          style={{
-            paddingLeft: "15px",
-            borderLeft: "1px solid black",
-            marginLeft: "15px"
-          }}
-        >
-          {path_component}
-        </span>
-        {project_link}
-      </div>
     );
   }
 }
