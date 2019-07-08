@@ -253,6 +253,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             project_id      : required  # string  id of the project to open
             target          : undefined # string  The file path to open
+            anchor          : undefined # string  if given, an anchor tag in the editor that is opened.
             switch_to       : true      # bool    Whether or not to foreground it
             ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
             change_history  : true      # bool    Whether or not to alter browser history
@@ -270,7 +271,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').set_active_tab(opts.project_id, opts.change_history) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history, opts.anchor)
         if opts.restore_session
             redux.getActions('page').restore_session(opts.project_id)
         # initialize project
@@ -292,7 +293,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').save_session()
 
     # should not be in projects...?
-    load_target: (target, switch_to, ignore_kiosk=false, change_history=true) =>
+    load_target: (target, switch_to, ignore_kiosk=false, change_history=true, anchor=undefined) =>
         #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
@@ -304,6 +305,7 @@ class ProjectsActions extends Actions
             @open_project
                 project_id     : project_id
                 target         : t
+                anchor         : anchor
                 switch_to      : switch_to
                 ignore_kiosk   : ignore_kiosk
                 change_history : change_history
