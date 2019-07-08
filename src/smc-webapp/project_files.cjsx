@@ -60,6 +60,7 @@ ROW_INFO_STYLE = Object.freeze
     height     : '22px'
     margin     : '5px 3px'
 
+
 {FileListing, TERM_MODE_CHAR} = require("./project/file-listing")
 
 feature = require('./feature')
@@ -1819,46 +1820,58 @@ exports.ProjectFiles = rclass ({name}) ->
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
 
-        flex_row_style =
+        FLEX_ROW_STYLE =
             display: 'flex'
             flexFlow: 'row wrap'
             justifyContent: 'space-between'
             alignItems: 'stretch'
 
-        <div style={display: "flex", flexDirection: "column", padding:'5px', height: '100%'}>
-            {if pay? then @render_course_payment_warning(pay)}
-            {@render_error()}
-            {@render_activity()}
-            {@render_control_row(public_view, visible_listing)}
-            {<AskNewFilename
-                actions            = {@props.actions}
-                current_path       = {@props.current_path}
-                ext_selection      = {@props.ext_selection}
-                new_filename       = {@props.new_filename}
-                other_settings     = {@props.other_settings}
-            /> if @props.ext_selection}
-            {@render_new()}
 
-            <div style={flex_row_style}>
-                <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
-                    {@render_files_actions(listing, public_view, project_is_running) if listing?}
+        # be careful with adding height:'100%'. it could cause flex to miscalc. see #3904
+        <div
+            style={flex: "1", display: "flex", flexDirection: "column", height: "100%"}
+        >
+            <div
+                style={flex: "0", display: "flex", flexDirection: "column", padding:'5px 5px 0 5px'}
+            >
+                {if pay? then @render_course_payment_warning(pay)}
+                {@render_error()}
+                {@render_activity()}
+                {@render_control_row(public_view, visible_listing)}
+                {<AskNewFilename
+                    actions            = {@props.actions}
+                    current_path       = {@props.current_path}
+                    ext_selection      = {@props.ext_selection}
+                    new_filename       = {@props.new_filename}
+                    other_settings     = {@props.other_settings}
+                /> if @props.ext_selection}
+                {@render_new()}
+
+                <div style={FLEX_ROW_STYLE}>
+                    <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
+                        {@render_files_actions(listing, public_view, project_is_running) if listing?}
+                    </div>
+                    {@render_project_files_buttons(public_view)}
                 </div>
-                {@render_project_files_buttons(public_view)}
+
+                {@render_custom_software_reset() if project_is_running}
+
+                {@render_library() if @props.show_library}
+
+                {if @props.checked_files.size > 0 and @props.file_action?
+                    <Row>
+                        {@render_files_action_box(file_map, public_view)}
+                    </Row>
+                }
             </div>
+            <div
+                style={flex: "1", display: "flex", flexDirection: "column", padding:'0 5px 5px 5px'}
+            >
 
-            {@render_custom_software_reset() if project_is_running}
-
-            {@render_library() if @props.show_library}
-
-            {if @props.checked_files.size > 0 and @props.file_action?
-                <Row>
-                    {@render_files_action_box(file_map, public_view)}
-                </Row>
-            }
-
-            {### Only show the access error if there is not another error. ###}
-            {@render_access_error() if public_view and not error}
-            {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
-            {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
+                {### Only show the access error if there is not another error. ###}
+                {@render_access_error() if public_view and not error}
+                {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
+                {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
+            </div>
         </div>
 
