@@ -255,7 +255,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
-  const order = ["css", "fill", "vendor", "lti", "smc"];
+  const order = ["css", "fill", "vendor", "smc", "lti"];
   if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
     return -1;
   } else {
