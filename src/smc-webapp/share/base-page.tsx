@@ -30,7 +30,7 @@ export type IsPublicFunction = (project_id: string, path: string) => boolean;
 interface BasePageProps {
   base_url: string;
   subtitle?: string;
-  viewer: string; // 'share' or 'embed'
+  viewer?: 'share' | 'embed';
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
 }
@@ -50,45 +50,6 @@ export class BasePage extends Component<BasePageProps> {
     return <title>{title}</title>;
   }
 
-  private render_cocalc_link(): Rendered {
-    if (this.props.viewer === "embed") {
-      return (
-        <div
-          style={{
-            right: 0,
-            position: "absolute",
-            fontSize: "8pt",
-            border: "1px solid #aaa",
-            padding: "2px"
-          }}
-        >
-          <a href={"https://cocalc.com"} target={"_blank"} rel={"noopener"}>
-            Powered by CoCalc
-          </a>
-        </div>
-      );
-    } else {
-      return (
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translate(-50%)",
-            fontSize: "12pt"
-          }}
-        >
-          <a
-            href={"https://cocalc.com/doc/"}
-            target={"_blank"}
-            rel={"noopener"}
-          >
-            CoCalc
-          </a>
-        </div>
-      );
-    }
-  }
-
   private render_notranslate(): Rendered {
     // don't translate the index pages
     if (!this.props.notranslate) {
@@ -98,8 +59,9 @@ export class BasePage extends Component<BasePageProps> {
   }
 
   private render_noindex(): Rendered {
-    if (this.props.viewer === "share") {
-      // we want share to be indexed
+    // **TODO** -- actually add the metadata!
+    if (this.props.viewer == "embed") {
+      // we do not want this to be indexed!
       return;
     }
   }
@@ -164,7 +126,6 @@ gtag('config', '${this.props.google_analytics}');\
         <head>
           {this.render_viewport()}
           {this.render_title()}
-          {this.render_cocalc_link()}
           {this.render_notranslate()}
           {this.render_cdn_links()}
           {this.render_favicon()}

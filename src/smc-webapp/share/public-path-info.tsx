@@ -21,7 +21,7 @@ interface Props {
   info?: Map<string, any>;
   path: string;
   isdir?: boolean;
-  authors: Author[];
+  authors?: Author[];
   base_url: string;
 }
 
@@ -71,6 +71,7 @@ export class PublicPathInfo extends Component<Props> {
   }
 
   private render_authors(): Rendered {
+    if (this.props.authors == null) return;
     const v: Rendered[] = [];
     for (let author of this.props.authors) {
       v.push(

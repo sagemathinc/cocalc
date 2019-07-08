@@ -18,17 +18,65 @@ export class TopBar extends Component<TopBarProps> {
     site_name: SITE_NAME
   };
 
+  private render_cocalc_link(): Rendered {
+    if (this.props.viewer === "embed") {
+      return (
+        <div
+          style={{
+            right: 0,
+            position: "absolute",
+            fontSize: "8pt",
+            border: "1px solid #aaa",
+            padding: "2px"
+          }}
+        >
+          <a href={"https://cocalc.com"} target={"_blank"} rel={"noopener"}>
+            Powered by CoCalc
+          </a>
+        </div>
+      );
+    } else {
+      return (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translate(-50%)",
+            fontSize: "12pt"
+          }}
+        >
+          <a
+            href={"https://cocalc.com/doc/"}
+            target={"_blank"}
+            rel={"noopener"}
+          >
+            CoCalc
+          </a>
+        </div>
+      );
+    }
+  }
+
+  private render_logo(top: string): Rendered {
+    return (
+      <span style={{ marginRight: "10px" }}>
+        <a href={top} style={{ textDecoration: "none" }}>
+          <CoCalcLogo base_url={this.props.base_url} /> Shared
+        </a>
+      </span>
+    );
+  }
+
   public render(): Rendered {
     // TODO: break up this long function!
     const {
       viewer,
       path,
       project_id,
-      base_url,
       site_name,
       is_public
     } = this.props;
-    let path_component, top;
+    let path_component: Rendered, top: string;
     if (viewer === "embed") {
       return <span />;
     }
@@ -107,11 +155,8 @@ export class TopBar extends Component<TopBarProps> {
           background: "#efefef"
         }}
       >
-        <span style={{ marginRight: "10px" }}>
-          <a href={top} style={{ textDecoration: "none" }}>
-            <CoCalcLogo base_url={base_url} /> Shared
-          </a>
-        </span>
+        {this.render_cocalc_link()}
+        {this.render_logo(top)}
         <span
           style={{
             paddingLeft: "15px",

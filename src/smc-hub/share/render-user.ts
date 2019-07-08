@@ -10,9 +10,16 @@ import { React } from "smc-webapp/app-framework";
 import { UserPage } from "smc-webapp/share/user-page";
 import { react } from "./react";
 
-export function render_user(opts: { res: any; account_id: string }): void {
+export function render_user(opts: {
+  res: any;
+  account_id: string;
+  google_analytics?: string;
+  base_url: string;
+}): void {
   const component = React.createElement(UserPage, {
-    account_id: opts.account_id
+    account_id: opts.account_id,
+    google_analytics: opts.google_analytics,
+    base_url: opts.base_url
   });
   react(opts.res, component);
 }

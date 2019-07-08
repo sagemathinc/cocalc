@@ -203,7 +203,9 @@ export function share_router(opts: {
     dbg("get user ", account_id);
     render_user({
       res,
-      account_id
+      account_id,
+      google_analytics,
+      base_url
     });
   });
 
