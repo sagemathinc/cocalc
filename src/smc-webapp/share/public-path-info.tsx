@@ -57,7 +57,7 @@ export class PublicPathInfo extends Component<Props> {
     if (this.props.info == null) return;
     let desc = this.props.info.get("description");
     if (!desc) return;
-    return <div key={"desc"}>{desc}</div>;
+    return <div key={"desc"}>Description: {desc}</div>;
   }
 
   private render_license(): Rendered {
@@ -67,11 +67,11 @@ export class PublicPathInfo extends Component<Props> {
     let desc: string | undefined = LICENSES[license];
     // fallback in case of weird license not listed in our table:
     if (desc == undefined) desc = license;
-    return <div key={"license"}>{desc}</div>;
+    return <div key={"license"}>License: {desc}</div>;
   }
 
   private render_authors(): Rendered {
-    if (this.props.authors == null) return;
+    if (this.props.authors == null || this.props.authors.length == 0) return;
     const v: Rendered[] = [];
     for (let author of this.props.authors) {
       v.push(
@@ -83,7 +83,7 @@ export class PublicPathInfo extends Component<Props> {
         />
       );
     }
-    return <div key={"authors"}>{r_join(v, <Space />)}</div>;
+    return <div key={"authors"}>Shared by: {r_join(v, <Space />)}</div>;
   }
 
   public render(): Rendered {

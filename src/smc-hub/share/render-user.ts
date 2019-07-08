@@ -13,13 +13,15 @@ import { react } from "./react";
 export function render_user(opts: {
   res: any;
   account_id: string;
+  name: string;
   google_analytics?: string;
   base_url: string;
 }): void {
   const component = React.createElement(UserPage, {
     account_id: opts.account_id,
     google_analytics: opts.google_analytics,
-    base_url: opts.base_url
+    base_url: opts.base_url,
+    name: opts.name
   });
   react(opts.res, component);
 }

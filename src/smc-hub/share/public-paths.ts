@@ -181,7 +181,6 @@ export class PublicPaths extends EventEmitter {
     this.init_public_paths();
   }
 
-  // TODO: need to cache this.
   public async get_authors(
     project_id: string,
     path: string
@@ -212,6 +211,15 @@ export class PublicPaths extends EventEmitter {
       cmp(names[a.account_id].last_name, names[b.account_id].last_name)
     );
     return authors;
+  }
+
+  public async get_username(account_id: string): Promise<string> {
+    const names = await callback2(this.database.get_usernames, {
+      account_ids: [account_id],
+      cache_time_s: 60 * 5
+    });
+    const { first_name, last_name } = names[account_id];
+    return `${first_name} ${last_name}`;
   }
 }
 

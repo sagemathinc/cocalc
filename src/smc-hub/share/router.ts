@@ -164,10 +164,8 @@ export function share_router(opts: {
 
     const page_number = parseInt(req.query.page != null ? req.query.page : 1);
 
+    if (public_paths == null) throw Error("public_paths must be defined");
     // TODO: "as any" due to Typescript confusion between two copies of immutable.js
-    if (public_paths == null) {
-      throw Error("public_paths must be defined");
-    }
     const paths_order: any = public_paths.order();
     const page = React.createElement(PublicPathsBrowser, {
       page_number: page_number,
@@ -200,10 +198,13 @@ export function share_router(opts: {
       return;
     }
     await ready();
+    if (public_paths == null) throw Error("public_paths must be defined");
     dbg("get user ", account_id);
+    const name = await public_paths.get_username(account_id);
     render_user({
       res,
       account_id,
+      name,
       google_analytics,
       base_url
     });
