@@ -257,7 +257,9 @@ VISIBLE_STYLE =
 const NOT_VISIBLE_STYLE: React.CSSProperties = {
   position: "absolute",
   fontSize: 0,
-  zIndex: -100
+  zIndex: -100,
+  left: 0,
+  top: 0
 };
 
 interface Props {
