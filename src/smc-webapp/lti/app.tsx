@@ -5,8 +5,7 @@ import axios from "axios";
 const live_api_key = "sk_55xJTNDSAez7DNWFI3wV9lZO";
 const live_api_url = "https://cocalc.com/api/v1/";
 // const test_api_key = "sk_DHSUXftaWOl3t0d4HQEq4ZKv";
-// const test_api_url =
-"https://cocalc.com/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/api/v1/";
+// const test_api_url = "https://cocalc.com/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/api/v1/";
 const page = <div> This is from react! </div>;
 
 axios({
