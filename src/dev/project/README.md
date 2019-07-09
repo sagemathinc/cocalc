@@ -89,35 +89,46 @@ Add this line to your ~/.bashrc to set the environment automatically on login:
 
 ## Creating an admin user
 
-You can get the account id's by doing:
+You can get the account emails & id's by doing:
 
-    ~/cocalc/src/dev/project$ psql smc
-    psql (10devel)
-    Type "help" for help.
+    psql smc -c 'select account_id, email_address, groups from accounts'
 
-    smc=# select account_id, email_address, groups from accounts;
                   account_id              |  email_address   | groups
     --------------------------------------+------------------+--------
      c286277f-e856-4a30-a2c7-a2791a9bec79 | wstein@gmail.com |
     (1 row)
 
-
 Then, to make your user into an admin, do this from the root of your install:
 
-    ~/smc/src$ coffee
-    coffee> require 'c'; db()
-    coffee> db.make_user_admin(account_id:'c286277f-e856-4a30-a2c7-a2791a9bec79', cb:done())
+    ~/cocalc/src/scripts/make-user-admin wstein@gmail.com
+
+Obviously, you should make the user you created (with its email address) an admin, not wstein.
 
 Now refresh your browser, and in account settings some new admin configuration options will appear in the lower right.  Also, you can open any project (though some things may look messed up).
 
-You can also confirm that you're user is now an admin:
+You can also confirm that your user is now an admin:
 
-    ~/cocalc/src/dev/project$ psql smc
-    psql (10devel)
-    Type "help" for help.
+    psql smc -c 'select account_id, email_address, groups from accounts'
 
-    smc=# select account_id, email_address, groups from accounts;
                   account_id              |  email_address   | groups
     --------------------------------------+------------------+---------
      c286277f-e856-4a30-a2c7-a2791a9bec79 | wstein@gmail.com | {admin}
+
+## Connecting to the test instance from an automated client
+
+This technique is useful for making API calls or running puppeteer scripts on your test instance of CoCalc. The calls must come from code running in the project that is running the instance.
+
+Use the following URL modifications.
+
+API call:
+
+    http://localhost:39187/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/port/39187/api/v1/query
+
+Puppeteer page fetch:
+
+    http://localhost:39187/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/port/39187/app
+
+NOTES:
+* It's not https encrypted
+* The explicit port is used (:39187)
 
