@@ -3223,37 +3223,38 @@ function get_directory_listing(opts) {
 
   let listing: any;
   let listing_err: any;
-  const f = cb =>
-    //console.log 'get_directory_listing.f ', opts.path
+  const f = cb => {
+    // console.log("get_directory_listing.f ", opts.path);
     method({
       project_id: opts.project_id,
       path: opts.path,
       hidden: opts.hidden,
       timeout,
       cb(err, x) {
-        //console.log("f ", err, x)
         if (err) {
-          if (timeout < 5) {
-            timeout *= 1.3;
-          }
-          return cb(err);
-        } else {
-          if (x != null && x.error) {
-            if (x.error.code === "ENOENT") {
+          if (err.message != null) {
+            if (err.message.indexOf("ENOENT") != -1) {
               listing_err = "no_dir";
-            } else if (x.error.code === "ENOTDIR") {
+            } else if (err.message.indexOf("ENOTDIR") != -1) {
               listing_err = "not_a_dir";
             } else {
-              listing_err = x.error;
+              listing_err = err.message;
             }
-            return cb();
+            cb();
           } else {
-            listing = x;
-            return cb();
+            // I don't think this happens anymore...
+            if (timeout < 5) {
+              timeout *= 1.3;
+            }
+            cb(err);
           }
+        } else {
+          listing = x;
+          cb();
         }
       }
     });
+  };
 
   return misc.retry_until_success({
     f,
