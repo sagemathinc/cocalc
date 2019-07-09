@@ -6,8 +6,7 @@ import { Map } from "immutable";
 
 import { Rendered, React, Component } from "../app-framework";
 
-import { Space } from "../r_misc/space";
-const { r_join } = require("../r_misc");
+import { r_join } from "../r_misc/r_join";
 
 import { path_split } from "smc-util/misc";
 
@@ -48,7 +47,7 @@ export class PublicPathInfo extends Component<Props> {
 
     return (
       <div className="pull-right" style={{ marginRight: "5px" }} key={"links"}>
-        {r_join(v, <Space />)}
+        {r_join(v)}
       </div>
     );
   }
@@ -83,7 +82,7 @@ export class PublicPathInfo extends Component<Props> {
         />
       );
     }
-    return <div key={"authors"}>Shared by: {r_join(v, <Space />)}</div>;
+    return <div key={"authors"}>Shared by: {r_join(v)}</div>;
   }
 
   public render(): Rendered {

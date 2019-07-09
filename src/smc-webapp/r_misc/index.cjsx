@@ -36,6 +36,8 @@ exports.Icon = Icon
 exports.Tip = Tip
 {Loading} = require('./loading')
 exports.Loading = Loading
+{r_join} = require('./r_join')
+exports.r_join = r_join
 {Space} = require('./space')
 exports.Space = Space
 {CloseX} = require('./close-x')
@@ -890,16 +892,6 @@ exports.Calendar = rclass
             defaultValue = {@props.value}
             onChange     = {@props.on_change}
         />
-
-exports.r_join = (components, sep=', ') ->
-    v = []
-    n = misc.len(components)
-    for x, i in components
-        v.push(x)
-        if i < n-1
-            v.push(<span key={-i-1}>{sep}</span>)
-    return v
-
 
 # NOTE: This component does *NOT* all the update_directory_tree action.  That is currently necessary
 # to update the tree as of July 31, 2015, though when there is a sync'd filetree it won't be.
