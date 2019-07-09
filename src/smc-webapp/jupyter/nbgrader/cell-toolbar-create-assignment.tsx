@@ -228,7 +228,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
         <FormControl
           type="number"
           value={points}
-          onChange={e => this.set_points((e.target as any).value)}
+          onChange={e => this.set_points(parseInt((e.target as any).value))}
           style={{
             color: "#666",
             width: "64px",
