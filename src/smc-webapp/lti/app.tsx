@@ -2,6 +2,8 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import axios from "axios";
 
+console.log("Hit the app")
+
 const live_api_key = "sk_55xJTNDSAez7DNWFI3wV9lZO";
 const live_api_url = "https://cocalc.com/api/v1/";
 // const test_api_key = "sk_DHSUXftaWOl3t0d4HQEq4ZKv";

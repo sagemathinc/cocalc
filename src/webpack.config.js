@@ -255,7 +255,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
-  const order = ["css", "fill", "vendor", "smc", "lti"];
+  const order = ["css", "fill", "vendor", "smc"];
   if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
     return -1;
   } else {
@@ -295,7 +295,7 @@ const pug2app = new HtmlWebpackPlugin({
   git_rev: GIT_REV,
   mathjax: MATHJAX_URL,
   filename: "app.html",
-  excludeChunks: ["lti"],
+  excludeChunks: ["lti", "lti-vendors"],
   chunksSortMode: smcChunkSorter,
   inject: "body",
   hash: PRODMODE,
@@ -305,7 +305,7 @@ const pug2app = new HtmlWebpackPlugin({
 });
 
 const lti_deep_link_page = new HtmlWebpackPlugin({
-  chunks: ["vendor", "lti"],
+  chunks: ["react", "axios", "lti-vendors", "lti"],
   date: BUILD_DATE,
   title: TITLE,
   description: DESCRIPTION,
@@ -636,10 +636,17 @@ module.exports = {
 
     splitChunks: {
       cacheGroups: {
-        commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendor",
-          chunks: "all"
+        react: {
+          name: "react",
+          test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+          chunks: "all",
+          priority: 2
+        },
+        lti_vendors: {
+          name: "lti-vendors",
+          test: /[\\/]lti[\\/]node_modules[\\/]/,
+          chunks: "all",
+          priority: 1
         }
       }
     }
@@ -733,7 +740,8 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
-      path.resolve(__dirname, "node_modules")
+      path.resolve(__dirname, "node_modules"),
+      path.resolve(__dirname, "smc-webapp/lti/node_modules")
     ]
   },
 
