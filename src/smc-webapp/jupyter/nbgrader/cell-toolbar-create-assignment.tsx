@@ -46,26 +46,27 @@ const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
-      "Instructors develop assignments using the assignment toolbar, which allows them to specify the type of problem in each cell and how it will be graded."
+      "This is a normal Jupyter cell, which won't be graded and doesn't contain any special autograding meaning."
   },
   {
     title: "Manually graded answer",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
     hover:
-      "Cell contains an answer that must be manually graded by a human grader.",
+      "This cell will contain an answer that must be manually graded by a human grader.",
     value: "manual",
     icon: "book-reader",
     grade: true,
     locked: false,
     solution: true,
-    points: 0
+    points: 1
   },
   {
     title: "Autograded answer",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
-    hover: "Cell contains an answer that will be autograded.",
+    hover:
+      "This cell contains code that is part of a student's answer to a question.  This code typically gets run before some other 'Autograder tests' cell.",
     value: "auto",
     icon: "magic",
     grade: false,
@@ -77,13 +78,14 @@ const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     title: "Autograder tests",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
-    hover: "Cell that contains tests to be run during autograding.",
+    hover:
+      "This cell contains test code that will be run to automatically grade the answer to a question. This answer is typically contained in an 'Autograded answer' cell.",
     value: "test",
     icon: "check",
     grade: true,
     locked: true,
     solution: false,
-    points: 0,
+    points: 1,
     code_only: true
   },
   {
@@ -91,7 +93,7 @@ const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#read-only-cells",
     hover:
-      "Cell is marked as one that cannot be modified; during autograding the original version is recovered in case it was changed by the student.",
+      "This cell is marked as read only.  This makes it difficult for the student to change, and during instructor autograding, the original version of this cell will be placed here in case it was somehow changed by the student.",
     value: "readonly",
     icon: "lock",
     grade: false,
@@ -185,8 +187,8 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
   }
 
   private set_points(points: number): void {
-    if (points < 0) {
-      points = 0;
+    if (points <= 0) {
+      points = 1;
     }
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),

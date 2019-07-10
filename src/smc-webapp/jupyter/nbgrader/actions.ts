@@ -4,11 +4,16 @@ import { JupyterActions } from "../browser-actions";
 
 import { ImmutableMetadata, Metadata } from "./types";
 
+import { NBGraderStore } from "./store";
+
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
 
   constructor(jupyter_actions) {
     this.jupyter_actions = jupyter_actions;
+    this.jupyter_actions.store.nbgrader = new NBGraderStore(
+      jupyter_actions.store
+    );
   }
 
   public close(): void {
@@ -44,7 +49,7 @@ export class NBGraderActions {
     });
   }
 
-  public async validate() : Promise<void> {
+  public async validate(): Promise<void> {
     // Without confirmation: (1) restart, (2) run all -- without stopping for errors.
     // Validate button should be disabled while this happens.
     // As running happens number of failing tests and total score
@@ -53,5 +58,4 @@ export class NBGraderActions {
     await this.jupyter_actions.restart();
     this.jupyter_actions.run_all_cells(true);
   }
-
 }
