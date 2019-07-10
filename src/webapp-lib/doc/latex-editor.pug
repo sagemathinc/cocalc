@@ -35,11 +35,12 @@ block content
         img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
       div.col-sm-6
         p.
-          Collaboratively #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
+          Collaboratively #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser],
+          without a limit on the number of collaborators!
         p.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] has a
           #[strong side-by-side preview],
-          compiles on the fly, marks errors in the sources,
+          compiles on the fly, marks errors in the source file,
           and #[strong forward/inverse search] helps to navigate around.
         p.
           #[strong Ready out of the box]:
@@ -82,6 +83,25 @@ block content
             Finally, it is possible to fully customize the compilation command.
             This means you can bring your own Shell-script or Makefile!
 
+    a.anchor#a-realtimesync
+    div.container.space#realtimesync
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Collaborative editing without limits
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-latex-concurrent-editing.png")).fit
+        div.col-md-6
+          div.
+            Privately share your project with #[strong any number of collaborators].
+            Concurrent modifications of the LaTeX document are #[strong synchronized in real time].
+            You see the cursors of others while they edit the document
+            and also see the presence of watching collaborators.
+          div.
+            Additionally, the compilation status and the resulting output is synchronized between everyone,
+            because everything runs online and is fully managed by #{NAME}.
+          div.
+            This ensures that everyone involved experiences editing the document in exactly the same way.
+
     a.anchor#a-computational
     div.container.space#computational
       div.row
@@ -102,25 +122,6 @@ block content
             Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
             or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook information page]
             for more information.
-
-    a.anchor#a-realtimesync
-    div.container.space#realtimesync
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-users] Collaborative editing
-        div.col-md-6
-          img(src=require("webapp-lib/assets/cocalc-latex-concurrent-editing.png")).fit
-        div.col-md-6
-          div.
-            Once you share your project privately with collaborators,
-            concurrent modifications of the same file are #[strong synchronized in real time].
-            You can watch the cursors of others while they edit the document!
-            You are also notified about the presence of watching collaborators.
-          div.
-            Additionally, the compilation status and the resulting output is synchronized between everyone,
-            because everything is fully managed by #{NAME}.
-          div.
-            This ensures that everyone involved experiences editing the document in exactly the same way.
 
     div.container
       div.row
