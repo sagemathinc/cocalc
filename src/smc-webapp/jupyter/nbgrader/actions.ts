@@ -44,4 +44,14 @@ export class NBGraderActions {
     });
   }
 
+  public async validate() : Promise<void> {
+    // Without confirmation: (1) restart, (2) run all -- without stopping for errors.
+    // Validate button should be disabled while this happens.
+    // As running happens number of failing tests and total score
+    // gets updated at top.
+    console.log("validate");
+    await this.jupyter_actions.restart();
+    this.jupyter_actions.run_all_cells(true);
+  }
+
 }

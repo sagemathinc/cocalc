@@ -63,7 +63,7 @@ export function commands(
     },
 
     "cell toolbar create_assignment": {
-      m: "Create assignment",
+      m: "Create assignment (nbgrader)",
       f: () => jupyter_actions.cell_toolbar("create_assignment")
     },
 
@@ -168,50 +168,20 @@ export function commands(
     },
 
     "confirm restart kernel and clear output": {
-      m: "Restart and clear output...",
-      async f(): Promise<void> {
-        const choice = await jupyter_actions.confirm_dialog({
-          title: "Restart kernel and clear all output?",
-          body:
-            "Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
-          choices: [
-            { title: "Continue running" },
-            {
-              title: "Restart and clear all outputs",
-              style: "danger",
-              default: true
-            }
-          ]
-        });
-        if (choice === "Restart and clear all outputs") {
-          jupyter_actions.restart();
-          jupyter_actions.clear_all_outputs();
-        }
-      }
+      m: "Clear output...",
+      f: () => jupyter_actions.restart_clear_all_output()
     },
 
     "confirm restart kernel and run all cells": {
-      m: "Restart and run all...",
+      m: "Run all...",
       i: "forward",
-      async f(): Promise<void> {
-        const choice = await jupyter_actions.confirm_dialog({
-          title: "Restart kernel and re-run the whole notebook?",
-          body:
-            "Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.",
-          choices: [
-            { title: "Continue running" },
-            {
-              title: "Restart and run all cells",
-              style: "danger",
-              default: true
-            }
-          ]
-        });
-        if (choice === "Restart and run all cells") {
-          await jupyter_actions.restart();
-          jupyter_actions.run_all_cells();
-        }
-      }
+      f: () => jupyter_actions.restart_and_run_all(false)
+    },
+
+    "confirm restart kernel and run all cells without halting on error": {
+      m: "Run all (do not stop on errors)...",
+      i: "run",
+      f: () => jupyter_actions.restart_and_run_all(true)
     },
 
     "confirm shutdown kernel": {
@@ -504,6 +474,11 @@ export function commands(
     "nbconvert sagews": {
       m: "Sage worksheet (.sagews)...",
       f: () => jupyter_actions.show_nbconvert_dialog("sagews")
+    },
+
+    "nbgrader validate": {
+      m: "Validate (nbgrader)...",
+      f: () => jupyter_actions.nbgrader_actions.validate()
     },
 
     "open file": {

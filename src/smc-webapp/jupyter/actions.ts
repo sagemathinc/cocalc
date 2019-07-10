@@ -832,7 +832,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
-  public run_cell(id: string, save: boolean = true): void {
+  public run_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -856,7 +860,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             this.clear_cell(id, save);
             break;
           case "execute":
-            this.run_code_cell(id, save);
+            this.run_code_cell(id, save, no_halt);
             break;
         }
         break;
@@ -866,7 +870,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public run_code_cell(id: string, save: boolean = true): void {
+  public run_code_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       throw Error(`can't run cell ${id} since it does not exist`);
@@ -895,7 +903,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         end: null,
         output: null,
         exec_count: null,
-        collapsed: null
+        collapsed: null,
+        no_halt: no_halt ? no_halt : null
       },
       save
     );
@@ -939,9 +948,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("run_selected_cells");
   };
 
-  run_all_cells = (): void => {
+  run_all_cells = (no_halt: boolean = false): void => {
     this.store.get_cell_list().forEach(id => {
-      this.run_cell(id, false);
+      this.run_cell(id, false, no_halt);
     });
     this.save_asap();
   };

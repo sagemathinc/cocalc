@@ -267,7 +267,24 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     );
   }
 
-  render() {
+  private render_nbgrader(): Rendered {
+    // TODO: only show if there is nbgrader metadata...
+    // or better, if there are nbgrader test cells.
+    const obj = {
+      name: "nbgrader validate",
+      disabled: false,
+      label: "Validate"
+    };
+    return (
+      <>
+        <span style={{ marginLeft: "5px" }} />
+
+        {this.render_button("nbgrader validate", obj)}
+      </>
+    );
+  }
+
+  public render(): Rendered {
     return (
       <div style={{ margin: "1px 1px 0px 1px", backgroundColor: "#fff" }}>
         <Form inline style={{ whiteSpace: "nowrap" }}>
@@ -282,6 +299,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           {this.render_keyboard()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_assistant_halt()}
+          {this.render_nbgrader()}
         </Form>
       </div>
     );
