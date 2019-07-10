@@ -198,7 +198,17 @@ export class Cell extends Component<CellProps> {
 
   private render_metadata_state(): Rendered {
     let style: React.CSSProperties;
-    if (this.props.nbgrader == null) {
+
+    // note -- that second part is because the official
+    // nbgrader demo has tons of cells with all the metadata
+    // empty... which *cocalc* would not produce, but
+    // evidently official tools do.
+    const no_nbgrader: boolean =
+      this.props.nbgrader == null ||
+      (!this.props.nbgrader.get("grade") &&
+        !this.props.nbgrader.get("solution") &&
+        !this.props.nbgrader.get("locked"));
+    if (no_nbgrader) {
       // Will not need more than two tiny icons.
       // If we add more metadata state indicators
       // that may take a lot of space, check for them
@@ -213,7 +223,7 @@ export class Cell extends Component<CellProps> {
     } else {
       // Need arbitrarily much horizontal space, so we
       // get our own line.
-      style = { color: COLORS.GRAY_L };
+      style = { color: COLORS.GRAY_L, marginBottom: "5px" };
     }
 
     if (this.props.is_current || this.props.is_selected) {
@@ -225,7 +235,7 @@ export class Cell extends Component<CellProps> {
       <div style={style}>
         {this.render_deletable()}
         {this.render_editable()}
-        {this.render_nbgrader()}
+        {no_nbgrader ? undefined : this.render_nbgrader()}
       </div>
     );
   }

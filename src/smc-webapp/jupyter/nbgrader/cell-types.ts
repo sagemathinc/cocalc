@@ -31,7 +31,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   },
   {
     title: "Manually graded answer",
-    student_title: "Answer",
+    student_title: "Your answer",
     student_tip: "Type your answer in this cell.  It will be manually graded by a person later.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
@@ -46,8 +46,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   },
   {
     title: "Automatically graded answer",
-    student_title: "Answer (tests are below)",
-    student_tip:"Type your answer in this cell and run it.  Use tests in cells below to check that your code probably works.",
+    student_title: "Your answer (tests are below)",
+    student_tip:"Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
     hover:
@@ -61,8 +61,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   },
   {
     title: "Test cell",
-    student_title: "Test cell",
-    student_tip:"You should have typed some code above and ran it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
+    student_title: "Test your code",
+    student_tip:"You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
     hover:
