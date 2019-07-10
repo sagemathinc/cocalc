@@ -113,10 +113,13 @@ function state_to_value(state: Metadata): string {
   const grade: boolean = !!state.grade;
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
-  const key = JSON.stringify({ grade, locked, solution });
+  if (grade === false && locked === false && solution === false) {
+    return "";
+  }
+  const key = JSON.stringify({ grade, solution });
   if (value_cache[key] != undefined) return value_cache[key];
   for (let x of CELLTYPE_INFO_LIST) {
-    if (x.grade == grade && x.locked == locked && x.solution == solution) {
+    if (x.grade == grade && x.solution == solution) {
       value_cache[key] = x.value;
       return x.value;
     }
@@ -225,7 +228,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
         <FormControl
           type="number"
           value={points}
-          onChange={e => this.set_points((e.target as any).value)}
+          onChange={e => this.set_points(parseInt((e.target as any).value))}
           style={{
             color: "#666",
             width: "64px",
