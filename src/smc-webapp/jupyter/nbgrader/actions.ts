@@ -54,7 +54,6 @@ export class NBGraderActions {
     // Validate button should be disabled while this happens.
     // As running happens number of failing tests and total score
     // gets updated at top.
-    console.log("validate");
     await this.jupyter_actions.restart();
     this.jupyter_actions.run_all_cells(true);
   }

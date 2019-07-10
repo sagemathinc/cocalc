@@ -25,7 +25,8 @@ export interface KeyboardCommand {
 export interface CommandDescription {
   i?: string; // icon name
   k?: KeyboardCommand[]; // keyboard commands
-  m?: string; // fuller description for use in menus
+  m?: string; // fuller description for use in menus and commands
+  menu?: string; // alternative to m just for dropdown menu
   d?: string; // even more extensive description (e.g., for a tooltip).
   f: Function; // function that implements command.
 }
@@ -44,31 +45,37 @@ export function commands(
   return {
     "cell toolbar none": {
       m: "No cell toolbar",
+      menu: "None",
       f: () => jupyter_actions.cell_toolbar()
     },
 
     "cell toolbar attachments": {
-      m: "Delete attachments",
+      m: "Attachments toolbar",
+      menu: "Attachments",
       f: () => jupyter_actions.cell_toolbar("attachments")
     },
 
     "cell toolbar tags": {
-      m: "Edit cell tags",
+      m: "Edit cell tags toolbar",
+      menu: "Tags",
       f: () => jupyter_actions.cell_toolbar("tags")
     },
 
     "cell toolbar metadata": {
-      m: "Edit custom metadata",
+      m: "Edit custom metadata toolbar",
+      menu: "Metadata",
       f: () => jupyter_actions.cell_toolbar("metadata")
     },
 
     "cell toolbar create_assignment": {
-      m: "Create assignment (nbgrader)",
+      m: "Create assignment (nbgrader) toolbar",
+      menu: "Create assignment (nbgrader)",
       f: () => jupyter_actions.cell_toolbar("create_assignment")
     },
 
     "cell toolbar slideshow": {
       m: "Slideshow toolbar",
+      menu: "Slideshow",
       f: () => jupyter_actions.cell_toolbar("slideshow")
     },
 
@@ -168,18 +175,21 @@ export function commands(
     },
 
     "confirm restart kernel and clear output": {
-      m: "Clear output...",
+      m: "Restart and clear output...",
+      menu: "Clear output...",
       f: () => jupyter_actions.restart_clear_all_output()
     },
 
     "confirm restart kernel and run all cells": {
-      m: "Run all...",
+      m: "Restart and run all...",
+      menu: "Run all...",
       i: "forward",
       f: () => jupyter_actions.restart_and_run_all(false)
     },
 
     "confirm restart kernel and run all cells without halting on error": {
       m: "Run all (do not stop on errors)...",
+      menu: "Restart and run all (do not stop on errors)...",
       i: "run",
       f: () => jupyter_actions.restart_and_run_all(true)
     },
@@ -799,17 +809,20 @@ export function commands(
     },*/
 
     "view notebook normal": {
-      m: "Cells (normal)",
+      m: "View notebook as cells (normal)",
+      menu: "Cells (normal)",
       f: () => frame_actions.set_view_mode("normal")
     },
 
     "view notebook json": {
-      m: "Object browser",
+      m: "View notebook object browser",
+      menu: "Object browser",
       f: () => frame_actions.set_view_mode("json")
     },
 
     "view notebook raw": {
-      m: "Raw .ipynb (file)",
+      m: "View notebook as raw .ipynb (file)",
+      menu: "Raw .ipynb (file)",
       f: () => frame_actions.set_view_mode("raw")
     },
 
