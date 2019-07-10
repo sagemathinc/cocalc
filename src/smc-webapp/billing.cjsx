@@ -1213,6 +1213,25 @@ exports.ExplainResources = ExplainResources = rclass
     getDefaultProps: ->
         is_static : false
 
+    render_toc: ->
+        return if not @props.is_static
+        <React.Fragment>
+            <h4>Table of content</h4>
+            <ul>
+                <li><b><a href="#subscriptions">Personal subscriptions</a></b>:{' '}
+                    upgrade your projects
+                </li>
+                <li><b><a href="#courses">Course packages</a></b>:{' '}
+                    upgrade student projects for teaching a course
+                </li>
+                <li><b><a href="#dedicated">Dedicated VMs</a></b>:{' '}
+                    a node in the cluster for large workloads
+                </li>
+                <li><b><a href="#faq">FAQ</a></b>: frequently asked questions</li>
+            </ul>
+            <Space/>
+        </React.Fragment>
+
     render_shared: ->
         <div>
             <Row>
@@ -1225,20 +1244,7 @@ exports.ExplainResources = ExplainResources = rclass
                     </div>
                     <Space/>
 
-                    <h4>Table of content</h4>
-                    <ul>
-                        <li><b><a href="#subscriptions">Personal subscriptions</a></b>:{' '}
-                            upgrade your projects
-                        </li>
-                        <li><b><a href="#courses">Course packages</a></b>:{' '}
-                            upgrade student projects for teaching a course
-                        </li>
-                        <li><b><a href="#dedicated">Dedicated VMs</a></b>:{' '}
-                            a node in the cluster for large workloads
-                        </li>
-                        <li><b><a href="#faq">FAQ</a></b>: frequently asked questions</li>
-                    </ul>
-                    <Space/>
+                    {@render_toc()}
 
                     <a name="projects"></a>
                     <h4>Projects</h4>
