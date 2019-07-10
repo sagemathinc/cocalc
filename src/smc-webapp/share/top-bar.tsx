@@ -3,7 +3,7 @@ import { CoCalcLogo } from "./cocalc-logo";
 import { CoCalcLink } from "./cocalc-link";
 import { IsPublicFunction } from "./types";
 import { SITE_NAME } from "smc-util/theme";
-const { r_join } = require("../r_misc");
+import { r_join } from "../r_misc/r_join";
 
 interface TopBarProps {
   viewer?: string;
@@ -38,7 +38,7 @@ export class TopBar extends Component<TopBarProps> {
   public render(): Rendered {
     // TODO: break up this long function!
     const { viewer, path, project_id, site_name, is_public } = this.props;
-    let path_component: Rendered, top: string;
+    let path_component: Rendered | Rendered[], top: string;
     if (viewer === "embed") {
       return this.render_cocalc_link();
     }

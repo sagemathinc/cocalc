@@ -5,7 +5,9 @@ import { Component, React, redux, rclass, rtypes } from "../app-framework";
 import { UserMap } from "../todo-types";
 
 const { User } = require("../users");
-const { Loading, r_join } = require("../r_misc");
+
+import { r_join } from "../r_misc/r_join";
+import { Loading } from "../r_misc/loading";
 
 interface ReactProps {
   project: any;

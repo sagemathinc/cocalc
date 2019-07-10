@@ -641,6 +641,14 @@ def execblob(request, sagews, test_id):
                    want_javascript=False,
                    file_type='png',
                    ignore_stdout=False):
+        r"""
+        fixture when test generates an image
+
+        INPUT:
+
+        - ``file_type`` -- string or list of strings, e.g. ["svg", "png"]
+
+        """
 
         SHA_LEN = 36
 
@@ -681,7 +689,14 @@ def execblob(request, sagews, test_id):
                     want_name = False
                     assert 'file' in mesg
                     print('got file name')
-                    assert file_type in mesg['file']['filename']
+                    if isinstance(file_type, str):
+                        assert file_type in mesg['file']['filename']
+                    elif isinstance(file_type, list):
+                        assert any([(f0 in mesg['file']['filename']) for f0 in file_type]), \
+                            "missing one of file types {} in response from sage_server".format(file_type)
+                    else:
+                        assert 0
+
 
         # final response is json "done" message
         typ, mesg = sagews.recv()

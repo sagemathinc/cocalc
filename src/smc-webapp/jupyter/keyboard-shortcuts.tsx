@@ -11,7 +11,8 @@ import * as json from "json-stable-stringify";
 import * as misc from "smc-util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
-const { SearchInput, r_join } = require("../r_misc");
+const { SearchInput } = require("../r_misc");
+import { r_join } from "../r_misc/r_join";
 import { commands, CommandDescription, KeyboardCommand } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
@@ -124,7 +125,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     e.stopPropagation();
   };
 
-  private render_shortcuts(): Rendered {
+  private render_shortcuts(): Rendered[] {
     const result: Rendered[] = [];
     for (let key in this.props.shortcuts) {
       const shortcut = this.props.shortcuts[key];
@@ -361,9 +362,15 @@ class Command extends Component<CommandProps, CommandState> {
       >
         <Grid style={{ width: "100%" }}>
           <Row>
-            <Col md={1} sm={1}>{this.render_icon()}</Col>
-            <Col md={7} sm={7}>{this.render_desc()}</Col>
-            <Col md={4} sm={4}>{this.render_shortcuts()}</Col>
+            <Col md={1} sm={1}>
+              {this.render_icon()}
+            </Col>
+            <Col md={7} sm={7}>
+              {this.render_desc()}
+            </Col>
+            <Col md={4} sm={4}>
+              {this.render_shortcuts()}
+            </Col>
           </Row>
         </Grid>
       </div>
@@ -504,9 +511,13 @@ export class KeyboardShortcuts extends Component<
     return (
       <Grid style={{ width: "100%", fontWeight: "bold", color: "#666" }}>
         <Row>
-          <Col md={1} sm={1}/>
-          <Col md={7} sm={7}>Command (click to run)</Col>
-          <Col md={4} sm={4}>Keyboard shortcut</Col>
+          <Col md={1} sm={1} />
+          <Col md={7} sm={7}>
+            Command (click to run)
+          </Col>
+          <Col md={4} sm={4}>
+            Keyboard shortcut
+          </Col>
         </Row>
       </Grid>
     );

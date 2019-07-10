@@ -24,7 +24,7 @@ import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 
-import { NewFilenames } from "smc-webapp/project/utils";
+import { editor_id, NewFilenames } from "smc-webapp/project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
@@ -905,6 +905,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
     change_history?: boolean;
+    // anchor -- if given, try to jump to scroll to this id in the editor, after it
+    // renders and is put in the foreground (ignored if foreground not true)
+    anchor?: string;
   }): Promise<void> {
     opts = defaults(opts, {
       path: required,
@@ -914,7 +917,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       chat_width: undefined,
       ignore_kiosk: false,
       new_browser_window: false,
-      change_history: true
+      change_history: true,
+      anchor: undefined
     });
     opts.path = normalize(opts.path);
     const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
@@ -954,6 +958,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.new_browser_window) {
       // options other than path are ignored in this case.
+      // TODO: do not ignore anchor option.
       this.open_in_new_browser_window(opts.path);
       return;
     }
@@ -1061,9 +1066,43 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.foreground) {
       this.foreground_project(opts.change_history);
-      this.set_active_tab(misc.path_to_tab(opts.path), {
+      const tab = misc.path_to_tab(opts.path);
+      this.set_active_tab(tab, {
         change_history: opts.change_history
       });
+      if (opts.anchor) {
+        // Scroll the *visibile* one into view.  NOTE: it's possible
+        // that several notebooks (say) are all open in background tabs
+        // and all have the same anchor tag in them; we only want to
+        // try to scroll the visible one or ones.
+        // We also have no reliable way to know if the editor has
+        // fully loaded yet, so we just try until the tag appears
+        // up to 15s.  Someday, we will have to make it so editors
+        // somehow clearly indicate when they are done loading, and
+        // we can use that to do this right.
+        const start: number = new Date().valueOf();
+        const id = editor_id(this.project_id, opts.path);
+        while (new Date().valueOf() - start <= 15000) {
+          await delay(100);
+          let store = this.get_store();
+          if (store == undefined) break;
+          if (tab != store.get("active_project_tab")) break;
+          let e = $("#" + id).find("#" + opts.anchor);
+          if (e.length > 0) {
+            // We iterate through all of them in this visible editor.
+            // Because of easy editor splitting we could easily have multiple
+            // copies of the same id, and we move them all into view.
+            // Change this to break after the first one if this annoys people;
+            // it's not clear what the "right" design is.
+            for (let x of e) {
+              x.scrollIntoView();
+            }
+            break;
+          } else {
+            await delay(100);
+          }
+        }
+      }
     }
   }
 
@@ -2998,7 +3037,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     target,
     foreground = true,
     ignore_kiosk = false,
-    change_history = true
+    change_history = true,
+    anchor: string = ""
   ): Promise<void> {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
@@ -3050,7 +3090,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             foreground,
             foreground_project: foreground,
             ignore_kiosk,
-            change_history
+            change_history,
+            anchor
           });
         }
         break;
@@ -3182,37 +3223,38 @@ function get_directory_listing(opts) {
 
   let listing: any;
   let listing_err: any;
-  const f = cb =>
-    //console.log 'get_directory_listing.f ', opts.path
+  const f = cb => {
+    // console.log("get_directory_listing.f ", opts.path);
     method({
       project_id: opts.project_id,
       path: opts.path,
       hidden: opts.hidden,
       timeout,
       cb(err, x) {
-        //console.log("f ", err, x)
         if (err) {
-          if (timeout < 5) {
-            timeout *= 1.3;
-          }
-          return cb(err);
-        } else {
-          if (x != null && x.error) {
-            if (x.error.code === "ENOENT") {
+          if (err.message != null) {
+            if (err.message.indexOf("ENOENT") != -1) {
               listing_err = "no_dir";
-            } else if (x.error.code === "ENOTDIR") {
+            } else if (err.message.indexOf("ENOTDIR") != -1) {
               listing_err = "not_a_dir";
             } else {
-              listing_err = x.error;
+              listing_err = err.message;
             }
-            return cb();
+            cb();
           } else {
-            listing = x;
-            return cb();
+            // I don't think this happens anymore...
+            if (timeout < 5) {
+              timeout *= 1.3;
+            }
+            cb(err);
           }
+        } else {
+          listing = x;
+          cb();
         }
       }
     });
+  };
 
   return misc.retry_until_success({
     f,
