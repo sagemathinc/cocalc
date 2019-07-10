@@ -34,7 +34,6 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {Library} = require('./library')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
-{ is_safari } = require("./frame-editors/generic/browser")
 {compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./custom-software/util')
 { default_ext, EXTs} = require('./project/file-listing/utils')
 ALL_FILE_BUTTON_TYPES = EXTs
@@ -1404,15 +1403,9 @@ exports.ProjectFiles = rclass ({name}) ->
         redux                 : redux
 
     getInitialState: ->
-        @_listing_container_ref = React.createRef()
         return
             show_pay      : false
             shift_is_down : false
-
-    safari_hack: ->
-        return if not is_safari()
-        console.log("applying file listing container safari hack")
-        $(@refs._listing_container_ref).make_height_defined()
 
     componentDidMount: ->
         # Update AFTER react draws everything
@@ -1422,10 +1415,6 @@ exports.ProjectFiles = rclass ({name}) ->
         setTimeout(@props.redux.getActions('billing')?.update_customer, 200)
         $(window).on("keydown", @handle_files_key_down)
         $(window).on("keyup", @handle_files_key_up)
-        @safari_hack()
-
-    componentDidUpdate: ->
-        @safari_hack()
 
     componentWillUnmount: ->
         $(window).off("keydown", @handle_files_key_down)
@@ -1673,7 +1662,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 event_handlers = {complete : => @props.actions.fetch_directory_listing()}
                 config         = {clickable : ".upload-button"}
                 disabled       = {public_view}
-                style          = {flex: "1"}
+                style          = {flex: "1 0 auto", display: "flex", flexDirection: "column"}
             >
                 <FileListing
                     name                   = {name}
@@ -1841,10 +1830,10 @@ exports.ProjectFiles = rclass ({name}) ->
 
         # be careful with adding height:'100%'. it could cause flex to miscalc. see #3904
         <div
-            style={flex: "1 0 100%", display: "flex", flexDirection: "column",height: "100%"}
+            style={flex: "1 0 100%", display: "flex", flexDirection: "column", height: "100%"}
         >
             <div
-                style={flex: "0 1 auto", display: "flex", flexDirection: "column", padding:'5px 5px 0 5px'}
+                style={flex: "0 0 auto", display: "flex", flexDirection: "column", padding:'5px 5px 0 5px'}
             >
                 {if pay? then @render_course_payment_warning(pay)}
                 {@render_error()}
@@ -1877,8 +1866,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 }
             </div>
             <div
-                ref={@_listing_container_ref}
-                style={flex: "1 0 auto", display: "flex", flexDirection: "column", padding:'0 5px 5px 5px', minHeight: "50%"}
+                style={flex: "1 0 auto", display: "flex", flexDirection: "column", padding:'0 5px 5px 5px', minHeight: "400px"}
             >
 
                 {### Only show the access error if there is not another error. ###}

@@ -10,7 +10,6 @@ import {
 import { debounce } from "lodash";
 
 const misc = require("smc-util/misc");
-import { is_safari } from "../../frame-editors/generic/browser";
 const { Col, Row } = require("react-bootstrap");
 const { VisibleMDLG } = require("../../r_misc");
 
@@ -61,7 +60,6 @@ export class FileListing extends React.Component<Props> {
 
   private cache: CellMeasurerCache;
   private list_ref;
-  private listing_ref;
   private current_scroll_top: number | undefined;
   private selected_index_is_rendered: boolean | undefined;
   private resize_listener_id: any;
@@ -75,7 +73,6 @@ export class FileListing extends React.Component<Props> {
       keyMapper: () => 1
     });
     this.list_ref = React.createRef();
-    this.listing_ref = React.createRef();
   }
 
   componentDidMount() {
@@ -88,8 +85,6 @@ export class FileListing extends React.Component<Props> {
         }
       }, RESIZE_DEBOUNCE_MS)
     );
-
-    this.safari_hack();
 
     // Restore scroll position if one as set.
     /*
@@ -106,8 +101,6 @@ export class FileListing extends React.Component<Props> {
   // Updates usually mean someone changed so we update (not rerender) everything.
   // This avoids doing a bunch of diffs since things probably changed.
   componentDidUpdate() {
-    this.safari_hack();
-
     if (this.props.listing.length > 0) {
       this.list_ref.current.forceUpdateGrid();
     }
@@ -128,25 +121,6 @@ export class FileListing extends React.Component<Props> {
 
     // Remove listeners
     window.removeEventListener("resize", this.resize_listener_id);
-  }
-
-  private safari_hack() {
-    if (!is_safari()) return;
-    console.log("applying file file-listing safari hack");
-    const elt = $(this.refs.listing_ref);
-    const par = elt.parent();
-
-    par.make_height_defined();
-    elt.make_height_defined();
-
-    // const par2 = par.parent();
-    //const par2_height = par2.height();
-    //if (par2_height == null) return;
-    //par.height(par2_height);
-
-    // const par_height = par.height();
-    // if (par_height == null) return;
-    // elt.height(par_height);
   }
 
   render_cached_row_at = ({ index, key, parent, style }) => {
@@ -360,8 +334,7 @@ export class FileListing extends React.Component<Props> {
             flex: "1 0 auto",
             zIndex: 1,
             display: "flex",
-            flexDirection: "column",
-            height: "100%"
+            flexDirection: "column"
           }}
         >
           {!this.props.public_view && this.render_terminal_mode()}
@@ -372,9 +345,7 @@ export class FileListing extends React.Component<Props> {
             />
           )}
           {this.props.listing.length > 0 && (
-            <Row ref={this.listing_ref} style={{ flex: "1 0 auto" }}>
-              {this.render_rows()}
-            </Row>
+            <Row style={{ flex: "1 0 auto" }}>{this.render_rows()}</Row>
           )}
           {this.render_no_files()}
         </Col>
