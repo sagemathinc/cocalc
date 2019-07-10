@@ -331,10 +331,10 @@ export class FileListing extends React.Component<Props> {
         <Col
           sm={12}
           style={{
+            flex: "1 0 auto",
             zIndex: 1,
             display: "flex",
-            flexDirection: "column",
-            height: "100%"
+            flexDirection: "column"
           }}
         >
           {!this.props.public_view && this.render_terminal_mode()}
@@ -345,7 +345,7 @@ export class FileListing extends React.Component<Props> {
             />
           )}
           {this.props.listing.length > 0 && (
-            <Row style={{ flex: "1" }}>{this.render_rows()}</Row>
+            <Row style={{ flex: "1 0 auto" }}>{this.render_rows()}</Row>
           )}
           {this.render_no_files()}
         </Col>
