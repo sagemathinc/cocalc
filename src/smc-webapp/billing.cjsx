@@ -1334,6 +1334,11 @@ exports.ExplainPlan = ExplainPlan = rclass
                 You can also increase quotas for CPU and RAM, so that you can work on larger problems and
                 do more computations simultaneously.
             </div>
+            <br/>
+            <div>
+                For highly intensive workloads you can also get a <a href="#dedicated">Dedicated VM</a>.
+            </div>
+            <br/>
         </div>
 
     render_course: ->
@@ -1402,14 +1407,15 @@ exports.DedicatedVM = DedicatedVM = rclass
             <div style={marginBottom:"10px"}>
                 A <b>Dedicated VM</b> is a specific node in the cluster,{' '}
                 which solely hosts one or more of your projects.
-                This allows you to run much larger workloads at a consistent performance,{' '}
+                This allows you to run much larger workloads with a consistent performance,{' '}
                 because no resources are shared with other projects.
-                You also get additional disk space attached to individual projects.
+                The usual quota limitations do not apply and
+                you also get additional disk space attached to individual projects.
             </div>
             <div>
                 To get started, please contact us at <HelpEmailLink/>.
                 We will work out the actual requirements with you and set everything up.
-                It is possible to deviate from the given options,{' '}
+                It is also possible to deviate from the given options,{' '}
                 in order to accommodate exactly for the expected resource usage.
             </div>
         </div>
