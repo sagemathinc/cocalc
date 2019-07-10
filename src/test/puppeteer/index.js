@@ -59,8 +59,11 @@ program.version('0.1.0');
 
 const sprintf = require('sprintf-js').sprintf;
 
+const LONG_TIMEOUT = 70000; // msec
+
 async function run() {
   try {
+    let xpt;
 
     program
       .option('-s, --screen', 'opposite of headless')
@@ -77,27 +80,30 @@ async function run() {
     console.log('creds file:', creds);
 
     //throw new Error("early exit");
+    //await page.waitFor(2 * 1000);
 
     let browser;
     if (headless) {
       browser = await puppeteer.launch({
-      ignoreHTTPSErrors:true,
+        ignoreHTTPSErrors:true,
+        slowMo:50 // without this sometimes wrong project is selected
       })
     } else {
       browser = await puppeteer.launch({
         headless: false,
         ignoreHTTPSErrors:true,
-        sloMo:200
+        slowMo:50
       })
     }
+
 
     const CREDS = require(creds);
 
     //const context = await browser.createIncognitoBrowserContext();
     //const page = await context.newPage();
     const page = (await browser.pages())[0];
+    await page.setDefaultTimeout(60000);
     // await page.setViewport({ width: 1024, height: 768});
-    // await page.waitFor(2 * 1000);
 
     // sign in
     await page.goto(CREDS.url);
@@ -118,7 +124,7 @@ async function run() {
     console.log('clicked submit');
 
     sel = '*[cocalc-test="project-button"]';
-    await page.waitForSelector(sel, 60000);
+    await page.waitForSelector(sel);
     await page.click(sel);
     console.log('clicked project button');
 
@@ -128,13 +134,22 @@ async function run() {
     await page.type(sel, CREDS.project);
     console.log('entered test project name');
 
+
     // find the project link and click it
     // XXX if multiple projects match the test project name, choose the first one
+    // use xpath to make sure the right project line is rendered
+    // then use css selector to click it because you can't click an xpath
+    xpt = `//a[@cocalc-test="project-line"][//span/p[text()="${CREDS.project}"]]`;
+    await page.waitForXPath(xpt, timeout=LONG_TIMEOUT);
     sel = '*[cocalc-test="project-line"]';
     await page.click(sel);
     console.log('clicked test project line');
 
-    let xpt = '//button[text()="Check All"]';
+    const spath = 'cocalc.png';
+    await page.screenshot({ path: spath});
+    console.log(`screenshot saved to ${spath}`);
+
+    xpt = '//button[text()="Check All"]';
     await page.waitForXPath(xpt);
     console.log('got check all');
 
@@ -149,6 +164,14 @@ async function run() {
     console.log('entered texfile name into file search');
 
     // find and click the texfile link
+    // split texfile name into base and ext because they appear in separate spans
+    const z = CREDS.texfile.lastIndexOf(".");
+    const tfbase = CREDS.texfile.slice(0,z);
+    const tfext  = CREDS.texfile.slice(z);
+    
+    xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
+    //await page.waitForXPath(xpt, timeout=LONG_TIMEOUT);
+    await page.waitForXPath(xpt, timeout=5000);
     sel = '*[cocalc-test="file-line"]';
     await page.click(sel);
     console.log('clicked file line');
@@ -186,10 +209,7 @@ async function run() {
     await page.waitForSelector(sel);
     console.log('got build button');
 
-    const spath = 'cocalc.png';
-    await page.screenshot({ path: spath});
-    console.log(`screenshot saved to ${spath}`);
-
+    // XXX
     console.log('all tests ok - closing browser');
     browser.close();
 
