@@ -11,8 +11,8 @@ import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { cmp, bind_methods } from "smc-util/misc2";
-import { containing_public_path } from "smc-util/misc";
+import { bind_methods, cmp, endswith, len } from "smc-util/misc2";
+import { containing_public_path, meta_file } from "smc-util/misc";
 import { Author } from "smc-webapp/share/types";
 
 export type HostInfo = immutable.Map<string, any>;
@@ -183,19 +183,46 @@ export class PublicPaths extends EventEmitter {
 
   public async get_authors(
     project_id: string,
-    path: string
+    // path can be a single path or an array of paths;
+    // if give a single path, also automatically includes
+    // known aux files (this is just for ipynb).
+    path: string | string[]
   ): Promise<Author[]> {
-    const id: string = this.database.sha1(project_id, path);
-    const result = await callback2(this.database._query, {
-      query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
-    });
-    if (result == null || result.rowCount < 1) return [];
+    // Determine the paths to check in the database:
     const account_ids: string[] = [];
-    for (let account_id of result.rows[0].users) {
-      if (account_id != project_id) {
-        account_ids.push(account_id);
+    const known_account_ids: Set<string> = new Set();
+    let paths: string[];
+    if (typeof path == "string") {
+      paths = [path];
+      if (endswith(path, ".ipynb")) {
+        paths.push(meta_file(path, "jupyter2"));
+        paths.push(meta_file(path, "jupyter"));
+      }
+    } else {
+      paths = path;
+    }
+
+    // Get accounts that have edited these paths, if they have edited them using sync.
+    for (let path of paths) {
+      const id: string = this.database.sha1(project_id, path);
+      const result = await callback2(this.database._query, {
+        query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
+      });
+      if (result == null || result.rowCount < 1) continue;
+      for (let account_id of result.rows[0].users) {
+        if (account_id != project_id && !known_account_ids.has(account_id)) {
+          account_ids.push(account_id);
+          known_account_ids.add(account_id);
+        }
       }
     }
+
+    // If no accounts, use the project collaborators.
+    if (len(account_ids) === 0) {
+      // TODO!
+    }
+
+    // Get usernames for the accounts
     const authors: Author[] = [];
     const names = await callback2(this.database.get_usernames, {
       account_ids,
@@ -207,6 +234,8 @@ export class PublicPaths extends EventEmitter {
       const name = `${first_name} ${last_name}`;
       authors.push({ name, account_id });
     }
+
+    // Sort by last name
     authors.sort((a, b) =>
       cmp(names[a.account_id].last_name, names[b.account_id].last_name)
     );

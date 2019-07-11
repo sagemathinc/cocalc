@@ -8,7 +8,7 @@ import { Rendered, React, Component } from "../app-framework";
 
 import { r_join } from "../r_misc/r_join";
 
-import { path_split } from "smc-util/misc";
+import { path_split, plural } from "smc-util/misc";
 
 import { LICENSES } from "./config/licenses";
 
@@ -82,7 +82,11 @@ export class PublicPathInfo extends Component<Props> {
         />
       );
     }
-    return <div key={"authors"}>Shared by: {r_join(v)}</div>;
+    return (
+      <div key={"authors"}>
+        {plural(v.length, "Author")}: {r_join(v)}
+      </div>
+    );
   }
 
   public render(): Rendered {
