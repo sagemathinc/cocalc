@@ -16,6 +16,8 @@ import { Author } from "./types";
 
 import { AuthorLink } from "./author-link";
 
+const MAX_AUTHORS = 10;
+
 interface Props {
   info?: Map<string, any>;
   path: string;
@@ -81,6 +83,17 @@ export class PublicPathInfo extends Component<Props> {
           base_url={this.props.base_url}
         />
       );
+      if (v.length >= MAX_AUTHORS) {
+        const n = this.props.authors.length - MAX_AUTHORS;
+        if (n > 0) {
+          v.push(
+            <span>
+              and {n} more {plural(n, "author")}...
+            </span>
+          );
+          break;
+        }
+      }
     }
     return (
       <div key={"authors"}>
