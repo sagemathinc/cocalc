@@ -15,8 +15,8 @@
  * with the least amount of friction.
  */
 
-const { get_query_params } = require("./misc_page");
+import {QueryParams} from './misc_page2';
 
 export function run() {
-  console.log("landing-actions: query =", get_query_params());
+  console.log("landing-actions: query =", QueryParams.get_all());
 }
