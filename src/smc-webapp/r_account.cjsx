@@ -945,12 +945,12 @@ EditorSettingsFontSize = rclass
                 unit      = "px" />
         </LabeledRow>
 
-EDITOR_COLOR_SCHEMES =
+EDITOR_COLOR_SCHEMES = exports.EDITOR_COLOR_SCHEMES =
     'default'                 : 'Default'
     '3024-day'                : '3024 day'
     '3024-night'              : '3024 night'
     'abcdef'                  : 'abcdef'
-    'ambiance-mobile'         : 'Ambiance mobile'
+    #'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
     'ambiance'                : 'Ambiance'
     'base16-dark'             : 'Base 16 dark'
     'base16-light'            : 'Base 16 light'
@@ -973,7 +973,6 @@ EDITOR_COLOR_SCHEMES =
     'lesser-dark'             : 'Lesser dark'
     'liquibyte'               : 'Liquibyte'
     'lucario'                 : 'Lucario'
-    'the-matrix'              : 'The Matrix'
     'material'                : 'Material'
     'mbo'                     : 'mbo'
     'mdn-like'                : 'MDN like'
@@ -994,6 +993,7 @@ EDITOR_COLOR_SCHEMES =
     'solarized dark'          : 'Solarized dark'
     'solarized light'         : 'Solarized light'
     'ssms'                    : 'ssms'
+    'the-matrix'              : 'The Matrix'
     'tomorrow-night-bright'   : 'Tomorrow Night - Bright'
     'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
     'ttcn'                    : 'ttcn'

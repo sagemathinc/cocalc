@@ -216,7 +216,11 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
-        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 750)
+        # We heavily throttle this, since it's ONLY used for the connections dialog, which users
+        # never look at, and it could waste cpu trying to update things for no reason.  It also
+        # impacts the color of the connection indicator, so throttling will make that color
+        # change a bit more laggy.  That's probably worth it.
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 10000)
 
         @emit("connecting")
         @_call             =

@@ -25,7 +25,7 @@ if not dtvar in os.environ:
 ])
 class TestDT:
     def test_dt_file(self, test_id, sagews, src_file):
-        print("src_file=",src_file)
+        print("src_file=", src_file)
         import sys
 
         from sage.doctest.sources import FileDocTestSource
@@ -36,17 +36,17 @@ class TestDT:
         id = test_id
         excount = 0
         dtn = 0
-        print "{} doctests".format(len(doctests))
+        print("{} doctests".format(len(doctests)))
         for dt in doctests:
-            print "doctest number", dtn
+            print("doctest number", dtn)
             dtn += 1
             exs = dt.examples
             excount += len(exs)
             for ex in exs:
                 c = ex.sage_source
-                print("code",c)
+                print("code", c)
                 w = ex.want
-                print("want",w)
+                print("want", w)
                 use_pattern = False
                 # handle ellipsis in wanted output
                 if '...' in w:
@@ -82,5 +82,5 @@ class TestDT:
                         assert output.strip() == w.strip()
                 conftest.recv_til_done(sagews, id)
                 id += 1
-        print "{} examples".format(excount)
+        print("{} examples".format(excount))
         conftest.test_id.id = id

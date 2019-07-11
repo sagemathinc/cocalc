@@ -19,7 +19,7 @@ AUTHORS:
 #
 ##########################################################################
 
-import os, pexpect, random, string
+import os, pexpect
 
 from uuid import uuid4
 
@@ -163,15 +163,6 @@ class Julia(Expect):
             sage: julia.__reduce__()
         """
         return reduce_load_Julia, tuple([])
-
-    def _function_class(self):
-        """
-        EXAMPLES::
-
-            sage: julia._function_class()
-            <class 'sage.interfaces.julia.JuliaFunction'>
-         """
-        return JuliaFunction
 
     def _quit_string(self):
         """
@@ -482,9 +473,6 @@ def reduce_load_Julia():
         Julia Interpreter
     """
     return julia
-
-
-import os
 
 
 def julia_console():

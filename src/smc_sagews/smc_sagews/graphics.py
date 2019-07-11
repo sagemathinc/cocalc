@@ -306,7 +306,6 @@ def graphics3d_to_jsonable(p):
                 diffuse = []
                 illum_list = []
                 shininess_list = []
-                opacity_list = []
                 opacity_diffuse = []
                 tmp_list = []
                 name = tmp.split()[1]

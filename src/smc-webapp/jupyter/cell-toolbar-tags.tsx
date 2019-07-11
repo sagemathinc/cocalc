@@ -119,9 +119,11 @@ export class TagsToolbar extends Component<TagsToolbarProps, TagsToolbarState> {
 
   render() {
     return (
-      <div style={{ display: "flex" }}>
-        {this.render_tags()}
-        {this.render_input()}
+      <div style={{ width: "100%" }}>
+        <div style={{ display: "flex", float: "right" }}>
+          {this.render_tags()}
+          {this.render_input()}
+        </div>
       </div>
     );
   }

@@ -11,12 +11,13 @@ import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { cmp, bind_methods  } from "smc-util/misc2";
+import { cmp, bind_methods } from "smc-util/misc2";
 import { containing_public_path } from "smc-util/misc";
+import { Author } from "smc-webapp/share/types";
 
-type HostInfo = immutable.Map<string, any>;
+export type HostInfo = immutable.Map<string, any>;
 
-class PublicPaths extends EventEmitter {
+export class PublicPaths extends EventEmitter {
   public is_ready: boolean = false;
   private synctable: any;
   private vhosts: { [hostname: string]: HostInfo } = {};
@@ -28,7 +29,7 @@ class PublicPaths extends EventEmitter {
   constructor(database: Database) {
     super();
 
-    bind_methods(this, ['is_public']); // it gets passed around
+    bind_methods(this, ["is_public"]); // it gets passed around
     this.database = database;
     this.do_init();
   }
@@ -44,6 +45,11 @@ class PublicPaths extends EventEmitter {
   public get(id: string): HostInfo | undefined {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get(id);
+  }
+
+  public get_all(): immutable.Map<string, any> {
+    if (!this.is_ready) throw Error("not yet ready");
+    return this.synctable.get();
   }
 
   private add_vhost(info: HostInfo): void {
@@ -125,7 +131,8 @@ class PublicPaths extends EventEmitter {
   }
 
   // Immutables List of ids that sorts the public_paths from
-  // newest (last edited) to oldest
+  // newest (last edited) to oldest. This only includes paths
+  // that are not unlisted.
   public order(): immutable.List<string> {
     if (this._order != null) {
       return this._order;
@@ -134,7 +141,9 @@ class PublicPaths extends EventEmitter {
     this.synctable
       .get()
       .forEach((info: immutable.Map<string, any>, id: string) => {
-        v.push([info.get("last_edited", 0), id]);
+        if (!info.get("unlisted")) {
+          v.push([info.get("last_edited", 0), id]);
+        }
       });
     v.sort((a, b) => -cmp(a[0], b[0]));
     const ids = v.map(x => x[1]);
@@ -157,7 +166,8 @@ class PublicPaths extends EventEmitter {
         "counter",
         "vhost",
         "auth",
-        "unlisted"
+        "unlisted",
+        "license"
       ],
       where: "disabled IS NOT TRUE"
     });
@@ -169,6 +179,47 @@ class PublicPaths extends EventEmitter {
       this.update_public_paths(id);
     });
     this.init_public_paths();
+  }
+
+  public async get_authors(
+    project_id: string,
+    path: string
+  ): Promise<Author[]> {
+    const id: string = this.database.sha1(project_id, path);
+    const result = await callback2(this.database._query, {
+      query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
+    });
+    if (result == null || result.rowCount < 1) return [];
+    const account_ids: string[] = [];
+    for (let account_id of result.rows[0].users) {
+      if (account_id != project_id) {
+        account_ids.push(account_id);
+      }
+    }
+    const authors: Author[] = [];
+    const names = await callback2(this.database.get_usernames, {
+      account_ids,
+      cache_time_s: 60 * 5
+    });
+    for (let account_id in names) {
+      // todo really need to sort by last name
+      const { first_name, last_name } = names[account_id];
+      const name = `${first_name} ${last_name}`;
+      authors.push({ name, account_id });
+    }
+    authors.sort((a, b) =>
+      cmp(names[a.account_id].last_name, names[b.account_id].last_name)
+    );
+    return authors;
+  }
+
+  public async get_username(account_id: string): Promise<string> {
+    const names = await callback2(this.database.get_usernames, {
+      account_ids: [account_id],
+      cache_time_s: 60 * 5
+    });
+    const { first_name, last_name } = names[account_id];
+    return `${first_name} ${last_name}`;
   }
 }
 
@@ -185,18 +236,4 @@ export async function get_public_paths(
   }
   await once(the_public_paths, "ready");
   return the_public_paths;
-}
-
-export function get_public_paths0(database, cb) {
-  let the_public_paths;
-  if (the_public_paths != null) {
-    if (the_public_paths._is_ready) {
-      cb(undefined, the_public_paths);
-      return;
-    }
-  } else {
-    the_public_paths = new PublicPaths(database);
-  }
-
-  the_public_paths.on("ready", () => cb(undefined, the_public_paths));
 }

@@ -134,7 +134,7 @@ export class TerminalFrame extends Component<Props, {}> {
   render_command(): Rendered {
     const command = this.props.desc.get("command");
     if (!command) return;
-    const args = this.props.desc.get("args", []); // todo: need to quote if args have spaces...
+    const args: string[] | undefined = this.props.desc.get("args"); // TODO: need to quote if args have spaces...
     return (
       <div
         style={{
@@ -145,7 +145,7 @@ export class TerminalFrame extends Component<Props, {}> {
           overflow: "hidden"
         }}
       >
-        {command} {args.join(" ")}
+        {command} {args != null ? args.join(" ") : ""}
       </div>
     );
   }

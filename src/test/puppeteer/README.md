@@ -1,7 +1,5 @@
 # front-end testing of CoCalc with puppeteer
 
-## NOTE: This code is proof of concept, needs refactoring.
-
 ## Setup
 
 1. Prepare test site. TODO: automate this.
@@ -9,8 +7,8 @@
     - create a test account in the instance to be tested
     - create a test project in the test user account
     - add test files to project home directory
-      - latex-sample.tex
-      - widget-sample.tex
+      - latex-sample.tex (for test file [index.js](index.js))
+      - widget-sample.tex (for test file [widget.js](widget.js))
 
 1. Create `<creds-file.js`file for the site to be tested, outside of the git repository. Do NOT add/commit credentials files to git.
 
