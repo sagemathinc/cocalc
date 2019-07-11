@@ -57,4 +57,20 @@ export class NBGraderActions {
     await this.jupyter_actions.restart();
     this.jupyter_actions.run_all_cells(true);
   }
+
+  public async confirm_validate(): Promise<void> {
+    const choice = await this.jupyter_actions.confirm_dialog({
+      title: "Validate notebook?",
+      body:
+        "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
+      choices: [
+        { title: "Cancel" },
+        { title: "Validate", style: "danger", default: true }
+      ]
+    });
+    if (choice === "Validate") {
+      await this.jupyter_actions.restart();
+    }
+    await this.validate();
+  }
 }

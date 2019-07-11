@@ -158,20 +158,7 @@ export function commands(
       m: "Restart kernel...",
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
-      async f(): Promise<void> {
-        const choice = await jupyter_actions.confirm_dialog({
-          title: "Restart kernel?",
-          body:
-            "Do you want to restart the current kernel?  All variables will be lost.",
-          choices: [
-            { title: "Continue running" },
-            { title: "Restart", style: "danger", default: true }
-          ]
-        });
-        if (choice === "Restart") {
-          jupyter_actions.restart();
-        }
-      }
+      f: () => jupyter_actions.confirm_restart()
     },
 
     "confirm restart kernel and clear output": {
@@ -487,8 +474,9 @@ export function commands(
     },
 
     "nbgrader validate": {
-      m: "Validate (nbgrader)...",
-      f: () => jupyter_actions.nbgrader_actions.validate()
+      m: "Restart and validate...",
+      menu: "Validate...",
+      f: () => jupyter_actions.nbgrader_actions.confirm_validate()
     },
 
     "open file": {

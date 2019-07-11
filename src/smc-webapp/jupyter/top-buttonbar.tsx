@@ -273,7 +273,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const obj = {
       name: "nbgrader validate",
       disabled: false,
-      label: "Validate"
+      label: "Validate..."
     };
     return (
       <>

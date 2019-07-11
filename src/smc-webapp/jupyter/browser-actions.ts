@@ -513,4 +513,19 @@ export class JupyterActions extends JupyterActions0 {
       this.clear_all_outputs();
     }
   }
+
+  public async confirm_restart(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      title: "Restart kernel?",
+      body:
+        "Do you want to restart the current kernel?  All variables will be lost.",
+      choices: [
+        { title: "Continue running" },
+        { title: "Restart", style: "danger", default: true }
+      ]
+    });
+    if (choice === "Restart") {
+      this.restart();
+    }
+  }
 }
