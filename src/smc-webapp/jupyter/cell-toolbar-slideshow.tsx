@@ -36,14 +36,17 @@ export class Slideshow extends Component<SlideshowProps> {
     );
   render() {
     return (
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={this.select}
-        value={this.props.cell.get("slide", "")}
-      >
-        {rendered_options}
-      </FormControl>
+      <div style={{ width: "100%" }}>
+        <FormControl
+          componentClass="select"
+          placeholder="select"
+          onChange={this.select}
+          value={this.props.cell.get("slide", "")}
+          style={{ float: "right", width: "200px" }}
+        >
+          {rendered_options}
+        </FormControl>
+      </div>
     );
   }
 }

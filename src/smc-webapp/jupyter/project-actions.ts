@@ -499,7 +499,6 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   manager_run_cell = async (id: string) => {
-    let left;
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
     dbg(JSON.stringify(misc.keys(this._running_cells)));
 
@@ -532,7 +531,14 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
 
-    const input = ((left = orig_cell.get("input")) != null ? left : "").trim();
+    let input: string | undefined = orig_cell.get("input", "");
+    if (input == null) {
+      input = "";
+    } else {
+      input = input.trim();
+    }
+
+    let halt_on_error: boolean = !orig_cell.get("no_halt", false);
 
     if (this.jupyter_kernel == null) {
       throw Error("bug -- this is guaranteed by the above");
@@ -600,7 +606,8 @@ export class JupyterActions extends JupyterActions0 {
     const exec = this.jupyter_kernel.execute_code({
       code: input,
       id,
-      stdin: handler.stdin
+      stdin: handler.stdin,
+      halt_on_error
     });
 
     exec.on("output", mesg => {

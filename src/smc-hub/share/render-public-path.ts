@@ -22,6 +22,7 @@ import { React } from "smc-webapp/app-framework";
 import { PublicPath } from "smc-webapp/share/public-path";
 import { has_viewer, needs_content } from "smc-webapp/share/file-contents";
 import { DirectoryListing } from "smc-webapp/share/directory-listing";
+import { Author } from "smc-webapp/share/types";
 
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
@@ -32,11 +33,13 @@ export async function render_public_path(opts: {
   res: any; // html response object
   info?: HostInfo; // immutable.js info about the public share, if url starts with share id (as opposed to project_id)
   dir: string; // directory on disk containing files for this path
-  react: any;
+  react: Function;
   path: string;
   viewer: string;
   hidden?: boolean;
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
+  authors: Author[];
+  base_url: string;
 }): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
 
@@ -115,8 +118,8 @@ export async function render_public_path(opts: {
     }
   }
 
-  let highlight : boolean;
-  if (ext == 'ipynb') {
+  let highlight: boolean;
+  if (ext == "ipynb") {
     // ipynb files tend to be very large, but still easy to render, due to images.
     // This is a little dangerous though! We will eventually need to do something
     // maybe async with a timeout...
@@ -132,7 +135,9 @@ export async function render_public_path(opts: {
     path: opts.path,
     why,
     size: stats.size,
-    highlight
+    highlight,
+    authors: opts.authors,
+    base_url: opts.base_url
   });
   opts.react(opts.res, component, opts.path);
 }

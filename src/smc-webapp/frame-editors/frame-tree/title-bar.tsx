@@ -17,13 +17,15 @@ const {
 } = require("react-bootstrap");
 import { get_default_font_size } from "../generic/client";
 const {
-  r_join,
-  Icon,
-  Space,
-  Tip,
   VisibleMDLG,
   EditorFileInfoDropdown
 } = require("smc-webapp/r_misc");
+
+import { r_join } from "smc-webapp/r_misc/r_join";
+import { Icon } from "smc-webapp/r_misc/icon";
+import { Space } from "smc-webapp/r_misc/space";
+import { Tip } from "smc-webapp/r_misc/tip";
+
 
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
@@ -219,6 +221,7 @@ export class FrameTitleBar extends Component<Props, State> {
       }
       const item = (
         <MenuItem
+          cocalc-test={type}
           selected={selected_type === type}
           key={type}
           eventKey={type}
@@ -241,6 +244,7 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <DropdownButton
+        cocalc-test={"latex-dropdown"}
         title={title}
         key={"types"}
         id={"types"}

@@ -40,6 +40,16 @@ export abstract class Table {
     merge?: "deep" | "shallow" | "none",
     cb?: (error?: string) => void
   ): Promise<void> {
+    if (cb == null) {
+      // No callback, so let async/await report errors.
+      // Do not let the error silently hide (like using the code below did)!!
+      // We were missing  lot of bugs because of this...
+      this._table.set(changes, merge);
+      await this._table.save();
+      return;
+    }
+
+    // callback is defined still.
     let e: undefined | string = undefined;
     try {
       this._table.set(changes, merge);
@@ -47,8 +57,6 @@ export abstract class Table {
     } catch (err) {
       e = err.toString();
     }
-    if (cb != null) {
-      cb(e);
-    }
+    cb(e);
   }
 }

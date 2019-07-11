@@ -59,7 +59,7 @@ def main(action='', daemon=True):
                 log("killing sid %s" % sid)
                 os.killpg(sid, 9)
                 log("successfully killed")
-            except Exception, e:
+            except Exception as e:
                 log("failed -- %s" % e)
             log("removing '%s'" % pidfile)
             os.unlink(pidfile)
@@ -67,7 +67,7 @@ def main(action='', daemon=True):
             log("no pidfile")
 
     def usage():
-        print "Usage: %s [start|stop|restart]" % sys.argv[0]
+        print("Usage: %s [start|stop|restart]" % sys.argv[0])
 
     if action == 'start':
         start()

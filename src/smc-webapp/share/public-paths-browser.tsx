@@ -181,7 +181,7 @@ export class PublicPathsBrowser extends Component<Props> {
   public render(): Rendered {
     return (
       <div>
-        <div key="top" style={{ paddingLeft: "30px", background: "#dfdfdf" }}>
+        <div key="top" style={{ paddingLeft: "30px", background: "#efefef" }}>
           {this.render_overview()}
           <Space />
           {this.render_prev_page()}
