@@ -11,7 +11,12 @@ import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { bind_methods, cmp, endswith, len } from "smc-util/misc2";
+import {
+  bind_methods,
+  cmp,
+  endswith,
+  is_valid_uuid_string
+} from "smc-util/misc2";
 import { containing_public_path, meta_file } from "smc-util/misc";
 import { Author } from "smc-webapp/share/types";
 
@@ -188,6 +193,9 @@ export class PublicPaths extends EventEmitter {
     // known aux files (this is just for ipynb).
     path: string | string[]
   ): Promise<Author[]> {
+    if (!is_valid_uuid_string(project_id)) {
+      throw Error(`project_id=${project_id} must be a valid uuid string`);
+    }
     // Determine the paths to check in the database:
     const account_ids: string[] = [];
     const known_account_ids: Set<string> = new Set();
@@ -217,9 +225,16 @@ export class PublicPaths extends EventEmitter {
       }
     }
 
-    // If no accounts, use the project collaborators.
-    if (len(account_ids) === 0) {
-      // TODO!
+    // If no accounts, use the project collaborators as a fallback.
+    if (account_ids.length === 0) {
+      const result = await callback2(this.database._query, {
+        query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`
+      });
+      if (result != null && result.rowCount >= 1) {
+        for (let v of result.rows) {
+          account_ids.push(v.jsonb_object_keys);
+        }
+      }
     }
 
     // Get usernames for the accounts
