@@ -155,8 +155,6 @@ export function setup_analytics_js(
 
   router.get("/analytics.js", cors(analytics_cors), function(req, res) {
     res.header("Content-Type", "text/javascript");
-    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
     dbg(
@@ -165,12 +163,19 @@ export function setup_analytics_js(
       }'`
     );
     if (req.cookies[analytics_cookie_name]) {
+      // cache for 6 hours
+      res.header(
+        "Cache-Control",
+        `private, max-age=${6 * 60 * 60}`
+      );
       res.write("// NOOP");
       res.end();
       return;
     }
 
     // write response script
+    // this only runs once, hence no caching
+    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
     //analytics_cookie(res)
     res.write(`var NAME = '${analytics_cookie_name}';\n`);
     res.write(`var ID = '${uuid()}';\n`);

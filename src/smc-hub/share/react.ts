@@ -18,7 +18,7 @@ set_share_server(true);
 // Load katex jQuery plugin.
 require("smc-webapp/jquery-plugins/katex");
 
-export function react(res, component, extra): void {
+export function react(res, component, extra: any = ""): void {
   res.type("html");
   const t0 = new Date().valueOf();
   const stream = ReactDOMServer.renderToStaticNodeStream(component);

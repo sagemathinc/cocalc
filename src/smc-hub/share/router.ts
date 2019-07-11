@@ -5,19 +5,29 @@ Router for public share server.
 const PAGE_SIZE: number = 100;
 
 import * as os_path from "path";
-import { callback} from "awaiting";
+import { callback } from "awaiting";
 import * as express from "express";
 
 import { React } from "smc-webapp/app-framework";
-import { is_valid_uuid_string } from "smc-util/misc";
+import {
+  filename_extension,
+  is_valid_uuid_string,
+  path_split
+} from "smc-util/misc2";
 
 import * as react_support from "./react";
 
 import { PublicPathsBrowser } from "smc-webapp/share/public-paths-browser";
-import { IsPublicFunction, Page } from "smc-webapp/share/page";
+import {
+  default_to_raw,
+  has_special_viewer
+} from "smc-webapp/share/file-contents";
+import { ContentPage } from "smc-webapp/share/content-page";
+import { IsPublicFunction } from "smc-webapp/share/types";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";
+import { render_user } from "./render-user";
 
 import * as util from "./util";
 
@@ -36,7 +46,7 @@ function react_viewer(
 ): Function {
   return function(res, component, subtitle: string): void {
     const the_page = React.createElement(
-      Page,
+      ContentPage,
       {
         base_url,
         path,
@@ -154,10 +164,8 @@ export function share_router(opts: {
 
     const page_number = parseInt(req.query.page != null ? req.query.page : 1);
 
+    if (public_paths == null) throw Error("public_paths must be defined");
     // TODO: "as any" due to Typescript confusion between two copies of immutable.js
-    if (public_paths == null) {
-      throw Error("public_paths must be defined");
-    }
     const paths_order: any = public_paths.order();
     const page = React.createElement(PublicPathsBrowser, {
       page_number: page_number,
@@ -174,6 +182,32 @@ export function share_router(opts: {
       public_paths.is_public
     );
     r(res, page, `${page_number} of ${PAGE_SIZE}`);
+  });
+
+  router.get("/users", async function(req, res): Promise<void> {
+    log_ip(req);
+    await ready();
+    res.send("the users who share are: ");
+  });
+
+  router.get("/users/:account_id", async function(req, res): Promise<void> {
+    log_ip(req);
+    const account_id: string = req.params.account_id;
+    if (!is_valid_uuid_string(account_id)) {
+      res.sendStatus(404);
+      return;
+    }
+    await ready();
+    if (public_paths == null) throw Error("public_paths must be defined");
+    dbg("get user ", account_id);
+    const name = await public_paths.get_username(account_id);
+    render_user({
+      res,
+      account_id,
+      name,
+      google_analytics,
+      base_url
+    });
   });
 
   router.get("/:id/*?", async function(req, res): Promise<void> {
@@ -224,33 +258,53 @@ export function share_router(opts: {
     }
 
     const dir: string = path_to_files(project_id);
-    const { viewer } = req.query;
-    if (viewer != null) {
-      render_public_path({
-        req,
-        res,
-        info,
-        dir,
-        path,
-        react: react_viewer(
-          base_url,
-          `/${req.params.id}/${path}`,
-          project_id,
-          false,
+    let { viewer } = req.query;
+    if (viewer == null) {
+      const ext = filename_extension(path);
+      if (!default_to_raw(ext) && has_special_viewer(ext)) {
+        viewer = "share";
+      } else {
+        viewer = "raw";
+      }
+    }
+
+    switch (viewer) {
+      case "raw":
+        render_static_path({
+          req,
+          res,
+          dir,
+          path
+        });
+        break;
+
+      case "download":
+        const filename = path_split(path).tail;
+        res.download(dir + "/" + path, filename);
+        break;
+
+      default:
+        const authors = await public_paths.get_authors(project_id, path);
+        render_public_path({
+          req,
+          res,
+          info,
+          dir,
+          path,
+          react: react_viewer(
+            base_url,
+            `/${req.params.id}/${path}`,
+            project_id,
+            false,
+            viewer,
+            public_paths.is_public
+          ),
           viewer,
-          public_paths.is_public
-        ),
-        viewer,
-        hidden: req.query.hidden,
-        sort: req.query.sort != null ? req.query.sort : "-mtime"
-      });
-    } else {
-      render_static_path({
-        req,
-        res,
-        dir,
-        path
-      });
+          hidden: req.query.hidden,
+          sort: req.query.sort != null ? req.query.sort : "-mtime",
+          authors,
+          base_url
+        });
     }
   });
 

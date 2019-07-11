@@ -1354,6 +1354,10 @@ schema.public_paths = {
       type: "boolean",
       desc: "if true then unlisted, so does not appear in /share listing page."
     },
+    license: {
+      type: "string",
+      desc: "The license that the content of the share is made available under."
+    },
     created: {
       type: "timestamp",
       desc: "when this path was created"
@@ -1409,6 +1413,7 @@ schema.public_paths = {
         description: null,
         disabled: null, // if true then disabled
         unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+        license: null,
         last_edited: null,
         created: null,
         last_saved: null,
@@ -1425,6 +1430,7 @@ schema.public_paths = {
         description: true,
         disabled: true,
         unlisted: true,
+        license:true,
         last_edited: true,
         created: true
       },

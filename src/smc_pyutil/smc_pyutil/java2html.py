@@ -2,7 +2,7 @@
 
 # java2html.py - used by java edit mode
 
-import os, sys, subprocess, errno, re
+import os, sys, errno
 
 
 def java2html(path):

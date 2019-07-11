@@ -64,6 +64,7 @@ src/conf/tinc_hosts/
 *.synctex.gz
 *.toc
 *.term
+*.term.init
 *.sagews
 
 # mocha: banket coverage report

@@ -1,5 +1,5 @@
 /*
-Jupyter client -- these are the actions for the underlying document structure.
+Jupyter actions -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
 
@@ -153,7 +153,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       project_id,
       directory,
       path,
-      max_output_length: 10000
+      max_output_length: 10000,
+      cell_toolbar: this.store.get_local_storage("cell_toolbar")
     });
 
     this.syncdb.on("change", this._syncdb_change);
@@ -831,7 +832,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
-  public run_cell(id: string, save: boolean = true): void {
+  public run_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -855,7 +860,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             this.clear_cell(id, save);
             break;
           case "execute":
-            this.run_code_cell(id, save);
+            this.run_code_cell(id, save, no_halt);
             break;
         }
         break;
@@ -865,7 +870,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public run_code_cell(id: string, save: boolean = true): void {
+  public run_code_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       throw Error(`can't run cell ${id} since it does not exist`);
@@ -894,7 +903,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         end: null,
         output: null,
         exec_count: null,
-        collapsed: null
+        collapsed: null,
+        no_halt: no_halt ? no_halt : null
       },
       save
     );
@@ -938,9 +948,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("run_selected_cells");
   };
 
-  run_all_cells = (): void => {
+  run_all_cells = (no_halt: boolean = false): void => {
     this.store.get_cell_list().forEach(id => {
-      this.run_cell(id, false);
+      this.run_cell(id, false, no_halt);
     });
     this.save_asap();
   };
@@ -1125,7 +1135,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // This toggles the boolean value of given metadata field.
   // If not set, it is assumed to be true and toggled to false
-  // For more than one cell, the first one is used to toggle all cells to the inverted state
+  // For more than one cell, the first one is used to toggle
+  // all cells to the inverted state
   private toggle_metadata_boolean_on_cells(
     cell_ids: string[],
     key: string,
@@ -1295,20 +1306,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_local_storage = (key, value) => {
-    if (typeof localStorage !== "undefined" && localStorage !== null) {
-      let current = localStorage[this.name];
-      if (current != null) {
-        current = misc.from_json(current);
-      } else {
-        current = {};
-      }
-      if (value === null) {
-        delete current[key];
-      } else {
-        current[key] = value;
-      }
-      return (localStorage[this.name] = misc.to_json(current));
+    if (localStorage == null) return;
+    let current = localStorage[this.name];
+    if (current != null) {
+      current = misc.from_json(current);
+    } else {
+      current = {};
     }
+    if (value === null) {
+      delete current[key];
+    } else {
+      current[key] = value;
+    }
+    localStorage[this.name] = misc.to_json(current);
   };
 
   // File --> Open: just show the file listing page.
@@ -2002,6 +2012,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   cell_toolbar = (name?: string): void => {
     // Set which cell toolbar is visible.  At most one may be visible.
     // name=undefined to not show any.
+    this.set_local_storage("cell_toolbar", name);
     this.setState({ cell_toolbar: name });
   };
 
@@ -2180,18 +2191,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   edit_cell_metadata = (id: string): void => {
-    let left: any;
-    const metadata =
-      (left = this.store.getIn(["cells", id, "metadata"])) != null
-        ? left
-        : immutable.Map();
+    const metadata = this.store.getIn(
+      ["cells", id, "metadata"],
+      immutable.Map()
+    );
     this.setState({ edit_cell_metadata: { id, metadata } });
   };
 
-  set_cell_metadata = (opts: any): void => {
-    /*
-        Sets the metadata to exactly the metadata object.  It doesn't just merge it in.
-        */
+  public set_cell_metadata(opts: {
+    id: string;
+    metadata?: object; // not given = delete it
+    save?: boolean; // defaults to true if not given
+    merge?: boolean; // defaults to false if not given, in which case sets metadata, rather than merge.  If true, does a SHALLOW merge.
+  }): void {
     let { id, metadata, save, merge } = (opts = defaults(opts, {
       id: required,
       metadata: required,
@@ -2213,12 +2225,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     if (merge) {
-      let left: any;
-      const current =
-        (left = this.store.getIn(["cells", id, "metadata"])) != null
-          ? left
-          : immutable.Map();
-      metadata = current.merge(metadata);
+      const current = this.store.getIn(
+        ["cells", id, "metadata"],
+        immutable.Map()
+      );
+      metadata = current.merge(immutable.fromJS(metadata)).toJS();
     }
 
     // special fields
@@ -2255,9 +2266,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       save
     );
     if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
-      return this.edit_cell_metadata(id); // updates the state while editing
+      this.edit_cell_metadata(id); // updates the state while editing
     }
-  };
+  }
 
   public set_raw_ipynb(): void {
     if (this._state === "load") {

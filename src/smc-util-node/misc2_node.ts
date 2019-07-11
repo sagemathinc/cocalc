@@ -1,5 +1,5 @@
 const urlRegex = require("url-regex");
-import { to_human_list } from "smc-util/misc";
+import { to_human_list } from "../smc-util/misc";
 
 // used to test for URLs in a string
 const re_url = urlRegex({ exact: false, strict: false });

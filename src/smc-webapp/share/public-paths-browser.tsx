@@ -32,7 +32,7 @@ export class PublicPathsBrowser extends Component<Props> {
         }}
       >
         Page {this.props.page_number} of{" "}
-        {Math.ceil(this.props.public_paths.size / this.props.page_size)}.
+        {Math.ceil(this.props.paths_order.size / this.props.page_size)}.
       </span>
     );
   }
@@ -181,7 +181,7 @@ export class PublicPathsBrowser extends Component<Props> {
   public render(): Rendered {
     return (
       <div>
-        <div key="top" style={{ paddingLeft: "30px", background: "#dfdfdf" }}>
+        <div key="top" style={{ paddingLeft: "30px", background: "#efefef" }}>
           {this.render_overview()}
           <Space />
           {this.render_prev_page()}

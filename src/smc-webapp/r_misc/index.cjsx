@@ -36,6 +36,8 @@ exports.Icon = Icon
 exports.Tip = Tip
 {Loading} = require('./loading')
 exports.Loading = Loading
+{r_join} = require('./r_join')
+exports.r_join = r_join
 {Space} = require('./space')
 exports.Space = Space
 {CloseX} = require('./close-x')
@@ -515,6 +517,7 @@ exports.SearchInput = rclass
         <FormGroup style={@props.style}>
             <InputGroup className={@props.input_class}>
                 <FormControl
+                    cocalc-test = 'search-input'
                     autoFocus   = {@props.autoFocus}
                     ref         = 'input'
                     type        = 'text'
@@ -629,21 +632,27 @@ exports.HTML = HTML = rclass
         if not @props.value
             return {__html: ''}
 
-        if @props.safeHTML
-            html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
-        else
-            html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-
         if share_server.SHARE_SERVER
+            # No sanitization at all for share server.  For now we
+            # have set things up so that the share server is served
+            # from a different subdomain and user can't sign into it,
+            # so XSS is not an issue.  Note that the sanitizing
+            # in the else below is quite expensive and often crashes
+            # on "big" documents (e.g., 500K).
             {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
             elt = jQuery("<div>")
-            elt.html(html)
+            elt.html(@props.value)
             if @props.auto_render_math
                 elt.katex()
             elt.find("table").addClass("table")
             if @props.highlight_code
                 elt.highlight_code()
             html = elt.html()
+        else
+            if @props.safeHTML
+                html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
+            else
+                html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         return {__html: html}
 
@@ -883,16 +892,6 @@ exports.Calendar = rclass
             defaultValue = {@props.value}
             onChange     = {@props.on_change}
         />
-
-exports.r_join = (components, sep=', ') ->
-    v = []
-    n = misc.len(components)
-    for x, i in components
-        v.push(x)
-        if i < n-1
-            v.push(<span key={-i-1}>{sep}</span>)
-    return v
-
 
 # NOTE: This component does *NOT* all the update_directory_tree action.  That is currently necessary
 # to update the tree as of July 31, 2015, though when there is a sync'd filetree it won't be.

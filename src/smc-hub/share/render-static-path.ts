@@ -1,5 +1,5 @@
 /*
-Render a public path using a the official express static server.
+Render a public path using the express static server.
 */
 
 import * as fs from "fs";

@@ -35,7 +35,7 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import errno, hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid
 
 from subprocess import Popen, PIPE
 
@@ -53,7 +53,7 @@ def log(s, *args):
     if args:
         try:
             s = str(s % args)
-        except Exception, mesg:
+        except Exception as mesg:
             s = str(mesg) + str(s)
     sys.stderr.write(s + '\n')
     sys.stderr.flush()
@@ -118,7 +118,7 @@ def cmd(s,
 def check_uuid(u):
     try:
         assert uuid.UUID(u).get_version() == 4
-    except (AssertionError, ValueError), mesg:
+    except (AssertionError, ValueError):
         raise RuntimeError("invalid uuid (='%s')" % u)
 
 
@@ -156,7 +156,7 @@ def thread_map(callable, inputs):
             try:
                 self.result = callable(self._x)
                 self.fail = False
-            except Exception, msg:
+            except Exception as msg:
                 self.result = msg
                 self.fail = True
 
@@ -339,7 +339,7 @@ class Project(object):
                 'setquota', '-u', self.username, quota * 1000, quota * 1200,
                 1000000, 1100000, '-a'
             ])
-        except Exception, mesg:
+        except Exception as mesg:
             log("WARNING -- quota failure %s", mesg)
 
     def compute_quota(self, cores, memory, cpu_shares):
@@ -515,8 +515,8 @@ class Project(object):
                     # causes the second child process to be orphaned, making the init
                     # process responsible for its cleanup.
                     pid = os.fork()
-                except OSError, e:
-                    raise Exception, "%s [%d]" % (e.strerror, e.errno)
+                except OSError as e:
+                    raise Exception("%s [%d]" % (e.strerror, e.errno))
 
                 if pid == 0:
                     os.environ['HOME'] = self.project_path
@@ -622,7 +622,7 @@ class Project(object):
             if quotas == "ERROR":
                 quotas = v[-2]
             s['disk_MB'] = int(quotas.split()[-6].strip('*')) / 1000
-        except Exception, mesg:
+        except Exception as mesg:
             log("error computing quota -- %s", mesg)
 
         if os.path.exists(self.smc_path):
@@ -665,7 +665,7 @@ class Project(object):
                     s.update(t)
                     if bool(t.get('local_hub.pid', False)):
                         s['state'] = 'running'
-                except Exception, err:
+                except Exception as err:
                     log("error running status command -- %s", err)
                     s['state'] = 'broken'
             return s
@@ -689,7 +689,7 @@ class Project(object):
                 s.update(t)
                 if bool(t.get('local_hub.pid', False)):
                     s['state'] = 'running'
-            except Exception, err:
+            except Exception as err:
                 log("error running status command -- %s", err)
                 s['state'] = 'broken'
         return s
@@ -767,15 +767,10 @@ class Project(object):
 
         if time:
             # sort by time first with bigger times first, then by filename in normal order
-            def f(a, b):
-                if a[1] > b[1]:
-                    return -1
-                elif a[1] < b[1]:
-                    return 0
-                else:
-                    return cmp(a[0], b[0])
+            def sortkey(a):
+                return (-a[1], a[0])
 
-            all.sort(f)
+            all.sort(key=sortkey)
         else:
             all.sort()  # usual sort is fine
 
@@ -902,15 +897,15 @@ class Project(object):
                 if head and tail and not os.path.exists(head):
                     try:
                         makedirs(head)
-                    except OSError, e:
+                    except OSError as e:
                         # be happy if someone already created the path
                         if e.errno != errno.EEXIST:
                             raise
                     if tail == os.curdir:  # xxx/newdir/. exists if xxx/newdir exists
                         return
                 try:
-                    os.mkdir(name, 0700)
-                except OSError, e:
+                    os.mkdir(name, 0o0700)
+                except OSError as e:
                     if e.errno != errno.EEXIST:
                         raise
                 if not self._dev:
@@ -1032,7 +1027,7 @@ class Project(object):
             ] + exclude + w)
             # do the rsync
             self.cmd(v, verbose=2)
-        except Exception, mesg:
+        except Exception as mesg:
             mesg = str(mesg)
             # get rid of scary (and pointless) part of message
             s = "avoid man-in-the-middle attacks"
@@ -1080,7 +1075,7 @@ def main():
                             projects=args.projects,
                             single=args.single,
                             kucalc=args.kucalc), function)(**kwds)
-                except Exception, mesg:
+                except Exception as mesg:
                     raise  #-- for debugging
                     errors = True
                     result = {'error': str(mesg), 'project_id': project_id}
@@ -1088,11 +1083,11 @@ def main():
             if len(out) == 1:
                 if not out[0]:
                     out[0] = {}
-                print json.dumps(out[0])
+                print(json.dumps(out[0]))
             else:
                 if not out:
                     out = {}
-                print json.dumps(out)
+                print(json.dumps(out))
             if errors:
                 sys.exit(1)
 

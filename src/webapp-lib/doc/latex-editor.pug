@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'latex';
-    subtitle = 'Collaborative Online LaTeX Editor';
+    subtitle = 'Online LaTeX Editor';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -32,18 +32,20 @@ block content
       div.col-md-12.center
         h1 #{subtitle}
       div.col-sm-6
-        img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
+        img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
       div.col-sm-6
         p.
-          #{NAME} let's you
-          #[strong collaboratively edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
+          Collaboratively #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser],
+          without a limit on the number of collaborators!
         p.
-          #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
-          and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file to get started.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] has a
           #[strong side-by-side preview],
-          compiles on the fly, marks errors in the sources,
+          compiles on the fly, marks errors in the source file,
           and #[strong forward/inverse search] helps to navigate around.
+        p.
+          #[strong Ready out of the box]:
+          #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
+          and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file and you're ready to tex.
         p.
           All tedious details are taken care of:
         ul
@@ -70,56 +72,56 @@ block content
         div.col-md-6
           div.
             #{NAME} makes sure that your desired LaTeX engine is available and ready to use.
-            You can choose between #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex],
-            #[a(href="http://xetex.sourceforge.net/") XeLaTeX] or #[a(href="http://www.luatex.org/") LuaTeX].
+            You can choose between #[strong #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex]],
+            #[strong #[a(href="http://xetex.sourceforge.net/") XeLaTeX]] or #[strong #[a(href="http://www.luatex.org/") LuaTeX]].
           div.
             Many packages and utilities like #[a(href="https://sourceforge.net/projects/pgf/") PGF&TikZ] are pre-installed.
           div.
-            On top of that, by default #[a(href="http://mg.readthedocs.io/latexmk.html") LatexMK] is configured to manage the compilation process,
+            Behind the scenes, #[a(href="http://mg.readthedocs.io/latexmk.html") LatexMK] is configured to manage the compilation process,
             which means that you do not have to bother too much about any additional configuration.
           div.
-            Finally, it is possible to fully customize the compilation command.
+            Besides that, it is possible to #[strong fully customize the compilation command].
             This means you can bring your own Shell-script or Makefile!
-
-    a.anchor#a-computational
-    div.container.space#computational
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-users] Full computational environment
-        div.col-md-6
-          img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
-        div.col-md-6
-          div.
-            What sets #{NAME} apart from other online LaTeX editors is #[strong full access to computational software].
-            This means you can seamlessly transition from #[em computing] your results to #[em publishing] them.
-          div.
-            You can run #[a(href="https://www.python.org") Python],
-            #[a(href="http://www.sagemath.org/") SageMath],
-            #[a(href="http://www.r-project.org/") R Statistical Software],
-            #[a(href="http://julialang.org") Julia] right inside your browser in the same project as your LaTeX document.
-          div.
-            Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
-            or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook information page]
-            for more information.
 
     a.anchor#a-realtimesync
     div.container.space#realtimesync
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-users] Collaborative editing
+          h2 #[i.fa.fa-users] Collaborative editing without limits
         div.col-md-6
           img(src=require("webapp-lib/assets/cocalc-latex-concurrent-editing.png")).fit
         div.col-md-6
           div.
-            Once you share your project privately with collaborators,
-            concurrent modifications of the same file are #[strong synchronized in real time].
-            You can watch the cursors of others while they edit the document!
-            You are also notified about the presence of watching collaborators.
+            Privately share your project with #[strong any number of collaborators].
+            Concurrent modifications of the LaTeX document are #[strong synchronized in real time].
+            You see the cursors of others while they edit the document
+            and also see the presence of watching collaborators.
           div.
             Additionally, the compilation status and the resulting output is synchronized between everyone,
-            because everything is fully managed by #{NAME}.
+            because everything runs online and is fully managed by #{NAME}.
           div.
             This ensures that everyone involved experiences editing the document in exactly the same way.
+
+    a.anchor#a-computational
+    div.container.space#computational
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-laptop] Full computational environment
+        div.col-md-6
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
+        div.col-md-6
+          div.
+            What sets #{NAME} apart from other online LaTeX editors is #[strong full access to computational software].
+            This means you can seamlessly transition from #[em computing] your results to #[em publishing] them.
+          div.
+            #{NAME} supports running #[a(href="https://www.python.org") Python],
+            #[a(href="http://www.sagemath.org/") SageMath],
+            #[a(href="http://www.r-project.org/") R Statistical Software],
+            #[a(href="http://julialang.org") Julia], and more in the same project as your LaTeX document.
+          div.
+            Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
+            or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook page]
+            for more information.
 
     div.container
       div.row
@@ -167,7 +169,7 @@ block content
               run Python from within a document and typeset the results.
           div.
             For example, #[code \py{2 + 4**2}] produces "18".
-            You can use all #[a(href=PREFIX + "./software-python.html") available python libraries] for Python 3,
+            You can use all #[a(href="./software-python.html") available python libraries] for Python 3,
             and in particular, check out PythonTeX's support for SymPy and drawing plots via #[code pylab].
           div.
             Again, #{NAME} automatically detects that you want to run PythonTeX and handles all the details for you.
@@ -240,7 +242,7 @@ block content
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comments-o] Side-Chat panel
+          h2 #[i.fa.fa-comment] Side-Chat panel
         div.col-md-6
           img(src=require("webapp-lib/assets/cocalc-latex-side-chat-v2.png")).fit
         div.col-md-6
@@ -271,7 +273,7 @@ block content
     div.container.space#publishing
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-camera-retro] Publishing
+          h2 #[i.fa.fa-bullhorn] Publishing
         div.col-md-6
           img(src=require("webapp-lib/assets/cocalc-share-latex-document.png")).fit
         div.col-md-6

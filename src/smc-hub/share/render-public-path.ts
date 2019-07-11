@@ -5,8 +5,12 @@ Render a public path
 // Do not backend render any file beyond this size, instead showing
 // a download link.   This is to avoid a share server blocking for
 // a long time or using a lot of RAM.
+const MB: number = 1000000;
 const MAX_SIZE_MB: number = 10;
-const MAX_SIZE: number = 1000000 * MAX_SIZE_MB; // size in bytes
+
+// I want to raise this, but right now our Markdown and HTML renderers
+// are VERY slow on big files:
+const MAX_SIZE_HIGHLIGHT_MB: number = 0.5;
 
 import * as os_path from "path";
 import { stat, readFile } from "fs";
@@ -16,9 +20,9 @@ import { filename_extension, field_cmp } from "smc-util/misc";
 
 import { React } from "smc-webapp/app-framework";
 import { PublicPath } from "smc-webapp/share/public-path";
+import { has_viewer, needs_content } from "smc-webapp/share/file-contents";
 import { DirectoryListing } from "smc-webapp/share/directory-listing";
-
-import * as extensions from "smc-webapp/share/extensions";
+import { Author } from "smc-webapp/share/types";
 
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
@@ -29,11 +33,13 @@ export async function render_public_path(opts: {
   res: any; // html response object
   info?: HostInfo; // immutable.js info about the public share, if url starts with share id (as opposed to project_id)
   dir: string; // directory on disk containing files for this path
-  react: any;
+  react: Function;
   path: string;
   viewer: string;
   hidden?: boolean;
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
+  authors: Author[];
+  base_url: string;
 }): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
 
@@ -79,32 +85,47 @@ export async function render_public_path(opts: {
     if (reverse) {
       files.reverse();
     }
-    const C = React.createElement(DirectoryListing, {
+    const component = React.createElement(DirectoryListing, {
       hidden: opts.hidden,
       info: opts.info as any, // typescript gets confused between two copies of immutable, breaking checking in this case.
       files: files,
       viewer: opts.viewer,
       path: opts.path
     });
-    opts.react(opts.res, C, opts.path);
+    opts.react(opts.res, component, opts.path);
     return;
   }
 
   dbg("is file");
+  let why: string | undefined = undefined;
   let content: string | undefined = undefined;
-  if (stats.size <= MAX_SIZE) {
-    let ext = filename_extension(path_to_file);
-    if (ext != null) ext = ext.toLowerCase();
-    if (
-      !(extensions.image[ext] || extensions.pdf[ext] || extensions.video[ext])
-    ) {
+  let ext = filename_extension(path_to_file);
+  if (ext != null) ext = ext.toLowerCase();
+  if (!has_viewer(ext)) {
+    why = "We do not have a way to display this file.";
+  } else if (stats.size > MAX_SIZE_MB * MB) {
+    why = "File too big to be shown.";
+  } else {
+    if (needs_content(ext)) {
       try {
         content = (await callback(readFile, path_to_file)).toString();
       } catch (err) {
         opts.res.sendStatus(404);
         return;
       }
+    } else {
+      content = "";
     }
+  }
+
+  let highlight: boolean;
+  if (ext == "ipynb") {
+    // ipynb files tend to be very large, but still easy to render, due to images.
+    // This is a little dangerous though! We will eventually need to do something
+    // maybe async with a timeout...
+    highlight = true;
+  } else {
+    highlight = stats.size < MAX_SIZE_HIGHLIGHT_MB * MB;
   }
 
   const component = React.createElement(PublicPath, {
@@ -112,9 +133,11 @@ export async function render_public_path(opts: {
     content,
     viewer: opts.viewer,
     path: opts.path,
+    why,
     size: stats.size,
-    max_size: MAX_SIZE
+    highlight,
+    authors: opts.authors,
+    base_url: opts.base_url
   });
-
   opts.react(opts.res, component, opts.path);
 }

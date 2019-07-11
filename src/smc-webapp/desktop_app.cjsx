@@ -241,7 +241,7 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                {<div style={projects_styles} className={nav_class}>
+                {<div style={projects_styles} cocalc-test="project-button" className={nav_class}>
                     Projects
                 </div> if @state.show_label}
                 <AppLogo />
