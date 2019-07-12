@@ -16,11 +16,20 @@
  */
 
 import { redux } from "./app-framework";
+import * as LS from "misc/local-storage";
 import { analytics_event } from "./tracker";
 import { QueryParams } from "./misc_page2";
 import { uuid } from "smc-util/misc2";
 import { retry_until_success, once } from "smc-util/async-utils";
 import { custom_image_name } from "./custom-software/init";
+
+const LS_KEY = "landing-actions";
+
+interface LaunchData {
+  launch?: string;
+  filepath?: string;
+  urlpath?: string;
+}
 
 function launch_share(launch: string): void {
   const share_id = launch.split("/")[1];
@@ -31,7 +40,7 @@ async function launch_custom_software_image(launch: string): Promise<void> {
   // processing e.g. "?launch=csi/opencv-machine-learning",
   // where the ID is a valid docker ID (lowercase, dashes)
   const image_id = launch.split("/")[1];
-  console.log(`launching custom software image with ID = ${image_id}`);
+  // console.log(`launching custom software image with ID = ${image_id}`);
 
   // this is mimicing what's going on in projects/create-project.tsx
 
@@ -74,13 +83,14 @@ async function launch_custom_software_image(launch: string): Promise<void> {
   analytics_event("create_project", "launch_csi");
 }
 
-function launch_binder(params): void {
+function launch_binder(
+  launch: string,
+  filepath: string | undefined,
+  urlpath: string | undefined
+): void {
   // this decodes e.g. "?launch=binder/v2/gh/sagemathinc/cocalc/branch&filepath=start.ipynb"
-  const filepath: string | undefined = params["filepath"];
-  const urlpath: string | undefined = params["urlpath"];
 
   // config are the launch tokens, starting with v2
-  const launch = params["launch"];
   const config: string[] = launch.split("/").slice(1);
   if (config[0] !== "v2") {
     // TODO show some error
@@ -118,16 +128,42 @@ function launch_binder(params): void {
   console.warn("STOP -- this is not yet implemented");
 }
 
-export function run() {
+// persist any landing action information in local storage (e.g. it's lost via SSO)
+export function store() {
   const params = QueryParams.get_all();
-  console.log("landing-actions: params =", params);
-  const launch = params["launch"];
+  // console.log("landing-actions: params =", params);
+  const launch = params.launch;
+  if (launch != null && typeof launch === "string") {
+    const data: LaunchData = {
+      launch
+    };
+    {
+      const filepath = params.filepath;
+      if (filepath != null && typeof filepath === "string") {
+        data.filepath = filepath;
+      }
+    }
+    {
+      const urlpath = params.urlpath;
+      if (urlpath != null && typeof urlpath === "string") {
+        data.urlpath = urlpath;
+      }
+    }
+    LS.set(LS_KEY, data);
+  }
+}
+
+export function launch() {
+  const data: LaunchData | undefined = LS.del<LaunchData>(LS_KEY);
+  // console.log("landing-actions data=", data);
+  if (data == null) return;
+  const launch = data.launch;
   if (launch != null && typeof launch === "string") {
     // the first token selects share server or custom software image
     const type = launch.split("/")[0];
     switch (type) {
       case "binder":
-        launch_binder(params);
+        launch_binder(launch, data.filepath, data.urlpath);
         return;
       case "csi":
         launch_custom_software_image(launch);

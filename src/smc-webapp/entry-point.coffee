@@ -48,9 +48,6 @@ if IS_MOBILE and not isMobile.tablet()
 else
     desktop.render()
 
-landing_actions = require('./landing-actions')
-landing_actions.run()
-
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
