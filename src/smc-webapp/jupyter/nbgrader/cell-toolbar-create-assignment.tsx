@@ -73,9 +73,10 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     );
   }
 
-  private set_points(points: number): void {
-    if (points <= 0) {
-      points = 1;
+  private set_points(points: any): void {
+    points = parseFloat(points);
+    if (!Number.isFinite(points) || points < 0) {
+      points = 0;
     }
     this.props.actions.nbgrader_actions.set_metadata(
       this.props.cell.get("id"),
@@ -116,8 +117,8 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
         <ControlLabel style={{ fontWeight: 400 }}>Points:</ControlLabel>
         <FormControl
           type="number"
-          value={points}
-          onChange={e => this.set_points(parseInt((e.target as any).value))}
+          defaultValue={`${points}`}
+          onChange={e => this.set_points((e.target as any).value)}
           style={{
             color: "#666",
             width: "64px",
