@@ -4,6 +4,7 @@ Router for public share server.
 
 const PAGE_SIZE: number = 100;
 
+import * as immutable from "immutable";
 import * as os_path from "path";
 import { callback } from "awaiting";
 import * as express from "express";
@@ -73,7 +74,7 @@ export function share_router(opts: {
 }) {
   let dbg;
 
-  const author_info : AuthorInfo = new AuthorInfo(opts.database);
+  const author_info: AuthorInfo = new AuthorInfo(opts.database);
 
   const base_url: string = opts.base_url != null ? opts.base_url : "";
 
@@ -203,12 +204,23 @@ export function share_router(opts: {
     }
     await ready();
     if (public_paths == null) throw Error("public_paths must be defined");
-    dbg("get user ", account_id);
-    const name = await author_info.get_username(account_id);
+    // dbg("get user ", account_id);
+    const name: string = await author_info.get_username(account_id);
+    // dbg("got name", name);
+    const ids: string[] = await author_info.get_shares(account_id);
+    // dbg("got ids", JSON.stringify(ids));
+    let paths = public_paths.get(ids);
+    if (paths == null) {
+      dbg("BUG -- public_paths.get returned null");
+      paths = immutable.Map();
+    }
+    const paths_order = immutable.List(ids);
     render_user({
       res,
       account_id,
       name,
+      paths_order,
+      public_paths: paths,
       google_analytics,
       base_url
     });

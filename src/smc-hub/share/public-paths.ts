@@ -1,20 +1,20 @@
 /*
 Synchronized table of all public paths.
 
-This will easily scale up to probably 100K+ distinct public paths, which will take year(s) to reach,
-and by keeping everything in RAM, the share servers will be very, very fast (basically never hitting
-the DB before returning results).  And, since we have everything in memory, we can do a lot of stupid
-things involving iterating over everything before writing proper queries.
+DESIGN NOTE:
+The approach below preloads into RAM info about all public paths.
+It should in theory easily scale up to probably 100K+ distinct public paths.
+By keeping everything in RAM, the share servers will be faster (basically
+never hitting the DB before returning results).  And, since we have everything
+in memory, we can do a lot of stupid things involving iterating over everything
+before writing proper queries.
 */
 
 import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import {
-  bind_methods,
-  cmp,
-} from "smc-util/misc2";
+import { bind_methods, cmp } from "smc-util/misc2";
 import { containing_public_path } from "smc-util/misc";
 
 export type HostInfo = immutable.Map<string, any>;
@@ -44,7 +44,9 @@ export class PublicPaths extends EventEmitter {
     this.emit("ready");
   }
 
-  public get(id: string): HostInfo | undefined {
+  public get(
+    id: string | string[]
+  ): HostInfo | immutable.Map<string, HostInfo> | undefined {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get(id);
   }
@@ -182,7 +184,6 @@ export class PublicPaths extends EventEmitter {
     });
     this.init_public_paths();
   }
-
 }
 
 let the_public_paths: PublicPaths | undefined = undefined;

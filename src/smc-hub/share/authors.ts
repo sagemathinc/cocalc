@@ -95,4 +95,24 @@ export class AuthorInfo {
     const { first_name, last_name } = names[account_id];
     return `${first_name} ${last_name}`;
   }
+
+  public async get_shares(account_id: string): Promise<string[]> {
+    // Returns the id's of all public paths for which account_id
+    // is a collaborator on the project that has actively used the project.
+    // It would be more useful
+    // to additionally filter using the syncstrings table for documents
+    // that account_id actually edited, but that's a lot harder.
+    // We sort from most recently saved back.
+    if (!is_valid_uuid_string(account_id)) {
+      throw Error(`account_id=${account_id} must be a valid uuid string`);
+    }
+    const query = `select public_paths.id from public_paths, projects where public_paths.project_id = projects.project_id and projects.last_active ? '${account_id}' and (public_paths.unlisted is null or public_paths.unlisted = false) and (public_paths.disabled is null or public_paths.disabled = false) order by public_paths.last_edited desc`;
+    const result = await callback2(this.database._query, { query });
+    const ids: string[] = [];
+    if (result == null) return [];
+    for (let x of result.rows) {
+      ids.push(x.id);
+    }
+    return ids;
+  }
 }
