@@ -25,6 +25,7 @@ import {
 import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
+import { AuthorInfo } from "./authors";
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";
 import { render_user } from "./render-user";
@@ -71,6 +72,9 @@ export function share_router(opts: {
   base_url?: string;
 }) {
   let dbg;
+
+  const author_info : AuthorInfo = new AuthorInfo(opts.database);
+
   const base_url: string = opts.base_url != null ? opts.base_url : "";
 
   if ((global as any).window != null) {
@@ -200,7 +204,7 @@ export function share_router(opts: {
     await ready();
     if (public_paths == null) throw Error("public_paths must be defined");
     dbg("get user ", account_id);
-    const name = await public_paths.get_username(account_id);
+    const name = await author_info.get_username(account_id);
     render_user({
       res,
       account_id,
@@ -284,7 +288,7 @@ export function share_router(opts: {
         break;
 
       default:
-        const authors = await public_paths.get_authors(project_id, path);
+        const authors = await author_info.get_authors(project_id, path);
         render_public_path({
           req,
           res,
