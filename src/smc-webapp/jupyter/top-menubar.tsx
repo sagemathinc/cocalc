@@ -241,7 +241,14 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     };
 
     const cell_toolbars: any = [];
-    for (let name of ["none", "metadata", "slideshow", "attachments", "tags", "create_assignment"]) {
+    for (let name of [
+      "none",
+      "metadata",
+      "slideshow",
+      "attachments",
+      "tags",
+      "create_assignment"
+    ]) {
       const item_name = `>cell toolbar ${name}`;
       if (
         (this.props.cell_toolbar != null ? this.props.cell_toolbar : "none") ===
@@ -358,8 +365,10 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     const names: any[] = [
       `${this.props.kernel_state !== "busy" ? "<" : ""}interrupt kernel`,
       "confirm restart kernel",
-      "confirm restart kernel and clear output",
-      "confirm restart kernel and run all cells",
+      "<Restart and...",
+      ">confirm restart kernel and clear output",
+      ">confirm restart kernel and run all cells",
+      ">confirm restart kernel and run all cells without halting on error",
       "",
       "<Change kernel..."
     ]
@@ -454,6 +463,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       s = <span />;
     }
 
+    if (!display) display = obj.menu;
     if (!display) display = obj.m;
     if (!display) display = name;
 
@@ -534,7 +544,13 @@ render_widgets: -> # TODO: not supported in v1
         <Dropdown.Toggle noCaret bsStyle="default" style={TITLE_STYLE}>
           Help
         </Dropdown.Toggle>
-        <Dropdown.Menu style={{ /* maxHeight: "30vh" */ }}>
+        <Dropdown.Menu
+          style={
+            {
+              /* maxHeight: "30vh" */
+            }
+          }
+        >
           <MenuItem
             eventKey="help-about"
             onSelect={() => this.props.actions.show_about()}

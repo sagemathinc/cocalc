@@ -23,122 +23,12 @@ import { Metadata } from "./types";
 
 import { popup } from "../../frame-editors/frame-tree/print";
 
-interface CelltypeInfo {
-  title: string; // human readable title for this type of cell
-  value: string; // what type of cell it is
-  grade: boolean; // is it graded?
-  locked: boolean; // is it locked?
-  solution: boolean; // is it a solution?
-  link: string; // link to some html help (the nbgrader docs)
-  hover: string; // hover text that is helpful about this cell type (summary of nbgrader docs)
-  points?: number; // default number of points
-  icon?: string; // icon that would make sense for this type of cell
-  code_only?: boolean; // only code cells can be set to this type
-}
-
-const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
-  {
-    title: "-",
-    value: "",
-    grade: false,
-    locked: false,
-    solution: false,
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
-    hover:
-      "Instructors develop assignments using the assignment toolbar, which allows them to specify the type of problem in each cell and how it will be graded."
-  },
-  {
-    title: "Manually graded answer",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
-    hover:
-      "Cell contains an answer that must be manually graded by a human grader.",
-    value: "manual",
-    icon: "book-reader",
-    grade: true,
-    locked: false,
-    solution: true,
-    points: 0
-  },
-  {
-    title: "Autograded answer",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
-    hover: "Cell contains an answer that will be autograded.",
-    value: "auto",
-    icon: "magic",
-    grade: false,
-    locked: false,
-    solution: true,
-    code_only: true
-  },
-  {
-    title: "Autograder tests",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
-    hover: "Cell that contains tests to be run during autograding.",
-    value: "test",
-    icon: "check",
-    grade: true,
-    locked: true,
-    solution: false,
-    points: 0,
-    code_only: true
-  },
-  {
-    title: "Readonly",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#read-only-cells",
-    hover:
-      "Cell is marked as one that cannot be modified; during autograding the original version is recovered in case it was changed by the student.",
-    value: "readonly",
-    icon: "lock",
-    grade: false,
-    locked: true,
-    solution: false
-  }
-];
-
-const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
-for (let x of CELLTYPE_INFO_LIST) {
-  CELLTYPE_INFO_MAP[x.value] = x;
-}
-
-// I could implement this with another map hardcoded
-// in Javascript, but instead use a function with a cache
-// since it's more flexible.
-const value_cache: { [key: string]: string } = {};
-function state_to_value(state: Metadata): string {
-  const grade: boolean = !!state.grade;
-  const locked: boolean = !!state.locked;
-  const solution: boolean = !!state.solution;
-  if (grade === false && locked === false && solution === false) {
-    return "";
-  }
-  const key = JSON.stringify({ grade, solution });
-  if (value_cache[key] != undefined) return value_cache[key];
-  for (let x of CELLTYPE_INFO_LIST) {
-    if (x.grade == grade && x.solution == solution) {
-      value_cache[key] = x.value;
-      return x.value;
-    }
-  }
-  throw Error(`invalid state - "${key}"`);
-}
-
-function value_to_state(value: string): Metadata {
-  const x = CELLTYPE_INFO_MAP[value];
-  if (x == null) {
-    throw Error(`unknown value "${value}"`);
-  }
-  return {
-    grade: x.grade,
-    locked: x.locked,
-    solution: x.solution,
-    points: x.points
-  };
-}
+import {
+  CELLTYPE_INFO_LIST,
+  CELLTYPE_INFO_MAP,
+  value_to_state,
+  state_to_value
+} from "./cell-types";
 
 const OPTIONS_CODE: Rendered[] = [];
 const OPTIONS_NOTCODE: Rendered[] = [];
@@ -154,7 +44,6 @@ for (let x of CELLTYPE_INFO_LIST) {
     OPTIONS_NOTCODE.push(option);
   }
 }
-
 interface CreateAssignmentProps {
   actions: JupyterActions;
   cell: Map<string, any>;
@@ -184,8 +73,9 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
     );
   }
 
-  private set_points(points: number): void {
-    if (points < 0) {
+  private set_points(points: any): void {
+    points = parseFloat(points);
+    if (!Number.isFinite(points) || points < 0) {
       points = 0;
     }
     this.props.actions.nbgrader_actions.set_metadata(
@@ -227,8 +117,8 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
         <ControlLabel style={{ fontWeight: 400 }}>Points:</ControlLabel>
         <FormControl
           type="number"
-          value={points}
-          onChange={e => this.set_points(parseInt((e.target as any).value))}
+          defaultValue={`${points}`}
+          onChange={e => this.set_points((e.target as any).value)}
           style={{
             color: "#666",
             width: "64px",
