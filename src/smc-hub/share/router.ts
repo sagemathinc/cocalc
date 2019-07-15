@@ -267,14 +267,14 @@ export function share_router(opts: {
     //   by what happens to be in the path to files.  So share server not having
     //   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
     //   that path is just to the live files in the project, so very dangerous.
+    let { viewer, token } = req.query;
 
-    if (public_paths == null || !public_paths.is_public(project_id, path)) {
+    if (public_paths == null || !public_paths.is_public(project_id, path, token)) {
       res.sendStatus(404);
       return;
     }
 
     const dir: string = path_to_files(project_id);
-    let { viewer } = req.query;
     if (viewer == null) {
       const ext = filename_extension(path);
       if (!default_to_raw(ext) && has_special_viewer(ext)) {

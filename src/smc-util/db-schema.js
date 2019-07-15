@@ -1392,6 +1392,11 @@ schema.public_paths = {
       type: "map",
       desc:
         "Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)"
+    },
+    token: {
+      type: "string",
+      desc:
+        "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares."
     }
   },
 
@@ -1429,7 +1434,7 @@ schema.public_paths = {
         description: true,
         disabled: true,
         unlisted: true,
-        license:true,
+        license: true,
         last_edited: true,
         created: true
       },

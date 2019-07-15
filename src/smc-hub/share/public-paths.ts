@@ -126,12 +126,43 @@ export class PublicPaths extends EventEmitter {
     this.last_public_paths = this.synctable.get(); // TODO: very inefficient?
   }
 
-  public is_public(project_id: string, path: string): boolean {
+  public get_info(project_id: string, path: string): HostInfo | undefined {
+    const id: string = this.database.sha1(project_id, path);
+    return this.get(id);
+  }
+
+  // Returns the required token, if one is required.  A token is required
+  // if the share is unlisted *and* a token is set for that share.
+  public required_token(project_id: string, path: string): string | undefined {
+    const info = this.get_info(project_id, path);
+    if (info == null) return; // not even public
+    if (info.get("unlisted")) return info.get("token");
+    return undefined; // not unlisted
+  }
+
+  public public_path(project_id: string, path: string): string | undefined {
     const paths = this.public_paths_in_project[project_id];
     if (paths == null) {
+      return undefined;
+    }
+    return containing_public_path(path, paths);
+  }
+
+  public is_public(project_id: string, path: string, token?: string): boolean {
+    const public_path: string | undefined = this.public_path(project_id, path);
+    if (public_path == null) {
+      // path not public at all.
       return false;
     }
-    return !!containing_public_path(path, paths);
+    const required_token: string | undefined = this.required_token(
+      project_id,
+      public_path
+    );
+    if (required_token) {
+      return required_token == token;
+    } else {
+      return true;
+    }
   }
 
   // Immutables List of ids that sorts the public_paths from
@@ -171,7 +202,8 @@ export class PublicPaths extends EventEmitter {
         "vhost",
         "auth",
         "unlisted",
-        "license"
+        "license",
+        "token"
       ],
       where: "disabled IS NOT TRUE"
     });
