@@ -105,7 +105,12 @@ export class PublicPathInfo extends Component<Props> {
 
   private render_views(): Rendered {
     if (this.props.views == null || this.props.views == 0) return;
-    return <div key="views">Views: {this.props.views}</div>;
+    return (
+      <div key="views">
+        Views {this.props.isdir ? "of something in this directory" : ""}:{" "}
+        {this.props.views}
+      </div>
+    );
   }
 
   public render(): Rendered {

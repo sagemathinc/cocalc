@@ -320,8 +320,6 @@ export function share_router(opts: {
         if (path == public_path || path == public_path + "/") {
           views = public_paths.get_views(project_id, public_path);
         }
-        dbg("views =", views, path, public_path);
-
         render_public_path({
           req,
           res,
