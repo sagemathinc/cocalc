@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import styled from "styled-components";
 import { ProjectSelection } from "./project-selection";
 import * as API from "./actions";
 
@@ -18,6 +19,24 @@ interface State {
 const ROUTES = {
   HOME: "project-selection"
 };
+
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: 25% 50% 25%;
+  grid-template-rows: 100px auto 100px;
+  grid-template-areas:
+    "header header header"
+    "left-gutter content right-gutter"
+    "footer footer footer";
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+`;
+
+const ContentContainer = styled.div`
+  grid-area: content;
+  overflow: scroll;
+`;
 
 class App extends React.Component<Props, State> {
   constructor(props) {
@@ -52,19 +71,24 @@ class App extends React.Component<Props, State> {
   }
 
   render() {
+    let content = (
+      <>
+        The route: {this.state.route} is not yet implemented. Here's the state!
+        <br />
+        {JSON.stringify(this.state)}
+      </>
+    );
+
     switch (this.state.route) {
       case ROUTES.HOME:
-        return <ProjectSelection projects={this.state.projects} />;
-      default:
-        return (
-          <div>
-            The route: {this.state.route} is not yet implemented. Here's the
-            state!
-            <br />
-            {JSON.stringify(this.state)}
-          </div>
-        );
+        content = <ProjectSelection projects={this.state.projects} />;
     }
+
+    return (
+      <Grid>
+        <ContentContainer>{content}</ContentContainer>
+      </Grid>
+    );
   }
 }
 
