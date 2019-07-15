@@ -305,7 +305,7 @@ const pug2app = new HtmlWebpackPlugin({
 });
 
 const lti_deep_link_page = new HtmlWebpackPlugin({
-  chunks: ["react", "axios", "lti-vendors", "lti"],
+  chunks: ["react", "lti-vendors", "lti"],
   date: BUILD_DATE,
   title: TITLE,
   description: DESCRIPTION,

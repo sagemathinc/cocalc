@@ -1,31 +1,27 @@
 import axios from "axios";
 
-const live_api_key = "sk_55xJTNDSAez7DNWFI3wV9lZO";
-const live_api_url = "https://cocalc.com/api/v1/";
-// const test_api_key = "sk_DHSUXftaWOl3t0d4HQEq4ZKv";
-// const test_api_url = "https://cocalc.com/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/api/v1/";
+const config = {
+  api_key: "sk_55xJTNDSAez7DNWFI3wV9lZO",
+  api_url: "https://cocalc.com/api/v1/"
+};
 
-export function fetch_projects() {
-  axios({
-  method: "post",
-  url: live_api_url + "query",
-  auth: { username: live_api_key, password: "" },
-  data: {
-    query: {
-      projects_all: [{ project_id: null, title: null, description: null }]
-    }
-  }
-})
-  .then(function(response) {
-    console.log("Success");
-    console.log("data", response.data);
-    console.log("status", response.status);
-    console.log("status text", response.statusText);
-    console.log("headers", response.headers);
-    console.log("config", response.config);
-  })
-  .catch(function(error) {
-    console.log("Some kind of error");
+export async function fetch_projects() {
+  try {
+    const response = await axios({
+      method: "post",
+      url: config.api_url + "query",
+      auth: { username: config.api_key, password: "" },
+      data: {
+        query: {
+          projects_all: [{ project_id: null, title: null, description: null }]
+        }
+      }
+    });
+    console.log("api returned:", response.data);
+
+    return response.data.query.projects_all;
+  } catch (error) {
+    console.log("Some kind of error occurred");
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
@@ -43,5 +39,5 @@ export function fetch_projects() {
       console.log("Error", error.message);
     }
     console.log(error.config);
-  });
+  }
 }

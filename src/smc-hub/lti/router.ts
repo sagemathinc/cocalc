@@ -21,7 +21,7 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
   router.use(express.json());
   router.use(express.urlencoded({ extended: true }));
 
-  router.get("/", function(_, res) {
+  router.route("/").all(function(_, res) {
     res.sendFile(path.join(STATIC_PATH, "lti.html"), { maxAge: 0 });
   });
 
@@ -39,7 +39,9 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
       response_mode: "form_post",
       prompt: "none",
       client_id: iss_data.client_id,
-      redirect_uri: token.target_link_uri,
+      redirect_uri:
+        "https://cocalc.com/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/port/39187/api/lti/" ||
+        token.target_link_uri,
       login_hint: token.login_hint,
       state: state,
       nonce: nonce,
