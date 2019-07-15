@@ -40,6 +40,7 @@ export async function render_public_path(opts: {
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
   authors: Author[];
   base_url: string;
+  views?: number;
 }): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
 
@@ -90,7 +91,8 @@ export async function render_public_path(opts: {
       info: opts.info as any, // typescript gets confused between two copies of immutable, breaking checking in this case.
       files: files,
       viewer: opts.viewer,
-      path: opts.path
+      path: opts.path,
+      views: opts.views
     });
     opts.react(opts.res, component, opts.path);
     return;
@@ -137,7 +139,8 @@ export async function render_public_path(opts: {
     size: stats.size,
     highlight,
     authors: opts.authors,
-    base_url: opts.base_url
+    base_url: opts.base_url,
+    views: opts.views
   });
   opts.react(opts.res, component, opts.path);
 }

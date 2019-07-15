@@ -126,8 +126,12 @@ export class PublicPaths extends EventEmitter {
     this.last_public_paths = this.synctable.get(); // TODO: very inefficient?
   }
 
+  public get_id(project_id: string, path: string): string {
+    return this.database.sha1(project_id, path);
+  }
+
   public get_info(project_id: string, path: string): HostInfo | undefined {
-    const id: string = this.database.sha1(project_id, path);
+    const id: string = this.get_id(project_id, path);
     return this.get(id);
   }
 
@@ -148,21 +152,46 @@ export class PublicPaths extends EventEmitter {
     return containing_public_path(path, paths);
   }
 
-  public is_public(project_id: string, path: string, token?: string): boolean {
-    const public_path: string | undefined = this.public_path(project_id, path);
-    if (public_path == null) {
-      // path not public at all.
+  // True if project_id/path is contained in some public path,
+  // which may or may not be unlisted.
+  public is_public(project_id: string, path: string): boolean {
+    const paths = this.public_paths_in_project[project_id];
+    if (paths == null) {
       return false;
     }
+    return containing_public_path(path, paths) != null;
+  }
+
+  public is_access_allowed(
+    project_id: string, // the project_id
+    path: string, // a path of an actual share.
+    token: string | undefined // token for access (ignored unless unlisted *and* set in database)
+  ): boolean {
     const required_token: string | undefined = this.required_token(
       project_id,
-      public_path
+      path
     );
     if (required_token) {
       return required_token == token;
     } else {
       return true;
     }
+  }
+
+  public get_views(project_id : string, path:string) : number | undefined {
+    const info = this.get_info(project_id, path);
+    if (info == null) return;
+    return info.get('counter');
+  }
+
+  public async increment_view_counter(
+    project_id: string, // the project_id
+    path: string // a path of an actual share.
+  ): Promise<void> {
+    const id: string = this.get_id(project_id, path);
+    await callback2(this.database._query, {
+      query: `UPDATE public_paths SET counter=coalesce(counter,0)+1 WHERE id='${id}'`
+    });
   }
 
   // Immutables List of ids that sorts the public_paths from

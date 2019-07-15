@@ -269,7 +269,20 @@ export function share_router(opts: {
     //   that path is just to the live files in the project, so very dangerous.
     let { viewer, token } = req.query;
 
-    if (public_paths == null || !public_paths.is_public(project_id, path, token)) {
+    if (public_paths == null) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const public_path: string | undefined = public_paths.public_path(
+      project_id,
+      path
+    );
+
+    if (
+      public_path == null ||
+      !public_paths.is_access_allowed(project_id, public_path, token)
+    ) {
       res.sendStatus(404);
       return;
     }
@@ -301,6 +314,14 @@ export function share_router(opts: {
 
       default:
         const authors = await author_info.get_authors(project_id, path);
+
+        public_paths.increment_view_counter(project_id, public_path);
+        let views: undefined | number = undefined;
+        if (path == public_path || path == public_path + "/") {
+          views = public_paths.get_views(project_id, public_path);
+        }
+        dbg("views =", views, path, public_path);
+
         render_public_path({
           req,
           res,
@@ -319,7 +340,8 @@ export function share_router(opts: {
           hidden: req.query.hidden,
           sort: req.query.sort != null ? req.query.sort : "-mtime",
           authors,
-          base_url
+          base_url,
+          views
         });
     }
   });

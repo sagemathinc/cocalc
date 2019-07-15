@@ -24,6 +24,7 @@ interface Props {
   isdir?: boolean;
   authors?: Author[];
   base_url: string;
+  views?: number;
 }
 
 export class PublicPathInfo extends Component<Props> {
@@ -102,6 +103,11 @@ export class PublicPathInfo extends Component<Props> {
     );
   }
 
+  private render_views(): Rendered {
+    if (this.props.views == null || this.props.views == 0) return;
+    return <div key="views">Views: {this.props.views}</div>;
+  }
+
   public render(): Rendered {
     return (
       <div style={{ background: "#efefef", paddingLeft: "5px" }}>
@@ -109,6 +115,7 @@ export class PublicPathInfo extends Component<Props> {
         {this.render_desc()}
         {this.render_license()}
         {this.render_authors()}
+        {this.render_views()}
       </div>
     );
   }
