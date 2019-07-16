@@ -4,6 +4,7 @@ Router for public share server.
 
 const PAGE_SIZE: number = 100;
 
+import * as immutable from "immutable";
 import * as os_path from "path";
 import { callback } from "awaiting";
 import * as express from "express";
@@ -25,6 +26,7 @@ import {
 import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
+import { AuthorInfo } from "./authors";
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";
 import { render_user } from "./render-user";
@@ -71,6 +73,9 @@ export function share_router(opts: {
   base_url?: string;
 }) {
   let dbg;
+
+  const author_info: AuthorInfo = new AuthorInfo(opts.database);
+
   const base_url: string = opts.base_url != null ? opts.base_url : "";
 
   if ((global as any).window != null) {
@@ -199,12 +204,23 @@ export function share_router(opts: {
     }
     await ready();
     if (public_paths == null) throw Error("public_paths must be defined");
-    dbg("get user ", account_id);
-    const name = await public_paths.get_username(account_id);
+    // dbg("get user ", account_id);
+    const name: string = await author_info.get_username(account_id);
+    // dbg("got name", name);
+    const ids: string[] = await author_info.get_shares(account_id);
+    // dbg("got ids", JSON.stringify(ids));
+    let paths = public_paths.get(ids);
+    if (paths == null) {
+      dbg("BUG -- public_paths.get returned null");
+      paths = immutable.Map();
+    }
+    const paths_order = immutable.List(ids);
     render_user({
       res,
       account_id,
       name,
+      paths_order,
+      public_paths: paths,
       google_analytics,
       base_url
     });
@@ -251,14 +267,27 @@ export function share_router(opts: {
     //   by what happens to be in the path to files.  So share server not having
     //   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
     //   that path is just to the live files in the project, so very dangerous.
+    let { viewer, token } = req.query;
 
-    if (public_paths == null || !public_paths.is_public(project_id, path)) {
+    if (public_paths == null) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const public_path: string | undefined = public_paths.public_path(
+      project_id,
+      path
+    );
+
+    if (
+      public_path == null ||
+      !public_paths.is_access_allowed(project_id, public_path, token)
+    ) {
       res.sendStatus(404);
       return;
     }
 
     const dir: string = path_to_files(project_id);
-    let { viewer } = req.query;
     if (viewer == null) {
       const ext = filename_extension(path);
       if (!default_to_raw(ext) && has_special_viewer(ext)) {
@@ -284,7 +313,13 @@ export function share_router(opts: {
         break;
 
       default:
-        const authors = await public_paths.get_authors(project_id, path);
+        const authors = await author_info.get_authors(project_id, path);
+
+        public_paths.increment_view_counter(project_id, public_path);
+        let views: undefined | number = undefined;
+        if (path == public_path || path == public_path + "/") {
+          views = public_paths.get_views(project_id, public_path);
+        }
         render_public_path({
           req,
           res,
@@ -303,7 +338,8 @@ export function share_router(opts: {
           hidden: req.query.hidden,
           sort: req.query.sort != null ? req.query.sort : "-mtime",
           authors,
-          base_url
+          base_url,
+          views
         });
     }
   });
