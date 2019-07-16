@@ -158,6 +158,10 @@ export const FILE_ACTIONS = {
     name: "Download",
     icon: "cloud-download",
     allows_multiple_files: true
+  },
+  upload: {
+    name: "Upload",
+    icon: "upload"
   }
 };
 
