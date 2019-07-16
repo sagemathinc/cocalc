@@ -4,6 +4,7 @@ import { CoCalcLink } from "./cocalc-link";
 import { IsPublicFunction } from "./types";
 import { SITE_NAME } from "smc-util/theme";
 import { r_join } from "../r_misc/r_join";
+import { SiteSearch } from "./search";
 
 interface TopBarProps {
   viewer?: string;
@@ -32,6 +33,15 @@ export class TopBar extends Component<TopBarProps> {
           <CoCalcLogo base_url={this.props.base_url} /> Shared
         </a>
       </span>
+    );
+  }
+
+  private render_search(): Rendered {
+    if (this.props.project_id != null) return;
+    return (
+      <div style={{ position: "absolute", top: 0, right: 0, width: "30%" }}>
+        <SiteSearch />
+      </div>
     );
   }
 
@@ -119,6 +129,7 @@ export class TopBar extends Component<TopBarProps> {
       >
         {this.render_cocalc_link()}
         {this.render_logo(top)}
+        {this.render_search()}
         <span
           style={{
             paddingLeft: "15px",
