@@ -7,74 +7,60 @@ import { AccountInfo, ProjectInfo } from "./types";
 
 import * as MOCK from "./DUMMY-DATA";
 
-interface Props {
-  debug: boolean;
-}
-
 interface State {
   route: string;
-  projects: ProjectInfo[];
-  account_info: AccountInfo;
+  projects?: ProjectInfo[];
+  account_info?: AccountInfo;
+  loading: boolean;
 }
 
 const ROUTES = {
   HOME: "project-selection"
 };
 
-class App extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
+function App({ debug }: { debug?: boolean } = { debug: false }) {
+  if (debug) {
+    console.log("Rendering App");
+  }
 
-    this.state = {
-      projects: [],
-      route: ROUTES.HOME,
-      account_info: MOCK.ACCOUNT
+  const [state, setAppState] = React.useState<State>({
+    projects: [],
+    route: ROUTES.HOME,
+    account_info: MOCK.ACCOUNT,
+    loading: true
+  });
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      const projects = await API.fetch_projects();
+      const account_info = await API.fetch_self();
+      setAppState({ ...state, projects, account_info, loading: false });
     };
 
-    this.setAppState = this.setAppState.bind(this);
-  }
+    fetchData();
+  }, []);
 
-  static defaultProps = {
-    debug: false
-  };
-
-  setAppState(updater, callback?) {
-    this.setState(updater, () => {
-      if (this.props.debug) {
-        console.log("setAppState", JSON.stringify(this.state));
-      }
-      if (callback) {
-        callback();
-      }
-    });
-  }
-
-  async componentDidMount() {
-    const projects = await API.fetch_projects();
-    const self = await API.fetch_self();
-    this.setAppState({ projects: projects, account_info: self });
-  }
-
-  render() {
-    let content = (
-      <>
-        The route: {this.state.route} is not yet implemented. Here's the state!
-        <br />
-        {JSON.stringify(this.state)}
-      </>
-    );
-
-    switch (this.state.route) {
+  let content = (
+    <>
+      The route: {state.route} is not yet implemented. Here's the state!
+      <br />
+      {JSON.stringify(state)}
+    </>
+  );
+  if (!state.loading) {
+    switch (state.route) {
       case ROUTES.HOME:
-        content = <ProjectSelection projects={this.state.projects} />;
+        content = <ProjectSelection projects={state.projects || []} />;
     }
-
-    return (
-      <Grid>
-        <ContentContainer>{content}</ContentContainer>
-      </Grid>
-    );
+  } else {
+    content = <div>Loading...</div>;
   }
+
+  return (
+    <Grid>
+      <ContentContainer>{content}</ContentContainer>
+    </Grid>
+  );
 }
 
 const Grid = styled.div`
@@ -94,7 +80,6 @@ const ContentContainer = styled.div`
   grid-area: content;
   overflow: scroll;
 `;
-
 
 export function render_app() {
   ReactDOM.render(<App />, document.getElementById("cocalc-react-container"));
