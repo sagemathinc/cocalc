@@ -2070,9 +2070,10 @@ BillingPage = rclass
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
             <b>
-                <Space/> Contact us if you are purchasing a course subscription and need a short trial
-                to test things out first.<Space/>
+                <Space/> Customized course plans are available.<Space/>
             </b>
+            If you do not see a plan that fits your needs,
+            email <HelpEmailLink/> with a description of your specific requirements.
         </span>
 
     render_suggested_next_step: ->
