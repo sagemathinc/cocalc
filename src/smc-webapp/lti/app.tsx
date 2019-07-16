@@ -3,9 +3,9 @@ import * as ReactDOM from "react-dom";
 import styled from "styled-components";
 import { ProjectSelection } from "./project-selection";
 import * as API from "./actions";
+import { AccountInfo, ProjectInfo } from "./types";
 
-// MOCK DATA
-import { MOCK_PROJECTS } from "./DUMMY-DATA";
+import * as MOCK from "./DUMMY-DATA";
 
 interface Props {
   debug: boolean;
@@ -13,38 +13,22 @@ interface Props {
 
 interface State {
   route: string;
-  projects: { project_id: string; title: string; description: string }[];
+  projects: ProjectInfo[];
+  account_info: AccountInfo;
 }
 
 const ROUTES = {
   HOME: "project-selection"
 };
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 25% 50% 25%;
-  grid-template-rows: 100px auto 100px;
-  grid-template-areas:
-    "header header header"
-    "left-gutter content right-gutter"
-    "footer footer footer";
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-`;
-
-const ContentContainer = styled.div`
-  grid-area: content;
-  overflow: scroll;
-`;
-
 class App extends React.Component<Props, State> {
   constructor(props) {
     super(props);
 
     this.state = {
-      projects: MOCK_PROJECTS,
-      route: ROUTES.HOME
+      projects: [],
+      route: ROUTES.HOME,
+      account_info: MOCK.ACCOUNT
     };
 
     this.setAppState = this.setAppState.bind(this);
@@ -67,7 +51,8 @@ class App extends React.Component<Props, State> {
 
   async componentDidMount() {
     const projects = await API.fetch_projects();
-    this.setAppState({ projects: projects });
+    const self = await API.fetch_self();
+    this.setAppState({ projects: projects, account_info: self });
   }
 
   render() {
@@ -91,6 +76,25 @@ class App extends React.Component<Props, State> {
     );
   }
 }
+
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: 25% 50% 25%;
+  grid-template-rows: 100px auto 100px;
+  grid-template-areas:
+    "header header header"
+    "left-gutter content right-gutter"
+    "footer footer footer";
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+`;
+
+const ContentContainer = styled.div`
+  grid-area: content;
+  overflow: scroll;
+`;
+
 
 export function render_app() {
   ReactDOM.render(<App />, document.getElementById("cocalc-react-container"));

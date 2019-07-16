@@ -1,7 +1,8 @@
 import * as React from "react";
 import styled from "styled-components";
+import { ProjectInfo } from "./types";
 
-export function ProjectSelection({ projects }: { projects: any[] }) {
+export function ProjectSelection({ projects }: { projects: ProjectInfo[] }) {
   const project_rows: any[] = [];
 
   projects.map(project => {
