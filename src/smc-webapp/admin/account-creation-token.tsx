@@ -2,12 +2,7 @@
 Input box for setting the account creation token.
 */
 
-import {
-  React,
-  Rendered,
-  Component,
-  redux
-} from "../app-framework";
+import { React, Rendered, Component, redux } from "../app-framework";
 
 import { Button, Well, FormGroup, FormControl } from "react-bootstrap";
 
@@ -31,7 +26,7 @@ export class AccountCreationToken extends Component<{}, State> {
     };
   }
 
-  edit() : void {
+  edit(): void {
     this.setState({ state: "edit" });
   }
 
@@ -100,7 +95,7 @@ export class AccountCreationToken extends Component<{}, State> {
     }
   }
 
-  render_error() : Rendered {
+  render_error(): Rendered {
     if (this.state.error) {
       return (
         <ErrorDisplay
@@ -111,13 +106,13 @@ export class AccountCreationToken extends Component<{}, State> {
     }
   }
 
-  render_save() : Rendered {
+  render_save(): Rendered {
     if (this.state.state === "save") {
       return <Saving />;
     }
   }
 
-  render_unsupported() : Rendered {
+  render_unsupported(): Rendered {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
       <div style={{ color: "#666" }}>
@@ -128,7 +123,14 @@ export class AccountCreationToken extends Component<{}, State> {
 
   render_content(): Rendered {
     const account_store: any = redux.getStore("account");
-    if (account_store ? account_store.get("strategies").size > 1 : undefined) {
+    if (account_store == null) {
+      return <div>Account store not defined -- refresh your browser.</div>;
+    }
+    const strategies: any = account_store.get("strategies");
+    if (strategies == null) {  // I hit this in production once and it crashed my browser.
+      return <div>strategies not loaded -- refresh your browser.</div>;
+    }
+    if (strategies.size > 1) {
       return this.render_unsupported();
     }
     return (
@@ -140,7 +142,7 @@ export class AccountCreationToken extends Component<{}, State> {
     );
   }
 
-  render() : Rendered {
+  render(): Rendered {
     return (
       <div>
         <h4>Account Creation Token</h4>
