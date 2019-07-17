@@ -18,6 +18,7 @@ interface ContentPageProps {
   notranslate?: boolean;
   is_public: IsPublicFunction;
   noindex: boolean;
+  description?: string;
 }
 
 export class ContentPage extends Component<ContentPageProps> {
@@ -30,6 +31,7 @@ export class ContentPage extends Component<ContentPageProps> {
         notranslate={this.props.notranslate}
         viewer={this.props.viewer}
         noindex={this.props.noindex}
+        description={this.props.description}
       >
         <TopBar
           viewer={this.props.viewer}

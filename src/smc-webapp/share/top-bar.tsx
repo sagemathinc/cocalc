@@ -123,7 +123,6 @@ export class TopBar extends Component<TopBarProps> {
         key="top"
         style={{
           padding: "5px 5px 0px 5px",
-          height: "50px",
           background: "#efefef"
         }}
       >

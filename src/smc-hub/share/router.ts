@@ -44,7 +44,8 @@ function react_viewer(
   project_id: string | undefined,
   notranslate: boolean,
   viewer: "share" | "embed",
-  is_public: IsPublicFunction
+  is_public: IsPublicFunction,
+  description?: string
 ): Function {
   return function(res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
@@ -54,6 +55,7 @@ function react_viewer(
         path,
         project_id,
         subtitle,
+        description,
         notranslate,
         google_analytics,
         viewer,
@@ -185,7 +187,8 @@ export function share_router(opts: {
       undefined,
       true,
       "share",
-      public_paths.is_public
+      public_paths.is_public,
+      "Directory listing"
     );
     r(res, page, `${page_number} of ${PAGE_SIZE}`, true);
   });
@@ -292,6 +295,16 @@ export function share_router(opts: {
       return;
     }
 
+    if (info == null) {
+      info = public_paths.get_info(project_id, public_path);
+      if (info == null) {
+        res.sendStatus(404);
+        return;
+      }
+    }
+
+    const description : string | undefined = info.get("description");
+
     const dir: string = path_to_files(project_id);
     if (viewer == null) {
       const ext = filename_extension(path);
@@ -337,7 +350,8 @@ export function share_router(opts: {
             project_id,
             false,
             viewer,
-            public_paths.is_public
+            public_paths.is_public,
+            description
           ),
           viewer,
           hidden: req.query.hidden,

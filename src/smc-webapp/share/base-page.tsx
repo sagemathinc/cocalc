@@ -34,6 +34,7 @@ interface BasePageProps {
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
   noindex: boolean; // if true, then search engines should not show this page in search results.
+  description?: string;
 }
 
 export class BasePage extends Component<BasePageProps> {
@@ -49,6 +50,11 @@ export class BasePage extends Component<BasePageProps> {
       title = `${this.props.subtitle} - CoCalc`;
     }
     return <title>{title}</title>;
+  }
+
+  private render_description_meta(): Rendered {
+    if (!this.props.description) return;
+    return <meta name="description" content={this.props.description} />;
   }
 
   private render_notranslate(): Rendered {
@@ -125,6 +131,7 @@ gtag('config', '${this.props.google_analytics}');\
         <head>
           {this.render_viewport()}
           {this.render_title()}
+          {this.render_description_meta()}
           {this.render_notranslate()}
           {this.render_cdn_links()}
           {this.render_favicon()}
