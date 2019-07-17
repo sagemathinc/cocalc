@@ -2,16 +2,46 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
 import { ProjectSelection } from "./project-selection";
-import * as API from "./actions";
+import * as API from "./api";
 import { AccountInfo, ProjectInfo } from "./types";
 
 import * as MOCK from "./DUMMY-DATA";
 
 interface State {
   route: string;
-  projects?: ProjectInfo[];
+  projects: ProjectInfo[];
   account_info?: AccountInfo;
   loading: boolean;
+}
+
+type Action =
+  | {
+      type: "initial_load";
+      projects?: ProjectInfo[];
+      account_info?: AccountInfo;
+    }
+  | { type: "set_projects"; projects: ProjectInfo[] }
+  | { type: "set_account_info"; account_info: AccountInfo }
+  | { type: "change_route"; route: string };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "initial_load":
+      return {
+        ...state,
+        projects: action.projects || [],
+        account_info: action.account_info,
+        loading: false
+      };
+    case "set_projects":
+      return { ...state, projects: action.projects };
+    case "set_account_info":
+      return { ...state, account_info: action.account_info };
+    case "change_route":
+      return { ...state, route: action.route };
+    default:
+      throw new Error();
+  }
 }
 
 const ROUTES = {
@@ -23,7 +53,7 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
     console.log("Rendering App");
   }
 
-  const [state, setAppState] = React.useState<State>({
+  const [state, dispatch] = React.useReducer(reducer, {
     projects: [],
     route: ROUTES.HOME,
     account_info: MOCK.ACCOUNT,
@@ -34,7 +64,7 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
     const fetchData = async () => {
       const projects = await API.fetch_projects();
       const account_info = await API.fetch_self();
-      setAppState({ ...state, projects, account_info, loading: false });
+      dispatch({ type: "initial_load", projects: projects, account_info });
     };
 
     fetchData();
