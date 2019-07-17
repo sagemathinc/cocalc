@@ -27,6 +27,8 @@ import { exec } from "./frame-editors/generic/client";
 import { editor_id, NewFilenames } from "smc-webapp/project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
+import { transform_get_url } from "./project/transform-get-url";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -1912,9 +1914,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: undefined
     }); // cb(true or false, depending on error)
 
-    const { command, args } = misc.transform_get_url(opts.url);
+    const { command, args } = transform_get_url(opts.url);
 
-    console.log(command, args);
     require("./webapp_client").webapp_client.exec({
       project_id: this.project_id,
       command,
@@ -1924,9 +1925,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: (err, result) => {
         if (opts.alert) {
           if (err) {
-            alert_message({ type: "error", message: err });
+            alert_message({ type: "error", message: err, timeout: 15 });
           } else if (result.event === "error") {
-            alert_message({ type: "error", message: result.error });
+            alert_message({
+              type: "error",
+              message: result.error,
+              timeout: 15
+            });
           }
         }
         typeof opts.cb === "function"

@@ -29,14 +29,14 @@ import {
   server_time
 } from "smc-util/misc";
 
-const webapp_client = require("./webapp_client");
+const { webapp_client } = require("./webapp_client");
 
 const types = ["error", "default", "success", "info"];
 const default_timeout = {
-  error: 5,
-  default: 2,
-  success: 2,
-  info: 3
+  error: 8,
+  default: 4,
+  success: 4,
+  info: 6
 };
 
 if (typeof $ === "function") {
