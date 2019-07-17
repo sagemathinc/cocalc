@@ -30,9 +30,10 @@ export type IsPublicFunction = (project_id: string, path: string) => boolean;
 interface BasePageProps {
   base_url: string;
   subtitle?: string;
-  viewer?: string;
+  viewer: "share" | "embed";
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
+  noindex: boolean; // if true, then search engines should not show this page in search results.
 }
 
 export class BasePage extends Component<BasePageProps> {
@@ -59,10 +60,8 @@ export class BasePage extends Component<BasePageProps> {
   }
 
   private render_noindex(): Rendered {
-    // **TODO** -- actually add the metadata!
-    if (this.props.viewer == "embed") {
-      // we do not want this to be indexed!
-      return;
+    if (this.props.noindex) {
+      return <meta name="robots" content="noindex" />;
     }
   }
 

@@ -43,10 +43,10 @@ function react_viewer(
   path: string,
   project_id: string | undefined,
   notranslate: boolean,
-  viewer: string,
+  viewer: "share" | "embed",
   is_public: IsPublicFunction
 ): Function {
-  return function(res, component, subtitle: string): void {
+  return function(res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
       ContentPage,
       {
@@ -57,7 +57,8 @@ function react_viewer(
         notranslate,
         google_analytics,
         viewer,
-        is_public
+        is_public,
+        noindex
       },
       component
     );
@@ -186,7 +187,7 @@ export function share_router(opts: {
       "share",
       public_paths.is_public
     );
-    r(res, page, `${page_number} of ${PAGE_SIZE}`);
+    r(res, page, `${page_number} of ${PAGE_SIZE}`, true);
   });
 
   router.get("/users", async function(req, res): Promise<void> {
@@ -268,6 +269,10 @@ export function share_router(opts: {
     //   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
     //   that path is just to the live files in the project, so very dangerous.
     let { viewer, token } = req.query;
+
+    if (viewer != "share" && viewer != "embed" && viewer != "raw") {
+      viewer = "share";
+    }
 
     if (public_paths == null) {
       res.sendStatus(404);

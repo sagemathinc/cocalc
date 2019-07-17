@@ -94,11 +94,21 @@ export async function render_public_path(opts: {
       path: opts.path,
       views: opts.views
     });
-    opts.react(opts.res, component, opts.path);
+    // NOTE: last true is because we never index directory listings -- instead we want
+    // users to find specific files by their content and name
+    opts.react(opts.res, component, opts.path, true);
     return;
   }
 
   dbg("is file");
+  let noindex: boolean;
+  if (opts.viewer == "share") {
+    // do index a file if we will be showing it via the share server.
+    noindex = false;
+  } else {
+    noindex = true; // never index content that is raw or embedded
+  }
+
   let why: string | undefined = undefined;
   let content: string | undefined = undefined;
   let ext = filename_extension(path_to_file);
@@ -142,5 +152,5 @@ export async function render_public_path(opts: {
     base_url: opts.base_url,
     views: opts.views
   });
-  opts.react(opts.res, component, opts.path);
+  opts.react(opts.res, component, opts.path, noindex);
 }
