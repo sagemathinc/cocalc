@@ -64,7 +64,11 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
     const fetchData = async () => {
       const projects = await API.fetch_projects();
       const account_info = await API.fetch_self();
-      dispatch({ type: "initial_load", projects: projects, account_info });
+      dispatch({
+        type: "initial_load",
+        projects,
+        account_info
+      });
     };
 
     fetchData();
@@ -86,8 +90,16 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
     content = <div>Loading...</div>;
   }
 
+  let header = (
+    <>
+      User:{" "}
+      {(state.account_info && state.account_info.first_name) || "No user name"}
+    </>
+  );
+
   return (
     <Grid>
+      <HeaderContainer>{header}</HeaderContainer>
       <ContentContainer>{content}</ContentContainer>
     </Grid>
   );
@@ -104,6 +116,12 @@ const Grid = styled.div`
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+`;
+
+const HeaderContainer = styled.div`
+  grid-area: header;
+  overflow: hidden;
+  background: skyblue;
 `;
 
 const ContentContainer = styled.div`
