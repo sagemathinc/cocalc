@@ -1914,7 +1914,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const { command, args } = misc.transform_get_url(opts.url);
 
-    return require("./webapp_client").webapp_client.exec({
+    console.log(command, args);
+    require("./webapp_client").webapp_client.exec({
       project_id: this.project_id,
       command,
       timeout: opts.timeout,
@@ -1928,7 +1929,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             alert_message({ type: "error", message: result.error });
           }
         }
-        return typeof opts.cb === "function"
+        typeof opts.cb === "function"
           ? opts.cb(err || result.event === "error")
           : undefined;
       }
@@ -2784,7 +2785,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
     });
-    return this.get_from_web({
+    this.get_from_web({
       url,
       dest: current_path,
       timeout: FROM_WEB_TIMEOUT_S,
@@ -2792,7 +2793,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: err => {
         this.fetch_directory_listing();
         this.set_activity({ id, stop: "" });
-        return typeof cb === "function" ? cb(err) : undefined;
+        typeof cb === "function" ? cb(err) : undefined;
       }
     });
   }
