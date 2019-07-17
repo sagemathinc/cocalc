@@ -16,7 +16,8 @@ import * as os_path from "path";
 import { stat, readFile } from "fs";
 import { callback } from "awaiting";
 
-import { filename_extension, field_cmp } from "smc-util/misc";
+import { field_cmp } from "smc-util/misc";
+import { filename_extension, path_to_title } from "smc-util/misc2";
 
 import { React } from "smc-webapp/app-framework";
 import { PublicPath } from "smc-webapp/share/public-path";
@@ -152,5 +153,6 @@ export async function render_public_path(opts: {
     base_url: opts.base_url,
     views: opts.views
   });
-  opts.react(opts.res, component, opts.path, noindex);
+  const subtitle = path_to_title(opts.path);
+  opts.react(opts.res, component, subtitle, noindex);
 }

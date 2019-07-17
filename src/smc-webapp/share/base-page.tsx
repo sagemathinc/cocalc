@@ -44,9 +44,9 @@ export class BasePage extends Component<BasePageProps> {
   }
 
   private render_title(): Rendered {
-    let title = "Shared";
+    let title = "CoCalc";
     if (this.props.subtitle) {
-      title += ` - ${this.props.subtitle}`;
+      title = `${this.props.subtitle} - CoCalc`;
     }
     return <title>{title}</title>;
   }

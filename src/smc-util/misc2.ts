@@ -399,6 +399,11 @@ export function replace_all(
   return s.split(search).join(replace);
 }
 
+export function path_to_title(path: string): string {
+  let subtitle = separate_file_extension(path_split(path).tail).name;
+  return capitalize(replace_all(replace_all(subtitle, "-", " "), "_", " "));
+}
+
 // names is a Set<string>
 export function list_alternatives(names): string {
   names = names.map(x => x.toUpperCase()).toJS();
