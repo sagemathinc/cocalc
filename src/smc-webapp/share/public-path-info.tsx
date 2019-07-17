@@ -123,7 +123,7 @@ export class PublicPathInfo extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <div style={{ background: "#efefef", paddingLeft: "5px" }}>
+      <div style={{ background: "#efefef", padding: "5px" }}>
         {this.render_external_links()}
         {this.render_authors()}
         {this.render_views()}
