@@ -1,6 +1,5 @@
 import { React, Component, Rendered } from "../app-framework";
 import { CoCalcLogo } from "./cocalc-logo";
-import { CoCalcLink } from "./cocalc-link";
 import { IsPublicFunction } from "./types";
 import { SITE_NAME } from "smc-util/theme";
 import { r_join } from "../r_misc/r_join";
@@ -19,12 +18,6 @@ export class TopBar extends Component<TopBarProps> {
   static defaultProps = {
     site_name: SITE_NAME
   };
-
-  private render_cocalc_link(): Rendered {
-    return (
-      <CoCalcLink base_url={this.props.base_url} viewer={this.props.viewer} />
-    );
-  }
 
   private render_logo(top: string): Rendered {
     return (
@@ -49,9 +42,6 @@ export class TopBar extends Component<TopBarProps> {
     // TODO: break up this long function!
     const { viewer, path, project_id, site_name, is_public } = this.props;
     let path_component: Rendered | Rendered[], top: string;
-    if (viewer === "embed") {
-      return this.render_cocalc_link();
-    }
     let project_link: Rendered = undefined;
     if (path === "/") {
       top = ".";
@@ -117,6 +107,9 @@ export class TopBar extends Component<TopBarProps> {
         );
       }
     }
+    if (viewer === "embed") {
+      return project_link;
+    }
 
     return (
       <div
@@ -126,7 +119,6 @@ export class TopBar extends Component<TopBarProps> {
           background: "#efefef"
         }}
       >
-        {this.render_cocalc_link()}
         {this.render_logo(top)}
         {this.render_search()}
         <span
