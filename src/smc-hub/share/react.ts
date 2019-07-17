@@ -18,6 +18,7 @@ require("smc-webapp/jquery-plugins/katex");
 
 export function react(res, component, extra: any = ""): void {
   res.type("html");
+  res.write("<!DOCTYPE html>");
   const t0 = new Date().valueOf();
   const stream = ReactDOMServer.renderToStaticNodeStream(component);
   stream.pipe(res);
