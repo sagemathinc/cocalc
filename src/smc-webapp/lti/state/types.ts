@@ -3,7 +3,7 @@ export interface GlobalState {
   projects: Projects;
   account_info?: AccountInfo;
   loading: boolean;
-  opened_project: string;
+  opened_project_id: string;
 }
 
 export type Projects = { [key: string]: ProjectInfo };
@@ -28,6 +28,8 @@ export interface ProjectInfo {
   state: { time: string; state: string };
   users: { [key: string]: { group: string; hide: boolean } };
 }
+
+export type DirectoryListing = any;
 
 export type Action =
   | {

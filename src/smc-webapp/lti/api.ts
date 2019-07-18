@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AccountInfo, Projects } from "./state/types";
+import { AccountInfo, DirectoryListing, Projects } from "./state/types";
 
 const config = {
   api_key: "sk_55xJTNDSAez7DNWFI3wV9lZO",
@@ -67,6 +67,35 @@ export async function fetch_self(): Promise<AccountInfo | undefined> {
     placeholder_error_handling(error);
   }
 }
+
+export async function fetch_directory_listing(project_id): Promise<DirectoryListing> {
+  try {
+    const table = "accounts";
+    const response = await axios({
+      method: "post",
+      url: config.api_url + "query",
+      auth: { username: config.api_key, password: "" },
+      data: {
+        query: {
+          [table]: [
+            {
+              account_id: null,
+              email_address: null,
+              first_name: null,
+              last_name: null
+            }
+          ]
+        }
+      }
+    });
+    console.log(`fetch directory listing api returned:`, response.data);
+
+    return response.data.query[table][0];
+  } catch (error) {
+    placeholder_error_handling(error);
+  }
+}
+
 
 function placeholder_error_handling(error) {
   console.log("Some kind of error occurred");

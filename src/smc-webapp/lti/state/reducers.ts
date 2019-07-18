@@ -11,7 +11,7 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
         loading: false
       };
     case "open_project":
-      return { ...state, route: Route.Project, opened_project: action.id };
+      return { ...state, route: Route.Project, opened_project_id: action.id };
     default:
       return assert_never(action);
   }

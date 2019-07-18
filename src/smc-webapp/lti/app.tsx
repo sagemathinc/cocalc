@@ -2,6 +2,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
 import { ProjectSelection } from "./project-selection";
+import { ProjectContainer } from "./view/project";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
@@ -13,7 +14,7 @@ function App() {
     route: Route.Home,
     account_info: undefined,
     loading: true,
-    opened_project: ""
+    opened_project_id: ""
   });
 
   React.useEffect(() => {
@@ -55,16 +56,13 @@ function App() {
         );
         break;
       case Route.Project:
-        const opened_project = state.projects[state.opened_project];
-        if (opened_project == undefined) {
-          content = (
-            <>
-              Error, `{state.opened_project}` not found in `{state.projects}`
-            </>
-          );
-        } else {
-          content = <>{opened_project.title}</>;
-        }
+        content = (
+          <ProjectContainer
+            projects={state.projects}
+            opened_project_id={state.opened_project_id}
+            dispatch={dispatch}
+          />
+        );
         left_gutter = (
           <ProjectSelection
             projects={state.projects}
