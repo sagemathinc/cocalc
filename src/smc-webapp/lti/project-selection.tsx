@@ -1,19 +1,19 @@
 import * as React from "react";
 import styled from "styled-components";
-import { Action, ProjectInfo } from "./state/types";
+import { Action, Projects } from "./state/types";
 
 export function ProjectSelection({
   projects,
   account_id,
   dispatch
 }: {
-  projects: ProjectInfo[];
+  projects: Projects;
   account_id: string;
   dispatch: (action: Action) => void;
 }) {
   const project_rows: any[] = [];
 
-  projects.map(project => {
+  Object.entries(projects).map(([_, project]) => {
     // Filter out hidden and deleted projects
     if (!project.users[account_id].hide && !project.deleted) {
       project_rows.push(
@@ -30,8 +30,17 @@ export function ProjectSelection({
     }
   });
 
-  return <>{project_rows}</>;
+  return (
+    <ProjectListContainer>
+      <h2>Projects</h2>
+      {project_rows}
+    </ProjectListContainer>
+  );
 }
+
+const ProjectListContainer = styled.div`
+  margin: 0px 8px 8px 8px;
+`;
 
 const ProjectRow = styled.div`
   color: tomato;

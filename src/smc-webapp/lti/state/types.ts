@@ -1,10 +1,12 @@
 export interface GlobalState {
   route: Route;
-  projects: ProjectInfo[];
+  projects: Projects;
   account_info?: AccountInfo;
   loading: boolean;
-  opened_project?: string;
+  opened_project: string;
 }
+
+export type Projects = { [key: string]: ProjectInfo };
 
 export enum Route {
   Home = "project-selection",
@@ -30,7 +32,7 @@ export interface ProjectInfo {
 export type Action =
   | {
       type: "initial_load";
-      projects?: ProjectInfo[];
+      projects: Projects;
       account_info?: AccountInfo;
     }
   | { type: "open_project"; id: string };

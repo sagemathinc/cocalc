@@ -9,10 +9,11 @@ import { assert_never } from "./helpers";
 
 function App() {
   const [state, dispatch] = React.useReducer(reducer, {
-    projects: [],
+    projects: {},
     route: Route.Home,
     account_info: undefined,
-    loading: true
+    loading: true,
+    opened_project: ""
   });
 
   React.useEffect(() => {
@@ -30,7 +31,7 @@ function App() {
   }, []);
 
   let header = <> Loading user </>;
-
+  let left_gutter = <>Nothing here</>;
   let content = (
     <>
       The route: {state.route} is not yet implemented. Here's the state!
@@ -38,6 +39,7 @@ function App() {
       {JSON.stringify(state)}
     </>
   );
+  let right_gutter = <>Nothing here</>;
 
   if (!state.loading && state.account_info) {
     header = <>User: {state.account_info.first_name || "No user name"}</>;
@@ -46,14 +48,30 @@ function App() {
       case Route.Home:
         content = (
           <ProjectSelection
-            projects={state.projects || []}
+            projects={state.projects}
             account_id={state.account_info.account_id}
             dispatch={dispatch}
           />
         );
         break;
       case Route.Project:
-        content = <>{state.opened_project}</>;
+        const opened_project = state.projects[state.opened_project];
+        if (opened_project == undefined) {
+          content = (
+            <>
+              Error, `{state.opened_project}` not found in `{state.projects}`
+            </>
+          );
+        } else {
+          content = <>{opened_project.title}</>;
+        }
+        left_gutter = (
+          <ProjectSelection
+            projects={state.projects}
+            account_id={state.account_info.account_id}
+            dispatch={dispatch}
+          />
+        );
         break;
       default:
         assert_never(state.route);
@@ -65,7 +83,9 @@ function App() {
   return (
     <Grid>
       <HeaderContainer>{header}</HeaderContainer>
+      <LeftGutterContainer>{left_gutter}</LeftGutterContainer>
       <ContentContainer>{content}</ContentContainer>
+      <RightGutterContainer>{right_gutter}</RightGutterContainer>
       <FooterContainer>Footer....</FooterContainer>
     </Grid>
   );
@@ -90,8 +110,20 @@ const HeaderContainer = styled.div`
   background: skyblue;
 `;
 
+const LeftGutterContainer = styled.div`
+  grid-area: left-gutter;
+  background: mistyrose;
+  overflow: scroll;
+`;
+
 const ContentContainer = styled.div`
   grid-area: content;
+  overflow: scroll;
+`;
+
+const RightGutterContainer = styled.div`
+  grid-area: right-gutter;
+  background: mistyrose;
   overflow: scroll;
 `;
 

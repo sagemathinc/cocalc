@@ -1,12 +1,12 @@
 import axios from "axios";
-import { AccountInfo, ProjectInfo } from "./state/types";
+import { AccountInfo, Projects } from "./state/types";
 
 const config = {
   api_key: "sk_55xJTNDSAez7DNWFI3wV9lZO",
   api_url: "https://cocalc.com/api/v1/"
 };
 
-export async function fetch_projects(): Promise<ProjectInfo[] | undefined> {
+export async function fetch_projects(): Promise<Projects> {
   try {
     const response = await axios({
       method: "post",
@@ -28,9 +28,14 @@ export async function fetch_projects(): Promise<ProjectInfo[] | undefined> {
       }
     });
     console.log(`fetch projects api returned:`, response.data);
-    return response.data.query.projects;
+    const project_map: any = {};
+    response.data.query.projects.map(project => {
+      project_map[project.project_id] = project;
+    });
+    return project_map;
   } catch (error) {
     placeholder_error_handling(error);
+    return {};
   }
 }
 

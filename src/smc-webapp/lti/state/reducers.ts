@@ -6,7 +6,7 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
     case "initial_load":
       return {
         ...state,
-        projects: action.projects || [],
+        projects: action.projects || {},
         account_info: action.account_info,
         loading: false
       };
