@@ -3,50 +3,10 @@ import * as ReactDOM from "react-dom";
 import styled from "styled-components";
 import { ProjectSelection } from "./project-selection";
 import * as API from "./api";
-import { AccountInfo, ProjectInfo } from "./types";
+import { AccountInfo, Actions, GlobalState, ProjectInfo, Route } from "./state/types";
+import { reducer } from "./state/reducers";
 
 import * as MOCK from "./DUMMY-DATA";
-
-interface State {
-  route: string;
-  projects: ProjectInfo[];
-  account_info?: AccountInfo;
-  loading: boolean;
-}
-
-type Action =
-  | {
-      type: "initial_load";
-      projects?: ProjectInfo[];
-      account_info?: AccountInfo;
-    }
-  | { type: "set_projects"; projects: ProjectInfo[] }
-  | { type: "set_account_info"; account_info: AccountInfo }
-  | { type: "change_route"; route: string };
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "initial_load":
-      return {
-        ...state,
-        projects: action.projects || [],
-        account_info: action.account_info,
-        loading: false
-      };
-    case "set_projects":
-      return { ...state, projects: action.projects };
-    case "set_account_info":
-      return { ...state, account_info: action.account_info };
-    case "change_route":
-      return { ...state, route: action.route };
-    default:
-      throw new Error();
-  }
-}
-
-const ROUTES = {
-  HOME: "project-selection"
-};
 
 function App({ debug }: { debug?: boolean } = { debug: false }) {
   if (debug) {
@@ -55,7 +15,7 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
 
   const [state, dispatch] = React.useReducer(reducer, {
     projects: [],
-    route: ROUTES.HOME,
+    route: Route.Home,
     account_info: MOCK.ACCOUNT,
     loading: true
   });
@@ -81,10 +41,15 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
       {JSON.stringify(state)}
     </>
   );
-  if (!state.loading) {
+  if (!state.loading && state.account_info) {
     switch (state.route) {
-      case ROUTES.HOME:
-        content = <ProjectSelection projects={state.projects || []} />;
+      case Route.Home:
+        content = (
+          <ProjectSelection
+            projects={state.projects || []}
+            account_id={state.account_info.account_id}
+          />
+        );
     }
   } else {
     content = <div>Loading...</div>;
@@ -101,6 +66,7 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
     <Grid>
       <HeaderContainer>{header}</HeaderContainer>
       <ContentContainer>{content}</ContentContainer>
+      <FooterContainer>Footer....</FooterContainer>
     </Grid>
   );
 }
@@ -108,7 +74,7 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
 const Grid = styled.div`
   display: grid;
   grid-template-columns: 25% 50% 25%;
-  grid-template-rows: 100px auto 100px;
+  grid-template-rows: 80px auto 20px;
   grid-template-areas:
     "header header header"
     "left-gutter content right-gutter"
@@ -127,6 +93,12 @@ const HeaderContainer = styled.div`
 const ContentContainer = styled.div`
   grid-area: content;
   overflow: scroll;
+`;
+
+const FooterContainer = styled.div`
+  grid-area: footer;
+  oferflow: hidden;
+  background: darkorange;
 `;
 
 export function render_app() {

@@ -1,14 +1,24 @@
 import * as React from "react";
 import styled from "styled-components";
-import { ProjectInfo } from "./types";
+import { Action, ProjectInfo } from "./state/types";
 
-export function ProjectSelection({ projects }: { projects: ProjectInfo[] }) {
+export function ProjectSelection({
+  projects,
+  account_id,
+  dispatch
+}: {
+  projects: ProjectInfo[];
+  account_id: string;
+  dispatch: (action: Action) => void;
+}) {
   const project_rows: any[] = [];
 
   projects.map(project => {
-    project_rows.push(
-      <ProjectRow key={project.project_id}>{project.title}</ProjectRow>
-    );
+    if (!project.users[account_id].hide) {
+      project_rows.push(
+        <ProjectRow key={project.project_id} onClick={dispatch()}>{project.title}</ProjectRow>
+      );
+    }
   });
 
   return <>{project_rows}</>;
