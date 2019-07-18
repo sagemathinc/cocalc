@@ -1,4 +1,5 @@
-import { GlobalState, Action } from "./types";
+import { Action, GlobalState, Route } from "./types";
+import { assert_never } from "../helpers";
 
 export function reducer(state: GlobalState, action: Action): GlobalState {
   switch (action.type) {
@@ -9,13 +10,9 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
         account_info: action.account_info,
         loading: false
       };
-    case "set_projects":
-      return { ...state, projects: action.projects };
-    case "set_account_info":
-      return { ...state, account_info: action.account_info };
-    case "change_route":
-      return { ...state, route: action.route };
+    case "open_project":
+      return { ...state, route: Route.Project, opened_project: action.id };
     default:
-      throw new Error();
+      return assert_never(action);
   }
 }

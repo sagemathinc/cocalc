@@ -3,20 +3,15 @@ import * as ReactDOM from "react-dom";
 import styled from "styled-components";
 import { ProjectSelection } from "./project-selection";
 import * as API from "./api";
-import { AccountInfo, Actions, GlobalState, ProjectInfo, Route } from "./state/types";
+import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
+import { assert_never } from "./helpers";
 
-import * as MOCK from "./DUMMY-DATA";
-
-function App({ debug }: { debug?: boolean } = { debug: false }) {
-  if (debug) {
-    console.log("Rendering App");
-  }
-
+function App() {
   const [state, dispatch] = React.useReducer(reducer, {
     projects: [],
     route: Route.Home,
-    account_info: MOCK.ACCOUNT,
+    account_info: undefined,
     loading: true
   });
 
@@ -34,6 +29,8 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
     fetchData();
   }, []);
 
+  let header = <> Loading user </>;
+
   let content = (
     <>
       The route: {state.route} is not yet implemented. Here's the state!
@@ -41,26 +38,29 @@ function App({ debug }: { debug?: boolean } = { debug: false }) {
       {JSON.stringify(state)}
     </>
   );
+
   if (!state.loading && state.account_info) {
+    header = <>User: {state.account_info.first_name || "No user name"}</>;
+
     switch (state.route) {
       case Route.Home:
         content = (
           <ProjectSelection
             projects={state.projects || []}
             account_id={state.account_info.account_id}
+            dispatch={dispatch}
           />
         );
+        break;
+      case Route.Project:
+        content = <>{state.opened_project}</>;
+        break;
+      default:
+        assert_never(state.route);
     }
   } else {
     content = <div>Loading...</div>;
   }
-
-  let header = (
-    <>
-      User:{" "}
-      {(state.account_info && state.account_info.first_name) || "No user name"}
-    </>
-  );
 
   return (
     <Grid>

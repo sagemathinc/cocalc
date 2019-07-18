@@ -3,10 +3,12 @@ export interface GlobalState {
   projects: ProjectInfo[];
   account_info?: AccountInfo;
   loading: boolean;
+  opened_project?: string;
 }
 
 export enum Route {
-  Home = "project-selection"
+  Home = "project-selection",
+  Project = "opened-project"
 }
 
 export interface AccountInfo {
@@ -20,7 +22,7 @@ export interface ProjectInfo {
   project_id: string;
   title: string;
   description: string;
-  deleted: string;
+  deleted?: boolean;
   state: { time: string; state: string };
   users: { [key: string]: { group: string; hide: boolean } };
 }
@@ -31,6 +33,4 @@ export type Action =
       projects?: ProjectInfo[];
       account_info?: AccountInfo;
     }
-  | { type: "set_projects"; projects: ProjectInfo[] }
-  | { type: "set_account_info"; account_info: AccountInfo }
-  | { type: "change_route"; route: string };
+  | { type: "open_project"; id: string };

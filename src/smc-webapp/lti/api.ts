@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AccountInfo, ProjectInfo } from "./types";
+import { AccountInfo, ProjectInfo } from "./state/types";
 
 const config = {
   api_key: "sk_55xJTNDSAez7DNWFI3wV9lZO",

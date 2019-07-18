@@ -14,9 +14,18 @@ export function ProjectSelection({
   const project_rows: any[] = [];
 
   projects.map(project => {
-    if (!project.users[account_id].hide) {
+    // Filter out hidden and deleted projects
+    if (!project.users[account_id].hide && !project.deleted) {
       project_rows.push(
-        <ProjectRow key={project.project_id} onClick={dispatch()}>{project.title}</ProjectRow>
+        <ProjectRow
+          key={project.project_id}
+          onClick={() => {
+            console.log("Clicked on", project.title);
+            dispatch({ type: "open_project", id: project.project_id });
+          }}
+        >
+          {project.title}
+        </ProjectRow>
       );
     }
   });
