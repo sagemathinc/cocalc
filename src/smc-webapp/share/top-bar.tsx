@@ -1,9 +1,9 @@
 import { React, Component, Rendered } from "../app-framework";
 import { CoCalcLogo } from "./cocalc-logo";
-import { CoCalcLink } from "./cocalc-link";
 import { IsPublicFunction } from "./types";
 import { SITE_NAME } from "smc-util/theme";
 import { r_join } from "../r_misc/r_join";
+import { SiteSearch } from "./search";
 
 interface TopBarProps {
   viewer?: string;
@@ -19,12 +19,6 @@ export class TopBar extends Component<TopBarProps> {
     site_name: SITE_NAME
   };
 
-  private render_cocalc_link(): Rendered {
-    return (
-      <CoCalcLink base_url={this.props.base_url} viewer={this.props.viewer} />
-    );
-  }
-
   private render_logo(top: string): Rendered {
     return (
       <span style={{ marginRight: "10px" }}>
@@ -35,13 +29,19 @@ export class TopBar extends Component<TopBarProps> {
     );
   }
 
+  private render_search(): Rendered {
+    if (this.props.project_id != null) return;
+    return (
+      <div style={{ position: "absolute", top: 0, right: 0, width: "30%" }}>
+        <SiteSearch />
+      </div>
+    );
+  }
+
   public render(): Rendered {
     // TODO: break up this long function!
     const { viewer, path, project_id, site_name, is_public } = this.props;
     let path_component: Rendered | Rendered[], top: string;
-    if (viewer === "embed") {
-      return this.render_cocalc_link();
-    }
     let project_link: Rendered = undefined;
     if (path === "/") {
       top = ".";
@@ -107,18 +107,20 @@ export class TopBar extends Component<TopBarProps> {
         );
       }
     }
+    if (viewer === "embed") {
+      return project_link;
+    }
 
     return (
       <div
         key="top"
         style={{
           padding: "5px 5px 0px 5px",
-          height: "50px",
           background: "#efefef"
         }}
       >
-        {this.render_cocalc_link()}
         {this.render_logo(top)}
+        {this.render_search()}
         <span
           style={{
             paddingLeft: "15px",

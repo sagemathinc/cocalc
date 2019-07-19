@@ -35,12 +35,16 @@ export class UserPage extends Component<Props> {
   }
 
   public render(): Rendered {
+    // The page for a user makes no sense to index NOW, since it is a long listing,
+    // and would throw off things, for now, hence the noindex below.
     return (
       <div style={{ margin: "30px" }}>
         <BasePage
           base_url={this.props.base_url}
           google_analytics={this.props.google_analytics}
           notranslate={true}
+          noindex={true}
+          viewer={"share"}
         >
           <div style={{ position: "absolute", top: "5px" }}>
             <a href="../">

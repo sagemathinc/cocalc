@@ -30,9 +30,11 @@ export type IsPublicFunction = (project_id: string, path: string) => boolean;
 interface BasePageProps {
   base_url: string;
   subtitle?: string;
-  viewer?: string;
+  viewer: "share" | "embed";
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
+  noindex: boolean; // if true, then search engines should not show this page in search results.
+  description?: string;
 }
 
 export class BasePage extends Component<BasePageProps> {
@@ -43,11 +45,16 @@ export class BasePage extends Component<BasePageProps> {
   }
 
   private render_title(): Rendered {
-    let title = "Shared";
+    let title = "CoCalc";
     if (this.props.subtitle) {
-      title += ` - ${this.props.subtitle}`;
+      title = `${this.props.subtitle} - CoCalc`;
     }
     return <title>{title}</title>;
+  }
+
+  private render_description_meta(): Rendered {
+    if (!this.props.description) return;
+    return <meta name="description" content={this.props.description} />;
   }
 
   private render_notranslate(): Rendered {
@@ -59,10 +66,8 @@ export class BasePage extends Component<BasePageProps> {
   }
 
   private render_noindex(): Rendered {
-    // **TODO** -- actually add the metadata!
-    if (this.props.viewer == "embed") {
-      // we do not want this to be indexed!
-      return;
+    if (this.props.noindex) {
+      return <meta name="robots" content="noindex" />;
     }
   }
 
@@ -126,6 +131,7 @@ gtag('config', '${this.props.google_analytics}');\
         <head>
           {this.render_viewport()}
           {this.render_title()}
+          {this.render_description_meta()}
           {this.render_notranslate()}
           {this.render_cdn_links()}
           {this.render_favicon()}
