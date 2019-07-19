@@ -1,10 +1,8 @@
 import * as immutable from "immutable";
-
 import { JupyterActions } from "../browser-actions";
-
 import { ImmutableMetadata, Metadata } from "./types";
-
 import { NBGraderStore } from "./store";
+import { clear_solution } from "./clear-solutions";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
@@ -72,5 +70,69 @@ export class NBGraderActions {
       await this.jupyter_actions.restart();
     }
     await this.validate();
+  }
+
+  public apply_assign_transformations(): void {
+    /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
+    Of which, we do:
+
+        2. It locks certain cells so that they cannot be deleted by students
+           accidentally (or on purpose!)
+
+        3. It removes solutions from the notebooks and replaces them with
+           code or text stubs saying (for example) "YOUR ANSWER HERE".
+
+        4. It clears all outputs from the cells of the notebooks.
+
+        5. It saves information about the cell contents so that we can warn
+           students if they have changed the tests, or if they have failed
+           to provide a response to a written answer. Specifically, this is
+           done by computing a checksum of the cell contents and saving it
+           into the cell metadata.
+    */
+    this.assign_clear_solutions(); // step 3
+    this.jupyter_actions.clear_all_outputs(false); // step 4
+    this.assign_save_checksums(); // step 5
+    this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
+    this.jupyter_actions.save_asap();
+  }
+
+  public assign_lock_readonly_cells(): void {
+    // For every cell for which the nbgrader metadata says it should be locked, set
+    // the editable and deletable metadata to false.
+    // "metadata":{"nbgrader":{"locked":true,...
+    console.log("assign_lock_readonly_cells");
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
+        return;
+      for (let key of ["editable", "deletable"]) {
+        this.jupyter_actions.set_cell_metadata({
+          id: cell.get("id"),
+          metadata: { [key]: false },
+          merge: true,
+          save: false
+        });
+      }
+    });
+  }
+
+  public assign_clear_solutions(): void {
+    console.log("assign_clear_solutions");
+    const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      const cell2 = clear_solution(cell, kernel_language);
+      if (cell !== cell2) {
+        // set the input
+        this.jupyter_actions.set_cell_input(
+          cell.get("id"),
+          cell2.get("input"),
+          false
+        );
+      }
+    });
+  }
+  public assign_save_checksums(): void {
+    console.log("assign_save_checksums");
   }
 }
