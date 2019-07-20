@@ -3,6 +3,7 @@ import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
 import { clear_solution } from "./clear-solutions";
+import { set_checksum } from "./compute-checksums";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
@@ -72,7 +73,14 @@ export class NBGraderActions {
     await this.validate();
   }
 
-  public apply_assign_transformations(): void {
+  public assign(filename: string): void {
+    // Create a copy of the current notebook at the location specified by
+    // filename, and modify by applying the assign transformations.
+    console.log("assign -- TODO", filename);
+    this.apply_assign_transformations();
+  }
+
+  private apply_assign_transformations(): void {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
 
@@ -97,7 +105,41 @@ export class NBGraderActions {
     this.jupyter_actions.save_asap();
   }
 
-  public assign_lock_readonly_cells(): void {
+  private assign_clear_solutions(): void {
+    console.log("assign_clear_solutions");
+    const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      const cell2 = clear_solution(cell, kernel_language);
+      if (cell !== cell2) {
+        // set the input
+        this.jupyter_actions.set_cell_input(
+          cell.get("id"),
+          cell2.get("input"),
+          false
+        );
+      }
+    });
+  }
+
+  private assign_save_checksums(): void {
+    console.log("assign_save_checksums");
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      const cell2 = set_checksum(cell);
+      if (cell !== cell2) {
+        // set nbgrader metadata, which is all that should have changed
+        this.jupyter_actions.set_cell_metadata({
+          id: cell.get("id"),
+          metadata: { nbgrader: cell2.get("nbgrader") },
+          merge: true,
+          save: false
+        });
+      }
+    });
+  }
+
+  private assign_lock_readonly_cells(): void {
     // For every cell for which the nbgrader metadata says it should be locked, set
     // the editable and deletable metadata to false.
     // "metadata":{"nbgrader":{"locked":true,...
@@ -114,25 +156,5 @@ export class NBGraderActions {
         });
       }
     });
-  }
-
-  public assign_clear_solutions(): void {
-    console.log("assign_clear_solutions");
-    const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
-    this.jupyter_actions.store.get("cells").forEach(cell => {
-      if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
-      const cell2 = clear_solution(cell, kernel_language);
-      if (cell !== cell2) {
-        // set the input
-        this.jupyter_actions.set_cell_input(
-          cell.get("id"),
-          cell2.get("input"),
-          false
-        );
-      }
-    });
-  }
-  public assign_save_checksums(): void {
-    console.log("assign_save_checksums");
   }
 }

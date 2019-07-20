@@ -1,7 +1,9 @@
 /* Port to Typescript of what this does:
      nbgrader/nbgrader/preprocessors/clearsolutions.py
 
-We try to follow that code closely in order to best maintain compatibility.
+I tried to follow that code closely in order to best maintain
+compatibility.  Of course, I couldn't help adding STUBS support
+for more languages...
 */
 
 import { Map } from "immutable";
