@@ -68,34 +68,38 @@ export async function fetch_self(): Promise<AccountInfo | undefined> {
   }
 }
 
-export async function fetch_directory_listing(project_id): Promise<DirectoryListing> {
+// https://doc.cocalc.com/api/project_exec.html
+export async function fetch_directory_listing(
+  project_id,
+  path = "",
+  dispatch
+): Promise<DirectoryListing> {
   try {
-    const table = "accounts";
+    // TODO: Make sure the project is running first.
     const response = await axios({
       method: "post",
-      url: config.api_url + "query",
+      url: config.api_url + "project_exec",
       auth: { username: config.api_key, password: "" },
       data: {
-        query: {
-          [table]: [
-            {
-              account_id: null,
-              email_address: null,
-              first_name: null,
-              last_name: null
-            }
-          ]
-        }
+        project_id: project_id,
+        path: path,
+        command: "ls",
+        args: ["-f", "-F"],
+        timeout: 10
       }
     });
-    console.log(`fetch directory listing api returned:`, response.data);
-
-    return response.data.query[table][0];
+    console.log(`fetch directory listing api returned:`, response.data.stdout);
+    dispatch({
+      type: "add_directory_listing",
+      listing: response.data.stdout,
+      path: path,
+      project_id
+    });
+    return response.data.stdout;
   } catch (error) {
     placeholder_error_handling(error);
   }
 }
-
 
 function placeholder_error_handling(error) {
   console.log("Some kind of error occurred");

@@ -4,6 +4,7 @@ export interface GlobalState {
   account_info?: AccountInfo;
   loading: boolean;
   opened_project_id: string;
+  file_listings: { [key: string]: { [key: string]: string[] } };
 }
 
 export type Projects = { [key: string]: ProjectInfo };
@@ -37,4 +38,10 @@ export type Action =
       projects: Projects;
       account_info?: AccountInfo;
     }
-  | { type: "open_project"; id: string };
+  | { type: "open_project"; id: string }
+  | {
+      type: "add_directory_listing";
+      listing: string;
+      path: string;
+      project_id: string;
+    };
