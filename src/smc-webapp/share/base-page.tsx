@@ -141,7 +141,7 @@ gtag('config', '${this.props.google_analytics}');\
           {this.render_cocalc_analytics()}
         </head>
         <body
-          style={{ height: "400px", display: "flex", flexDirection: "column" }}
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
         >
           {this.props.children}
         </body>
