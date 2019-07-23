@@ -201,6 +201,8 @@ LogEntry = rclass
                 <span>copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {@to_link()}</span>
             when 'shared'
                 <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
+            when 'uploaded'
+                <span>uploaded {@file_link(e.file, true, 0)}</span>
 
     click_set: (e) ->
         e.preventDefault()
@@ -271,6 +273,7 @@ LogEntry = rclass
         moved      : 'move'
         copied     : 'copy'
         share      : 'shared'
+        uploaded   : 'upload'
 
     render_desc: ->
         if typeof(@props.event) is 'string'
