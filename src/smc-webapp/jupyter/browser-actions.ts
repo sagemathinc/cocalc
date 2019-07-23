@@ -85,7 +85,7 @@ export class JupyterActions extends JupyterActions0 {
     // this is also only a UI specific action
     this.snippet_actions = instantiate_snippets(this.project_id, this.path);
 
-    this.nbgrader_actions = new NBGraderActions(this);
+    this.nbgrader_actions = new NBGraderActions(this, this.redux);
 
     if (window != null && (window as any).$ != null) {
       // frontend browser client with jQuery

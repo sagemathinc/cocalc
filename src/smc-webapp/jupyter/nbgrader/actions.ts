@@ -4,12 +4,17 @@ import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
 import { clear_solution } from "./clear-solutions";
 import { set_checksum } from "./compute-checksums";
+import { delay } from "awaiting";
+import { once } from "smc-util/async-utils";
+import { path_split } from "smc-util/misc2";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
+  private redux;
 
-  constructor(jupyter_actions) {
+  constructor(jupyter_actions, redux) {
     this.jupyter_actions = jupyter_actions;
+    this.redux = redux;
     this.jupyter_actions.store.nbgrader = new NBGraderStore(
       jupyter_actions.store
     );
@@ -73,14 +78,60 @@ export class NBGraderActions {
     await this.validate();
   }
 
-  public assign(filename: string): void {
-    // Create a copy of the current notebook at the location specified by
-    // filename, and modify by applying the assign transformations.
-    console.log("assign -- TODO", filename);
-    this.apply_assign_transformations();
+  public async confirm_assign(): Promise<void> {
+    const path = this.jupyter_actions.store.get("path");
+    let { head, tail } = path_split(path);
+    if (head == "") {
+      head = "student/";
+    } else {
+      head = head + "/student/";
+    }
+    const target = head + tail;
+    const choice = await this.jupyter_actions.confirm_dialog({
+      title: "Create student version?",
+      body: `Creating the student version of the notebook will make a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)`,
+      choices: [
+        { title: "Cancel" },
+        { title: "Create or update student version", style: "success", default: true }
+      ]
+    });
+    if (choice === "Cancel") return;
+    await this.assign(target);
   }
 
-  private apply_assign_transformations(): void {
+  public async assign(filename: string): Promise<void> {
+    // Create a copy of the current notebook at the location specified by
+    // filename, and modify by applying the assign transformations.
+    const project_id = this.jupyter_actions.store.get("project_id");
+    const project_actions = this.redux.getProjectActions(project_id);
+    await project_actions.open_file({ path: filename, foreground: true });
+    let actions = this.redux.getEditorActions(project_id, filename);
+    while (true) {
+      if (actions != null) break;
+      await delay(200);
+    }
+    if (actions.jupyter_actions.syncdb.get_state() == "init") {
+      await once(actions.jupyter_actions.syncdb, "ready");
+    }
+    actions.jupyter_actions.syncdb.from_str(
+      this.jupyter_actions.syncdb.to_str()
+    );
+    project_actions.close_file(filename);
+    await delay(200);
+    await project_actions.open_file({ path: filename, foreground: true });
+    while (true) {
+      actions = this.redux.getEditorActions(project_id, filename);
+      if (actions != null) break;
+      await delay(200);
+    }
+    if (actions.jupyter_actions.syncdb.get_state() == "init") {
+      await once(actions.jupyter_actions.syncdb, "ready");
+    }
+    await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
+    await actions.jupyter_actions.save();
+  }
+
+  public apply_assign_transformations(): void {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
 
@@ -106,7 +157,7 @@ export class NBGraderActions {
   }
 
   private assign_clear_solutions(): void {
-    console.log("assign_clear_solutions");
+    //console.log("assign_clear_solutions");
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
@@ -123,7 +174,7 @@ export class NBGraderActions {
   }
 
   private assign_save_checksums(): void {
-    console.log("assign_save_checksums");
+    //console.log("assign_save_checksums");
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = set_checksum(cell);
@@ -143,7 +194,7 @@ export class NBGraderActions {
     // For every cell for which the nbgrader metadata says it should be locked, set
     // the editable and deletable metadata to false.
     // "metadata":{"nbgrader":{"locked":true,...
-    console.log("assign_lock_readonly_cells");
+    //console.log("assign_lock_readonly_cells");
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
         return;

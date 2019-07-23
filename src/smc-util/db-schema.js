@@ -1105,7 +1105,7 @@ schema.projects = {
     storage_ready: {
       type: "boolean",
       desc:
-        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true."
+        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices that run is true."
     },
     disk_size: {
       type: "integer",
