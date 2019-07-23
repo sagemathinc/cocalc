@@ -21,7 +21,10 @@ import { analytics_event } from "./tracker";
 import { QueryParams } from "./misc_page2";
 import { uuid } from "smc-util/misc2";
 import { retry_until_success, once } from "smc-util/async-utils";
-import { custom_image_name } from "./custom-software/init";
+import {
+  custom_image_name,
+  NAME as CUSTOM_SOFTWARE_NAME
+} from "./custom-software/init";
 
 const LS_KEY = "landing-actions";
 
@@ -42,14 +45,31 @@ async function launch_custom_software_image(launch: string): Promise<void> {
   const image_id = launch.split("/")[1];
   // console.log(`launching custom software image with ID = ${image_id}`);
 
-  // this is mimicing what's going on in projects/create-project.tsx
+  const custom_software_table = await retry_until_success({
+    f: async () => {
+      let cst = redux.getTable(CUSTOM_SOFTWARE_NAME);
+      if (cst == null)
+        throw new Error("custom software table not yet available...");
+      // what is this doing?
+      await once(cst._table, "connected");
+      return cst;
+    }
+  });
 
+  if (!custom_software_table._table.value.has(image_id)) {
+    console.error(
+      `There is no custom software image with the ID "${image_id}"`
+    );
+    return;
+  }
+
+  // this is mimicing what's going on in projects/create-project.tsx
   const actions = await retry_until_success({
     f: async () => {
       let projects_table = redux.getTable("projects");
       if (projects_table == null)
         throw new Error("Projects Table not yet available...");
-      // what is this?
+      // what is this doing?
       await once(projects_table._table, "connected");
       let actions = redux.getActions("projects");
       if (actions == null)
@@ -68,7 +88,6 @@ async function launch_custom_software_image(launch: string): Promise<void> {
   });
 
   // if we have project actions, we can assume project store also exists?
-  // this throws "Error creating project -- not connected", though.
   redux
     .getStore("projects")
     .wait_until_project_created(token, 30, (err, project_id) => {
