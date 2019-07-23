@@ -2,7 +2,7 @@
 The stopwatch component
 */
 
-import { Button, ButtonGroup, Well, Row, Col } from "react-bootstrap";
+import { Button, ButtonGroup, Row, Col } from "react-bootstrap";
 
 import { Component, React, Rendered } from "../app-framework";
 
@@ -58,7 +58,6 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_start_button(): Rendered {
     return (
       <Button
-        bsStyle={!this.props.compact ? "primary" : undefined}
         onClick={() => this.props.click_button("start")}
         style={!this.props.compact ? { width: "8em" } : undefined}
         bsSize={this.props.compact ? "xsmall" : undefined}
@@ -71,7 +70,6 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_reset_button(): Rendered {
     return (
       <Button
-        bsStyle={!this.props.compact ? "warning" : undefined}
         onClick={() => this.props.click_button("reset")}
         bsSize={this.props.compact ? "xsmall" : undefined}
       >
@@ -80,10 +78,20 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
     );
   }
 
+  private render_delete_button(): Rendered {
+    if (this.props.compact) return;
+    return (
+      <Button
+        onClick={() => this.props.click_button("delete")}
+      >
+        <Icon name="trash" /> {!this.props.compact ? "Delete" : undefined}
+      </Button>
+    );
+  }
+
   private render_pause_button(): Rendered {
     return (
       <Button
-        bsStyle={!this.props.compact ? "info" : undefined}
         onClick={() => this.props.click_button("pause")}
         style={!this.props.compact ? { width: "8em" } : undefined}
         bsSize={this.props.compact ? "xsmall" : undefined}
@@ -166,12 +174,18 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_buttons(): Rendered {
     switch (this.props.state) {
       case "stopped":
-        return <span key={"buttons"}>{this.render_start_button()}</span>;
+        return (
+          <ButtonGroup key={"buttons"}>
+            {this.render_start_button()}
+            {this.render_delete_button()}
+          </ButtonGroup>
+        );
       case "paused":
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_start_button()}
             {this.render_reset_button()}
+            {this.render_delete_button()}
           </ButtonGroup>
         );
       case "running":
@@ -179,6 +193,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
           <ButtonGroup key={"buttons"}>
             {this.render_pause_button()}
             {this.render_reset_button()}
+            {this.render_delete_button()}
           </ButtonGroup>
         );
       default:
@@ -190,7 +205,13 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
 
   private render_full_size(): Rendered {
     return (
-      <Well>
+      <div
+        style={{
+          borderBottom: "1px solid #666",
+          background: "#efefef",
+          padding: "15px"
+        }}
+      >
         <Row>
           <Col sm={6} md={6}>
             {this.render_time()}
@@ -202,7 +223,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         <Row>
           <Col md={12}>{this.render_buttons()}</Col>
         </Row>
-      </Well>
+      </div>
     );
   }
 

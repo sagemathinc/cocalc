@@ -68,10 +68,12 @@ export let TimeActions = class TimeActions extends Actions<
   }
 
   public add_stopwatch(): void {
-    let id = 1;
-    while (this.syncdb && this.syncdb.get_doc().get_one({ id })) {
-      id += 1;
-    }
+    // make id equal to the largest current id (or 0 if none)
+    let id = 0;
+    this.syncdb.get().map(data => {
+      id = Math.max(data.get("id"), id);
+    });
+    id += 1;  // our new stopwatch has the largest id (so at the bottom)
     this._set({
       id,
       label: "",
@@ -79,6 +81,15 @@ export let TimeActions = class TimeActions extends Actions<
       state: "stopped",
       time: webapp_client.server_time() - 0
     });
+  }
+
+  public delete_stopwatch(id: number): void {
+    this.syncdb.delete({ id });
+    if (this.syncdb.get_doc().size === 0) {
+      this.add_stopwatch();
+    }
+    this.syncdb.commit();
+    this.syncdb.save_to_disk();
   }
 
   public reset_stopwatch(id: number): void {

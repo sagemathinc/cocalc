@@ -18,8 +18,10 @@ Later, maybe:
  - Time tracking
 */
 
+import { Button } from "react-bootstrap";
+import { Icon } from "../r_misc/icon";
+import { Loading } from "../r_misc/loading";
 import { Component, React, Rendered, rclass, rtypes } from "../app-framework";
-let { Loading } = require("../r_misc");
 
 import { Stopwatch } from "./stopwatch";
 import { ButtonBar } from "./button-bar";
@@ -44,19 +46,21 @@ class EditorTime extends Component<Props> {
       return [];
     }
     const v: Rendered[] = [];
-    this.props.timers.map(data => {
-      v.push(
-        <Stopwatch
-          key={data.get("id")}
-          label={data.get("label")}
-          total={data.get("total")}
-          state={data.get("state")}
-          time={data.get("time")}
-          click_button={button => this.click_button(data.get("id"), button)}
-          set_label={label => this.set_label(data.get("id"), label)}
-        />
-      );
-    });
+    this.props.timers
+      .sortBy(x => x.get("id"))
+      .map(data => {
+        v.push(
+          <Stopwatch
+            key={data.get("id")}
+            label={data.get("label")}
+            total={data.get("total")}
+            state={data.get("state")}
+            time={data.get("time")}
+            click_button={button => this.click_button(data.get("id"), button)}
+            set_label={label => this.set_label(data.get("id"), label)}
+          />
+        );
+      });
     return v;
   }
 
@@ -70,6 +74,9 @@ class EditorTime extends Component<Props> {
         return;
       case "pause":
         this.props.actions.pause_stopwatch(id);
+        return;
+      case "delete":
+        this.props.actions.delete_stopwatch(id);
         return;
       default:
         console.warn(`unknown button '${button}'`);
@@ -90,14 +97,29 @@ class EditorTime extends Component<Props> {
     return <div>Todo. There is an error</div>;
   }
 
+  private render_add_stopwatch(): Rendered {
+    return (
+      <Button
+        style={{ maxWidth: "200px", margin: "15px" }}
+        key={"add-stopwatch"}
+        onClick={() => this.props.actions.add_stopwatch()}
+      >
+        <Icon name="plus-circle" /> New Stopwatch
+      </Button>
+    );
+  }
+
   public render(): Rendered {
     if (this.props.error !== undefined) {
       return this.render_error();
     } else if (this.props.timers !== undefined && this.props.timers.size > 0) {
       return (
-        <div>
+        <div className="smc-vfill">
           {this.render_button_bar()}
-          <div>{this.render_stopwatches()}</div>
+          <div className="smc-vfill" style={{ overflowY: "auto" }}>
+            {this.render_stopwatches()}
+            {this.render_add_stopwatch()}
+          </div>
         </div>
       );
     } else {

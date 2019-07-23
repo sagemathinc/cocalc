@@ -6,13 +6,14 @@ import { React, Rendered } from "../app-framework";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 
-let { Button, ButtonGroup } = require("react-bootstrap");
-let { Icon, Space } = require("../r_misc");
+import { Button, ButtonGroup } from "react-bootstrap";
+import { Icon } from "../r_misc/icon";
+import { Space } from "../r_misc/space";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
   return (
     <div style={{ margin: "1px" }}>
-      {time_travel_button(actions)}
+      <ButtonGroup key={"actions"}>{time_travel_button(actions)}</ButtonGroup>
       <Space />
       {undo_redo_group(actions)}
     </div>
