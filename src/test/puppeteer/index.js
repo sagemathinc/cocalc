@@ -60,153 +60,143 @@ program.version('0.1.0');
 const sprintf = require('sprintf-js').sprintf;
 
 async function run() {
-try {
+  try {
 
-  program
-    .option('-s, --screen', 'opposite of headless')
-    .option('-c, --creds <file>', 'credentials file', "./creds")
+    program
+      .option('-s, --screen', 'opposite of headless')
+      .option('-c, --creds <file>', 'credentials file', "./creds")
 
 
-  program.parse(process.argv);
+    program.parse(process.argv);
 
-  headless = !(program.screen);
-  console.log('headless',headless);
+    headless = !(program.screen);
+    console.log('headless',headless);
 
-  creds = program.creds;
-  if (!creds.includes("/")) {creds = "./" + creds;}
-  console.log('creds file:', creds);
+    creds = program.creds;
+    if (!creds.includes("/")) {creds = "./" + creds;}
+    console.log('creds file:', creds);
 
-  //throw new Error("early exit");
+    //throw new Error("early exit");
 
-  let browser;
-  if (headless) {
-    browser = await puppeteer.launch({
-    ignoreHTTPSErrors:true,
-    })
-  } else {
-    browser = await puppeteer.launch({
-      headless: false,
+    let browser;
+    if (headless) {
+      browser = await puppeteer.launch({
       ignoreHTTPSErrors:true,
-      sloMo:200
-    })
-  }
-
-  const CREDS = require(creds);
-
-  //const context = await browser.createIncognitoBrowserContext();
-  //const page = await context.newPage();
-  const page = (await browser.pages())[0];
-  // await page.setViewport({ width: 1024, height: 768});
-
-  // sign in
-  await page.goto(CREDS.url);
-  console.log('01 got sign-in page', CREDS.url);
-  // await page.waitFor(2 * 1000);
-
-  // get selectors manually by doing Inspect while viewing page in chrome
-  const emailSel = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-5 > div > input'
-  const pwSel = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-4 > div > input'
-  const btnSel = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-3 > button'
-
-  await page.click(emailSel);
-  await page.keyboard.type(CREDS.username);
-
-  await page.click(pwSel);
-  await page.keyboard.type(CREDS.password);
-
-  await page.click(btnSel);
-  await page.waitForNavigation({'waitUntil':'networkidle0'});
-  console.log('02 signed in');
-  await page.waitFor(2 * 1000);
-
-  // selector for project search
-  // input[placeholder="Search for projects..."]
-  sfpPh="Search for projects...";
-  sfpSel = sprintf('input[placeholder=\"%s\"]', sfpPh);
-
-  // pass function definition as string to page.waitForFunction
-  // x will be this:
-  // document.querySelector('input[placeholder="Search for projects..."]').placeholder == "Search for projects..."
-  const sfpx = sprintf("document.querySelector(\'%s\').placeholder == \"%s\"", sfpSel, sfpPh);
-  await page.waitForFunction(sfpx);
-  console.log('03 got search for projects input element')
-
-  // type into the project search blank
-  await page.type(sfpSel, CREDS.project);
-
-  // find the project link and click it
-  const lh1 = await page.$x(`//a/span/p[text()='${CREDS.project}']`);
-
-  console.log('04 number of links matching test project name',lh1.length);
-  if (lh1.length > 0) {
-    await lh1[0].click();
-  } else {
-    throw new Error("Link not found");
-  }
-  await page.waitForNavigation({'waitUntil':'networkidle0'});
-
-  // find texfile link and click it
-  sfilePh="Search or create file";
-  sfileSel = sprintf('input[placeholder=\"%s\"]', sfilePh);
-
-  const sfilex = sprintf("document.querySelector(\'%s\').placeholder == \"%s\"", sfileSel, sfilePh);
-  await page.waitForFunction(sfilex);
-  console.log('05 got file search input element');
-
-  // type into the file search blank
-  await page.waitFor(2 * 1000);
-  await page.type(sfileSel, CREDS.texfile);
-  await page.waitForFunction(sfilex);
-
-  // find and click the texfile link
-  const lh2 = await page.$x(`//a/span[text()='${CREDS.texfile.slice(0,-4)}']`);
-  console.log('06 number of links matching test texfile name',lh2.length);
-  if (lh2.length > 0) {
-    await Promise.all([
-      lh2[0].click(),
-      page.waitForNavigation({'waitUntil':'networkidle0'})
-    ]);
-    await page.waitFor(1 * 1000);
-  } else {
-    throw new Error("Link not found");
-  }
-
-  //page.waitForNavigation({'waitUntil':'networkidle0'})
-  await page.click("#types");
-  console.log('07 clicked types menu');
-  //await page.waitForNavigation({'waitUntil':'networkidle0'});
-
-    const lh4 = await page.$x('//div[1]/div/ul/li[6]/a');
-    console.log('08 number of links matching word count',lh4.length);
-    if (lh4.length > 0) {
-      await lh4[0].click();
-      console.log('09 word count clicked');
+      })
     } else {
-      throw new Error("Link not found");
+      browser = await puppeteer.launch({
+        headless: false,
+        ignoreHTTPSErrors:true,
+        sloMo:200
+      })
     }
 
+    const CREDS = require(creds);
 
-    //console.log('wait 1')
-    //await page.waitFor(1 * 1000);
-    fn5 = 'document.evaluate(\'//div[contains(text(), "Words in text")]\', document, null, XPathResult.STRING_TYPE, null).stringValue';
-    t = await page.waitForFunction(fn5);
+    //const context = await browser.createIncognitoBrowserContext();
+    //const page = await context.newPage();
+    const page = (await browser.pages())[0];
+    // await page.setViewport({ width: 1024, height: 768});
+    // await page.waitFor(2 * 1000);
 
-    //Object.keys(t).forEach(ok => console.log('ok', ok))
-    console.log('10 WORD COUNT FRAME:\n'+ chalk.cyan(t._remoteObject.value));
+    // sign in
+    await page.goto(CREDS.url);
+    console.log('got sign-in page', CREDS.url);
 
+    let sel = '*[cocalc-test="sign-in-email"]';
+    await page.click(sel);
+    await page.keyboard.type(CREDS.username);
+    console.log('entered email address');
 
-  //await page.waitFor(3 * 1000);
-  const spath = 'cocalc.png';
-  await page.screenshot({ path: spath});
-  console.log(`98 screenshot saved to ${spath}`);
+    sel = '*[cocalc-test="sign-in-password"]';
+    await page.click(sel);
+    await page.keyboard.type(CREDS.password);
+    console.log('entered password');
 
-  console.log('99 all tests ok - closing browser');
-  browser.close();
+    sel = '*[cocalc-test="sign-in-submit"]';
+    await page.click(sel);
+    console.log('clicked submit');
 
-} catch (e) {
-  console.log('98 ERROR',e.message);
-  process.exit()
-}
+    sel = '*[cocalc-test="project-button"]';
+    await page.waitForSelector(sel, 60000);
+    await page.click(sel);
+    console.log('clicked project button');
+
+    // type into the project search blank
+    sel = '*[cocalc-test="search-input"][placeholder="Search for projects..."]';
+    await page.waitForSelector(sel);
+    await page.type(sel, CREDS.project);
+    console.log('entered test project name');
+
+    // find the project link and click it
+    // XXX if multiple projects match the test project name, choose the first one
+    sel = '*[cocalc-test="project-line"]';
+    await page.click(sel);
+    console.log('clicked test project line');
+
+    let xpt = '//button[text()="Check All"]';
+    await page.waitForXPath(xpt);
+    console.log('got check all');
+
+    // click the Files button
+    sel = '*[cocalc-test="Files"]';
+    await page.click(sel);
+    console.log('clicked Files');
+
+    sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
+    await page.click(sel);
+    await page.type(sel, CREDS.texfile);
+    console.log('entered texfile name into file search');
+
+    // find and click the texfile link
+    sel = '*[cocalc-test="file-line"]';
+    await page.click(sel);
+    console.log('clicked file line');
+
+    sel = '*[cocalc-test="latex-dropdown"]';
+    await page.waitForSelector(sel);
+    await page.click(sel);
+    console.log('clicked latex dropdown');
+
+    sel = '*[cocalc-test="word_count"]';
+    await page.click(sel);
+    console.log('clicked word count');
+
+    xpt = '//div[contains(text(), "Encoding: ascii")]';
+    await page.waitForXPath(xpt);
+    console.log('got encoding ascii');
+
+    sel = '*[cocalc-test="word-count-output"]';
+    const elt = await page.waitForSelector(sel);
+    console.log('got word count output');
+
+    text = await page.$eval(sel, e => e.innerText);
+    console.log('word count output:\n'+ chalk.cyan(text));
+
+    sel = '*[cocalc-test="latex-dropdown"]';
+    await page.waitForSelector(sel);
+    await page.click(sel);
+    console.log('clicked latex dropdown again');
+
+    sel = '*[cocalc-test="cm"]';
+    await page.click(sel);
+    console.log('clicked source code');
+
+    sel = '*[title="Build project"]';
+    await page.waitForSelector(sel);
+    console.log('got build button');
+
+    const spath = 'cocalc.png';
+    await page.screenshot({ path: spath});
+    console.log(`screenshot saved to ${spath}`);
+
+    console.log('all tests ok - closing browser');
+    browser.close();
+
+  } catch (e) {
+    console.log(chalk.red(`ERROR: ${e.message}`));
+    process.exit()
+  }
 }
 
 run();

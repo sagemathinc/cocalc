@@ -4,10 +4,17 @@ extends ../_base_kucalc.pug
 
 block vars
   -
-    navbar_active = 'pricing';
-    subtitle = 'Pricing';
+    var navbar_active = 'pricing';
+    var subtitle = 'Pricing';
+    var subnavbar_active = 'pricing';
 
 block content
+
+  style
+    :sass
+      a[name]
+        position: relative
+        top: -60px
 
   div.jumbotron
     div.container

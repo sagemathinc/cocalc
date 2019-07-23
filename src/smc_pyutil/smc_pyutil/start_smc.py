@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 
 import os, sys, time
 
@@ -15,7 +16,7 @@ os.environ['PATH'] = "%s:%s" % (os.path.join(os.environ['HOME'], 'bin'),
 
 
 def cmd(s):
-    print s
+    print(s)
     if os.system(s):
         sys.exit(1)
 
@@ -35,7 +36,7 @@ def main():
     while not started():
         time.sleep(0.1)
         i += 1
-        print i,
+        print(i, end=" ")
         sys.stdout.flush()
         if i >= 100:
             sys.exit(1)

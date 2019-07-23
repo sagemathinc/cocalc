@@ -1131,6 +1131,7 @@ CouponInfo = rclass
         coupon : rtypes.object
 
     render: ->
+        console.log("coupon = ", @props.coupon)
         <Row>
             <Col md={4}>
                 {@props.coupon.id}
@@ -1212,10 +1213,39 @@ exports.ExplainResources = ExplainResources = rclass
     getDefaultProps: ->
         is_static : false
 
+    render_toc: ->
+        return if not @props.is_static
+        <React.Fragment>
+            <h4>Table of content</h4>
+            <ul>
+                <li><b><a href="#subscriptions">Personal subscriptions</a></b>:{' '}
+                    upgrade your projects
+                </li>
+                <li><b><a href="#courses">Course packages</a></b>:{' '}
+                    upgrade student projects for teaching a course
+                </li>
+                <li><b><a href="#dedicated">Dedicated VMs</a></b>:{' '}
+                    a node in the cluster for large workloads
+                </li>
+                <li><b><a href="#faq">FAQ</a></b>: frequently asked questions</li>
+            </ul>
+            <Space/>
+        </React.Fragment>
+
     render_shared: ->
         <div>
             <Row>
                 <Col md={8} sm={12}>
+                    <h4>Questions</h4>
+                    <div style={fontSize:'12pt'}>
+                        Please immediately email us at <HelpEmailLink/>,{' '}
+                        {if not @props.is_static then <span> click the Help button above or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
+                        if anything is unclear to you, or you just have a quick question and do not want to wade through all the text below.
+                    </div>
+                    <Space/>
+
+                    {@render_toc()}
+
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
@@ -1261,12 +1291,6 @@ exports.ExplainResources = ExplainResources = rclass
                     </div>
                     <Space/>
 
-                    <div style={fontWeight:"bold"}>
-                        Please immediately email us at <HelpEmailLink/> {" "}
-                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
-                        if anything is unclear to you.
-                    </div>
-                    <Space/>
                 </Col>
                 <Col md={4} sm={12}>
                     <Row>
@@ -1306,6 +1330,7 @@ exports.ExplainPlan = ExplainPlan = rclass
 
     render_personal: ->
         <div style={marginBottom:"10px"}>
+            <a name="subscriptions"></a>
             <h3>Personal subscriptions</h3>
             <div>
                 We offer several subscriptions that let you upgrade the default free quotas on projects.
@@ -1315,10 +1340,16 @@ exports.ExplainPlan = ExplainPlan = rclass
                 You can also increase quotas for CPU and RAM, so that you can work on larger problems and
                 do more computations simultaneously.
             </div>
+            <br/>
+            <div>
+                For highly intensive workloads you can also get a <a href="#dedicated">Dedicated VM</a>.
+            </div>
+            <br/>
         </div>
 
     render_course: ->
         <div style={marginBottom:"10px"}>
+            <a name="courses"></a>
             <h3>Course packages</h3>
             <div>
                 <p>
@@ -1336,7 +1367,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 Payment is required. This will ensure that your students have a better
                 experience, network access, and receive priority support.  The cost
                 is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
-                you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class
+                you or your students pay.  <b>Start right now:</b> <i>you can fully set up your class
                 and add students immediately before you pay us anything!</i>
 
                 </p>
@@ -1359,6 +1390,19 @@ exports.ExplainPlan = ExplainPlan = rclass
                 However, we find that many data science and computational science courses
                 run much smoother with the additional RAM and CPU found in the standard plan.
 
+                <h4>Custom Course Plans</h4>
+                In addition to the plans listed on this page, we can offer the following on a custom basis:
+                    <ul>
+                        <li>start on a specified date after payment</li>
+                        <li>customized duration</li>
+                        <li>customized number of students</li>
+                        <li>bundle several courses with different start dates</li>
+                        <li>transfer upgrades from purchasing account to course administrator account</li>
+                    </ul>
+                To learn more about these options, email us at <HelpEmailLink/> with a description
+                of your specific requirements.
+                <br/>
+
                 <br/>
 
             </div>
@@ -1372,6 +1416,51 @@ exports.ExplainPlan = ExplainPlan = rclass
                 return @render_course()
             else
                 throw Error("unknown plan type #{@props.type}")
+
+
+exports.DedicatedVM = DedicatedVM = rclass
+    render_intro: ->
+        <div style={marginBottom:"10px"}>
+            <a name="dedicated"></a>
+            <h3>Dedicated VMs<sup><i>beta</i></sup></h3>
+            <div style={marginBottom:"10px"}>
+                A <b>Dedicated VM</b> is a specific node in the cluster,{' '}
+                which solely hosts one or more of your projects.
+                This allows you to run much larger workloads with a consistent performance,{' '}
+                because no resources are shared with other projects.
+                The usual quota limitations do not apply and
+                you also get additional disk space attached to individual projects.
+            </div>
+            <div>
+                To get started, please contact us at <HelpEmailLink/>.
+                We will work out the actual requirements with you and set everything up.
+                It is also possible to deviate from the given options,{' '}
+                in order to accommodate exactly for the expected resource usage.
+            </div>
+        </div>
+
+    render_dedicated_plans: ->
+        for i, plan of PROJECT_UPGRADES.dedicated_vms
+            <Col key={i} sm={4}>
+                <PlanInfo
+                    plan = {plan}
+                    period = {'month'}
+                />
+            </Col>
+
+    render_dedicated: ->
+        <div style={marginBottom:"10px"}>
+
+            <Row>
+                {@render_dedicated_plans()}
+            </Row>
+        </div>
+
+    render: ->
+        <React.Fragment>
+            {@render_intro()}
+            {@render_dedicated()}
+        </React.Fragment>
 
 # ~~~ FAQ START
 
@@ -1464,7 +1553,7 @@ FAQS =
     academic_quotas:
         q: <span>There are no CPU/RAM upgrades for courses. Is this enough?</span>
         a: <span>
-            From our experience, we have found that for the type of computations used in most courses,
+            From our experience, we have found that for the type of computation used in most courses,
             the free quotas for memory and disk space are plenty.
             We do strongly suggest the classes upgrade all projects to "members-only" hosting,
             since this provides much better computers with higher availability.
@@ -1980,10 +2069,11 @@ BillingPage = rclass
     render_help_suggestion: ->
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
-            <i>
-                <Space/> Contact us if you are purchasing a course subscription, but need a short trial
-                to test things out first.<Space/>
-            </i>
+            <b>
+                <Space/> Customized course plans are available.<Space/>
+            </b>
+            If you do not see a plan that fits your needs,
+            email <HelpEmailLink/> with a description of your specific requirements.
         </span>
 
     render_suggested_next_step: ->
@@ -1996,10 +2086,9 @@ BillingPage = rclass
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
                 <span>
-                    Click "Add Payment Method..." to add your credit card, then
-                    click "Add Subscription or Course Package..." and
-                    choose from either a monthly, yearly or semester-long plan.
-                    You will <b>not be charged</b> until you select a specific subscription then click
+                    If you are teaching a course, choose one of the course packages.
+                    If you need to upgrade your projects, choosing a recurring subscription.
+                    You will <b>not be charged</b> until you explicitly click
                     "Add Subscription or Course Package".
                     {help}
                 </span>
@@ -2017,9 +2106,8 @@ BillingPage = rclass
         else if subs == 0
             # have a payment source, but no subscriptions
             <span>
-                Click "Add Subscription or Course Package...", then
-                choose from either a monthly, yearly or semester-long plan (you may sign up for the
-                same subscription more than once to increase the number of upgrades).
+                Click "Add Subscription or Course Package...".   If you are teaching a course, choose one of the course packages.
+                    If you need to upgrade your projects, choosing a recurring subscription.
                 You will be charged only after you select a specific subscription and click
                 "Add Subscription or Course Package".
                 {help}
@@ -2164,6 +2252,8 @@ exports.render_static_pricing_page = () ->
         <hr/>
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='week month4 year1' is_static={true}/>
+        <hr/>
+        <DedicatedVM />
         <hr/>
         <FAQ/>
     </div>

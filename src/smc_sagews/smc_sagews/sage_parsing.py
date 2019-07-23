@@ -243,7 +243,7 @@ def divide_into_blocks(code):
             if done:
                 break
         code = v
-    except Exception, mesg:
+    except Exception as mesg:
         code = c
 
     ## Tested this: Completely disable block parsing:
@@ -523,7 +523,7 @@ def introspect(code, namespace, preparse=True):
                         exec(
                             before_expr if not preparse else preparse_code(
                                 before_expr)) in namespace
-                    except Exception, msg:
+                    except Exception as msg:
                         pass
                         # uncomment for debugging only
                         # traceback.print_exc()
@@ -554,7 +554,7 @@ def introspect(code, namespace, preparse=True):
                             'getdoc': sage.misc.sageinspect.sage_getfile,
                             'O': O
                         }) + "\n"
-                except Exception, err:
+                except Exception as err:
                     return "Unable to read source filename (%s)" % err
 
             if get_help:
@@ -590,7 +590,7 @@ def introspect(code, namespace, preparse=True):
                         return t
 
                     result += eval('getdoc(O)', {'getdoc': our_getdoc, 'O': O})
-                except Exception, err:
+                except Exception as err:
                     result += "Unable to read docstring (%s)" % err
                 result = result.lstrip().replace(
                     '\n   ',
@@ -605,7 +605,7 @@ def introspect(code, namespace, preparse=True):
                             'getsource': sage.misc.sageinspect.sage_getsource,
                             'O': O
                         })
-                except Exception, err:
+                except Exception as err:
                     result += "Unable to read source code (%s)" % err
 
             elif get_completions:
@@ -634,7 +634,7 @@ def introspect(code, namespace, preparse=True):
             result = list(
                 sorted(set(v), lambda x, y: cmp(x.lower(), y.lower())))
 
-    except Exception, msg:
+    except Exception as msg:
         traceback.print_exc()
         result = []
         status = 'ok'

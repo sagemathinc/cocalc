@@ -78,7 +78,7 @@ export class FileRow extends React.Component<Props, State> {
 
   render_name_link(styles, name, ext) {
     return (
-      <a style={styles}>
+      <a style={styles} cocalc-test="file-line">
         <span style={{ fontWeight: this.props.mask ? "normal" : "bold" }}>
           {misc.trunc_middle(name, 50)}
         </span>

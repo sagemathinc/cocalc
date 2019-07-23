@@ -87,9 +87,9 @@ exports.Description = rclass
         if not @props.is_current or @props.editing
             return
         <Button
-            onClick = {@edit} 
+            onClick = {@edit}
             style   = {marginBottom:'5px'}
-            title   = {'Edit this task (click or enter key)'}
+            title   = {'Edit this task (double click or enter key)'}
         >
             <Icon name={'edit'} /> Edit
         </Button>

@@ -1,6 +1,9 @@
 //- footer at bottom of static pages
+-
+  var PREFIX        = htmlWebpackPlugin.options.PREFIX;
 
 include _static_footer.html
+
 div.center(style="margin-bottom: 6rem;")
-  a(href="app")
+  a(href=PREFIX + "app")
     img(src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg') style="height: 3rem; width: auto;")

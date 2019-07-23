@@ -202,7 +202,7 @@ def findBoundaries(string):
             #The last character was a valid $, but this one isn't...
             #This means the last character was a valid $, but this isn't
             if inoned:
-                print "THIS SHOULD NEVER HAPPEN!"
+                print("THIS SHOULD NEVER HAPPEN!")
             elif intwod:
                 #ignore it...
                 pass

@@ -2,8 +2,8 @@
 # test_env.py
 # tests of sage worksheet environment options
 import conftest
-import os, errno
-import sys
+import os
+import errno
 
 
 def remove_no_exc(fname):

@@ -128,6 +128,7 @@ exports.FileTab = rclass
             style       = {styles}
             active      = {@props.is_active}
             onClick     = {@click}
+            cocalc-test = {@props.label}
             onMouseDown = {@onMouseDown}
         >
             <div style={width:'100%', color:text_color, cursor : 'pointer'}>
