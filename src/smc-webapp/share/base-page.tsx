@@ -127,7 +127,7 @@ gtag('config', '${this.props.google_analytics}');\
 
   public render(): Rendered {
     return (
-      <html lang="en">
+      <html lang="en" style={{ height: "100%" }}>
         <head>
           {this.render_viewport()}
           {this.render_title()}
@@ -140,7 +140,11 @@ gtag('config', '${this.props.google_analytics}');\
           {this.render_google_analytics()}
           {this.render_cocalc_analytics()}
         </head>
-        <body>{this.props.children}</body>
+        <body
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
+          {this.props.children}
+        </body>
       </html>
     );
   }

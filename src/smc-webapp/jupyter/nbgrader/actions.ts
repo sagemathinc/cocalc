@@ -3,12 +3,18 @@ import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
 import { clear_solution } from "./clear-solutions";
+import { set_checksum } from "./compute-checksums";
+import { delay } from "awaiting";
+import { once } from "smc-util/async-utils";
+import { path_split } from "smc-util/misc2";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
+  private redux;
 
-  constructor(jupyter_actions) {
+  constructor(jupyter_actions, redux) {
     this.jupyter_actions = jupyter_actions;
+    this.redux = redux;
     this.jupyter_actions.store.nbgrader = new NBGraderStore(
       jupyter_actions.store
     );
@@ -72,6 +78,59 @@ export class NBGraderActions {
     await this.validate();
   }
 
+  public async confirm_assign(): Promise<void> {
+    const path = this.jupyter_actions.store.get("path");
+    let { head, tail } = path_split(path);
+    if (head == "") {
+      head = "student/";
+    } else {
+      head = head + "/student/";
+    }
+    const target = head + tail;
+    const choice = await this.jupyter_actions.confirm_dialog({
+      title: "Create student version?",
+      body: `Creating the student version of the notebook will make a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)`,
+      choices: [
+        { title: "Cancel" },
+        { title: "Create or update student version", style: "success", default: true }
+      ]
+    });
+    if (choice === "Cancel") return;
+    await this.assign(target);
+  }
+
+  public async assign(filename: string): Promise<void> {
+    // Create a copy of the current notebook at the location specified by
+    // filename, and modify by applying the assign transformations.
+    const project_id = this.jupyter_actions.store.get("project_id");
+    const project_actions = this.redux.getProjectActions(project_id);
+    await project_actions.open_file({ path: filename, foreground: true });
+    let actions = this.redux.getEditorActions(project_id, filename);
+    while (true) {
+      if (actions != null) break;
+      await delay(200);
+    }
+    if (actions.jupyter_actions.syncdb.get_state() == "init") {
+      await once(actions.jupyter_actions.syncdb, "ready");
+    }
+    actions.jupyter_actions.syncdb.from_str(
+      this.jupyter_actions.syncdb.to_str()
+    );
+    project_actions.close_file(filename);
+    await delay(200);
+    await project_actions.open_file({ path: filename, foreground: true });
+    while (true) {
+      actions = this.redux.getEditorActions(project_id, filename);
+      if (actions != null) break;
+      await delay(200);
+    }
+    if (actions.jupyter_actions.syncdb.get_state() == "init") {
+      await once(actions.jupyter_actions.syncdb, "ready");
+    }
+    await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
+    await actions.jupyter_actions.save();
+  }
+
   public apply_assign_transformations(): void {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
@@ -97,27 +156,8 @@ export class NBGraderActions {
     this.jupyter_actions.save_asap();
   }
 
-  public assign_lock_readonly_cells(): void {
-    // For every cell for which the nbgrader metadata says it should be locked, set
-    // the editable and deletable metadata to false.
-    // "metadata":{"nbgrader":{"locked":true,...
-    console.log("assign_lock_readonly_cells");
-    this.jupyter_actions.store.get("cells").forEach(cell => {
-      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
-        return;
-      for (let key of ["editable", "deletable"]) {
-        this.jupyter_actions.set_cell_metadata({
-          id: cell.get("id"),
-          metadata: { [key]: false },
-          merge: true,
-          save: false
-        });
-      }
-    });
-  }
-
-  public assign_clear_solutions(): void {
-    console.log("assign_clear_solutions");
+  private assign_clear_solutions(): void {
+    //console.log("assign_clear_solutions");
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
@@ -132,7 +172,40 @@ export class NBGraderActions {
       }
     });
   }
-  public assign_save_checksums(): void {
-    console.log("assign_save_checksums");
+
+  private assign_save_checksums(): void {
+    //console.log("assign_save_checksums");
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      const cell2 = set_checksum(cell);
+      if (cell !== cell2) {
+        // set nbgrader metadata, which is all that should have changed
+        this.jupyter_actions.set_cell_metadata({
+          id: cell.get("id"),
+          metadata: { nbgrader: cell2.get("nbgrader") },
+          merge: true,
+          save: false
+        });
+      }
+    });
+  }
+
+  private assign_lock_readonly_cells(): void {
+    // For every cell for which the nbgrader metadata says it should be locked, set
+    // the editable and deletable metadata to false.
+    // "metadata":{"nbgrader":{"locked":true,...
+    //console.log("assign_lock_readonly_cells");
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
+        return;
+      for (let key of ["editable", "deletable"]) {
+        this.jupyter_actions.set_cell_metadata({
+          id: cell.get("id"),
+          metadata: { [key]: false },
+          merge: true,
+          save: false
+        });
+      }
+    });
   }
 }
