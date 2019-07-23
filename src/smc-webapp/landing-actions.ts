@@ -15,7 +15,7 @@
  * with the least amount of friction.
  */
 
-import { redux } from "./app-framework";
+import { redux, Actions, Store } from "./app-framework";
 import * as LS from "misc/local-storage";
 import { analytics_event } from "./tracker";
 import { QueryParams } from "./misc_page2";
@@ -26,13 +26,24 @@ import {
   NAME as CUSTOM_SOFTWARE_NAME
 } from "./custom-software/init";
 
-const LS_KEY = "landing-actions";
+export const NAME = "landing-actions";
+const LS_KEY = NAME;
+
+type LaunchTypes = "csi" | "share" | "binder" | undefined;
 
 interface LaunchData {
   launch?: string;
+  type?: LaunchTypes;
   filepath?: string;
   urlpath?: string;
 }
+
+class LandingActionsStore extends Store<LaunchData> {}
+
+class LandingActions<LaunchData> extends Actions<LaunchData> {}
+
+redux.createStore(NAME, LandingActionsStore, {});
+const actions = redux.createActions(NAME, LandingActions);
 
 function launch_share(launch: string): void {
   const share_id = launch.split("/")[1];
@@ -153,8 +164,10 @@ export function store() {
   // console.log("landing-actions: params =", params);
   const launch = params.launch;
   if (launch != null && typeof launch === "string") {
+    const type = launch.split("/")[0] as LaunchTypes;
     const data: LaunchData = {
-      launch
+      launch,
+      type
     };
     {
       const filepath = params.filepath;
@@ -169,6 +182,7 @@ export function store() {
       }
     }
     LS.set(LS_KEY, data);
+    actions.setState(data);
   }
 }
 
@@ -176,10 +190,10 @@ export function launch() {
   const data: LaunchData | undefined = LS.del<LaunchData>(LS_KEY);
   // console.log("landing-actions data=", data);
   if (data == null) return;
-  const launch = data.launch;
-  if (launch != null && typeof launch === "string") {
+  const { type, launch } = data;
+  if (launch != null && type != null && typeof launch === "string") {
+    actions.setState(data);
     // the first token selects share server or custom software image
-    const type = launch.split("/")[0];
     switch (type) {
       case "binder":
         launch_binder(launch, data.filepath, data.urlpath);
