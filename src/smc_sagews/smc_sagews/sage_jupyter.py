@@ -65,8 +65,8 @@ class JUPYTER(object):
         in a cell, click the "restart" button, and you have an anaconda worksheet.
 
             | %auto
-            | anaconda3 = jupyter('anaconda3')
-            | %default_mode anaconda3
+            | anaconda5 = jupyter('anaconda5')
+            | %default_mode anaconda5
 
         Each call to jupyter creates its own Jupyter kernel. So you can have more than
         one instance of the same kernel type in the same worksheet session.
@@ -301,8 +301,7 @@ def _jkmagic(kernel_name, **kwargs):
                 # but if code calls python3 input(), wait for message on stdin channel
                 if 'code' in content:
                     ccode = content['code']
-                    if kernel_name in ['python3', 'anaconda3',
-                                       'octave'] and re.match(
+                    if kernel_name.startswith(('python', 'anaconda', 'octave')) and re.match(
                                            '^[^#]*\W?input\(', ccode):
                         # FIXME input() will be ignored if it's aliased to another name
                         p('iopub input call: ', ccode)
