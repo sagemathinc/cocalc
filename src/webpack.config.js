@@ -621,6 +621,11 @@ if (MEASURE) {
   plugins = plugins.concat([bundleAnalyzerPlugin]);
 }
 
+// https://github.com/Igorbek/typescript-plugin-styled-components#ts-loader
+const createStyledComponentsTransformer = require("typescript-plugin-styled-components")
+  .default;
+const styledComponentsTransformer = createStyledComponentsTransformer();
+
 module.exports = {
   cache: true,
 
@@ -674,7 +679,20 @@ module.exports = {
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
       // Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
       // It just kind of does its own thing. See tsconfig.json for further congiration.
-      { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
+      {
+        test: /\.tsx$/,
+        use: [
+          "babel-loader",
+          {
+            loader: "ts-loader",
+            options: {
+              getCustomTransformers: () => ({
+                before: [styledComponentsTransformer]
+              })
+            }
+          }
+        ]
+      },
       { test: /\.ts$/, loader: "ts-loader" },
       {
         test: /\.less$/,
