@@ -161,7 +161,7 @@ export const ProjectRow = rclass<ReactProps>(
 
     render_project_title() {
       return (
-        <a>
+        <a cocalc-test="project-line">
           <Markdown value={this.props.project.title} />
         </a>
       );

@@ -6,9 +6,11 @@ export function redirect_to_directory(req, res) {
   return res.redirect(301, req.baseUrl + req.path + "/" + query);
 }
 
-// this read the google analytics token from disk -- or returns undefined
-
+// This read the google analytics token from disk the first time, or returns undefined
+// if no such token is defined.
+let _google_analytics_token: string | null | undefined = undefined;
 export function google_analytics_token(): string | undefined {
+  if (_google_analytics_token != undefined) return _google_analytics_token;
   const filename: string =
     (process.env.SMC_ROOT != null ? process.env.SMC_ROOT : ".") +
     "/data/secrets/google_analytics";
@@ -16,7 +18,10 @@ export function google_analytics_token(): string | undefined {
   try {
     const s: Buffer = readFileSync(filename);
     ga = s.toString().trim();
-  } catch (error) {}
+    _google_analytics_token = ga;
+  } catch (error) {
+    _google_analytics_token = null;
+  }
   console.log(`share/util/google_analytics_token: ${ga}`);
   return ga;
 }

@@ -38,7 +38,7 @@ and customizing the external look and feel of the application.
 
 ## Protocol and Data Format
 
-Each API command is invoked using an HTTPS PUT request.
+Each API command is invoked using an HTTPS POST request.
 All commands support request parameters in JSON format, with request header
 \`Content-Type: application/json\`. Many commands (those that do not
 require lists or objects as parameters)

@@ -14,10 +14,11 @@ const INDEX_STYLE = {
 };
 
 interface Props {
-  public_paths: Map<string,any>;
+  public_paths: Map<string, any>;
   paths_order: List<string>;
   page_number: number;
   page_size: number;
+  path_prefix?: string;
 }
 
 export class PublicPathsBrowser extends Component<Props> {
@@ -128,13 +129,13 @@ export class PublicPathsBrowser extends Component<Props> {
   private render_public_path_link(info, bgcolor): Rendered {
     const id = info.get("id");
     const info_path = encode_path(info.get("path"));
+    const href = `${
+      this.props.path_prefix ? this.props.path_prefix : ""
+    }${id}/${info_path}?viewer=share`;
 
     return (
       <div key={id} style={{ padding: "5px 10px", background: bgcolor }}>
-        <a
-          href={`${id}/${info_path}?viewer=share`}
-          style={{ display: "inline-block", width: "100%" }}
-        >
+        <a href={href} style={{ display: "inline-block", width: "100%" }}>
           {this.render_path(info)}
           {this.render_description(info)}
           {this.render_last_edited(info)}
@@ -178,16 +179,27 @@ export class PublicPathsBrowser extends Component<Props> {
     return result;
   }
 
+  private render_page_info(): Rendered {
+    if (
+      this.props.page_number === 1 &&
+      this.props.page_size > this.props.paths_order.size
+    )
+      return; // no need to paginate.
+    return (
+      <div key="top" style={{ paddingLeft: "30px", background: "#efefef" }}>
+        {this.render_overview()}
+        <Space />
+        {this.render_prev_page()}
+        <Space />
+        {this.render_next_page()}
+      </div>
+    );
+  }
+
   public render(): Rendered {
     return (
       <div>
-        <div key="top" style={{ paddingLeft: "30px", background: "#dfdfdf" }}>
-          {this.render_overview()}
-          <Space />
-          {this.render_prev_page()}
-          <Space />
-          {this.render_next_page()}
-        </div>
+        {this.render_page_info()}
         {this.render_headings()}
         <div key="index" style={INDEX_STYLE}>
           {this.render_index()}
