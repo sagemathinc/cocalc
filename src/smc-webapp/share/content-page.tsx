@@ -11,12 +11,14 @@ interface ContentPageProps {
   site_name?: string;
   base_url: string;
   path: string; // the path with no base url to the currently displayed file, directory, etc.
-  viewer: string; // 'share' or 'embed'
+  viewer: "share" | "embed"; // 'share' or 'embed'
   project_id?: string; // only defined if we are viewing something in a project
   subtitle?: string;
   google_analytics?: string; // optional, and if set just the token
   notranslate?: boolean;
   is_public: IsPublicFunction;
+  noindex: boolean;
+  description?: string;
 }
 
 export class ContentPage extends Component<ContentPageProps> {
@@ -28,6 +30,8 @@ export class ContentPage extends Component<ContentPageProps> {
         google_analytics={this.props.google_analytics}
         notranslate={this.props.notranslate}
         viewer={this.props.viewer}
+        noindex={this.props.noindex}
+        description={this.props.description}
       >
         <TopBar
           viewer={this.props.viewer}

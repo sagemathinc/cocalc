@@ -27,6 +27,8 @@ import { exec } from "./frame-editors/generic/client";
 import { editor_id, NewFilenames } from "smc-webapp/project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
+import { transform_get_url } from "./project/transform-get-url";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -163,6 +165,10 @@ export const FILE_ACTIONS = {
     name: "Download",
     icon: "cloud-download",
     allows_multiple_files: true
+  },
+  upload: {
+    name: "Upload",
+    icon: "upload"
   }
 };
 
@@ -1922,9 +1928,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: undefined
     }); // cb(true or false, depending on error)
 
-    const { command, args } = misc.transform_get_url(opts.url);
+    const { command, args } = transform_get_url(opts.url);
 
-    return require("./webapp_client").webapp_client.exec({
+    require("./webapp_client").webapp_client.exec({
       project_id: this.project_id,
       command,
       timeout: opts.timeout,
@@ -1933,12 +1939,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: (err, result) => {
         if (opts.alert) {
           if (err) {
-            alert_message({ type: "error", message: err });
+            alert_message({ type: "error", message: err, timeout: 15 });
           } else if (result.event === "error") {
-            alert_message({ type: "error", message: result.error });
+            alert_message({
+              type: "error",
+              message: result.error,
+              timeout: 15
+            });
           }
         }
-        return typeof opts.cb === "function"
+        typeof opts.cb === "function"
           ? opts.cb(err || result.event === "error")
           : undefined;
       }
@@ -2844,7 +2854,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
     });
-    return this.get_from_web({
+    this.get_from_web({
       url,
       dest: current_path,
       timeout: FROM_WEB_TIMEOUT_S,
@@ -2852,7 +2862,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: err => {
         this.fetch_directory_listing();
         this.set_activity({ id, stop: "" });
-        return typeof cb === "function" ? cb(err) : undefined;
+        typeof cb === "function" ? cb(err) : undefined;
       }
     });
   }

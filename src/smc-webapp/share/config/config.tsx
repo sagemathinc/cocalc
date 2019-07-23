@@ -254,12 +254,15 @@ export class Configure extends Component<Props, State> {
     return (
       <>
         <h4>Description{this.get_description() ? "" : " (optional)"}</h4>
-        <FormGroup>
+        Use relevant keywords, inspire curiosity by providing just enough
+        information to explain what this is about, and keep your description to
+        about two lines.
+        <FormGroup style={{ paddingTop: "5px" }}>
           <FormControl
             autoFocus={true}
             ref="share_description"
             key="share_description"
-            type="text"
+            componentClass="textarea"
             defaultValue={this.get_description()}
             disabled={parent_is_public}
             placeholder="Describe what you are sharing.  You can change this at any time."
@@ -308,6 +311,7 @@ export class Configure extends Component<Props, State> {
     return (
       <>
         <h4>Link</h4>
+        <div style={{ paddingBottom: "5px" }}>Your share will appear here.</div>
         <CopyToClipBoard
           value={url}
           button_before={button_before}
@@ -338,7 +342,7 @@ export class Configure extends Component<Props, State> {
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
         <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">
-          Share
+          You share
         </a>{" "}
         files or directories{" "}
         <a href={server} target="_blank" rel="noopener">
@@ -347,9 +351,9 @@ export class Configure extends Component<Props, State> {
           </b>
         </a>{" "}
         either indexed by search engines (listed), or only visible with the link
-        (unlisted). Files are made public about 30 seconds after you change
-        them. (To instead privately collaborate, go to Project settings and "Add
-        new collaborators".)
+        (unlisted). Files are automatically made public about 30 seconds any
+        time you change them. (To instead privately collaborate, go to Project
+        settings and "Add new collaborators".)
       </div>
     );
   }
