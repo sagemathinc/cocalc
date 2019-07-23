@@ -88,13 +88,20 @@ export async function fetch_directory_listing(
         timeout: 10
       }
     });
-    console.log(`fetch directory listing api returned:`, response.data.stdout);
-    dispatch({
-      type: "add_directory_listing",
-      listing: response.data.stdout,
-      path: path,
-      project_id
-    });
+    if (response.data.stdout) {
+      console.log(
+        `fetch directory listing api returned:`,
+        response.data.stdout
+      );
+      dispatch({
+        type: "add_directory_listing",
+        listing: response.data.stdout,
+        path: path,
+        project_id
+      });
+    } else {
+      console.log("fetch directory listing api: This shit is never loading...");
+    }
     return response.data.stdout;
   } catch (error) {
     placeholder_error_handling(error);

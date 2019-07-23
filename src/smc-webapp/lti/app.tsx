@@ -71,6 +71,10 @@ function App() {
       default:
         assert_never(state.route);
     }
+  } else if (!state.loading && !state.account_info) {
+    content = (
+      <div>Stuff returned but account_info is undefined. Check logs</div>
+    );
   } else {
     content = <div>Loading...</div>;
   }
