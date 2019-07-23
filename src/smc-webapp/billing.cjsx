@@ -2066,11 +2066,12 @@ BillingPage = rclass
                 error   = {@props.error}
                 onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
+    # the space in "Contact us" below is a Unicode no-break space, UTF-8: C2 A0. "&nbsp;" didn't work there [hal]
     render_help_suggestion: ->
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
             <b>
-                <Space/> Contact us if you are considering purchasing a course subscription and need a short trial
+                <Space/> <HelpEmailLink text={"Contact us"} /> if you are considering purchasing a course subscription and need a short trial
                 to test things out first.<Space/>
             </b>
             <b>
