@@ -1,25 +1,16 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
-import * as immutable from "immutable";
 import { ProjectSelection } from "./project-selection";
 import { ProjectContainer } from "./view/project";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
+import { initial_global_state } from "./state/values";
 import { assert_never } from "./helpers";
 
-console.log("Do we have immutable?", immutable.Map);
-
 function App() {
-  const [state, dispatch] = React.useReducer(reducer, {
-    projects: {},
-    route: Route.Home,
-    account_info: undefined,
-    loading: true,
-    opened_project_id: "",
-    file_listings: {}
-  });
+  const [state, dispatch] = React.useReducer(reducer, initial_global_state);
 
   React.useEffect(() => {
     const fetchData = async () => {
