@@ -2,13 +2,15 @@
 The stopwatch component
 */
 
-import { Button, ButtonGroup, Well } from "react-bootstrap";
+import { Button, ButtonGroup, Well, Row, Col } from "react-bootstrap";
 
-import { Component, React } from "../app-framework";
+import { Component, React, Rendered } from "../app-framework";
 
-import { TimerState } from "./actions"
+import { TimerState } from "./actions";
 
-let { Icon } = require("../r_misc");
+import { Icon } from "../r_misc/icon";
+import { TextInput } from "../r_misc/text-input";
+
 let { webapp_client } = require("../webapp_client");
 
 function assertNever(x: never): never {
@@ -19,31 +21,41 @@ interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
   click_button: (str: string) => void;
+  set_label: (str: string) => void;
   compact?: boolean;
   label?: string; // a text label
   total?: number; // total time accumulated before entering current state
 }
 
-export class Stopwatch extends Component<StopwatchProps, any> {
+interface StopwatchState {
+  editing_label: boolean;
+}
+
+export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private intervals: number[];
 
-  componentWillMount() {
+  constructor(props) {
+    super(props);
+    this.state = { editing_label: false };
+  }
+
+  public componentWillMount(): void {
     this.intervals = [];
   }
 
-  setInterval(fn: Function, ms: number): void {
+  private setInterval(fn: Function, ms: number): void {
     this.intervals.push(setInterval(fn, ms));
   }
 
-  componentWillUnmount() {
+  public componentWillUnmount(): void {
     this.intervals.forEach(clearInterval);
   }
 
-  componentDidMount(): void {
+  public componentDidMount(): void {
     this.setInterval(() => this.forceUpdate(), 1000);
   }
 
-  render_start_button() {
+  private render_start_button(): Rendered {
     return (
       <Button
         bsStyle={!this.props.compact ? "primary" : undefined}
@@ -56,19 +68,19 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_stop_button() {
+  private render_reset_button(): Rendered {
     return (
       <Button
         bsStyle={!this.props.compact ? "warning" : undefined}
-        onClick={() => this.props.click_button("stopped")}
+        onClick={() => this.props.click_button("reset")}
         bsSize={this.props.compact ? "xsmall" : undefined}
       >
-        <Icon name="stop" /> {!this.props.compact ? "Stop" : undefined}
+        <Icon name="ban" /> {!this.props.compact ? "Reset" : undefined}
       </Button>
     );
   }
 
-  render_pause_button() {
+  private render_pause_button(): Rendered {
     return (
       <Button
         bsStyle={!this.props.compact ? "info" : undefined}
@@ -81,7 +93,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_time() {
+  private render_time(): Rendered {
     let amount: number = 0;
     switch (this.props.state) {
       case "stopped":
@@ -95,7 +107,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
           (webapp_client.server_time() - this.props.time);
         break;
       default:
-        assertNever(this.props.state)
+        assertNever(this.props.state);
     }
 
     return (
@@ -103,7 +115,55 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_buttons(): JSX.Element {
+  private edit_label(): void {
+    this.setState({ editing_label: true });
+  }
+
+  private render_label(): Rendered {
+    if (this.state.editing_label) {
+      return this.render_editing_label();
+    }
+    return (
+      <div
+        key="show-label"
+        style={{
+          fontSize: "25px",
+          marginTop: "25px",
+          width: "100%",
+          color: this.props.label ? "#444" : "#999",
+          borderBottom: "1px solid #999",
+          marginBottom: "10px"
+        }}
+        onClick={() => this.edit_label()}
+      >
+        {this.props.label ? this.props.label : "Label"}
+      </div>
+    );
+  }
+
+  private render_editing_label(): Rendered {
+    return (
+      <div
+        key="edit-label"
+        style={{
+          fontSize: "25px",
+          marginTop: "25px",
+          width: "100%"
+        }}
+      >
+        <TextInput
+          text={this.props.label ? this.props.label : ""}
+          on_change={value => {
+            this.props.set_label(value);
+            this.setState({ editing_label: false });
+          }}
+          autoFocus={true}
+        />
+      </div>
+    );
+  }
+
+  private render_buttons(): Rendered {
     switch (this.props.state) {
       case "stopped":
         return <span key={"buttons"}>{this.render_start_button()}</span>;
@@ -111,32 +171,50 @@ export class Stopwatch extends Component<StopwatchProps, any> {
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_start_button()}
-            {this.render_stop_button()}
+            {this.render_reset_button()}
           </ButtonGroup>
         );
       case "running":
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_pause_button()}
-            {this.render_stop_button()}
+            {this.render_reset_button()}
           </ButtonGroup>
         );
       default:
-        assertNever(this.props.state)
+        assertNever(this.props.state);
         // TS doesn't have strong enough type inference here??
-        return <div/>
+        return <div />;
     }
   }
 
-  content() {
-    return [this.render_time(), this.render_buttons()];
+  private render_full_size(): Rendered {
+    return (
+      <Well>
+        <Row>
+          <Col sm={6} md={6}>
+            {this.render_time()}
+          </Col>
+          <Col sm={6} md={6}>
+            {this.render_label()}
+          </Col>
+        </Row>
+        <Row>
+          <Col md={12}>{this.render_buttons()}</Col>
+        </Row>
+      </Well>
+    );
   }
 
-  render() {
+  public render(): Rendered {
     if (this.props.compact) {
-      return <div>{this.content()}</div>;
+      return (
+        <div>
+          {this.render_time()} {this.render_buttons()}
+        </div>
+      );
     } else {
-      return <Well>{this.content()}</Well>;
+      return this.render_full_size();
     }
   }
 }

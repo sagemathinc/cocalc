@@ -25,11 +25,11 @@ import { Stopwatch } from "./stopwatch";
 import { ButtonBar } from "./button-bar";
 import { TimeActions, StopwatchEditorState } from "./actions";
 
-interface props extends StopwatchEditorState {
+interface Props extends StopwatchEditorState {
   actions: InstanceType<typeof TimeActions>;
 }
 
-class EditorTime extends Component<props> {
+class EditorTime extends Component<Props> {
   static reduxProps({ name }) {
     return {
       [name]: {
@@ -39,9 +39,9 @@ class EditorTime extends Component<props> {
     };
   }
 
-  render_stopwatches() {
+  private render_stopwatches(): Rendered[] {
     if (this.props.timers === undefined) {
-      return;
+      return [];
     }
     const v: Rendered[] = [];
     this.props.timers.map(data => {
@@ -53,35 +53,44 @@ class EditorTime extends Component<props> {
           state={data.get("state")}
           time={data.get("time")}
           click_button={button => this.click_button(data.get("id"), button)}
+          set_label={label => this.set_label(data.get("id"), label)}
         />
       );
     });
     return v;
   }
 
-  click_button(id, button) {
+  private click_button(id: number, button: string): void {
     switch (button) {
-      case "stopped":
-        return this.props.actions.stop_stopwatch(id);
+      case "reset":
+        this.props.actions.reset_stopwatch(id);
+        return;
       case "start":
-        return this.props.actions.start_stopwatch(id);
+        this.props.actions.start_stopwatch(id);
+        return;
       case "pause":
-        return this.props.actions.pause_stopwatch(id);
+        this.props.actions.pause_stopwatch(id);
+        return;
       default:
-        return console.warn(`unknown button '${button}'`);
+        console.warn(`unknown button '${button}'`);
+        return;
     }
   }
 
-  render_button_bar() {
+  private set_label(id: number, label: string): void {
+    this.props.actions.set_label(id, label);
+  }
+
+  private render_button_bar(): Rendered {
     return <ButtonBar actions={this.props.actions} />;
   }
 
   // TODO
-  render_error() {
+  private render_error(): Rendered {
     return <div>Todo. There is an error</div>;
   }
 
-  render() {
+  public render(): Rendered {
     if (this.props.error !== undefined) {
       return this.render_error();
     } else if (this.props.timers !== undefined && this.props.timers.size > 0) {
@@ -96,5 +105,6 @@ class EditorTime extends Component<props> {
     }
   }
 }
+
 const EditorTime0 = rclass(EditorTime);
 export { EditorTime0 as EditorTime };
