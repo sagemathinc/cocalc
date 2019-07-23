@@ -5,6 +5,7 @@ export interface GlobalState {
   loading: boolean;
   opened_project_id: string;
   file_listings: { [key: string]: { [key: string]: string[] } };
+  current_path: string;
 }
 
 export type Projects = { [key: string]: ProjectInfo };
@@ -44,4 +45,6 @@ export type Action =
       listing: string;
       path: string;
       project_id: string;
-    };
+    }
+  | { type: "open_directory"; path: string }
+  | { type: "open_parent_directory" };

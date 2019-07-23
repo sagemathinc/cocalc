@@ -11,7 +11,7 @@ import { assert_never } from "./helpers";
 
 function App() {
   const [state, dispatch] = React.useReducer(reducer, initial_global_state);
-
+  console.log(`Rendering with state:`, state);
   React.useEffect(() => {
     const fetchData = async () => {
       const projects = await API.fetch_projects();
@@ -56,7 +56,7 @@ function App() {
             projects={state.projects}
             opened_project_id={state.opened_project_id}
             file_listings={state.file_listings[state.opened_project_id]}
-            current_path={""}
+            current_path={state.current_path}
             dispatch={dispatch}
           />
         );

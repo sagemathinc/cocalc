@@ -20,6 +20,7 @@ export function ProjectSelection({
       project_rows.push(
         <ProjectRow
           key={project.project_id}
+          role={"button"}
           onClick={() => {
             API.fetch_directory_listing(project.project_id, "", dispatch);
             dispatch({ type: "open_project", id: project.project_id });
@@ -44,6 +45,7 @@ const ProjectListContainer = styled.div`
 `;
 
 const ProjectRow = styled.div`
+  cursor: pointer;
   color: tomato;
   border-color: tomato;
 `;

@@ -6,5 +6,6 @@ export const initial_global_state: GlobalState = {
   account_info: undefined,
   loading: true,
   opened_project_id: "",
-  file_listings: {}
+  file_listings: {},
+  current_path: ""
 };
