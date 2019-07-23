@@ -1,8 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
-import { ProjectSelection } from "./project-selection";
-import { ProjectContainer } from "./view/project";
+import { ProjectSelector, ProjectContainer } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
@@ -11,7 +10,7 @@ import { assert_never } from "./helpers";
 
 function App() {
   const [state, dispatch] = React.useReducer(reducer, initial_global_state);
-  console.log(`Rendering with state:`, state);
+
   React.useEffect(() => {
     const fetchData = async () => {
       const projects = await API.fetch_projects();
@@ -26,8 +25,9 @@ function App() {
     fetchData();
   }, []);
 
-  let header = <> Loading user </>;
+  let header = <>Loading user</>;
   let left_gutter = <>Nothing here</>;
+  let right_gutter = <>Nothing here</>;
   let content = (
     <>
       The route: {state.route} is not yet implemented. Here's the state!
@@ -35,7 +35,6 @@ function App() {
       {JSON.stringify(state)}
     </>
   );
-  let right_gutter = <>Nothing here</>;
 
   if (!state.loading && state.account_info) {
     header = <>User: {state.account_info.first_name || "No user name"}</>;
@@ -43,7 +42,7 @@ function App() {
     switch (state.route) {
       case Route.Home:
         content = (
-          <ProjectSelection
+          <ProjectSelector
             projects={state.projects}
             account_id={state.account_info.account_id}
             dispatch={dispatch}
@@ -61,7 +60,7 @@ function App() {
           />
         );
         left_gutter = (
-          <ProjectSelection
+          <ProjectSelector
             projects={state.projects}
             account_id={state.account_info.account_id}
             dispatch={dispatch}

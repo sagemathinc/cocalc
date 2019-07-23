@@ -1,9 +1,9 @@
 import * as React from "react";
 import styled from "styled-components";
-import { Action, Projects } from "./state/types";
-import * as API from "./api";
+import { Action, Projects } from "../state/types";
+import * as API from "../api";
 
-export function ProjectSelection({
+export function ProjectSelector({
   projects,
   account_id,
   dispatch

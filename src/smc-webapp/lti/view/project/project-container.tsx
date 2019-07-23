@@ -23,8 +23,8 @@ export function ProjectContainer({
     if (file_listings && file_listings[current_path]) {
       const on_click = path => {
         console.log(`file listing clicked at ${path}`);
+
         if (path[path.length - 1] === "/") {
-          console.log(`We should open the directory at ${path}`);
           dispatch({ type: "open_directory", path: current_path + path });
           API.fetch_directory_listing(
             opened_project_id,
@@ -42,7 +42,7 @@ export function ProjectContainer({
               onClick={() => dispatch({ type: "open_parent_directory" })}
               role={"button"}
             >
-              ↑ Parent Folder
+              ▲ Parent Folder
             </ParentDirectory>
           )}
           <FileListing
@@ -66,7 +66,7 @@ export function ProjectContainer({
 
 const ParentDirectory = styled.div`
   cursor: pointer;
-  color: rebeccapurple;
+  color: darkSlateBlue;
 `;
 
 const ProjectTitle = styled.h1`
