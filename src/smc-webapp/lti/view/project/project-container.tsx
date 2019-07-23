@@ -11,7 +11,6 @@ export function ProjectContainer({
   dispatch
 }) {
   const opened_project = projects[opened_project_id];
-  console.log("Presenting file listings:", file_listings);
   if (opened_project == undefined) {
     return (
       <>

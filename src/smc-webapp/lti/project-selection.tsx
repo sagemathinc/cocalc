@@ -1,7 +1,7 @@
 import * as React from "react";
 import styled from "styled-components";
 import { Action, Projects } from "./state/types";
-import * as API from "./api"
+import * as API from "./api";
 
 export function ProjectSelection({
   projects,
@@ -21,7 +21,6 @@ export function ProjectSelection({
         <ProjectRow
           key={project.project_id}
           onClick={() => {
-            console.log("Clicked on", project.title);
             API.fetch_directory_listing(project.project_id, "", dispatch);
             dispatch({ type: "open_project", id: project.project_id });
           }}

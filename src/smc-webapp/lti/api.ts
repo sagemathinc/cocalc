@@ -89,10 +89,7 @@ export async function fetch_directory_listing(
       }
     });
     if (response.data.stdout) {
-      console.log(
-        `fetch directory listing api returned:`,
-        response.data.stdout
-      );
+      console.log(`fetch directory api returned:`, response.data);
       dispatch({
         type: "add_directory_listing",
         listing: response.data.stdout,
