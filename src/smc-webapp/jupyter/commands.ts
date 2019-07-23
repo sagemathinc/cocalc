@@ -25,7 +25,8 @@ export interface KeyboardCommand {
 export interface CommandDescription {
   i?: string; // icon name
   k?: KeyboardCommand[]; // keyboard commands
-  m?: string; // fuller description for use in menus
+  m?: string; // fuller description for use in menus and commands
+  menu?: string; // alternative to m just for dropdown menu
   d?: string; // even more extensive description (e.g., for a tooltip).
   f: Function; // function that implements command.
 }
@@ -44,26 +45,37 @@ export function commands(
   return {
     "cell toolbar none": {
       m: "No cell toolbar",
+      menu: "None",
       f: () => jupyter_actions.cell_toolbar()
     },
 
     "cell toolbar attachments": {
-      m: "Delete attachments",
+      m: "Attachments toolbar",
+      menu: "Attachments",
       f: () => jupyter_actions.cell_toolbar("attachments")
     },
 
     "cell toolbar tags": {
-      m: "Edit cell tags",
+      m: "Edit cell tags toolbar",
+      menu: "Tags",
       f: () => jupyter_actions.cell_toolbar("tags")
     },
 
     "cell toolbar metadata": {
-      m: "Edit custom metadata",
+      m: "Edit custom metadata toolbar",
+      menu: "Metadata",
       f: () => jupyter_actions.cell_toolbar("metadata")
+    },
+
+    "cell toolbar create_assignment": {
+      m: "Create assignment (nbgrader) toolbar",
+      menu: "Create assignment (nbgrader)",
+      f: () => jupyter_actions.cell_toolbar("create_assignment")
     },
 
     "cell toolbar slideshow": {
       m: "Slideshow toolbar",
+      menu: "Slideshow",
       f: () => jupyter_actions.cell_toolbar("slideshow")
     },
 
@@ -146,67 +158,27 @@ export function commands(
       m: "Restart kernel...",
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
-      async f(): Promise<void> {
-        const choice = await jupyter_actions.confirm_dialog({
-          title: "Restart kernel?",
-          body:
-            "Do you want to restart the current kernel?  All variables will be lost.",
-          choices: [
-            { title: "Continue running" },
-            { title: "Restart", style: "danger", default: true }
-          ]
-        });
-        if (choice === "Restart") {
-          jupyter_actions.restart();
-        }
-      }
+      f: () => jupyter_actions.confirm_restart()
     },
 
     "confirm restart kernel and clear output": {
       m: "Restart and clear output...",
-      async f(): Promise<void> {
-        const choice = await jupyter_actions.confirm_dialog({
-          title: "Restart kernel and clear all output?",
-          body:
-            "Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
-          choices: [
-            { title: "Continue running" },
-            {
-              title: "Restart and clear all outputs",
-              style: "danger",
-              default: true
-            }
-          ]
-        });
-        if (choice === "Restart and clear all outputs") {
-          jupyter_actions.restart();
-          jupyter_actions.clear_all_outputs();
-        }
-      }
+      menu: "Clear output...",
+      f: () => jupyter_actions.restart_clear_all_output()
     },
 
     "confirm restart kernel and run all cells": {
       m: "Restart and run all...",
+      menu: "Run all...",
       i: "forward",
-      async f(): Promise<void> {
-        const choice = await jupyter_actions.confirm_dialog({
-          title: "Restart kernel and re-run the whole notebook?",
-          body:
-            "Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.",
-          choices: [
-            { title: "Continue running" },
-            {
-              title: "Restart and run all cells",
-              style: "danger",
-              default: true
-            }
-          ]
-        });
-        if (choice === "Restart and run all cells") {
-          await jupyter_actions.restart();
-          jupyter_actions.run_all_cells();
-        }
-      }
+      f: () => jupyter_actions.restart_and_run_all(false)
+    },
+
+    "confirm restart kernel and run all cells without halting on error": {
+      m: "Run all (do not stop on errors)...",
+      menu: "Restart and run all (do not stop on errors)...",
+      i: "run",
+      f: () => jupyter_actions.restart_and_run_all(true)
     },
 
     "confirm shutdown kernel": {
@@ -499,6 +471,18 @@ export function commands(
     "nbconvert sagews": {
       m: "Sage worksheet (.sagews)...",
       f: () => jupyter_actions.show_nbconvert_dialog("sagews")
+    },
+
+    "nbgrader validate": {
+      m: "Restart and validate...",
+      menu: "Validate...",
+      f: () => jupyter_actions.nbgrader_actions.confirm_validate()
+    },
+
+    "nbgrader assign": {
+      m: "Create student version...",
+      menu: "Student version...",
+      f: () => jupyter_actions.nbgrader_actions.confirm_assign()
     },
 
     "open file": {
@@ -819,17 +803,20 @@ export function commands(
     },*/
 
     "view notebook normal": {
-      m: "Cells (normal)",
+      m: "View notebook as cells (normal)",
+      menu: "Cells (normal)",
       f: () => frame_actions.set_view_mode("normal")
     },
 
     "view notebook json": {
-      m: "Object browser",
+      m: "View notebook object browser",
+      menu: "Object browser",
       f: () => frame_actions.set_view_mode("json")
     },
 
     "view notebook raw": {
-      m: "Raw .ipynb (file)",
+      m: "View notebook as raw .ipynb (file)",
+      menu: "Raw .ipynb (file)",
       f: () => frame_actions.set_view_mode("raw")
     },
 

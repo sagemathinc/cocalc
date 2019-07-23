@@ -55,6 +55,8 @@ project_file = require('./project_file')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
 
+{editor_id} = require('./project/utils')
+
 file_editors = require('./file-editors')
 
 misc = require('misc')
@@ -288,6 +290,7 @@ ProjectContentViewer = rclass
             <div
                 ref       = {'editor_inner_container'}
                 className = {'smc-vfill'}
+                id        = {editor_id(@props.project_id, path)}
                 style     = {height:'100%', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}

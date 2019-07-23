@@ -134,7 +134,6 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE).stdout.read()
-        v = {}
         for entry in log.split(commit_sep):
             if len(entry.strip()) == 0: continue
             sha, author, date, message, modified_files = entry.split(field_sep)
@@ -211,7 +210,7 @@ def main():
         hidden=args.hidden,
         directories_first=args.directories_first,
         git_aware=args.git)
-    print json.dumps(r, separators=(',', ':'))
+    print(json.dumps(r, separators=(',', ':')))
 
 
 if __name__ == "__main__":

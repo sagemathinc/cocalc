@@ -206,6 +206,12 @@ upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
                                ['xsmall_course',  'small_course', 'medium_course', 'large_course']]
 */
 
+upgrades.dedicated_vms = [
+  "dedicated_small",
+  "dedicated_medium",
+  "dedicated_large"
+];
+
 upgrades.period_names = {
   month: "month",
   year: "year",
@@ -628,5 +634,56 @@ subscription.student_course = {
     member_host: 2,
     mintime: 7600,
     network: 2
+  }
+};
+
+/*
+ Dedicated VMs
+ */
+subscription.dedicated_small = {
+  // n1-standard-4 + 200gb standard disk
+  icon: "battery-quarter",
+  desc: "Dedicated VM (small)",
+  statement: "COCALC VM SMALL",
+  price: {
+    month: 199
+  },
+  cancel_at_period_end: false,
+  benefits: {
+    cpu_shares: 4 * 1024,
+    disk_quota: 1000 * 200,
+    memory_request: 1000 * 15
+  }
+};
+
+subscription.dedicated_medium = {
+  // n1-highmem-8 + 400gb standard disk
+  icon: "battery-three-quarters",
+  desc: "Dedicated VM (medium)",
+  statement: "COCALC VM MEDIUM",
+  price: {
+    month: 499
+  },
+  cancel_at_period_end: false,
+  benefits: {
+    cpu_shares: 8 * 1024,
+    disk_quota: 1000 * 400,
+    memory_request: 1000 * 52
+  }
+};
+
+subscription.dedicated_large = {
+  // n1-highmem-16 + 600gb standard disk
+  icon: "battery-full",
+  desc: "Dedicated VM (large)",
+  statement: "COCALC VM LARGE",
+  price: {
+    month: 999
+  },
+  cancel_at_period_end: false,
+  benefits: {
+    cpu_shares: 16 * 1024,
+    disk_quota: 1000 * 600,
+    memory_request: 1000 * 104
   }
 };

@@ -1,4 +1,4 @@
-// get api_kcy
+// get api_key
 // usage:
 //   node api_key.js [-s] [-c credentials-file]
 // -s - display the browser window (opposite of headless), default false

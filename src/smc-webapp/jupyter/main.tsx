@@ -240,6 +240,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           cells={this.props.cells}
           cur_id={this.props.cur_id}
           sel_ids={this.props.sel_ids}
+          cell_toolbar={this.props.cell_toolbar}
         />
       );
     }

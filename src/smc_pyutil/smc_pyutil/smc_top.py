@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 ###############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
@@ -49,7 +49,7 @@ from pytz import utc
 from datetime import datetime
 import psutil as ps
 from dateutil.parser import parse as date_parser
-from collections import OrderedDict, Counter, defaultdict
+from collections import defaultdict
 
 # byte -> ki(lo/bi)byte; see IEC 80000-13:2008
 KBMB = 1024.
@@ -421,7 +421,6 @@ class SmcTop(object):
     def text(self, sortby=None, width=130):
         from io import StringIO
         from itertools import groupby
-        from textwrap import wrap
 
         ret = StringIO()
         data = self.data()

@@ -158,6 +158,7 @@ export class NewProjectCreator extends Component<Props, State> {
       <Row>
         <Col sm={4}>
           <Button
+            cocalc-test={"create-project"}
             bsStyle={"success"}
             active={this.state.state !== "view"}
             disabled={this.state.state !== "view"}

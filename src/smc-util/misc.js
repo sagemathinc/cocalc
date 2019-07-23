@@ -2761,56 +2761,6 @@ exports.ticket_id_to_ticket_url = tid =>
 exports.is_only_downloadable = string =>
   string.indexOf("://") !== -1 || exports.startswith(string, "git@github.com");
 
-// Apply various transformations to url's before downloading a file using the "+ New" from web thing:
-// This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
-// content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
-exports.transform_get_url = function(url) {
-  // returns something like {command:'wget', args:['http://...']}
-  let args, command;
-  const URL_TRANSFORMS = {
-    "http://trac.sagemath.org/attachment/ticket/":
-      "http://trac.sagemath.org/raw-attachment/ticket/",
-    "http://nbviewer.jupyter.org/url/": "http://",
-    "http://nbviewer.jupyter.org/urls/": "https://"
-  };
-  if (exports.startswith(url, "https://github.com/")) {
-    if (url.indexOf("/blob/") !== -1) {
-      url = url
-        .replace("https://github.com", "https://raw.githubusercontent.com")
-        .replace("/blob/", "/");
-      // issue #1818: https://github.com/plotly/python-user-guide → https://github.com/plotly/python-user-guide.git
-    } else if (__guard__(url.split("://")[1], x => x.split("/").length) === 3) {
-      url += ".git";
-    }
-  }
-
-  if (exports.startswith(url, "git@github.com:")) {
-    command = "git"; // kind of useless due to host keys...
-    args = ["clone", url];
-  } else if (url.slice(url.length - 4) === ".git") {
-    command = "git";
-    args = ["clone", url];
-  } else {
-    // fall back
-    for (let a in URL_TRANSFORMS) {
-      const b = URL_TRANSFORMS[a];
-      url = url.replace(a, b);
-    } // only replaces first instance, unlike python.  ok for us.
-    // special case, this is only for nbviewer.../github/ URLs
-    if (exports.startswith(url, "http://nbviewer.jupyter.org/github/")) {
-      url = url.replace(
-        "http://nbviewer.jupyter.org/github/",
-        "https://raw.githubusercontent.com/"
-      );
-      url = url.replace("/blob/", "/");
-    }
-    command = "wget";
-    args = [url];
-  }
-
-  return { command, args };
-};
-
 exports.ensure_bound = function(x, min, max) {
   if (x < min) {
     return min;

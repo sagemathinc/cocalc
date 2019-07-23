@@ -27,6 +27,9 @@ import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
 
+declare const $: any;
+import { starts_with_cloud_url } from "smc-webapp/process-links";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
@@ -707,8 +710,7 @@ async function touch_path(project_id: string, path: string): Promise<void> {
   }
 }
 
-declare const $: any;
-const { starts_with_cloud_url } = require("smc-webapp/process-links");
+
 function handleLink(_: MouseEvent, uri: string): void {
   if (!starts_with_cloud_url(uri)) {
     window.open(uri, "_blank");

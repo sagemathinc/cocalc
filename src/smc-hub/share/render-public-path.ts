@@ -16,12 +16,14 @@ import * as os_path from "path";
 import { stat, readFile } from "fs";
 import { callback } from "awaiting";
 
-import { filename_extension, field_cmp } from "smc-util/misc";
+import { field_cmp } from "smc-util/misc";
+import { filename_extension, path_to_title } from "smc-util/misc2";
 
 import { React } from "smc-webapp/app-framework";
 import { PublicPath } from "smc-webapp/share/public-path";
 import { has_viewer, needs_content } from "smc-webapp/share/file-contents";
 import { DirectoryListing } from "smc-webapp/share/directory-listing";
+import { Author } from "smc-webapp/share/types";
 
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
@@ -32,11 +34,14 @@ export async function render_public_path(opts: {
   res: any; // html response object
   info?: HostInfo; // immutable.js info about the public share, if url starts with share id (as opposed to project_id)
   dir: string; // directory on disk containing files for this path
-  react: any;
+  react: Function;
   path: string;
   viewer: string;
   hidden?: boolean;
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
+  authors: Author[];
+  base_url: string;
+  views?: number;
 }): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
 
@@ -87,13 +92,24 @@ export async function render_public_path(opts: {
       info: opts.info as any, // typescript gets confused between two copies of immutable, breaking checking in this case.
       files: files,
       viewer: opts.viewer,
-      path: opts.path
+      path: opts.path,
+      views: opts.views
     });
-    opts.react(opts.res, component, opts.path);
+    // NOTE: last true is because we never index directory listings -- instead we want
+    // users to find specific files by their content and name
+    opts.react(opts.res, component, opts.path, true);
     return;
   }
 
   dbg("is file");
+  let noindex: boolean;
+  if (opts.viewer == "share") {
+    // do index a file if we will be showing it via the share server.
+    noindex = false;
+  } else {
+    noindex = true; // never index content that is raw or embedded
+  }
+
   let why: string | undefined = undefined;
   let content: string | undefined = undefined;
   let ext = filename_extension(path_to_file);
@@ -115,8 +131,8 @@ export async function render_public_path(opts: {
     }
   }
 
-  let highlight : boolean;
-  if (ext == 'ipynb') {
+  let highlight: boolean;
+  if (ext == "ipynb") {
     // ipynb files tend to be very large, but still easy to render, due to images.
     // This is a little dangerous though! We will eventually need to do something
     // maybe async with a timeout...
@@ -132,7 +148,11 @@ export async function render_public_path(opts: {
     path: opts.path,
     why,
     size: stats.size,
-    highlight
+    highlight,
+    authors: opts.authors,
+    base_url: opts.base_url,
+    views: opts.views
   });
-  opts.react(opts.res, component, opts.path);
+  const subtitle = path_to_title(opts.path);
+  opts.react(opts.res, component, subtitle, noindex);
 }

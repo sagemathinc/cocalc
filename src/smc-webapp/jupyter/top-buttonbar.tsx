@@ -18,6 +18,7 @@ interface TopButtonbarProps {
   cur_id: string; // id of currently selected cell
   sel_ids: immutable.Set<any>; // set of selected cells
   cells: immutable.Map<any, any>; // map from id to cells
+  cell_toolbar?: string;
 
   name: string;
   // REDUX PROPS
@@ -62,7 +63,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       nextProps.has_uncommitted_changes !==
         this.props.has_uncommitted_changes ||
       nextProps.kernel_state !== this.props.kernel_state ||
-      nextProps.kernel_usage !== this.props.kernel_usage
+      nextProps.kernel_usage !== this.props.kernel_usage ||
+      nextProps.cell_toolbar !== this.props.cell_toolbar
     );
   }
 
@@ -267,7 +269,30 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     );
   }
 
-  render() {
+  private render_nbgrader(): Rendered {
+    // TODO: only show if there is nbgrader metadata...
+    // or better, if there are nbgrader test cells.
+    const validate = {
+      name: "nbgrader validate",
+      disabled: false,
+      label: "Validate..."
+    };
+    const assign = {
+      name: "nbgrader assign",
+      disabled: false,
+      label: "Student version..."
+    };
+    return (
+      <ButtonGroup style={{ marginLeft: "5px" }}>
+        {this.render_button("nbgrader validate", validate)}
+        {this.props.cell_toolbar == "create_assignment"
+          ? this.render_button("nbgrader assign", assign)
+          : undefined}
+      </ButtonGroup>
+    );
+  }
+
+  public render(): Rendered {
     return (
       <div style={{ margin: "1px 1px 0px 1px", backgroundColor: "#fff" }}>
         <Form inline style={{ whiteSpace: "nowrap" }}>
@@ -282,6 +307,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           {this.render_keyboard()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_assistant_halt()}
+          {this.render_nbgrader()}
         </Form>
       </div>
     );

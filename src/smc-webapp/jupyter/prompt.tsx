@@ -9,8 +9,10 @@ const misc = require("smc-util/misc");
 
 const PROMPT_MIN_WIDTH = "125px";
 
+export const INPUT_PROMPT_COLOR: string = "#303F9F";
+
 const INPUT_STYLE: React.CSSProperties = {
-  color: "#303F9F",
+  color: INPUT_PROMPT_COLOR,
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
