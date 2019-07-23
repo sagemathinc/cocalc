@@ -17,6 +17,13 @@ mixin start_free
        A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
        Purchasing #[a(href=PREFIX + "policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increases its quotas.
 
+mixin start_free_banner
+  div(style="margin-top: 6rem").darkbg
+    div.container
+      +start_free
+      div.col-sm-12.center
+        +start_button
+
 
 mixin video-player
   div.video-player.fit
@@ -26,6 +33,7 @@ mixin video-player
       click to play
     video(loop).fit
       block
+
 
 mixin software-environment-table(lang)
   -
@@ -107,7 +115,11 @@ html.no-js(lang="en")
     style
       :sass
         @import "smc-webapp/_colors.sass"
+        img[data-src]
+          min-height: 50px
         nav.navbar.navbar-default
+          position : relative
+          margin-bottom: 0
           border-bottom    : 2px solid $COL_GRAY
           background-color : $COL_GRAY_LL
           .get-started
@@ -117,7 +129,7 @@ html.no-js(lang="en")
             color        : $COL_BLUE_DOC
             font-weight  : bold
           .navbar-header
-            margin-top     : 5px;
+            margin-top     : 5px
             img.icon
               height       : 4rem
               width        : auto
@@ -150,9 +162,9 @@ html.no-js(lang="en")
             > footer
               margin-top     : 6rem
             > div.row#top
-              margin         : 14rem 0 0 0
+              margin         : 14rem 0 4rem 0
               @media (min-width: 992px)
-                margin       : 10rem 0 0 0
+                margin       : 14rem 0 4rem 0
             > div#software-env-top
               margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
@@ -215,13 +227,14 @@ html.no-js(lang="en")
             width      : 95%
             height     : 95%
 
-        nav.navbar.navbar-default .navbar-nav.features>li>a,
-        nav.navbar.navbar-default .navbar-nav.software>li>a
-          font-size: 1.5rem
-          padding-top: 5px
-          padding-bottom: 5px
-          &.documentation
-            color: $COL_BLUE_DOC
+        nav.navbar.navbar-default
+          .navbar-nav.features>li>a,
+          .navbar-nav.software>li>a,
+          .navbar-nav.policies>li>a
+            font-size: 1.5rem
+            padding: 5px 10px
+            &.documentation
+              color: $COL_BLUE_DOC
 
         div.navbar-menu
           display: inline-block
@@ -252,10 +265,17 @@ html.no-js(lang="en")
             transform: rotate(45deg) translate(-8px, -8px)
 
         div.collapse.navbar-collapse.show-menu
-            display: block!important;
-            height: auto!important;
-            padding-bottom: 0;
-            overflow: visible!important;
+            display: block!important
+            height: auto!important
+            padding-bottom: 0
+            overflow: visible!important
+
+        /* workaround, broken cocalc fonts */
+        i.fa
+          &.fa-linux,
+          &.fa-lightbulb-o
+            display: none
+
 
     script.
       function toggle_menu(menu) {
@@ -283,7 +303,7 @@ html.no-js(lang="en")
             //-   a(href=PREFIX + "#a-explore") Explore
 
             li(class=navbar_highlight('features'))
-              a(href=PREFIX + "doc/features.html") Features
+              a(href=PREFIX + "doc/index.html") Features
 
             if htmlWebpackPlugin.options.COMP_ENV
               li(class=navbar_highlight('software'))
@@ -301,19 +321,23 @@ html.no-js(lang="en")
             li
               a.get-started(href=PREFIX + "app") Sign In
 
-        if navbar_active == 'features'
+        if navbar_active == 'features' || navbar_active == 'index'
           div.collapse.navbar-collapse
             ul.nav.navbar-nav.navbar-right.features
               li(class=subnavbar_highlight('jupyter'))
                 a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter
               li(class=subnavbar_highlight('latex'))
                 a(href=PREFIX + "doc/latex-editor.html") LaTeX
-              li(class=subnavbar_highlight('terminal'))
-                a(href=PREFIX + "doc/linux-terminal.html") Linux
+              li(class=subnavbar_highlight('linux'))
+                a(href=PREFIX + "doc/linux.html") Linux
               li(class=subnavbar_highlight('python'))
                 a(href=PREFIX + "doc/python.html") Python
               li(class=subnavbar_highlight('r'))
                 a(href=PREFIX + "doc/r-statistical-software.html") R Stats
+              li(class=subnavbar_highlight('teaching'))
+                a(href=PREFIX + "doc/teaching.html") Teaching
+              li(class=subnavbar_highlight('terminal'))
+                a(href=PREFIX + "doc/terminal.html") Terminal
               li(class=subnavbar_highlight('x11'))
                 a(href=PREFIX + "doc/x11.html") X11
               li
@@ -330,6 +354,16 @@ html.no-js(lang="en")
                 a(href=PREFIX + "doc/software-r.html") R Statistics
               li(class=subnavbar_highlight('software-julia'))
                 a(href=PREFIX + "doc/software-julia.html") Julia
+
+        if navbar_active == 'policies'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.policies
+              li(class=subnavbar_highlight('copyright'))
+                a(href=PREFIX + "policies/copyright.html") Copyright
+              li(class=subnavbar_highlight('privacy'))
+                a(href=PREFIX + "policies/privacy.html") Privacy
+              li(class=subnavbar_highlight('terms'))
+                a(href=PREFIX + "policies/terms.html") Terms
 
     block content
 

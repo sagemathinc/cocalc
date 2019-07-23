@@ -110,6 +110,7 @@ describe("tests exporting a file with many cells -- ", () => {
   });
   it("exports and confirms order is right", () => {
     const ipynb = store.get_ipynb();
+    if (ipynb == null) throw Error("must be defined");
     const inputs = ipynb.cells.map(cell => cell.source[0]);
     const cell_list = store.get("cell_list");
     expect(inputs).to.deep.equal(cell_list != null && cell_list.toJS());
@@ -134,7 +135,9 @@ describe("tests simple use of more_output ", () => {
     actions.set_cell_output(id, { 0: { more_output: true } });
   });
   it("tests that export removes and replaces by error", () => {
-    expect(store.get_ipynb().cells[0].outputs).to.deep.equal([
+    const ipynb = store.get_ipynb();
+    if (ipynb == null) throw Error("must be defined");
+    expect(ipynb.cells[0].outputs).to.deep.equal([
       {
         name: "stderr",
         output_type: "stream",
@@ -149,7 +152,9 @@ describe("tests simple use of more_output ", () => {
       1: { data: { "text/plain": "2" } },
       2: { more_output: true }
     });
-    expect(store.get_ipynb().cells[0].outputs[2]).to.deep.equal({
+    const ipynb = store.get_ipynb();
+    if (ipynb == null) throw Error("must be defined");
+    expect(ipynb.cells[0].outputs[2]).to.deep.equal({
       name: "stderr",
       output_type: "stream",
       text: ["WARNING: Some output was deleted.\n"]
@@ -174,6 +179,8 @@ describe("tests exporting custom metadata -- ", () => {
     actions.setState({ metadata: { custom: { data: 389 } } });
   });
   it("exports and checks it is there", () => {
-    expect(store.get_ipynb().metadata.custom).to.deep.equal({ data: 389 });
+    const ipynb = store.get_ipynb();
+    if (ipynb == null) throw Error("must be defined");
+    expect(ipynb.metadata.custom).to.deep.equal({ data: 389 });
   });
 });

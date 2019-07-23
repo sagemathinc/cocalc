@@ -469,7 +469,12 @@ class StudentProjectUpgrades extends Component<
         <hr />
         <h3>Admin Upgrade</h3>
         Enter a Javascript-parseable object and hit enter (see the Javascript
-        console for feedback):
+        console for feedback). For example:
+        <pre>
+          {
+            '{"network":1,"member_host":1,"disk_quota":3000,"cores":1,"cpu_shares":0,"memory_request":0,"mintime":43200,"member_host":1,"memory":1500}'
+          }
+        </pre>
         <form onSubmit={this.save_admin_upgrade}>
           <FormGroup>
             <FormControl

@@ -945,7 +945,7 @@ schema.project_log = {
 
   user_query: {
     get: {
-      pg_where: ["time >= NOW() - interval '30 days'", "projects"],
+      pg_where: ["time >= NOW() - interval '2 months'", "projects"],
       pg_changefeed: "projects",
       options: [{ order_by: "-time" }, { limit: 300 }],
       throttle_changes: 2000,
@@ -1105,7 +1105,7 @@ schema.projects = {
     storage_ready: {
       type: "boolean",
       desc:
-        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true."
+        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices that run is true."
     },
     disk_size: {
       type: "integer",
@@ -1151,7 +1151,7 @@ schema.projects = {
   user_query: {
     get: {
       // if you change the interval, change the text in projects.cjsx
-      pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '2 months'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1353,6 +1353,10 @@ schema.public_paths = {
       type: "boolean",
       desc: "if true then unlisted, so does not appear in /share listing page."
     },
+    license: {
+      type: "string",
+      desc: "The license that the content of the share is made available under."
+    },
     created: {
       type: "timestamp",
       desc: "when this path was created"
@@ -1388,6 +1392,11 @@ schema.public_paths = {
       type: "map",
       desc:
         "Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)"
+    },
+    token: {
+      type: "string",
+      desc:
+        "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares."
     }
   },
 
@@ -1408,6 +1417,7 @@ schema.public_paths = {
         description: null,
         disabled: null, // if true then disabled
         unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+        license: null,
         last_edited: null,
         created: null,
         last_saved: null,
@@ -1424,6 +1434,7 @@ schema.public_paths = {
         description: true,
         disabled: true,
         unlisted: true,
+        license: true,
         last_edited: true,
         created: true
       },
@@ -1857,6 +1868,36 @@ schema.mentions = {
   }
 };
 
+// Tracking web-analytics
+// this records data about users hitting cocalc and cocalc-related websites
+// this table is 100% back-end only
+schema.analytics = {
+  primary_key: ["token"],
+  pg_indexes: ["token", "data_time"],
+  durability: "soft",
+  fields: {
+    token: {
+      type: "uuid"
+    },
+    data: {
+      type: "map",
+      desc: "referrer, landing page, utm, etc."
+    },
+    data_time: {
+      type: "timestamp",
+      desc: "when the data field was set"
+    },
+    account_id: {
+      type: "uuid",
+      desc: "set only once, when the user (eventually) signs in"
+    },
+    account_id_time: {
+      type: "timestamp",
+      desc: "when the account id was set"
+    }
+  }
+};
+
 // what software environments there are available
 schema.compute_images = {
   primary_key: ["id"],
@@ -1921,12 +1962,6 @@ schema.compute_images = {
 //  time: a timestamp
 //  key: 'sign_up_how_find_cocalc'
 //  value: 'via a google search'
-//
-// We could also have:
-//  account_id: 'some uuid'
-//  time: a timestamp
-//  key: 'utm'
-//  value: 'a utm referrer code'
 //
 // Or if user got to cocalc via a chat mention link:
 //

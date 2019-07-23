@@ -41,6 +41,8 @@ markdown = require('./markdown')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+{fromPairs} = require('lodash')
+ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
 
 { reuseInFlight } = require("async-await-utils/hof")
 
@@ -251,6 +253,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             project_id      : required  # string  id of the project to open
             target          : undefined # string  The file path to open
+            anchor          : undefined # string  if given, an anchor tag in the editor that is opened.
             switch_to       : true      # bool    Whether or not to foreground it
             ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
             change_history  : true      # bool    Whether or not to alter browser history
@@ -268,7 +271,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').set_active_tab(opts.project_id, opts.change_history) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history, opts.anchor)
         if opts.restore_session
             redux.getActions('page').restore_session(opts.project_id)
         # initialize project
@@ -290,7 +293,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').save_session()
 
     # should not be in projects...?
-    load_target: (target, switch_to, ignore_kiosk=false, change_history=true) =>
+    load_target: (target, switch_to, ignore_kiosk=false, change_history=true, anchor=undefined) =>
         #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
@@ -302,6 +305,7 @@ class ProjectsActions extends Actions
             @open_project
                 project_id     : project_id
                 target         : t
+                anchor         : anchor
                 switch_to      : switch_to
                 ignore_kiosk   : ignore_kiosk
                 change_history : change_history
@@ -778,15 +782,11 @@ class ProjectsStore extends Store
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
-        upgrades = {}
+        # clone zeroed quota upgrades, to make sure they're always defined
+        upgrades = Object.assign({}, ZERO_QUOTAS)
         for account_id, info of users
             for prop, val of info.upgrades ? {}
                 upgrades[prop] = (upgrades[prop] ? 0) + val
-
-        # Ensure every upgrade is at least set, possibly to the default.
-        for prop, val of require('smc-util/schema').DEFAULT_QUOTAS
-            if not upgrades[prop]?
-                upgrades[prop] = val
 
         return upgrades
 
@@ -1569,7 +1569,7 @@ LoadAllProjects = rclass
             bsStyle='info'
             bsSize='large'>
             {@render_loading()}
-            Load projects older than 3 weeks...
+            Show projects not used in the last few months...
         </Button>
 
     render: ->

@@ -55,6 +55,8 @@ project_file = require('./project_file')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
 
+{editor_id} = require('./project/utils')
+
 file_editors = require('./file-editors')
 
 misc = require('misc')
@@ -288,6 +290,7 @@ ProjectContentViewer = rclass
             <div
                 ref       = {'editor_inner_container'}
                 className = {'smc-vfill'}
+                id        = {editor_id(@props.project_id, path)}
                 style     = {height:'100%', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}
@@ -392,9 +395,10 @@ ProjectContentViewer = rclass
                     @render_editor_tab()
 
     render: ->
-        <div
-            className = {if not @props.is_visible then "hide"}
-            style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
+        style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
+        if !@props.is_visible
+            style.display = "none"
+        <div style={style}>
             {@render_tab_content()}
         </div>
 

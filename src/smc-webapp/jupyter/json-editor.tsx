@@ -4,7 +4,7 @@ A JSON Editor
 This is just built using codemirror for now.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 const json_stable = require("json-stable-stringify");
 import { make_patch, apply_patch } from "smc-util/sync/editor/generic/util";
 import * as immutable from "immutable";

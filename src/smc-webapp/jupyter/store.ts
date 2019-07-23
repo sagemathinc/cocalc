@@ -4,18 +4,13 @@ The Store
 
 declare const localStorage: any;
 
-const misc = require("smc-util/misc");
+import { from_json, cmp, startswith } from "../../smc-util/misc";
 import { Store } from "../app-framework";
-import {
-  Set,
-  Map as ImmutableMap,
-  List as ImmutableList,
-  OrderedMap,
-  fromJS as immutableFromJS
-} from "immutable";
-const { export_to_ipynb } = require("./export-to-ipynb");
-const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
+import { Set, Map, List, OrderedMap, fromJS } from "immutable";
+import { export_to_ipynb } from "./export-to-ipynb";
+import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
+import { KernelInfo } from "./types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -26,13 +21,13 @@ export type show_kernel_selector_reasons = "bad kernel" | "user request";
 export interface JupyterStoreState {
   nbconvert_dialog: any;
   cell_toolbar: string;
-  edit_attachments: any;
+  edit_attachments?: string;
   edit_cell_metadata: any;
   raw_ipynb: any;
-  backend_kernel_info: any;
+  backend_kernel_info: KernelInfo;
   cell_list: any;
   cells: any;
-  cur_id: any;
+  cur_id: string;
   error?: string;
   fatal: string;
   has_unsaved_changes?: boolean;
@@ -41,10 +36,9 @@ export interface JupyterStoreState {
   kernels?: Kernels;
   kernel_info?: any;
   max_output_length: number;
-  metadata: any;
+  metadata: any; // documented at https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
   md_edit_ids: Set<string>;
   path: string;
-  is_focused: boolean;
   directory: string;
   more_output: any;
   read_only: boolean;
@@ -64,14 +58,14 @@ export interface JupyterStoreState {
   find_and_replace: any;
   keyboard_shortcuts: any;
   confirm_dialog: any;
-  insert_image: any;
+  insert_image: string; // id of a markdown cell
   scroll: any;
   check_select_kernel_init: boolean;
   show_kernel_selector: boolean;
   show_kernel_selector_reason?: show_kernel_selector_reasons;
-  kernel_selection?: ImmutableMap<string, string>;
-  kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
-  kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
+  kernel_selection?: Map<string, string>;
+  kernels_by_name?: OrderedMap<string, Map<string, string>>;
+  kernels_by_language?: OrderedMap<string, List<string>>;
   default_kernel?: string;
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
@@ -88,9 +82,17 @@ export const initial_jupyter_store_state: {
 export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
   private _more_output: any;
-  private store: any;
+
+  private deprecated(f: string, ...args): void {
+    const s = "DEPRECATED JupyterStore." + f;
+    console.warn(s, ...args);
+  }
+
   // Return map from selected cell ids to true, in no particular order
   get_selected_cell_ids = () => {
+    this.deprecated("get_selected_cell_ids");
+    return {};
+
     const selected = {};
     const cur_id = this.get("cur_id");
     if (cur_id != null) {
@@ -102,73 +104,59 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return selected;
   };
 
-  // Return sorted javascript array of the selected cell ids
-  get_selected_cell_ids_list = () => {
-    // iterate over *ordered* list so we run the selected cells in order
-    // TODO: Could do in O(1) instead of O(n) by sorting only selected first by position...; maybe use algorithm based on size...
-    const selected = this.get_selected_cell_ids();
-    const v: any[] = [];
-    const cell_list = this.get("cell_list");
-    if (cell_list == null) {
-      // special case -- no cells
-      return v;
-    }
-    cell_list.forEach(id => {
-      if (selected[id]) {
-        v.push(id);
-      }
-    });
-    return v;
+  // immutable List
+  public get_cell_list = (): List<string> => {
+    return this.get("cell_list", List([]));
   };
 
-  get_cell_index = (id: any) => {
-    const cell_list = this.get("cell_list");
-    if (cell_list == null) {
-      // ordered list of cell id's not known
-      return;
+  // string[]
+  public get_cell_ids_list(): string[] {
+    return this.get_cell_list().toJS();
+  }
+
+  public get_selected_cell_ids_list = () => {
+    this.deprecated("get_selected_cell_ids_list");
+    return [];
+  };
+
+  public get_cell_type(id: string): "markdown" | "code" | "raw" {
+    // NOTE: default cell_type is "code", which is common, to save space.
+    const type = this.getIn(["cells", id, "cell_type"], "code");
+    if (type != "markdown" && type != "code" && type != "raw") {
+      throw Error(`invalid cell type ${type} for cell ${id}`);
     }
-    if (id == null) {
-      return;
+    return type;
+  }
+
+  public get_cell_index(id: string): number {
+    const cell_list = this.get("cell_list");
+    if (cell_list == null) {  // truly fatal
+      throw Error("ordered list of cell id's not known");
     }
     const i = cell_list.indexOf(id);
     if (i === -1) {
-      return;
+      throw Error(`unknown cell id ${id}`);
     }
     return i;
-  };
+  }
 
-  get_cur_cell_index = () => {
-    return this.get_cell_index(this.get("cur_id"));
-  };
-
-  // Get the id of the cell that is delta positions from the
-  // cursor or from cell with given id (second input).
-  // Returns undefined if no currently selected cell, or if delta
-  // positions moves out of the notebook (so there is no such cell).
-  get_cell_id = (delta = 0, id?: any) => {
-    let i;
-    if (id != null) {
-      i = this.get_cell_index(id);
-    } else {
-      i = this.get_cur_cell_index();
-    }
-    if (i == null) {
-      return;
-    }
+  // Get the id of the cell that is delta positions from
+  // cell with given id (second input).
+  // Returns undefined if delta positions moves out of
+  // the notebook (so there is no such cell); in particular,
+  // we do NOT wrap around.
+  public get_cell_id(delta = 0, id: string): string | undefined {
+    let i: number = this.get_cell_index(id);
     i += delta;
     const cell_list = this.get("cell_list");
     if (cell_list == null || i < 0 || i >= cell_list.size) {
       return; // .get negative for List in immutable wraps around rather than undefined (like Python)
     }
     return cell_list.get(i);
-  };
-
-  get_scroll_state = () => {
-    return this.get_local_storage("scroll");
-  };
+  }
 
   set_global_clipboard = (clipboard: any) => {
-    return (global_clipboard = clipboard);
+    global_clipboard = clipboard;
   };
 
   get_global_clipboard = () => {
@@ -181,7 +169,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
         ? localStorage[this.name]
         : undefined;
     if (value != null) {
-      const x = misc.from_json(value);
+      const x = from_json(value);
       if (x != null) {
         return x[key];
       }
@@ -236,19 +224,23 @@ export class JupyterStore extends Store<JupyterStoreState> {
     });
   };
 
-  get_language_info = () => {
-    const a = this.getIn(["backend_kernel_info", "language_info"]);
-    const b = this.getIn(["metadata", "language_info"]);
-    return a != null ? a : b;
-  };
+  public get_language_info(): object | undefined {
+    for (let key of ["backend_kernel_info", "metadata"]) {
+      const language_info = this.unsafe_getIn([key, "language_info"]);
+      if (language_info != null) return language_info;
+    }
+  }
 
   get_cm_mode = () => {
-    let metadata = this.get("backend_kernel_info");
-    if (metadata == null) {
-      metadata = this.get("metadata");
+    let metadata_immutable = this.get("backend_kernel_info");
+    if (metadata_immutable == null) {
+      metadata_immutable = this.get("metadata");
     }
-    if (metadata != null) {
-      metadata = metadata.toJS();
+    let metadata: { language_info?: any; kernelspec?: any } | undefined;
+    if (metadata_immutable != null) {
+      metadata = metadata_immutable.toJS();
+    } else {
+      metadata = undefined;
     }
     let mode: any;
     if (metadata != null) {
@@ -347,7 +339,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
    *
    * Return dict of language <-> kernel_name
    */
-  get_kernel_selection = (kernels: Kernels): ImmutableMap<string, string> => {
+  get_kernel_selection = (kernels: Kernels): Map<string, string> => {
     const data: any = {};
     kernels
       .filter(entry => entry.get("language") != null)
@@ -357,7 +349,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
           .sort((a, b) => {
             const va = -a.getIn(["metadata", "cocalc", "priority"], 0);
             const vb = -b.getIn(["metadata", "cocalc", "priority"], 0);
-            return misc.cmp(va, vb);
+            return cmp(va, vb);
           })
           .first();
         if (top == null || lang == null) return true;
@@ -366,14 +358,14 @@ export class JupyterStore extends Store<JupyterStoreState> {
         data[lang] = name;
       });
 
-    return ImmutableMap<string, string>(data);
+    return Map<string, string>(data);
   };
 
   get_kernels_by_name_or_language = (
     kernels: Kernels
   ): [
-    OrderedMap<string, ImmutableMap<string, string>>,
-    OrderedMap<string, ImmutableList<string>>
+    OrderedMap<string, Map<string, string>>,
+    OrderedMap<string, List<string>>
   ] => {
     let data_name: any = {};
     let data_lang: any = {};
@@ -392,19 +384,19 @@ export class JupyterStore extends Store<JupyterStoreState> {
         add_lang(lang, entry);
       }
     });
-    const by_name = OrderedMap<string, ImmutableMap<string, string>>(
-      data_name
-    ).sortBy((v, k) => {
-      return v.get("display_name", v.get("name", k)).toLowerCase();
-    });
+    const by_name = OrderedMap<string, Map<string, string>>(data_name).sortBy(
+      (v, k) => {
+        return v.get("display_name", v.get("name", k)).toLowerCase();
+      }
+    );
     // data_lang, we're only interested in the kernel names, not the entry itself
-    data_lang = immutableFromJS(data_lang).map((v, k) => {
+    data_lang = fromJS(data_lang).map((v, k) => {
       v = v
         .sortBy(v => v.get("display_name", v.get("name", k)).toLowerCase())
         .map(v => v.get("name"));
       return v;
     });
-    const by_lang = OrderedMap<string, ImmutableList<string>>(data_lang).sortBy(
+    const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy(
       (_v, k) => k.toLowerCase()
     );
     return [by_name, by_lang];
@@ -416,48 +408,72 @@ export class JupyterStore extends Store<JupyterStoreState> {
       .get_raw_link(path);
   };
 
-  is_cell_editable = (id: any) => {
-    return this.get_cell_metadata_flag(id, "editable");
-  };
+  // NOTE: defaults for these happen to be true if not given (due to bad
+  // choice of name by some extension author).
+  public is_cell_editable(id: string): boolean {
+    return this.get_cell_metadata_flag(id, "editable", true);
+  }
 
-  is_cell_deletable = (id: any) => {
-    return this.get_cell_metadata_flag(id, "deletable");
-  };
-
-  check_edit_protection = (id: any, actions: any) => {
+  public is_cell_deletable(id: string): boolean {
     if (!this.is_cell_editable(id)) {
-      actions.show_edit_protection_error();
-      return true;
-    } else {
+      // I've decided that if a cell is not editable, then it is
+      // automatically not deletable.  Relevant facts:
+      //    1. It makes sense to me.
+      //    2. This is what Jupyter classic does.
+      //    3. This is NOT what JupyterLab does.
+      //    4. The spec doesn't mention deletable: https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
+      // See my rant here: https://github.com/jupyter/notebook/issues/3700
       return false;
     }
-  };
+    return this.get_cell_metadata_flag(id, "deletable", true);
+  }
 
-  check_delete_protection = (id: any, actions: any) => {
-    if (!this.store.is_cell_deletable(id)) {
-      actions.show_delete_protection_error();
-      return true;
-    } else {
-      return false;
-    }
-  };
-
-  get_cell_metadata_flag = (id: any, key: any) => {
-    // default is true
-    return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
-  };
+  public get_cell_metadata_flag(
+    id: string,
+    key: string,
+    default_value: boolean = false
+  ): boolean {
+    return this.unsafe_getIn(["cells", id, "metadata", key], default_value);
+  }
 
   // canonicalize the language of the kernel
-  get_kernel_language = (): string | undefined => {
+  public get_kernel_language(): string | undefined {
     let lang;
-    // special case: sage is language "python", but the assistant needs "sage"
-    if (misc.startswith(this.get("kernel"), "sage")) {
+    // special case: sage is language "python", but the snippet dialog needs "sage"
+    if (startswith(this.get("kernel"), "sage")) {
       lang = "sage";
     } else {
       lang = this.getIn(["kernel_info", "language"]);
     }
     return lang;
-  };
+  }
+
+  // heuristic **attempt** to get what would be the filename
+  // extension for the kernel language.  Probably not very good.
+  // It does work for most of the kernels we have installed on June 2019.
+  public get_kernel_ext(): string | undefined {
+    let lang = this.get_kernel_language();
+    if (!lang) return undefined;
+    lang = lang.toLowerCase();
+    switch (lang) {
+      case "python":
+      case "python3":
+        return "py";
+      case "r":
+        return "r";
+      case "julia":
+        return "jl";
+      case "octave":
+        return "m";
+      case "c++":
+      case "c++17":
+        return "cpp";
+      case "bash":
+        return "sh";
+      case "gp":
+        return "gp";
+    }
+  }
 
   jupyter_kernel_key = (): string => {
     const project_id = this.get("project_id");

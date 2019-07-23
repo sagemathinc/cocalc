@@ -96,29 +96,12 @@ describe("test cursors positions (a minimal not very good test) -- ", () => {
       })
     );
     // hack so cursor saving enabled (add two fake users...)
-    actions.syncdb._doc._users.push(actions.syncdb._doc._users[0]);
-    actions.syncdb._doc._users.push(actions.syncdb._doc._users[0]);
+    const doc = (actions.syncdb as any).doc;  // doc is private
+    doc._users.push(doc._users[0]);
+    doc._users.push(doc._users[0]);
     actions.set_cursor_locs([
       { id: list[0], x: 0, y: 0 },
       { id: list[0], x: 2, y: 1 }
     ]);
   });
-});
-
-describe("test saving scroll position -- ", () => {
-  let editor: TestEditor;
-  let store: JupyterStore;
-  let actions: JupyterActions;
-  before(async () => {
-    editor = new TestEditor("ipynb");
-    await editor.wait_until_loaded();
-    store = editor.store;
-    actions = editor.actions;
-  });
-  after(() => {
-    editor.delete();
-  });
-  it("sets the scroll pos", () => actions.set_scroll_state(389.31415));
-  return it("gets the scroll pos", () =>
-    expect(store.get_scroll_state()).to.equal(389.31415));
 });

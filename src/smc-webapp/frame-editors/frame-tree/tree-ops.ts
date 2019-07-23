@@ -263,13 +263,20 @@ export function delete_node(
 function split_the_leaf(
   leaf: ImmutableFrameTree,
   direction: FrameDirection,
-  type?: string
+  type?: string,
+  extra?: object
 ) {
   // split this leaf node
   // 1. Make another leaf that is identical, except with a new id.
   let leaf2 = leaf.set("id", generate_id());
   if (type != null) {
     leaf2 = leaf2.set("type", type);
+  }
+  // Also, set extra data if given.
+  if (extra != null) {
+    for (let key in extra) {
+      leaf2 = leaf2.set(key, fromJS(extra[key]));
+    }
   }
   // 2. Make node with these two leafs
   let node = fromJS({ direction, id: generate_id(), type: "node" });
@@ -282,7 +289,8 @@ export function split_leaf(
   tree: ImmutableFrameTree,
   id: string,
   direction: FrameDirection,
-  type?: string
+  type?: string,
+  extra?: object
 ): ImmutableFrameTree {
   let done = false;
   var process = function(node) {
@@ -291,7 +299,7 @@ export function split_leaf(
     }
     if (node.get("id") === id) {
       done = true;
-      return split_the_leaf(node, direction, type);
+      return split_the_leaf(node, direction, type, extra);
     }
     for (let x of ["first", "second"]) {
       // descend the tree

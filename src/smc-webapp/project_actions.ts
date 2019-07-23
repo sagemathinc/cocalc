@@ -6,6 +6,8 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
+import { client_db } from "smc-util/schema";
+
 const { reuseInFlight } = require("async-await-utils/hof");
 import {
   ConfigurationAspect,
@@ -22,8 +24,10 @@ import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 
-import { NewFilenames } from "smc-webapp/project/utils";
+import { editor_id, NewFilenames } from "smc-webapp/project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
+
+import { transform_get_url } from "./project/transform-get-url";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -89,6 +93,7 @@ export const QUERIES = {
       disabled: null,
       unlisted: null,
       created: null,
+      license: null,
       last_edited: null,
       last_saved: null,
       counter: null
@@ -155,6 +160,10 @@ export const FILE_ACTIONS = {
     name: "Download",
     icon: "cloud-download",
     allows_multiple_files: true
+  },
+  upload: {
+    name: "Upload",
+    icon: "upload"
   }
 };
 
@@ -254,7 +263,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.create_file = this.create_file.bind(this);
     this.new_file_from_web = this.new_file_from_web.bind(this);
     this.set_public_path = this.set_public_path.bind(this);
-    this.disable_public_path = this.disable_public_path.bind(this);
     this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
       this
     );
@@ -318,7 +326,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  get_store(): ProjectStore | undefined {
+  public get_store(): ProjectStore | undefined {
     if (this.redux.hasStore(this.name)) {
       return this.redux.getStore<ProjectStoreState, ProjectStore>(this.name);
     } else {
@@ -903,6 +911,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
     change_history?: boolean;
+    // anchor -- if given, try to jump to scroll to this id in the editor, after it
+    // renders and is put in the foreground (ignored if foreground not true)
+    anchor?: string;
   }): Promise<void> {
     opts = defaults(opts, {
       path: required,
@@ -912,7 +923,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       chat_width: undefined,
       ignore_kiosk: false,
       new_browser_window: false,
-      change_history: true
+      change_history: true,
+      anchor: undefined
     });
     opts.path = normalize(opts.path);
     const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
@@ -933,10 +945,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     let store = this.get_store();
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
-      return;
-    }
+    if (store == undefined) return;
 
     const can_open_file = await store.can_open_file_ext(ext, this);
     if (!can_open_file) {
@@ -955,10 +964,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.new_browser_window) {
       // options other than path are ignored in this case.
+      // TODO: do not ignore anchor option.
       this.open_in_new_browser_window(opts.path);
       return;
     }
 
+    store = this.get_store();
+    if (store == undefined) return;
     let open_files = store.get("open_files");
     if (!open_files.has(opts.path)) {
       // Make the tab appear ASAP
@@ -978,11 +990,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
+    if (this.get_store() == null) return;
 
     // Next get the group.
     let group: string;
     try {
       group = await this.get_my_group();
+      if (this.get_store() == null) return;
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
@@ -1009,10 +1023,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     store = this.get_store(); // because async stuff happened above.
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
-      return;
-    }
+    if (store == undefined) return;
 
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes
@@ -1061,9 +1072,43 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.foreground) {
       this.foreground_project(opts.change_history);
-      this.set_active_tab(misc.path_to_tab(opts.path), {
+      const tab = misc.path_to_tab(opts.path);
+      this.set_active_tab(tab, {
         change_history: opts.change_history
       });
+      if (opts.anchor) {
+        // Scroll the *visibile* one into view.  NOTE: it's possible
+        // that several notebooks (say) are all open in background tabs
+        // and all have the same anchor tag in them; we only want to
+        // try to scroll the visible one or ones.
+        // We also have no reliable way to know if the editor has
+        // fully loaded yet, so we just try until the tag appears
+        // up to 15s.  Someday, we will have to make it so editors
+        // somehow clearly indicate when they are done loading, and
+        // we can use that to do this right.
+        const start: number = new Date().valueOf();
+        const id = editor_id(this.project_id, opts.path);
+        while (new Date().valueOf() - start <= 15000) {
+          await delay(100);
+          let store = this.get_store();
+          if (store == undefined) break;
+          if (tab != store.get("active_project_tab")) break;
+          let e = $("#" + id).find("#" + opts.anchor);
+          if (e.length > 0) {
+            // We iterate through all of them in this visible editor.
+            // Because of easy editor splitting we could easily have multiple
+            // copies of the same id, and we move them all into view.
+            // Change this to break after the first one if this annoys people;
+            // it's not clear what the "right" design is.
+            for (let x of e) {
+              x.scrollIntoView();
+            }
+            break;
+          } else {
+            await delay(100);
+          }
+        }
+      }
     }
   }
 
@@ -1428,7 +1473,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (typeof path !== "string") {
       (window as any).cpath_args = arguments;
       throw Error(
-        "Current path should be a string. Revieved arguments are available in window.cpath_args"
+        "Current path should be a string. Received arguments are available in window.cpath_args"
       );
     }
     // Set the current path for this project. path is either a string or array of segments.
@@ -1869,9 +1914,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: undefined
     }); // cb(true or false, depending on error)
 
-    const { command, args } = misc.transform_get_url(opts.url);
+    const { command, args } = transform_get_url(opts.url);
 
-    return require("./webapp_client").webapp_client.exec({
+    require("./webapp_client").webapp_client.exec({
       project_id: this.project_id,
       command,
       timeout: opts.timeout,
@@ -1880,12 +1925,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: (err, result) => {
         if (opts.alert) {
           if (err) {
-            alert_message({ type: "error", message: err });
+            alert_message({ type: "error", message: err, timeout: 15 });
           } else if (result.event === "error") {
-            alert_message({ type: "error", message: result.error });
+            alert_message({
+              type: "error",
+              message: result.error,
+              timeout: 15
+            });
           }
         }
-        return typeof opts.cb === "function"
+        typeof opts.cb === "function"
           ? opts.cb(err || result.event === "error")
           : undefined;
       }
@@ -2741,7 +2790,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
     });
-    return this.get_from_web({
+    this.get_from_web({
       url,
       dest: current_path,
       timeout: FROM_WEB_TIMEOUT_S,
@@ -2749,7 +2798,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: err => {
         this.fetch_directory_listing();
         this.set_activity({ id, stop: "" });
-        return typeof cb === "function" ? cb(err) : undefined;
+        typeof cb === "function" ? cb(err) : undefined;
       }
     });
   }
@@ -2761,49 +2810,44 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     path,
     opts: {
       description?: string;
-      unlisted?: string;
-    } = {}
+      unlisted?: boolean;
+      license?: string;
+      disabled?: boolean;
+    }
   ) {
     let store = this.get_store();
     if (!store) {
       return;
     }
-    let cur_obj: any = {};
-    // only set created if this obj is new; have to just linearly search through paths right now...
-    if (store.get("public_paths") != null) {
-      store.get("public_paths").forEach(function(v) {
-        if (v.get("path") === path) {
-          cur_obj = v.toJS();
-          return false; // found it, exit forEach
-        } else {
-          return true; // next element
-        }
+
+    const project_id = this.project_id;
+    const id = client_db.sha1(project_id, path);
+
+    const table = this.redux.getProjectTable(project_id, "public_paths");
+    let obj: undefined | immutable.Map<string, any> = table._table.get(id);
+
+    const now = misc.server_time();
+    if (obj == null) {
+      obj = immutable.fromJS({
+        project_id,
+        path,
+        created: now
       });
     }
-    const now = misc.server_time();
-    // unlisted and description are *optional*: fallback to already saved values if available
-    const unlisted = opts.unlisted != null ? opts.unlisted : cur_obj.unlisted;
-    const description =
-      opts.description != null ? opts.description : cur_obj.description;
-    const obj = {
-      project_id: this.project_id,
-      path,
-      description: description != null ? description : "",
-      disabled: false,
-      unlisted: unlisted != null ? unlisted : false,
-      last_edited: now,
-      created: cur_obj.created || now
-    };
-    this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
-  }
+    if (obj == null) return; // make typescript happy
 
-  disable_public_path(path) {
-    this.redux.getProjectTable(this.project_id, "public_paths").set({
-      project_id: this.project_id,
-      path,
-      disabled: true,
-      last_edited: misc.server_time()
-    });
+    // not allowed to write these back
+    obj = obj.delete("last_saved");
+    obj = obj.delete("counter");
+
+    obj = obj.set("last_edited", now);
+
+    for (let k in opts) {
+      if (opts[k] != null) {
+        obj = obj.set(k, opts[k]);
+      }
+    }
+    table.set(obj);
   }
 
   /*
@@ -3003,7 +3047,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     target,
     foreground = true,
     ignore_kiosk = false,
-    change_history = true
+    change_history = true,
+    anchor: string = ""
   ): Promise<void> {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
@@ -3055,7 +3100,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             foreground,
             foreground_project: foreground,
             ignore_kiosk,
-            change_history
+            change_history,
+            anchor
           });
         }
         break;
@@ -3187,37 +3233,38 @@ function get_directory_listing(opts) {
 
   let listing: any;
   let listing_err: any;
-  const f = cb =>
-    //console.log 'get_directory_listing.f ', opts.path
+  const f = cb => {
+    // console.log("get_directory_listing.f ", opts.path);
     method({
       project_id: opts.project_id,
       path: opts.path,
       hidden: opts.hidden,
       timeout,
       cb(err, x) {
-        //console.log("f ", err, x)
         if (err) {
-          if (timeout < 5) {
-            timeout *= 1.3;
-          }
-          return cb(err);
-        } else {
-          if (x != null && x.error) {
-            if (x.error.code === "ENOENT") {
+          if (err.message != null) {
+            if (err.message.indexOf("ENOENT") != -1) {
               listing_err = "no_dir";
-            } else if (x.error.code === "ENOTDIR") {
+            } else if (err.message.indexOf("ENOTDIR") != -1) {
               listing_err = "not_a_dir";
             } else {
-              listing_err = x.error;
+              listing_err = err.message;
             }
-            return cb();
+            cb();
           } else {
-            listing = x;
-            return cb();
+            // I don't think this happens anymore...
+            if (timeout < 5) {
+              timeout *= 1.3;
+            }
+            cb(err);
           }
+        } else {
+          listing = x;
+          cb();
         }
       }
     });
+  };
 
   return misc.retry_until_success({
     f,

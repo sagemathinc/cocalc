@@ -2,41 +2,54 @@
 React component that describes a single cell
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
-import { Map as ImmutableMap } from "immutable";
+import { React, Component, Rendered } from "../app-framework";
+import { Map } from "immutable";
+
 const misc_page = require("../misc_page"); // TODO: import type
-const { COLORS } = require("smc-util/theme"); // TODO: import type
-const misc = require("smc-util/misc"); // TODO: import type
-const { Icon, Tip } = require("../r_misc"); // TODO: import type
-const { CellInput } = require("./cell-input"); // TODO: import type
-const { CellOutput } = require("./cell-output"); // TODO: import type
+
+import { COLORS } from "smc-util/theme";
+import { INPUT_PROMPT_COLOR } from "./prompt";
+import { Icon } from "../r_misc/icon";
+import { Tip } from "../r_misc/tip";
+import { CellInput } from "./cell-input";
+import { CellOutput } from "./cell-output";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+
+import { merge } from "smc-util/misc2";
 
 interface CellProps {
-  actions?: any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
-  cm_options: any;
-  cell: ImmutableMap<any, any>; // TODO: types
+  cm_options: Map<string, any>;
+  cell: Map<string, any>; // TODO: types
   is_current?: boolean;
   is_selected?: boolean;
   is_markdown_edit?: boolean;
   mode: "edit" | "escape";
-  font_size?: number;
+  font_size: number;
   project_id?: string;
   directory?: string;
-  complete?: ImmutableMap<any, any>; // TODO: types
+  complete?: Map<string, any>; // TODO: types
   is_focused?: boolean;
-  more_output?: ImmutableMap<any, any>; // TODO: types
+  more_output?: Map<string, any>; // TODO: types
   cell_toolbar?: string;
   trust?: boolean;
   editable?: boolean;
   deletable?: boolean;
+  nbgrader?: Map<string, any>;
+  hook_offset?: number;
 }
 
 export class Cell extends Component<CellProps> {
-  shouldComponentUpdate(nextProps) {
+  public shouldComponentUpdate(nextProps: CellProps): boolean {
     // note: we assume project_id and directory don't change
-    return (
+    return !!(
       nextProps.id !== this.props.id ||
       nextProps.cm_options !== this.props.cm_options ||
       nextProps.cell !== this.props.cell ||
@@ -51,21 +64,23 @@ export class Cell extends Component<CellProps> {
       nextProps.trust !== this.props.trust ||
       nextProps.editable !== this.props.editable ||
       nextProps.deletable !== this.props.deletable ||
+      nextProps.nbgrader !== this.props.nbgrader ||
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
   } // only worry about complete when editing this cell
 
-  render_cell_input(cell: any) {
+  private render_cell_input(cell: Map<string, any>): Rendered {
     return (
       <CellInput
         key="in"
         cell={cell}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         cm_options={this.props.cm_options}
-        is_markdown_edit={this.props.is_markdown_edit}
-        is_focused={this.props.is_current && this.props.mode === "edit"}
-        is_current={this.props.is_current}
+        is_markdown_edit={!!this.props.is_markdown_edit}
+        is_focused={!!(this.props.is_current && this.props.mode === "edit")}
+        is_current={!!this.props.is_current}
         id={this.props.id}
         font_size={this.props.font_size}
         project_id={this.props.project_id}
@@ -78,12 +93,13 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  render_cell_output(cell: any) {
+  private render_cell_output(cell: Map<string, any>): Rendered {
     return (
       <CellOutput
         key="out"
         cell={cell}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         name={this.props.name}
         id={this.props.id}
         project_id={this.props.project_id}
@@ -94,26 +110,33 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  click_on_cell = (event: any) => {
-    if (this.props.actions == null) {
+  private click_on_cell = (event: any): void => {
+    if (this.props.frame_actions == null) {
       return;
     }
     if (event.shiftKey && !this.props.is_current) {
       misc_page.clear_selection();
-      return this.props.actions.select_cell_range(this.props.id);
+      this.props.frame_actions.select_cell_range(this.props.id);
+      return;
     }
-    this.props.actions.set_cur_id(this.props.id);
-    this.props.actions.unselect_all_cells();
+    this.props.frame_actions.set_cur_id(this.props.id);
+    this.props.frame_actions.unselect_all_cells();
   };
 
-  render_hook() {
-    if (this.props.is_current && this.props.actions != null) {
-      return <Hook name={this.props.actions.name} />;
+  private render_hook(): Rendered {
+    if (this.props.is_current && this.props.frame_actions != null) {
+      return (
+        <Hook
+          hook_offset={this.props.hook_offset}
+          mode={this.props.mode}
+          frame_id={this.props.frame_actions.frame_id}
+        />
+      );
     }
   }
 
-  double_click = (event: any) => {
-    if (this.props.actions == null) {
+  private double_click = (event: any): void => {
+    if (this.props.frame_actions == null) {
       return;
     }
     if (this.props.cell.getIn(["metadata", "editable"]) === false) {
@@ -122,59 +145,102 @@ export class Cell extends Component<CellProps> {
     if (this.props.cell.get("cell_type") !== "markdown") {
       return;
     }
-    this.props.actions.unselect_all_cells();
+    this.props.frame_actions.unselect_all_cells();
     const id = this.props.cell.get("id");
-    this.props.actions.set_md_cell_editing(id);
-    this.props.actions.set_cur_id(id);
-    this.props.actions.set_mode("edit");
-    return event.stopPropagation();
+    this.props.frame_actions.set_md_cell_editing(id);
+    this.props.frame_actions.set_cur_id(id);
+    this.props.frame_actions.set_mode("edit");
+    event.stopPropagation();
   };
 
-  render_metadata_state() {
-    const style: React.CSSProperties = {
-      position: "absolute",
-      top: "2px",
-      left: "5px",
-      color: COLORS.GRAY_L,
-      whiteSpace: "nowrap"
-    };
+  private render_deletable(): Rendered {
+    if (this.props.deletable) return;
+    return (
+      <Tip
+        title={"Protected from deletion"}
+        placement={"right"}
+        size={"small"}
+        style={{ marginRight: "5px" }}
+      >
+        <Icon name="ban" />
+      </Tip>
+    );
+  }
 
-    if (this.props.is_current || this.props.is_selected) {
-      style.color = COLORS.BS_RED;
+  private render_editable(): Rendered {
+    if (this.props.editable) return;
+    return (
+      <Tip
+        title={"Protected from modifications"}
+        placement={"right"}
+        size={"small"}
+        style={{ marginRight: "5px" }}
+      >
+        <Icon name="lock" />
+      </Tip>
+    );
+  }
+
+  private render_nbgrader(): Rendered {
+    if (this.props.nbgrader == null) return;
+    return (
+      <span>
+        <Icon name="graduation-cap" style={{ marginRight: "5px" }} />
+        <NBGraderMetadata
+          nbgrader={this.props.nbgrader}
+          start={this.props.cell.get("start")}
+          state={this.props.cell.get("state")}
+          output={this.props.cell.get("output")}
+        />
+      </span>
+    );
+  }
+
+  private render_metadata_state(): Rendered {
+    let style: React.CSSProperties;
+
+    // note -- that second part is because the official
+    // nbgrader demo has tons of cells with all the metadata
+    // empty... which *cocalc* would not produce, but
+    // evidently official tools do.
+    const no_nbgrader: boolean =
+      this.props.nbgrader == null ||
+      (!this.props.nbgrader.get("grade") &&
+        !this.props.nbgrader.get("solution") &&
+        !this.props.nbgrader.get("locked"));
+    if (no_nbgrader) {
+      // Will not need more than two tiny icons.
+      // If we add more metadata state indicators
+      // that may take a lot of space, check for them
+      // in the condition above.
+      style = {
+        position: "absolute",
+        top: "2px",
+        left: "5px",
+        whiteSpace: "nowrap",
+        color: COLORS.GRAY_L
+      };
+    } else {
+      // Need arbitrarily much horizontal space, so we
+      // get our own line.
+      style = { color: COLORS.GRAY_L, marginBottom: "5px" };
     }
 
-    const lock_style = { marginRight: "5px" };
+    if (this.props.is_current || this.props.is_selected) {
+      // style.color = COLORS.BS_RED;
+      style.color = INPUT_PROMPT_COLOR; // should be the same as the prompt; it's not an error.
+    }
 
     return (
       <div style={style}>
-        {!this.props.deletable ? (
-          <Tip
-            title={"Protected from deletion"}
-            placement={"right"}
-            size={"small"}
-            style={lock_style}
-          >
-            <Icon name="ban" />
-          </Tip>
-        ) : (
-          undefined
-        )}
-        {!this.props.editable ? (
-          <Tip
-            title={"Protected from modifications"}
-            placement={"right"}
-            size={"small"}
-          >
-            <Icon name="lock" />
-          </Tip>
-        ) : (
-          undefined
-        )}
+        {this.render_deletable()}
+        {this.render_editable()}
+        {no_nbgrader ? undefined : this.render_nbgrader()}
       </div>
     );
   }
 
-  render() {
+  public render(): Rendered {
     let color1: string, color2: string;
     if (this.props.is_current) {
       // is the current cell
@@ -216,6 +282,7 @@ export class Cell extends Component<CellProps> {
         onMouseUp={this.props.is_current ? undefined : this.click_on_cell}
         onDoubleClick={this.double_click}
         id={this.props.id}
+        cocalc-test={"jupyter-cell"}
       >
         {this.render_hook()}
         {this.render_metadata_state()}
@@ -238,38 +305,32 @@ VISIBLE_STYLE =
 const NOT_VISIBLE_STYLE: React.CSSProperties = {
   position: "absolute",
   fontSize: 0,
-  zIndex: -100
+  zIndex: -100,
+  left: 0,
+  top: 0
 };
 
-// TODO: type?
-
-interface HookReactProps {
-  name: string;
-}
-
-interface HookReduxProps {
+interface Props {
+  frame_id: string;
   hook_offset?: number;
   mode?: string;
 }
 
-class Hook0 extends Component<HookReactProps & HookReduxProps> {
-  public static reduxProps({ name }) {
-    return {
-      [name]: {
-        hook_offset: rtypes.number,
-        mode: rtypes.string
-      }
-    };
-  }
-  render() {
-    const style = misc.copy(NOT_VISIBLE_STYLE);
-    style.top = this.props.mode === "edit" ? this.props.hook_offset : undefined;
+class Hook extends Component<Props> {
+  public render(): Rendered {
+    let style;
+    if (this.props.mode === "edit") {
+      style = merge({ top: this.props.hook_offset }, NOT_VISIBLE_STYLE);
+    } else {
+      style = NOT_VISIBLE_STYLE;
+    }
     return (
-      <div style={style} className="cocalc-jupyter-hook">
+      <div
+        style={style}
+        className={`cocalc-jupyter-hook-${this.props.frame_id}`}
+      >
         &nbsp;
       </div>
     );
   }
 }
-
-const Hook = rclass<HookReactProps>(Hook0);

@@ -161,6 +161,13 @@ Page = rclass
             @actions('page').sign_in()
 
     render_sign_in_tab: ->
+        if @props.active_top_tab != 'account'
+            # Strongly encourage clicking on the sign in tab.
+            # Especially important if user got signed out due
+            # to cookie expiring or being deleted (say).
+            style = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG, fontSize:'16pt'}
+        else
+            style = undefined
         <NavTab
             name            = 'account'
             label           = 'Sign in'
@@ -170,7 +177,7 @@ Page = rclass
             on_click        = {@sign_in_tab_clicked}
             actions         = {@actions('page')}
             active_top_tab  = {@props.active_top_tab}
-            style           = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}
+            style           = {style}
             add_inner_style = {color: 'black'}
             show_label     = {@state.show_label}
         />
@@ -232,7 +239,7 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                {<div style={projects_styles} className={nav_class}>
+                {<div style={projects_styles} cocalc-test="project-button" className={nav_class}>
                     Projects
                 </div> if @state.show_label}
                 <AppLogo />

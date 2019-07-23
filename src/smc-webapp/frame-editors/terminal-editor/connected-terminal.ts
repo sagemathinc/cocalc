@@ -27,6 +27,9 @@ import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
 
+declare const $: any;
+import { starts_with_cloud_url } from "smc-webapp/process-links";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
@@ -173,7 +176,7 @@ export class Terminal {
     delete this.number;
     delete this.render_buffer;
     delete this.history;
-    this.terminal.destroy();
+    this.terminal.dispose();
     if (this.conn != null) {
       this.disconnect();
     }
@@ -619,6 +622,10 @@ export class Terminal {
     this.terminal.focus();
   }
 
+  refresh() : void {
+    this.terminal.refresh(0, this.terminal.rows - 1);
+  }
+
   async edit_init_script(): Promise<void> {
     try {
       await open_init_file(this.actions._get_project_actions(), this.term_path);
@@ -703,8 +710,7 @@ async function touch_path(project_id: string, path: string): Promise<void> {
   }
 }
 
-declare const $: any;
-const { starts_with_cloud_url } = require("smc-webapp/process-links");
+
 function handleLink(_: MouseEvent, uri: string): void {
   if (!starts_with_cloud_url(uri)) {
     window.open(uri, "_blank");

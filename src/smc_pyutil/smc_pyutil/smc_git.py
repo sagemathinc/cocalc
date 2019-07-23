@@ -3,7 +3,7 @@
 (c) Tim Clemans, 2016
 """
 
-import json, os, subprocess, sys, uuid
+import json, os, sys
 import re
 import requests
 from requests.auth import HTTPBasicAuth
@@ -99,21 +99,20 @@ def make_upstream_pr_for_current_branch(data_file):
 
 
 def main():
-    import sys
     #import argparse
     #parser = argparse.ArgumentParser()
     #parser.add_argument('command')
     #args = parser.parse_args()
     if sys.argv[1] == 'create_branch_and_reset_to_upstream_master':
-        print create_branch_and_reset_to_upstream_master(sys.argv[2])
+        print(create_branch_and_reset_to_upstream_master(sys.argv[2]))
     elif sys.argv[1] == 'set_github_login':
-        print set_github_login(sys.argv[2], sys.argv[3], sys.argv[4])
+        print(set_github_login(sys.argv[2], sys.argv[3], sys.argv[4]))
     elif sys.argv[1] == 'get_data_file_contents':
-        print get_data_file_contents(sys.argv[2])
+        print(get_data_file_contents(sys.argv[2]))
     elif sys.argv[1] == 'make_upstream_pr_for_current_branch':
-        print make_upstream_pr_for_current_branch(sys.argv[2])
+        print(make_upstream_pr_for_current_branch(sys.argv[2]))
     else:
-        print globals()[sys.argv[1]]()
+        print(globals()[sys.argv[1]]())
 
 
 if __name__ == "__main__":

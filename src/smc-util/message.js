@@ -38,7 +38,7 @@ and customizing the external look and feel of the application.
 
 ## Protocol and Data Format
 
-Each API command is invoked using an HTTPS PUT request.
+Each API command is invoked using an HTTPS POST request.
 All commands support request parameters in JSON format, with request header
 \`Content-Type: application/json\`. Many commands (those that do not
 require lists or objects as parameters)
@@ -57,12 +57,28 @@ generic HTML message rather than a JSON string.
 ## Authentication
 
 A valid API key is required on all API requests.
-To obtain a key, log into
+
+To obtain a key manually, log into
 CoCalc and click on Settings (gear icon next to user name at upper
 right), and look under \`Account Settings\`.
 With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
+
+It is also possible to obtain an API key using a javascript-enabled automated web client.
+This option is useful for applications that embed CoCalc
+in a custom environment, for example [juno.sh](https://juno.sh),
+the iOS application for Jupyter notebooks.
+Visiting the link :samp:\`https://cocalc.com/app?get_api_key=myapp\`,
+where "myapp" is an identifier for your application,
+returns a modified sign-in page with the banner
+"CoCalc API Key Access for Myapp".
+The web client must
+sign in with credentials for the account in question.
+Response headers from a successful sign-in will include a url of the form
+:samp:\`https://authenticated/?api_key=sk_abcdefQWERTY090900000000\`.
+The client should intercept this response and capture the string
+after the equals sign as the API key.
 
 Your API key carries access privileges, just like your login and password.
 __Keep it secret.__
@@ -395,14 +411,6 @@ API(
         init: required,
         desc: "must be true for request to succeed"
       },
-      utm: {
-        init: undefined,
-        desc: "UTM parameters"
-      },
-      referrer: {
-        init: undefined,
-        desc: "Referrer URL"
-      },
       token: {
         init: undefined, // only required when token is set.
         desc: "account creation token - see src/dev/docker/README.md"
@@ -425,7 +433,7 @@ Create a new account:
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
-    -d email_address=jd@some_email \\
+    -d email_address=jd@example.com \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
 \`\`\`
@@ -440,7 +448,7 @@ Attempting to create the same account a second time results in an error:
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
-    -d email_address=jd@some_email \\
+    -d email_address=jd@example.com \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
   ==> {"event":"account_creation_failed",
@@ -512,8 +520,6 @@ message({
   email_address: required,
   password: required,
   remember_me: false,
-  utm: undefined,
-  referrer: undefined,
   get_api_key: undefined
 }); // same as for create_account
 
@@ -548,10 +554,8 @@ message({
   email_address: undefined, // email address they signed in under
   first_name: undefined,
   last_name: undefined,
-  utm: undefined,
-  referrer: undefined,
-  api_key: undefined
-}); // user's api key, if requested in sign_in or create_account messages.
+  api_key: undefined // user's api key, if requested in sign_in or create_account messages.
+});
 
 // client --> hub
 message({
@@ -2397,7 +2401,7 @@ Example:
 
 \`\`\`
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
-    -d '{"email_address":"jd@some_email", \\
+    -d '{"email_address":"jd@example.com", \\
          "subject":"package xyz", \\
          "account_id":"291f43c1-deae-431c-b763-712307fa6859", \\
          "body":"please install package xyz for use with Python3", \\
@@ -2502,6 +2506,8 @@ This queries directly the database (sort of Facebook's GraphQL)
 Options for the 'query' API message must be sent as JSON object.
 A query is either _get_ (read from database), or _set_ (write to database).
 A query is _get_ if any query keys are null, otherwise the query is _set_.
+
+Note: queries with \`multi_response\` set to \`true\` are not supported.
 
 #### Examples of _get_ query:
 

@@ -2,7 +2,6 @@ import { React, Component } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { STDERR_STYLE } from "./style";
 
-
 interface NotImplementedProps {
   message: Map<string, any>;
 }

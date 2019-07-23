@@ -15,9 +15,10 @@ Dropzone            = require('dropzone')
 
 misc           = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes} = require('./app-framework')
+{React, ReactDOM, rclass, rtypes, redux} = require('./app-framework')
 
 {Icon, Tip} = require('./r_misc')
+os_path = require('path')
 
 Dropzone.autoDiscover = false
 
@@ -233,6 +234,10 @@ exports.SMC_Dropwrapper = rclass
             dropzone_node = ReactDOM.findDOMNode(@)
             @dropzone = new Dropzone(dropzone_node, @get_djs_config())
 
+    log: (entry) ->
+        actions = redux.getProjectActions(@props.project_id)
+        actions.log(entry)
+
     _set_up_events: ->
         return unless @dropzone?
 
@@ -256,6 +261,11 @@ exports.SMC_Dropwrapper = rclass
                 files = @state.files
                 files.push(file)
                 @setState(files : files)
+                full_path = os_path.join(@props.dest_path, file.name)
+                @log
+                    event: "file_action"
+                    action: "uploaded"
+                    file: full_path
 
     # Removes ALL listeners and Destroys dropzone.
     # see https://github.com/enyo/dropzone/issues/1175

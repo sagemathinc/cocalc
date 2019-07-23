@@ -42,6 +42,7 @@ winston      = require('./winston-metrics').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc
+{DNS}        = require('smc-util/theme')
 
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
@@ -50,7 +51,9 @@ access       = require('./access')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 conf         = require('./conf')
+
 {http_message_api_v1} = require('./api/handler')
+{setup_analytics_js} = require('./analytics')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
@@ -63,6 +66,7 @@ COOKIE_COUNTRIES = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'ES', 'EE', 'FI', 
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
@@ -121,39 +125,6 @@ exports.init_express_http_server = (opts) ->
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
-    # save utm parameters and referrer in a (short lived) cookie or read it to fill in locals.utm
-    # webapp takes care of consuming it (see misc_page.get_utm)
-    router.use (req, res, next) ->
-        # quickly return in the usual case
-        if Object.keys(req.query).length == 0
-            next()
-            return
-        utm = {}
-
-        utm_cookie = req.cookies[misc.utm_cookie_name]
-        if utm_cookie
-            try
-                data = misc.from_json(window.decodeURIComponent(utm_cookie))
-                utm = misc.merge(utm, data)
-
-        for k, v of req.query
-            continue if not misc.startswith(k, 'utm_')
-            # untrusted input, limit the length of key and value
-            k = k[4...50]
-            utm[k] = v[...50] if k in misc.utm_keys
-
-        if Object.keys(utm).length
-            utm_data = encodeURIComponent(JSON.stringify(utm))
-            res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
-            res.locals.utm = utm
-
-        referrer_cookie = req.cookies[misc.referrer_cookie_name]
-        if referrer_cookie
-            res.locals.referrer = referrer_cookie
-
-        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
-        next()
-
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
@@ -176,6 +147,9 @@ exports.init_express_http_server = (opts) ->
                   Disallow: /haproxy
                   ''')
         res.end()
+
+    # setup the /analytics.js endpoint
+    setup_analytics_js(router, opts.database, winston, opts.base_url)
 
     # The /static content
     router.use '/static',

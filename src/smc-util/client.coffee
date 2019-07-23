@@ -216,7 +216,11 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
-        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 750)
+        # We heavily throttle this, since it's ONLY used for the connections dialog, which users
+        # never look at, and it could waste cpu trying to update things for no reason.  It also
+        # impacts the color of the connection indicator, so throttling will make that color
+        # change a bit more laggy.  That's probably worth it.
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 10000)
 
         @emit("connecting")
         @_call             =
@@ -542,6 +546,10 @@ class exports.Connection extends EventEmitter
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
 
+    _set_signed_out: =>
+        @_signed_in = false
+        @_redux?.getActions('account')?.set_user_type('public')
+
     change_data_channel: (opts) =>
         opts = defaults opts,
             prev_channel : undefined
@@ -826,18 +834,16 @@ class exports.Connection extends EventEmitter
     #################################################
     create_account: (opts) =>
         opts = defaults opts,
-            first_name     : required
-            last_name      : required
-            email_address  : required
-            password       : required
-            agreed_to_terms: required
-            usage_intent   : undefined
-            get_api_key    : undefined       # if given, will create/get api token in response message
-            token          : undefined       # only required if an admin set the account creation token.
-            utm            : undefined
-            referrer       : undefined
-            timeout        : 40
-            cb             : required
+            first_name       : required
+            last_name        : required
+            email_address    : required
+            password         : required
+            agreed_to_terms  : required
+            usage_intent     : undefined
+            get_api_key      : undefined       # if given, will create/get api token in response message
+            token            : undefined       # only required if an admin set the account creation token.
+            timeout          : 40
+            cb               : required
 
         if not opts.agreed_to_terms
             opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
@@ -859,8 +865,6 @@ class exports.Connection extends EventEmitter
                 agreed_to_terms : opts.agreed_to_terms
                 usage_intent    : opts.usage_intent
                 token           : opts.token
-                utm             : opts.utm
-                referrer        : opts.referrer
                 get_api_key     : opts.get_api_key
             timeout : opts.timeout
             cb      : (err, resp) =>
@@ -893,24 +897,20 @@ class exports.Connection extends EventEmitter
 
     sign_in: (opts) ->
         opts = defaults opts,
-            email_address : required
-            password      : required
-            remember_me   : false
-            cb            : required
-            timeout       : 40
-            utm           : undefined
-            referrer      : undefined
-            get_api_key   : undefined       # if given, will create/get api token in response message
+            email_address   : required
+            password        : required
+            remember_me     : false
+            cb              : required
+            timeout         : 40
+            get_api_key     : undefined       # if given, will create/get api token in response message
 
         @call
             allow_post : false
             message : message.sign_in
-                email_address : opts.email_address
-                password      : opts.password
-                remember_me   : opts.remember_me
-                utm           : opts.utm
-                referrer      : opts.referrer
-                get_api_key   : opts.get_api_key
+                email_address    : opts.email_address
+                password         : opts.password
+                remember_me      : opts.remember_me
+                get_api_key      : opts.get_api_key
             timeout : opts.timeout
             cb      : opts.cb
 
@@ -1996,6 +1996,10 @@ class exports.Connection extends EventEmitter
                 options : opts.options
                 standby : opts.standby
                 cb      : (err, resp) =>
+                    if err == 'not signed in'
+                        @_set_signed_out()
+                        opts.cb?(err, resp)
+                        return
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return

@@ -2,49 +2,47 @@
 The toolbar at the top of each cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { Map } from "immutable";
+import { React, Component, Rendered } from "../app-framework";
 
-const { Slideshow } = require("./cell-toolbar-slideshow"); // TODO: use import
-const { Attachments } = require("./cell-toolbar-attachments"); // TODO: use import
-const { TagsToolbar } = require("./cell-toolbar-tags"); // TODO: use import
-const { Metadata } = require("./cell-toolbar-metadata"); // TODO: use import
-import { Map as ImmutableMap } from "immutable";
+import { Slideshow } from "./cell-toolbar-slideshow";
+import { Attachments } from "./cell-toolbar-attachments";
+import { TagsToolbar } from "./cell-toolbar-tags";
+import { Metadata } from "./cell-toolbar-metadata";
+import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
 
-const BAR_STYLE = {
-  width: "100%",
+import { JupyterActions } from "./browser-actions";
+
+const STYLE = {
+  marginLeft: "127px",
   display: "flex",
   background: "#eee",
-  border: "1px solid rgb(247, 247, 247)",
-  borderRadius: "2px",
-  margin: "2px 0px",
-  padding: "2px"
+  border: "1px solid rgb(247, 247, 247)"
 };
 
 export interface CellToolbarProps {
-  actions: any;
+  actions: JupyterActions;
   cell_toolbar: string;
-  cell: ImmutableMap<string,any>; // TODO: what is this
+  cell: Map<string, any>;
 }
 
 const TOOLBARS = {
   slideshow: Slideshow,
   attachments: Attachments,
   tags: TagsToolbar,
-  metadata: Metadata
+  metadata: Metadata,
+  create_assignment: CreateAssignmentToolbar
 };
 
 export class CellToolbar extends Component<CellToolbarProps> {
-  render() {
+  public render(): Rendered {
     const T = TOOLBARS[this.props.cell_toolbar];
     if (T === undefined) {
       return <span> Toolbar not implemented: {this.props.cell_toolbar} </span>;
     }
     return (
-      <div style={BAR_STYLE}>
-        <div style={{ flex: 1 }} />
-        <div>
-          <T actions={this.props.actions} cell={this.props.cell} />
-        </div>
+      <div style={STYLE}>
+        <T actions={this.props.actions} cell={this.props.cell} />
       </div>
     );
   }

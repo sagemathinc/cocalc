@@ -1,4 +1,4 @@
-//- latex landing page
+//- x11 landing page
 
 extends ../_base.pug
 
@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'x11';
-    subtitle = 'Graphical Applications using X11';
+    subtitle = 'Run Graphical Applications Online';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -27,21 +27,15 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/x11-logo.svg")).fit
       div.col-sm-12.center
-        +start_button
-
-    div.row
-      div.col-md-12.center
-        h1 Graphical Software using X11
+        h1 #{subtitle}
+        h3 A remote graphical Linux desktop
       div.col-sm-6
         div
           img(src=require("webapp-lib/assets/x11-01.png")).fit
-        div.
+        div.center.
           #[strong #[a(href="http://maxima.sourceforge.net/") Maxima]'s graphical user interface]
       div.col-sm-6
         p.
@@ -64,19 +58,26 @@ block content
           li.
             #[strong Sophisticated session handling and compression] makes this much more robust and faster than traditional SSH X-forwarding.
 
+    div.row
+      div.col-sm-6
+        h2 Popular Applications
         p.
           #[strong Popular applications] are
           #[a(href="http://maxima.sourceforge.net/") Maxima],
           #[a(href="https://www.libreoffice.org/") LibreOffice],
           #[a(href="https://www.openmodelica.org/") OpenModelica],
           #[a(href="https://code.visualstudio.com") Visual Studio Code],
-          #[a(href="http://www.xm1math.net/texmaker/") TexMaker],
-          and #[strong #[a(href="https://doc.cocalc.com/x11.html") many more]], ...
+          #[a(href="http://www.xm1math.net/texmaker/") TexMaker], and many more …
         p.
-          Read our #[a(href="http://blog.sagemath.com/cocalc/2018/11/05/x11.html") blog post] to learn more about this!
+          Please check out our comprehensive table of
+          #[strong #[a(href="https://doc.cocalc.com/x11.html#installed-applications") installed application]]
+          for additional details.
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
+      div.col-sm-6
+        h2 Documentation/Technical Background
+        p.
+          The #[strong #[a(href="https://doc.cocalc.com/x11.html") X11 Documentation]] explains how to use such a virtual desktop on #{NAME}.
+        p.
+          Read our #[a(href="http://blog.sagemath.com/cocalc/2018/11/05/x11.html") blog post] to learn about this features!
+
+  +start_free_banner

@@ -1,8 +1,9 @@
 /*
 Importing from an ipynb object (in-memory version of .ipynb file)
 */
-const misc = require("smc-util/misc");
-const util = require("./util");
+
+import * as misc from "../../smc-util/misc";
+import { JUPYTER_MIMETYPES } from "./util";
 
 const DEFAULT_IPYNB = {
   cells: [
@@ -124,7 +125,7 @@ export class IPynbImporter {
         if (cell.outputs) {
           for (let mesg of cell.outputs) {
             if (mesg.output_type === "pyout") {
-              for (let type of util.JUPYTER_MIMETYPES) {
+              for (let type of JUPYTER_MIMETYPES) {
                 const b = type.split("/")[1];
                 if (mesg[b] != null) {
                   const data = { [type]: mesg[b] };
@@ -202,7 +203,7 @@ export class IPynbImporter {
       }
       content.name = content.stream;
     } else {
-      for (let t of util.JUPYTER_MIMETYPES) {
+      for (let t of JUPYTER_MIMETYPES) {
         const b = t.split("/")[1];
         if (content[b] != null) {
           content = { data: { [t]: content[b] } };
@@ -287,7 +288,7 @@ export class IPynbImporter {
     if (this._output_handler != null) {
       handler = this._output_handler(cell);
     }
-    let k : string; // it's perfectly fine that k is a string here.
+    let k: string; // it's perfectly fine that k is a string here.
     for (k in outputs) {
       let content = outputs[k];
       if (alt_outputs != null && alt_outputs[k] != null) {
@@ -404,7 +405,7 @@ export function remove_redundant_reps(data?: any) {
   // This means opening and closing an ipynb file may lose information, which
   // no client currently cares about (?) -- maybe nbconvert does.
   let keep;
-  for (let type of util.JUPYTER_MIMETYPES) {
+  for (let type of JUPYTER_MIMETYPES) {
     if (data[type] != null) {
       keep = type;
       break;
@@ -416,7 +417,7 @@ export function remove_redundant_reps(data?: any) {
       // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
       // not removed, e.g., application/vnd.jupyter.widget-view+json and
       // text/plain both are types of representation of a widget.
-      if (util.JUPYTER_MIMETYPES[type] !== undefined && type !== keep) {
+      if (JUPYTER_MIMETYPES[type] !== undefined && type !== keep) {
         delete data[type];
       }
     }

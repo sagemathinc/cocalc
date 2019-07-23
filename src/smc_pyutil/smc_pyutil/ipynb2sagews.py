@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -34,6 +34,7 @@ import sys
 import os
 import codecs
 import textwrap
+import json
 # reading the ipynb via http://nbformat.readthedocs.io/en/latest/api.html
 import nbformat
 
