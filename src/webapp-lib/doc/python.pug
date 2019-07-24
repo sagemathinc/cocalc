@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'python';
-    subtitle = 'Online Python Environment';
+    subtitle = 'Run Python Online';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -31,7 +31,7 @@ block content
         img(src=require("webapp-lib/assets/python-logo.svg")).fit
       div.col-md-12.center
         h1 #{subtitle}
-        h3 All around Python in #{NAME}
+        h3 Fully Remote Python Environment
 
   div.container
     div.row
@@ -75,6 +75,32 @@ block content
           Find more details in the #[a(href="./software-python.html") list of installed Python libraries].
 
 
+  a.anchor#a-nosetup
+  div
+    div.container
+      div.row
+        div.col-md-12.center
+          h2 #[i.fa.fa-lightbulb-o] Zero setup
+      div.col-sm-5.col-sm-offset-1
+        ul
+          li.
+            No need to download and install #[a(href="https://www.python.org") Python],
+            #[a(href="https://www.anaconda.com/distribution/") Anaconda], or other Python environments.
+          li #{NAME} already #[a(href=PREFIX + "/doc/software-python.html") provides many packages] for you.
+          li The #[a(href=PREFIX + "/doc/latex-editor.html") LaTeX editor] is already integrated with PythonTeX or SageTeX
+          li No longer update/maintain everything on your own
+      div.col-sm-5
+        p.
+          To get started,
+        ol
+          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project]
+          li.
+            Start working by creating or
+            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading],
+            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks] or Python scripts.
+
+
+
   a.anchor#a-collaboration
   div.container.space#collaboration
     div.row
@@ -100,5 +126,183 @@ block content
           #[a(href="https://doc.cocalc.com/chat.html") side chat]
           by
           #[a(href="https://doc.cocalc.com/chat.html") "@name" mention] a collaborator.
+
+  +start_free_banner
+
+  div.space
+    a.anchor#a-jupyternotebook
+    div.container.space#jupyternotebook
+      div.row
+        div.col-md-12
+          h2 Python in Jupyter Notebooks
+        div.col-md-6
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-python-jupyter.png").fit
+        div.col-md-6
+          div.
+            #{NAME} offers a
+            #[strong #[a(href="./jupyter-notebook.html") complete rewrite]]
+            of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
+            It is tightly integrated into #{NAME} and adds real-time collaboration,
+            time-travel history and
+            #[a(href="http://doc.cocalc.com/jupyter.html") much more].
+          div.
+            This rewrite does not change the underlying Jupyter notebook file format.
+            Therefore, you can download your #[code *.ipynb] file at any time and continue working in another environment.
+          div.
+            There are several Python enviornments available.
+            Check out the #[a(href="./software-python.html") list of installed Python modules] for more details.
+          div.
+            Despite that, there is also support for running the
+            #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") "Classical Jupyter notebook"].
+
+
+    a.anchor#a-latex
+    div.container.space#latex
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-pen-fancy] LaTeX support for PythonTeX/SageTeX
+        div.col-md-6
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-pythontex.png").fit
+        div.col-md-6
+          div.
+            The fully integrated #[a(href="./latex-editor.html") #{NAME} latex editor]
+            covers all your basic needs for working with #[code .tex] files containing
+            #[a(href="https://github.com/gpoore/pythontex") PythonTeX] or
+            #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX] code.
+            The document is synchronized with your collaborators in real-time
+            and everyone sees the very same compiled PDF.
+          div.
+            In particular, this LaTeX editor
+          ul
+            li.
+              #[strong Manages the entire compilation pipeline for you]:
+              it automatically calls #[code pyhontex3] or #[code sage] to pre-process the code,
+            li.
+              Supports #[strong forward and inverse search] to help you navigating in your document,
+            li.
+              Captures and shows you #[strong where LaTeX or Python errors happen],
+            li.
+              and via #[a(href="https://doc.cocalc.com/time-travel.html") TimeTravel]
+              you can go back in time to see your latest edits in order to
+              #[strong easily recover from a recent mistake].
+          div.
+            Combined, this means you can do #[strong your entire workflow online on #{NAME}]:
+          ol
+            li #[a(href="https://doc.cocalc.com/howto/upload.html") Upload] or fetch your datasets,
+            li.
+              Use #[a(href="#a-jupyternotebook") Jupyter Notebooks]
+              to explore the data, process it, and calculate your results,
+            li.
+              #[a(href="#a-chat") Discuss] and
+              #[a(href="#a-collaboration") collaborate] with your research team,
+            li Write your research paper in a LaTeX document,
+            li.
+              #[a(href="#a-publishing") Publish] the datasets, your research code,
+              and the PDF of your paper online, all hosted on #{NAME}.
+
+
+    a.anchor#a-codeformatting
+    div.container.space#codeformatting
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-sitemap]   Code formatting
+        div.col-md-6
+          div
+            img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-format-python.gif")
+        div.col-md-6
+          div
+            strong #{NAME} is able to format your Python code.
+          div.
+            By simply clicking one button,
+            #[strong your python code is formatted in a clean and consistent way].
+          div.
+            This reduces cognitive load reading source code,
+            brings everyone in the team on the same page,
+            and reduces misunderstandings.
+          div.
+            Python code formatting works with #[strong pure #[code .py] files] and #[strong Jupyter Notebooks running a Python kernel].
+
+
+    a.anchor#a-commandline
+    div.container.space#commandline
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-terminal] Command-line support
+        div.col-md-6
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-frame-editor-python.png.png").fit
+        div.col-md-6
+          div.
+            All your existing Python scripts run on #{NAME}.
+            Either open a #[a(href="https://doc.cocalc.com/frame-editor.html") Terminal] in a frame of the code editor,
+            or click the "Shell" button to find yourself in a Python environment.
+          div.
+            Terminals gives you access to #[a(href="https://www.git-scm.com") Git] and
+            #[a(href="./software-executables.html") many more utilities].
+          div.
+            Regarding collaboration, terminals can be used #[em by multiple users at once].
+            This means you can work with your coworkers in the same session at the same time.
+            Everyone sees the same output, and via
+            #[a(href="https://doc.cocalc.com/chat.html") side chat]
+            next to the terminal, the whole team can coordinate what you're doing.
+          div.
+            Beyond that, you can simultaneously work with several terminal sessions.
+            This gives you the ability to run your code concurrently.
+          div.
+            For long-running programs, you can even close your browser and check upon the result later.
+
+
+    a.anchor#a-chat
+    div.container.space#chat
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-comment] Chatroom for files
+        div.col-md-6
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-python-sidechat.png").fit
+        div.col-md-6
+          div.
+            Collaboration is a first class citizen on #{NAME}.
+            A #[a(href="https://doc.cocalc.com/chat.html") side-chat] for each file gives you the ability to discuss the content with your colleagues or students.
+          div.
+            Additionally, little avatars give you #[strong presence information] about who is currently also working on that file.
+          div.
+            Collaborators who are not online will be notified about new messages the next time they sign in.
+          div.
+            #[a(href="https://doc.cocalc.com/chat.html") Chat] supports markdown formatting and LaTeX formulas.
+
+
+    a.anchor#a-publishing
+    div.container.space#publishing
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-bullhorn] Publishing
+        div.col-md-6
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-python-jupyter-share.png").fit
+        div.col-md-6
+          div.
+            #{NAME} helps you #[strong share your work with the world].
+            It offers hosting of shared documents, which includes Jupyter notebooks,
+            PDF files, image files, code and associated data files.
+          div.
+            Under the hood, #{NAME} uses a novel renderer which generates a static HTML representation on the server side
+            and even includes pre-rendered LaTeX formulas.
+            This approach does not suffer from the same shortcomings as other solutions based on
+            #[a(href="https://nbconvert.readthedocs.io") nbconvert].
+          div.
+            Link: #[a(href="https://share.cocalc.com/share/") Share Server].
+
+    a.anchor#a-backups
+    div.container.space#backups
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-camera-retro] Backups
+        div.col-md-6
+          img(data-src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+        div.col-md-6
+          div.
+            Every couple of minutes, #[strong all files in your project are saved in consistent read-only snapshots].
+          div.
+            This means you can always recover older versions of your files
+            in case they got corrupted or accidentally deleted.
+
 
   +start_free_banner
