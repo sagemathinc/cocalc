@@ -34,7 +34,7 @@ export function ProjectSelector({
 
   return (
     <ProjectListContainer>
-      <h2>Projects</h2>
+      <ProjectContainerHeader>Projects</ProjectContainerHeader>
       {project_rows}
     </ProjectListContainer>
   );
@@ -42,6 +42,10 @@ export function ProjectSelector({
 
 const ProjectListContainer = styled.div`
   margin: 0px 8px 8px 8px;
+`;
+
+const ProjectContainerHeader = styled.h2`
+  color: darkslategrey;
 `;
 
 const ProjectRow = styled.div`

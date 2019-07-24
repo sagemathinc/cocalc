@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
-import { ProjectSelector, ProjectDisplay } from "./view";
+import { Set } from "immutable";
+import { ProjectSelector, ProjectDisplay, SelectedItemsList } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
@@ -27,7 +28,18 @@ function App() {
 
   let header = <>Loading user</>;
   let left_gutter = <>Nothing here</>;
-  let right_gutter = <>Nothing here</>;
+  let right_gutter = (
+    <SelectedItemsList
+      selected_entries={Set([
+        "File one",
+        "Folder two/",
+        "Third item/in-asub/dir"
+      ])}
+      on_entry_removal_clicked={path => {
+        console.log("need to remove:", path);
+      }}
+    />
+  );
   let content = (
     <>
       The route: {state.route} is not yet implemented. Here's the state!

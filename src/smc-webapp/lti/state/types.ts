@@ -33,6 +33,9 @@ export interface ProjectInfo {
 
 export type DirectoryListing = any;
 
+// { project_id : path[] }
+export type SelectedItems = { [key: string]: string[] };
+
 export type Action =
   | {
       type: "initial_load";
