@@ -165,7 +165,7 @@ export class Cell extends Component<CellProps> {
   };
 
   private render_not_deletable(): Rendered {
-    if (!this.is_deletable()) return;
+    if (this.is_deletable()) return;
     return (
       <Tip
         title={"Protected from deletion"}

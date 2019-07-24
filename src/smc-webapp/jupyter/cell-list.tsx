@@ -6,6 +6,9 @@ declare const $: any;
 
 import { delay } from "awaiting";
 import * as immutable from "immutable";
+
+import { List as VirtualizedList } from "react-virtualized";
+
 import { React, Component, Rendered } from "../app-framework";
 import { Loading } from "../r_misc/loading";
 import { Cell } from "./cell";
@@ -300,7 +303,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_list_of_cells(): Rendered[] {
+  /* private */ render_list_of_cells(): Rendered[] {
     const v: Rendered[] = [];
     this.props.cell_list.forEach((id: string) => {
       if (this.props.actions != null) {
@@ -318,11 +321,38 @@ export class CellList extends Component<CellListProps> {
     return v;
   }
 
+  private rowRenderer({ key, index, isScrolling, isVisible, style }): Rendered {
+    isScrolling = isScrolling;
+    isVisible = isVisible;
+    if (!isVisible) return <div />;
+    const id = this.props.cell_list.get(index);
+    if (id == null) return;
+    style.overflowY = "hidden";
+    return (
+      <div key={key} style={style}>
+        {this.render_cell(id)}
+      </div>
+    );
+  }
+
+  render_list_of_cells2(): Rendered {
+    const list = this.props.cell_list.toJS();
+
+    return (
+      <VirtualizedList
+        width={1200}
+        height={600}
+        rowCount={list.length}
+        rowHeight={50}
+        rowRenderer={this.rowRenderer.bind(this)}
+      />
+    );
+  }
+
   public render(): Rendered {
     if (this.props.cell_list == null) {
       return this.render_loading();
     }
-    const v = this.render_list_of_cells();
 
     const style: React.CSSProperties = {
       fontSize: `${this.props.font_size}px`,
@@ -349,7 +379,7 @@ export class CellList extends Component<CellListProps> {
             : undefined
         }
       >
-        <div style={cells_style}>{v}</div>
+        <div style={cells_style}>{this.render_list_of_cells2()}</div>
         <div style={{ minHeight: "100px" }} />
       </div>
     );
