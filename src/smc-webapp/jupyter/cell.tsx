@@ -1,5 +1,10 @@
 /*
 React component that describes a single cell
+
+        editable={cell.getIn(["metadata", "editable"], true)}
+        deletable={cell.getIn(["metadata", "deletable"], true)}
+        nbgrader={cell.getIn(["metadata", "nbgrader"])}
+
 */
 
 import { React, Component, Rendered } from "../app-framework";
@@ -40,9 +45,6 @@ interface CellProps {
   more_output?: Map<string, any>; // TODO: types
   cell_toolbar?: string;
   trust?: boolean;
-  editable?: boolean;
-  deletable?: boolean;
-  nbgrader?: Map<string, any>;
   hook_offset?: number;
 }
 
@@ -62,13 +64,22 @@ export class Cell extends Component<CellProps> {
       nextProps.more_output !== this.props.more_output ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       nextProps.trust !== this.props.trust ||
-      nextProps.editable !== this.props.editable ||
-      nextProps.deletable !== this.props.deletable ||
-      nextProps.nbgrader !== this.props.nbgrader ||
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
   } // only worry about complete when editing this cell
+
+  private is_editable(): boolean {
+    return this.props.cell.getIn(["metadata", "editable"], true);
+  }
+
+  private is_deletable(): boolean {
+    return this.props.cell.getIn(["metadata", "deletable"], true);
+  }
+
+  private nbgrader(): undefined | Map<string, any> {
+    return this.props.cell.getIn(["metadata", "nbgrader"]);
+  }
 
   private render_cell_input(cell: Map<string, any>): Rendered {
     return (
@@ -88,7 +99,7 @@ export class Cell extends Component<CellProps> {
         complete={this.props.is_current ? this.props.complete : undefined}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
-        is_readonly={!this.props.editable}
+        is_readonly={!this.is_editable()}
       />
     );
   }
@@ -153,8 +164,8 @@ export class Cell extends Component<CellProps> {
     event.stopPropagation();
   };
 
-  private render_deletable(): Rendered {
-    if (this.props.deletable) return;
+  private render_not_deletable(): Rendered {
+    if (!this.is_deletable()) return;
     return (
       <Tip
         title={"Protected from deletion"}
@@ -167,8 +178,8 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  private render_editable(): Rendered {
-    if (this.props.editable) return;
+  private render_not_editable(): Rendered {
+    if (this.is_editable()) return;
     return (
       <Tip
         title={"Protected from modifications"}
@@ -182,12 +193,13 @@ export class Cell extends Component<CellProps> {
   }
 
   private render_nbgrader(): Rendered {
-    if (this.props.nbgrader == null) return;
+    const nbgrader = this.nbgrader();
+    if (nbgrader == null) return;
     return (
       <span>
         <Icon name="graduation-cap" style={{ marginRight: "5px" }} />
         <NBGraderMetadata
-          nbgrader={this.props.nbgrader}
+          nbgrader={nbgrader}
           start={this.props.cell.get("start")}
           state={this.props.cell.get("state")}
           output={this.props.cell.get("output")}
@@ -203,11 +215,12 @@ export class Cell extends Component<CellProps> {
     // nbgrader demo has tons of cells with all the metadata
     // empty... which *cocalc* would not produce, but
     // evidently official tools do.
+    const nbgrader = this.nbgrader();
     const no_nbgrader: boolean =
-      this.props.nbgrader == null ||
-      (!this.props.nbgrader.get("grade") &&
-        !this.props.nbgrader.get("solution") &&
-        !this.props.nbgrader.get("locked"));
+      nbgrader == null ||
+      (!nbgrader.get("grade") &&
+        !nbgrader.get("solution") &&
+        !nbgrader.get("locked"));
     if (no_nbgrader) {
       // Will not need more than two tiny icons.
       // If we add more metadata state indicators
@@ -233,8 +246,8 @@ export class Cell extends Component<CellProps> {
 
     return (
       <div style={style}>
-        {this.render_deletable()}
-        {this.render_editable()}
+        {this.render_not_deletable()}
+        {this.render_not_editable()}
         {no_nbgrader ? undefined : this.render_nbgrader()}
       </div>
     );

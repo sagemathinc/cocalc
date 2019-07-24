@@ -260,60 +260,53 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  public render(): Rendered {
-    if (this.props.cell_list == null) {
-      return this.render_loading();
-    }
+  private render_cell(id: string): Rendered {
+    const cell = this.props.cells.get(id);
+    return (
+      <Cell
+        key={id}
+        actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
+        name={this.props.name}
+        id={id}
+        cm_options={this.props.cm_options}
+        cell={cell}
+        is_current={id === this.props.cur_id}
+        hook_offset={this.props.hook_offset}
+        is_selected={
+          this.props.sel_ids != null
+            ? this.props.sel_ids.contains(id)
+            : undefined
+        }
+        is_markdown_edit={
+          this.props.md_edit_ids != null
+            ? this.props.md_edit_ids.contains(id)
+            : undefined
+        }
+        mode={this.props.mode}
+        font_size={this.props.font_size}
+        project_id={this.props.project_id}
+        directory={this.props.directory}
+        complete={this.props.complete}
+        is_focused={this.props.is_focused}
+        more_output={
+          this.props.more_output != null
+            ? this.props.more_output.get(id)
+            : undefined
+        }
+        cell_toolbar={this.props.cell_toolbar}
+        trust={this.props.trust}
+      />
+    );
+  }
 
-    const v: any[] = [];
+  private render_list_of_cells(): Rendered[] {
+    const v: Rendered[] = [];
     this.props.cell_list.forEach((id: string) => {
-      const cell_data = this.props.cells.get(id);
-      // is it possible/better idea to use the @actions.store here?
-      const editable = cell_data.getIn(["metadata", "editable"], true);
-      const deletable = cell_data.getIn(["metadata", "deletable"], true);
-      const cell = (
-        <Cell
-          key={id}
-          actions={this.props.actions}
-          frame_actions={this.props.frame_actions}
-          name={this.props.name}
-          id={id}
-          cm_options={this.props.cm_options}
-          cell={cell_data}
-          is_current={id === this.props.cur_id}
-          hook_offset={this.props.hook_offset}
-          is_selected={
-            this.props.sel_ids != null
-              ? this.props.sel_ids.contains(id)
-              : undefined
-          }
-          is_markdown_edit={
-            this.props.md_edit_ids != null
-              ? this.props.md_edit_ids.contains(id)
-              : undefined
-          }
-          mode={this.props.mode}
-          font_size={this.props.font_size}
-          project_id={this.props.project_id}
-          directory={this.props.directory}
-          complete={this.props.complete}
-          is_focused={this.props.is_focused}
-          more_output={
-            this.props.more_output != null
-              ? this.props.more_output.get(id)
-              : undefined
-          }
-          cell_toolbar={this.props.cell_toolbar}
-          trust={this.props.trust}
-          editable={editable}
-          deletable={deletable}
-          nbgrader={cell_data.getIn(["metadata", "nbgrader"])}
-        />
-      );
       if (this.props.actions != null) {
         v.push(this.render_insert_cell(id));
       }
-      v.push(cell);
+      v.push(this.render_cell(id));
     });
     if (this.props.actions != null && v.length > 0) {
       const id = this.props.cell_list.get(this.props.cell_list.size - 1);
@@ -321,6 +314,15 @@ export class CellList extends Component<CellListProps> {
         v.push(this.render_insert_cell(id, "below"));
       }
     }
+
+    return v;
+  }
+
+  public render(): Rendered {
+    if (this.props.cell_list == null) {
+      return this.render_loading();
+    }
+    const v = this.render_list_of_cells();
 
     const style: React.CSSProperties = {
       fontSize: `${this.props.font_size}px`,
