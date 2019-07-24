@@ -4,7 +4,7 @@ import styled from "styled-components";
 import * as API from "../../api";
 import { FileListing } from "./file-listing";
 
-export function ProjectContainer({
+export function ProjectDisplay({
   opened_project_id,
   projects,
   file_listings,
@@ -56,13 +56,17 @@ export function ProjectContainer({
       );
     }
     return (
-      <div>
+      <ProjectContainer>
         <ProjectTitle>{opened_project.title}</ProjectTitle>
         {content}
-      </div>
+      </ProjectContainer>
     );
   }
 }
+
+const ProjectContainer = styled.div`
+  margin: 0px 8px 8px 8px;
+`;
 
 const ParentDirectory = styled.div`
   cursor: pointer;

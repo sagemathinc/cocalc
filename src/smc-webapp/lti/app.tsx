@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
-import { ProjectSelector, ProjectContainer } from "./view";
+import { ProjectSelector, ProjectDisplay } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
@@ -51,7 +51,7 @@ function App() {
         break;
       case Route.Project:
         content = (
-          <ProjectContainer
+          <ProjectDisplay
             projects={state.projects}
             opened_project_id={state.opened_project_id}
             file_listings={state.file_listings[state.opened_project_id]}

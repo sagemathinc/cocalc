@@ -1,1 +1,1 @@
-export { ProjectContainer } from "./project-container";
+export { ProjectDisplay } from "./project-container";
