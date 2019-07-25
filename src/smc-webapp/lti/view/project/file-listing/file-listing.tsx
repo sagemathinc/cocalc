@@ -1,6 +1,8 @@
 import * as React from "react";
-import styled from "styled-components";
 import { Set } from "immutable";
+
+import { ItemRow } from "./item-row";
+import { CheckBox } from "./check-box";
 
 interface Props {
   listing: string[];
@@ -30,21 +32,3 @@ export function FileListing({ listing, selected_entries, on_click }: Props) {
 
   return <>{rows}</>;
 }
-
-function CheckBox({ checked }) {
-  if (checked) {
-    return <>☑</>;
-  } else {
-    return <>☐</>;
-  }
-}
-
-interface P {
-  highlight: boolean;
-}
-
-const ItemRow = styled.div<P>`
-  cursor: pointer
-  color: ${props => (props.highlight ? "ForestGreen" : "DarkSlateBlue")};
-  margin: 2px;
-`;
