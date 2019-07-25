@@ -5,8 +5,8 @@ content, e.g., ipython nbviewer, trac patches, github source files (or repos?), 
 */
 
 import { endswith, startswith } from "smc-util/misc2";
-
-const COCALC_SHARE_SERVER = "https://share.cocalc.com/share/";
+import { DNS } from "smc-util/theme";
+const COCALC_SHARE_SERVER = `https://share.${DNS}/share/`;
 
 // returns something like {command:'wget', args:['http://...']}
 export function transform_get_url(
