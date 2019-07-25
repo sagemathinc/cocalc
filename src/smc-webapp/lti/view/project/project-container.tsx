@@ -9,6 +9,7 @@ export function ProjectDisplay({
   projects,
   file_listings,
   current_path,
+  selected_entries,
   dispatch
 }) {
   const opened_project = projects[opened_project_id];
@@ -50,6 +51,7 @@ export function ProjectDisplay({
               // Filter out hidden items
               return path[0] !== ".";
             })}
+            selected_entries={selected_entries}
             on_click={on_click}
           />
         </>

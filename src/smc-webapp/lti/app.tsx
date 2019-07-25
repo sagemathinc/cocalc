@@ -9,6 +9,10 @@ import { reducer } from "./state/reducers";
 import { initial_global_state } from "./state/values";
 import { assert_never } from "./helpers";
 
+const MOCK = {
+  selected_entries: Set(["File one", "Folder two/", "Third item/in-asub/dir", "Dropbox/"])
+};
+
 function App() {
   const [state, dispatch] = React.useReducer(reducer, initial_global_state);
 
@@ -30,11 +34,7 @@ function App() {
   let left_gutter = <>Nothing here</>;
   let right_gutter = (
     <SelectedItemsList
-      selected_entries={Set([
-        "File one",
-        "Folder two/",
-        "Third item/in-asub/dir"
-      ])}
+      selected_entries={MOCK.selected_entries}
       on_entry_removal_clicked={path => {
         console.log("need to remove:", path);
       }}
@@ -68,6 +68,7 @@ function App() {
             opened_project_id={state.opened_project_id}
             file_listings={state.file_listings[state.opened_project_id]}
             current_path={state.current_path}
+            selected_entries={MOCK.selected_entries}
             dispatch={dispatch}
           />
         );
