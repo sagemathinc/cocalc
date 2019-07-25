@@ -1,17 +1,12 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
-import { Set } from "immutable";
 import { ProjectSelector, ProjectDisplay, SelectedItemsList } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
 import { initial_global_state } from "./state/values";
 import { assert_never } from "./helpers";
-
-const MOCK = {
-  selected_entries: Set(["File one", "Folder two/", "Third item/in-asub/dir", "Dropbox/"])
-};
 
 function App() {
   const [state, dispatch] = React.useReducer(reducer, initial_global_state);
@@ -32,14 +27,7 @@ function App() {
 
   let header = <>Loading user</>;
   let left_gutter = <>Nothing here</>;
-  let right_gutter = (
-    <SelectedItemsList
-      selected_entries={MOCK.selected_entries}
-      on_entry_removal_clicked={path => {
-        console.log("need to remove:", path);
-      }}
-    />
-  );
+  let right_gutter = <>Loading stuff</>;
   let content = (
     <>
       The route: {state.route} is not yet implemented. Here's the state!
@@ -50,6 +38,16 @@ function App() {
 
   if (!state.loading && state.account_info) {
     header = <>User: {state.account_info.first_name || "No user name"}</>;
+
+    right_gutter = (
+      <SelectedItemsList
+        selected_entries={state.selected_entries}
+        on_entry_removal_clicked={path => {
+          console.log("need to remove:", path);
+        }}
+        projects={state.projects}
+      />
+    );
 
     switch (state.route) {
       case Route.Home:
@@ -68,7 +66,7 @@ function App() {
             opened_project_id={state.opened_project_id}
             file_listings={state.file_listings[state.opened_project_id]}
             current_path={state.current_path}
-            selected_entries={MOCK.selected_entries}
+            selected_entries={state.selected_entries}
             dispatch={dispatch}
           />
         );

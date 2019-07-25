@@ -1,3 +1,5 @@
+import { Set } from "immutable";
+
 export interface GlobalState {
   route: Route;
   projects: Projects;
@@ -6,6 +8,7 @@ export interface GlobalState {
   opened_project_id: string;
   file_listings: { [key: string]: { [key: string]: string[] } };
   current_path: string;
+  selected_entries: SelectedEntries;
 }
 
 export type Projects = { [key: string]: ProjectInfo };
@@ -14,6 +17,9 @@ export enum Route {
   Home = "project-selection",
   Project = "opened-project"
 }
+
+// Project UUID : Set<project-path>
+export type SelectedEntries = { [key: string]: Set<string> };
 
 export interface AccountInfo {
   account_id: string;
