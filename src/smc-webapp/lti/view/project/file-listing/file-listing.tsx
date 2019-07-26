@@ -24,14 +24,7 @@ export function FileListing({
   listing.map(path => {
     const is_selected = selected_entries.has(path);
     rows.push(
-      <ItemRow
-        onClick={() => {
-          on_path_click(path);
-        }}
-        role={"button"}
-        highlight={is_selected}
-        key={path}
-      >
+      <ItemRow role={"button"} highlight={is_selected} key={path}>
         <CheckBox
           checked={is_selected}
           on_click={checked => {
@@ -42,7 +35,13 @@ export function FileListing({
             }
           }}
         />
-        {path}
+        <span
+          onClick={() => {
+            on_path_click(path);
+          }}
+        >
+          {path}
+        </span>
       </ItemRow>
     );
   });
