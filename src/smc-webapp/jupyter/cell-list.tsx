@@ -7,7 +7,12 @@ declare const $: any;
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 
-import { List as VirtualizedList } from "react-virtualized";
+import {
+  List,
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache
+} from "react-virtualized";
 
 import { React, Component, Rendered } from "../app-framework";
 import { Loading } from "../r_misc/loading";
@@ -48,6 +53,18 @@ interface CellListProps {
 export class CellList extends Component<CellListProps> {
   private cell_list_ref: HTMLElement;
   private is_mounted: boolean = true;
+  private measurer_cache: CellMeasurerCache;
+  private list_ref;
+
+  constructor(props) {
+    super(props);
+
+    this.measurer_cache = new CellMeasurerCache({
+      fixedWidth: true,
+      minHeight: 34
+    });
+    this.list_ref = React.createRef();
+  }
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
@@ -321,31 +338,73 @@ export class CellList extends Component<CellListProps> {
     return v;
   }
 
-  private rowRenderer({ key, index, isScrolling, isVisible, style }): Rendered {
-    isScrolling = isScrolling;
-    isVisible = isVisible;
-    if (!isVisible) return <div />;
+  private rowRenderer({ index, parent, style }): Rendered {
     const id = this.props.cell_list.get(index);
+    console.log("rendering cell", id);
     if (id == null) return;
-    style.overflowY = "hidden";
     return (
-      <div key={key} style={style}>
+      <CellMeasurer
+        cache={this.measurer_cache}
+        columnIndex={0}
+        key={id}
+        rowIndex={index}
+        parent={parent}
+      >
+        <div style={style}>{this.render_cell(id)}</div>
+      </CellMeasurer>
+    );
+  }
+
+  /*
+  private cellRenderer({ rowIndex, style }): Rendered {
+    const id = this.props.cell_list.get(rowIndex);
+    if (id == null) return;
+    return (
+      <div key={id} style={style} ref={id}>
         {this.render_cell(id)}
       </div>
     );
   }
 
-  render_list_of_cells2(): Rendered {
-    const list = this.props.cell_list.toJS();
 
+  private cellHeight({ index }): number {
+    console.log("cellHeight", index);
+    const id = this.props.cell_list.get(index);
+    console.log("id=", id);
+    if (id == null) return 50;
+    const r = ReactDOM.findDOMNode(this.refs[id]);
+    console.log("r = ", r);
+    if (r == null) return 50;
+    console.log("height = ", $(r).height());
+    return $(r).height();
+  }
+  */
+
+  render_list_of_cells2(): Rendered {
+    (window as any).foo = this;
     return (
-      <VirtualizedList
-        width={1200}
-        height={600}
-        rowCount={list.length}
-        rowHeight={50}
-        rowRenderer={this.rowRenderer.bind(this)}
-      />
+      <div
+        className="smc-vfill"
+        style={{ width: "100%" }}
+        key={"list-of-cells"}
+      >
+        <AutoSizer>
+          {({ height, width }) => {
+            return (
+              <List
+                ref={this.list_ref}
+                deferredMeasurementCache={this.measurer_cache}
+                height={height}
+                width={width}
+                overscanRowCount={10}
+                rowHeight={this.measurer_cache.rowHeight}
+                rowCount={this.props.cell_list.size}
+                rowRenderer={this.rowRenderer.bind(this)}
+              />
+            );
+          }}
+        </AutoSizer>
+      </div>
     );
   }
 
@@ -371,6 +430,7 @@ export class CellList extends Component<CellListProps> {
     return (
       <div
         key="cells"
+        className="smc-vfill"
         style={style}
         ref={(node: any) => (this.cell_list_ref = node)}
         onClick={
@@ -379,8 +439,9 @@ export class CellList extends Component<CellListProps> {
             : undefined
         }
       >
-        <div style={cells_style}>{this.render_list_of_cells2()}</div>
-        <div style={{ minHeight: "100px" }} />
+        <div className="smc-vfill" style={cells_style}>
+          {this.render_list_of_cells2()}
+        </div>
       </div>
     );
   }
