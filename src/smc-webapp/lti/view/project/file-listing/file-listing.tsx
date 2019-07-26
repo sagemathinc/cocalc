@@ -7,10 +7,18 @@ import { CheckBox } from "./check-box";
 interface Props {
   listing: string[];
   selected_entries: Set<string>;
-  on_click: (path: string) => void;
+  on_path_click: (path: string) => void;
+  on_select: (path: string) => void;
+  on_deselect: (path: string) => void;
 }
 
-export function FileListing({ listing, selected_entries, on_click }: Props) {
+export function FileListing({
+  listing,
+  selected_entries,
+  on_path_click,
+  on_select,
+  on_deselect
+}: Props) {
   const rows: JSX.Element[] = [];
 
   listing.map(path => {
@@ -18,13 +26,22 @@ export function FileListing({ listing, selected_entries, on_click }: Props) {
     rows.push(
       <ItemRow
         onClick={() => {
-          on_click(path);
+          on_path_click(path);
         }}
         role={"button"}
         highlight={is_selected}
         key={path}
       >
-        <CheckBox checked={is_selected} />
+        <CheckBox
+          checked={is_selected}
+          on_click={checked => {
+            if (checked) {
+              on_deselect(path);
+            } else {
+              on_select(path);
+            }
+          }}
+        />
         {path}
       </ItemRow>
     );

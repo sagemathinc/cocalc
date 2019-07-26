@@ -7,7 +7,7 @@ import { FileListing } from "./file-listing";
 import { Action, Projects } from "../../state/types";
 
 interface Props {
-  opened_project_id: string;
+  project_id: string;
   projects: Projects;
   file_listings: { [key: string]: string[] };
   current_path: string;
@@ -15,19 +15,19 @@ interface Props {
   dispatch: (action: Action) => void;
 }
 
-export function ProjectDisplay({
-  opened_project_id,
+export function ProjectContainer({
+  project_id,
   projects,
   file_listings,
-  current_path,
-  selected_entries,
+  current_path = "",
+  selected_entries = Set(),
   dispatch
 }: Props) {
-  const opened_project = projects[opened_project_id];
+  const opened_project = projects[project_id];
   if (opened_project == undefined) {
     return (
       <>
-        Error, `{opened_project_id}` not found in `{projects}`
+        Error, `{project_id}` not found in `{projects}`
       </>
     );
   } else {
@@ -39,7 +39,7 @@ export function ProjectDisplay({
         if (path[path.length - 1] === "/") {
           dispatch({ type: "open_directory", path: current_path + path });
           API.fetch_directory_listing(
-            opened_project_id,
+            project_id,
             current_path + path,
             dispatch
           );
@@ -63,21 +63,35 @@ export function ProjectDisplay({
               return path[0] !== ".";
             })}
             selected_entries={selected_entries}
-            on_click={on_click}
+            on_path_click={on_click}
+            on_select={path =>
+              dispatch({
+                type: "add_entry",
+                project_id: project_id,
+                path
+              })
+            }
+            on_deselect={path =>
+              dispatch({
+                type: "remove_entry",
+                project_id: project_id,
+                path
+              })
+            }
           />
         </>
       );
     }
     return (
-      <ProjectContainer>
+      <ProjectContainerRoot>
         <ProjectTitle>{opened_project.title}</ProjectTitle>
         {content}
-      </ProjectContainer>
+      </ProjectContainerRoot>
     );
   }
 }
 
-const ProjectContainer = styled.div`
+const ProjectContainerRoot = styled.div`
   margin: 0px 8px 8px 8px;
 `;
 

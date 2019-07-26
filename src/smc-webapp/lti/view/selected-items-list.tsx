@@ -5,7 +5,7 @@ import { Projects } from "../state/types";
 
 interface Props {
   selected_entries: { [key: string]: Set<string> };
-  on_entry_removal_clicked: (path: string) => void;
+  on_entry_removal_clicked: (path: string, project_id: string) => void;
   projects: Projects;
 }
 
@@ -21,7 +21,7 @@ export function SelectedItemsList({
           <ListItem key={path}>
             <RemoveButton
               onClick={() => {
-                on_entry_removal_clicked(path);
+                on_entry_removal_clicked(path, project_id);
               }}
             >
               X{" "}
@@ -30,6 +30,10 @@ export function SelectedItemsList({
           </ListItem>
         );
       });
+
+      if (entries.size == 0) {
+        return undefined;
+      }
 
       return (
         <ItemListWrapper key={project_id}>
@@ -43,7 +47,11 @@ export function SelectedItemsList({
   return (
     <ItemListWrapper>
       <ItemsHeader>Selected Materials</ItemsHeader>
-      {project_items}
+      {project_items.length > 0 ? (
+        project_items
+      ) : (
+        <>Nothing selected yet!</>
+      )}
     </ItemListWrapper>
   );
 }
@@ -58,7 +66,7 @@ const ItemsHeader = styled.h2`
 
 const ProjectHeader = styled.h3`
   color: LightSlateGrey;
-`
+`;
 
 const ListItem = styled.div`
   display: flex;

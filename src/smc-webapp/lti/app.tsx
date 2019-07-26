@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
-import { ProjectSelector, ProjectDisplay, SelectedItemsList } from "./view";
+import { ProjectSelector, ProjectContainer, SelectedItemsList } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
@@ -42,8 +42,8 @@ function App() {
     right_gutter = (
       <SelectedItemsList
         selected_entries={state.selected_entries}
-        on_entry_removal_clicked={path => {
-          console.log("need to remove:", path);
+        on_entry_removal_clicked={(path, project_id) => {
+          dispatch({ type: "remove_entry", path, project_id });
         }}
         projects={state.projects}
       />
@@ -61,9 +61,9 @@ function App() {
         break;
       case Route.Project:
         content = (
-          <ProjectDisplay
+          <ProjectContainer
             projects={state.projects}
-            opened_project_id={state.opened_project_id}
+            project_id={state.opened_project_id}
             file_listings={state.file_listings[state.opened_project_id]}
             current_path={state.current_path}
             selected_entries={state.selected_entries[state.opened_project_id]}

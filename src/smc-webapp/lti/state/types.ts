@@ -57,4 +57,6 @@ export type Action =
       project_id: string;
     }
   | { type: "open_directory"; path: string }
-  | { type: "open_parent_directory" };
+  | { type: "open_parent_directory" }
+  | { type: "add_entry"; path: string; project_id: string }
+  | { type: "remove_entry"; path: string; project_id: string };

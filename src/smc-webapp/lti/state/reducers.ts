@@ -1,4 +1,5 @@
-import { Action, GlobalState, Route } from "./types";
+import { Set } from "immutable";
+import { Action, GlobalState, Route, SelectedEntries } from "./types";
 import { assert_never } from "../helpers";
 
 export function reducer(state: GlobalState, action: Action): GlobalState {
@@ -35,6 +36,29 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
         parent_path += "/";
       }
       return { ...state, current_path: parent_path };
+    case "add_entry":
+    case "remove_entry":
+      return {
+        ...state,
+        selected_entries: selected_entries_reducer(state.selected_entries, action)
+      };
+    default:
+      return assert_never(action);
+  }
+}
+
+function selected_entries_reducer(
+  state: SelectedEntries,
+  action: Extract<Action, { type: "add_entry" | "remove_entry" }>
+): SelectedEntries {
+  const { path, project_id } = action;
+  const selected_project_entries = state[project_id] || Set();
+
+  switch (action.type) {
+    case "add_entry":
+      return { ...state, [project_id]: selected_project_entries.add(path) };
+    case "remove_entry":
+      return { ...state, [project_id]: selected_project_entries.remove(path) };
     default:
       return assert_never(action);
   }

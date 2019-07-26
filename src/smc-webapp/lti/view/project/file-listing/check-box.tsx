@@ -2,12 +2,13 @@ import * as React from "react";
 
 interface Props {
   checked: boolean;
+  on_click: (checked: boolean) => void;
 }
 
-export function CheckBox({ checked }: Props) {
+export function CheckBox({ checked, on_click }: Props) {
   if (checked) {
-    return <>☑</>;
+    return <span onClick={() => on_click(checked)}>☑</span>;
   } else {
-    return <>☐</>;
+    return <span onClick={() => on_click(checked)}>☐</span>;
   }
 }
