@@ -66,7 +66,7 @@ function App() {
             opened_project_id={state.opened_project_id}
             file_listings={state.file_listings[state.opened_project_id]}
             current_path={state.current_path}
-            selected_entries={state.selected_entries}
+            selected_entries={state.selected_entries[state.opened_project_id]}
             dispatch={dispatch}
           />
         );

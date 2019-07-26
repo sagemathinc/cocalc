@@ -1,8 +1,19 @@
 import * as React from "react";
 import styled from "styled-components";
+import { Set } from "immutable";
 
 import * as API from "../../api";
 import { FileListing } from "./file-listing";
+import { Action, Projects } from "../../state/types";
+
+interface Props {
+  opened_project_id: string;
+  projects: Projects;
+  file_listings: { [key: string]: string[] };
+  current_path: string;
+  selected_entries: Set<string>;
+  dispatch: (action: Action) => void;
+}
 
 export function ProjectDisplay({
   opened_project_id,
@@ -11,7 +22,7 @@ export function ProjectDisplay({
   current_path,
   selected_entries,
   dispatch
-}) {
+}: Props) {
   const opened_project = projects[opened_project_id];
   if (opened_project == undefined) {
     return (
