@@ -34,8 +34,6 @@ export function ProjectContainer({
     let content = <>Loading...</>;
     if (file_listings && file_listings[current_path]) {
       const on_click = path => {
-        console.log(`file listing clicked at ${path}`);
-
         if (path[path.length - 1] === "/") {
           dispatch({ type: "open_directory", path: current_path + path });
           API.fetch_directory_listing(
@@ -44,7 +42,11 @@ export function ProjectContainer({
             dispatch
           );
         } else {
-          console.log(`${path} is a file`);
+          dispatch({
+            type: "add_entry",
+            project_id: project_id,
+            path: current_path + path
+          })
         }
       };
       content = (
