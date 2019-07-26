@@ -60,22 +60,23 @@ export function ProjectContainer({
           <FileListing
             listing={file_listings[current_path].filter(path => {
               // Filter out hidden items
-              return path[0] !== ".";
+              return path[0] !== "." && path !== "";
             })}
+            current_directory={current_path}
             selected_entries={selected_entries}
             on_path_click={on_click}
             on_select={path =>
               dispatch({
                 type: "add_entry",
                 project_id: project_id,
-                path
+                path: current_path + path
               })
             }
             on_deselect={path =>
               dispatch({
                 type: "remove_entry",
                 project_id: project_id,
-                path
+                path: current_path + path
               })
             }
           />
