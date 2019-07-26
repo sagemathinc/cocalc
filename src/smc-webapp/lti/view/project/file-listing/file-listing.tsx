@@ -21,8 +21,15 @@ export function FileListing({
   on_select,
   on_deselect
 }: Props) {
+  let is_ancestor_selected = false;
+  current_directory.split("/").reduce((ancestor, folder) => {
+    if (selected_entries.has(ancestor + "/")) {
+      is_ancestor_selected = true;
+    }
+    return ancestor + "/" + folder
+  })
   const rows: JSX.Element[] = listing.map(path => {
-    const is_selected = selected_entries.has(current_directory + path);
+    const is_selected = is_ancestor_selected || selected_entries.has(current_directory + path);
     return (
       <ItemRow role={"button"} highlight={is_selected} key={path}>
         <CheckBox
