@@ -61,7 +61,7 @@ export class CellList extends Component<CellListProps> {
 
     this.measurer_cache = new CellMeasurerCache({
       fixedWidth: true,
-      minHeight: 34
+      minHeight: 27
     });
     this.list_ref = React.createRef();
   }
@@ -357,7 +357,7 @@ export class CellList extends Component<CellListProps> {
                 deferredMeasurementCache={this.measurer_cache}
                 height={height}
                 width={width}
-                overscanRowCount={10}
+                overscanRowCount={0}
                 rowHeight={this.measurer_cache.rowHeight}
                 rowCount={this.props.cell_list.size}
                 rowRenderer={this.react_virtualized_rowRenderer.bind(this)}
@@ -405,10 +405,17 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  componentDidUpdate() {
+  private async update_react_virtualized(): Promise<void> {
+    this.measurer_cache.clearAll();
+    this.list_ref.current.recomputeRowHeights();
+    await delay(1500);
+    this.measurer_cache.clearAll();
+    this.list_ref.current.recomputeRowHeights();
+  }
+
+  componentDidUpdate() : void {
     if (this.list_ref.current != null) {
-      this.measurer_cache.clearAll();
-      this.list_ref.current.forceUpdateGrid();
+      this.update_react_virtualized();
     }
   }
 
