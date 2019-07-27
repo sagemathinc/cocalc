@@ -68,6 +68,7 @@ export class CellList extends Component<CellListProps> {
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
+    delete this.measurer_cache;
     if (this.cell_list_ref != null && this.props.frame_actions != null) {
       this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
     }
@@ -320,28 +321,10 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  /* private */ render_list_of_cells(): Rendered[] {
-    const v: Rendered[] = [];
-    this.props.cell_list.forEach((id: string) => {
-      if (this.props.actions != null) {
-        v.push(this.render_insert_cell(id));
-      }
-      v.push(this.render_cell(id));
-    });
-    if (this.props.actions != null && v.length > 0) {
-      const id = this.props.cell_list.get(this.props.cell_list.size - 1);
-      if (id != null) {
-        v.push(this.render_insert_cell(id, "below"));
-      }
-    }
-
-    return v;
-  }
-
-  private rowRenderer({ index, parent, style }): Rendered {
+  private react_virtualized_rowRenderer({ index, parent, style }): Rendered {
     const id = this.props.cell_list.get(index);
-    console.log("rendering cell", id);
     if (id == null) return;
+    const is_last: boolean = id === this.props.cell_list.get(-1);
     return (
       <CellMeasurer
         cache={this.measurer_cache}
@@ -350,38 +333,16 @@ export class CellList extends Component<CellListProps> {
         rowIndex={index}
         parent={parent}
       >
-        <div style={style}>{this.render_cell(id)}</div>
+        <div style={style}>
+          {this.render_insert_cell(id, "above")}
+          {this.render_cell(id)}
+          {is_last ? this.render_insert_cell(id, "below") : undefined}
+        </div>
       </CellMeasurer>
     );
   }
 
-  /*
-  private cellRenderer({ rowIndex, style }): Rendered {
-    const id = this.props.cell_list.get(rowIndex);
-    if (id == null) return;
-    return (
-      <div key={id} style={style} ref={id}>
-        {this.render_cell(id)}
-      </div>
-    );
-  }
-
-
-  private cellHeight({ index }): number {
-    console.log("cellHeight", index);
-    const id = this.props.cell_list.get(index);
-    console.log("id=", id);
-    if (id == null) return 50;
-    const r = ReactDOM.findDOMNode(this.refs[id]);
-    console.log("r = ", r);
-    if (r == null) return 50;
-    console.log("height = ", $(r).height());
-    return $(r).height();
-  }
-  */
-
-  render_list_of_cells2(): Rendered {
-    (window as any).foo = this;
+  private render_list_of_cells_using_react_virtualized(): Rendered {
     return (
       <div
         className="smc-vfill"
@@ -399,13 +360,56 @@ export class CellList extends Component<CellListProps> {
                 overscanRowCount={10}
                 rowHeight={this.measurer_cache.rowHeight}
                 rowCount={this.props.cell_list.size}
-                rowRenderer={this.rowRenderer.bind(this)}
+                rowRenderer={this.react_virtualized_rowRenderer.bind(this)}
               />
             );
           }}
         </AutoSizer>
       </div>
     );
+  }
+
+  private render_list_of_cells_directly(): Rendered[] {
+    const v: Rendered[] = [];
+    this.props.cell_list.forEach((id: string) => {
+      if (this.props.actions != null) {
+        v.push(this.render_insert_cell(id));
+      }
+      v.push(this.render_cell(id));
+    });
+    if (this.props.actions != null && v.length > 0) {
+      const id = this.props.cell_list.get(this.props.cell_list.size - 1);
+      if (id != null) {
+        v.push(this.render_insert_cell(id, "below"));
+      }
+    }
+
+    return v;
+  }
+
+  private render_list_of_cells(): Rendered | Rendered[] {
+    const style: React.CSSProperties = {
+      backgroundColor: "#fff",
+      padding: "15px",
+      boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
+    };
+
+    if (this.props.actions == null || this.props.frame_actions == null) {
+      return <div style={style}>{this.render_list_of_cells_directly()}</div>;
+    } else {
+      return (
+        <div className="smc-vfill" style={style}>
+          {this.render_list_of_cells_using_react_virtualized()}
+        </div>
+      );
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.list_ref.current != null) {
+      this.measurer_cache.clearAll();
+      this.list_ref.current.forceUpdateGrid();
+    }
   }
 
   public render(): Rendered {
@@ -421,12 +425,6 @@ export class CellList extends Component<CellListProps> {
       overflowX: "hidden"
     };
 
-    const cells_style: React.CSSProperties = {
-      backgroundColor: "#fff",
-      padding: "15px",
-      boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
-    };
-
     return (
       <div
         key="cells"
@@ -439,9 +437,7 @@ export class CellList extends Component<CellListProps> {
             : undefined
         }
       >
-        <div className="smc-vfill" style={cells_style}>
-          {this.render_list_of_cells2()}
-        </div>
+        {this.render_list_of_cells()}
       </div>
     );
   }
