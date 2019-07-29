@@ -1,3 +1,11 @@
+/*
+
+
+
+NOTES:
+ - this may be very relevant: https://github.com/bvaughn/react-window/issues/6
+*/
+
 import { ResizeObserver } from "resize-observer";
 import { List, AutoSizer } from "react-virtualized";
 
@@ -7,14 +15,15 @@ interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
   estimated_row_size: number; // estimate to use for the row size before measuring
   row_count: number; // number of rows
-  row_renderer: (key: string) => Rendered; // renders row with given *key*
+  row_renderer: (obj: { key?: string; index?: number }) => Rendered; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
+  scroll_to_index?: number;
 }
 
 export class WindowedList extends Component<Props, {}> {
-  private cell_refs: { [id: string]: any } = {};
+  private cell_refs: { [key: string]: any } = {};
   private list_ref;
-  private row_heights_cache: { [id: string]: number } = {};
+  private row_heights_cache: { [key: string]: number } = {};
   private resize_observer: ResizeObserver;
 
   constructor(props) {
@@ -34,57 +43,57 @@ export class WindowedList extends Component<Props, {}> {
   private cell_resized(entries: any[]): void {
     let n: number = 0;
     for (let entry of entries) {
-      const id = $(entry.target).attr("data-id"); // TODO: don't use jQuery
+      const key = $(entry.target).attr("data-key"); // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure
       if (
-        id == null ||
+        key == null ||
         isNaN(entry.contentRect.height) ||
         entry.contentRect.height === 0 ||
-        this.row_heights_cache[id] == entry.contentRect.height
+        this.row_heights_cache[key] == entry.contentRect.height
       ) {
         // not really changed or just disappeared from DOM... so continue
         // using what we have cached (or the default).
         continue;
       }
-      delete this.row_heights_cache[id];
+      delete this.row_heights_cache[key];
       n += 1;
     }
     if (n > 0) this.list_ref.current.recomputeRowHeights();
   }
 
   private row_renderer({ index, style }): Rendered {
-    const id = this.props.row_key(index);
-    if (id == null) return;
+    const key = this.props.row_key(index);
+    if (key == null) return;
     return (
-      <div style={style} key={id}>
+      <div style={style} key={key}>
         <div
-          data-id={id}
+          data-key={key}
           ref={node => {
             if (node == null) return;
-            this.cell_refs[id] = $(node);
+            this.cell_refs[key] = $(node);
             this.resize_observer.observe(node);
           }}
         >
-          {this.props.row_renderer(id)}
+          {this.props.row_renderer({ key, index })}
         </div>
       </div>
     );
   }
 
   private row_height({ index }): number {
-    const id = this.props.row_key(index);
-    if (id == null) return this.props.estimated_row_size;
+    const key = this.props.row_key(index);
+    if (key == null) return this.props.estimated_row_size;
 
-    let h = this.row_heights_cache[id];
+    let h = this.row_heights_cache[key];
     if (h !== undefined) return h;
 
-    const elt = this.cell_refs[id];
+    const elt = this.cell_refs[key];
     if (elt == null) return this.props.estimated_row_size;
     h = elt.height();
     if (h === 0) return this.props.estimated_row_size;
     if (h == null) {
-      h = this.row_heights_cache[id];
+      h = this.row_heights_cache[key];
     } else {
-      this.row_heights_cache[id] = h;
+      this.row_heights_cache[key] = h;
     }
     return h ? h : this.props.estimated_row_size;
   }
@@ -108,6 +117,7 @@ export class WindowedList extends Component<Props, {}> {
                 rowHeight={this.row_height.bind(this)}
                 rowCount={this.props.row_count}
                 rowRenderer={this.row_renderer.bind(this)}
+                scrollToIndex={this.props.scroll_to_index}
               />
             );
           }}

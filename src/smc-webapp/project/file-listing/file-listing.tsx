@@ -1,20 +1,21 @@
+/*
+Show a file listing.
+
+NOTES:
+
+ - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
+*/
+
 import * as React from "react";
 import * as immutable from "immutable";
-import {
-  AutoSizer,
-  List,
-  CellMeasurer,
-  CellMeasurerCache
-} from "react-virtualized";
-
-import { debounce } from "lodash";
+import { WindowedList } from "../../r_misc/windowed-list";
 
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");
 const { VisibleMDLG } = require("../../r_misc");
 
 import { ProjectActions } from "../../project_actions";
-import { AppRedux } from "../../app-framework";
+import { AppRedux, Rendered } from "../../app-framework";
 
 import { NoFiles } from "./no-files";
 // import { FirstSteps } from "./first-steps";
@@ -53,103 +54,16 @@ interface Props {
   configuration_main?: MainConfiguration;
 }
 
-const RESIZE_DEBOUNCE_MS = 80;
-
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
-
-  private cache: CellMeasurerCache;
   private list_ref;
-  private current_scroll_top: number | undefined;
-  private selected_index_is_rendered: boolean | undefined;
-  private resize_listener_id: any;
 
   constructor(props) {
     super(props);
-
-    this.cache = new CellMeasurerCache({
-      fixedWidth: true,
-      minHeight: 34,
-      keyMapper: () => 1
-    });
     this.list_ref = React.createRef();
   }
 
-  componentDidMount() {
-    // Clear cached size computations after a resizing event
-    this.resize_listener_id = window.addEventListener(
-      "resize",
-      debounce(() => {
-        if (this.props.listing.length > 0) {
-          this.cache.clearAll();
-        }
-      }, RESIZE_DEBOUNCE_MS)
-    );
-
-    // Restore scroll position if one as set.
-    /*
-    Completely DISABLED since it horribly breaks things; Please
-        see https://github.com/sagemathinc/cocalc/issues/3804
-    for steps to reproduce.
-    if (this.props.last_scroll_top != undefined && this.list_ref.current != null) {
-      this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
-      this.current_scroll_top = this.props.last_scroll_top;
-    }
-    */
-  }
-
-  // Updates usually mean someone changed so we update (not rerender) everything.
-  // This avoids doing a bunch of diffs since things probably changed.
-  componentDidUpdate() {
-    if (this.props.listing.length > 0) {
-      this.list_ref.current.forceUpdateGrid();
-    }
-  }
-
-  componentWillUnmount() {
-    // Clear the selected file index if we scrolled and the index
-    // is not in the render view. Prevents being unable to decide
-    // Whether to scroll to selected index or old scroll position
-    // on future rerender
-    if (
-      this.current_scroll_top != this.props.last_scroll_top &&
-      !this.selected_index_is_rendered
-    ) {
-      this.props.actions.clear_selected_file_index();
-    }
-    this.props.actions.set_file_listing_scroll(this.current_scroll_top);
-
-    // Remove listeners
-    window.removeEventListener("resize", this.resize_listener_id);
-  }
-
-  render_cached_row_at = ({ index, key, parent, style }) => {
-    const a = this.props.listing[index];
-    const row = this.render_row(
-      a.name,
-      a.size,
-      a.mtime,
-      a.mask,
-      a.isdir,
-      a.display_name,
-      a.public,
-      a.issymlink,
-      index
-    );
-    return (
-      <CellMeasurer
-        cache={this.cache}
-        columnIndex={0}
-        key={key}
-        rowIndex={index}
-        parent={parent}
-      >
-        <div style={style}>{row}</div>
-      </CellMeasurer>
-    );
-  };
-
-  render_row(
+  private render_row(
     name,
     size,
     time,
@@ -158,8 +72,8 @@ export class FileListing extends React.Component<Props> {
     display_name,
     public_data,
     issymlink,
-    index
-  ) {
+    index: number
+  ): Rendered {
     let color;
     const checked = this.props.checked_files.has(
       misc.path_to_file(this.props.current_path, name)
@@ -224,38 +138,39 @@ export class FileListing extends React.Component<Props> {
     }
   }
 
-  on_scroll = debounce(({ scrollTop }: { scrollTop: number }) => {
-    this.current_scroll_top = scrollTop;
-  }, SCROLL_DEBOUNCE_MS);
+  private windowed_list_render_row({index}): Rendered {
+    const a = this.props.listing[index];
+    if (a == null) return;
+    return this.render_row(
+      a.name,
+      a.size,
+      a.mtime,
+      a.mask,
+      a.isdir,
+      a.display_name,
+      a.public,
+      a.issymlink,
+      index
+    );
+  }
 
-  on_rows_rendered = debounce(
-    ({ startIndex, stopIndex }: { startIndex: number; stopIndex: number }) => {
-      this.selected_index_is_rendered =
-        startIndex <= this.props.selected_file_index &&
-        this.props.selected_file_index <= stopIndex;
-    },
-    SCROLL_DEBOUNCE_MS
-  );
+  private windowed_list_row_key(index: number): string | undefined {
+    const a = this.props.listing[index];
+    if (a == null) return;
+    return a.name;
+  }
 
-  render_rows() {
+  private render_rows(): Rendered {
     return (
-      <AutoSizer>
-        {({ height, width }) => (
-          <List
-            ref={this.list_ref}
-            deferredMeasurementCache={this.cache}
-            height={height}
-            overscanRowCount={10}
-            rowCount={this.props.listing.length}
-            rowHeight={this.cache.rowHeight}
-            rowRenderer={this.render_cached_row_at}
-            width={width}
-            scrollToIndex={this.props.selected_file_index}
-            onScroll={this.on_scroll}
-            onRowsRendered={this.on_rows_rendered}
-          />
-        )}
-      </AutoSizer>
+      <WindowedList
+        ref={this.list_ref}
+        overscan_row_count={5}
+        estimated_row_size={30}
+        row_count={this.props.listing.length}
+        row_renderer={this.windowed_list_render_row.bind(this)}
+        row_key={this.windowed_list_row_key.bind(this)}
+        scroll_to_index={this.props.selected_file_index}
+      />
     );
   }
 
@@ -284,7 +199,7 @@ export class FileListing extends React.Component<Props> {
     );
   }
 
-  render_first_steps() {
+  private render_first_steps(): Rendered {
     return; // See https://github.com/sagemathinc/cocalc/issues/3138
     /*
     const name = "first_steps";
@@ -319,13 +234,13 @@ export class FileListing extends React.Component<Props> {
     */
   }
 
-  render_terminal_mode() {
+  private render_terminal_mode(): Rendered {
     if (this.props.file_search[0] === TERM_MODE_CHAR) {
       return <TerminalModeDisplay />;
     }
   }
 
-  render() {
+  public render(): Rendered {
     return (
       <>
         <Col
@@ -345,7 +260,7 @@ export class FileListing extends React.Component<Props> {
             />
           )}
           {this.props.listing.length > 0 && (
-            <Row style={{ flex: "1 0 auto" }}>{this.render_rows()}</Row>
+            <Row className="smc-vfill">{this.render_rows()}</Row>
           )}
           {this.render_no_files()}
         </Col>
@@ -354,5 +269,3 @@ export class FileListing extends React.Component<Props> {
     );
   }
 }
-
-const SCROLL_DEBOUNCE_MS = 32;

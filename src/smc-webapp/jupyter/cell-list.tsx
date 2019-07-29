@@ -48,7 +48,7 @@ interface CellListProps {
 }
 
 export class CellList extends Component<CellListProps> {
-  private cell_list_ref: HTMLElement;
+  private cell_list_node: HTMLElement;
   private is_mounted: boolean = true;
   private use_window_list: boolean;
   private window_list_ref;
@@ -64,11 +64,11 @@ export class CellList extends Component<CellListProps> {
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
-    if (this.cell_list_ref != null && this.props.frame_actions != null) {
+    if (this.cell_list_node != null && this.props.frame_actions != null) {
       if (this.use_window_list) {
         console.log("unmount scrollTop: TODO");
       } else {
-        this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
+        this.props.frame_actions.set_scrollTop(this.cell_list_node.scrollTop);
       }
     }
 
@@ -94,7 +94,7 @@ export class CellList extends Component<CellListProps> {
       if (this.use_window_list) {
         this.window_list_ref.current.scrollToPosition(this.props.scrollTop);
       } else {
-        const elt = this.cell_list_ref;
+        const elt = this.cell_list_node;
         if (elt != null && elt.scrollHeight !== scrollHeight) {
           // dynamically rendering actually changed something
           elt.scrollTop = this.props.scrollTop;
@@ -121,7 +121,7 @@ export class CellList extends Component<CellListProps> {
     }
 
     if (this.props.frame_actions != null) {
-      this.props.frame_actions.cell_list_div = $(this.cell_list_ref);
+      this.props.frame_actions.cell_list_div = $(this.cell_list_node);
     }
   }
 
@@ -134,7 +134,7 @@ export class CellList extends Component<CellListProps> {
       return;
     }
     // if click in the cell list, focus the cell list; otherwise, blur it.
-    const elt = $(this.cell_list_ref);
+    const elt = $(this.cell_list_node);
     // list no longer exists, nothing left to do
     // Maybe elt can be null? https://github.com/sagemathinc/cocalc/issues/3580
     if (elt == null) return;
@@ -181,7 +181,7 @@ export class CellList extends Component<CellListProps> {
         return;
       }
     }
-    const elt = $(this.cell_list_ref);
+    const elt = $(this.cell_list_node);
     if (elt == null) {
       return;
     }
@@ -337,13 +337,13 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private window_list_row_renderer(id: string): Rendered {
-    const is_last: boolean = id === this.props.cell_list.get(-1);
+  private window_list_row_renderer({ key }): Rendered {
+    const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
-        {this.render_insert_cell(id, "above")}
-        {this.render_cell(id)}
-        {is_last ? this.render_insert_cell(id, "below") : undefined}
+        {this.render_insert_cell(key, "above")}
+        {this.render_cell(key)}
+        {is_last ? this.render_insert_cell(key, "below") : undefined}
       </div>
     );
   }
@@ -414,7 +414,7 @@ export class CellList extends Component<CellListProps> {
         key="cells"
         className="smc-vfill"
         style={style}
-        ref={(node: any) => (this.cell_list_ref = node)}
+        ref={(node: any) => (this.cell_list_node = node)}
         onClick={
           this.props.actions != null && this.props.complete != null
             ? this.on_click
