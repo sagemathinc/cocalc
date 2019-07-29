@@ -4,15 +4,14 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
+const DEFAULT_ROW_SIZE: number = 39;
+
+import { ResizeObserver } from "resize-observer";
+
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 
-import {
-  List,
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache
-} from "react-virtualized";
+import { List, AutoSizer } from "react-virtualized";
 
 import { React, Component, Rendered } from "../app-framework";
 import { Loading } from "../r_misc/loading";
@@ -53,24 +52,49 @@ interface CellListProps {
 export class CellList extends Component<CellListProps> {
   private cell_list_ref: HTMLElement;
   private is_mounted: boolean = true;
-  private measurer_cache: CellMeasurerCache;
-  private list_ref;
+  private react_virtualized_cell_refs: { [id: string]: any } = {};
+  private react_virtualized_list_ref;
+  private react_virtualized_row_heights_cache: { [id: string]: number } = {};
+  private react_virtualized_resize_observer: ResizeObserver;
 
   constructor(props) {
     super(props);
+    this.react_virtualized_list_ref = React.createRef();
+    //(window as any).react_virtualized_list_ref = this.react_virtualized_list_ref;
+    // (window as any).cell_list = this;
+    this.react_virtualized_resize_observer = new ResizeObserver(
+      this.react_virtualized_cell_resized.bind(this)
+    );
+  }
 
-    this.measurer_cache = new CellMeasurerCache({
-      fixedWidth: true,
-      minHeight: 27
-    });
-    this.list_ref = React.createRef();
+  private react_virtualized_cell_resized(entries): void {
+    let n: number = 0;
+    for (let entry of entries) {
+      const id = $(entry.target).attr("data-id");
+      if (
+        id == null ||
+        isNaN(entry.contentRect.height) ||
+        entry.contentRect.height === 0 ||
+        this.react_virtualized_row_heights_cache[id] == entry.contentRect.height
+      ) {
+        // not really changed or just disappeared from DOM... so continue
+        // using what we have cached (or the default).
+        continue;
+      }
+      delete this.react_virtualized_row_heights_cache[id];
+      n += 1;
+    }
+    if (n > 0) this.react_virtualized_list_ref.current.recomputeRowHeights();
   }
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
-    delete this.measurer_cache;
     if (this.cell_list_ref != null && this.props.frame_actions != null) {
-      this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
+      if (this.react_virtualized_list_ref != null) {
+        console.log("unmount scrollTop: TODO");
+      } else {
+        this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
+      }
     }
 
     if (this.props.frame_actions != null) {
@@ -92,11 +116,17 @@ export class CellList extends Component<CellListProps> {
     let scrollHeight: number = 0;
     for (let tm of [0, 250, 750, 1500, 2000]) {
       if (!this.is_mounted) return;
-      const elt = this.cell_list_ref;
-      if (elt != null && elt.scrollHeight !== scrollHeight) {
-        // dynamically rendering actually changed something
-        elt.scrollTop = this.props.scrollTop;
-        scrollHeight = elt.scrollHeight;
+      if (this.react_virtualized_list_ref != null) {
+        this.react_virtualized_list_ref.current.scrollToPosition(
+          this.props.scrollTop
+        );
+      } else {
+        const elt = this.cell_list_ref;
+        if (elt != null && elt.scrollHeight !== scrollHeight) {
+          // dynamically rendering actually changed something
+          elt.scrollTop = this.props.scrollTop;
+          scrollHeight = elt.scrollHeight;
+        }
       }
       await delay(tm);
     }
@@ -171,7 +201,13 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  private scroll_cell_list = (scroll: Scroll): void => {
+  private scroll_cell_list(scroll: Scroll): void {
+    if (this.react_virtualized_list_ref != null) {
+      if (scroll != "cell visible") {
+        console.log("scroll_cell_list: TODO", scroll);
+        return;
+      }
+    }
     const elt = $(this.cell_list_ref);
     if (elt == null) {
       return;
@@ -186,6 +222,13 @@ export class CellList extends Component<CellListProps> {
       // supported scroll positions are in types.ts
       if (scroll === "cell visible") {
         if (!this.props.cur_id) return;
+        if (this.react_virtualized_list_ref != null) {
+          const n = this.props.cell_list.indexOf(this.props.cur_id);
+          if (n != -1) {
+            this.react_virtualized_list_ref.current.scrollToRow(n);
+          }
+          return;
+        }
         // ensure selected cell is visible
         cur = elt.find(`#${this.props.cur_id}`);
         if (cur.length > 0) {
@@ -239,7 +282,7 @@ export class CellList extends Component<CellListProps> {
           break;
       }
     }
-  };
+  }
 
   private render_loading(): Rendered {
     return (
@@ -286,10 +329,10 @@ export class CellList extends Component<CellListProps> {
     return (
       <Cell
         key={id}
+        id={id}
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
         name={this.props.name}
-        id={id}
         cm_options={this.props.cm_options}
         cell={cell}
         is_current={id === this.props.cur_id}
@@ -321,25 +364,45 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private react_virtualized_rowRenderer({ index, parent, style }): Rendered {
+  private react_virtualized_row_renderer({ index, style }): Rendered {
     const id = this.props.cell_list.get(index);
     if (id == null) return;
     const is_last: boolean = id === this.props.cell_list.get(-1);
     return (
-      <CellMeasurer
-        cache={this.measurer_cache}
-        columnIndex={0}
-        key={id}
-        rowIndex={index}
-        parent={parent}
-      >
-        <div style={style}>
+      <div style={style} key={id}>
+        <div
+          data-id={id}
+          ref={node => {
+            if (node == null) return;
+            this.react_virtualized_cell_refs[id] = $(node);
+            this.react_virtualized_resize_observer.observe(node);
+          }}
+        >
           {this.render_insert_cell(id, "above")}
           {this.render_cell(id)}
           {is_last ? this.render_insert_cell(id, "below") : undefined}
         </div>
-      </CellMeasurer>
+      </div>
     );
+  }
+
+  private react_virtualized_row_height({ index }): number {
+    const id = this.props.cell_list.get(index);
+    if (id == null) return DEFAULT_ROW_SIZE;
+
+    let h = this.react_virtualized_row_heights_cache[id];
+    if (h !== undefined) return h;
+
+    const elt = this.react_virtualized_cell_refs[id];
+    if (elt == null) return DEFAULT_ROW_SIZE;
+    h = elt.height();
+    if (h === 0) return DEFAULT_ROW_SIZE;
+    if (h == null) {
+      h = this.react_virtualized_row_heights_cache[id];
+    } else {
+      this.react_virtualized_row_heights_cache[id] = h;
+    }
+    return h ? h : DEFAULT_ROW_SIZE;
   }
 
   private render_list_of_cells_using_react_virtualized(): Rendered {
@@ -353,14 +416,14 @@ export class CellList extends Component<CellListProps> {
           {({ height, width }) => {
             return (
               <List
-                ref={this.list_ref}
-                deferredMeasurementCache={this.measurer_cache}
+                ref={this.react_virtualized_list_ref}
                 height={height}
                 width={width}
-                overscanRowCount={0}
-                rowHeight={this.measurer_cache.rowHeight}
+                overscanRowCount={3}
+                estimatedRowSize={DEFAULT_ROW_SIZE}
+                rowHeight={this.react_virtualized_row_height.bind(this)}
                 rowCount={this.props.cell_list.size}
-                rowRenderer={this.react_virtualized_rowRenderer.bind(this)}
+                rowRenderer={this.react_virtualized_row_renderer.bind(this)}
               />
             );
           }}
@@ -390,8 +453,7 @@ export class CellList extends Component<CellListProps> {
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
-      padding: "15px",
-      boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
+      padding: "5px"
     };
 
     if (this.props.actions == null || this.props.frame_actions == null) {
@@ -402,20 +464,6 @@ export class CellList extends Component<CellListProps> {
           {this.render_list_of_cells_using_react_virtualized()}
         </div>
       );
-    }
-  }
-
-  private async update_react_virtualized(): Promise<void> {
-    this.measurer_cache.clearAll();
-    this.list_ref.current.recomputeRowHeights();
-    await delay(1500);
-    this.measurer_cache.clearAll();
-    this.list_ref.current.recomputeRowHeights();
-  }
-
-  componentDidUpdate() : void {
-    if (this.list_ref.current != null) {
-      this.update_react_virtualized();
     }
   }
 
