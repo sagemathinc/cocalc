@@ -6,12 +6,10 @@ declare const $: any;
 
 const DEFAULT_ROW_SIZE: number = 39;
 
-import { ResizeObserver } from "resize-observer";
+import { WindowedList } from "../r_misc/windowed-list";
 
 import { delay } from "awaiting";
 import * as immutable from "immutable";
-
-import { List, AutoSizer } from "react-virtualized";
 
 import { React, Component, Rendered } from "../app-framework";
 import { Loading } from "../r_misc/loading";
@@ -52,45 +50,22 @@ interface CellListProps {
 export class CellList extends Component<CellListProps> {
   private cell_list_ref: HTMLElement;
   private is_mounted: boolean = true;
-  private react_virtualized_cell_refs: { [id: string]: any } = {};
-  private react_virtualized_list_ref;
-  private react_virtualized_row_heights_cache: { [id: string]: number } = {};
-  private react_virtualized_resize_observer: ResizeObserver;
+  private use_window_list: boolean;
+  private window_list_ref;
 
   constructor(props) {
     super(props);
-    this.react_virtualized_list_ref = React.createRef();
-    //(window as any).react_virtualized_list_ref = this.react_virtualized_list_ref;
-    // (window as any).cell_list = this;
-    this.react_virtualized_resize_observer = new ResizeObserver(
-      this.react_virtualized_cell_resized.bind(this)
-    );
-  }
-
-  private react_virtualized_cell_resized(entries): void {
-    let n: number = 0;
-    for (let entry of entries) {
-      const id = $(entry.target).attr("data-id");
-      if (
-        id == null ||
-        isNaN(entry.contentRect.height) ||
-        entry.contentRect.height === 0 ||
-        this.react_virtualized_row_heights_cache[id] == entry.contentRect.height
-      ) {
-        // not really changed or just disappeared from DOM... so continue
-        // using what we have cached (or the default).
-        continue;
-      }
-      delete this.react_virtualized_row_heights_cache[id];
-      n += 1;
+    this.use_window_list =
+      this.props.actions != null && this.props.frame_actions != null;
+    if (this.use_window_list) {
+      this.window_list_ref = React.createRef();
     }
-    if (n > 0) this.react_virtualized_list_ref.current.recomputeRowHeights();
   }
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
     if (this.cell_list_ref != null && this.props.frame_actions != null) {
-      if (this.react_virtualized_list_ref != null) {
+      if (this.use_window_list) {
         console.log("unmount scrollTop: TODO");
       } else {
         this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
@@ -116,10 +91,8 @@ export class CellList extends Component<CellListProps> {
     let scrollHeight: number = 0;
     for (let tm of [0, 250, 750, 1500, 2000]) {
       if (!this.is_mounted) return;
-      if (this.react_virtualized_list_ref != null) {
-        this.react_virtualized_list_ref.current.scrollToPosition(
-          this.props.scrollTop
-        );
+      if (this.use_window_list) {
+        this.window_list_ref.current.scrollToPosition(this.props.scrollTop);
       } else {
         const elt = this.cell_list_ref;
         if (elt != null && elt.scrollHeight !== scrollHeight) {
@@ -202,7 +175,7 @@ export class CellList extends Component<CellListProps> {
   }
 
   private scroll_cell_list(scroll: Scroll): void {
-    if (this.react_virtualized_list_ref != null) {
+    if (this.use_window_list) {
       if (scroll != "cell visible") {
         console.log("scroll_cell_list: TODO", scroll);
         return;
@@ -222,10 +195,10 @@ export class CellList extends Component<CellListProps> {
       // supported scroll positions are in types.ts
       if (scroll === "cell visible") {
         if (!this.props.cur_id) return;
-        if (this.react_virtualized_list_ref != null) {
+        if (this.use_window_list) {
           const n = this.props.cell_list.indexOf(this.props.cur_id);
           if (n != -1) {
-            this.react_virtualized_list_ref.current.scrollToRow(n);
+            this.window_list_ref.current.scrollToRow(n);
           }
           return;
         }
@@ -364,71 +337,27 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private react_virtualized_row_renderer({ index, style }): Rendered {
-    const id = this.props.cell_list.get(index);
-    if (id == null) return;
+  private window_list_row_renderer(id: string): Rendered {
     const is_last: boolean = id === this.props.cell_list.get(-1);
     return (
-      <div style={style} key={id}>
-        <div
-          data-id={id}
-          ref={node => {
-            if (node == null) return;
-            this.react_virtualized_cell_refs[id] = $(node);
-            this.react_virtualized_resize_observer.observe(node);
-          }}
-        >
-          {this.render_insert_cell(id, "above")}
-          {this.render_cell(id)}
-          {is_last ? this.render_insert_cell(id, "below") : undefined}
-        </div>
+      <div>
+        {this.render_insert_cell(id, "above")}
+        {this.render_cell(id)}
+        {is_last ? this.render_insert_cell(id, "below") : undefined}
       </div>
     );
   }
 
-  private react_virtualized_row_height({ index }): number {
-    const id = this.props.cell_list.get(index);
-    if (id == null) return DEFAULT_ROW_SIZE;
-
-    let h = this.react_virtualized_row_heights_cache[id];
-    if (h !== undefined) return h;
-
-    const elt = this.react_virtualized_cell_refs[id];
-    if (elt == null) return DEFAULT_ROW_SIZE;
-    h = elt.height();
-    if (h === 0) return DEFAULT_ROW_SIZE;
-    if (h == null) {
-      h = this.react_virtualized_row_heights_cache[id];
-    } else {
-      this.react_virtualized_row_heights_cache[id] = h;
-    }
-    return h ? h : DEFAULT_ROW_SIZE;
-  }
-
-  private render_list_of_cells_using_react_virtualized(): Rendered {
+  private render_list_of_cells_using_window_list(): Rendered {
     return (
-      <div
-        className="smc-vfill"
-        style={{ width: "100%" }}
-        key={"list-of-cells"}
-      >
-        <AutoSizer>
-          {({ height, width }) => {
-            return (
-              <List
-                ref={this.react_virtualized_list_ref}
-                height={height}
-                width={width}
-                overscanRowCount={3}
-                estimatedRowSize={DEFAULT_ROW_SIZE}
-                rowHeight={this.react_virtualized_row_height.bind(this)}
-                rowCount={this.props.cell_list.size}
-                rowRenderer={this.react_virtualized_row_renderer.bind(this)}
-              />
-            );
-          }}
-        </AutoSizer>
-      </div>
+      <WindowedList
+        ref={this.window_list_ref}
+        overscan_row_count={7}
+        estimated_row_size={DEFAULT_ROW_SIZE}
+        cell_ids={this.props.cell_list}
+        row_count={this.props.cell_list.size}
+        row_renderer={this.window_list_row_renderer.bind(this)}
+      />
     );
   }
 
@@ -461,7 +390,7 @@ export class CellList extends Component<CellListProps> {
     } else {
       return (
         <div className="smc-vfill" style={style}>
-          {this.render_list_of_cells_using_react_virtualized()}
+          {this.render_list_of_cells_using_window_list()}
         </div>
       );
     }
