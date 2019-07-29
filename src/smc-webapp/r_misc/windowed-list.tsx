@@ -3,14 +3,12 @@ import { List, AutoSizer } from "react-virtualized";
 
 import { React, Component, Rendered } from "../app-framework";
 
-import * as immutable from "immutable";
-
 interface Props {
-  overscan_row_count?: number;
-  estimated_row_size: number;
-  row_renderer: Function;
-  row_count: number;
-  cell_ids: immutable.List<string>;
+  overscan_row_count: number; // how many not visible cells to render on each side of window
+  estimated_row_size: number; // estimate to use for the row size before measuring
+  row_count: number; // number of rows
+  row_renderer: (key: string) => Rendered; // renders row with given *key*
+  row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
 }
 
 export class WindowedList extends Component<Props, {}> {
@@ -54,7 +52,7 @@ export class WindowedList extends Component<Props, {}> {
   }
 
   private row_renderer({ index, style }): Rendered {
-    const id = this.props.cell_ids.get(index);
+    const id = this.props.row_key(index);
     if (id == null) return;
     return (
       <div style={style} key={id}>
@@ -73,7 +71,7 @@ export class WindowedList extends Component<Props, {}> {
   }
 
   private row_height({ index }): number {
-    const id = this.props.cell_ids.get(index);
+    const id = this.props.row_key(index);
     if (id == null) return this.props.estimated_row_size;
 
     let h = this.row_heights_cache[id];

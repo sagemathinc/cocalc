@@ -354,7 +354,7 @@ export class CellList extends Component<CellListProps> {
         ref={this.window_list_ref}
         overscan_row_count={7}
         estimated_row_size={DEFAULT_ROW_SIZE}
-        cell_ids={this.props.cell_list}
+        row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
         row_renderer={this.window_list_row_renderer.bind(this)}
       />
