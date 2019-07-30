@@ -20,7 +20,8 @@ interface Props {
   size: number;
   highlight: boolean;
   authors: Author[];
-  base_url:string;
+  base_url: string;
+  views?: number;
 }
 
 export class PublicPath extends Component<Props> {
@@ -51,6 +52,7 @@ export class PublicPath extends Component<Props> {
           info={this.props.info}
           authors={this.props.authors}
           base_url={this.props.base_url}
+          views={this.props.views}
         />
         <div style={{ background: "white", flex: 1, margin: "10px" }}>
           {view}

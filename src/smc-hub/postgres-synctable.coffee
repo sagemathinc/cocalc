@@ -30,7 +30,7 @@ immutable    = require('immutable')
 async        = require('async')
 underscore   = require('underscore')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults, is_array} = misc = require('smc-util/misc')
 required = defaults.required
 misc_node = require('smc-util-node/misc_node')
 
@@ -407,8 +407,19 @@ class SyncTable extends EventEmitter
                     @_process_deleted(result.rows, changed)
                 cb?()
 
-    get: (key) =>
-        return if key? then @_value?.get(key) else @_value
+    get: (key) =>  # key = single key or array of keys
+        if not key? or not @_value?
+            return @_value
+        if is_array(key)
+            # for consistency with smc-util/sync/synctable
+            r = immutable.Map()
+            for k in key
+                v = @_value.get(k)
+                if v?
+                    r = r.set(k, v)
+            return r
+        else
+            return @_value.get(key)
 
     getIn: (x) =>
         return @_value?.getIn(x)

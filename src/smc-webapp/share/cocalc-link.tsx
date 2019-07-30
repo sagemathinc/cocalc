@@ -24,6 +24,7 @@ export class CoCalcLink extends Component<Props> {
         <div
           style={{
             right: "5px",
+            top: "5px",
             position: "absolute",
             fontSize: "8pt",
             border: "1px solid #aaa",

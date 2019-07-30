@@ -644,7 +644,7 @@ subscription.dedicated_small = {
   // n1-standard-4 + 200gb standard disk
   icon: "battery-quarter",
   desc: "Dedicated VM (small)",
-  statement: "DEDICATED VM SMALL",
+  statement: "COCALC VM SMALL",
   price: {
     month: 199
   },
@@ -660,7 +660,7 @@ subscription.dedicated_medium = {
   // n1-highmem-8 + 400gb standard disk
   icon: "battery-three-quarters",
   desc: "Dedicated VM (medium)",
-  statement: "DEDICATED VM MEDIUM",
+  statement: "COCALC VM MEDIUM",
   price: {
     month: 499
   },
@@ -676,7 +676,7 @@ subscription.dedicated_large = {
   // n1-highmem-16 + 600gb standard disk
   icon: "battery-full",
   desc: "Dedicated VM (large)",
-  statement: "DEDICATED VM LARGE",
+  statement: "COCALC VM LARGE",
   price: {
     month: 999
   },

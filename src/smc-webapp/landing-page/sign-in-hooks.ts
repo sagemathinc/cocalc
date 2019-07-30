@@ -39,9 +39,15 @@ async function analytics_send(mesg: SignedIn): Promise<void> {
     );
 }
 
+// landing actions step 1: store any landing action information
+import * as landing_actions from "../landing-actions";
+landing_actions.store();
+
 webapp_client.on("signed_in", (mesg: SignedIn) => {
   // console.log("sign-in-hooks::signed_in mesg=", mesg);
   // these run in parallel
   tracking_events();
+  // landing actions step 2: launch based on local storage
+  landing_actions.launch();
   analytics_send(mesg);
 });

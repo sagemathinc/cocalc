@@ -1,24 +1,21 @@
 /*
 Synchronized table of all public paths.
 
-This will easily scale up to probably 100K+ distinct public paths, which will take year(s) to reach,
-and by keeping everything in RAM, the share servers will be very, very fast (basically never hitting
-the DB before returning results).  And, since we have everything in memory, we can do a lot of stupid
-things involving iterating over everything before writing proper queries.
+DESIGN NOTE:
+The approach below preloads into RAM info about all public paths.
+It should in theory easily scale up to probably 100K+ distinct public paths.
+By keeping everything in RAM, the share servers will be faster (basically
+never hitting the DB before returning results).  And, since we have everything
+in memory, we can do a lot of stupid things involving iterating over everything
+before writing proper queries.
 */
 
 import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import {
-  bind_methods,
-  cmp,
-  endswith,
-  is_valid_uuid_string
-} from "smc-util/misc2";
-import { containing_public_path, meta_file } from "smc-util/misc";
-import { Author } from "smc-webapp/share/types";
+import { bind_methods, cmp } from "smc-util/misc2";
+import { containing_public_path } from "smc-util/misc";
 
 export type HostInfo = immutable.Map<string, any>;
 
@@ -47,7 +44,9 @@ export class PublicPaths extends EventEmitter {
     this.emit("ready");
   }
 
-  public get(id: string): HostInfo | undefined {
+  public get(
+    id: string | string[]
+  ): HostInfo | immutable.Map<string, HostInfo> | undefined {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get(id);
   }
@@ -127,12 +126,72 @@ export class PublicPaths extends EventEmitter {
     this.last_public_paths = this.synctable.get(); // TODO: very inefficient?
   }
 
+  public get_id(project_id: string, path: string): string {
+    return this.database.sha1(project_id, path);
+  }
+
+  public get_info(project_id: string, path: string): HostInfo | undefined {
+    const id: string = this.get_id(project_id, path);
+    return this.get(id);
+  }
+
+  // Returns the required token, if one is required.  A token is required
+  // if the share is unlisted *and* a token is set for that share.
+  public required_token(project_id: string, path: string): string | undefined {
+    const info = this.get_info(project_id, path);
+    if (info == null) return; // not even public
+    if (info.get("unlisted")) return info.get("token");
+    return undefined; // not unlisted
+  }
+
+  public public_path(project_id: string, path: string): string | undefined {
+    const paths = this.public_paths_in_project[project_id];
+    if (paths == null) {
+      return undefined;
+    }
+    return containing_public_path(path, paths);
+  }
+
+  // True if project_id/path is contained in some public path,
+  // which may or may not be unlisted.
   public is_public(project_id: string, path: string): boolean {
     const paths = this.public_paths_in_project[project_id];
     if (paths == null) {
       return false;
     }
-    return !!containing_public_path(path, paths);
+    return containing_public_path(path, paths) != null;
+  }
+
+  public is_access_allowed(
+    project_id: string, // the project_id
+    path: string, // a path of an actual share.
+    token: string | undefined // token for access (ignored unless unlisted *and* set in database)
+  ): boolean {
+    const required_token: string | undefined = this.required_token(
+      project_id,
+      path
+    );
+    if (required_token) {
+      return required_token == token;
+    } else {
+      return true;
+    }
+  }
+
+  public get_views(project_id : string, path:string) : number | undefined {
+    const info = this.get_info(project_id, path);
+    if (info == null) return;
+    return info.get('counter');
+  }
+
+  public async increment_view_counter(
+    project_id: string, // the project_id
+    path: string // a path of an actual share.
+  ): Promise<void> {
+    const id: string = this.get_id(project_id, path);
+    await callback2(this.database._query, {
+      query: `UPDATE public_paths SET counter=coalesce(counter,0)+1 WHERE id='${id}'`
+    });
   }
 
   // Immutables List of ids that sorts the public_paths from
@@ -172,7 +231,8 @@ export class PublicPaths extends EventEmitter {
         "vhost",
         "auth",
         "unlisted",
-        "license"
+        "license",
+        "token"
       ],
       where: "disabled IS NOT TRUE"
     });
@@ -184,86 +244,6 @@ export class PublicPaths extends EventEmitter {
       this.update_public_paths(id);
     });
     this.init_public_paths();
-  }
-
-  public async get_authors(
-    project_id: string,
-    // path can be a single path or an array of paths;
-    // if give a single path, also automatically includes
-    // known aux files (this is just for ipynb).
-    path: string | string[]
-  ): Promise<Author[]> {
-    if (!is_valid_uuid_string(project_id)) {
-      throw Error(`project_id=${project_id} must be a valid uuid string`);
-    }
-    // Determine the paths to check in the database:
-    const account_ids: string[] = [];
-    const known_account_ids: Set<string> = new Set();
-    let paths: string[];
-    if (typeof path == "string") {
-      paths = [path];
-      if (endswith(path, ".ipynb")) {
-        paths.push(meta_file(path, "jupyter2"));
-        paths.push(meta_file(path, "jupyter"));
-      }
-    } else {
-      paths = path;
-    }
-
-    // Get accounts that have edited these paths, if they have edited them using sync.
-    for (let path of paths) {
-      const id: string = this.database.sha1(project_id, path);
-      const result = await callback2(this.database._query, {
-        query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
-      });
-      if (result == null || result.rowCount < 1) continue;
-      for (let account_id of result.rows[0].users) {
-        if (account_id != project_id && !known_account_ids.has(account_id)) {
-          account_ids.push(account_id);
-          known_account_ids.add(account_id);
-        }
-      }
-    }
-
-    // If no accounts, use the project collaborators as a fallback.
-    if (account_ids.length === 0) {
-      const result = await callback2(this.database._query, {
-        query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`
-      });
-      if (result != null && result.rowCount >= 1) {
-        for (let v of result.rows) {
-          account_ids.push(v.jsonb_object_keys);
-        }
-      }
-    }
-
-    // Get usernames for the accounts
-    const authors: Author[] = [];
-    const names = await callback2(this.database.get_usernames, {
-      account_ids,
-      cache_time_s: 60 * 5
-    });
-    for (let account_id in names) {
-      // todo really need to sort by last name
-      const { first_name, last_name } = names[account_id];
-      const name = `${first_name} ${last_name}`;
-      authors.push({ name, account_id });
-    }
-
-    // Sort by last name
-    authors.sort((a, b) =>
-      cmp(names[a.account_id].last_name, names[b.account_id].last_name)
-    );
-    return authors;
-  }
-
-  public async get_username(account_id: string): Promise<string> {
-    const names = await callback2(this.database.get_usernames, {
-      account_ids: [account_id],
-      cache_time_s: 60 * 5
-    });
-    const { first_name, last_name } = names[account_id];
-    return `${first_name} ${last_name}`;
   }
 }
 

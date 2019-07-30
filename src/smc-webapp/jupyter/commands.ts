@@ -479,6 +479,12 @@ export function commands(
       f: () => jupyter_actions.nbgrader_actions.confirm_validate()
     },
 
+    "nbgrader assign": {
+      m: "Create student version...",
+      menu: "Student version...",
+      f: () => jupyter_actions.nbgrader_actions.confirm_assign()
+    },
+
     "open file": {
       m: "Open...",
       f: () => jupyter_actions.file_open()

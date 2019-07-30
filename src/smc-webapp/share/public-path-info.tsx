@@ -24,6 +24,11 @@ interface Props {
   isdir?: boolean;
   authors?: Author[];
   base_url: string;
+  views?: number;
+}
+
+function Field(props: { name: string }) {
+  return <b style={{ color: "#666" }}>{props.name}: </b>;
 }
 
 export class PublicPathInfo extends Component<Props> {
@@ -58,7 +63,11 @@ export class PublicPathInfo extends Component<Props> {
     if (this.props.info == null) return;
     let desc = this.props.info.get("description");
     if (!desc) return;
-    return <div key={"desc"}>Description: {desc}</div>;
+    return (
+      <div key={"desc"}>
+        <Field name="Description" />{desc}
+      </div>
+    );
   }
 
   private render_license(): Rendered {
@@ -68,7 +77,7 @@ export class PublicPathInfo extends Component<Props> {
     let desc: string | undefined = LICENSES[license];
     // fallback in case of weird license not listed in our table:
     if (desc == undefined) desc = license;
-    return <div key={"license"}>License: {desc}</div>;
+    return <div key={"license"}><Field name="License"/>{desc}</div>;
   }
 
   private render_authors(): Rendered {
@@ -97,18 +106,29 @@ export class PublicPathInfo extends Component<Props> {
     }
     return (
       <div key={"authors"}>
-        {plural(v.length, "Author")}: {r_join(v)}
+        <Field name={plural(v.length, "Author")} />{r_join(v)}
+      </div>
+    );
+  }
+
+  private render_views(): Rendered {
+    if (this.props.views == null || this.props.views == 0) return;
+    return (
+      <div key="views">
+        <Field name={'Views ' + (this.props.isdir ? "of something in this directory" : "")}/>
+        {this.props.views}
       </div>
     );
   }
 
   public render(): Rendered {
     return (
-      <div style={{ background: "#efefef", paddingLeft: "5px" }}>
+      <div style={{ background: "#efefef", padding: "5px" }}>
         {this.render_external_links()}
-        {this.render_desc()}
-        {this.render_license()}
         {this.render_authors()}
+        {this.render_views()}
+        {this.render_license()}
+        {this.render_desc()}
       </div>
     );
   }

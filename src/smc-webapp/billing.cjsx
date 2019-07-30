@@ -1390,6 +1390,19 @@ exports.ExplainPlan = ExplainPlan = rclass
                 However, we find that many data science and computational science courses
                 run much smoother with the additional RAM and CPU found in the standard plan.
 
+                <h4>Custom Course Plans</h4>
+                In addition to the plans listed on this page, we can offer the following on a custom basis:
+                    <ul>
+                        <li>start on a specified date after payment</li>
+                        <li>customized duration</li>
+                        <li>customized number of students</li>
+                        <li>bundle several courses with different start dates</li>
+                        <li>transfer upgrades from purchasing account to course administrator account</li>
+                    </ul>
+                To learn more about these options, email us at <HelpEmailLink/> with a description
+                of your specific requirements.
+                <br/>
+
                 <br/>
 
             </div>
@@ -2053,13 +2066,19 @@ BillingPage = rclass
                 error   = {@props.error}
                 onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
+    # the space in "Contact us" below is a Unicode no-break space, UTF-8: C2 A0. "&nbsp;" didn't work there [hal]
     render_help_suggestion: ->
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
             <b>
-                <Space/> Contact us if you are purchasing a course subscription and need a short trial
+                <Space/> <HelpEmailLink text={"Contact us"} /> if you are considering purchasing a course subscription and need a short trial
                 to test things out first.<Space/>
             </b>
+            <b>
+                <Space/> Customized course plans are available.<Space/>
+            </b>
+            If you do not see a plan that fits your needs,
+            email <HelpEmailLink/> with a description of your specific requirements.
         </span>
 
     render_suggested_next_step: ->

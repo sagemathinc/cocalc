@@ -293,7 +293,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
-  public set_cell_input(id: string, input: any, save = true): void {
+  public set_cell_input(id: string, input: string, save = true): void {
     if (this.check_edit_protection(id)) {
       return;
     }
@@ -325,7 +325,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Clear output in the list of cell id's.
-  public clear_outputs(cell_ids: string[]): void {
+  public clear_outputs(cell_ids: string[], save: boolean = true): void {
     const cells = this.store.get("cells");
     if (cells == null) return; // nothing to do
     let not_editable: number = 0;
@@ -339,14 +339,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
     }
-    this._sync();
+    if (save) {
+      this._sync();
+    }
     if (not_editable > 0) {
       this.show_not_editable_error(not_editable);
     }
   }
 
-  public clear_all_outputs(): void {
-    this.clear_outputs(this.store.get_cell_list().toJS());
+  public clear_all_outputs(save: boolean = true): void {
+    this.clear_outputs(this.store.get_cell_list().toJS(), save);
   }
 
   private show_not_xable_error(x: string, n: number): void {
@@ -1123,14 +1125,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
      mode, and prohibits cell evaluations example: teacher handout
      notebook and student should not be able to modify an
      instruction cell in any way. */
-  public toggle_write_protection_on_cells(cell_ids: string[]): void {
-    this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true);
+  public toggle_write_protection_on_cells(
+    cell_ids: string[],
+    save: boolean = true
+  ): void {
+    this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true, save);
   }
 
   // this prevents any cell from being deleted, either directly, or indirectly via a "merge"
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  public toggle_delete_protection_on_cells(cell_ids: string[]): void {
-    this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true);
+  public toggle_delete_protection_on_cells(
+    cell_ids: string[],
+    save: boolean = true
+  ): void {
+    this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true, save);
   }
 
   // This toggles the boolean value of given metadata field.
@@ -1140,7 +1148,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private toggle_metadata_boolean_on_cells(
     cell_ids: string[],
     key: string,
-    default_value: boolean // default metadata value, if the metadata field is not set.
+    default_value: boolean, // default metadata value, if the metadata field is not set.
+    save: boolean = true
   ): void {
     for (let id of cell_ids) {
       this.set_cell_metadata({
@@ -1152,10 +1161,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           )
         },
         merge: true,
-        save: true
+        save
       });
     }
-    this.save_asap();
+    if (save) {
+      this.save_asap();
+    }
   }
 
   public toggle_jupyter_metadata_boolean(
