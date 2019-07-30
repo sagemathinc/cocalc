@@ -39,6 +39,8 @@ underscore = require('underscore')
 {project_has_network_access} = require('./postgres/project-queries')
 {is_paying_customer} = require('./postgres/account-queries')
 
+{SENDGRID_ASM_INVITES} = require('smc-util/theme')
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -1334,7 +1336,7 @@ class exports.Client extends EventEmitter
                     if not mesg.title?
                         subject = "Invitation to CoCalc for collaborating on a project"
 
-                    # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
                         to           : locals.email_address
                         bcc          : 'invites@cocalc.com'
@@ -1344,7 +1346,7 @@ class exports.Client extends EventEmitter
                         replyto_name : mesg.replyto_name
                         subject      : subject
                         category     : "invite"
-                        asm_group    : 699
+                        asm_group    : SENDGRID_ASM_INVITES
                         body         : email_body
                         cb           : (err) =>
                             if err
@@ -1476,7 +1478,7 @@ class exports.Client extends EventEmitter
                                 base_url = 'https://cocalc.com/'
                                 direct_link = ''
 
-                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                            # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to           : email_address
                                 bcc          : 'invites@cocalc.com'
@@ -1486,7 +1488,7 @@ class exports.Client extends EventEmitter
                                 replyto_name : mesg.replyto_name
                                 subject      : subject
                                 category     : "invite"
-                                asm_group    : 699
+                                asm_group    : SENDGRID_ASM_INVITES
                                 body         : email + """<br/><br/>
                                                <b>To accept the invitation, please sign up at
                                                <a href='#{base_url}'>#{base_url}</a>

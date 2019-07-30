@@ -921,8 +921,8 @@ EditorSettingsIndentSize = rclass
         <LabeledRow label='Indent size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('tab_size',n)}
-                min       = {1}
-                max       = {10}
+                min       = {2}
+                max       = {32}
                 number    = {@props.tab_size} />
         </LabeledRow>
 
@@ -939,7 +939,7 @@ EditorSettingsFontSize = rclass
         <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = {6}
+                min       = {5}
                 max       = {32}
                 number    = {@props.font_size}
                 unit      = "px" />
