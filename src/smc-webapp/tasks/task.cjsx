@@ -109,8 +109,8 @@ exports.Task = rclass
 
     render: ->
         style =
-            padding      : '5px 5px 0 5px'
-            margin       : '5px'
+            paddingLeft  : '5px'
+            margin       : '2px 5px'
             background   : 'white'
         if @props.is_current
             style.border       = '1px solid rgb(171, 171, 171)'

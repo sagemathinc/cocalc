@@ -60,12 +60,21 @@ export class WindowedList extends Component<Props, {}> {
     if (n > 0) this.list_ref.current.recomputeRowHeights();
   }
 
+  public recompute() : void {
+    this.list_ref.current.recomputeRowHeights()
+  }
+
   private row_renderer({ index, style }): Rendered {
     const key = this.props.row_key(index);
     if (key == null) return;
+    /* We use flex in the first nested div below so that the
+       div expands to its contents. See
+       https://stackoverflow.com/questions/1709442/make-divs-height-expand-with-its-content
+    */
     return (
       <div style={style} key={key}>
         <div
+          style={{ display: "flex", flexDirection: "column" }}
           data-key={key}
           ref={node => {
             if (node == null) return;

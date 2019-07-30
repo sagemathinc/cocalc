@@ -130,7 +130,6 @@ exports.TaskEditor = rclass ({name}) ->
             return @render_new_hint()
 
         # The 300px is needed so the pop-up calendar is not hidden
-        STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px', paddingTop:'15px'}
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}
@@ -143,11 +142,9 @@ exports.TaskEditor = rclass ({name}) ->
             scroll               = {@props.local_view_state?.get('scroll')}
             scroll_into_view     = {@props.scroll_into_view}
             font_size            = {@props.local_view_state?.get('font_size')}
-            style                = {STYLE}
             sortable             = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             read_only            = {@props.read_only}
             selected_hashtags    = {@props.local_view_state?.get('selected_hashtags')}
-            show_max             = {@props.local_view_state?.get('show_max')}
             search_terms         = {@props.search_terms}
             onSortEnd            = {@on_sort_end}
             useDragHandle        = {true}
