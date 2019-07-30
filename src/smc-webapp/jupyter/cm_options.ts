@@ -2,7 +2,10 @@
 This module will handle setting the codemirror options for various kernels.
 */
 
-const { IS_TOUCH } = require("../feature"); // TODO: import type
+import { IS_TOUCH } from "../feature";
+
+// TODO: should merge functionality with this
+import { valid_indent } from "../frame-editors/codemirror/util";
 
 // mode = codemirror mode object
 // editor_settings - from account store.
@@ -33,25 +36,14 @@ export function cm_options(
     mode.name = "haskell";
   }
 
-  // tabSize/indentUnit sanitization: make robust against missing/bad values
-  let tabSize = editor_settings.tab_size;
-  if (tabSize == null || tabSize <= 0) {
-    tabSize = 4;
-  }
-
-  let indentUnit = editor_settings.indent_unit;
-  if (indentUnit == null || indentUnit <= 0) {
-    indentUnit = tabSize;
-  }
-
   const options: any = {
     mode,
     firstLineNumber: editor_settings.first_line_number,
     showTrailingSpace:
       editor_settings.show_trailing_whitespace ||
       (mode && mode.name) === "gfm2",
-    indentUnit,
-    tabSize,
+    indentUnit: valid_indent(editor_settings.tab_size),  // TODO! indent_unit just isn't implemented -- see #2847.  same comment is in frame editors' cm-options.ts
+    tabSize: valid_indent(editor_settings.tab_size),
     smartIndent: editor_settings.smart_indent,
     electricChars: editor_settings.electric_chars,
     undoDepth: editor_settings.undo_depth,
