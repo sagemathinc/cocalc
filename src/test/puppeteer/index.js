@@ -106,8 +106,11 @@ async function run() {
     // await page.setViewport({ width: 1024, height: 768});
 
     // sign in
-    await page.goto(CREDS.url);
+    var hrstart = process.hrtime()
+    await page.goto(CREDS.url)
+    var hrend = process.hrtime(hrstart)
     console.log('got sign-in page', CREDS.url);
+    console.log('Execution time: %ds %dms', hrend[0], hrend[1] / 1000000)
 
     let sel = '*[cocalc-test="sign-in-email"]';
     await page.click(sel);
@@ -168,7 +171,7 @@ async function run() {
     const z = CREDS.texfile.lastIndexOf(".");
     const tfbase = CREDS.texfile.slice(0,z);
     const tfext  = CREDS.texfile.slice(z);
-    
+
     xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
     //await page.waitForXPath(xpt, timeout=LONG_TIMEOUT);
     await page.waitForXPath(xpt, timeout=5000);
