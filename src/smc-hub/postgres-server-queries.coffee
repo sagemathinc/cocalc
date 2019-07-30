@@ -782,8 +782,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             stripe      : undefined  # api connection to stripe
             customer_id : undefined  # will be looked up if not known
             cb          : undefined
-        customer = undefined
-        email_address = undefined
+        locals =
+            customer : undefined
+            email_address : undefined
+            first_name: undefined
+            last_name: undefined
 
         dbg = @_dbg("stripe_update_customer(account_id='#{opts.account_id}')")
         async.series([
@@ -814,7 +817,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if opts.customer_id?
                     opts.stripe.customers.retrieve opts.customer_id, (err, x) =>
                         dbg("got stripe info -- #{err}")
-                        customer = x; cb(err)
+                        locals.customer = x; cb(err)
                 else
                     cb()
             # sync email
@@ -822,39 +825,54 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if not opts.customer_id?
                     cb(); return
                 @_query
-                    query : "SELECT email_address FROM accounts"
+                    query : "SELECT email_address, first_name, last_name FROM accounts"
                     where : "account_id = $::UUID" : opts.account_id
                     cb    : one_result (err, x) ->
-                        email_address = x
+                        locals.email_address = x.email_address
+                        locals.first_name = x.first_name ? ''
+                        locals.last_name  = x.last_name  ? ''
                         cb(err)
             (cb) =>
                 if not opts.customer_id?
                     cb(); return
-                if not misc.is_valid_email_address(email_address)
-                    console.log("got invalid email address to update stripe from '#{opts.account_id}'")
+
+                if not misc.is_valid_email_address(locals.email_address)
+                    console.log("got invalid email address '#{locals.email_address}' to update stripe from '#{opts.account_id}'")
                     cb(); return
-                if email_address != customer.email
-                    upd = {"email": email_address}
+
+                name = "#{locals.first_name} #{locals.last_name}"
+                email_changed = locals.email_address != locals.customer.email
+                name_undef = not locals.customer.name?
+                name_changed = locals.customer.name != name or locals.customer.description != name
+
+                if email_changed or name_undef or name_changed
+                    upd =
+                        email       : locals.email_address
+                        name        : name
+                        description : name # see stripe/client, we also set the description to the name!
                     opts.stripe.customers.update opts.customer_id, upd, (err, x) =>
                         if err?
                             cb(err)
                             return
-                        if x.email != email_address
-                            cb("stripe email address is still off: '#{customer.email}'")
+                        if x.email != locals.email_address
+                            cb("stripe email address is still off: '#{locals.customer.email}'")
                             return
                         # all fine, updating our local customer object with the new email address
-                        customer = x
+                        locals.customer = x
                         cb()
-            # syncing email finished, now we update our record of what stripe knows
-            (cb) =>
-                if opts.customer_id?
-                    @_query
-                        query : 'UPDATE accounts'
-                        set   : 'stripe_customer::JSONB' : customer
-                        where : 'account_id = $::UUID'   : opts.account_id
-                        cb    : opts.cb
                 else
                     cb()
+
+            # syncing email finished, now we update our record of what stripe knows
+            (cb) =>
+                if not opts.customer_id?
+                    cb(); return
+
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : 'stripe_customer::JSONB' : locals.customer
+                    where : 'account_id = $::UUID'   : opts.account_id
+                    cb    : cb
         ], opts.cb)
 
     ###
