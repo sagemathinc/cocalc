@@ -828,10 +828,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query : "SELECT email_address, first_name, last_name FROM accounts"
                     where : "account_id = $::UUID" : opts.account_id
                     cb    : one_result (err, x) ->
-                        locals.email_address = x.email_address
-                        locals.first_name = x.first_name ? ''
-                        locals.last_name  = x.last_name  ? ''
-                        cb(err)
+                        if err?
+                            cb(err)
+                            return
+                        else
+                            locals.email_address = x.email_address
+                            locals.first_name = x.first_name ? ''
+                            locals.last_name  = x.last_name  ? ''
+                            cb()
             (cb) =>
                 if not opts.customer_id?
                     cb(); return
