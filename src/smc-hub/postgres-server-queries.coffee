@@ -1447,35 +1447,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @_query
                     query : "SELECT stripe_customer_id FROM accounts"
                     where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result (err, customer_id) ->
+                    cb    : one_result (err, x) =>
                         if err
                             cb(err)
                             return
-                        if customer_id
+                        if x.stripe_customer_id
                             @stripe_update_customer
                                 account_id  : opts.account_id
                                 stripe      : undefined
-                                customer_id : customer_id
+                                customer_id : x.stripe_customer_id
                                 cb          : cb
                         else
                             cb()
         ], (err) =>
-            if err
-                opts.cb(err)
+            opts.cb(err)
         )
-        @account_exists
-            email_address : opts.email_address
-            cb            : (err, exists) =>
-                if err
-                    opts.cb(err)
-                else if exists
-                    opts.cb("email_already_taken")
-                else
-                    @_query
-                        query : 'UPDATE accounts'
-                        set   : {email_address: opts.email_address}
-                        where : @_account_where(opts)
-                        cb    : opts.cb
 
     ###
     User auth token
