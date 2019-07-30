@@ -51,15 +51,12 @@ export class CellList extends Component<CellListProps> {
   private cell_list_node: HTMLElement;
   private is_mounted: boolean = true;
   private use_window_list: boolean;
-  private window_list_ref;
+  private window_list_ref = React.createRef<WindowedList>();
 
   constructor(props) {
     super(props);
     this.use_window_list =
       this.props.actions != null && this.props.frame_actions != null;
-    if (this.use_window_list) {
-      this.window_list_ref = React.createRef();
-    }
   }
 
   public componentWillUnmount(): void {
@@ -92,7 +89,9 @@ export class CellList extends Component<CellListProps> {
     for (let tm of [0, 250, 750, 1500, 2000]) {
       if (!this.is_mounted) return;
       if (this.use_window_list) {
-        this.window_list_ref.current.scrollToPosition(this.props.scrollTop);
+        if (this.window_list_ref.current != null) {
+          this.window_list_ref.current.scrollToPosition(this.props.scrollTop);
+        }
       } else {
         const elt = this.cell_list_node;
         if (elt != null && elt.scrollHeight !== scrollHeight) {
@@ -198,7 +197,9 @@ export class CellList extends Component<CellListProps> {
         if (this.use_window_list) {
           const n = this.props.cell_list.indexOf(this.props.cur_id);
           if (n != -1) {
-            this.window_list_ref.current.scrollToRow(n);
+            if (this.window_list_ref.current != null) {
+              this.window_list_ref.current.scrollToRow(n);
+            }
           }
           return;
         }

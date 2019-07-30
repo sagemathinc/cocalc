@@ -827,12 +827,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     path: rtypes.string
   };
 
-  private input_ref: any;
+  private input_ref = React.createRef<HTMLTextAreaElement>();
 
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
     this.state = { preview: "" };
-    this.input_ref = React.createRef<HTMLTextAreaElement>();
   }
 
   private static preview_style: React.CSSProperties = {
@@ -951,12 +950,16 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   button_off_click = () => {
     this.props.actions.set_is_preview(false);
-    this.input_ref.current.focus();
+    if (this.input_ref.current != null) {
+      this.input_ref.current.focus();
+    }
   };
 
   on_preview_button_click = () => {
     this.props.actions.set_is_preview(true);
-    this.input_ref.current.focus();
+    if (this.input_ref.current != null) {
+      this.input_ref.current.focus();
+    }
     if (
       is_at_bottom(
         this.props.saved_position,
@@ -1203,6 +1206,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   start_upload = file => {
     const text_area = this.input_ref.current;
+    if (text_area == null) return;
     const temporary_insertion_text = this.generate_temp_upload_text(file);
     const start_pos = compute_cursor_offset_position(
       text_area.selectionStart,
@@ -1282,7 +1286,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.path
     );
     this.props.actions.send_chat(input);
-    this.input_ref.current.focus();
+    if (this.input_ref.current != null) {
+      this.input_ref.current.focus();
+    }
   };
 
   on_clear = () => {

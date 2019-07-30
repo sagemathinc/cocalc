@@ -56,11 +56,10 @@ interface Props {
 
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
-  private list_ref;
+  private list_ref = React.createRef<WindowedList>();
 
   constructor(props) {
     super(props);
-    this.list_ref = React.createRef();
   }
 
   private render_row(
@@ -138,7 +137,7 @@ export class FileListing extends React.Component<Props> {
     }
   }
 
-  private windowed_list_render_row({index}): Rendered {
+  private windowed_list_render_row({ index }): Rendered {
     const a = this.props.listing[index];
     if (a == null) return;
     return this.render_row(
