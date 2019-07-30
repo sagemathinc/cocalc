@@ -33,14 +33,25 @@ export function cm_options(
     mode.name = "haskell";
   }
 
+  // tabSize/indentUnit sanitization: make robust against missing/bad values
+  let tabSize = editor_settings.tab_size;
+  if (tabSize == null || tabSize <= 0) {
+    tabSize = 4;
+  }
+
+  let indentUnit = editor_settings.indent_unit;
+  if (indentUnit == null || indentUnit <= 0) {
+    indentUnit = tabSize;
+  }
+
   const options: any = {
     mode,
     firstLineNumber: editor_settings.first_line_number,
     showTrailingSpace:
       editor_settings.show_trailing_whitespace ||
       (mode && mode.name) === "gfm2",
-    indentUnit: editor_settings.indent_unit,
-    tabSize: editor_settings.tab_size,
+    indentUnit,
+    tabSize,
     smartIndent: editor_settings.smart_indent,
     electricChars: editor_settings.electric_chars,
     undoDepth: editor_settings.undo_depth,
