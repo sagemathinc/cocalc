@@ -42,7 +42,7 @@ misc_page = require('./misc_page')
 
 editor_chat = require('./editor_chat')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
+{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, scroll_to_bottom} = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
@@ -87,6 +87,7 @@ ChatRoom = rclass ({name}) ->
 
     getInitialState: ->
         @input_ref = React.createRef();
+        @log_container_ref = React.createRef()
         return {}
 
     mark_as_read: ->
@@ -106,7 +107,7 @@ ChatRoom = rclass ({name}) ->
         analytics_event('side_chat', 'send_chat', 'click')
 
     send_chat: (value) ->
-        scroll_to_bottom(@refs.log_container, @props.actions)
+        scroll_to_bottom(@log_container_ref)
         @props.actions.submit_user_mentions(
             @props.project_id,
             misc.original_path(@props.path)
@@ -121,25 +122,13 @@ ChatRoom = rclass ({name}) ->
     on_clear: () ->
         @props.actions.set_input('')
 
-    on_scroll: (e) ->
-        @props.actions.set_use_saved_position(true)
-        node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
-        e.preventDefault()
-
     componentDidMount: ->
-        scroll_to_position(@refs.log_container, @props.saved_position,
-                           @props.offset, @props.height, @props.use_saved_position, @props.actions)
         @mark_as_read() # The act of opening/displaying the chat marks it as seen...
                         # since this happens when the user shows it.
 
-    componentWillReceiveProps: (next) ->
-        if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
-            @props.actions.set_use_saved_position(false)
-
     componentDidUpdate: ->
         if not @props.use_saved_position
-            scroll_to_bottom(@refs.log_container, @props.actions)
+            scroll_to_bottom(@log_container_ref)
 
     render_collab_caret: ->
         if @props.add_collab
@@ -240,10 +229,10 @@ ChatRoom = rclass ({name}) ->
             {@render_search()}
             <div className="smc-vfill"
                  ref     = 'log_container'
-                 onScroll= {@on_scroll}
                  style={backgroundColor : '#fff', paddingLeft:'15px'}
                  >
                 <ChatLog
+                    windowed_list_ref={@log_container_ref}
                     messages     = {@props.messages}
                     account_id   = {@props.account_id}
                     user_map     = {@props.user_map}

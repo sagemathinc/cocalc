@@ -57,6 +57,7 @@ import {
 } from "react-bootstrap";
 
 import { ChatLog } from "./chat/chat-log";
+import { WindowedList } from "./r_misc/windowed-list";
 
 const editor_chat = require("./editor_chat");
 
@@ -70,9 +71,7 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  is_at_bottom,
-  scroll_to_bottom,
-  scroll_to_position
+  scroll_to_bottom
 } = require("./editor_chat");
 
 const { VideoChatButton } = require("./video-chat");
@@ -566,8 +565,6 @@ export class Message extends Component<MessageProps, MessageState> {
   }
 }
 
-const SCROLL_DEBOUNCE_MS = 750;
-
 interface ChatRoomOwnProps {}
 
 interface ChatRoomReduxProps {
@@ -655,6 +652,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   private input_ref = React.createRef<HTMLTextAreaElement>();
+  private log_container_ref = React.createRef<WindowedList>();
 
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
@@ -669,72 +667,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     paddingBottom: "20px"
   };
 
-  private _is_mounted: boolean;
-
-  fix_scroll_position_after_mount = () => {
-    // Optionally set the scroll position back after waiting a moment
-    // for image sizes to load.
-    const fix_pos = () => {
-      if (!this._is_mounted) {
-        return;
-      }
-      scroll_to_position(
-        this.refs.log_container,
-        this.props.saved_position,
-        this.props.offset,
-        this.props.height,
-        this.props.use_saved_position,
-        this.props.actions
-      );
-    };
-    // We adjust the scroll position multiple times due to dynamic content (e.g., images)
-    // changing the vertical height as the chat history is rendered.  This can fail
-    // if the dynamic change takes a while, but the failure is a slight scroll position
-    // issue -- if the user is switching tabs back and forth in a session, that is very
-    // unlikely, due to the browser caching the dynamic content.
-    // The user is also unlikely to manually scroll the page then see it jump to
-    // this fixed position within 500ms of mounting.
-    return [0, 200, SCROLL_DEBOUNCE_MS - 250].map(tm =>
-      setTimeout(fix_pos, tm)
-    );
-  };
-
-  componentDidMount() {
-    this._is_mounted = true;
-    this.fix_scroll_position_after_mount();
-    if (this.props.is_preview) {
-      if (
-        is_at_bottom(
-          this.props.saved_position,
-          this.props.offset,
-          this.props.height
-        )
-      ) {
-        this.debounce_bottom();
-      }
-    } else {
-      this.props.actions.set_is_preview(false);
-    }
-  }
-
-  componentWillReceiveProps(next) {
-    if (
-      (this.props.messages !== next.messages ||
-        this.props.input !== next.input) &&
-      is_at_bottom(
-        this.props.saved_position,
-        this.props.offset,
-        this.props.height
-      )
-    ) {
-      this.props.actions.set_use_saved_position(false);
-    }
-  }
-
   componentDidUpdate() {
-    if (!this.props.use_saved_position) {
-      scroll_to_bottom(this.refs.log_container, this.props.actions);
-    }
+    // TODO: need to only do this if the user hasn't *manually* scrolled
+    // to some position.
+    scroll_to_bottom(this.log_container_ref);
   }
 
   mark_as_read = debounce(() => {
@@ -749,30 +685,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   }, 300);
 
-  componentWillUnmount() {
-    this._is_mounted = false;
-    this.save_scroll_position();
-  }
-
-  save_scroll_position = () => {
-    this.props.actions.set_use_saved_position(true);
-    const node = ReactDOM.findDOMNode(this.refs.log_container);
-    if (node != null) {
-      this.props.actions.save_scroll_state(
-        node.scrollTop,
-        node.scrollHeight,
-        node.offsetHeight
-      );
-    }
-  };
-
   on_send_button_click = e => {
     e.preventDefault();
     this.on_send(this.props.input);
   };
 
   button_scroll_to_bottom = () => {
-    scroll_to_bottom(this.refs.log_container, this.props.actions);
+    scroll_to_bottom(this.log_container_ref);
   };
 
   button_off_click = () => {
@@ -787,15 +706,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     if (this.input_ref.current != null) {
       this.input_ref.current.focus();
     }
-    if (
-      is_at_bottom(
-        this.props.saved_position,
-        this.props.offset,
-        this.props.height
-      )
-    ) {
-      scroll_to_bottom(this.refs.log_container, this.props.actions);
-    }
+    scroll_to_bottom(this.log_container_ref);
   };
 
   set_chat_log_state = debounce(() => {
@@ -824,7 +735,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   debounce_bottom = debounce(() => {
     //debounces it so that the preview shows up then calls
-    scroll_to_bottom(this.refs.log_container, this.props.actions);
+    scroll_to_bottom(this.refs.log_container);
   }, 300);
 
   show_files = () => {
@@ -1107,7 +1018,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   on_send = input => {
-    scroll_to_bottom(this.refs.log_container, this.props.actions);
+    scroll_to_bottom(this.refs.log_container);
     this.props.actions.submit_user_mentions(
       this.props.project_id,
       this.props.path
@@ -1161,9 +1072,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               className="smc-vfill"
               style={chat_log_style}
               ref="log_container"
-              onScroll={debounce(this.save_scroll_position, SCROLL_DEBOUNCE_MS)}
             >
               <ChatLog
+                windowed_list_ref={this.log_container_ref}
                 messages={this.props.messages}
                 account_id={this.props.account_id}
                 user_map={this.props.user_map}

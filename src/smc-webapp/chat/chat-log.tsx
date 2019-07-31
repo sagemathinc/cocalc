@@ -27,6 +27,7 @@ interface ChatLogProps {
   saved_mesg?: string;
   set_scroll?: Function;
   search?: string;
+  windowed_list_ref?: React.RefObject<WindowedList>;
 }
 
 export class ChatLog extends Component<ChatLogProps> {
@@ -157,6 +158,7 @@ export class ChatLog extends Component<ChatLogProps> {
       <>
         {this.render_not_showing()}
         <WindowedList
+          ref={this.props.windowed_list_ref}
           overscan_row_count={10}
           estimated_row_size={62}
           row_count={this.get_sorted_dates().length}
