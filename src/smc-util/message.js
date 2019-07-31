@@ -1769,6 +1769,28 @@ Folder \`A\` will be created in target project if it does not exist already.
   })
 );
 
+API(
+  message2({
+    event: "copy_path_status",
+    fields: {
+      copy_path_id: {
+        init: undefined,
+        desc: "A unique UUID for a copy path operation"
+      }
+    },
+    desc: `\
+Retrieve status information about a copy operation for the given ID,
+which was returned by \`copy_path_between_projects\` earlier.
+`
+  })
+);
+
+message({
+  event: "copy_path_status_response",
+  id: required,
+  data: required
+});
+
 //############################################
 // Admin Functionality
 //############################################

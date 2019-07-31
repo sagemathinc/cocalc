@@ -1503,6 +1503,10 @@ schema.copy_paths = {
       desc:
         "fail if the transfer itself takes longer than this number of seconds (passed to rsync)"
     },
+    scheduled: {
+      type: "timestamp",
+      desc: "earliest time in the future, when the copy request should start (or null, for immediate execution)"
+    },
     started: {
       type: "timestamp",
       desc: "when the copy request actually started running"
