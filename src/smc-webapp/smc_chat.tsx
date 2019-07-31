@@ -41,7 +41,6 @@ import { MentionList } from "./chat/store";
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
 const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
 import {
-  Alert,
   Button,
   Col,
   Grid,
@@ -51,6 +50,8 @@ import {
   ButtonGroup,
   Well
 } from "react-bootstrap";
+
+import { ChatLog } from "./chat/chat-log";
 
 const editor_chat = require("./editor_chat");
 
@@ -78,13 +79,13 @@ interface MessageProps {
   focus_end?(e: any): void; // TODO: type
   get_user_name: Function; // // TODO: this was optional but no existence checks
 
-  message: immutable.Map<any, any>; // immutable.js message object
+  message: immutable.Map<string, any>; // immutable.js message object
   history?: immutable.List<any>;
   account_id: string;
   date?: string;
   sender_name?: string;
   editor_name?: string;
-  user_map: immutable.Map<any, any>; // TODO: this was optional but no existence checks
+  user_map?: immutable.Map<string, any>;
   project_id?: string; // optional -- improves relative links if given
   file_path?: string; // optional -- (used by renderer; path containing the chat log)
   font_size?: number;
@@ -561,185 +562,6 @@ export class Message extends Component<MessageProps, MessageState> {
 }
 
 const SCROLL_DEBOUNCE_MS = 750;
-
-interface ChatLogProps {
-  messages: any; // immutable js map {timestamps} --> message.
-  user_map?: any; // immutable js map {collaborators} --> account info
-  account_id: string;
-  project_id?: string; // optional -- used to render links more effectively
-  file_path?: string; // optional -- ...
-  font_size?: number;
-  actions?: any;
-  show_heads?: boolean;
-  focus_end?(e: any): void;
-  saved_mesg?: string;
-  set_scroll?: Function;
-  search?: string;
-}
-
-export class ChatLog extends Component<ChatLogProps> {
-  public static propTypes = {
-    messages: rtypes.object.isRequired, // immutable js map {timestamps} --> message.
-    user_map: rtypes.object, // immutable js map {collaborators} --> account info
-    account_id: rtypes.string,
-    project_id: rtypes.string, // optional -- used to render links more effectively
-    file_path: rtypes.string, // optional -- ...
-    font_size: rtypes.number,
-    actions: rtypes.object,
-    show_heads: rtypes.bool,
-    focus_end: rtypes.func,
-    saved_mesg: rtypes.string,
-    set_scroll: rtypes.func,
-    search: rtypes.string
-  };
-
-  shouldComponentUpdate(nextProps) {
-    return (
-      this.props.messages !== nextProps.messages ||
-      this.props.search !== nextProps.search ||
-      this.props.user_map !== nextProps.user_map ||
-      this.props.account_id !== nextProps.account_id ||
-      this.props.saved_mesg !== nextProps.saved_mesg
-    );
-  }
-
-  get_user_name = account_id => {
-    let account_name;
-    const account =
-      this.props.user_map != null
-        ? this.props.user_map.get(account_id)
-        : undefined;
-    if (account != null) {
-      account_name = account.get("first_name") + " " + account.get("last_name");
-    } else {
-      account_name = "Unknown";
-    }
-    return account_name;
-  };
-
-  render_list_messages() {
-    let search_terms;
-    const is_next_message_sender = function(
-      index: number,
-      dates: any,
-      messages: any
-    ) {
-      if (index + 1 === dates.length) {
-        return false;
-      }
-      const current_message = messages.get(dates[index]);
-      const next_message = messages.get(dates[index + 1]);
-      return current_message.get("sender_id") === next_message.get("sender_id");
-    };
-
-    const is_prev_message_sender = function(
-      index: number,
-      dates: any,
-      messages: any
-    ) {
-      if (index === 0) {
-        return false;
-      }
-      const current_message = messages.get(dates[index]);
-      const prev_message = messages.get(dates[index - 1]);
-      return current_message.get("sender_id") === prev_message.get("sender_id");
-    };
-
-    const sorted_dates = this.props.messages
-      .keySeq()
-      .sort()
-      .toJS();
-    const v: any[] = [];
-    if (this.props.search) {
-      search_terms = misc.search_split(this.props.search.toLowerCase());
-    } else {
-      search_terms = undefined;
-    }
-
-    let not_showing = 0;
-    for (let i = 0; i < sorted_dates.length; i++) {
-      const date = sorted_dates[i];
-      const message = this.props.messages.get(date);
-      const first =
-        message != null ? message.get("history").first() : undefined;
-      const last_editor_name = this.get_user_name(
-        first != null ? first.get("author_id") : undefined
-      );
-      const sender_name = this.get_user_name(
-        message != null ? message.get("sender_id") : undefined
-      );
-      if (search_terms != null) {
-        let content =
-          (first != null ? first.get("content") : undefined) +
-          " " +
-          last_editor_name +
-          " " +
-          sender_name;
-        content = content.toLowerCase();
-        if (!misc.search_match(content, search_terms)) {
-          not_showing += 1;
-          continue;
-        }
-      }
-
-      v.push(
-        <Message
-          key={date}
-          account_id={this.props.account_id}
-          history={message.get("history")}
-          user_map={this.props.user_map}
-          message={message}
-          date={date}
-          project_id={this.props.project_id}
-          file_path={this.props.file_path}
-          font_size={this.props.font_size}
-          is_prev_sender={is_prev_message_sender(
-            i,
-            sorted_dates,
-            this.props.messages
-          )}
-          is_next_sender={is_next_message_sender(
-            i,
-            sorted_dates,
-            this.props.messages
-          )}
-          show_avatar={
-            this.props.show_heads &&
-            !is_next_message_sender(i, sorted_dates, this.props.messages)
-          }
-          include_avatar_col={this.props.show_heads}
-          get_user_name={this.get_user_name}
-          sender_name={sender_name}
-          editor_name={last_editor_name}
-          actions={this.props.actions}
-          focus_end={this.props.focus_end}
-          saved_mesg={
-            message.getIn(["editing", this.props.account_id])
-              ? this.props.saved_mesg
-              : undefined
-          }
-          set_scroll={this.props.set_scroll}
-        />
-      );
-    }
-
-    if (not_showing) {
-      const s = (
-        <Alert bsStyle="warning" key="not_showing">
-          Hiding {not_showing} chats that do not match search for '
-          {this.props.search}'.
-        </Alert>
-      );
-      v.push(s);
-    }
-
-    return v;
-  }
-
-  render() {
-    return <Grid fluid>{this.render_list_messages()}</Grid>;
-  }
-}
 
 interface ChatRoomOwnProps {}
 
@@ -1331,6 +1153,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             style={{ padding: "0px 2px 0px 2px" }}
           >
             <Well
+              className="smc-vfill"
               style={chat_log_style}
               ref="log_container"
               onScroll={debounce(this.save_scroll_position, SCROLL_DEBOUNCE_MS)}
