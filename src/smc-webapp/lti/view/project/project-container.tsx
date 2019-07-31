@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { Set } from "immutable";
 
 import { FileListing } from "./file-listing";
+import * as API from "../../api";
 import { Action, Projects } from "../../state/types";
 
 interface Props {
@@ -38,13 +39,48 @@ export function ProjectContainer({
     if (file_listings) {
       content = (
         <FileListing
-          project_id={project_id}
           working_directory={current_path}
           file_listings={file_listings}
           opened_directories={opened_directories}
           selected_entries={selected_entries}
           excluded_entries={excluded_entries}
-          dispatch={dispatch}
+          on_select={path => {
+            dispatch({
+              type: "add_entry",
+              project_id,
+              path
+            });
+          }}
+          on_deselect={path => {
+            dispatch({
+              type: "remove_entry",
+              project_id,
+              path
+            });
+          }}
+          on_file_click={(path: string, is_checked) => {
+            if (is_checked) {
+              dispatch({
+                type: "remove_entry",
+                project_id,
+                path
+              });
+            } else {
+              dispatch({
+                type: "add_entry",
+                project_id,
+                path
+              });
+            }
+          }}
+          on_directory_click={(path: string, is_open: boolean) => {
+            if (is_open) {
+              dispatch({ type: "close_directory", path: path, project_id });
+            } else {
+              dispatch({ type: "open_directory", path: path, project_id });
+              API.fetch_directory_listing(project_id, path, dispatch);
+            }
+          }}
         />
       );
     }

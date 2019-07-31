@@ -31,8 +31,14 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
       if (!file_listings[action.project_id]) {
         file_listings[action.project_id] = {};
       }
-      const target_projects_file_listings = file_listings[action.project_id];
-      target_projects_file_listings[action.path] = action.listing.split("\n");
+
+      // Split and filter out hidden items
+      file_listings[action.project_id][action.path] = action.listing
+        .split("\n")
+        .filter(item_name => {
+          return item_name[0] !== "." && item_name !== "";
+        });
+
       return { ...state, file_listings };
     case "open_directory":
     case "close_directory":
