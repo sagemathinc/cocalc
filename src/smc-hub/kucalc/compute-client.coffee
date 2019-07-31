@@ -25,6 +25,8 @@ CONSOLE_SERVER_PORT = 6003
 request = require('request')
 async = require('async')
 underscore = require('underscore')
+{callback} = require('awaiting')
+{dedup_copy_path} = require('./dedup-copy-path')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -389,11 +391,27 @@ class Project extends EventEmitter
             exclude_history   : undefined
             timeout           : undefined
             bwlimit           : undefined
+            dedup_seconds     : undefined
             cb                : undefined
         if not opts.target_project_id
             opts.target_project_id = @project_id
         if not opts.target_path
             opts.target_path = opts.path
+
+        if opts.dedup_seconds and opts.dedup_seconds > 0
+            # check if a copy has already been launched within the last dedup_seconds; if so,
+            # just piggy back on that instead.
+            try
+                @dbg("checking on dedup_copy_path")()
+                res = await dedup_copy_path({database:@database, get_synctable:callback(@client.copy_paths_synctable), project_id:@project_id, path:opts.path, target_project_id:opts.target_project_id, target_path:opts.target_path, dedup_seconds:opts.dedup_seconds})
+                if res?
+                    opts.cb?(res.error)
+                    return
+            catch err
+                @dbg("checking on dedup_copy_path failed")(err)
+                # do nothing extra -- just try as normal below.
+
+
         synctable = undefined
         copy_id = misc.uuid()
         dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")

@@ -70,7 +70,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                   # entries whose value has the given account_id.
             cb    : required
         @_query
-            query  : "SELECT * FROM #{opts.log}"
+            query  : "SELECT  FROM #{opts.log}"
             where  :
                 'time  >= $::TIMESTAMP' : opts.start
                 'time  <= $::TIMESTAMP' : opts.end

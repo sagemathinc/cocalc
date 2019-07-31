@@ -1145,6 +1145,7 @@ class exports.Client extends EventEmitter
                                 backup            : mesg.backup
                                 timeout           : mesg.timeout
                                 exclude_history   : mesg.exclude_history
+                                dedup_seconds     : mesg.dedup_seconds
                                 cb                : cb
         ], (err) =>
             if err

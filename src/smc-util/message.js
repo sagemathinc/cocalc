@@ -1738,6 +1738,10 @@ API(
       exclude_history: {
         init: false,
         desc: "if true, exclude all files of the form `*.sage-history`"
+      },
+      dedup_seconds: {
+        init: 30,
+        desc: "If you try to do exactly the same copy request again within this amount of time, it reuses the existing result.  This is important since POST requests can timeout in 7s, but a copy may take longer, so you could think that the copy keeps failing (due to the timeout), so you keep retrying, but in fact it is succeeding.  This is only used by the Kubernetes backend."
       }
     },
     desc: `\
