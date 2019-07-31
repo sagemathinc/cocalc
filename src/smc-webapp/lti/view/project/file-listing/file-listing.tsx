@@ -14,6 +14,7 @@ interface Props {
   opened_directories: Set<string>;
   selected_entries: Set<string>;
   excluded_entries: Set<string>;
+  is_root?: boolean;
   dispatch: (action: Action) => void;
 }
 
@@ -26,6 +27,7 @@ export function FileListing(props: Props) {
     opened_directories,
     selected_entries,
     excluded_entries,
+    is_root = true,
     dispatch
   } = props;
 
@@ -100,7 +102,9 @@ export function FileListing(props: Props) {
     let sub_listing;
 
     if (is_directory && opened_directories.has(full_path)) {
-      sub_listing = <FileListing {...props} working_directory={full_path} />;
+      sub_listing = (
+        <FileListing {...props} working_directory={full_path} is_root={false} />
+      );
     }
 
     return (
@@ -148,14 +152,16 @@ export function FileListing(props: Props) {
   });
 
   return (
-    <ListingWrapper>
+    <ListingWrapper indent={!is_root}>
       {rows.length > 0 ? rows : <>Nothing here!</>}
     </ListingWrapper>
   );
 }
 
 const ListingWrapper = styled.div`
-  margin-left: 10px;
+  margin-left: ${p => {
+    return p.indent ? "15px" : "5px";
+  }};
 `;
 
 function DirectoryToggle({
