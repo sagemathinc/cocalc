@@ -1153,6 +1153,81 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
         )
 
+    mesg_copy_path_status: (mesg) =>
+        dbg = @dbg('mesg_copy_path_status')
+        if not mesg.copy_path_id?
+            @error_to_client(id:mesg.id, error:"'copy_path_id' (UUID) of a copy operation must be defined")
+            return
+        locals =
+            copy_op : undefined
+        async.series([
+            # get the info
+            (cb) =>
+                {one_result} = require('./postgres')
+                @database._query
+                    query : "SELECT * FROM copy_paths"
+                    where : "id = $::UUID" : mesg.copy_path_id
+                    cb    : one_result (err, x) =>
+                        if err?
+                            cb(err)
+                        else
+                            locals.copy_op = x
+                            dbg("copy_op=#{misc.to_json(locals.copy_op)}")
+                            cb()
+
+            (cb) =>
+                # now we prevent someone who was kicked out of a project to check the copy status
+                target_project_id = locals.copy_op.target_project_id
+                source_project_id = locals.copy_op.source_project_id
+                async.parallel([
+                    (cb) =>
+                        access.user_has_read_access_to_project
+                            project_id     : source_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            database       : @database
+                            cb             : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("ACCESS BLOCKED -- No read access to source project of this copy operation")
+                                else
+                                    cb()
+                    (cb) =>
+                        access.user_has_write_access_to_project
+                            database       : @database
+                            project_id     : target_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb             : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("ACCESS BLOCKED -- No write access to target project of this copy operation")
+                                else
+                                    cb()
+                ], cb)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                # be explicit about what we return
+                data =
+                    time               : locals.copy_op.time
+                    source_project_id  : locals.copy_op.source_project_id
+                    source_path        : locals.copy_op.source_path
+                    target_project_id  : locals.copy_op.target_project_id
+                    target_path        : locals.copy_op.target_path
+                    overwrite_newer    : locals.copy_op.overwrite_newer
+                    delete_missing     : locals.copy_op.delete_missing
+                    backup             : locals.copy_op.backup
+                    started            : locals.copy_op.started
+                    finished           : locals.copy_op.finished
+                    error              : locals.copy_op.error
+
+                @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))
+        )
+
     mesg_local_hub: (mesg) =>
         ###
         Directly communicate with the local hub.  If the
