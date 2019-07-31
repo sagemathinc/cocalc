@@ -35,7 +35,7 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, Space, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, SearchInput, Space, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -65,6 +65,7 @@ ChatRoom = rclass ({name}) ->
             saved_mesg         : rtypes.string
             use_saved_position : rtypes.bool
             add_collab         : rtypes.bool
+            search             : rtypes.string
         users :
             user_map : rtypes.immutable
         account :
@@ -208,6 +209,15 @@ ChatRoom = rclass ({name}) ->
         # E.g, this is critical for taks lists...
         @props.redux.getActions('page').erase_active_key_handler()
 
+    render_search: ->
+        return <SearchInput
+            placeholder={"Find messages..."}
+            default_value={this.props.search}
+            on_change={underscore.debounce(((value) => @props.actions.setState({ search: value })),500)}
+            style={{ margin: 0 }}
+        />
+
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -227,6 +237,7 @@ ChatRoom = rclass ({name}) ->
              onFocus     = {@on_focus}
              >
             {@render_project_users()}
+            {@render_search()}
             <div className="smc-vfill"
                  ref     = 'log_container'
                  onScroll= {@on_scroll}
@@ -240,7 +251,9 @@ ChatRoom = rclass ({name}) ->
                     font_size    = {@props.font_size}
                     file_path    = {if @props.path? then misc.path_split(@props.path).head}
                     actions      = {@props.actions}
-                    show_heads   = {false} />
+                    show_heads   = {false}
+                    search       = {@props.search}
+                />
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <div style={display:'flex', height:'6em'}>
