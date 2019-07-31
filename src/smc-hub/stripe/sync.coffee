@@ -19,6 +19,7 @@ exports.stripe_sync = (opts) ->
         database  : required
         target    : undefined
         limit     : 1  # number at once -- stripe will kick us out due to exceeding rate limit thresh if this is bigger than 1...
+        delay     : 10 # ms, additional delay to avoid rate limiting
         cb        : undefined
 
     dbg = (m) -> opts.logger?.debug("stripe_sync: #{m}")
@@ -57,7 +58,9 @@ exports.stripe_sync = (opts) ->
                     account_id  : x.account_id
                     stripe      : stripe
                     customer_id : x.stripe_customer_id
-                    cb          : cb
+                    cb          : (err) ->
+                        # rate limiting
+                        setTimeout(cb, opts.delay)
             async.mapLimit(users, opts.limit, f, cb)
     ], (err) ->
         if err
