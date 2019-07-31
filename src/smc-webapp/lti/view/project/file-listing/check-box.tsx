@@ -1,14 +1,26 @@
 import * as React from "react";
+import { assert_never } from "../../../helpers";
 
-interface Props {
-  checked: boolean;
-  on_click: (checked: boolean) => void;
+export enum Mark {
+  check,
+  slash,
+  empty
 }
 
-export function CheckBox({ checked, on_click }: Props) {
-  if (checked) {
-    return <span onClick={() => on_click(checked)}>☑</span>;
-  } else {
-    return <span onClick={() => on_click(checked)}>☐</span>;
+interface Props {
+  fill: Mark;
+  on_click: (fill: Mark) => void;
+}
+
+export function CheckBox({ fill, on_click }: Props) {
+  switch (fill) {
+    case Mark.check:
+      return <span onClick={() => on_click(fill)}>☑</span>;
+    case Mark.slash:
+      return <span onClick={() => on_click(fill)}>⧅</span>;
+    case Mark.empty:
+      return <span onClick={() => on_click(fill)}>☐</span>;
+    default:
+      return assert_never(fill);
   }
 }

@@ -5,7 +5,7 @@ import styled from "styled-components";
 import * as API from "../../../api";
 import { Action } from "../../../state/types";
 import { ItemRow } from "./item-row";
-import { CheckBox } from "./check-box";
+import { CheckBox, Mark } from "./check-box";
 
 interface Props {
   project_id: string;
@@ -57,7 +57,8 @@ export function FileListing(props: Props) {
   if (file_listings && file_listings[working_directory]) {
     on_click = path => {
       const full_path = working_directory + path;
-      if (path[path.length - 1] === "/") {
+      const is_directory = path[path.length - 1] === "/";
+      if (is_directory) {
         if (opened_directories.has(full_path)) {
           dispatch({ type: "close_directory", path: full_path, project_id });
         } else {
@@ -85,7 +86,7 @@ export function FileListing(props: Props) {
       }
     };
   } else {
-    return <>Loading...</>;
+    return <ListingWrapper indent={!is_root}>Loading...</ListingWrapper>;
   }
 
   // Filter out hidden items
@@ -99,7 +100,16 @@ export function FileListing(props: Props) {
       !excluded_entries.has(full_path) &&
       (this_directory_is_selected || selected_entries.has(full_path));
     const is_directory = path[path.length - 1] === "/";
+    const has_selected_descendants =
+      selected_entries.filter(entry => entry.startsWith(full_path)).size > 0;
     let sub_listing;
+
+    let box_state = Mark.empty
+    if (is_selected) {
+      box_state = Mark.check
+    } else if (has_selected_descendants) {
+      box_state = Mark.slash
+    }
 
     if (is_directory && opened_directories.has(full_path)) {
       sub_listing = (
@@ -110,9 +120,9 @@ export function FileListing(props: Props) {
     return (
       <ItemRow role={"button"} highlight={is_selected} key={path}>
         <CheckBox
-          checked={is_selected}
-          on_click={checked => {
-            if (checked) {
+          fill={box_state}
+          on_click={fill => {
+            if (fill == Mark.check || fill == Mark.slash) {
               on_deselect(path);
             } else {
               on_select(path);
@@ -122,20 +132,8 @@ export function FileListing(props: Props) {
         {is_directory && (
           <DirectoryToggle
             is_open={opened_directories.has(full_path)}
-            on_click={is_open => {
-              if (is_open) {
-                dispatch({
-                  type: "close_directory",
-                  path: full_path,
-                  project_id
-                });
-              } else {
-                dispatch({
-                  type: "open_directory",
-                  path: full_path,
-                  project_id
-                });
-              }
+            on_click={_ => {
+              on_click(path);
             }}
           />
         )}
@@ -169,28 +167,12 @@ function DirectoryToggle({
   on_click
 }: {
   is_open: boolean;
-  on_click: (is_open: boolean) => void;
+  on_click: (e) => void;
 }) {
   if (is_open) {
-    return (
-      <span
-        onClick={() => {
-          on_click(is_open);
-        }}
-      >
-        ▼{" "}
-      </span>
-    );
+    return <span onClick={on_click}>▼ </span>;
   } else {
-    return (
-      <span
-        onClick={() => {
-          on_click(is_open);
-        }}
-      >
-        ►{" "}
-      </span>
-    );
+    return <span onClick={on_click}>► </span>;
   }
 }
 
