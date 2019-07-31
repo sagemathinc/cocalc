@@ -91,34 +91,41 @@ function selected_entries_reducer(
   const selected_project_entries = selected_entries[project_id] || Set();
   const excluded_project_entries = excluded_entries[project_id] || Set();
 
-  let results: {
-    selected_entries: SelectedEntries;
-    excluded_entries: ExcludedEntries;
-  } = { selected_entries, excluded_entries };
-
   switch (action.type) {
     case "add_entry":
-      results.selected_entries = {
-        ...selected_entries,
-        [project_id]: selected_project_entries.add(path)
+      const exclusions_without_descendants = excluded_project_entries.filter(
+        possible_descendant => {
+          return !possible_descendant.startsWith(path);
+        }
+      );
+
+      return {
+        selected_entries: {
+          ...selected_entries,
+          [project_id]: selected_project_entries.add(path)
+        },
+        excluded_entries: {
+          ...excluded_entries,
+          [project_id]: exclusions_without_descendants
+        }
       };
-      results.excluded_entries = {
-        ...excluded_entries,
-        [project_id]: excluded_project_entries.remove(path)
-      };
-      break;
     case "remove_entry":
-      results.selected_entries = {
-        ...selected_entries,
-        [project_id]: selected_project_entries.remove(path)
+      const entries_without_descendants = selected_project_entries.filter(
+        possible_descendant => {
+          return !possible_descendant.startsWith(path);
+        }
+      );
+      return {
+        selected_entries: {
+          ...selected_entries,
+          [project_id]: entries_without_descendants
+        },
+        excluded_entries: {
+          ...excluded_entries,
+          [project_id]: excluded_project_entries.add(path)
+        }
       };
-      results.excluded_entries = {
-        ...excluded_entries,
-        [project_id]: excluded_project_entries.add(path)
-      };
-      break;
     default:
       return assert_never(action);
   }
-  return results;
 }
