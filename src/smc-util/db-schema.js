@@ -1998,6 +1998,30 @@ schema.user_tracking = {
   }
 };
 
+// Kucalc's Dedicated VMs -- not exposed to users
+schema.dedicated_vms = {
+  primary_key: ["id"],
+  fields: {
+    id: {
+      type: "string",
+      desc: "short unique identifier, lowercase [a-z0-9]+"
+    },
+    spec: {
+      type: "map",
+      desc: "specification: cluster specific shorthand like {'spec':'n1-standard-4'} or {'cores': 10, 'memory': 16} (mem in GB)"
+    },
+    preempt: {
+      type: "boolean",
+      desc:
+        "if true, select preemptible type (or a similar low-class hosting to reduce costs). default: false"
+    },
+    amount: {
+      type: "integer",
+      desc: "number of nodes. default: 1"
+    }
+  }
+};
+
 // Client side versions of some db functions, which are used, e.g., when setting fields.
 const sha1 = require("sha1");
 class ClientDB {
