@@ -8,5 +8,7 @@ export const initial_global_state: GlobalState = {
   opened_project_id: "",
   file_listings: {},
   current_path: "",
-  selected_entries: {}
+  opened_directories: {},
+  selected_entries: {},
+  excluded_entries: {}
 };

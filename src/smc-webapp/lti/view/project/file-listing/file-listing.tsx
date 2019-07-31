@@ -1,62 +1,210 @@
 import * as React from "react";
 import { Set } from "immutable";
+import styled from "styled-components";
 
+import * as API from "../../../api";
+import { Action } from "../../../state/types";
 import { ItemRow } from "./item-row";
 import { CheckBox } from "./check-box";
 
 interface Props {
-  listing: string[];
-  current_directory: string;
+  project_id: string;
+  working_directory: string;
+  file_listings: { [key: string]: string[] }; // Path: Children[]
+  opened_directories: Set<string>;
   selected_entries: Set<string>;
-  on_path_click: (path: string) => void;
-  on_select: (path: string) => void;
-  on_deselect: (path: string) => void;
+  excluded_entries: Set<string>;
+  dispatch: (action: Action) => void;
 }
 
-export function FileListing({
-  listing,
-  current_directory,
-  selected_entries,
-  on_path_click,
-  on_select,
-  on_deselect
-}: Props) {
-  let is_ancestor_selected = false;
-  current_directory.split("/").reduce((ancestor, folder) => {
-    if (selected_entries.has(ancestor + "/")) {
-      is_ancestor_selected = true;
-    }
-    return ancestor + "/" + folder;
+// Recursively renders a directory listing and any opened sub-directories
+export function FileListing(props: Props) {
+  const {
+    project_id,
+    working_directory,
+    file_listings,
+    opened_directories,
+    selected_entries,
+    excluded_entries,
+    dispatch
+  } = props;
+
+  let this_directory_is_selected = is_implicitly_included(
+    working_directory,
+    selected_entries,
+    excluded_entries
+  );
+  const on_select = path => {
+    dispatch({
+      type: "add_entry",
+      project_id: project_id,
+      path: working_directory + path
+    });
+  };
+  const on_deselect = path => {
+    dispatch({
+      type: "remove_entry",
+      project_id: project_id,
+      path: working_directory + path
+    });
+  };
+
+  let on_click = _ => {};
+
+  // Set onClick
+  if (file_listings && file_listings[working_directory]) {
+    on_click = path => {
+      const full_path = working_directory + path;
+      if (path[path.length - 1] === "/") {
+        if (opened_directories.has(full_path)) {
+          dispatch({ type: "close_directory", path: full_path, project_id });
+        } else {
+          dispatch({ type: "open_directory", path: full_path, project_id });
+        }
+        API.fetch_directory_listing(
+          project_id,
+          working_directory + path,
+          dispatch
+        );
+      } else {
+        if (selected_entries.has(full_path)) {
+          dispatch({
+            type: "remove_entry",
+            project_id: project_id,
+            path: full_path
+          });
+        } else {
+          dispatch({
+            type: "add_entry",
+            project_id: project_id,
+            path: full_path
+          });
+        }
+      }
+    };
+  } else {
+    return <>Loading...</>;
+  }
+
+  // Filter out hidden items
+  const listing = file_listings[working_directory].filter(path => {
+    return path[0] !== "." && path !== "";
   });
+
   const rows: JSX.Element[] = listing.map(path => {
+    const full_path = working_directory + path;
     const is_selected =
-      is_ancestor_selected || selected_entries.has(current_directory + path);
+      !excluded_entries.has(full_path) &&
+      (this_directory_is_selected || selected_entries.has(full_path));
+    const is_directory = path[path.length - 1] === "/";
+    let sub_listing;
+
+    if (is_directory && opened_directories.has(full_path)) {
+      sub_listing = <FileListing {...props} working_directory={full_path} />;
+    }
+
     return (
       <ItemRow role={"button"} highlight={is_selected} key={path}>
-        {is_ancestor_selected ? (
-          <>🔒</>
-        ) : (
-          <CheckBox
-            checked={is_selected}
-            on_click={checked => {
-              if (checked) {
-                on_deselect(path);
+        <CheckBox
+          checked={is_selected}
+          on_click={checked => {
+            if (checked) {
+              on_deselect(path);
+            } else {
+              on_select(path);
+            }
+          }}
+        />{" "}
+        {is_directory && (
+          <DirectoryToggle
+            is_open={opened_directories.has(full_path)}
+            on_click={is_open => {
+              if (is_open) {
+                dispatch({
+                  type: "close_directory",
+                  path: full_path,
+                  project_id
+                });
               } else {
-                on_select(path);
+                dispatch({
+                  type: "open_directory",
+                  path: full_path,
+                  project_id
+                });
               }
             }}
           />
-        )}{" "}
+        )}
         <span
           onClick={() => {
-            on_path_click(path);
+            on_click(path);
           }}
         >
           {path}
         </span>
+        {sub_listing}
       </ItemRow>
     );
   });
 
-  return <>{rows.length > 0 ? rows : <>Nothing here!</>}</>;
+  return (
+    <ListingWrapper>
+      {rows.length > 0 ? rows : <>Nothing here!</>}
+    </ListingWrapper>
+  );
+}
+
+const ListingWrapper = styled.div`
+  margin-left: 10px;
+`;
+
+function DirectoryToggle({
+  is_open,
+  on_click
+}: {
+  is_open: boolean;
+  on_click: (is_open: boolean) => void;
+}) {
+  if (is_open) {
+    return (
+      <span
+        onClick={() => {
+          on_click(is_open);
+        }}
+      >
+        ▼{" "}
+      </span>
+    );
+  } else {
+    return (
+      <span
+        onClick={() => {
+          on_click(is_open);
+        }}
+      >
+        ►{" "}
+      </span>
+    );
+  }
+}
+
+// Assumes included and excluded are mutually exclusive
+// Returns the inclusion/exclusion status of the youngest parent
+function is_implicitly_included(
+  child_path: string,
+  included: Set<string>,
+  excluded: Set<string>
+) {
+  let is_selected = false;
+
+  child_path.split("/").reduce((ancestor, folder) => {
+    if (included.has(ancestor + "/")) {
+      is_selected = true;
+    } else if (excluded.has(ancestor + "/")) {
+      is_selected = false;
+    }
+    return ancestor + "/" + folder;
+  });
+
+  return is_selected;
 }

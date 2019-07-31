@@ -62,11 +62,13 @@ function App() {
       case Route.Project:
         content = (
           <ProjectContainer
-            projects={state.projects}
             project_id={state.opened_project_id}
-            file_listings={state.file_listings[state.opened_project_id]}
+            projects={state.projects}
             current_path={state.current_path}
+            file_listings={state.file_listings[state.opened_project_id]}
+            opened_directories={state.opened_directories[state.opened_project_id]}
             selected_entries={state.selected_entries[state.opened_project_id]}
+            excluded_entries={state.excluded_entries[state.opened_project_id]}
             dispatch={dispatch}
           />
         );
