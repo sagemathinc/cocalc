@@ -6,6 +6,7 @@ import * as API from "../../../api";
 import { Action } from "../../../state/types";
 import { ItemRow } from "./item-row";
 import { CheckBox, Mark } from "./check-box";
+import { DirectoryToggle } from "./directory-toggle";
 
 interface Props {
   project_id: string;
@@ -31,90 +32,69 @@ export function FileListing(props: Props) {
     dispatch
   } = props;
 
+  if (!file_listings || !file_listings[working_directory]) {
+    return <ListingWrapper indent={!is_root}>Loading...</ListingWrapper>;
+  }
+
   let this_directory_is_selected = is_implicitly_included(
     working_directory,
     selected_entries,
     excluded_entries
   );
+
   const on_select = path => {
     dispatch({
       type: "add_entry",
-      project_id: project_id,
-      path: working_directory + path
+      project_id,
+      path
     });
   };
+
   const on_deselect = path => {
     dispatch({
       type: "remove_entry",
-      project_id: project_id,
-      path: working_directory + path
+      project_id,
+      path
     });
   };
 
-  let on_click = _ => {};
+  const on_file_click = (path: string, is_checked) => {
+    if (is_checked) {
+      on_deselect(path);
+    } else {
+      on_select(path);
+    }
+  };
 
-  // Set onClick
-  if (file_listings && file_listings[working_directory]) {
-    on_click = path => {
-      const full_path = working_directory + path;
-      const is_directory = path[path.length - 1] === "/";
-      if (is_directory) {
-        if (opened_directories.has(full_path)) {
-          dispatch({ type: "close_directory", path: full_path, project_id });
-        } else {
-          dispatch({ type: "open_directory", path: full_path, project_id });
-        }
-        API.fetch_directory_listing(
-          project_id,
-          working_directory + path,
-          dispatch
-        );
-      } else {
-        if (selected_entries.has(full_path)) {
-          dispatch({
-            type: "remove_entry",
-            project_id: project_id,
-            path: full_path
-          });
-        } else {
-          dispatch({
-            type: "add_entry",
-            project_id: project_id,
-            path: full_path
-          });
-        }
-      }
-    };
-  } else {
-    return <ListingWrapper indent={!is_root}>Loading...</ListingWrapper>;
-  }
+  const on_directory_click = (path: string, is_open: boolean) => {
+    if (is_open) {
+      dispatch({ type: "close_directory", path: path, project_id });
+    } else {
+      dispatch({ type: "open_directory", path: path, project_id });
+      API.fetch_directory_listing(project_id, path, dispatch);
+    }
+  };
 
   // Filter out hidden items
-  const listing = file_listings[working_directory].filter(path => {
-    return path[0] !== "." && path !== "";
+  const listing = file_listings[working_directory].filter(item_name => {
+    return item_name[0] !== "." && item_name !== "";
   });
 
-  const rows: JSX.Element[] = listing.map(path => {
-    const full_path = working_directory + path;
-    const is_selected =
-      !excluded_entries.has(full_path) &&
-      (this_directory_is_selected || selected_entries.has(full_path));
+  const rows: JSX.Element[] = listing.map(item_name => {
+    const path = working_directory + item_name;
     const is_directory = path[path.length - 1] === "/";
+    const is_open = opened_directories.has(path);
+    const is_selected =
+      !excluded_entries.has(path) &&
+      (this_directory_is_selected || selected_entries.has(path));
     const has_selected_descendants =
-      selected_entries.filter(entry => entry.startsWith(full_path)).size > 0;
-    let sub_listing;
+      selected_entries.filter(entry => entry.startsWith(path)).size > 0;
 
-    let box_state = Mark.empty
+    let box_state = Mark.empty;
     if (is_selected) {
-      box_state = Mark.check
+      box_state = Mark.check;
     } else if (has_selected_descendants) {
-      box_state = Mark.slash
-    }
-
-    if (is_directory && opened_directories.has(full_path)) {
-      sub_listing = (
-        <FileListing {...props} working_directory={full_path} is_root={false} />
-      );
+      box_state = Mark.slash;
     }
 
     return (
@@ -131,20 +111,26 @@ export function FileListing(props: Props) {
         />{" "}
         {is_directory && (
           <DirectoryToggle
-            is_open={opened_directories.has(full_path)}
+            is_open={is_open}
             on_click={_ => {
-              on_click(path);
+              on_directory_click(path, is_open);
             }}
           />
         )}
         <span
           onClick={() => {
-            on_click(path);
+            if (is_directory) {
+              on_directory_click(path, is_open);
+            } else {
+              on_file_click(path, is_selected);
+            }
           }}
         >
-          {path}
+          {item_name}
         </span>
-        {sub_listing}
+        {is_directory && opened_directories.has(path) && (
+          <FileListing {...props} working_directory={path} is_root={false} />
+        )}
       </ItemRow>
     );
   });
@@ -161,20 +147,6 @@ const ListingWrapper = styled.div`
     return p.indent ? "15px" : "5px";
   }};
 `;
-
-function DirectoryToggle({
-  is_open,
-  on_click
-}: {
-  is_open: boolean;
-  on_click: (e) => void;
-}) {
-  if (is_open) {
-    return <span onClick={on_click}>▼ </span>;
-  } else {
-    return <span onClick={on_click}>► </span>;
-  }
-}
 
 // Assumes included and excluded are mutually exclusive
 // Returns the inclusion/exclusion status of the youngest parent
