@@ -26,10 +26,6 @@ $.get = function() {};
 console.log("render react static pages: loading cocalc frontend library...");
 const static_react_pages = [
   [
-    require("./policies/accessibility").render_static(),
-    "policies/_accessibility.html"
-  ],
-  [
     require("./billing.cjsx").render_static_pricing_page(),
     "policies/_static_pricing_page.html"
   ],

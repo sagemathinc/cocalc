@@ -1105,7 +1105,7 @@ schema.projects = {
     storage_ready: {
       type: "boolean",
       desc:
-        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true."
+        "(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices that run is true."
     },
     disk_size: {
       type: "integer",
@@ -1392,6 +1392,11 @@ schema.public_paths = {
       type: "map",
       desc:
         "Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)"
+    },
+    token: {
+      type: "string",
+      desc:
+        "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares."
     }
   },
 
@@ -1429,7 +1434,7 @@ schema.public_paths = {
         description: true,
         disabled: true,
         unlisted: true,
-        license:true,
+        license: true,
         last_edited: true,
         created: true
       },
@@ -1497,6 +1502,10 @@ schema.copy_paths = {
       type: "number",
       desc:
         "fail if the transfer itself takes longer than this number of seconds (passed to rsync)"
+    },
+    scheduled: {
+      type: "timestamp",
+      desc: "earliest time in the future, when the copy request should start (or null, for immediate execution)"
     },
     started: {
       type: "timestamp",

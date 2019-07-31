@@ -33,14 +33,8 @@ exports.MinToggle = rclass
             return <span/>
         toggle = @render_toggle()
         if @props.has_body
-            if @props.full_desc
-                title = 'Show only up to first blank line'
-            else
-                title = 'Show full description'
-            <Tip title={title} delayShow={1000}>
-                <span onClick={@toggle_state} style={fontSize:'17pt', color:'#888', float:'right'}>
-                    {toggle}
-                </span>
-            </Tip>
+            <span onClick={@toggle_state} style={fontSize:'17pt', color:'#888', float:'right'}>
+                {toggle}
+            </span>
         else
             <span />

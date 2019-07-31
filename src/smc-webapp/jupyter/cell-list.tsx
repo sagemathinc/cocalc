@@ -307,6 +307,7 @@ export class CellList extends Component<CellListProps> {
           trust={this.props.trust}
           editable={editable}
           deletable={deletable}
+          nbgrader={cell_data.getIn(["metadata", "nbgrader"])}
         />
       );
       if (this.props.actions != null) {

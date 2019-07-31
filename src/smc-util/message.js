@@ -38,7 +38,7 @@ and customizing the external look and feel of the application.
 
 ## Protocol and Data Format
 
-Each API command is invoked using an HTTPS PUT request.
+Each API command is invoked using an HTTPS POST request.
 All commands support request parameters in JSON format, with request header
 \`Content-Type: application/json\`. Many commands (those that do not
 require lists or objects as parameters)
@@ -1769,6 +1769,28 @@ Folder \`A\` will be created in target project if it does not exist already.
   })
 );
 
+API(
+  message2({
+    event: "copy_path_status",
+    fields: {
+      copy_path_id: {
+        init: undefined,
+        desc: "A unique UUID for a copy path operation"
+      }
+    },
+    desc: `\
+Retrieve status information about a copy operation for the given ID,
+which was returned by \`copy_path_between_projects\` earlier.
+`
+  })
+);
+
+message({
+  event: "copy_path_status_response",
+  id: required,
+  data: required
+});
+
 //############################################
 // Admin Functionality
 //############################################
@@ -2786,6 +2808,7 @@ API(
       }
     },
     desc: `\
+.. index:: pair: Token; Authentication
 Example:
 
 Obtain a temporary authentication token for an account, which

@@ -3,7 +3,9 @@ import { Component, React, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 
 const { User } = require("../users");
-const { r_join, Icon, TimeAgo } = require("../r_misc");
+const { TimeAgo } = require("../r_misc");
+import { r_join } from "../r_misc/r_join";
+import { Icon } from "../r_misc/icon";
 
 import { FileUseIcon } from "./icon";
 
@@ -48,7 +50,7 @@ export class FileUseInfo extends Component<Props, {}> {
     );
   }
 
-  render_users(): Rendered {
+  render_users(): Rendered[] | undefined {
     if (this.props.info.get("users") == null) return;
     const v: Rendered[] = [];
     // only list users who have actually done something aside from mark read/seen this file

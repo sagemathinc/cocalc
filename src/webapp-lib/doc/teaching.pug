@@ -24,11 +24,12 @@ block content
     div.row.intro#top
       div.col-sm-2.col-sm-offset-5.center
         img(src="https://storage.googleapis.com/cocalc-extra/fa-graduation-cap.svg").fit
-      div.col-md-12.center
+      div.col-sm-12.center
         h1 #{subtitle}
+      div.col-sm-12.center
         h3 A virtual online computer lab
       div.col-sm-6
-        img(src="https://storage.googleapis.com/cocalc-extra/cocalc-course-assignments-2019.png").fit
+        img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-course-assignments-2019.png").fit
       div.col-sm-6
         p.
           #[strong #{NAME} moves an entire computer lab into the cloud].
@@ -58,7 +59,7 @@ block content
           h1 Teaching a course online
         div.col-sm-6
           div
-            img(src="https://storage.googleapis.com/cocalc-extra/cocalc-teaching.svg.png").fit
+            img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-teaching.svg.png").fit
         div.col-sm-6
           p.
             Have you experienced the pain of setting up the software environments for your students?
@@ -104,7 +105,7 @@ block content
         div.row
           div.col-sm-4.col-sm-offset-4.center
             a(href="./jupyter-notebook.html")
-              img(src=require("webapp-lib/assets/jupyter-logo.svg")).fit
+              img(data-src=require("webapp-lib/assets/jupyter-logo.svg")).fit
         h3.center.
           #[a(href="./jupyter-notebook.html") Jupyter Notebooks]
         p.
@@ -118,7 +119,7 @@ block content
         div.row
           div.col-sm-4.col-sm-offset-4.center
             a(href="https://doc.cocalc.com/sagews.html")
-              img(src="http://www.sagemath.org/pix/sage-sticker-1x1_inch-small.png").fit
+              img(data-src="http://www.sagemath.org/pix/sage-sticker-1x1_inch-small.png").fit
         h3.center.
           #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets]
         p.
@@ -130,7 +131,7 @@ block content
         div.row
           div.col-sm-6.col-sm-offset-3.center
             a(href="./latex-editor.html")
-              img(src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit
+              img(data-src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit
         h3.center.
           #[a(href="./latex-editor.html") LaTeX Documents]
         p.
@@ -143,7 +144,7 @@ block content
         div.row
           div.col-sm-4.col-sm-offset-4.center
             a(href="./terminal.html")
-              img(src=require("webapp-lib/assets/linux-logo.svg")).fit
+              img(data-src=require("webapp-lib/assets/linux-logo.svg")).fit
         h3.center.
           #[a(href="./terminal.html") Full Linux Terminal]
         p.

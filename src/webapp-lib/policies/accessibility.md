@@ -1,21 +1,11 @@
-import { React } from "../app-framework";
 
-import { markdown_to_html } from "../markdown";
-
-
-export function render_static() {
-  const __html: string = markdown_to_html(value);
-  return <div dangerouslySetInnerHTML={{ __html }} />;
-}
-
-const value = `
-# CoCalc Voluntary Product Accessibility Template (VPAT)
+## CoCalc Voluntary Product Accessibility Template (VPAT)
 
 The data below is valid on the date provided: 3 July 2019.
 
 For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 
-## Summary
+### Summary
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -29,7 +19,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | [Section 1194.41 Information, Documentation and Support](#section-119441-information-documentation-and-support) | Supports | Documentation is freely available to all users via our online user manual and support is available through the CoCalc UI and via email. |
 
 
-## Section 1194.21 Software Applications and Operating Systems
+### Section 1194.21 Software Applications and Operating Systems
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -47,7 +37,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (l) When electronic forms are used, the form shall allow people using Assistive Technology to access the information, field elements, and functionality required for completion and submission of the form, including all directions and cues. | Not applicable |  |
 
 
-## Section 1194.22 Web-based Internet information and applications
+### Section 1194.22 Web-based Internet information and applications
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -69,7 +59,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (p) When a timed response is required, the user shall be alerted and given sufficient time to indicate more time is required. | Not applicable | We do not require timed responses. |
 
 
-## Section 1194.23 Telecommunications Products
+### Section 1194.23 Telecommunications Products
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -89,7 +79,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (k)(4) Products which have mechanically operated controls or keys shall comply with the following: The status of all locking or toggle controls or keys shall be visually discernible, and discernible either through touch or sound. | Not applicable |  |
 
 
-## Section 1194.24 Video and Multi-media Products
+### Section 1194.24 Video and Multi-media Products
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -100,7 +90,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (e) Display or presentation of alternate text presentation or audio descriptions shall be user-selectable unless permanent. | Not applicable |  |
 
 
-## Section 1194.25 Self-Contained, Closed Products
+### Section 1194.25 Self-Contained, Closed Products
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -119,7 +109,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (j)(4) Products which are freestanding, non-portable, and intended to be used in one location and which have operable controls shall comply with the following: Operable controls shall not be more than 24 inches behind the reference plane. | Not applicable |  |
 
 
-## Section 1194.26 Desktop and Portable Computers
+### Section 1194.26 Desktop and Portable Computers
 
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
@@ -129,7 +119,7 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (d) Where provided, at least one of each type of expansion slots, ports and connectors shall comply with publicly available industry standards | Not applicable |  |
 
 
-## Section 1194.31 Functional Performance Criteria
+### Section 1194.31 Functional Performance Criteria
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
 | (a) At least one mode of operation and information retrieval that does not require user vision shall be provided, or support for Assistive Technology used by people who are blind or visually impaired shall be provided. | Supports with exceptions | Some top-level controls in the CoCalc UI have focus order, name, role, value, accessible name, and info and relationship issues that may prevent some scenarios from being completed. |
@@ -140,14 +130,13 @@ For more information, contact [help@cocalc.com](mailto:help@cocalc.com).
 | (f) At least one mode of operation and information retrieval that does not require fine motor control or simultaneous actions and that is operable with limited reach and strength shall be provided. | Supports with exceptions | The majority of content is accessible via keyboard. Mouse interactions necessary for some features. |
 
 
-## Section 1194.41 Information, Documentation and Support
+### Section 1194.41 Information, Documentation and Support
 | Criteria | Supporting features | Remarks and explanations |
 | -------- | ------------------- | ------------------------ |
 | (a) Product support documentation provided to end-users shall be made available in alternate formats upon request, at no additional charge | Supports | Information available on the CoCalc wiki and online user manual website can be requested for free by contacting support. |
 | (b) End-users shall have access to a description of the accessibility and compatibility features of products in alternate formats or alternate methods upon request, at no additional charge. | Supports | See the CoCalc Accessibility Statement [https://github.com/sagemathinc/cocalc/wiki/AccessibilityStatement](https://github.com/sagemathinc/cocalc/wiki/AccessibilityStatement), which is linked from our online user manual. |
 | (c) Support services for products shall accommodate the communication needs of end-users with disabilities. | Supports | The page outlining our approach to accessibility can be read by assistive technologies.  Additional information can be requested via email to help@cocalc.com.
 
-## Legal Disclaimer (Sagemath, Inc.)
+### Legal Disclaimer (Sagemath, Inc.)
 
 This document is provided for information purposes only and the contents hereof are subject to change without notice. Sagemath, Inc. does not warrant that this document is error free, nor does it provide any other warranties or conditions, whether expressed orally or implied in law, including implied warranties and conditions of merchantability or fitness for a particular purpose. Sagemath, Inc. specifically disclaims any liability with respect to this document and no contractual obligations are formed either directly or indirectly by this document. Sagemath, Inc. further makes no representation concerning the ability of assistive technologies or other products to interoperate with Sagemath, Inc. products. This document addresses the named product(s) or platforms only.
-`;

@@ -22,6 +22,7 @@ interface DirectoryListingProps {
   viewer: string;
   path: string;
   hidden?: boolean; // // if true, show hidden dot files (will be controlled by a query param)
+  views?: number;
 }
 
 export class DirectoryListing extends Component<DirectoryListingProps> {
@@ -61,7 +62,12 @@ export class DirectoryListing extends Component<DirectoryListingProps> {
     }
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <PublicPathInfo path={this.props.path} info={this.props.info} isdir={true} />
+        <PublicPathInfo
+          path={this.props.path}
+          info={this.props.info}
+          isdir={true}
+          views={this.props.views}
+        />
         <div
           style={{ margin: "15px 30px", background: "white", overflow: "auto" }}
         >

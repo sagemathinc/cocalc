@@ -21,6 +21,8 @@ require('./redux_server_stats')
 # Systemwide notifications that are broadcast to all users (or set by admins)
 require('./system_notifications')
 
+require('./landing-actions')
+
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
