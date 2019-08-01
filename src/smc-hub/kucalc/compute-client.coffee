@@ -389,6 +389,7 @@ class Project extends EventEmitter
             exclude_history   : undefined
             timeout           : undefined
             bwlimit           : undefined
+            wait_until_done   : 'true'  # by default, wait until done. false only gives the ID to query the status later
             cb                : undefined
         if not opts.target_project_id
             opts.target_project_id = @project_id
@@ -430,20 +431,24 @@ class Project extends EventEmitter
                     # but just in case, logically we have to check this case.
                     cb()
                     return
-                dbg('waiting for copy to finish...')
-                handle_change = =>
-                    obj = synctable.get(copy_id)
-                    if obj?.get('started')
-                        dbg("copy started...")
-                    if obj?.get('finished')
-                        dbg("copy finished!")
-                        synctable.removeListener('change', handle_change)
-                        cb(obj.get('error'))
-                synctable.on('change', handle_change)
+                if opts.wait_until_done === 'true'
+                    dbg('waiting for copy to finish...')
+                    handle_change = =>
+                        @active()
+                        obj = synctable.get(copy_id)
+                        if obj?.get('started')
+                            dbg("copy started...")
+                        if obj?.get('finished')
+                            dbg("copy finished!")
+                            synctable.removeListener('change', handle_change)
+                            cb(obj.get('error'))
+                    synctable.on('change', handle_change)
+                else
+                    cb()
         ], (err) =>
             @active()
             dbg('done', err)
-            opts.cb?(err)
+            opts.cb?(err, copy_id)
         )
 
     directory_listing: (opts) =>

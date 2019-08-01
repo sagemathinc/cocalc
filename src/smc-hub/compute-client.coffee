@@ -1969,7 +1969,7 @@ class ProjectClient extends EventEmitter
         ], (err) =>
             if err
                 dbg("error -- #{err}")
-            opts.cb(err)
+            opts.cb(err, null)
         )
 
     directory_listing: (opts) =>

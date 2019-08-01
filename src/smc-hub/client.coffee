@@ -1146,11 +1146,14 @@ class exports.Client extends EventEmitter
                                 timeout           : mesg.timeout
                                 exclude_history   : mesg.exclude_history
                                 cb                : cb
-        ], (err) =>
+        ], (err, copy_id) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                @push_to_client(message.success(id:mesg.id))
+                resp = message.copy_path_between_projects_response
+                                                        id           : mesg.id
+                                                        copy_path_id : copy_id
+                @push_to_client(resp)
         )
 
     mesg_copy_path_status: (mesg) =>
@@ -1866,7 +1869,7 @@ class exports.Client extends EventEmitter
                     exclude_history : mesg.exclude_history
                     backup          : mesg.backup
                     cb              : cb
-        ], (err) =>
+        ], (err, copy_id) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
