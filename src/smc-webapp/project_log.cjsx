@@ -88,7 +88,7 @@ LogSearch = rclass
 
     on_change: (value) ->
         @props.reset_cursor()
-        @props.actions.setState(search : value, page : 0)
+        @props.actions.setState(search : value)
 
     render: ->
         <SearchInput
@@ -101,7 +101,7 @@ LogSearch = rclass
             on_submit   = {@open_selected}
             on_up       = {@props.decrement_cursor}
             on_down     = {@props.increment_cursor}
-            on_escape   = {=> @props.actions.setState(search:'', page:0)}
+            on_escape   = {=> @props.actions.setState(search:'')}
         />
 
 selected_item =
@@ -397,8 +397,6 @@ LogMessages = rclass
             {@render_entries()}
         </div>
 
-PAGE_SIZE = 50  # number of entries to show per page (SMELL: move to account settings)
-
 matches = (s, words) ->
     for word in words
         if s.indexOf(word) == -1
@@ -413,7 +411,6 @@ exports.ProjectLog = rclass ({name}) ->
             project_log     : rtypes.immutable
             project_log_all : rtypes.immutable
             search          : rtypes.string
-            page            : rtypes.number
         users :
             user_map    : rtypes.immutable
             get_name    : rtypes.func
@@ -423,7 +420,6 @@ exports.ProjectLog = rclass ({name}) ->
 
     getDefaultProps: ->
         search : ''   # search that user has requested
-        page   : 0
 
     getInitialState: ->
         cursor_index : 0
@@ -432,8 +428,6 @@ exports.ProjectLog = rclass ({name}) ->
         if @state.cursor_index != nextState.cursor_index
             return true
         if @props.search != nextProps.search
-            return true
-        if @props.page != nextProps.page
             return true
         if (not @props.project_log? or not nextProps.project_log?) and (not @props.project_log_all? or not nextProps.project_log_all?)
             return true
@@ -450,12 +444,8 @@ exports.ProjectLog = rclass ({name}) ->
     componentWillReceiveProps: (next) ->
         if not next.user_map? or (not next.project_log? and not next.project_log_all?)
             return
-        if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.user_map, next.user_map) or not immutable.is(@props.project_log_all, next.project_log_all)
-            if next.project_log_all?
-                x = next.project_log_all
-            else
-                x = next.project_log
-            @update_log(x, next.user_map)
+        if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.project_log_all, next.project_log_all) or @props.search != next.search
+            delete @_log
 
     previous_page: ->
         if @props.page > 0
@@ -466,103 +456,47 @@ exports.ProjectLog = rclass ({name}) ->
         @reset_cursor()
         @actions(name).setState(page: @props.page+1)
 
-    search_string: (x) ->  # SMELL: this code is ugly, but can be easily changed here only.
-        v = [@props.get_name(x.account_id)]
-        event = x.event
-        if event?
-            for k,val of event
-                if k != 'event' and k!='filename'
-                    v.push(k)
-                if k == 'type'
-                    continue
-                v.push(val)
-        return v.join(' ').toLowerCase()
+    get_log: () ->
+        if @_log?
+            return @_log
+        v = @props.project_log_all ? @props.project_log
+        if not v?
+            @_log = immutable.List()
+            return @_log
 
-    process_log_entry: (x) ->
-        x.search = @search_string(x)
-        return x
+        v = v.valueSeq()
+        if @props.search
+            @_search_cache ?= {}
+            terms = misc.search_split(@props.search.toLowerCase())
+            names = {}
+            match = (z) =>
+                s = @_search_cache[z.get('id')]
+                if not s?
+                    s = names[z.get('account_id')] ?= @props.get_name(z.get('account_id'))
+                    event = z.get('event')
+                    if event?
+                        event.forEach (val, k) =>
+                            if k != 'event' and k != 'filename'
+                                s += ' ' + k
+                            if k == 'type'
+                                return
+                            s += ' ' + val
+                            return
+                    s = s.toLowerCase()
+                    @_search_cache[z.get('id')] = s
+                return misc.search_match(s, terms)
+            v = v.filter(match)
+        v = v.sort((a,b) => b.get('time') - a.get('time'))
 
-    update_log: (next_project_log, next_user_map) ->
-        if not next_project_log? or not next_user_map?
-            return
-
-        if not immutable.is(next_user_map, @_last_user_map) and @_log?
-            next_user_map.map (val, account_id) =>
-                if not immutable.is(val, @_last_user_map?.get(account_id))
-                    for x in @_log
-                        if x.account_id == account_id
-                            @process_log_entry(x)
-
-        if not immutable.is(next_project_log, @_last_project_log)
-            # The project log changed, so record the new entries
-            # and update any existing entries that changed, e.g.,
-            # timing information added.
-            new_log = []
-            next_project_log.map (val, id) =>
-                e = @_last_project_log?.get(id)
-                if not e?
-                    # new entry we didn't have before
-                    new_log.push(val.toJS())
-                else if not immutable.is(val, e)
-                    # An existing entry changed; this happens
-                    # when files are opened and the total time
-                    # to open gets reported.
-                    id = val.get('id')
-                    # find it in the past log:
-                    for x in @_log
-                        if x.id == id
-                            # and process the change
-                            for k, v of val.toJS()
-                                x[k] = v
-                            @process_log_entry(x)
-                            break
-            if new_log.length > 1
-                new_log = lodash.sortBy(new_log, (el) -> -el.time)
-                # combine redundant subsequent events that differ only by time
-                v = []
-                for i in [1...new_log.length]
-                    x = new_log[i-1]; y = new_log[i]
-                    if x.account_id != y.account_id or not underscore.isEqual(x.event, y.event)
-                        v.push(x)
-                new_log = v
-            # process new log entries (search/name info)
-            new_log = (@process_log_entry(x) for x in new_log)
-
-            # combine logs
-            if @_log?
-                @_log = new_log.concat(@_log)
-            else
-                @_log = new_log
-
-            # save immutable maps we just used
-            @_last_project_log = next_project_log
-            @_last_user_map = next_user_map
-
-        return @_log
-
-    visible_log: ->
-        log = @_log
-        if not log?
-            # first attempt
-            if @props.project_log?
-                x = @props.project_log
-            else
-                x = @props.project_log_all
-            log = @update_log(x, @props.user_map)
-        if not log?
-            return []
-        words = misc.split(@props.search?.toLowerCase())
-        if words.length > 0
-            log = (x for x in log when matches(x.search, words))
-        return log
+        return @_log = v
 
     increment_cursor: ->
-        if @state.cursor_index == Math.min(PAGE_SIZE - 1, @displayed_log_size - 1)
+        if @state.cursor_index >= @get_log().size - 1
             return
         @setState(cursor_index : @state.cursor_index + 1)
 
     decrement_cursor: ->
-        if @state.cursor_index == 0
+        if @state.cursor_index <= 0
             return
         @setState(cursor_index : @state.cursor_index - 1)
 
@@ -599,18 +533,17 @@ exports.ProjectLog = rclass ({name}) ->
         ReactDOM.findDOMNode(input).focus()
 
     row_renderer: (index) ->
-        if not @_log?
-            return
-        if index == @_log.length
+        log = @get_log()
+        if index == log.size
             return @render_load_all_button()
-        x = @_log[index]
+        x = log.get(index)
         if not x?
             return
         return <LogEntry
-            cursor          = {@props.cursor==x.id}
-            time            = {x.time}
-            event           = {x.event}
-            account_id      = {x.account_id}
+            cursor          = {@state.cursor_index == index}
+            time            = {x.get('time')}
+            event           = {x.get('event',immutable.Map()).toJS()}
+            account_id      = {x.get('account_id')}
             user_map        = {@props.user_map}
             backgroundStyle = {if index % 2 == 0 then backgroundColor : '#eee'}
             project_id      = {@props.project_id} />
@@ -619,24 +552,16 @@ exports.ProjectLog = rclass ({name}) ->
         return "#{index}"
 
     render_log_entries: ->
-        if not @_log?
-            if @props.project_log_all?
-                x = @props.project_log_all
-            else
-                x = @props.project_log
-            @update_log(x, @props.user_map)
-        if not @_log?
-            return
         <WindowedList
             overscan_row_count = {10}
             estimated_row_size={20}
-            row_count={@_log.length + 1}
+            row_count={@get_log().size + 1}
             row_renderer = {(x) => @row_renderer(x.index)}
             row_key = {@row_key}
         />
 
     render_log_panel: ->
-        # TODO: [ ] search box
+        console.log(@state.cursor_index)
         return <div className="smc-vfill" style={border: '1px solid #ccc', borderRadius: '3px'}>
             {@render_log_entries()}
         </div>
@@ -654,8 +579,19 @@ exports.ProjectLog = rclass ({name}) ->
         @_loading_table = false
         return @render_log_panel()
 
+    render_search: ->
+        return <LogSearch
+            ref              = {"search"}
+            actions          = {@actions(name)}
+            search           = {@props.search}
+            increment_cursor = {@increment_cursor}
+            decrement_cursor = {@decrement_cursor}
+            reset_cursor     = {@reset_cursor}
+        />
+
     render: ->
         <div style={padding:'15px'} className={"smc-vfill"}>
             <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
+            {@render_search()}
             {@render_body()}
         </div>
