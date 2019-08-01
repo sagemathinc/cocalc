@@ -36,7 +36,8 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+{WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
@@ -61,8 +62,6 @@ which are in the projects/ subdirectory.
 {NewProjectCreator} = require('./projects/create-project')
 {ProjectRow}        = require('./projects/project-row')
 {ProjectsFilterButtons} = require('./projects/projects-filter-buttons')
-
-MAX_DEFAULT_PROJECTS = 50
 
 _create_project_tokens = {}
 
@@ -984,7 +983,7 @@ ProjectsListingDescription = rclass
             a = if @props.hidden and @props.deleted then ' and ' else ''
             n = @props.visible_projects.length
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
-            <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
+            <h4 style={color:'#666', wordWrap:'break-word', marginTop:0}>{desc}</h4>
 
     render_span: (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
@@ -1195,7 +1194,6 @@ ProjectsListingDescription = rclass
 
     render: ->
         <div>
-            <Space />
             {@render_header()}
             {@render_alert_message()}
         </div>
@@ -1205,44 +1203,42 @@ ProjectList = rclass
 
     propTypes :
         projects    : rtypes.array.isRequired
-        show_all    : rtypes.bool.isRequired
         images      : rtypes.immutable.Map
+        user_map    : rtypes.immutable.Map
         redux       : rtypes.object
+        load_all_projects_done : rtypes.bool
 
     getDefaultProps: ->
         projects : []
         user_map : undefined
 
-    show_all_projects: ->
-        @actions('projects').setState(show_all : not @props.show_all)
+    render_load_all_projects_button: ->
+        return <LoadAllProjects
+                    done = {@props.load_all_projects_done}
+                    redux = {redux} />
 
-    render_show_all: ->
-        if @props.projects.length > MAX_DEFAULT_PROJECTS
-            more = @props.projects.length - MAX_DEFAULT_PROJECTS
-            <br />
-            <Button
-                onClick={@show_all_projects}
-                bsStyle='info'
-                bsSize='large'>
-                Show {if @props.show_all then "#{more} Less" else "#{more} More"} Matching Projects...
-            </Button>
+    render_project: (index) ->
+        if index == @props.projects.length
+            return @render_load_all_projects_button()
+        project = @props.projects[index]
+        if not project?
+            return
+        return <ProjectRow
+                     project  = {project}
+                     images   = {@props.images}
+                     user_map = {@props.user_map}
+                     index    = {index}
+                     key      = {index}
+                     redux    = {redux} />
 
     render_list: ->
-        listing = []
-        i = 0
-        for project in @props.projects
-            if i >= MAX_DEFAULT_PROJECTS and not @props.show_all
-                break
-            listing.push <ProjectRow
-                             project  = {project}
-                             images   = {@props.images}
-                             user_map = {@props.user_map}
-                             index    = {i}
-                             key      = {i}
-                             redux    = {redux} />
-            i += 1
-
-        return listing
+        return <WindowedList
+              overscan_row_count={3}
+              estimated_row_size={90}
+              row_count={@props.projects.length + 1}
+              row_renderer={(x)=>@render_project(x.index)}
+              row_key={(index) => @props.projects[index]?.project_id ? 'button'}
+        />
 
     render: ->
         if @props.nb_projects == 0
@@ -1251,9 +1247,8 @@ ProjectList = rclass
                 Click on "Create a new project" above to start working with <SiteName/>!
             </Alert>
         else
-            <div>
+            <div className={"smc-vfill"}>
                 {@render_list()}
-                {@render_show_all()}
             </div>
 
 parse_project_tags = (project) ->
@@ -1293,7 +1288,6 @@ exports.ProjectsPage = ProjectsPage = rclass
             deleted           : rtypes.bool
             search            : rtypes.string
             selected_hashtags : rtypes.object
-            show_all          : rtypes.bool
             load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
@@ -1310,7 +1304,6 @@ exports.ProjectsPage = ProjectsPage = rclass
         deleted           : false
         search            : ''
         selected_hashtags : {}
-        show_all          : false
 
     componentWillReceiveProps: (next) ->
         if not @props.project_map?
@@ -1469,9 +1462,9 @@ exports.ProjectsPage = ProjectsPage = rclass
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
-        <div className='container-content' style={flex: '1', overflow:'auto'}>
-            <Grid fluid className='constrained' style={minHeight:"75vh"}>
-                <Well style={marginTop:'1em',overflow:'hidden'}>
+        <div className='container-content smc-vfill'>
+            <Grid fluid className='constrained smc-vfill'>
+                <Well className="smc-vfill" style={marginTop:'15px'}>
                     <Row>
                         <Col sm={4}>
                             {@render_projects_title()}
@@ -1525,26 +1518,18 @@ exports.ProjectsPage = ProjectsPage = rclass
                             />
                         </Col>
                     </Row>
-                    <Row>
-                        <Col sm={12}>
+                    <Row className="smc-vfill">
+                        <Col sm={12} className="smc-vfill">
                             <ProjectList
                                 projects    = {visible_projects}
-                                show_all    = {@props.show_all}
                                 user_map    = {@props.user_map}
                                 images      = {@props.images}
+                                load_all_projects_done = {@props.load_all_projects_done}
                                 redux       = {redux} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12}>
-                            <LoadAllProjects
-                                done = {@props.load_all_projects_done}
-                                redux = {redux} />
                         </Col>
                     </Row>
                 </Well>
             </Grid>
-            <Footer/>
         </div>
 
 LoadAllProjects = rclass
@@ -1574,7 +1559,7 @@ LoadAllProjects = rclass
 
     render: ->
         if @props.done
-            return <span />
+            return <span/>
         <div style={marginTop:'20px'}>
             {@render_button()}
         </div>
