@@ -398,7 +398,7 @@ ProjectContentViewer = rclass
         style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
         if !@props.is_visible
             style.display = "none"
-        <div style={style}>
+        <div style={style} className="smc-vfill">
             {@render_tab_content()}
         </div>
 

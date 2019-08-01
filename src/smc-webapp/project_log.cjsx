@@ -28,6 +28,7 @@ lodash = require('lodash')
 {React, ReactDOM, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
+{WindowedList} = require("./r_misc/windowed-list")
 {User} = require('./users')
 {file_actions} = require('./project_store')
 {ProjectTitleAuto} = require('./projects')
@@ -581,14 +582,15 @@ exports.ProjectLog = rclass ({name}) ->
 
     load_all: ->
         @reset_cursor()
-        delete @_log
         delete @_last_project_log
         delete @_last_user_map
         delete @_loading_table
         @actions(name).project_log_load_all()
 
     render_load_all_button: ->
-        <Button style={float:"right"} onClick={@load_all} disabled={@props.project_log_all?}>
+        if @props.project_log_all?
+            return
+        <Button bsStyle={"info"} onClick={@load_all} disabled={@props.project_log_all?}>
             Load older log entries
         </Button>
 
@@ -596,55 +598,48 @@ exports.ProjectLog = rclass ({name}) ->
         input = @refs.search.refs.box.refs.input
         ReactDOM.findDOMNode(input).focus()
 
-    render_log_panel: ->
-        # get visible log
-        log = @visible_log()
-        # do some pager stuff
-        num_pages = Math.ceil(log.length / PAGE_SIZE)
-        page = @props.page
-        log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
-        @displayed_log_size = log.length
-        if log.length > 0
-            cursor = log[@state.cursor_index].id
-            selected = log[@state.cursor_index]
-        else
-            cursor = undefined
-            selected = undefined
+    row_renderer: (index) ->
+        if not @_log?
+            return
+        if index == @_log.length
+            return @render_load_all_button()
+        x = @_log[index]
+        if not x?
+            return
+        return <LogEntry
+            cursor          = {@props.cursor==x.id}
+            time            = {x.time}
+            event           = {x.event}
+            account_id      = {x.account_id}
+            user_map        = {@props.user_map}
+            backgroundStyle = {if index % 2 == 0 then backgroundColor : '#eee'}
+            project_id      = {@props.project_id} />
 
-        <Panel onClick={@focus_search_box}>
-            <Row>
-                <Col sm={4}>
-                    <LogSearch
-                        ref              = {"search"}
-                        actions          = {@actions(name)}
-                        search           = {@props.search}
-                        selected         = {selected}
-                        increment_cursor = {@increment_cursor}
-                        decrement_cursor = {@decrement_cursor}
-                        reset_cursor     = {@reset_cursor}
-                    />
-                </Col>
-                <Col sm={4}>
-                    {@render_paging_buttons(num_pages, @props.page)}
-                </Col>
-                <Col sm={4}>
-                    {@render_load_all_button()}
-                </Col>
-            </Row>
-            <Row>
-                <Col sm={12}>
-                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
-                </Col>
-            </Row>
-            <Row style={marginTop:'15px'}>
-                <Col sm={4}>
-                    {@render_paging_buttons(num_pages, @props.page)}
-                </Col>
-                <Col sm={8}>
-                    {@render_load_all_button()}
-                </Col>
-            </Row>
-        </Panel>
+    row_key: (index) ->
+        return "#{index}"
+
+    render_log_entries: ->
+        if not @_log?
+            if @props.project_log_all?
+                x = @props.project_log_all
+            else
+                x = @props.project_log
+            @update_log(x, @props.user_map)
+        if not @_log?
+            return
+        <WindowedList
+            overscan_row_count = {10}
+            estimated_row_size={20}
+            row_count={@_log.length + 1}
+            row_renderer = {(x) => @row_renderer(x.index)}
+            row_key = {@row_key}
+        />
+
+    render_log_panel: ->
+        # TODO: [ ] search box
+        return <div className="smc-vfill" style={border: '1px solid #ccc', borderRadius: '3px'}>
+            {@render_log_entries()}
+        </div>
 
     render_body: ->
         if not @props.project_log and not @props.project_log_all
@@ -660,7 +655,7 @@ exports.ProjectLog = rclass ({name}) ->
         return @render_log_panel()
 
     render: ->
-        <div style={padding:'15px'}>
+        <div style={padding:'15px'} className={"smc-vfill"}>
             <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
             {@render_body()}
         </div>
