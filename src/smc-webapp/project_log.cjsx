@@ -60,22 +60,22 @@ SystemProcess = rclass
 LogSearch = rclass
     displayName : 'ProjectLog-LogSearch'
 
+    componentWillMount: ->
+        @on_change = underscore.debounce(@on_change, 300)
+
     propTypes :
         search           : rtypes.string
         actions          : rtypes.object.isRequired
-        selected         : rtypes.object
+        selected         : rtypes.immutable.Map
         increment_cursor : rtypes.func.isRequired
         decrement_cursor : rtypes.func.isRequired
         reset_cursor     : rtypes.func.isRequired
 
     open_selected: (value, info) ->
-        e = @props.selected?.event
+        e = @props.selected?.get('event')
         if not e?
             return
-        if typeof e.stopPropagation  == 'function'
-            e.stopPropagation()
-        if typeof e.preventDefault  == 'function'
-            e.preventDefault()
+        e = e.toJS()
         switch e.event
             when 'open'
                 target = e.filename
@@ -422,7 +422,10 @@ exports.ProjectLog = rclass ({name}) ->
         search : ''   # search that user has requested
 
     getInitialState: ->
-        cursor_index : 0
+        # Temporarily sticking this here until we switch to typescript
+        @window_list_ref = React.createRef()
+
+        return {cursor_index : 0}
 
     shouldComponentUpdate: (nextProps, nextState) ->
         if @state.cursor_index != nextState.cursor_index
@@ -441,7 +444,7 @@ exports.ProjectLog = rclass ({name}) ->
             return not nextProps.project_log_all.equals(@props.project_log_all)
         return false
 
-    componentWillReceiveProps: (next) ->
+    componentWillReceiveProps: (next, next_state) ->
         if not next.user_map? or (not next.project_log? and not next.project_log_all?)
             return
         if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.project_log_all, next.project_log_all) or @props.search != next.search
@@ -490,18 +493,20 @@ exports.ProjectLog = rclass ({name}) ->
 
         return @_log = v
 
-    increment_cursor: ->
-        if @state.cursor_index >= @get_log().size - 1
+    move_cursor_to: (cursor_index) ->
+        if cursor_index < 0 or cursor_index >= @get_log().size
             return
-        @setState(cursor_index : @state.cursor_index + 1)
+        @setState({cursor_index : cursor_index})
+        @window_list_ref.current?.scrollToRow(cursor_index)
+
+    increment_cursor: ->
+        @move_cursor_to(@state.cursor_index + 1)
 
     decrement_cursor: ->
-        if @state.cursor_index <= 0
-            return
-        @setState(cursor_index : @state.cursor_index - 1)
+        @move_cursor_to(@state.cursor_index - 1)
 
     reset_cursor: ->
-        @setState(cursor_index : 0)
+        @move_cursor_to(0)
 
     render_paging_buttons: (num_pages, cur_page) ->
         <ButtonGroup>
@@ -553,6 +558,7 @@ exports.ProjectLog = rclass ({name}) ->
 
     render_log_entries: ->
         <WindowedList
+            ref = {@window_list_ref}
             overscan_row_count = {10}
             estimated_row_size={20}
             row_count={@get_log().size + 1}
@@ -561,7 +567,6 @@ exports.ProjectLog = rclass ({name}) ->
         />
 
     render_log_panel: ->
-        console.log(@state.cursor_index)
         return <div className="smc-vfill" style={border: '1px solid #ccc', borderRadius: '3px'}>
             {@render_log_entries()}
         </div>
@@ -584,6 +589,7 @@ exports.ProjectLog = rclass ({name}) ->
             ref              = {"search"}
             actions          = {@actions(name)}
             search           = {@props.search}
+            selected         = {@get_log().get(@state.cursor_index)}
             increment_cursor = {@increment_cursor}
             decrement_cursor = {@decrement_cursor}
             reset_cursor     = {@reset_cursor}
