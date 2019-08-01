@@ -23,8 +23,6 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
-lodash = require('lodash')
-{delay} = require('awaiting')
 
 {React, ReactDOM, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
@@ -372,38 +370,6 @@ LogEntry = rclass
             </Col>
         </Row>
 
-LogMessages = rclass
-    displayName : 'ProjectLog-LogMessages'
-
-    propTypes :
-        log        : rtypes.array.isRequired
-        project_id : rtypes.string.isRequired
-        user_map   : rtypes.object
-        cursor     : rtypes.string    # id of the cursor
-
-    render_entries: ->
-        for x, i in lodash.sortBy(@props.log, (el) -> -el.time)
-            <LogEntry
-                key             = {x.id}
-                cursor          = {@props.cursor==x.id}
-                time            = {x.time}
-                event           = {x.event}
-                account_id      = {x.account_id}
-                user_map        = {@props.user_map}
-                backgroundStyle = {if i % 2 is 0 then backgroundColor : '#eee'}
-                project_id      = {@props.project_id} />
-
-    render: ->
-        <div style={wordWrap:'break-word'}>
-            {@render_entries()}
-        </div>
-
-matches = (s, words) ->
-    for word in words
-        if s.indexOf(word) == -1
-            return false
-    return true
-
 exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'
 
@@ -450,13 +416,6 @@ exports.ProjectLog = rclass ({name}) ->
             return
         if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.project_log_all, next.project_log_all) or @props.search != next.search
             delete @_log
-
-    componentDidUpdate: ->
-        if @_next_cursor_pos? and @_log? and (@props.project_log_all? or @props.project_log?)
-            n = @_next_cursor_pos
-            delete @_next_cursor_pos
-            await delay(1)
-            @window_list_ref.current?.scrollToRow(n)
 
     get_log: () ->
         if @_log?
@@ -545,13 +504,17 @@ exports.ProjectLog = rclass ({name}) ->
         return "#{index}"
 
     render_log_entries: ->
-        <WindowedList
+        next_cursor_pos = @_next_cursor_pos
+        if @_next_cursor_pos
+            delete @_next_cursor_pos
+        return <WindowedList
             ref = {@window_list_ref}
             overscan_row_count = {10}
             estimated_row_size={22}
             row_count={@get_log().size + 1}
             row_renderer = {(x) => @row_renderer(x.index)}
             row_key = {@row_key}
+            scroll_to_index={next_cursor_pos}
         />
 
     render_log_panel: ->
