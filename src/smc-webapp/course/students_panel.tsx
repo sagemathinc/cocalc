@@ -38,8 +38,10 @@ import {
   ReactDOM,
   rclass,
   rtypes,
-  AppRedux
+  AppRedux,
+  Rendered
 } from "../app-framework";
+
 const {
   Button,
   ButtonToolbar,
@@ -55,16 +57,14 @@ const {
 } = require("react-bootstrap");
 
 // CoCalc components
+import { WindowedList } from "../r_misc/windowed-list";
 const { User } = require("../users");
-const {
-  ErrorDisplay,
-  Icon,
-  MarkdownInput,
-  SearchInput,
-  Space,
-  TimeAgo,
-  Tip
-} = require("../r_misc");
+const { MarkdownInput, SearchInput, TimeAgo } = require("../r_misc");
+import { ErrorDisplay } from "../r_misc/error-display";
+import { Icon } from "../r_misc/icon";
+import { Space } from "../r_misc/space";
+import { Tip } from "../r_misc/tip";
+
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "./common";
 import * as util from "./util";
 import * as styles from "./styles";
@@ -556,7 +556,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     render_header(num_omitted) {
       return (
         <div>
-          <Row style={{ marginBottom: "-15px" }}>
+          <Row>
             <Col md={3}>
               <SearchInput
                 placeholder="Find students..."
@@ -744,37 +744,43 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return student as any;
     }
 
-    render_students(students) {
-      return (() => {
-        const result: any[] = [];
-        for (let i = 0; i < students.length; i++) {
-          const x = students[i];
-          let name: StudentNameDescription = {
-            full: this.props.get_student_name(x.student_id),
-            first: x.first_name,
-            last: x.last_name
-          };
+    private render_student(student_id: string, index: number): Rendered {
+      const name: StudentNameDescription = {
+        full: this.props.get_student_name(student_id),
+        first: "TODO",
+        last: "TOOD"
+      };
+      return (
+        <Student
+          background={index % 2 === 0 ? "#eee" : undefined}
+          key={student_id}
+          student_id={student_id}
+          student={this.get_student(student_id)}
+          user_map={this.props.user_map}
+          redux={this.props.redux}
+          name={this.props.name}
+          project_map={this.props.project_map}
+          assignments={this.props.assignments}
+          is_expanded={this.props.expanded_students.has(student_id)}
+          student_name={name}
+          display_account_name={true}
+          active_feedback_edits={this.props.active_feedback_edits}
+        />
+      );
+    }
 
-          result.push(
-            <Student
-              background={i % 2 === 0 ? "#eee" : undefined}
-              key={x.student_id}
-              student_id={x.student_id}
-              student={this.get_student(x.student_id)}
-              user_map={this.props.user_map}
-              redux={this.props.redux}
-              name={this.props.name}
-              project_map={this.props.project_map}
-              assignments={this.props.assignments}
-              is_expanded={this.props.expanded_students.has(x.student_id)}
-              student_name={name}
-              display_account_name={true}
-              active_feedback_edits={this.props.active_feedback_edits}
-            />
-          );
-        }
-        return result;
-      })();
+    private render_students(students): Rendered {
+      return (
+        <WindowedList
+          overscan_row_count={5}
+          estimated_row_size={37}
+          row_count={students.length}
+          row_renderer={({ key, index }) => this.render_student(key, index)}
+          row_key={index =>
+            students[index] != null ? students[index].student_id : undefined
+          }
+        />
+      );
     }
 
     render_show_deleted(num_deleted, shown_students) {
@@ -815,20 +821,30 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
     }
 
+    private render_student_info(students, num_deleted): Rendered {
+      return (
+        <div className="smc-vfill" style={{ padding: "15px" }}>
+          {students.length > 0 ? this.render_student_table_header() : undefined}
+          {this.render_students(students)}
+          {num_deleted
+            ? this.render_show_deleted(num_deleted, students)
+            : undefined}
+        </div>
+      );
+    }
+
     render() {
       const {
         students,
         num_omitted,
         num_deleted
       } = this.compute_student_list();
+
       return (
-        <Panel header={this.render_header(num_omitted)}>
-          {students.length > 0 ? this.render_student_table_header() : undefined}
-          {this.render_students(students)}
-          {num_deleted
-            ? this.render_show_deleted(num_deleted, students)
-            : undefined}
-        </Panel>
+        <div className="smc-vfill">
+          {this.render_header(num_omitted)}
+          {this.render_student_info(students, num_deleted)}
+        </div>
       );
     }
   }

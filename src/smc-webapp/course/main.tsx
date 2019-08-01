@@ -46,7 +46,7 @@ import {
   redux
 } from "../app-framework";
 
-import { Button, ButtonGroup, Tabs, Tab } from "react-bootstrap";
+import { Button, ButtonGroup, Nav, NavItem, Tabs, Tab } from "react-bootstrap";
 
 let {
   ActivityDisplay,
@@ -321,7 +321,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 
     render_save_timetravel() {
       return (
-        <div style={{ float: "right", marginRight: "15px" }}>
+        <div style={{ position: "absolute", right: 0 }}>
           <ButtonGroup>
             <Button
               onClick={this.save_to_disk}
@@ -490,7 +490,60 @@ export const CourseEditor = rclass<CourseReactProps>(
       }
     }
 
+    render_students_tab() {
+      if (this.props.tab != "students") return;
+      return (
+        <Tab.Pane
+          eventKey={"students"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_students()}
+        </Tab.Pane>
+      );
+    }
+
+    render_assignments_tab() {
+      if (this.props.tab != "assignments") return;
+      return (
+        <Tab.Pane
+          eventKey={"assignments"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_assignments()}
+        </Tab.Pane>
+      );
+    }
+
     render_tabs() {
+      return (
+        <Tab.Container
+          id={"course-tabs"}
+          activeKey={this.props.tab}
+          onSelect={key => this.get_actions().set_tab(key)}
+          className={"smc-vfill"}
+        >
+          <div className={"smc-vfill"}>
+            <Nav bsStyle="pills">
+              <NavItem eventKey="students">
+                <StudentsPanelHeader n={this.num_students()} />
+              </NavItem>
+              <NavItem eventKey="assignments">
+                <AssignmentsPanelHeader n={this.num_assignments()} />
+              </NavItem>
+            </Nav>
+
+            <Tab.Content className={"smc-vfill"}>
+              {this.render_students_tab()}
+              {this.render_assignments_tab()}
+            </Tab.Content>
+          </div>
+        </Tab.Container>
+      );
+    }
+
+    render_tabs0() {
       if (this.props.loading) {
         return;
       }
@@ -500,10 +553,13 @@ export const CourseEditor = rclass<CourseReactProps>(
           animation={false}
           activeKey={this.props.tab}
           onSelect={key => this.get_actions().set_tab(key)}
+          className="smc-vfill"
+          style={{ border: "1px solid red" }}
         >
           <Tab
             eventKey={"students"}
             title={<StudentsPanelHeader n={this.num_students()} />}
+            tabClassName={"smc-vfill"}
           >
             {this.render_students()}
           </Tab>
@@ -544,7 +600,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 
     render() {
       return (
-        <div style={COURSE_EDITOR_STYLE}>
+        <div style={COURSE_EDITOR_STYLE} className={"smc-vfill"}>
           {this.render_pay_banner()}
           {this.props.show_save_button ? this.render_save_button() : undefined}
           {this.props.error ? this.render_error() : undefined}

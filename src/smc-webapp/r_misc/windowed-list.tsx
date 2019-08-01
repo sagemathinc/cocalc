@@ -15,21 +15,31 @@ interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
   estimated_row_size: number; // estimate to use for the row size before measuring
   row_count: number; // number of rows
-  row_renderer: (obj: { key?: string; index?: number }) => Rendered; // renders row with given key (or index).
+  row_renderer: (obj: { key: string; index: number }) => Rendered; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
+  scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
+}
+
+interface State {
   scroll_to_index?: number;
 }
 
-export class WindowedList extends Component<Props, {}> {
+export class WindowedList extends Component<Props, State> {
   private cell_refs: { [key: string]: any } = {};
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
   private resize_observer: ResizeObserver;
+  private is_mounted: boolean = true;
 
   constructor(props) {
     super(props);
     this.list_ref = React.createRef();
     this.resize_observer = new ResizeObserver(this.cell_resized.bind(this));
+    this.state = { scroll_to_index: props.scroll_to_index };
+  }
+
+  public componentWillUnmount(): void {
+    this.is_mounted = false;
   }
 
   public scrollToRow(row: number): void {
@@ -60,11 +70,12 @@ export class WindowedList extends Component<Props, {}> {
     if (n > 0) this.list_ref.current.recomputeRowHeights();
   }
 
-  public recompute() : void {
-    this.list_ref.current.recomputeRowHeights()
+  public recompute(): void {
+    this.list_ref.current.recomputeRowHeights();
   }
 
   private row_renderer({ index, style }): Rendered {
+    if (index == null) return;
     const key = this.props.row_key(index);
     if (key == null) return;
     /* We use flex in the first nested div below so that the
@@ -116,7 +127,7 @@ export class WindowedList extends Component<Props, {}> {
       >
         <AutoSizer>
           {({ height, width }) => {
-            return (
+            const elt = (
               <List
                 ref={this.list_ref}
                 height={height}
@@ -126,9 +137,19 @@ export class WindowedList extends Component<Props, {}> {
                 rowHeight={this.row_height.bind(this)}
                 rowCount={this.props.row_count}
                 rowRenderer={this.row_renderer.bind(this)}
-                scrollToIndex={this.props.scroll_to_index}
+                scrollToIndex={this.state.scroll_to_index}
               />
             );
+            if (this.state.scroll_to_index != null) {
+              // So it only scrolls to this index once. Otherwise, things
+              // are horribly broken on scroll after using scroll_to_index.
+              setTimeout(() => {
+                if (this.is_mounted) {
+                  this.setState({ scroll_to_index: undefined });
+                }
+              }, 1);
+            }
+            return elt;
           }}
         </AutoSizer>
       </div>
