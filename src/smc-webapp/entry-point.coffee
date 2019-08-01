@@ -36,6 +36,8 @@ require('./notifications').init(redux)
 
 require('./widget-markdown-input/main').init(redux)
 
+require('./iframe-communication').init()
+
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
 
