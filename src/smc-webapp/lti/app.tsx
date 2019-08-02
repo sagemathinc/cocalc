@@ -1,12 +1,17 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import styled from "styled-components";
+import * as querystring from "query-string";
+
 import { ProjectSelector, ProjectContainer, SelectedItemsList } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
 import { reducer } from "./state/reducers";
 import { initial_global_state } from "./state/values";
 import { assert_never } from "./helpers";
+
+const QUERY_PARAMS = querystring.parse(window.location.search);
+console.log("Params", QUERY_PARAMS);
 
 function App() {
   const [state, dispatch] = React.useReducer(reducer, initial_global_state);
@@ -37,7 +42,7 @@ function App() {
   );
 
   if (!state.loading && state.account_info) {
-    header = <>User: {state.account_info.first_name || "No user name"}</>;
+    header = <>User: {state.account_info.first_name || "No user name"}<div>Displaying: {window.location.href}</div></>;
 
     right_gutter = (
       <SelectedItemsList
@@ -66,7 +71,9 @@ function App() {
             projects={state.projects}
             current_path={state.current_path}
             file_listings={state.file_listings[state.opened_project_id]}
-            opened_directories={state.opened_directories[state.opened_project_id]}
+            opened_directories={
+              state.opened_directories[state.opened_project_id]
+            }
             selected_entries={state.selected_entries[state.opened_project_id]}
             excluded_entries={state.excluded_entries[state.opened_project_id]}
             dispatch={dispatch}
@@ -97,7 +104,21 @@ function App() {
       <LeftGutterContainer>{left_gutter}</LeftGutterContainer>
       <ContentContainer>{content}</ContentContainer>
       <RightGutterContainer>{right_gutter}</RightGutterContainer>
-      <FooterContainer>Footer....</FooterContainer>
+      <FooterContainer>
+        <form
+          method="post"
+          action={"return-deep-link"}
+        >
+          <input
+            type="hidden"
+            name="extra_submit_param"
+            value="extra_submit_value"
+          />
+          <button type="submit" name="submit_param" value="submit_value">
+            This is a link that sends a POST request
+          </button>
+        </form>
+      </FooterContainer>
     </Grid>
   );
 }

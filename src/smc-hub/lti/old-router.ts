@@ -118,20 +118,7 @@ export function init_LTI_router(): express.Router {
         res.send("Error parsing jwt:" + err);
       }
       const nonce = uuid.v4();
-
-      var redirect_url;
-      if (
-        !token[
-          "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
-        ]
-      ) {
-        res.redirect(
-          token["https://purl.imsglobal.org/spec/lti/claim/target_link_uri"]
-        );
-        return;
-      }
-      // Deep link selection
-      redirect_url =
+      const redirect_url =
         token[
           "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
         ].deep_link_return_url;
