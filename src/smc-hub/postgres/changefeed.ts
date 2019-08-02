@@ -169,6 +169,9 @@ export class Changes extends EventEmitter {
   }
 
   private async handle_change(mesg): Promise<void> {
+    if (this.closed) {
+      return;
+    }
     // this.dbg("handle_change")(JSON.stringify(mesg));
     if (mesg[0] === "DELETE") {
       if (!this.match_condition(mesg[2])) {
@@ -308,7 +311,9 @@ export class Changes extends EventEmitter {
         field = field.slice(1, field.length - 1);
       }
       if (this.select[field] == null) {
-        throw Error(`'${field}' must be in select="${JSON.stringify(this.select)}"`);
+        throw Error(
+          `'${field}' must be in select="${JSON.stringify(this.select)}"`
+        );
       }
       if (misc.is_object(val)) {
         throw Error(`val (=${misc.to_json(val)}) must not be an object`);
