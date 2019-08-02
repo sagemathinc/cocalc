@@ -870,6 +870,12 @@ init_store =
 
 store = redux.createStore('projects', ProjectsStore, init_store)
 
+# Every time a project actions gets created, there is a new listener
+# on the projects store, and there can be many projectActions, e.g.,
+# when working with a course with 200 students.
+# This is annoying and worrisome.
+store.setMaxListeners(1000)
+
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
 
