@@ -22,6 +22,7 @@ run_install $SMC_ROOT/smc-project
 run_install $SMC_ROOT/smc-project/jupyter
 run_install $SMC_ROOT/smc-webapp
 run_install $SMC_ROOT/smc-webapp/jupyter
+run_install $SMC_ROOT/smc-webapp/lti
 run_install $SMC_ROOT/smc-hub
 
 # get rid of package-lock files
