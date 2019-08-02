@@ -26,7 +26,8 @@ underscore = require('underscore')
 {analytics_event} = require('./tracker')
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
-{once} = require('smc-util/async-utils')
+{once, callback2} = require('smc-util/async-utils')
+{callback} = require('awaiting')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
@@ -67,10 +68,12 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
+    # **THIS IS AN ASYNC FUNCTION!**
     projects_table_set: (obj) =>
         the_table = @redux.getTable('projects')
-        the_table?.set(obj)
-        return
+        if not the_table?  # silently fail???
+            return
+        await the_table.set(obj)
 
     # Set whether the "add collaborators" component is displayed
     # for the given project in the project listing.
@@ -127,6 +130,7 @@ class ProjectsActions extends Actions
         # and try again.  Because we loaded all projects, we won't hit infinite recurse.
         return await @have_project(project_id)
 
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_title: (project_id, title) =>
         if not await @have_project(project_id)
             console.warn("Can't set title -- you are not a collaborator on project '#{project_id}'.")
@@ -135,12 +139,13 @@ class ProjectsActions extends Actions
             # title is already set as requested; nothing to do
             return
         # set in the Table
-        @projects_table_set({project_id:project_id, title:title})
+        await @projects_table_set({project_id:project_id, title:title})
         # create entry in the project's log
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event : 'set'
             title : title
 
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_description: (project_id, description) =>
         if not await @have_project(project_id)
             console.warn("Can't set description -- you are not a collaborator on project '#{project_id}'.")
@@ -149,9 +154,9 @@ class ProjectsActions extends Actions
             # description is already set as requested; nothing to do
             return
         # set in the Table
-        @projects_table_set({project_id:project_id, description:description})
+        await @projects_table_set({project_id:project_id, description:description})
         # create entry in the project's log
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event       : 'set'
             description : description
 
@@ -203,6 +208,7 @@ class ProjectsActions extends Actions
             @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
     # only owner can set course description.
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not await @have_project(project_id)
             msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
@@ -214,7 +220,7 @@ class ProjectsActions extends Actions
             return
 
         # Set in the database (will get reflected in table); setting directly in the table isn't allowed (due to backend schema).
-        webapp_client.query
+        await callback2(webapp_client.query,
             query :
                 projects_owner :
                     project_id : project_id
@@ -223,29 +229,35 @@ class ProjectsActions extends Actions
                         path          : path
                         pay           : pay
                         account_id    : account_id
-                        email_address : email_address
-
-    set_project_course_info_paying: (project_id, cb) =>
-        webapp_client.query
-            query :
-                projects_owner :
-                    project_id : project_id
-                    course     :
-                        paying     : webapp_client.server_time()
-            cb : cb
+                        email_address : email_address)
 
     # Create a new project
-    create_project: (opts) =>
+    # **THIS IS AN ASYNC FUNCTION!**
+    create_project: (opts) =>     # returns Promise<string>
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
             image       : undefined  # if given, sets the compute image (the ID string)
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
-            token = opts.token; delete opts.token
-            opts.cb = (err, project_id) =>
-                _create_project_tokens[token] = {err:err, project_id:project_id}
-        webapp_client.create_project(opts)
+            token = opts.token
+            delete opts.token
+        else
+            token = false
+        project_id = await callback2(webapp_client.create_project, opts)
+        if token
+            _create_project_tokens[token] = {err:err, project_id:project_id}
+
+        # At this point we know the project_id and that the project exists.
+        # However, various code (e.g., setting the title) depends on the
+        # project_map also having the project in it, which requires some
+        # changefeeds to fire off and get handled.  So we wait for that.
+
+        store = @redux.getStore('projects')
+        while not store.getIn(['project_map', project_id])
+            await once(store, 'change')
+        return project_id
+
 
     # Open the given project
     open_project: (opts) =>
@@ -379,23 +391,27 @@ class ProjectsActions extends Actions
     ###
     # Collaborators
     ###
+    # **THIS IS AN ASYNC FUNCTION!**
     remove_collaborator: (project_id, account_id) =>
-        name = redux.getStore('users').get_name(account_id)
-        webapp_client.project_remove_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
-                    alert_message(type:'error', message:err)
-                else
-                    @redux.getProjectActions(project_id).log
-                        event    : 'remove_collaborator'
-                        removed_name : name
+        f = (cb) =>
+            name = redux.getStore('users').get_name(account_id)
+            webapp_client.project_remove_collaborator
+                project_id : project_id
+                account_id : account_id
+                cb         : (err) =>
+                    if err # TODO: -- set error in store for this project...
+                        err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
+                        alert_message(type:'error', message:err)
+                        cb(err)
+                    else
+                        cb()
+        await callback(f)
+        await @redux.getProjectActions(project_id).async_log({event: 'remove_collaborator', removed_name : name})
 
     # this is for inviting existing users, the email is only known by the back-end
+    # **THIS IS AN ASYNC FUNCTION!**
     invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event    : 'invite_user'
             invitee_account_id : account_id
 
@@ -411,24 +427,28 @@ class ProjectsActions extends Actions
         if body?
             body = markdown.markdown_to_html(body)
 
-        webapp_client.project_invite_collaborator
-            project_id   : project_id
-            account_id   : account_id
-            title        : title
-            link2proj    : link2proj
-            replyto      : replyto
-            replyto_name : replyto_name
-            email        : body         # no body? no email will be sent
-            subject      : subject
-            cb         : (err, resp) =>
-                if not silent
-                    if err # TODO: -- set error in store for this project...
-                        err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
-                        alert_message(type:'error', message:err)
+        f = (cb) =>
+            webapp_client.project_invite_collaborator
+                project_id   : project_id
+                account_id   : account_id
+                title        : title
+                link2proj    : link2proj
+                replyto      : replyto
+                replyto_name : replyto_name
+                email        : body         # no body? no email will be sent
+                subject      : subject
+                cb         : (err) =>
+                    if not silent
+                        if err # TODO: -- set error in store for this project...
+                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                            alert_message(type:'error', message:err)
+                    cb(err)
+        await callback(f)
 
     # this is for inviting non-existing users, email is set via the UI
+    # **THIS IS AN ASYNC FUNCTION!**
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event         : 'invite_nonuser'
             invitee_email : to
 
@@ -443,21 +463,24 @@ class ProjectsActions extends Actions
         # convert body from markdown to html, which is what the backend expects
         body = markdown.markdown_to_html(body)
 
-        webapp_client.invite_noncloud_collaborators
-            project_id   : project_id
-            title        : title
-            link2proj    : link2proj
-            replyto      : replyto
-            replyto_name : replyto_name
-            to           : to
-            email        : body
-            subject      : subject
-            cb           : (err, resp) =>
-                if not silent
-                    if err
-                        alert_message(type:'error', message:err, timeout:60)
-                    else
-                        alert_message(message:resp.mesg)
+        f = (cb) =>
+            webapp_client.invite_noncloud_collaborators
+                project_id   : project_id
+                title        : title
+                link2proj    : link2proj
+                replyto      : replyto
+                replyto_name : replyto_name
+                to           : to
+                email        : body
+                subject      : subject
+                cb           : (err, resp) =>
+                    if not silent
+                        if err
+                            alert_message(type:'error', message:err, timeout:60)
+                        else
+                            alert_message(message:resp.mesg)
+                    cb(err)
+        await callback(f)
 
     ###
     # Upgrades

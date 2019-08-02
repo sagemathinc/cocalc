@@ -786,9 +786,9 @@ export class ConfigurationPanel extends Component<
 
   handle_students_pay_checkbox = e => {
     if (e.target.checked) {
-      return this.get_actions().set_course_info(this.get_student_pay_when());
+      this.get_actions().set_course_info(this.get_student_pay_when());
     } else {
-      return this.get_actions().set_course_info("");
+      this.get_actions().set_course_info("");
     }
   };
 
@@ -980,7 +980,7 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <div>
+      <div style={{ overflow: "auto" }}>
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}

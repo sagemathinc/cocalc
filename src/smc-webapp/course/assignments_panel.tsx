@@ -316,28 +316,33 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       const add_assignment = this.yield_adder(deleted_assignments);
 
       const header = (
-        <FoldersToolbar
-          search={this.state.search}
-          search_change={value => this.setState({ search: value })}
-          num_omitted={num_omitted}
-          project_id={this.props.project_id}
-          items={this.props.all_assignments}
-          add_folders={paths => paths.map(add_assignment)}
-          item_name={"assignment"}
-          plural_item_name={"assignments"}
-        />
+        <div style={{ marginBottom: "15px" }}>
+          <FoldersToolbar
+            search={this.state.search}
+            search_change={value => this.setState({ search: value })}
+            num_omitted={num_omitted}
+            project_id={this.props.project_id}
+            items={this.props.all_assignments}
+            add_folders={paths => paths.map(add_assignment)}
+            item_name={"assignment"}
+            plural_item_name={"assignments"}
+          />
+        </div>
       );
 
       return (
-        <Panel header={header}>
+        <div className="smc-vfill" style={{margin:'5px'}}>
+          {header}
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()
             : undefined}
-          {this.render_assignments(shown_assignments)}
-          {num_deleted
-            ? this.render_show_deleted(num_deleted, shown_assignments.length)
-            : undefined}
-        </Panel>
+          <div className="smc-vfill" style={{ overflow: "auto" }}>
+            {this.render_assignments(shown_assignments)}{" "}
+            {num_deleted
+              ? this.render_show_deleted(num_deleted, shown_assignments.length)
+              : undefined}
+          </div>
+        </div>
       );
     }
   }
@@ -483,7 +488,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             title="Notes about this assignment"
             tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment."
           >
-            Private Assignment Notes<br />
+            Private Assignment Notes
+            <br />
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
@@ -669,7 +675,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     let bsStyle;
     const last_assignment = this.props.assignment.get("last_assignment");
     // Primary if it hasn't been assigned before or if it hasn't started assigning.
-    if (!last_assignment || !(last_assignment.get("time") || last_assignment.get("start"))) {
+    if (
+      !last_assignment ||
+      !(last_assignment.get("time") || last_assignment.get("start"))
+    ) {
       bsStyle = "primary";
     } else {
       bsStyle = "warning";
@@ -893,7 +902,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"
             >
               (more details)
-            </a>.
+            </a>
+            .
           </span>
         );
       case "collect":
@@ -969,10 +979,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             }
             disabled={this.state[`copy_confirm_all_${step}`]}
           >
-            {step === "assignment" ? "All" : "The"} {m} students{step_ready(
-              step,
-              m
-            )}...
+            {step === "assignment" ? "All" : "The"} {m} students
+            {step_ready(step, m)}...
           </Button>
           {n ? (
             <Button

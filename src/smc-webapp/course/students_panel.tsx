@@ -727,7 +727,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
               {this.render_sort_link("last_name", "Last Name")}
             </div>
           </Col>
-          <Col md={2}>{this.render_sort_link("email", "Student Email")}</Col>
+          <Col md={2}>{this.render_sort_link("email", "Email Address")}</Col>
           <Col md={4}>
             {this.render_sort_link("last_active", "Last Active")}
           </Col>

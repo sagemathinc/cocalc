@@ -516,6 +516,45 @@ export const CourseEditor = rclass<CourseReactProps>(
       );
     }
 
+    render_handouts_tab() {
+      if (this.props.tab != "handouts") return;
+      return (
+        <Tab.Pane
+          eventKey={"handouts"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_handouts()}
+        </Tab.Pane>
+      );
+    }
+
+    render_configuration_tab() {
+      if (this.props.tab != "configuration") return;
+      return (
+        <Tab.Pane
+          eventKey={"configuration"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_configuration()}
+        </Tab.Pane>
+      );
+    }
+
+    render_shared_project_tab() {
+      if (this.props.tab != "shared_project") return;
+      return (
+        <Tab.Pane
+          eventKey={"shared_project"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_shared_project()}
+        </Tab.Pane>
+      );
+    }
+
     render_tabs() {
       return (
         <Tab.Container
@@ -532,11 +571,30 @@ export const CourseEditor = rclass<CourseReactProps>(
               <NavItem eventKey="assignments">
                 <AssignmentsPanelHeader n={this.num_assignments()} />
               </NavItem>
+              <NavItem eventKey="handouts">
+                <HandoutsPanelHeader n={this.num_handouts()} />
+              </NavItem>
+              <NavItem eventKey="configuration">
+                <ConfigurationPanelHeader />
+              </NavItem>
+              <NavItem eventKey="shared_project">
+                <SharedProjectPanelHeader
+                  project_exists={
+                    !!(
+                      this.props.settings &&
+                      this.props.settings.get("shared_project_id")
+                    )
+                  }
+                />
+              </NavItem>
             </Nav>
 
-            <Tab.Content className={"smc-vfill"}>
+            <Tab.Content className={"smc-vfill"} style={{ marginTop: "5px" }}>
               {this.render_students_tab()}
               {this.render_assignments_tab()}
+              {this.render_handouts_tab()}
+              {this.render_configuration_tab()}
+              {this.render_shared_project_tab()}
             </Tab.Content>
           </div>
         </Tab.Container>
