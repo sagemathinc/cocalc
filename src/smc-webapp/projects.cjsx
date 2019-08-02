@@ -1493,7 +1493,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
         <div className='container-content smc-vfill'>
-            <Grid fluid className='constrained smc-vfill'>
+            <Grid fluid className='constrained smc-vfill' style={{minWidth:'90%'}}>
                 <Well className="smc-vfill" style={marginTop:'15px'}>
                     <Row>
                         <Col sm={4}>
