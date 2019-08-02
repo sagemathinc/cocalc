@@ -33,7 +33,7 @@ type FileUseInfoMap = iMap<string, any>;
 
 export class FileUseViewer extends Component<Props, State> {
   private num_missing: number = 0;
-
+  private windowed_list_ref = React.createRef<WindowedList>();
   private visible_list: iList<FileUseInfoMap> | undefined = undefined;
 
   constructor(props) {
@@ -71,6 +71,19 @@ export class FileUseViewer extends Component<Props, State> {
     );
   }
 
+  private set_cursor(cursor: number): void {
+    if (cursor >= this.get_visible_list().size) {
+      cursor = this.get_visible_list().size - 1;
+    }
+    if (cursor < 0) {
+      cursor = 0;
+    }
+    this.setState({ cursor });
+    if (this.windowed_list_ref.current != null) {
+      this.windowed_list_ref.current.scrollToRow(cursor);
+    }
+  }
+
   render_search_box(): Rendered {
     return (
       <span key="search_box" className="smc-file-use-notifications-search">
@@ -91,16 +104,8 @@ export class FileUseViewer extends Component<Props, State> {
               this.setState({ cursor: 0 });
             }
           }}
-          on_up={() =>
-            this.setState({ cursor: Math.max(0, this.state.cursor - 1) })
-          }
-          on_down={() => {
-            const cursor = Math.max(
-              0,
-              Math.min(this.get_visible_list().size - 1, this.state.cursor + 1)
-            );
-            this.setState({ cursor });
-          }}
+          on_up={() => this.set_cursor(this.state.cursor - 1)}
+          on_down={() => this.set_cursor(this.state.cursor + 1)}
         />
       </span>
     );
@@ -185,6 +190,7 @@ export class FileUseViewer extends Component<Props, State> {
   private render_list(): Rendered {
     return (
       <WindowedList
+        ref={this.windowed_list_ref}
         overscan_row_count={5}
         estimated_row_size={56}
         row_count={this.get_visible_list().size}

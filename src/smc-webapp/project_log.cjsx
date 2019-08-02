@@ -390,7 +390,7 @@ exports.ProjectLog = rclass ({name}) ->
 
     getInitialState: ->
         # Temporarily sticking this here until we switch to typescript
-        @window_list_ref = React.createRef()
+        @windowed_list_ref = React.createRef()
 
         return {cursor_index : 0}
 
@@ -455,7 +455,7 @@ exports.ProjectLog = rclass ({name}) ->
         if cursor_index < 0 or cursor_index >= @get_log().size
             return
         @setState({cursor_index : cursor_index})
-        @window_list_ref.current?.scrollToRow(cursor_index)
+        @windowed_list_ref.current?.scrollToRow(cursor_index)
 
     increment_cursor: ->
         @move_cursor_to(@state.cursor_index + 1)
@@ -508,7 +508,7 @@ exports.ProjectLog = rclass ({name}) ->
         if @_next_cursor_pos
             delete @_next_cursor_pos
         return <WindowedList
-            ref = {@window_list_ref}
+            ref = {@windowed_list_ref}
             overscan_row_count = {10}
             estimated_row_size={22}
             row_count={@get_log().size + 1}
