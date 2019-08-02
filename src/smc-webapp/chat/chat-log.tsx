@@ -164,6 +164,7 @@ export class ChatLog extends Component<ChatLogProps> {
           row_count={this.get_sorted_dates().length}
           row_renderer={this.row_renderer.bind(this)}
           row_key={this.row_key.bind(this)}
+          cache_id={this.props.actions ? this.props.actions.name : undefined}
         />
       </>
     );

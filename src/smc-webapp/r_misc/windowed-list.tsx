@@ -26,6 +26,7 @@ interface State {
   scroll_top?: number;
 }
 
+// TODO: this should be an LRU cache, to avoid a longterm memory leak.
 const scroll_top_cache: {
   [cache_id: string]: {
     scroll_top: number;
