@@ -18,6 +18,7 @@ interface Props {
   row_renderer: (obj: { key: string; index: number }) => Rendered; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
+  scroll_id?: string;
 }
 
 interface State {

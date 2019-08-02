@@ -39,7 +39,8 @@ import {
   rclass,
   rtypes,
   redux,
-  AppRedux
+  AppRedux,
+  Rendered
 } from "../app-framework";
 const {
   Alert,
@@ -76,6 +77,9 @@ const {
   Tip,
   NumberInput
 } = require("../r_misc");
+
+import { WindowedList } from "../r_misc/windowed-list";
+
 const { STEPS, step_direction, step_verb, step_ready } = util;
 import {
   BigTime,
@@ -331,12 +335,12 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
 
       return (
-        <div className="smc-vfill" style={{margin:'5px'}}>
+        <div className="smc-vfill" style={{ margin: "5px" }}>
           {header}
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()
             : undefined}
-          <div className="smc-vfill" style={{ overflow: "auto" }}>
+          <div className="smc-vfill" style={{ overflowY: "scroll" }}>
             {this.render_assignments(shown_assignments)}{" "}
             {num_deleted
               ? this.render_show_deleted(num_deleted, shown_assignments.length)
@@ -1608,16 +1612,13 @@ interface StudentListForAssignmentProps {
   active_feedback_edits: IsGradingMap;
 }
 
-interface StudentListForAssignmentState {}
-
 class StudentListForAssignment extends Component<
-  StudentListForAssignmentProps,
-  StudentListForAssignmentState
+  StudentListForAssignmentProps
 > {
-  displayName: "CourseEditor-StudentListForAssignment";
+  private student_list: string[] | undefined = undefined;
 
-  shouldComponentUpdate(props) {
-    return misc.is_different(this.props, props, [
+  public shouldComponentUpdate(props): boolean {
+    const x: boolean = misc.is_different(this.props, props, [
       "assignment",
       "students",
       "user_map",
@@ -1625,18 +1626,22 @@ class StudentListForAssignment extends Component<
       "active_student_sort",
       "active_feedback_edits"
     ]);
+    if (x) {
+      delete this.student_list;
+    }
+    return x;
   }
 
-  get_store(): CourseStore {
+  private get_store(): CourseStore {
     return redux.getStore(this.props.name) as any;
   }
 
-  is_peer_graded() {
+  private is_peer_graded(): boolean {
     const peer_info = this.props.assignment.get("peer_grade");
     return peer_info ? peer_info.get("enabled") : false;
   }
 
-  render_student_info(student_id) {
+  private render_student_info(student_id: string): Rendered {
     const store = this.get_store();
     const student = store.get_student(student_id);
     const key = util.assignment_identifier(this.props.assignment, student);
@@ -1664,40 +1669,53 @@ class StudentListForAssignment extends Component<
     );
   }
 
-  render_students() {
-    let x;
-    let v = util.parse_students(
+  private get_student_list(): string[] {
+    if (this.student_list != null) {
+      return this.student_list;
+    }
+
+    const v0 = util.parse_students(
       this.props.students,
       this.props.user_map,
       this.props.redux
     );
-    // fill in names, for use in sorting and searching (TODO: caching)
-    v = (() => {
-      const result: any[] = [];
-      for (x of v) {
-        if (!x.deleted) {
-          result.push(x);
-        }
-      }
-      return result;
-    })();
-    v.sort(util.pick_student_sorter(this.props.active_student_sort.toJS()));
-    if (this.props.active_student_sort.get("is_descending")) {
-      v.reverse();
+
+    // Remove deleted students
+    const v1: any[] = [];
+    for (let x of v0) {
+      if (!x.deleted) v1.push(x);
     }
 
-    return (() => {
-      const result1: any[] = [];
-      for (x of v) {
-        result1.push(this.render_student_info(x.student_id));
-      }
-      return result1;
-    })();
+    v1.sort(util.pick_student_sorter(this.props.active_student_sort.toJS()));
+
+    if (this.props.active_student_sort.get("is_descending")) {
+      v1.reverse();
+    }
+
+    this.student_list = [];
+    for (let x of v1) {
+      this.student_list.push(x.student_id);
+    }
+
+    return this.student_list;
   }
 
-  render() {
+  private render_students(): Rendered {
+    const info = this.get_student_list();
     return (
-      <div>
+      <WindowedList
+        overscan_row_count={3}
+        estimated_row_size={65}
+        row_count={info.length}
+        row_renderer={({ key }) => this.render_student_info(key)}
+        row_key={index => this.get_student_list()[index]}
+      />
+    );
+  }
+
+  public render(): Rendered {
+    return (
+      <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
         <StudentAssignmentInfoHeader
           key="header"
           title="Student"
