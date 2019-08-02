@@ -18,6 +18,7 @@ interface Props {
   row_renderer: (obj: { key: string; index: number }) => Rendered; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
+  scroll_top?: number;
   cache_id?: string; // if set, the measured cell sizes and scroll position are preserved between unmount/mounts
 }
 
@@ -47,8 +48,8 @@ export class WindowedList extends Component<Props, State> {
     super(props);
     this.list_ref = React.createRef();
     this.resize_observer = new ResizeObserver(this.cell_resized.bind(this));
-    let scroll_top: number | undefined;
-    if (this.props.cache_id != null) {
+    let scroll_top: number | undefined = props.scroll_top;
+    if (scroll_top == null && this.props.cache_id != null) {
       const x = scroll_top_cache[this.props.cache_id];
       if (x != null) {
         scroll_top = x.scroll_top;
@@ -70,7 +71,7 @@ export class WindowedList extends Component<Props, State> {
     this.list_ref.current.scrollToPosition(pos);
   }
 
-  public get_scrollTop() : number {
+  public get_scrollTop(): number {
     if (this.props.cache_id == null) {
       throw Error("you must set the cache_id before using get_scrollTop");
     }

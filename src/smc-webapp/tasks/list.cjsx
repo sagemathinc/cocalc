@@ -52,10 +52,6 @@ exports.TaskList = SortableContainer rclass
                @props.selected_hashtags != next.selected_hashtags or \
                @props.search_terms      != next.search_terms
 
-    componentDidMount: ->
-        if @props.scroll?
-            ReactDOM.findDOMNode(@refs.main_div)?.scrollTop = @props.scroll.get('scrollTop')
-
     componentWillUnmount: ->
         @save_scroll_position()
 
@@ -70,13 +66,11 @@ exports.TaskList = SortableContainer rclass
     _scroll_into_view: ->
         if not @props.current_task_id?
             return
-        elt = $(ReactDOM.findDOMNode(@refs.main_div))
-        cur = $(ReactDOM.findDOMNode(@refs[@props.current_task_id]))
-        if cur.length == 0
+        # Figure out the index of current_task_id.
+        index = @props.visible.indexOf(@props.current_task_id)
+        if index == -1
             return
-        if cur.length > 0
-            # use jquery because it works!?
-            cur.scrollintoview(direction:'vertical', viewPadding: { y: 50 })
+        @windowed_list_ref?.current?.scrollToRow(index)
 
     render_task: (index, task_id) ->
         if index == @props.visible.size
@@ -130,14 +124,15 @@ exports.TaskList = SortableContainer rclass
           row_renderer={(obj) => @render_task(obj.index, obj.key)}
           row_key={(index) => @props.visible.get(index) ? 'filler'}
           cache_id={@props.actions.name}
+          scroll_top={@props.scroll?.get('scrollTop')}
         />
 
     save_scroll_position: ->
         if not @props.actions?
             return
-        node = ReactDOM.findDOMNode(@refs.main_div)
-        if node?
-            @props.actions.set_local_view_state(scroll: {scrollTop:node.scrollTop})
+        scrollTop = @windowed_list_ref?.current?.get_scrollTop()
+        if scrollTop?
+            @props.actions.set_local_view_state(scroll: {scrollTop})
 
     on_click: (e) ->
         if e.target == @refs.main_div
