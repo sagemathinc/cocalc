@@ -42,7 +42,8 @@ import {
   AppRedux,
   Rendered
 } from "../app-framework";
-const {
+
+import {
   Alert,
   Button,
   ButtonToolbar,
@@ -50,9 +51,11 @@ const {
   FormGroup,
   Checkbox,
   Row,
-  Col,
-  Panel
-} = require("react-bootstrap");
+  Col
+} from "react-bootstrap";
+
+const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
+
 import { Set, Map } from "immutable";
 
 // CoCalc and course components
@@ -656,7 +659,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return (
       <Row key="more">
         <Col sm={12}>
-          <Panel header={this.render_more_header()}>
+          <Panel heading={this.render_more_header()}>
             <StudentListForAssignment
               redux={this.props.redux}
               name={this.props.name}
@@ -808,7 +811,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             ref="copy_assignment_confirm_overwrite_field"
             onChange={e =>
               this.setState({
-                copy_assignment_confirm_overwrite_text: e.target.value
+                copy_assignment_confirm_overwrite_text: (e.target as any).value
               })
             }
             style={{ marginTop: "1ex" }}
@@ -1388,7 +1391,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           checked={config.enabled != null ? config.enabled : false}
           key="peer_grade_checkbox"
           ref="peer_grade_checkbox"
-          onChange={e => this.set_peer_grade({ enabled: e.target.checked })}
+          onChange={e =>
+            this.set_peer_grade({ enabled: (e.target as any).checked })
+          }
           style={{ display: "inline-block", verticalAlign: "middle" }}
         />
         Enable Peer Grading

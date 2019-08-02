@@ -5,7 +5,8 @@ const { types } = misc;
 
 export const entry_style: CSSProperties = {
   paddingTop: "5px",
-  paddingBottom: "5px"
+  paddingBottom: "5px",
+  paddingRight: "15px"
 };
 
 export const selected_entry: CSSProperties = misc.merge(
