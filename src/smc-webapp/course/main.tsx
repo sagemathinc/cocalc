@@ -46,7 +46,7 @@ import {
   redux
 } from "../app-framework";
 
-import { Button, ButtonGroup, Nav, NavItem, Tabs, Tab } from "react-bootstrap";
+import { Button, ButtonGroup, Nav, NavItem, Tab } from "react-bootstrap";
 
 let {
   ActivityDisplay,
@@ -387,7 +387,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -411,7 +411,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -438,7 +438,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -464,7 +464,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -486,7 +486,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -556,6 +556,9 @@ export const CourseEditor = rclass<CourseReactProps>(
     }
 
     render_tabs() {
+      if (this.props.loading) {
+        return;
+      }
       return (
         <Tab.Container
           id={"course-tabs"}
@@ -598,61 +601,6 @@ export const CourseEditor = rclass<CourseReactProps>(
             </Tab.Content>
           </div>
         </Tab.Container>
-      );
-    }
-
-    render_tabs0() {
-      if (this.props.loading) {
-        return;
-      }
-      return (
-        <Tabs
-          id={"course-tabs"}
-          animation={false}
-          activeKey={this.props.tab}
-          onSelect={key => this.get_actions().set_tab(key)}
-          className="smc-vfill"
-          style={{ border: "1px solid red" }}
-        >
-          <Tab
-            eventKey={"students"}
-            title={<StudentsPanelHeader n={this.num_students()} />}
-            tabClassName={"smc-vfill"}
-          >
-            {this.render_students()}
-          </Tab>
-          <Tab
-            eventKey={"assignments"}
-            title={<AssignmentsPanelHeader n={this.num_assignments()} />}
-          >
-            {this.render_assignments()}
-          </Tab>
-          <Tab
-            eventKey={"handouts"}
-            title={<HandoutsPanelHeader n={this.num_handouts()} />}
-          >
-            {this.render_handouts()}
-          </Tab>
-          <Tab eventKey={"configuration"} title={<ConfigurationPanelHeader />}>
-            <div style={{ marginTop: "1em" }} />
-            {this.render_configuration()}
-          </Tab>
-          <Tab
-            eventKey={"shared_project"}
-            title={
-              <SharedProjectPanelHeader
-                project_exists={
-                  !!(this.props.settings != null
-                    ? this.props.settings.get("shared_project_id")
-                    : undefined)
-                }
-              />
-            }
-          >
-            <div style={{ marginTop: "1em" }} />
-            {this.render_shared_project()}
-          </Tab>
-        </Tabs>
       );
     }
 

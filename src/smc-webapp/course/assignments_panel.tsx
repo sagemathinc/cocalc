@@ -144,11 +144,11 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     };
 
-    get_actions(): CourseActions {
+    private get_actions(): CourseActions {
       return redux.getActions(this.props.name);
     }
 
-    get_assignment(id: string): AssignmentRecord {
+    private get_assignment(id: string): AssignmentRecord {
       let assignment = this.props.all_assignments.get(id);
       if (assignment == undefined) {
         console.warn(`Tried to access undefined assignment ${id}`);
@@ -156,7 +156,12 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       return assignment as any;
     }
 
-    compute_assignment_list() {
+    private compute_assignment_list(): {
+      shown_assignments: any[];
+      deleted_assignments: any[];
+      num_omitted: number;
+      num_deleted: number;
+    } {
       let deleted, f, num_deleted, num_omitted;
       let list = util.immutable_to_list(
         this.props.all_assignments,
@@ -198,7 +203,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     }
 
-    render_sort_link(column_name, display_name) {
+    private render_sort_link(column_name, display_name): Rendered {
       return (
         <a
           href=""
@@ -226,7 +231,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
     }
 
-    render_assignment_table_header() {
+    private render_assignment_table_header(): Rendered {
       // HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
       return (
         <Row style={{ marginTop: "-10px", marginBottom: "3px" }}>
@@ -238,28 +243,45 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
     }
 
-    render_assignments(assignments) {
-      return assignments.map((x, i) => (
+    private render_assignment(assignment_id: string, index: number): Rendered {
+      return (
         <Assignment
-          key={x.assignment_id}
+          key={assignment_id}
           project_id={this.props.project_id}
           name={this.props.name}
           redux={this.props.redux}
-          assignment={this.get_assignment(x.assignment_id)}
-          background={i % 2 === 0 ? "#eee" : undefined}
+          assignment={this.get_assignment(assignment_id)}
+          background={index % 2 === 0 ? "#eee" : undefined}
           students={this.props.students}
           user_map={this.props.user_map}
-          is_expanded={this.props.expanded_assignments.has(x.assignment_id)}
+          is_expanded={this.props.expanded_assignments.has(assignment_id)}
           active_student_sort={this.props.active_student_sort}
           expand_peer_config={this.props.expanded_peer_configs.has(
-            x.assignment_id
+            assignment_id
           )}
           active_feedback_edits={this.props.active_feedback_edits}
         />
-      ));
+      );
     }
 
-    render_show_deleted(num_deleted, num_shown) {
+    private render_assignments(assignments): Rendered {
+      return (
+        <WindowedList
+          overscan_row_count={3}
+          estimated_row_size={50}
+          row_count={assignments.length}
+          row_renderer={({ key, index }) => this.render_assignment(key, index)}
+          row_key={index =>
+            assignments[index] != null
+              ? assignments[index].assignment_id
+              : undefined
+          }
+          cache_id={"course-assignments-" + this.props.name}
+        />
+      );
+    }
+
+    private render_show_deleted(num_deleted, num_shown): Rendered {
       if (this.state.show_deleted) {
         return (
           <Button
@@ -293,7 +315,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       }
     }
 
-    yield_adder(deleted_assignments) {
+    private yield_adder(deleted_assignments) {
       const deleted_paths = {};
       deleted_assignments.map(obj => {
         if (obj.path) {
@@ -310,7 +332,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     }
 
-    render() {
+    public render(): Rendered {
       const {
         shown_assignments,
         deleted_assignments,
@@ -1709,7 +1731,11 @@ class StudentListForAssignment extends Component<
         row_count={info.length}
         row_renderer={({ key }) => this.render_student_info(key)}
         row_key={index => this.get_student_list()[index]}
-        cache_id={"course-assignment-" + this.props.name}
+        cache_id={
+          "course-assignment-" +
+          this.props.assignment.get("assignment_id") +
+          this.props.name
+        }
       />
     );
   }
