@@ -1095,6 +1095,9 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"src_path must be defined")
             return
 
+        locals =
+            copy_id : undefined
+
         async.series([
             (cb) =>
                 # Check permissions for the source and target projects (in parallel) --
@@ -1145,15 +1148,25 @@ class exports.Client extends EventEmitter
                                 backup            : mesg.backup
                                 timeout           : mesg.timeout
                                 exclude_history   : mesg.exclude_history
-                                cb                : cb
-        ], (err, copy_id) =>
+                                wait_until_done   : mesg.wait_until_done
+                                cb                : (err, copy_id) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        locals.copy_id = copy_id
+                                        cb()
+        ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                resp = message.copy_path_between_projects_response
+                # we only expect a copy_id in kucalc mode
+                if locals.copy_id?
+                    resp = message.copy_path_between_projects_response
                                                         id           : mesg.id
-                                                        copy_path_id : copy_id
-                @push_to_client(resp)
+                                                        copy_path_id : locals.copy_id
+                    @push_to_client(resp)
+                else
+                    @push_to_client(message.success(id:mesg.id))
         )
 
     mesg_copy_path_status: (mesg) =>
@@ -1869,7 +1882,7 @@ class exports.Client extends EventEmitter
                     exclude_history : mesg.exclude_history
                     backup          : mesg.backup
                     cb              : cb
-        ], (err, copy_id) =>
+        ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else

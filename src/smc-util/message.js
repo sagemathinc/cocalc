@@ -1778,7 +1778,7 @@ message({
   event: "copy_path_between_projects_response",
   id: required,
   copy_path_id: undefined,
-  note: "Query copy_path_status to learn if the copy operation was successful."
+  note: "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
 });
 
 API(

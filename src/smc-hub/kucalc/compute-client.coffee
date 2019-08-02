@@ -431,7 +431,7 @@ class Project extends EventEmitter
                     # but just in case, logically we have to check this case.
                     cb()
                     return
-                if opts.wait_until_done === 'true'
+                if opts.wait_until_done == 'true' or opts.wait_until_done == true
                     dbg('waiting for copy to finish...')
                     handle_change = =>
                         @active()
@@ -444,6 +444,7 @@ class Project extends EventEmitter
                             cb(obj.get('error'))
                     synctable.on('change', handle_change)
                 else
+                    dbg('NOT waiting for copy to finish...')
                     cb()
         ], (err) =>
             @active()
