@@ -129,6 +129,7 @@ exports.TaskList = SortableContainer rclass
           row_count={@props.visible.size+1}
           row_renderer={(obj) => @render_task(obj.index, obj.key)}
           row_key={(index) => @props.visible.get(index) ? 'filler'}
+          cache_id={@props.actions.name}
         />
 
     save_scroll_position: ->

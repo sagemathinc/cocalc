@@ -38,8 +38,6 @@ interface Props {
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
-  page_number: number;
-  page_size: number;
   public_view: boolean;
   create_folder: () => void; // TODO: should be action!
   create_file: () => void; // TODO: should be action!
@@ -169,6 +167,7 @@ export class FileListing extends React.Component<Props> {
         row_renderer={this.windowed_list_render_row.bind(this)}
         row_key={this.windowed_list_row_key.bind(this)}
         scroll_to_index={this.props.selected_file_index}
+        cache_id={this.props.name + this.props.current_path}
       />
     );
   }

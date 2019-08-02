@@ -1709,6 +1709,7 @@ class StudentListForAssignment extends Component<
         row_count={info.length}
         row_renderer={({ key }) => this.render_student_info(key)}
         row_key={index => this.get_student_list()[index]}
+        cache_id={"course-assignment-" + this.props.name}
       />
     );
   }

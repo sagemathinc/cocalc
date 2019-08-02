@@ -190,6 +190,7 @@ export class FileUseViewer extends Component<Props, State> {
         row_count={this.get_visible_list().size}
         row_renderer={this.row_renderer.bind(this)}
         row_key={this.row_key.bind(this)}
+        cache_id={"file-use"}
       />
     );
   }

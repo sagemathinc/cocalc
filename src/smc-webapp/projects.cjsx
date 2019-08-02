@@ -1267,6 +1267,7 @@ ProjectList = rclass
               row_count={@props.projects.length + 1}
               row_renderer={(x)=>@render_project(x.index)}
               row_key={(index) => @props.projects[index]?.project_id ? 'button'}
+              cache_id={'projects'}
         />
 
     render: ->

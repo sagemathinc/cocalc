@@ -779,6 +779,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           row_key={index =>
             students[index] != null ? students[index].student_id : undefined
           }
+          cache_id={"course-student-" + this.props.name}
         />
       );
     }

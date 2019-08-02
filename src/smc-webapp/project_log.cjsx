@@ -515,6 +515,7 @@ exports.ProjectLog = rclass ({name}) ->
             row_renderer = {(x) => @row_renderer(x.index)}
             row_key = {@row_key}
             scroll_to_index={next_cursor_pos}
+            cache_id={"project_log" + @props.project_id}
         />
 
     render_log_panel: ->

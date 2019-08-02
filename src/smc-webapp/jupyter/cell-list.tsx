@@ -350,6 +350,10 @@ export class CellList extends Component<CellListProps> {
   }
 
   private render_list_of_cells_using_window_list(): Rendered {
+    let cache_id: undefined | string = undefined;
+    if (this.props.name != null && this.props.frame_actions != null) {
+      cache_id = this.props.name + this.props.frame_actions.frame_id;
+    }
     return (
       <WindowedList
         ref={this.window_list_ref}
@@ -358,6 +362,7 @@ export class CellList extends Component<CellListProps> {
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
         row_renderer={this.window_list_row_renderer.bind(this)}
+        cache_id={cache_id}
       />
     );
   }

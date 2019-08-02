@@ -5,7 +5,7 @@
 NOTES:
  - this may be very relevant: https://github.com/bvaughn/react-window/issues/6
 */
-
+import { delay } from "awaiting";
 import { ResizeObserver } from "resize-observer";
 import { List, AutoSizer } from "react-virtualized";
 
@@ -18,12 +18,22 @@ interface Props {
   row_renderer: (obj: { key: string; index: number }) => Rendered; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
-  scroll_id?: string;
+  cache_id?: string; // if set, the measured cell sizes and scroll position are preserved between unmount/mounts
 }
 
 interface State {
   scroll_to_index?: number;
+  scroll_top?: number;
 }
+
+const scroll_top_cache: {
+  [cache_id: string]: {
+    scroll_top: number;
+    row_heights_cache: { [key: string]: number };
+  };
+} = {};
+
+console.log(scroll_top_cache);
 
 export class WindowedList extends Component<Props, State> {
   private cell_refs: { [key: string]: any } = {};
@@ -36,7 +46,15 @@ export class WindowedList extends Component<Props, State> {
     super(props);
     this.list_ref = React.createRef();
     this.resize_observer = new ResizeObserver(this.cell_resized.bind(this));
-    this.state = { scroll_to_index: props.scroll_to_index };
+    let scroll_top: number | undefined;
+    if (this.props.cache_id != null) {
+      const x = scroll_top_cache[this.props.cache_id];
+      if (x != null) {
+        scroll_top = x.scroll_top;
+        this.row_heights_cache = x.row_heights_cache;
+      }
+    }
+    this.state = { scroll_to_index: props.scroll_to_index, scroll_top };
   }
 
   public componentWillUnmount(): void {
@@ -49,6 +67,15 @@ export class WindowedList extends Component<Props, State> {
 
   public scrollToPosition(pos: number): void {
     this.list_ref.current.scrollToPosition(pos);
+  }
+
+  public get_scrollTop() : number {
+    if (this.props.cache_id == null) {
+      throw Error("you must set the cache_id before using get_scrollTop");
+    }
+    const x = scroll_top_cache[this.props.cache_id as string];
+    if (x == null) return 0;
+    return x.scroll_top;
   }
 
   private cell_resized(entries: any[]): void {
@@ -119,7 +146,30 @@ export class WindowedList extends Component<Props, State> {
     return h ? h : this.props.estimated_row_size;
   }
 
+  private async scroll_after_measure(): Promise<void> {
+    const { scroll_to_index, scroll_top } = this.state;
+    if (scroll_to_index == null && scroll_top == null) {
+      return;
+    }
+    // Do this so it only scrolls to this index or position once. Otherwise, things
+    // are horribly broken on scroll after using scroll_to_index.
+    await delay(1);
+    if (!this.is_mounted) return;
+    this.setState({
+      scroll_to_index: undefined,
+      scroll_top: undefined
+    });
+  }
+
   public render(): Rendered {
+    let on_scroll: undefined | Function = undefined;
+    if (this.props.cache_id != null) {
+      on_scroll = ({ scrollTop }) =>
+        (scroll_top_cache[this.props.cache_id as string] = {
+          scroll_top: scrollTop,
+          row_heights_cache: this.row_heights_cache
+        });
+    }
     return (
       <div
         className="smc-vfill"
@@ -139,17 +189,11 @@ export class WindowedList extends Component<Props, State> {
                 rowCount={this.props.row_count}
                 rowRenderer={this.row_renderer.bind(this)}
                 scrollToIndex={this.state.scroll_to_index}
+                scrollTop={this.state.scroll_top}
+                onScroll={on_scroll}
               />
             );
-            if (this.state.scroll_to_index != null) {
-              // So it only scrolls to this index once. Otherwise, things
-              // are horribly broken on scroll after using scroll_to_index.
-              setTimeout(() => {
-                if (this.is_mounted) {
-                  this.setState({ scroll_to_index: undefined });
-                }
-              }, 1);
-            }
+            this.scroll_after_measure();
             return elt;
           }}
         </AutoSizer>
