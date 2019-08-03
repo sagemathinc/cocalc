@@ -5,8 +5,6 @@ import * as jwt from "jsonwebtoken";
 import * as jwksClient from "jwks-rsa";
 import * as path from "path";
 
-import { inspect } from "util";
-
 import {
   IssuerData,
   LoginInitiationFromPlatform,
@@ -16,8 +14,34 @@ import {
 const SMC_ROOT: string = process.env.SMC_ROOT as any;
 const STATIC_PATH = path.join(SMC_ROOT, "static");
 
-const privateKEY = ";lkjasdf;lkjsad;cklmrcrae";
-
+const privateKEY = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAmzcy01Samt/ehVukUhzVbIh4CAHo7njMjuIOnc9b+dajAKHj
+WU18E8sVROilLok7VIkKh7zwSZzoqmDZm7viexkZ5sIRqlUHPtojPG2nlCJRCDyW
+bVJc8M8haP/7Daa/TcaBz1T6OPJbinqVGAiMDQNU9abY6Mj7kJxaSeTofQUcoWNs
+XR5eQOHCPV8GLZresftEW7vOOGhIUO9qBJdnVoDnvmx0LeKAl4EzSTDpz8NMM+OV
+aZ5uaR4m84FDttskFqxswEeLnWd+puvTwQ8NPTFPwNh07F+Xrl1N3SN8WU2mvy61
+MH4yQ6KyTeNAeqOXgy7VY2DDQDRuhBKwVA1YPQIDAQABAoIBACaPzibGzCpSGByV
+qftkgnmWZgvHPbGRfXC6JNt8GuO1OYX8slkLcRoRyFT4X6FyIrVb3qveeuwu+Xbq
+3OVeBmSC1faInI7u1P/+feaTb6DT7cHYG59JaSHCtBA8GIlJthmCidmSyR/AxpFe
+5w+zf+fzvfXR3+3lkOpajevx3PjCG0i7YkZ/4qd88pDxBVk6G5DzlIIBL80dL4He
+zm2FC0D8Giag07R+4Sn+WW8iA9Iej1mhIPLr5Sl+h10JOFQFxAHS6mYQhgQNd+fY
+rsonbGkWzUFssT++Dx4ia+BjbI4TTJi5Gw8ov4ciyTY2YnjqragwhM2JJFx8BgPP
+nqaTWNkCgYEAzFnbHKzIin7A1B8MScXteiHO00Sy2QrTAFJA0x/Si86dJcvWU3PS
+OjSEsEgDHIL0HNXotIyi3ZrV5RIYjV0XvdeAOsspWyn9R1hOZ6akoMFqO8eHeXxh
+b/IaEmgGXSAeF9TO6rdnboog+29iU/2enA6/YE6Oqe8fkRVB+RBjZzsCgYEAwnIh
+h9pQFf4yQYOt7JN1WBADmiooqHojV+vXTpg8/+nCUBo5Y5dWl9FGOsglG6EcA/AB
+sWknlqIC7/ibWZj3wZJdFv45AuB6GMi1qC7SF3Iy9ol++gwJnpDf7SUQVxQ1NTta
+Ci2PKNsmE24HR+F4eTlork/QVuzDcau7QznyducCgYEAmU0rmHZyt5thc4CbSljm
+z8G/FDUsarC5HDuYkAoGfIWS1MD3V4HDC5FMnaZYVzJSibNbsN70a4T1w7RwoNRe
+tDeP5gt1SgPVE4nGv/F+/W48EP6dvmC2BDI+puJNK92lVcF7PRA70uxi0916iYHx
+VCeoIEqusgNGziOBa6SEvfMCgYEAhvJEeQ83I3xODo+/pf9UofBDP7vgicRyQPOJ
+cp9PPmBSHduFVqvSSfzQW71Jm5o9YjIwSprrAaygk0CbOBxkXfAhMPLwSCHYOtkY
+0YblAaac3eLgv9KY3nY3IlLluzloD/CH9aZWw4kMLNHgta8yOBdyof78XUdmAL6p
+cOeHcaMCgYBwL0buukBM2CI5aL50mhLTL5rpVPOcM3H3Z5uJbevwtoRIjYC8AsU0
+EtYgVDOMTrbh4AO7PTtLFyd9bm53lYy5CbVJ5xb0wyUs9dC5rodRoJXuT8blz2CS
+aooSWdkvWOP6M2B2QN7RMr0EGPwHnrFQaMcM3gHqvU6K7jg9AakEfA==
+-----END RSA PRIVATE KEY-----`;
+/*
 const active_selection_sessions: {
   [key: string]: {
     iss: string;
@@ -40,7 +64,7 @@ const active_selection_sessions: {
     }[];
   };
 } = {};
-
+*/
 export function init_LTI_router(opts: { base_url: string }): express.Router {
   const router = express.Router();
   router.use(express.json());
@@ -92,7 +116,7 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
       }
       const details = get_auth_flow(token.nonce);
       res.redirect(opts.base_url);
-      console.log(`${inspect(details)}`);
+      console.log(details);
     });
   });
 
@@ -100,33 +124,53 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-
-    console.log("ROUTE =========\n\n\n");
-    console.log(inspect(req.body));
-
-    const options = { algorithms: ["RS256"] };
-
-    // TODO #V0: Use verify for security
-    jwt.decode(req.body.id_token, options, function(err, token) {
-      console.log("Finished parsing id_token", inspect(token));
-      if (err) {
-        res.send("Error parsing jwt:" + err);
-      }
-
-      res.sendFile(path.join(STATIC_PATH, "lti.html"), { maxAge: 0 });
-    });
+    const query_string = querystring.stringify(req.body);
+    res.redirect("../lti?" + query_string);
   });
 
   router.post("/return-deep-link", (req, res) => {
-    // TODO: Receive data from front end
+    const options = { algorithms: ["RS256"] };
+    // TODO #V0: Use verify for security
+    const token = jwt.decode(req.body.token_id, options);
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
-    const jwt_data = active_selection_sessions[req.body.state];
-    jwt_data.nonce = uuid.v4();
+    const nonce = uuid.v4();
     const redirect_url =
-      jwt_data[
+      token[
         "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
       ].deep_link_return_url;
+    const iss_data = get_iss_data(token.iss);
+
+    // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
+    const jwt_data = {
+      iss: iss_data.client_id,
+      aud: [token.iss],
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 60 * 60,
+      nonce: nonce,
+      header: {
+        typ: "JWT",
+        alg: "RS256"
+      },
+      "https://purl.imsglobal.org/spec/lti/claim/message_type":
+        "LtiDeepLinkingResponse",
+      "https://purl.imsglobal.org/spec/lti/claim/version": "1.3.0",
+      "https://purl.imsglobal.org/spec/lti/claim/deployment_id":
+        token["https://purl.imsglobal.org/spec/lti/claim/deployment_id"],
+      "https://purl.imsglobal.org/spec/lti-dl/claim/data":
+        token[
+          "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
+        ],
+      "https://purl.imsglobal.org/spec/lti-dl/claim/content_items": [
+        {
+          type: "ltiResourceLink", // TODO: What types are available?
+          title: "MOCK FROM SELECTION UI",
+          url:
+            "https://cocalc.com/projects/369491f1-9b8a-431c-8cd0-150dd15f7b11/files/work/2019-06-19.sage-chat?session=default&fullscreen=kiosk"
+        }
+      ] // Array of returned items (possibly empty)
+    };
+
     const deep_link_response_token = jwt.sign(jwt_data, privateKEY, {
       algorithm: "RS256"
     });

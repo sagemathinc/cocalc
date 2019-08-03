@@ -107,14 +107,14 @@ function App() {
       <FooterContainer>
         <form
           method="post"
-          action={"return-deep-link"}
+          action={"lti/return-deep-link"}
         >
           <input
             type="hidden"
-            name="extra_submit_param"
-            value="extra_submit_value"
+            name="token_id"
+            value={QUERY_PARAMS.id_token}
           />
-          <button type="submit" name="submit_param" value="submit_value">
+          <button type="submit" name="state" value={QUERY_PARAMS.state}>
             This is a link that sends a POST request
           </button>
         </form>
