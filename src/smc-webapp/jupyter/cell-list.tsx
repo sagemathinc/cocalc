@@ -33,7 +33,7 @@ interface CellListProps {
   cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
   mode: NotebookMode;
   hook_offset?: number;
-  scroll?: Scroll;
+  scroll?: Scroll; // scroll by this amount
   cm_options: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
@@ -182,9 +182,11 @@ export class CellList extends Component<CellListProps> {
     if (!this.use_window_list) return;
     const list = this.window_list_ref.current;
     if (list == null) return;
+    const info = list.get_scroll();
 
     if (typeof scroll === "number") {
-      list.scrollToPosition(scroll);
+      if (info == null) return;
+      list.scrollToPosition(info.scrollTop + scroll);
       return;
     }
 
@@ -197,7 +199,6 @@ export class CellList extends Component<CellListProps> {
       }
       return;
     }
-    const info = list.get_scroll();
     if (info == null) return;
     switch (scroll) {
       case "list up":

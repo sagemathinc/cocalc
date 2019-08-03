@@ -75,17 +75,20 @@ export class NotebookFrameActions {
       return;
     }
     this.scroll_before_change = offset.top;
+    console.log("this.scroll_before_change", this.scroll_before_change);
   }
 
-  private syncdb_after_change(): void {
+  private async syncdb_after_change(): Promise<void> {
     if (this.scroll_before_change == null) {
       return;
     }
+    await delay(0);
     const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
     if (offset == null) {
       return;
     }
     const scroll_after_change = offset.top;
+    console.log("this.scroll_after_change", scroll_after_change);
     const diff = scroll_after_change - this.scroll_before_change;
     if (diff) {
       this.scroll(diff);
