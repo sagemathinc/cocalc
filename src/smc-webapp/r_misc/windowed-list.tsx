@@ -28,10 +28,16 @@ interface State {
   scroll_top?: number;
 }
 
+interface ScrollInfo {
+  clientHeight: number;
+  scrollHeight: number;
+  scrollTop: number;
+}
+
 // TODO: this should be an LRU cache, to avoid a longterm memory leak.
-const scroll_top_cache: {
+const scroll_cache: {
   [cache_id: string]: {
-    scroll_top: number;
+    info: ScrollInfo;
     row_heights_cache: { [key: string]: number };
   };
 } = {};
@@ -49,9 +55,9 @@ export class WindowedList extends Component<Props, State> {
     this.resize_observer = new ResizeObserver(this.cell_resized.bind(this));
     let scroll_top: number | undefined = props.scroll_top;
     if (scroll_top == null && this.props.cache_id != null) {
-      const x = scroll_top_cache[this.props.cache_id];
+      const x = scroll_cache[this.props.cache_id];
       if (x != null) {
-        scroll_top = x.scroll_top;
+        scroll_top = x.info.scrollTop;
         this.row_heights_cache = x.row_heights_cache;
       }
     }
@@ -70,13 +76,14 @@ export class WindowedList extends Component<Props, State> {
     this.list_ref.current.scrollToPosition(pos);
   }
 
-  public get_scrollTop(): number {
+  // Last scroll info
+  public get_scroll(): ScrollInfo | undefined {
     if (this.props.cache_id == null) {
-      throw Error("you must set the cache_id before using get_scrollTop");
+      throw Error("you must set the cache_id before using get_scroll");
     }
-    const x = scroll_top_cache[this.props.cache_id as string];
-    if (x == null) return 0;
-    return x.scroll_top;
+    const x = scroll_cache[this.props.cache_id as string];
+    if (x == null) return;
+    return x.info;
   }
 
   private cell_resized(entries: any[]): void {
@@ -165,13 +172,13 @@ export class WindowedList extends Component<Props, State> {
   public render(): Rendered {
     let on_scroll: undefined | Function = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {
-      on_scroll = x => {
+      on_scroll = info => {
         if (this.props.on_scroll != null) {
-          this.props.on_scroll(x);
+          this.props.on_scroll(info);
         }
         if (this.props.cache_id != null) {
-          scroll_top_cache[this.props.cache_id as string] = {
-            scroll_top: x.scrollTop,
+          scroll_cache[this.props.cache_id as string] = {
+            info,
             row_heights_cache: this.row_heights_cache
           };
         }

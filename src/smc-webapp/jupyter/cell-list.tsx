@@ -4,7 +4,7 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
-const DEFAULT_ROW_SIZE: number = 39;
+const DEFAULT_ROW_SIZE: number = 64;
 
 import { WindowedList } from "../r_misc/windowed-list";
 
@@ -20,8 +20,6 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 import { NotebookMode, Scroll } from "./types";
-
-const PADDING = 100;
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -61,20 +59,27 @@ export class CellList extends Component<CellListProps> {
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
-    if (this.cell_list_node != null && this.props.frame_actions != null) {
-      if (this.use_window_list) {
-        console.log("unmount scrollTop: TODO");
-      } else {
-        this.props.frame_actions.set_scrollTop(this.cell_list_node.scrollTop);
-      }
-    }
 
     if (this.props.frame_actions != null) {
+      this.save_scroll();
       // handle focus via an event handler on window.
       // We have to do this since, e.g., codemirror editors
       // involve spans that aren't even children, etc...
       $(window).unbind("click", this.window_click);
       this.props.frame_actions.disable_key_handler();
+    }
+  }
+
+  private save_scroll(): void {
+    if (
+      this.use_window_list &&
+      this.props.frame_actions != null &&
+      this.window_list_ref.current != null
+    ) {
+      const info = this.window_list_ref.current.get_scroll();
+      if (info != null) {
+        this.props.frame_actions.set_scrollTop(info.scrollTop);
+      }
     }
   }
 
@@ -174,87 +179,35 @@ export class CellList extends Component<CellListProps> {
   }
 
   private scroll_cell_list(scroll: Scroll): void {
-    if (this.use_window_list) {
-      if (scroll != "cell visible") {
-        console.log("scroll_cell_list: TODO", scroll);
-        return;
-      }
-    }
-    const elt = $(this.cell_list_node);
-    if (elt == null) {
+    if (!this.use_window_list) return;
+    const list = this.window_list_ref.current;
+    if (list == null) return;
+
+    if (typeof scroll === "number") {
+      list.scrollToPosition(scroll);
       return;
     }
-    if (elt.length > 0) {
-      let cur, top;
-      if (typeof scroll === "number") {
-        elt.scrollTop(elt.scrollTop() + scroll);
-        return;
-      }
 
-      // supported scroll positions are in types.ts
-      if (scroll === "cell visible") {
-        if (!this.props.cur_id) return;
-        if (this.use_window_list) {
-          const n = this.props.cell_list.indexOf(this.props.cur_id);
-          if (n != -1) {
-            if (this.window_list_ref.current != null) {
-              this.window_list_ref.current.scrollToRow(n);
-            }
-          }
-          return;
-        }
-        // ensure selected cell is visible
-        cur = elt.find(`#${this.props.cur_id}`);
-        if (cur.length > 0) {
-          top = cur.position().top - elt.position().top;
-          if (top < PADDING) {
-            scroll = "cell top";
-          } else if (top > elt.height() - PADDING) {
-            scroll = "cell bottom";
-          } else {
-            return;
-          }
-        }
+    // supported scroll positions are in types.ts
+    if (scroll === "cell visible") {
+      if (!this.props.cur_id) return;
+      const n = this.props.cell_list.indexOf(this.props.cur_id);
+      if (n != -1) {
+        list.scrollToRow(n);
       }
-      switch (scroll) {
-        case "list up":
-          // move scroll position of list up one page
-          return elt.scrollTop(elt.scrollTop() - elt.height() * 0.9);
-        case "list down":
-          // move scroll position of list up one page
-          return elt.scrollTop(elt.scrollTop() + elt.height() * 0.9);
-        case "cell top":
-          cur = elt.find(`#${this.props.cur_id}`);
-          if (cur != null && cur.length > 0) {
-            return elt.scrollTop(
-              elt.scrollTop() +
-                (cur.position().top - elt.position().top) -
-                PADDING
-            );
-          }
-          break;
-        case "cell center":
-          cur = elt.find(`#${this.props.cur_id}`);
-          if (cur != null && cur.length > 0) {
-            return elt.scrollTop(
-              elt.scrollTop() +
-                (cur.position().top - elt.position().top) -
-                elt.height() * 0.5
-            );
-          }
-          break;
-        case "cell bottom":
-          cur = elt.find(`#${this.props.cur_id}`);
-          if (cur.length > 0) {
-            return elt.scrollTop(
-              elt.scrollTop() +
-                (cur.position().top - elt.position().top) -
-                elt.height() * 0.9 +
-                PADDING
-            );
-          }
-          break;
-      }
+      return;
+    }
+    const info = list.get_scroll();
+    if (info == null) return;
+    switch (scroll) {
+      case "list up":
+        // move scroll position of list up one page
+        list.scrollToPosition(info.scrollTop - info.clientHeight);
+        break;
+      case "list down":
+        // move scroll position of list up one page
+        list.scrollToPosition(info.scrollTop + info.clientHeight);
+        break;
     }
   }
 
@@ -357,7 +310,7 @@ export class CellList extends Component<CellListProps> {
     return (
       <WindowedList
         ref={this.window_list_ref}
-        overscan_row_count={7}
+        overscan_row_count={1}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}

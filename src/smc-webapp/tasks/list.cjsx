@@ -130,7 +130,7 @@ exports.TaskList = SortableContainer rclass
     save_scroll_position: ->
         if not @props.actions?
             return
-        scrollTop = @windowed_list_ref?.current?.get_scrollTop()
+        scrollTop = @windowed_list_ref?.current?.get_scroll()?.scrollTop
         if scrollTop?
             @props.actions.set_local_view_state(scroll: {scrollTop})
 
