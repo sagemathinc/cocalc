@@ -20,6 +20,7 @@ interface Props {
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
   scroll_top?: number;
   cache_id?: string; // if set, the measured cell sizes and scroll position are preserved between unmount/mounts
+  on_scroll?: (scroll_top: number) => void;
 }
 
 interface State {
@@ -34,8 +35,6 @@ const scroll_top_cache: {
     row_heights_cache: { [key: string]: number };
   };
 } = {};
-
-console.log(scroll_top_cache);
 
 export class WindowedList extends Component<Props, State> {
   private cell_refs: { [key: string]: any } = {};
@@ -165,12 +164,18 @@ export class WindowedList extends Component<Props, State> {
 
   public render(): Rendered {
     let on_scroll: undefined | Function = undefined;
-    if (this.props.cache_id != null) {
-      on_scroll = ({ scrollTop }) =>
-        (scroll_top_cache[this.props.cache_id as string] = {
-          scroll_top: scrollTop,
-          row_heights_cache: this.row_heights_cache
-        });
+    if (this.props.cache_id != null || this.props.on_scroll != null) {
+      on_scroll = x => {
+        if (this.props.on_scroll != null) {
+          this.props.on_scroll(x);
+        }
+        if (this.props.cache_id != null) {
+          scroll_top_cache[this.props.cache_id as string] = {
+            scroll_top: x.scrollTop,
+            row_heights_cache: this.row_heights_cache
+          };
+        }
+      };
     }
     return (
       <div

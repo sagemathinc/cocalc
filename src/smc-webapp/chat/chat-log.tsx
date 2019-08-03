@@ -153,6 +153,20 @@ export class ChatLog extends Component<ChatLogProps> {
     );
   }
 
+  private on_scroll({scrollTop, scrollHeight, clientHeight}): void {
+    if (
+      this.props.windowed_list_ref != null &&
+      this.props.windowed_list_ref.current != null &&
+      !(this.props.windowed_list_ref.current as any).chat_scroll_to_bottom
+    ) {
+      if (scrollTop + clientHeight  + 30 >= scrollHeight) {
+        delete (this.props.windowed_list_ref.current as any).chat_manual_scroll;
+      } else {
+        (this.props.windowed_list_ref.current as any).chat_manual_scroll = true;
+      }
+    }
+  }
+
   public render(): Rendered {
     return (
       <>
@@ -165,6 +179,7 @@ export class ChatLog extends Component<ChatLogProps> {
           row_renderer={this.row_renderer.bind(this)}
           row_key={this.row_key.bind(this)}
           cache_id={this.props.actions ? this.props.actions.name : undefined}
+          on_scroll={this.on_scroll.bind(this)}
         />
       </>
     );

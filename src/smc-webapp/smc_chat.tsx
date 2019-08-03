@@ -668,8 +668,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   componentDidUpdate() {
-    // TODO: need to only do this if the user hasn't *manually* scrolled
-    // to some position.
     scroll_to_bottom(this.log_container_ref);
   }
 
@@ -691,7 +689,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   button_scroll_to_bottom = () => {
-    scroll_to_bottom(this.log_container_ref);
+    scroll_to_bottom(this.log_container_ref, true);
   };
 
   button_off_click = () => {
@@ -706,37 +704,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     if (this.input_ref.current != null) {
       this.input_ref.current.focus();
     }
-    scroll_to_bottom(this.log_container_ref);
   };
 
-  set_chat_log_state = debounce(() => {
-    if (this.refs.log_container != null) {
-      const node = ReactDOM.findDOMNode(this.refs.log_container);
-      this.props.actions.save_scroll_state(
-        node.scrollTop,
-        node.scrollHeight,
-        node.offsetHeight
-      );
-    }
-  }, 300);
-
-  set_preview_state = debounce(
-    () => {
-      if (this.refs.log_container != null) {
-        this.setState({ preview: this.props.input });
-      }
-      if (this.refs.preview) {
-        // const node = ReactDOM.findDOMNode(this.refs.preview); // TODO: is this used?
-        // return (this._preview_height = node.offsetHeight - 12); // TODO: is this used?
-      }
-    }, // sets it to 75px starting then scales with height.
-    300
-  );
-
-  debounce_bottom = debounce(() => {
-    //debounces it so that the preview shows up then calls
-    scroll_to_bottom(this.refs.log_container);
-  }, 300);
+  set_preview_state = debounce(() => {
+    this.setState({ preview: this.props.input });
+  }, 250);
 
   show_files = () => {
     this.props.redux != null
@@ -1018,7 +990,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   on_send = input => {
-    scroll_to_bottom(this.refs.log_container);
+    scroll_to_bottom(this.log_container_ref, true);
     this.props.actions.submit_user_mentions(
       this.props.project_id,
       this.props.path
@@ -1088,7 +1060,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 actions={this.props.actions}
                 saved_mesg={this.props.saved_mesg}
                 search={this.props.search}
-                set_scroll={this.set_chat_log_state}
                 show_heads={true}
               />
               {this.props.input.length > 0 && this.props.is_preview

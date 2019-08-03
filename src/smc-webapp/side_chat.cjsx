@@ -63,7 +63,6 @@ ChatRoom = rclass ({name}) ->
             height             : rtypes.number
             offset             : rtypes.number
             saved_mesg         : rtypes.string
-            use_saved_position : rtypes.bool
             add_collab         : rtypes.bool
             search             : rtypes.string
         users :
@@ -107,7 +106,7 @@ ChatRoom = rclass ({name}) ->
         analytics_event('side_chat', 'send_chat', 'click')
 
     send_chat: (value) ->
-        scroll_to_bottom(@log_container_ref)
+        scroll_to_bottom(@log_container_ref, true)
         @props.actions.submit_user_mentions(
             @props.project_id,
             misc.original_path(@props.path)
@@ -127,8 +126,7 @@ ChatRoom = rclass ({name}) ->
                         # since this happens when the user shows it.
 
     componentDidUpdate: ->
-        if not @props.use_saved_position
-            scroll_to_bottom(@log_container_ref)
+        scroll_to_bottom(@log_container_ref)
 
     render_collab_caret: ->
         if @props.add_collab

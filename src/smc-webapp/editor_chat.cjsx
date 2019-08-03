@@ -189,11 +189,20 @@ exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     # 20 for covering margin of bottom message
     saved_position + offset + 20 > height
 
-exports.scroll_to_bottom = scroll_to_bottom = (log_container_ref) ->
-    for d in [1, 250, 500]
-        windowed_list = log_container_ref.current
-        if windowed_list?
-            windowed_list.scrollToRow(-1)
-            await delay(d)
+exports.scroll_to_bottom = scroll_to_bottom = (log_container_ref, force) ->
+    if (not force and log_container_ref.current?.chat_manual_scroll) or log_container_ref.current?.chat_scroll_to_bottom
+        return
+    try
+        # this "chat_scroll_to_bottom" is an abusive hack because I'm lazy -- ws.
+        log_container_ref.current?.chat_scroll_to_bottom = true
+        delete log_container_ref.current?.chat_manual_scroll
+        for d in [1, 50, 200]
+            log_container_ref.current?.chat_scroll_to_bottom = true
+            windowed_list = log_container_ref.current
+            if windowed_list?
+                windowed_list.scrollToRow(-1)
+                await delay(d)
+    finally
+        delete log_container_ref.current?.chat_scroll_to_bottom
 
 
