@@ -1564,7 +1564,7 @@ describe 'test converting to and from JSON for sending over a socket -- ', ->
         expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)
 
 describe 'misc.transform_get_url mangles some URLs or "understands" what action to take', ->
-    turl = misc.transform_get_url
+    turl = require('smc-webapp/project/transform-get-url').transform_get_url
     it 'preserves "normal" URLs', ->
         turl('http://example.com/file.tar.gz').should.eql  {command:'wget', args:["http://example.com/file.tar.gz"]}
         turl('https://example.com/file.tar.gz').should.eql {command:'wget', args:["https://example.com/file.tar.gz"]}
@@ -1608,7 +1608,10 @@ describe 'misc.transform_get_url mangles some URLs or "understands" what action 
         #turl('http://nbviewer.jupyter.org/gist/darribas/4121857').should.eql
         #    command: 'wget'
         #    args: ['https://gist.githubusercontent.com/darribas/4121857/raw/505e030811332c78e8e50a54aca5e8034605cb4c/guardian_gaza.ipynb']
-
+    it 'transforms the cocalc share server url', ->
+        turl('https://share.cocalc.com/share/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews?viewer=share').should.eql
+            command: 'wget'
+            args: ['https://share.cocalc.com/share/raw/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews']
 
 
 describe 'test closest kernel matching method', ->

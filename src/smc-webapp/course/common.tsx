@@ -560,7 +560,7 @@ export class StudentAssignmentInfo extends Component<
           <div style={{ margin: "5px", display: "inline-block" }}>
             <a
               target="_blank"
-              href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"
+              href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
             >
               What happens when I assign again?
             </a>
