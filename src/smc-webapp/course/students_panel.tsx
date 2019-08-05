@@ -122,6 +122,15 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     StudentsPanelReactProps & StudentsPanelReduxProps,
     StudentsPanelState
   > {
+    // student_list not a list, but has one, plus some extra info.
+    private student_list:
+      | {
+          students: any[];
+          num_omitted: number;
+          num_deleted: number;
+        }
+      | undefined = undefined;
+
     constructor(props) {
       super(props);
       this.state = {
@@ -154,16 +163,23 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     };
 
     shouldComponentUpdate(props, state) {
+      if (
+        this.state.search !== state.search ||
+        misc.is_different(this.props, props, [
+          "students",
+          "user_map",
+          "active_student_sort"
+        ])
+      ) {
+        delete this.student_list;
+        return true;
+      }
       return (
         this.state !== state ||
         misc.is_different(this.props, props, [
           "expanded_students",
-          "active_student_sort",
           "name",
           "project_id",
-          "students",
-          "user_map",
-          "project_map",
           "assignments",
           "active_feedback_edits"
         ])
@@ -571,7 +587,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
             <Col md={4}>
               {num_omitted ? (
-                <h6>(Omitting {num_omitted} students)</h6>
+                <h5>(Omitting {num_omitted} students)</h5>
               ) : (
                 undefined
               )}
@@ -604,8 +620,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    compute_student_list() {
-      // TODO: good place to cache something...
+    private get_student_list(): {
+      students: any[];
+      num_omitted: number;
+      num_deleted: number;
+    } {
       // turn map of students into a list
       // account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's CoCalc account ID
       // email_address  : "4@student.com"                        # Email the instructor signed the student up with.
@@ -617,14 +636,14 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // create_project : True
       // deleted        : False
       // note           : "Is younger sister of Abby Florence (TA)"
+      if (this.student_list != null) return this.student_list;
 
-      let x;
-      let v = util.parse_students(
+      let students = util.parse_students(
         this.props.students,
         this.props.user_map,
         this.props.redux
       );
-      v.sort(
+      students.sort(
         util.pick_student_sorter(
           this.props.active_student_sort != null
             ? this.props.active_student_sort.toJS()
@@ -633,32 +652,25 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
 
       if (this.props.active_student_sort.get("is_descending")) {
-        v.reverse();
+        students.reverse();
       }
 
-      // Deleted students
-      const w = (() => {
-        const result: any[] = [];
-        for (x of v) {
-          if (x.deleted) {
-            result.push(x);
-          }
+      // Deleted and non-deleted students
+      const w: any[] = [];
+      const w2: any[] = [];
+      for (let x of students) {
+        if (x.deleted) {
+          w.push(x);
+        } else {
+          w2.push(x);
         }
-        return result;
-      })();
+      }
       const num_deleted = w.length;
-      v = (() => {
-        const result1: any[] = [];
-        for (x of v) {
-          if (!x.deleted) {
-            result1.push(x);
-          }
-        }
-        return result1;
-      })();
+
+      students = w2;
       if (this.state.show_deleted) {
         // but show at the end...
-        v = v.concat(w);
+        students = students.concat(w);
       }
 
       let num_omitted = 0;
@@ -679,18 +691,17 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           }
           return true;
         };
-        v = (() => {
-          const result2: any[] = [];
-          for (x of v) {
-            if (match(search(x))) {
-              result2.push(x);
-            }
+        const w3: any[] = [];
+        for (let x of students) {
+          if (match(search(x))) {
+            w3.push(x);
           }
-          return result2;
-        })();
+        }
+        students = w3;
       }
 
-      return { students: v, num_omitted, num_deleted };
+      this.student_list = { students, num_omitted, num_deleted };
+      return this.student_list;
     }
 
     render_sort_link(column_name, display_name) {
@@ -750,10 +761,12 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     private render_student(student_id: string, index: number): Rendered {
-      const name: StudentNameDescription = {
-        full: this.props.get_student_name(student_id),
-        first: "TODO",
-        last: "TOOD"
+      const x = this.get_student_list().students[index];
+      if (x == null) return;
+      let name: StudentNameDescription = {
+        full: this.props.get_student_name(x.student_id),
+        first: x.first_name,
+        last: x.last_name
       };
       return (
         <Student
@@ -860,11 +873,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     render() {
-      const {
-        students,
-        num_omitted,
-        num_deleted
-      } = this.compute_student_list();
+      const { students, num_omitted, num_deleted } = this.get_student_list();
 
       return (
         <div className="smc-vfill">
