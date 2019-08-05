@@ -1,5 +1,3 @@
-declare const $: any;
-
 import { Set } from "immutable";
 import { delay } from "awaiting";
 
@@ -32,6 +30,7 @@ export class NotebookFrameActions {
   public frame_id: string;
   public store: NotebookFrameStore;
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
+  private windowed_list_ref?: any;
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
     bind_methods(this, [
@@ -57,6 +56,10 @@ export class NotebookFrameActions {
     this.commands = commands(this.jupyter_actions, this);
   }
 
+  public set_windowed_list_ref(windowed_list_ref) {
+    this.windowed_list_ref = windowed_list_ref;
+  }
+
   private init_syncdb_change_hook(): void {
     this.jupyter_actions.store.on(
       "syncdb-before-change",
@@ -68,14 +71,34 @@ export class NotebookFrameActions {
     );
   }
 
+  private compute_cell_position(id: string): number | undefined {
+    if (
+      this.windowed_list_ref == null ||
+      this.windowed_list_ref.current == null
+    )
+      return;
+    const windowed_list = this.windowed_list_ref.current;
+
+    const elt = windowed_list.row_ref(id);
+    const direct = elt != null ? elt.offset().top : 0;
+    if (direct) return direct;
+
+    const cell_list = this.jupyter_actions.store.get("cell_list").toArray();
+    let computed: number = 0;
+    let index: number = 0;
+    for (let id0 of cell_list) {
+      computed += windowed_list.row_height({ index });
+      if (id0 == id) break;
+      index += 1;
+    }
+    return computed;
+  }
+
   // maintain scroll hook on change; critical for multiuser editing
   private syncdb_before_change(): void {
-    const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
-    if (offset == null) {
-      return;
-    }
-    this.scroll_before_change = offset.top;
-    console.log("this.scroll_before_change", this.scroll_before_change);
+    const cur_id = this.store.get("cur_id");
+    const pos = this.compute_cell_position(cur_id);
+    this.scroll_before_change = pos;
   }
 
   private async syncdb_after_change(): Promise<void> {
@@ -83,16 +106,11 @@ export class NotebookFrameActions {
       return;
     }
     await delay(0);
-    const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
-    if (offset == null) {
-      return;
-    }
-    const scroll_after_change = offset.top;
-    console.log("this.scroll_after_change", scroll_after_change);
-    const diff = scroll_after_change - this.scroll_before_change;
-    if (diff) {
-      this.scroll(diff);
-    }
+    const cur_id = this.store.get("cur_id");
+    const after = this.compute_cell_position(cur_id);
+    if (after == null) return;
+    const diff = after - this.scroll_before_change;
+    this.scroll(diff);
   }
 
   public close(): void {

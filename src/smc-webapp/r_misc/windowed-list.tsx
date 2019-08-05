@@ -1,9 +1,11 @@
 /*
+Windowed List, based on react-virtualized:
+
+- automatically handles rows changing sizes
+- handles maintaining sroll position between unmount/mount
 
 
-
-NOTES:
- - this may be very relevant: https://github.com/bvaughn/react-window/issues/6
+NOTES: this may be relevant: https://github.com/bvaughn/react-window/issues/6
 */
 import { delay } from "awaiting";
 import { ResizeObserver } from "resize-observer";
@@ -62,6 +64,7 @@ export class WindowedList extends Component<Props, State> {
       }
     }
     this.state = { scroll_to_index: props.scroll_to_index, scroll_top };
+    (window as any).s = this;
   }
 
   public componentWillUnmount(): void {
@@ -89,7 +92,8 @@ export class WindowedList extends Component<Props, State> {
   private cell_resized(entries: any[]): void {
     let n: number = 0;
     for (let entry of entries) {
-      const key = $(entry.target).attr("data-key"); // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure
+      // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
+      const key = $(entry.target).attr("data-key");
       if (
         key == null ||
         isNaN(entry.contentRect.height) ||
@@ -135,7 +139,10 @@ export class WindowedList extends Component<Props, State> {
     );
   }
 
-  private row_height({ index }): number {
+  public row_ref(key: string) : any {
+    return this.cell_refs[key];
+  }
+  public row_height({ index }): number {
     const key = this.props.row_key(index);
     if (key == null) return this.props.estimated_row_size;
 

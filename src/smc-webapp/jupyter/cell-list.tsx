@@ -4,7 +4,7 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
-const DEFAULT_ROW_SIZE: number = 64;
+const DEFAULT_ROW_SIZE: number = 34;
 
 import { WindowedList } from "../r_misc/windowed-list";
 
@@ -49,12 +49,15 @@ export class CellList extends Component<CellListProps> {
   private cell_list_node: HTMLElement;
   private is_mounted: boolean = true;
   private use_window_list: boolean;
-  private window_list_ref = React.createRef<WindowedList>();
+  private windowed_list_ref = React.createRef<WindowedList>();
 
   constructor(props) {
     super(props);
     this.use_window_list =
       this.props.actions != null && this.props.frame_actions != null;
+    if (this.use_window_list && this.props.frame_actions != null) {
+      this.props.frame_actions.set_windowed_list_ref(this.windowed_list_ref);
+    }
   }
 
   public componentWillUnmount(): void {
@@ -74,9 +77,9 @@ export class CellList extends Component<CellListProps> {
     if (
       this.use_window_list &&
       this.props.frame_actions != null &&
-      this.window_list_ref.current != null
+      this.windowed_list_ref.current != null
     ) {
-      const info = this.window_list_ref.current.get_scroll();
+      const info = this.windowed_list_ref.current.get_scroll();
       if (info != null) {
         this.props.frame_actions.set_scrollTop(info.scrollTop);
       }
@@ -94,8 +97,8 @@ export class CellList extends Component<CellListProps> {
     for (let tm of [0, 250, 750, 1500, 2000]) {
       if (!this.is_mounted) return;
       if (this.use_window_list) {
-        if (this.window_list_ref.current != null) {
-          this.window_list_ref.current.scrollToPosition(this.props.scrollTop);
+        if (this.windowed_list_ref.current != null) {
+          this.windowed_list_ref.current.scrollToPosition(this.props.scrollTop);
         }
       } else {
         const elt = this.cell_list_node;
@@ -180,7 +183,7 @@ export class CellList extends Component<CellListProps> {
 
   private scroll_cell_list(scroll: Scroll): void {
     if (!this.use_window_list) return;
-    const list = this.window_list_ref.current;
+    const list = this.windowed_list_ref.current;
     if (list == null) return;
     const info = list.get_scroll();
 
@@ -310,7 +313,7 @@ export class CellList extends Component<CellListProps> {
     }
     return (
       <WindowedList
-        ref={this.window_list_ref}
+        ref={this.windowed_list_ref}
         overscan_row_count={1}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
