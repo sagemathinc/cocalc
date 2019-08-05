@@ -273,6 +273,9 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
     private render_handouts(handouts): Rendered {
       if (!this.props.store_object) return;
+      if (handouts.length == 0) {
+        return this.render_no_handouts();
+      }
       return (
         <WindowedList
           overscan_row_count={3}
@@ -286,6 +289,30 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
         />
       );
     }
+
+
+    private render_no_handouts(): Rendered {
+      return (
+        <Alert
+          bsStyle="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth:"800px" }}
+        >
+          <h3>Add a Handout to your Course</h3>
+          <p>
+            A handout is a <i>directory</i> of files somewhere in your
+            CoCalc project, which you send to all of your students.  They
+            can then do anything they want with that handout.
+          </p>
+
+          <p>
+            Add a handout to your course by creating a directory using the Files tab,
+            then type the name of the directory in the box in the upper right
+            and click to search.
+          </p>
+        </Alert>
+      );
+    }
+
 
     public render(): Rendered {
       // Computed data from state changes have to go in render

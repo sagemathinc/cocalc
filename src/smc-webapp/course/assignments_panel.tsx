@@ -268,6 +268,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
 
     private render_assignments(assignments): Rendered {
+      if (assignments.length == 0) {
+        return this.render_no_assignments();
+      }
       return (
         <WindowedList
           overscan_row_count={3}
@@ -281,6 +284,29 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           }
           cache_id={"course-assignments-" + this.props.name}
         />
+      );
+    }
+
+    private render_no_assignments(): Rendered {
+      return (
+        <Alert
+          bsStyle="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth:"800px" }}
+        >
+          <h3>Add an Assignment to your Course</h3>
+          <p>
+            An assignment is a <i>directory</i> of files somewhere in your
+            CoCalc project.  You copy the assignment to your students and they work on
+            it; later, you  collect it, grade it, and return the graded
+            version to them.
+          </p>
+
+          <p>
+            Add an assignment to your course by creating a directory using the Files tab,
+            then type the name of the directory in the box in the upper right
+            and click to search.
+          </p>
+        </Alert>
       );
     }
 

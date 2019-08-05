@@ -43,6 +43,7 @@ import {
 } from "../app-framework";
 
 const {
+  Alert,
   Button,
   ButtonToolbar,
   ButtonGroup,
@@ -290,7 +291,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         <Icon name="search" />
       );
 
-      return <Button onClick={this.do_add_search}>{icon} Search</Button>;
+      return (
+        <Button onClick={this.do_add_search}>
+          {icon} Search (shift+enter)
+        </Button>
+      );
     }
 
     add_selector_clicked = () => {
@@ -770,6 +775,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     private render_students(students): Rendered {
+      if (students.length == 0) {
+        return this.render_no_students();
+      }
       return (
         <WindowedList
           overscan_row_count={5}
@@ -781,6 +789,23 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           }
           cache_id={"course-student-" + this.props.name}
         />
+      );
+    }
+
+    private render_no_students(): Rendered {
+      return (
+        <Alert
+          bsStyle="info"
+          style={{
+            margin: "auto",
+            fontSize: "12pt",
+            maxWidth: "800px"
+          }}
+        >
+          <h3>Add Students to your Course</h3>
+          Add some students to your course by entering their email addresses in
+          the box in the upper right, then click on Search.
+        </Alert>
       );
     }
 
