@@ -111,7 +111,7 @@ class ProjectsActions extends Actions
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
     # This may also trigger load_all_projects.
-    # async
+    # **THIS IS AN ASYNC FUNCTION!**
     have_project: (project_id) =>
         t = @redux.getTable('projects')?._table
         if not t? # called before initialization... -- shouldn't ever happen
@@ -488,6 +488,7 @@ class ProjectsActions extends Actions
     # - upgrades is a map from upgrade parameters to integer values.
     # - The upgrades get merged into any other upgrades this user may have already applied,
     #   unless merge=false (the third option)
+    # **THIS IS AN ASYNC FUNCTION!**
     apply_upgrades_to_project: (project_id, upgrades, merge=true) =>
         misc.assert_uuid(project_id)
         if not merge
@@ -495,13 +496,13 @@ class ProjectsActions extends Actions
             upgrades = misc.copy(upgrades)
             for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
                 # create entry in the project's log
         # log the change in the project log
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).log
             event    : 'upgrade'
             upgrades : upgrades
 
@@ -509,64 +510,73 @@ class ProjectsActions extends Actions
         misc.assert_uuid(project_id)
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
+    # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'save', time:webapp_client.server_time()}
 
+    # **THIS IS AN ASYNC FUNCTION!**
     start_project: (project_id) ->
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'start', time:webapp_client.server_time()}
 
+    # **THIS IS AN ASYNC FUNCTION!**
     stop_project: (project_id) =>
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).log
             event : 'project_stop_requested'
 
+    # **THIS IS AN ASYNC FUNCTION!**
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'close', time:webapp_client.server_time()}
 
+    # **THIS IS AN ASYNC FUNCTION!**
     restart_project: (project_id) ->
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).log
             event : 'project_restart_requested'
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_hide: (account_id, project_id, state) =>
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
                     hide : !!state
 
     # Toggle whether or not project is hidden project
+    # **THIS IS AN ASYNC FUNCTION!**
     toggle_hide_project: (project_id) =>
         account_id = @redux.getStore('account').get_account_id()
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
                     hide : not @redux.getStore('projects').is_hidden_from(project_id, account_id)
 
+    # **THIS IS AN ASYNC FUNCTION!**
     delete_project: (project_id) =>
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             deleted    : true
 
     # Toggle whether or not project is deleted.
+    # **THIS IS AN ASYNC FUNCTION!**
     toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
             @clear_project_upgrades(project_id)
 
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             deleted    : not is_deleted
 
@@ -576,6 +586,7 @@ class ProjectsActions extends Actions
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
 
+    # **THIS IS AN ASYNC FUNCTION!**
     load_all_projects: => # async
         if store.get('load_all_projects_done')
             return
