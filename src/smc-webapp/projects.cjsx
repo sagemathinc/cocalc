@@ -1595,7 +1595,7 @@ LoadAllProjects = rclass
             bsStyle='info'
             bsSize='large'>
             {@render_loading()}
-            Show projects not used in the last few months...
+            Show projects not used recently...
         </Button>
 
     render: ->
