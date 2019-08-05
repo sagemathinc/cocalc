@@ -265,6 +265,9 @@ export class Changes extends EventEmitter {
     this_val: { [key: string]: any },
     key: string
   ): { new_val: { [key: string]: any }; action: "insert" | "update" } {
+    if (this.closed) {
+      return;
+    }
     const prev_val = this.val_update_cache[key];
     if (prev_val == null) {
       return { new_val: this_val, action: "insert" }; // not enough info to make a diff
