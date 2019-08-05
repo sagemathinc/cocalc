@@ -246,6 +246,10 @@ export class Changes extends EventEmitter {
     let new_val;
     if (action == "update") {
       const x = this.new_val_update(mesg[1], this_val, key);
+      if (x == null) {
+        // happens if this.closed is true
+        return;
+      }
       action = x.action; // may be insert in case no previous cached info.
       new_val = x.new_val;
     } else {
@@ -264,7 +268,9 @@ export class Changes extends EventEmitter {
     primary_part: { [key: string]: any },
     this_val: { [key: string]: any },
     key: string
-  ): { new_val: { [key: string]: any }; action: "insert" | "update" } {
+  ):
+    | { new_val: { [key: string]: any }; action: "insert" | "update" }
+    | undefined {
     if (this.closed) {
       return;
     }
