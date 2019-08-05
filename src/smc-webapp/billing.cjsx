@@ -612,7 +612,7 @@ PaymentMethods = rclass
 
     propTypes :
         redux   : rtypes.object.isRequired
-        sources : rtypes.object.isRequired
+        sources : rtypes.object # could be undefined, if it is a customer and all sources are removed
         default : rtypes.string
 
     getInitialState: ->
@@ -657,6 +657,8 @@ PaymentMethods = rclass
         />
 
     render_payment_methods: ->
+        # this happens, when it is a customer but all credit cards are deleted!
+        return null if not @props.sources?
         for source in @props.sources.data
             @render_payment_method(source)
 
@@ -1736,7 +1738,7 @@ Subscriptions = rclass
 
     propTypes :
         subscriptions   : rtypes.object
-        sources         : rtypes.object.isRequired
+        sources         : rtypes.object # could be undefined, if it is a customer but all cards are removed
         selected_plan   : rtypes.string
         redux           : rtypes.object.isRequired
         applied_coupons : rtypes.immutable.Map
@@ -1753,7 +1755,7 @@ Subscriptions = rclass
     render_add_subscription_button: ->
         <Button
             bsStyle   = 'primary'
-            disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
+            disabled  = {@state.state isnt 'view' or (@props.sources?.total_count ? 0) is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
             <Icon name='plus-circle' /> Add Subscription or Course Package...
@@ -1778,6 +1780,7 @@ Subscriptions = rclass
         </Row>
 
     render_subscriptions: ->
+        return null if not @props.subscriptions?
         for sub in @props.subscriptions.data
             <Subscription key={sub.id} subscription={sub} redux={@props.redux} />
 
@@ -2066,9 +2069,14 @@ BillingPage = rclass
                 error   = {@props.error}
                 onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
+    # the space in "Contact us" below is a Unicode no-break space, UTF-8: C2 A0. "&nbsp;" didn't work there [hal]
     render_help_suggestion: ->
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
+            <b>
+                <Space/> <HelpEmailLink text={"Contact us"} /> if you are considering purchasing a course subscription and need a short trial
+                to test things out first.<Space/>
+            </b>
             <b>
                 <Space/> Customized course plans are available.<Space/>
             </b>

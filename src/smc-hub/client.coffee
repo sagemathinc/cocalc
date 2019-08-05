@@ -39,6 +39,8 @@ underscore = require('underscore')
 {project_has_network_access} = require('./postgres/project-queries')
 {is_paying_customer} = require('./postgres/account-queries')
 
+{SENDGRID_ASM_INVITES} = require('smc-util/theme')
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -1093,6 +1095,9 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"src_path must be defined")
             return
 
+        locals =
+            copy_id : undefined
+
         async.series([
             (cb) =>
                 # Check permissions for the source and target projects (in parallel) --
@@ -1143,12 +1148,100 @@ class exports.Client extends EventEmitter
                                 backup            : mesg.backup
                                 timeout           : mesg.timeout
                                 exclude_history   : mesg.exclude_history
-                                cb                : cb
+                                wait_until_done   : mesg.wait_until_done
+                                cb                : (err, copy_id) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        locals.copy_id = copy_id
+                                        cb()
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
-                @push_to_client(message.success(id:mesg.id))
+                # we only expect a copy_id in kucalc mode
+                if locals.copy_id?
+                    resp = message.copy_path_between_projects_response
+                                                        id           : mesg.id
+                                                        copy_path_id : locals.copy_id
+                    @push_to_client(resp)
+                else
+                    @push_to_client(message.success(id:mesg.id))
+        )
+
+    mesg_copy_path_status: (mesg) =>
+        dbg = @dbg('mesg_copy_path_status')
+        if not mesg.copy_path_id?
+            @error_to_client(id:mesg.id, error:"'copy_path_id' (UUID) of a copy operation must be defined")
+            return
+        locals =
+            copy_op : undefined
+        async.series([
+            # get the info
+            (cb) =>
+                {one_result} = require('./postgres')
+                @database._query
+                    query : "SELECT * FROM copy_paths"
+                    where : "id = $::UUID" : mesg.copy_path_id
+                    cb    : one_result (err, x) =>
+                        if err?
+                            cb(err)
+                        else
+                            locals.copy_op = x
+                            dbg("copy_op=#{misc.to_json(locals.copy_op)}")
+                            cb()
+
+            (cb) =>
+                # now we prevent someone who was kicked out of a project to check the copy status
+                target_project_id = locals.copy_op.target_project_id
+                source_project_id = locals.copy_op.source_project_id
+                async.parallel([
+                    (cb) =>
+                        access.user_has_read_access_to_project
+                            project_id     : source_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            database       : @database
+                            cb             : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("ACCESS BLOCKED -- No read access to source project of this copy operation")
+                                else
+                                    cb()
+                    (cb) =>
+                        access.user_has_write_access_to_project
+                            database       : @database
+                            project_id     : target_project_id
+                            account_id     : @account_id
+                            account_groups : @groups
+                            cb             : (err, result) =>
+                                if err
+                                    cb(err)
+                                else if not result
+                                    cb("ACCESS BLOCKED -- No write access to target project of this copy operation")
+                                else
+                                    cb()
+                ], cb)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                # be explicit about what we return
+                data =
+                    time               : locals.copy_op.time
+                    source_project_id  : locals.copy_op.source_project_id
+                    source_path        : locals.copy_op.source_path
+                    target_project_id  : locals.copy_op.target_project_id
+                    target_path        : locals.copy_op.target_path
+                    overwrite_newer    : locals.copy_op.overwrite_newer
+                    delete_missing     : locals.copy_op.delete_missing
+                    backup             : locals.copy_op.backup
+                    started            : locals.copy_op.started
+                    finished           : locals.copy_op.finished
+                    error              : locals.copy_op.error
+
+                @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))
         )
 
     mesg_local_hub: (mesg) =>
@@ -1334,7 +1427,7 @@ class exports.Client extends EventEmitter
                     if not mesg.title?
                         subject = "Invitation to CoCalc for collaborating on a project"
 
-                    # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
                         to           : locals.email_address
                         bcc          : 'invites@cocalc.com'
@@ -1344,7 +1437,7 @@ class exports.Client extends EventEmitter
                         replyto_name : mesg.replyto_name
                         subject      : subject
                         category     : "invite"
-                        asm_group    : 699
+                        asm_group    : SENDGRID_ASM_INVITES
                         body         : email_body
                         cb           : (err) =>
                             if err
@@ -1476,7 +1569,7 @@ class exports.Client extends EventEmitter
                                 base_url = 'https://cocalc.com/'
                                 direct_link = ''
 
-                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                            # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to           : email_address
                                 bcc          : 'invites@cocalc.com'
@@ -1486,7 +1579,7 @@ class exports.Client extends EventEmitter
                                 replyto_name : mesg.replyto_name
                                 subject      : subject
                                 category     : "invite"
-                                asm_group    : 699
+                                asm_group    : SENDGRID_ASM_INVITES
                                 body         : email + """<br/><br/>
                                                <b>To accept the invitation, please sign up at
                                                <a href='#{base_url}'>#{base_url}</a>

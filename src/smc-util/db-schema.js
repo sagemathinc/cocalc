@@ -1152,7 +1152,7 @@ schema.projects = {
   user_query: {
     get: {
       // if you change the interval, change the text in projects.cjsx
-      pg_where: ["last_edited >= NOW() - interval '2 months'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '10 days'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1503,6 +1503,10 @@ schema.copy_paths = {
       type: "number",
       desc:
         "fail if the transfer itself takes longer than this number of seconds (passed to rsync)"
+    },
+    scheduled: {
+      type: "timestamp",
+      desc: "earliest time in the future, when the copy request should start (or null, for immediate execution)"
     },
     started: {
       type: "timestamp",

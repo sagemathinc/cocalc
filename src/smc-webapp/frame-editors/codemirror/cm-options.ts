@@ -15,6 +15,8 @@ const { filename_extension_notilde, defaults } = require("misc");
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
 
+import { valid_indent } from "./util";
+
 export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
@@ -269,8 +271,8 @@ export function cm_options(
     mode: { name: opts.mode, globalVars: true },
     lineNumbers: opts.line_numbers,
     showTrailingSpace: opts.show_trailing_whitespace,
-    indentUnit: opts.indent_unit,
-    tabSize: opts.tab_size,
+    indentUnit: valid_indent(opts.indent_unit),
+    tabSize: valid_indent(opts.tab_size),
     smartIndent: opts.smart_indent,
     electricChars: opts.electric_chars,
     undoDepth: opts.undo_depth,

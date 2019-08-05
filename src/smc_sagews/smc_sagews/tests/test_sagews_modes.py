@@ -17,10 +17,6 @@ class TestLatexMode:
 
 
 class TestP3Mode:
-    """
-    not the same as python3 mode, which is an alias for anaconda3
-    """
-
     def test_p3a(self, exec2):
         exec2("p3 = jupyter('python3')")
 
@@ -90,7 +86,7 @@ class TestScala211Mode:
             "%scala211\nutil.Properties.versionString", html_pattern="2.11.11")
 
 
-class TestAnacondaMode:
+class TestAnaconda5:
     def test_anaconda_version(self, exec2):
         exec2(
             "%anaconda\nimport sys\nprint(sys.version)",
@@ -98,7 +94,6 @@ class TestAnacondaMode:
 
     def test_anaconda_kernel_name(self, exec2):
         exec2("anaconda.jupyter_kernel.kernel_name", "anaconda5")
-
 
 class TestPython3Mode:
     def test_p3_max(self, exec2):
@@ -315,15 +310,15 @@ class TestOctaveDefaultMode:
         exec2("version()", pattern="4.2.2")
 
 
-class TestAnaconda3Mode:
-    def test_start_a3(self, exec2):
-        exec2('a3 = jupyter("anaconda3")')
+class TestAnaconda2019Mode:
+    def test_start_a2019(self, exec2):
+        exec2('a2019 = jupyter("anaconda2019")')
 
     def test_issue_862(self, exec2):
-        exec2('%a3\nx=1\nprint("x = %s" % x)\nx', 'x = 1\n')
+        exec2('%a2019\nx=1\nprint("x = %s" % x)\nx', 'x = 1\n')
 
-    def test_a3_error(self, exec2):
-        exec2('%a3\nxyz*', html_pattern='span style.*color')
+    def test_a2019_error(self, exec2):
+        exec2('%a2019\nxyz*', html_pattern='span style.*color')
 
 
 class TestAnaconda5Mode:
