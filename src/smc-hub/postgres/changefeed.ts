@@ -233,6 +233,13 @@ export class Changes extends EventEmitter {
       this.fail(err);
       return;
     }
+
+    // we do know from stacktraces that new_val_update is called after closed
+    // this must have happened during waiting on the query. aborting early.
+    if (this.closed) {
+      return;
+    }
+
     if (result == null) {
       // This happens when record isn't deleted, but some
       // update results in the object being removed from our
@@ -247,7 +254,7 @@ export class Changes extends EventEmitter {
     if (action == "update") {
       const x = this.new_val_update(mesg[1], this_val, key);
       if (x == null) {
-        // happens if this.closed is true
+        // happens if this.closed is true -- double check for safety & TS happyness.
         return;
       }
       action = x.action; // may be insert in case no previous cached info.
