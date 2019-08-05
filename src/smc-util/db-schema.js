@@ -1151,7 +1151,7 @@ schema.projects = {
   user_query: {
     get: {
       // if you change the interval, change the text in projects.cjsx
-      pg_where: ["last_edited >= NOW() - interval '2 months'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '10 days'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
