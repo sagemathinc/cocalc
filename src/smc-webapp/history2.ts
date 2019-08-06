@@ -20,10 +20,10 @@ export function parse_target(
   const segments = target.split("/");
   switch (segments[0]) {
     case "projects":
-      if (segments.length > 1) {
-        return { page: "project", target: segments.slice(1).join("/") };
-      } else {
+      if (segments.length < 2 || (segments.length == 2 && segments[1] == "")) {
         return { page: "projects" };
+      } else {
+        return { page: "project", target: segments.slice(1).join("/") };
       }
     case "settings":
       switch (segments[1]) {
