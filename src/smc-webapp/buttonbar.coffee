@@ -1997,7 +1997,7 @@ initialize_latex_buttonbar = () ->
 # NOT READY YET.
 #initialize_latex_buttonbar()
 
-# used in entry-point
+# used in main/single startup files
 exports.init_buttonbars = ->
     initialize_sagews_editor()
     initialize_md_html_editor()

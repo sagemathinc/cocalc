@@ -1,4 +1,5 @@
-# Library file for CoCalc Main Webapp
+# Library file for CoCalc Single Webapp
+# sister-file of webapp-main.coffee
 
 require("./webapp-shared")
 
@@ -10,4 +11,4 @@ require('./smc-webapp/index.sass')
 
 require('./smc-webapp/client_browser.coffee')
 
-require('./smc-webapp/entry-point')
+require('./smc-webapp/start-single')

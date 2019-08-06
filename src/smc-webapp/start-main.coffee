@@ -1,7 +1,5 @@
 ###
 Complete 100% top-level react rewrite of CoCalc.
-
-Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###
 
 # FUTURE: This is needed only for the old non-react editors; will go away.
@@ -36,9 +34,6 @@ require('./notifications').init(redux)
 
 require('./widget-markdown-input/main').init(redux)
 
-mobile = require('./mobile_app')
-desktop = require('./desktop_app')
-
 # Feature must be loaded before account and anything that might use cookies or localStorage,
 # but after app-framework and the basic app definition.
 {IS_MOBILE, isMobile} = require('./feature')
@@ -46,8 +41,10 @@ desktop = require('./desktop_app')
 if IS_MOBILE and not isMobile.tablet()
     # Cell-phone version of site, with different
     # navigation system for selecting projects and files.
+    mobile = require('./mobile_app')
     mobile.render()
 else
+    desktop = require('./desktop_app')
     desktop.render()
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)
@@ -55,8 +52,5 @@ $(window).on('beforeunload', redux.getActions('page').check_unload)
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')
 
-# adding a banner in case react crashes (it will be revealed)
-crash = require('./crash.html')
-{ HELP_EMAIL } = require('smc-util/theme')
-$('body').append(crash.replace(/HELP_EMAIL/g, HELP_EMAIL))
+require('./crash')
 

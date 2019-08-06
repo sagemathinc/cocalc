@@ -6,7 +6,7 @@ React Component for displaying the entire page on a mobile device.
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
 {ErrorBoundary, Loading, Icon, Tip} = require('./r_misc')
 
-# SMC Pages
+# CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
 {HelpPage}     = require('./r_help')
@@ -17,7 +17,7 @@ React Component for displaying the entire page on a mobile device.
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
 
-# SMC Libraries
+# CoCalc Libraries
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')

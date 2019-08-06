@@ -427,7 +427,8 @@ const connect_component = spec => {
         // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
         throw Error(
-          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " + JSON.stringify(spec)
+          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " +
+            JSON.stringify(spec)
         );
       }
       const info = spec[store_name];
@@ -652,11 +653,10 @@ the redux_fields function returns ['bar', 'stuff', 'other'].
 */
 export function redux_fields(spec) {
   const v: any[] = [];
-  for (let _ in spec) {
-    const val = spec[_];
-    for (let key in val) {
-      _ = val[key];
-      v.push(key);
+  for (const key1 in spec) {
+    const val1 = spec[key1];
+    for (const key2 in val1) {
+      v.push(key2);
     }
   }
   return v;
