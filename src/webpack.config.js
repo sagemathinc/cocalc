@@ -255,7 +255,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
-  const order = ["css", "fill", "vendor", "smc"];
+  const order = ["css", "fill", "vendor", "main", "single"];
   if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
     return -1;
   } else {
@@ -281,9 +281,10 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
   base_url_html = base_url_html.slice(0, base_url_html.length - 1);
 }
 
-// this is the main app.html file, which should be served without any caching
+// this defines the main app.html file, which should be served without any caching.
+// the chunk for the cocalc interface is "main", which is defined in "entries" as "webapp-main.coffee"
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
-const pug2app = new HtmlWebpackPlugin({
+const mainApp = new HtmlWebpackPlugin({
   date: BUILD_DATE,
   title: TITLE,
   description: DESCRIPTION,
@@ -295,10 +296,35 @@ const pug2app = new HtmlWebpackPlugin({
   git_rev: GIT_REV,
   mathjax: MATHJAX_URL,
   filename: "app.html",
+  chunks: ["css", "fill", "vendor", "pdf.worker", "main"],
   chunksSortMode: smcChunkSorter,
   inject: "body",
   hash: PRODMODE,
   template: path.join(INPUT, "app.pug"),
+  minify: htmlMinifyOpts,
+  GOOGLE_ANALYTICS
+});
+
+
+// this defines the single.html file, which is a lightweight single-file interface (aka "kiosk" mode)
+// the particular goal is to initialize a much less to load faster (less state to synchronize)
+const singleApp = new HtmlWebpackPlugin({
+  date: BUILD_DATE,
+  title: TITLE,
+  description: DESCRIPTION,
+  BASE_URL: base_url_html,
+  theme,
+  COMP_ENV,
+  components: {}, // no data needed, empty is fine
+  inventory: {}, // no data needed, empty is fine
+  git_rev: GIT_REV,
+  mathjax: MATHJAX_URL,
+  filename: "single.html",
+  chunks: ["css", "fill", "vendor", "pdf.worker", "single"],
+  chunksSortMode: smcChunkSorter,
+  inject: "body",
+  hash: PRODMODE,
+  template: path.join(INPUT, "single.pug"),
   minify: htmlMinifyOpts,
   GOOGLE_ANALYTICS
 });
@@ -526,7 +552,8 @@ if (STATICPAGES) {
   entries = {
     css: "webapp-css.coffee",
     fill: "@babel/polyfill",
-    smc: "webapp-smc.coffee",
+    main: "webapp-main.coffee",
+    single: "webapp-single.coffee",
     // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
     // this way it will have better caching/cache hits since it changes infrequently
     vendor: [
@@ -536,7 +563,7 @@ if (STATICPAGES) {
     ],
     "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
   };
-  plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
+  plugins = plugins.concat([mainApp, singleApp, mathjaxVersionedSymlink]);
 }
 
 if (DEVMODE) {

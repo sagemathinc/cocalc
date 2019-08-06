@@ -171,6 +171,10 @@ exports.init_express_http_server = (opts) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
+    router.get '/single', (req, res) ->
+        #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
+        res.sendFile(path_module.join(STATIC_PATH, 'single.html'), {maxAge: 0})
+
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->
         res.send("window.app_base_url='#{opts.base_url}';")

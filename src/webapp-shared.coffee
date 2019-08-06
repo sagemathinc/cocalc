@@ -1,4 +1,4 @@
-# Library file for SMC webapp
+# Initialization of libraries, shared between main and single app
 
 require("script-loader!primus/primus-engine.min.js")
 
@@ -72,15 +72,4 @@ require("script-loader!term/color_themes.js")
 # Make html look nice
 require("script-loader!jsbeautify/beautify-html.min.js")
 
-
-# after this lib.js package, the real smc.js app starts loading
-window.smcLoadStatus("Starting main application ...")
-
-# SASS Style file for SMC
-require('./smc-webapp/index.sass')
-
-require('./smc-webapp/client_browser.coffee')
-
 require("./smc-webapp/set-version-cookie.js")
-
-require('./smc-webapp/entry-point')

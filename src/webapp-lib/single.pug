@@ -1,0 +1,57 @@
+//- the single application -- webpack adds all additional assets during compilation
+
+doctype html
+
+html(lang="en")
+  head
+    include _inc_head.pug
+    title= fulltitle
+  body
+    style.
+      #{require('!css-loader?minimize!app-startup-style.css')}
+      #smc-startup-banner div.single { color: #fff; font-size: 14px; font-weight: bold; }
+
+    div#mocha
+
+    div#smc-startup-banner
+      div.banner-blink
+        img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
+        br/
+        div.single single file mode
+      div.banner-error
+        div.message
+          | Timeout while loading CoCalc.
+          br/
+          | If the problem persists, try hitting shift and refreshing the page,
+          | <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/Connection-Timeout">these steps</a> or email <a href="mailto:help@cocalc.com" target="_blank" rel="noopener">help@cocalc.com</a>.
+
+    div#smc-startup-banner-status
+      | Initializing ...
+
+    //- preflight check comes **after** the startup banner and status info, and before any code that might be syntactically broken.
+    script(type="text/javascript")
+      include:typescript preflight-checks.ts
+
+    //- this sets the global window.app_base_url: either statically via the BASE_URL template variable, or dynamically via hub
+    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+    if typeof BASE_URL !== "undefined" && BASE_URL !== null
+        script(type="text/javascript").
+            window.app_base_url='#{BASE_URL}';
+    else
+        script(type="text/javascript" src="base_url.js")
+
+    //- Support for mocha testing.  We want this in all environments, since testing everywhere is important!
+    // See https://cdnjs.com/libraries/mocha for URL's when upgrading.
+    script(type="text/javascript", src="https://cdnjs.cloudflare.com/ajax/libs/mocha/5.1.1/mocha.min.js")
+
+    script(type="text/javascript").
+        window.webapp_initial_start_time = (new Date()).getTime();
+        function smcLoadStatus(msg) {
+        try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
+
+    //- Hidden div to accurately determine if page is in responsive mode
+    div.webapp-responsive-mode-test
+
+    div#smc-react-container.page-container
+
+    include _inc_analytics.pug

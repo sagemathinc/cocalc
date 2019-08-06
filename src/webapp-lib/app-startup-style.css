@@ -56,7 +56,7 @@
    95% {background-color: #4474c0;}
   100% {background-color: #bf1919;}
 }
-#smc-startup-banner .banner-blink img {
+#smc-startup-banner .banner-blink * {
   animation: banner-blink 60s forwards;
 }
 @keyframes banner-blink {
