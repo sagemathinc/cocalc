@@ -35,9 +35,8 @@ require('./jquery_plugins')
 require('./account')
 
 # Initialize app stores, actions, etc.
-#require('./init_single')
 require('./init_app')
-
+require('./init_single')
 
 #require('./notifications').init(redux)
 
@@ -45,6 +44,8 @@ require('./widget-markdown-input/main').init(redux)
 
 single = require('./single_app')
 single.render()
+#desktop = require('./desktop_app')
+#desktop.render()
 
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)

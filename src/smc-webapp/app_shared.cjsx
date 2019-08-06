@@ -483,6 +483,14 @@ exports.FullscreenButton = rclass
 exports.AppLogo = rclass
     displayName : 'AppLogo'
 
+    propTypes:
+        size: rtypes.string
+        margin: rtypes.string
+
+    getDefaultProps: ->
+        size: "32px"
+        margin: "2px"
+
     shouldComponentUpdate: ->
         return false
 
@@ -493,10 +501,10 @@ exports.AppLogo = rclass
             backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
             backgroundRepeat: 'no-repeat'
-            height          : "32px"
-            width           : "32px"
+            height          : @props.size
+            width           : @props.size
             position        : 'relative'
-            margin          : '2px'
+            margin          : @props.margin
         <div style={styles}></div>
 
 exports.VersionWarning = rclass
