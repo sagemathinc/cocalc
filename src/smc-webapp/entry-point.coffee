@@ -4,6 +4,8 @@ Complete 100% top-level react rewrite of CoCalc.
 Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###
 
+fullscreen = require('./fullscreen')
+
 # FUTURE: This is needed only for the old non-react editors; will go away.
 html = require('./console.html') + require('./editor.html') + require('./jupyter.html') + require('./sagews/interact.html') + require('./sagews/3d.html') + require('./sagews/d3.html')
 $('body').append(html)
@@ -32,7 +34,9 @@ require('./init_app')
 # Initialize the account store.
 require('./account')
 
-require('./notifications').init(redux)
+notifications = require('./notifications')
+if not fullscreen.COCALC_MINIMAL
+    notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
 

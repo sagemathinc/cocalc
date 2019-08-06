@@ -1,6 +1,7 @@
 misc  = require('smc-util/misc')
 {defaults, required} = misc
 
+{COCALC_MINIMAL} = require("./fullscreen")
 {Actions, Store, Table, redux} = require('./app-framework')
 {alert_message} = require('./alerts')
 
@@ -21,6 +22,10 @@ class NotificationsActions extends Actions
             if not mesg.get('done')
                 table.set(id:id, done:true)
 
+store   = undefined
+actions = undefined
+
+#if not COCALC_MINIMAL
 store   = redux.createStore(name, {loading:true})
 actions = redux.createActions(name, NotificationsActions)
 
@@ -49,4 +54,5 @@ class NotificationsTable extends Table
                 delete s[id]
         misc.set_local_storage('system_notifications', misc.to_json(s))
 
+#if not COCALC_MINIMAL
 table = redux.createTable(name, NotificationsTable)

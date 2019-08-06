@@ -28,6 +28,9 @@ history                 = require('./history')
 
 {alert_message}         = require('./alerts')
 
+{QueryParams} = require('./misc_page2')
+{COCALC_FULLSCREEN, COCALC_MINIMAL} = require('./fullscreen')
+
 # Ephemeral websockets mean a browser that kills the websocket whenever
 # the page is backgrounded.  So far, it seems that maybe all mobile devices
 # do this.  The only impact is we don't show a certain error message for
@@ -232,6 +235,10 @@ class PageActions extends Actions
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
 
     set_session: (val) =>
+        # no sessions in minimal mode
+        #if COCALC_MINIMAL
+        #    return
+
         # If existing different session, close it.
         if val != redux.getStore('page')?.get('session')
             @_session_manager?.close()
@@ -430,16 +437,14 @@ webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
 
 # enable fullscreen mode upon a URL like /app?fullscreen and additionally kiosk-mode upon /app?fullscreen=kiosk
-misc_page = require('./misc_page')
-fullscreen_query_value = misc_page.get_query_param('fullscreen')
-if fullscreen_query_value
-    if fullscreen_query_value == 'kiosk'
+if COCALC_FULLSCREEN
+    if COCALC_FULLSCREEN == 'kiosk'
         redux.getActions('page').set_fullscreen('kiosk')
     else
         redux.getActions('page').set_fullscreen('default')
 
 # setup for frontend mocha testing.
-test_query_value = misc_page.get_query_param('test')
+test_query_value = QueryParams.get('test')
 if test_query_value
     # include entryway for running mocha tests.
     redux.getActions('page').setState(test: test_query_value)
@@ -456,14 +461,14 @@ if test_query_value
 # This makes it so the default session is 'default' and there is no
 # way to NOT have a session, except via session=, which is treated
 # as "no session" (also no session for kiosk mode).
-session = misc_page.get_query_param('session') ? 'default'
-if fullscreen_query_value == 'kiosk' or test_query_value
+session = QueryParams.get('session') ? 'default'
+if COCALC_FULLSCREEN == 'kiosk' or test_query_value
     # never have a session in kiosk mode, since you can't access the other files.
     session = ''
 
 redux.getActions('page').set_session(session)
 
-get_api_key_query_value = misc_page.get_query_param('get_api_key')
+get_api_key_query_value = QueryParams.get('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
     redux.getActions('page').set_fullscreen('kiosk')

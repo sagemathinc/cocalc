@@ -21,6 +21,8 @@
 
 misc = require('smc-util/misc')
 
+{COCALC_MINIMAL} = require('./fullscreen')
+
 {React, Actions, Store, Table, redux, rtypes, rclass}  = require('./app-framework')
 
 {TimeAgo, Tip} = require('./r_misc')
@@ -123,6 +125,7 @@ class UsersTable extends Table
             return false
         @redux.getActions('users').setState(user_map: user_map)
 
+#if not COCALC_MINIMAL
 redux.createTable('users', UsersTable)
 
 #TODO: Make useable without passing in user_map

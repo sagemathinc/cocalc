@@ -1,6 +1,7 @@
 // Manage DB <-> UI integration of available *custom* compute images
 // TODO: also get rid of hardcoded official software images
 
+import { COCALC_MINIMAL } from "../fullscreen";
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
 import { CUSTOM_IMG_PREFIX } from "./util";
@@ -159,6 +160,8 @@ class ComputeImagesTable extends Table {
   }
 }
 
+// if (!COCALC_MINIMAL) {
 redux.createStore(NAME, ComputeImagesStore, {});
 redux.createActions(NAME, ComputeImagesActions);
 redux.createTable(NAME, ComputeImagesTable);
+//}
