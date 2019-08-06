@@ -25,14 +25,24 @@ SinglePage = rclass
     reduxProps :
         single_page:
             filename: rtypes.string
+            error: rtypes.string
+            mode: rtypes.string
+            project_id: rtypes.string
+
+    render_mode_ipynb: ->
+        <div>ipynb mode: {@props.filename}</div>
 
     render_loading: ->
+        if @props.mode
+            return @["render_mode_#{@props.mode}"]()
+
         <div style={loading_style}>
             <AppLogo size={'200px'} margin={'20px'}/>
             <br/>
-            <strong>{SITE_NAME} opening <code>{@props.filename}</code></strong>
+            {<strong>{SITE_NAME} opening <code>{@props.filename}</code></strong> if @props.filename and not @props.error}
+            {"ERROR: #{@props.error}" if @props.error}
             <br/>
-            <Loading />
+            {<Loading /> if not @props.filename and not @props.error}
         </div>
 
     render: ->
