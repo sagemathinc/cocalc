@@ -280,7 +280,8 @@ class PageActions extends Actions
     sign_in: =>
         false
 
-redux.createStore('page', {active_top_tab: 'account'})
+{parse_target} = require("./history2")
+redux.createStore('page', {active_top_tab: parse_target(window.smc_target).page})
 redux.createActions('page', PageActions)
 ###
     name: 'page'
