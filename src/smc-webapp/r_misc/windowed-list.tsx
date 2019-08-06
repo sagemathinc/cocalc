@@ -50,6 +50,7 @@ export class WindowedList extends Component<Props, State> {
   private row_heights_cache: { [key: string]: number } = {};
   private resize_observer: ResizeObserver;
   private is_mounted: boolean = true;
+  private _disable_refresh: boolean = false;
 
   constructor(props) {
     super(props);
@@ -107,11 +108,20 @@ export class WindowedList extends Component<Props, State> {
       delete this.row_heights_cache[key];
       n += 1;
     }
-    if (n > 0) this.list_ref.current.recomputeRowHeights();
+    if (n > 0) this.refresh();
   }
 
-  public recompute(): void {
-    this.list_ref.current.recomputeRowHeights();
+  public disable_refresh(): void {
+    this._disable_refresh = true;
+  }
+
+  public enable_refresh(): void {
+    this._disable_refresh = false;
+  }
+
+  public refresh(n: number = 0): void {
+    if (this._disable_refresh) return;
+    this.list_ref.current.recomputeRowHeights(n);
   }
 
   private row_renderer({ index, style }): Rendered {
@@ -123,7 +133,7 @@ export class WindowedList extends Component<Props, State> {
        https://stackoverflow.com/questions/1709442/make-divs-height-expand-with-its-content
     */
     return (
-      <div style={style} key={key}>
+      <div style={style} key={`${index}-${key}`}>
         <div
           style={{ display: "flex", flexDirection: "column" }}
           data-key={key}
@@ -139,7 +149,7 @@ export class WindowedList extends Component<Props, State> {
     );
   }
 
-  public row_ref(key: string) : any {
+  public row_ref(key: string): any {
     return this.cell_refs[key];
   }
   public row_height({ index }): number {

@@ -71,24 +71,32 @@ export class NotebookFrameActions {
     );
   }
 
-  private compute_cell_position(id: string): number | undefined {
+  private get_windowed_list(): any {
     if (
       this.windowed_list_ref == null ||
       this.windowed_list_ref.current == null
     )
       return;
-    const windowed_list = this.windowed_list_ref.current;
+    return this.windowed_list_ref.current;
+  }
 
-    const elt = windowed_list.row_ref(id);
-    const direct = elt != null ? elt.offset().top : 0;
-    if (direct) return direct;
+  /*
+  The functions below: compute_cell_position, syncdb_before_change,
+  syncdb_after_change, scroll, etc. are all so that if you change
+  the document in one browser or frame it doesn't move around the
+  focused cell in any others.  This is tricky and complicated, and
+  doesn't work 100%, but is probably good enough.
+  */
+  private compute_cell_position(id: string): number | undefined {
+    const windowed_list = this.get_windowed_list();
+    if (windowed_list == null) return;
 
     const cell_list = this.jupyter_actions.store.get("cell_list").toArray();
     let computed: number = 0;
     let index: number = 0;
     for (let id0 of cell_list) {
-      computed += windowed_list.row_height({ index });
       if (id0 == id) break;
+      computed += windowed_list.row_height({ index });
       index += 1;
     }
     return computed;
@@ -96,21 +104,47 @@ export class NotebookFrameActions {
 
   // maintain scroll hook on change; critical for multiuser editing
   private syncdb_before_change(): void {
+    const windowed_list = this.get_windowed_list();
+    if (windowed_list == null) return;
+    windowed_list.disable_refresh();
     const cur_id = this.store.get("cur_id");
     const pos = this.compute_cell_position(cur_id);
     this.scroll_before_change = pos;
   }
 
   private async syncdb_after_change(): Promise<void> {
-    if (this.scroll_before_change == null) {
-      return;
+    const windowed_list = this.get_windowed_list();
+    if (windowed_list == null) return;
+    try {
+      if (this.scroll_before_change == null) {
+        return;
+      }
+      const cur_id = this.store.get("cur_id");
+      let after = this.compute_cell_position(cur_id);
+      if (after == null) return;
+      // If you delete a cell, then the move amount is known immediately,
+      // and we do them immediately to avoid a jump.
+      // Other changes of cell size may only happen
+      // after a delay of 0 (next render loop).
+      // (There can be flicker if both happen at once.)
+      let diff = after - this.scroll_before_change;
+      if (after != this.scroll_before_change) {
+        this.scroll(diff);
+        windowed_list.enable_refresh();
+        windowed_list.refresh();
+        this.scroll_before_change = after;
+      }
+      await delay(0);
+      if (this.frame_id == null) return; // closed
+      after = this.compute_cell_position(cur_id);
+      if (after == null) return;
+      diff = after - this.scroll_before_change;
+      this.scroll_before_change = after; // since we have compensated for it.
+      this.scroll(diff);
+    } finally {
+      windowed_list.enable_refresh();
+      windowed_list.refresh();
     }
-    await delay(0);
-    const cur_id = this.store.get("cur_id");
-    const after = this.compute_cell_position(cur_id);
-    if (after == null) return;
-    const diff = after - this.scroll_before_change;
-    this.scroll(diff);
   }
 
   public close(): void {
@@ -295,7 +329,9 @@ export class NotebookFrameActions {
   }
 
   public scroll(scroll?: Scroll): void {
-    this.setState({ scroll });
+    if (scroll != 0) {
+      this.setState({ scroll });
+    }
   }
 
   public set_scrollTop(scrollTop: number): void {
