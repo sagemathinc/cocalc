@@ -55,6 +55,7 @@ describe("Testing inputs", () => {
       "settings",
       "settings/account",
       "settings/account/",
+      "",
       undefined
     ];
     const account_settings_descriptor = { page: "account", tab: "account" };
