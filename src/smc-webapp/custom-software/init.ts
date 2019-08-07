@@ -160,8 +160,8 @@ class ComputeImagesTable extends Table {
   }
 }
 
-// if (!COCALC_MINIMAL) {
-redux.createStore(NAME, ComputeImagesStore, {});
-redux.createActions(NAME, ComputeImagesActions);
-redux.createTable(NAME, ComputeImagesTable);
-//}
+if (!COCALC_MINIMAL) {
+  redux.createStore(NAME, ComputeImagesStore, {});
+  redux.createActions(NAME, ComputeImagesActions);
+  redux.createTable(NAME, ComputeImagesTable);
+}
