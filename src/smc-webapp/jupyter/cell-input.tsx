@@ -82,7 +82,7 @@ export interface CellInputProps {
   cell_toolbar?: string;
   trust?: boolean;
   is_readonly: boolean;
-  is_scrolling?:boolean;
+  is_scrolling?: boolean;
   id: any; // TODO: what is this
 }
 

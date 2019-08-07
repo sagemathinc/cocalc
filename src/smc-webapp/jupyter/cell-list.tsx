@@ -7,7 +7,8 @@ declare const $: any;
 //const DEFAULT_ROW_SIZE: number = 34;
 const DEFAULT_ROW_SIZE: number = 64;
 
-import { WindowedList } from "../r_misc/windowed-list";
+//import { WindowedList } from "../r_misc/windowed-list";
+import { WindowedList } from "../r_misc/windowed-list2";
 
 import { delay } from "awaiting";
 import * as immutable from "immutable";
@@ -82,7 +83,7 @@ export class CellList extends Component<CellListProps> {
     ) {
       const info = this.windowed_list_ref.current.get_scroll();
       if (info != null) {
-        this.props.frame_actions.set_scrollTop(info.scrollTop);
+        this.props.frame_actions.set_scrollTop(info.scrollOffset);
       }
     }
   }
@@ -190,7 +191,7 @@ export class CellList extends Component<CellListProps> {
 
     if (typeof scroll === "number") {
       if (info == null) return;
-      list.scrollToPosition(info.scrollTop + scroll);
+      list.scrollToPosition(info.scrollOffset + scroll);
       return;
     }
 
@@ -204,14 +205,16 @@ export class CellList extends Component<CellListProps> {
       return;
     }
     if (info == null) return;
+
+    // TODO: I just hardcoded 400 for "1 page"!
     switch (scroll) {
       case "list up":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollTop - info.clientHeight);
+        list.scrollToPosition(info.scrollOffset - 400);
         break;
       case "list down":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollTop + info.clientHeight);
+        list.scrollToPosition(info.scrollOffset + 400);
         break;
     }
   }
@@ -322,6 +325,8 @@ export class CellList extends Component<CellListProps> {
         row_count={this.props.cell_list.size}
         row_renderer={this.window_list_row_renderer.bind(this)}
         cache_id={cache_id}
+        use_is_scrolling={true}
+        hide_resize={true}
       />
     );
   }

@@ -5,7 +5,7 @@ Render all the messages in the chat.
 import { List, Map } from "immutable";
 import { Actions, React, Component, Rendered } from "../app-framework";
 import { Alert } from "react-bootstrap";
-import { WindowedList } from "../r_misc/windowed-list";
+import { WindowedList } from "../r_misc/windowed-list2";
 import { Message } from "../smc_chat";
 import { search_match, search_split } from "smc-util/misc";
 
@@ -173,7 +173,7 @@ export class ChatLog extends Component<ChatLogProps> {
         {this.render_not_showing()}
         <WindowedList
           ref={this.props.windowed_list_ref}
-          overscan_row_count={10}
+          overscan_row_count={15}
           estimated_row_size={62}
           row_count={this.get_sorted_dates().length}
           row_renderer={this.row_renderer.bind(this)}

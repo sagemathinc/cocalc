@@ -14,7 +14,7 @@ misc = require('smc-util/misc')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
-{WindowedList} = require('../r_misc/windowed-list')
+{WindowedList} = require('../r_misc/windowed-list2')
 
 {Task} = require('./task')
 SortableTask = SortableElement(Task)

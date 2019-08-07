@@ -5,7 +5,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 const { SearchInput } = require("../r_misc");
 import { Icon } from "../r_misc/icon";
-import { WindowedList } from "../r_misc/windowed-list";
+import { WindowedList } from "../r_misc/windowed-list2";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 
@@ -191,7 +191,7 @@ export class FileUseViewer extends Component<Props, State> {
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={5}
+        overscan_row_count={20}
         estimated_row_size={56}
         row_count={this.get_visible_list().size}
         row_renderer={this.row_renderer.bind(this)}

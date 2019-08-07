@@ -27,7 +27,7 @@ immutable  = require('immutable')
 {React, ReactDOM, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
-{WindowedList} = require("./r_misc/windowed-list")
+{WindowedList} = require("./r_misc/windowed-list2")
 {User} = require('./users')
 {file_actions} = require('./project_store')
 {ProjectTitleAuto} = require('./projects')
@@ -509,7 +509,7 @@ exports.ProjectLog = rclass ({name}) ->
             delete @_next_cursor_pos
         return <WindowedList
             ref = {@windowed_list_ref}
-            overscan_row_count = {10}
+            overscan_row_count = {20}
             estimated_row_size={22}
             row_count={@get_log().size + 1}
             row_renderer = {(x) => @row_renderer(x.index)}

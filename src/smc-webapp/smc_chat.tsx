@@ -57,7 +57,7 @@ import {
 } from "react-bootstrap";
 
 import { ChatLog } from "./chat/chat-log";
-import { WindowedList } from "./r_misc/windowed-list";
+import { WindowedList } from "./r_misc/windowed-list2";
 
 const editor_chat = require("./editor_chat");
 

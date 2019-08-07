@@ -44,7 +44,7 @@ interface CellProps {
   cell_toolbar?: string;
   trust?: boolean;
   hook_offset?: number;
-  is_scrolling?:boolean;
+  is_scrolling?: boolean;
 }
 
 export class Cell extends Component<CellProps> {
@@ -118,6 +118,7 @@ export class Cell extends Component<CellProps> {
         directory={this.props.directory}
         more_output={this.props.more_output}
         trust={this.props.trust}
+        complete={this.props.is_current && this.props.complete != null}
       />
     );
   }
@@ -293,4 +294,3 @@ export class Cell extends Component<CellProps> {
     );
   }
 }
-

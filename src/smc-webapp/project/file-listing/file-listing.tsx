@@ -8,7 +8,7 @@ NOTES:
 
 import * as React from "react";
 import * as immutable from "immutable";
-import { WindowedList } from "../../r_misc/windowed-list";
+import { WindowedList } from "../../r_misc/windowed-list2";
 
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");
@@ -161,7 +161,7 @@ export class FileListing extends React.Component<Props> {
     return (
       <WindowedList
         ref={this.list_ref}
-        overscan_row_count={10}
+        overscan_row_count={20}
         estimated_row_size={30}
         row_count={this.props.listing.length}
         row_renderer={this.windowed_list_render_row.bind(this)}

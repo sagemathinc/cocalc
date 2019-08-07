@@ -97,7 +97,7 @@ export class NotebookFrameActions {
     let index: number = 0;
     for (let id0 of cell_list) {
       if (id0 == id) break;
-      computed += windowed_list.row_height({ index });
+      computed += windowed_list.row_height(index);
       index += 1;
     }
     return computed;

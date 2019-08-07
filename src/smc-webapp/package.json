@@ -107,6 +107,7 @@
     "react-virtualized": "^9.21.0",
     "react-widgets": "^4.4.6",
     "react-widgets-globalize": "^4.0.2",
+    "react-window": "^1.8.5",
     "redux": "^4.0.1",
     "requirejs": "^2.3.6",
     "reselect": "^3.0.0",

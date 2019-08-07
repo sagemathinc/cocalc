@@ -12,7 +12,6 @@ import { Map as ImmutableMap } from "immutable";
 
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
-//const { IS_TOUCH } = require("../feature");
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -37,6 +36,8 @@ interface CodeMirrorState {
 
 export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
   private _is_mounted: boolean; // DONT DO THIS
+  private has_rendered_nonstatic: boolean = false;
+
   constructor(props: CodeMirrorProps, context: any) {
     super(props, context);
     this.state = {
@@ -82,13 +83,18 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
   render() {
     // Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
     // we can remove this use of the slower non-static fallback...
-    if (this.props.actions != null && this.props.frame_actions != null) {
+    if (
+      (this.has_rendered_nonstatic || !this.props.is_scrolling) &&
+      this.props.actions != null &&
+      this.props.frame_actions != null
+    ) {
       // For some reason the static renderer has some REALLY bad performance, especially for
       // larger documents.  This may be an issue with using react at all (i.e., we should just
       // directly generate html).  For now, probably the best fix is not to use the static
       // renderer, since it causes so much trouble...
       // See https://github.com/sagemathinc/cocalc/issues/3652
       // Instead, we should optimize how the normal render works, e.g., by caching it.
+      this.has_rendered_nonstatic = true;
       return (
         <CodeMirrorEditor
           actions={this.props.actions}
