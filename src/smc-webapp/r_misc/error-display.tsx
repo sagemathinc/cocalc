@@ -3,10 +3,10 @@ import * as misc from "smc-util/misc";
 import { Alert } from "react-bootstrap";
 import { CloseX } from "./close-x";
 
-const error_text_style = {
+const error_text_style: React.CSSProperties = {
   marginRight: "1ex",
   whiteSpace: "pre-line",
-  maxWidth: "80ex"
+  maxWidth: "100ex"
 };
 
 interface Props {
