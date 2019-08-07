@@ -125,7 +125,8 @@ class UsersTable extends Table
             return false
         @redux.getActions('users').setState(user_map: user_map)
 
-#if not COCALC_MINIMAL
+## disabling this createTable effectively hides cursors of collaborators, etc.
+# if not COCALC_MINIMAL
 redux.createTable('users', UsersTable)
 
 #TODO: Make useable without passing in user_map

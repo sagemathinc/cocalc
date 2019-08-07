@@ -6,8 +6,8 @@ Redux: server stats
 {Table, redux} = require('./app-framework')
 
 name    = 'server_stats'
-store   = undefined
-actions = undefined
+store   = redux.createStore(name, {loading:true})
+actions = redux.createActions(name)
 
 $ = window.$
 {BASE_URL} = require('misc_page')
@@ -15,16 +15,11 @@ get_stats = ->
     $.getJSON "#{BASE_URL}/stats", (data) ->
         data.time = new Date(data.time)
         data.loading = false
-        actions?.setState(data)
+        actions.setState(data)
     setTimeout(get_stats, 90 * 1000)
 
-init = ->
-    store   = redux.createStore(name, {loading:true})
-    actions = redux.createActions(name)
-    get_stats()
-
 if not COCALC_MINIMAL
-    init()
+    get_stats()
 
 #class StatsTable extends Table
 

@@ -235,10 +235,6 @@ class PageActions extends Actions
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
 
     set_session: (val) =>
-        # no sessions in minimal mode
-        #if COCALC_MINIMAL
-        #    return
-
         # If existing different session, close it.
         if val != redux.getStore('page')?.get('session')
             @_session_manager?.close()
