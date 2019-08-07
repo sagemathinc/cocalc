@@ -109,7 +109,7 @@ exports.Task = rclass
 
     render: ->
         style =
-            paddingLeft  : '5px'
+            padding      : '5px'
             margin       : '2px 5px'
             background   : 'white'
         if @props.is_current

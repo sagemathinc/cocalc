@@ -51,6 +51,7 @@ interface CodeMirrorEditorProps {
   set_last_cursor: Function; // TODO: type
   last_cursor?: any;
   is_focused?: boolean;
+  is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
 }
 
@@ -371,7 +372,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       if (!show_dialog) {
         this.props.frame_actions.set_mode("edit");
       }
-    } catch(err) {
+    } catch (err) {
       // ignore -- maybe another complete happened and this should be ignored.
     }
   };
@@ -495,6 +496,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // CRITICAL: Also do the focus only after the refresh, or when
     // switching from static to non-static, whole page gets badly
     // repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
+    /*
     setTimeout(() => {
       if (this.cm != null) {
         this.cm.refresh();
@@ -503,6 +505,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         this.cm != null ? this.cm.focus() : undefined;
       }
     }, 1);
+    */
   };
 
   componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
@@ -513,7 +516,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (!this.props.options.equals(nextProps.options)) {
       this.update_codemirror_options(nextProps.options, this.props.options);
     }
-    if (this.props.font_size !== nextProps.font_size) {
+    if (
+      this.props.font_size !== nextProps.font_size ||
+      (this.props.is_scrolling && !nextProps.is_scrolling)
+    ) {
       this.cm.refresh();
     }
     if (nextProps.value !== this.props.value) {

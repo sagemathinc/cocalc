@@ -39,7 +39,7 @@ exports.TaskList = SortableContainer rclass
 
     shouldComponentUpdate: (next) ->
         if @props.visible != next.visible
-            @windowed_list_ref.current.recompute()
+            @windowed_list_ref.current.refresh()
 
         return @props.tasks             != next.tasks or \
                @props.visible           != next.visible or \

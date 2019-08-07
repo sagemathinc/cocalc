@@ -255,7 +255,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_cell(id: string): Rendered {
+  private render_cell(id: string, isScrolling?: boolean): Rendered {
     const cell = this.props.cells.get(id);
     return (
       <Cell
@@ -291,16 +291,17 @@ export class CellList extends Component<CellListProps> {
         }
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
+        is_scrolling={isScrolling}
       />
     );
   }
 
-  private window_list_row_renderer({ key }): Rendered {
+  private window_list_row_renderer({ key, isScrolling }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
         {this.render_insert_cell(key, "above")}
-        {this.render_cell(key)}
+        {this.render_cell(key, isScrolling)}
         {is_last ? this.render_insert_cell(key, "below") : undefined}
       </div>
     );

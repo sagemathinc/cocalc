@@ -27,6 +27,7 @@ interface CodeMirrorProps {
   is_focused: boolean;
   cursors?: ImmutableMap<any, any>;
   complete?: ImmutableMap<any, any>;
+  is_scrolling?: boolean;
 }
 
 interface CodeMirrorState {
@@ -72,6 +73,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
       next.value !== this.props.value ||
       next.font_size !== this.props.font_size ||
       next.is_focused !== this.props.is_focused ||
+      next.is_scrolling !== this.props.is_scrolling ||
       next.cursors !== this.props.cursors ||
       next.complete !== this.props.complete
     );
@@ -101,6 +103,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
           set_last_cursor={this.set_last_cursor}
           last_cursor={this.state.last_cursor}
           is_focused={this.props.is_focused}
+          is_scrolling={this.props.is_scrolling}
           complete={this.props.complete}
         />
       );

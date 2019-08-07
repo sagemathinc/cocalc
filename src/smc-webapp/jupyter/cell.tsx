@@ -24,8 +24,6 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 
-import { merge } from "smc-util/misc2";
-
 interface CellProps {
   actions?: JupyterActions;
   frame_actions?: NotebookFrameActions;
@@ -46,6 +44,7 @@ interface CellProps {
   cell_toolbar?: string;
   trust?: boolean;
   hook_offset?: number;
+  is_scrolling?:boolean;
 }
 
 export class Cell extends Component<CellProps> {
@@ -64,6 +63,7 @@ export class Cell extends Component<CellProps> {
       nextProps.more_output !== this.props.more_output ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       nextProps.trust !== this.props.trust ||
+      nextProps.is_scrolling !== this.props.is_scrolling ||
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
@@ -100,6 +100,7 @@ export class Cell extends Component<CellProps> {
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
         is_readonly={!this.is_editable()}
+        is_scrolling={this.props.is_scrolling}
       />
     );
   }
@@ -133,18 +134,6 @@ export class Cell extends Component<CellProps> {
     this.props.frame_actions.set_cur_id(this.props.id);
     this.props.frame_actions.unselect_all_cells();
   };
-
-  private render_hook(): Rendered {
-    if (this.props.is_current && this.props.frame_actions != null) {
-      return (
-        <Hook
-          hook_offset={this.props.hook_offset}
-          mode={this.props.mode}
-          frame_id={this.props.frame_actions.frame_id}
-        />
-      );
-    }
-  }
 
   private double_click = (event: any): void => {
     if (this.props.frame_actions == null) {
@@ -297,7 +286,6 @@ export class Cell extends Component<CellProps> {
         id={this.props.id}
         cocalc-test={"jupyter-cell"}
       >
-        {this.render_hook()}
         {this.render_metadata_state()}
         {this.render_cell_input(this.props.cell)}
         {this.render_cell_output(this.props.cell)}
@@ -305,45 +293,4 @@ export class Cell extends Component<CellProps> {
     );
   }
 }
-/*
-VISIBLE_STYLE =
-    position   : 'absolute'
-    color      : '#ccc'
-    fontSize   : '6pt'
-    paddingTop : '5px'
-    right      : '-10px'
-    zIndex     : 10
-*/
 
-const NOT_VISIBLE_STYLE: React.CSSProperties = {
-  position: "absolute",
-  fontSize: 0,
-  zIndex: -100,
-  left: 0,
-  top: 0
-};
-
-interface Props {
-  frame_id: string;
-  hook_offset?: number;
-  mode?: string;
-}
-
-class Hook extends Component<Props> {
-  public render(): Rendered {
-    let style;
-    if (this.props.mode === "edit") {
-      style = merge({ top: this.props.hook_offset }, NOT_VISIBLE_STYLE);
-    } else {
-      style = NOT_VISIBLE_STYLE;
-    }
-    return (
-      <div
-        style={style}
-        className={`cocalc-jupyter-hook-${this.props.frame_id}`}
-      >
-        &nbsp;
-      </div>
-    );
-  }
-}

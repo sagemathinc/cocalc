@@ -8,7 +8,17 @@ Windowed List, based on react-virtualized:
 NOTES: this may be relevant: https://github.com/bvaughn/react-window/issues/6
 */
 import { delay } from "awaiting";
-import { ResizeObserver } from "resize-observer";
+
+// The ResizeObserver polyfill in the resize-observer package is
+// really weird because it *always* gets used, even if the browser
+// has its own native ResizeObserver implementation, which is
+// most browsers these days.  Hence we do the following, which saves
+// wasted time according to the profiler.
+let ResizeObserver: any = (window as any).ResizeObserver;
+if (ResizeObserver == null) {
+  ResizeObserver = require("resize-observer").ResizeObserver;
+}
+
 import { List, AutoSizer } from "react-virtualized";
 
 import { React, Component, Rendered } from "../app-framework";
@@ -17,7 +27,12 @@ interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
   estimated_row_size: number; // estimate to use for the row size before measuring
   row_count: number; // number of rows
-  row_renderer: (obj: { key: string; index: number }) => Rendered; // renders row with given key (or index).
+  row_renderer: (obj: {
+    key: string;
+    index: number;
+    isScrolling?: boolean;
+    isVisible?: boolean;
+  }) => Rendered; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
   scroll_top?: number;
@@ -48,7 +63,8 @@ export class WindowedList extends Component<Props, State> {
   private cell_refs: { [key: string]: any } = {};
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
-  private resize_observer: ResizeObserver;
+  private row_heights_stale: { [key: string]: boolean } = {};
+  private resize_observer: any; // ResizeObserver;
   private is_mounted: boolean = true;
   private _disable_refresh: boolean = false;
 
@@ -65,7 +81,6 @@ export class WindowedList extends Component<Props, State> {
       }
     }
     this.state = { scroll_to_index: props.scroll_to_index, scroll_top };
-    (window as any).s = this;
   }
 
   public componentWillUnmount(): void {
@@ -105,7 +120,8 @@ export class WindowedList extends Component<Props, State> {
         // using what we have cached (or the default).
         continue;
       }
-      delete this.row_heights_cache[key];
+      //delete this.row_heights_cache[key];
+      this.row_heights_stale[key] = true;
       n += 1;
     }
     if (n > 0) this.refresh();
@@ -124,7 +140,7 @@ export class WindowedList extends Component<Props, State> {
     this.list_ref.current.recomputeRowHeights(n);
   }
 
-  private row_renderer({ index, style }): Rendered {
+  private row_renderer({ index, style, isScrolling, isVisible }): Rendered {
     if (index == null) return;
     const key = this.props.row_key(index);
     if (key == null) return;
@@ -143,7 +159,7 @@ export class WindowedList extends Component<Props, State> {
             this.resize_observer.observe(node);
           }}
         >
-          {this.props.row_renderer({ key, index })}
+          {this.props.row_renderer({ key, index, isScrolling, isVisible })}
         </div>
       </div>
     );
@@ -152,23 +168,36 @@ export class WindowedList extends Component<Props, State> {
   public row_ref(key: string): any {
     return this.cell_refs[key];
   }
+
   public row_height({ index }): number {
     const key = this.props.row_key(index);
-    if (key == null) return this.props.estimated_row_size;
+    if (key == null) return 0;
 
     let h = this.row_heights_cache[key];
-    if (h !== undefined) return h;
+    if (h !== undefined && !this.row_heights_stale[key]) {
+      return h;
+    }
+    if (h === undefined) h = 0;
 
     const elt = this.cell_refs[key];
-    if (elt == null) return this.props.estimated_row_size;
-    h = elt.height();
-    if (h === 0) return this.props.estimated_row_size;
-    if (h == null) {
-      h = this.row_heights_cache[key];
-    } else {
-      this.row_heights_cache[key] = h;
+    if (elt == null) {
+      return h ? h : this.props.estimated_row_size;
     }
-    return h ? h : this.props.estimated_row_size;
+
+    const ht = elt.height();
+    if (ht === 0) {
+      return h ? h : this.props.estimated_row_size;
+    }
+
+    if (
+      this.row_heights_cache[key] == undefined ||
+      this.row_heights_stale[key]
+    ) {
+      this.row_heights_cache[key] = ht;
+      delete this.row_heights_stale[key];
+    }
+
+    return ht;
   }
 
   private async scroll_after_measure(): Promise<void> {
