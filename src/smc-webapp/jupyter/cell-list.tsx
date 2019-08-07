@@ -4,7 +4,8 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
-const DEFAULT_ROW_SIZE: number = 34;
+//const DEFAULT_ROW_SIZE: number = 34;
+const DEFAULT_ROW_SIZE: number = 64;
 
 import { WindowedList } from "../r_misc/windowed-list";
 
@@ -315,7 +316,7 @@ export class CellList extends Component<CellListProps> {
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={10}
+        overscan_row_count={5}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}

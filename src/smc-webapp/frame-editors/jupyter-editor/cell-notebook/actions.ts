@@ -25,6 +25,7 @@ export class NotebookFrameActions {
   private key_handler?: Function;
   private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
+  private cur_id_before_change: string | undefined = undefined;
 
   public commands: { [name: string]: CommandDescription } = {};
   public frame_id: string;
@@ -110,18 +111,21 @@ export class NotebookFrameActions {
     const cur_id = this.store.get("cur_id");
     const pos = this.compute_cell_position(cur_id);
     this.scroll_before_change = pos;
+    this.cur_id_before_change = cur_id;
   }
 
   private async syncdb_after_change(): Promise<void> {
     const windowed_list = this.get_windowed_list();
     if (windowed_list == null) return;
     try {
-      if (this.scroll_before_change == null) {
+      const id = this.cur_id_before_change;
+      if (this.scroll_before_change == null || id == null) {
         return;
       }
-      const cur_id = this.store.get("cur_id");
-      let after = this.compute_cell_position(cur_id);
-      if (after == null) return;
+      let after = this.compute_cell_position(id);
+      if (after == null) {
+        return;
+      }
       // If you delete a cell, then the move amount is known immediately,
       // and we do them immediately to avoid a jump.
       // Other changes of cell size may only happen
@@ -136,7 +140,7 @@ export class NotebookFrameActions {
       }
       await delay(0);
       if (this.frame_id == null) return; // closed
-      after = this.compute_cell_position(cur_id);
+      after = this.compute_cell_position(id);
       if (after == null) return;
       diff = after - this.scroll_before_change;
       this.scroll_before_change = after; // since we have compensated for it.

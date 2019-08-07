@@ -488,25 +488,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this.cm.setCursor(this.props.last_cursor);
       this.props.set_last_cursor();
     }
-
-    // Finally, do a refresh in the next render loop, once layout is done.
-    // See https://github.com/sagemathinc/cocalc/issues/2397
-    // Note that this also avoids a significant disturbing flicker delay
-    // even for non-raw cells.  This obviously probably slows down initial
-    // load or switch to of the page, unfortunately.  Such is life.
-    // CRITICAL: Also do the focus only after the refresh, or when
-    // switching from static to non-static, whole page gets badly
-    // repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
-    /*
-    setTimeout(() => {
-      if (this.cm != null) {
-        this.cm.refresh();
-      }
-      if (this.props.is_focused) {
-        this.cm != null ? this.cm.focus() : undefined;
-      }
-    }, 1);
-    */
   };
 
   componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
@@ -521,7 +502,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this.props.font_size !== nextProps.font_size ||
       (this.props.is_scrolling && !nextProps.is_scrolling)
     ) {
-      this.cm.refresh();
+      this._cm_refresh();
     }
     if (nextProps.value !== this.props.value) {
       this._cm_merge_remote(nextProps.value);

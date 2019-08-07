@@ -148,18 +148,21 @@ export class WindowedList extends Component<Props, State> {
        div expands to its contents. See
        https://stackoverflow.com/questions/1709442/make-divs-height-expand-with-its-content
     */
+
     return (
       <div style={style} key={`${index}-${key}`}>
-        <div
-          style={{ display: "flex", flexDirection: "column" }}
-          data-key={key}
-          ref={node => {
-            if (node == null) return;
-            this.cell_refs[key] = $(node);
-            this.resize_observer.observe(node);
-          }}
-        >
-          {this.props.row_renderer({ key, index, isScrolling, isVisible })}
+        <div style={{ overflow: "hidden", height: "100%" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column" }}
+            data-key={key}
+            ref={node => {
+              if (node == null) return;
+              this.cell_refs[key] = $(node);
+              this.resize_observer.observe(node);
+            }}
+          >
+            {this.props.row_renderer({ key, index, isScrolling, isVisible })}
+          </div>
         </div>
       </div>
     );
