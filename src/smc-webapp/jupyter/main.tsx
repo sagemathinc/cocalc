@@ -164,10 +164,16 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_error() {
     if (this.props.error) {
+      const style = {
+        margin: "1ex",
+        whiteSpace: "pre" as "pre",
+        fontSize: "12px",
+        fontFamily: "monospace" as "monospace"
+      };
       return (
         <ErrorDisplay
           error={this.props.error}
-          style={{ margin: "1ex" }}
+          style={style}
           onClose={() => this.props.actions.set_error(undefined)}
         />
       );
