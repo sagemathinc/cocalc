@@ -161,7 +161,7 @@ export class FileListing extends React.Component<Props> {
     return (
       <WindowedList
         ref={this.list_ref}
-        overscan_row_count={5}
+        overscan_row_count={10}
         estimated_row_size={30}
         row_count={this.props.listing.length}
         row_renderer={this.windowed_list_render_row.bind(this)}

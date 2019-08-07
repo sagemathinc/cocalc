@@ -6,7 +6,7 @@ declare const $: any;
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-import { React, Component, ReactDOM } from "../app-framework";
+import { React, Component } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
@@ -62,9 +62,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   private _cm_blur_skip: any;
   private _cm_is_focused: any;
   private _vim_mode: any;
+  private textarea_ref = React.createRef<HTMLTextAreaElement>();
 
   componentDidMount() {
-    return this.init_codemirror(this.props.options, this.props.value);
+    this.init_codemirror(this.props.options, this.props.value);
   }
 
   _cm_destroy = (): void => {
@@ -389,7 +390,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   init_codemirror = (options: any, value: any): void => {
-    const node = $(ReactDOM.findDOMNode(this)).find("textarea")[0]; // TODO: avoid findDOMNode
+    const node = this.textarea_ref.current; // TODO: avoid findDOMNode
     if (node == null) {
       return;
     }
@@ -580,7 +581,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       <div style={{ width: "100%", overflow: "auto" }}>
         {this.render_cursors()}
         <div style={FOCUSED_STYLE}>
-          <textarea />
+          <textarea ref={this.textarea_ref} />
         </div>
         {this.render_complete()}
       </div>

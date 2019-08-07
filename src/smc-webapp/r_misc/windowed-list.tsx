@@ -243,7 +243,7 @@ export class WindowedList extends Component<Props, State> {
                 ref={this.list_ref}
                 height={height}
                 width={width}
-                overscanRowCount={3}
+                overscanRowCount={this.props.overscan_row_count}
                 estimatedRowSize={this.props.estimated_row_size}
                 rowHeight={this.row_height.bind(this)}
                 rowCount={this.props.row_count}
