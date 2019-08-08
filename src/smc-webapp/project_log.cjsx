@@ -60,7 +60,12 @@ LogSearch = rclass
     displayName : 'ProjectLog-LogSearch'
 
     componentWillMount: ->
+        @mounted = true
         @on_change = underscore.debounce(@on_change, 300)
+
+    componentWillUnmount: ->
+        delete @mounted
+        delete @on_change
 
     propTypes :
         search           : rtypes.string
@@ -86,6 +91,8 @@ LogSearch = rclass
                 @props.actions.set_active_tab('settings')
 
     on_change: (value) ->
+        if not @mounted
+            return
         @props.reset_cursor()
         @props.actions.setState(search : value)
 

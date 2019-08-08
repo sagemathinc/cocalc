@@ -111,6 +111,7 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToRow(row: number): void {
+    if (this.list_ref.current == null) return;
     if (row < 0) {
       row = row % this.props.row_count;
       if (row < 0) {
@@ -121,6 +122,7 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToPosition(pos: number): void {
+    if (this.list_ref.current == null) return;
     this.list_ref.current.scrollTo(pos);
   }
 
@@ -171,6 +173,7 @@ export class WindowedList extends Component<Props, State> {
 
   public refresh(min_index: number = 0): void {
     if (this._disable_refresh) return;
+    if (this.list_ref.current == null) return;
     this.list_ref.current.resetAfterIndex(min_index, true);
   }
 
@@ -338,6 +341,8 @@ function create_row_component(windowed_list: WindowedList) {
       let wrap = this.render_wrap(index, key, isScrolling);
       if (windowed_list.props.hide_resize) {
         wrap = <div style={{ overflow: "hidden", height: "100%" }}>{wrap}</div>;
+      } else {
+        wrap = <div style={{ overflowX: "hidden" }}>{wrap}</div>;
       }
       return (
         <div style={style} key={`${index}-${key}`}>
