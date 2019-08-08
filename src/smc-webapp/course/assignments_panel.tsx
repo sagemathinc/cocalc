@@ -51,7 +51,8 @@ import {
   FormGroup,
   Checkbox,
   Row,
-  Col
+  Col,
+  Grid
 } from "react-bootstrap";
 
 const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
@@ -235,14 +236,18 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
 
     private render_assignment_table_header(): Rendered {
-      // HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
       return (
-        <Row style={{ marginTop: "-10px", marginBottom: "3px" }}>
-          <Col md={6}>
-            {this.render_sort_link("dir_name", "Assignment Name")}
-          </Col>
-          <Col md={6}>{this.render_sort_link("due_date", "Due Date")}</Col>
-        </Row>
+        <Grid
+          fluid={true}
+          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
+        >
+          <Row style={{marginRight:'0px'}}>
+            <Col md={6}>
+              {this.render_sort_link("dir_name", "Assignment Name")}
+            </Col>
+            <Col md={6}>{this.render_sort_link("due_date", "Due Date")}</Col>
+          </Row>
+        </Grid>
       );
     }
 
@@ -291,20 +296,20 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       return (
         <Alert
           bsStyle="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth:"800px" }}
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
         >
           <h3>Add an Assignment to your Course</h3>
           <p>
             An assignment is a <i>directory</i> of files somewhere in your
-            CoCalc project.  You copy the assignment to your students and they work on
-            it; later, you  collect it, grade it, and return the graded
+            CoCalc project. You copy the assignment to your students and they
+            work on it; later, you collect it, grade it, and return the graded
             version to them.
           </p>
 
           <p>
-            Add an assignment to your course by creating a directory using the Files tab,
-            then type the name of the directory in the box in the upper right
-            and click to search.
+            Add an assignment to your course by creating a directory using the
+            Files tab, then type the name of the directory in the box in the
+            upper right and click to search.
           </p>
         </Alert>
       );
@@ -391,7 +396,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()
             : undefined}
-          <div className="smc-vfill" style={{ overflowY: "scroll" }}>
+          <div className="smc-vfill">
             {this.render_assignments(shown_assignments)}{" "}
             {num_deleted
               ? this.render_show_deleted(num_deleted, shown_assignments.length)
@@ -1640,16 +1645,18 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render() {
     return (
-      <Row
-        style={
-          this.props.is_expanded ? styles.selected_entry : styles.entry_style
-        }
-      >
-        <Col xs={12}>
-          {this.render_summary_line()}
-          {this.props.is_expanded ? this.render_more() : undefined}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={
+            this.props.is_expanded ? styles.selected_entry : styles.entry_style
+          }
+        >
+          <Col xs={12}>
+            {this.render_summary_line()}
+            {this.props.is_expanded ? this.render_more() : undefined}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }

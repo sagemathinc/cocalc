@@ -40,7 +40,8 @@ const {
   Row,
   Col,
   Panel,
-  Checkbox
+  Checkbox,
+  Grid
 } = require("react-bootstrap");
 
 // CoCalc Components
@@ -980,7 +981,7 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <div style={{ overflow: "auto" }}>
+      <Grid fluid={true} style={{ width: "100%", overflowY: "scroll" }}>
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}
@@ -998,7 +999,7 @@ export class ConfigurationPanel extends Component<
             {this.render_disable_students()}
           </Col>
         </Row>
-      </div>
+      </Grid>
     );
   }
 }

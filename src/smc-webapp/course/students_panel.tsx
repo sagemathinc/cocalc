@@ -52,6 +52,7 @@ const {
   InputGroup,
   Row,
   Col,
+  Grid,
   Panel,
   Well,
   Form
@@ -425,11 +426,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          <div style={{ paddingTop: "15px" }}>
+          <Grid fluid={true} style={{ width: "100%" }}>
             {this.render_add_selector_button(options)}
             <Space />
             {this.render_add_all_students_button(options)}
-          </div>
+          </Grid>
         </FormGroup>
       );
     }
@@ -541,11 +542,16 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (ed != null) {
         return (
-          <Row style={{ marginTop: "1em", marginBottom: "-10px" }}>
-            <Col md={5} lgOffset={7}>
-              {ed}
-            </Col>
-          </Row>
+          <Grid
+            fluid={true}
+            style={{ width: "100%", marginTop: "1em", marginBottom: "-10px" }}
+          >
+            <Row>
+              <Col md={5} lgOffset={7}>
+                {ed}
+              </Col>
+            </Row>
+          </Grid>
         );
       }
     }
@@ -576,7 +582,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     render_header(num_omitted) {
       return (
-        <div>
+        <Grid
+          fluid={true}
+          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
+        >
           <Row>
             <Col md={3}>
               <SearchInput
@@ -616,7 +625,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
           </Row>
           {this.render_error()}
-        </div>
+        </Grid>
       );
     }
 
@@ -732,23 +741,28 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     render_student_table_header() {
-      // HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
+      // HACK: that marginRight is to get things to line up with students.
+      // This is done all wrong due to using react-window...  We need
+      // to make an extension to our WindowedList that supports explicit
+      // headers (and uses css grid).
       return (
-        <Row style={{ marginTop: "-10px", marginBottom: "3px" }}>
-          <Col md={3}>
-            <div style={{ display: "inline-block", width: "50%" }}>
-              {this.render_sort_link("first_name", "First Name")}
-            </div>
-            <div style={{ display: "inline-block" }}>
-              {this.render_sort_link("last_name", "Last Name")}
-            </div>
-          </Col>
-          <Col md={2}>{this.render_sort_link("email", "Email Address")}</Col>
-          <Col md={4}>
-            {this.render_sort_link("last_active", "Last Active")}
-          </Col>
-          <Col md={3}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
-        </Row>
+        <Grid fluid={true} style={{ width: "100%" }}>
+          <Row style={{ marginRight: 0 }}>
+            <Col md={3}>
+              <div style={{ display: "inline-block", width: "50%" }}>
+                {this.render_sort_link("first_name", "First Name")}
+              </div>
+              <div style={{ display: "inline-block" }}>
+                {this.render_sort_link("last_name", "Last Name")}
+              </div>
+            </Col>
+            <Col md={2}>{this.render_sort_link("email", "Email Address")}</Col>
+            <Col md={4}>
+              {this.render_sort_link("last_active", "Last Active")}
+            </Col>
+            <Col md={3}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
+          </Row>
+        </Grid>
       );
     }
 
@@ -862,7 +876,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     private render_student_info(students, num_deleted): Rendered {
       return (
-        <div className="smc-vfill" style={{ padding: "15px" }}>
+        <div className="smc-vfill">
           {students.length > 0 ? this.render_student_table_header() : undefined}
           {this.render_students(students)}
           {num_deleted
@@ -1538,12 +1552,14 @@ class Student extends Component<StudentProps, StudentState> {
 
   render() {
     return (
-      <Row style={this.state.more ? styles.selected_entry : undefined}>
-        <Col xs={12}>
-          {this.render_basic_info()}
-          {this.props.is_expanded ? this.render_more_panel() : undefined}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row style={this.state.more ? styles.selected_entry : undefined}>
+          <Col xs={12}>
+            {this.render_basic_info()}
+            {this.props.is_expanded ? this.render_more_panel() : undefined}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }

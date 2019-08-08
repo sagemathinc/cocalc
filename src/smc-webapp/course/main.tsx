@@ -167,8 +167,7 @@ const remove_redux = function(course_filename, redux, course_project_id) {
 const COURSE_EDITOR_STYLE: CSSProperties = {
   height: "100%",
   overflowY: "scroll",
-  overflowX: "hidden",
-  padding: "7px"
+  overflowX: "hidden"
 };
 
 interface CourseReactProps {
@@ -321,7 +320,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 
     render_save_timetravel() {
       return (
-        <div style={{ position: "absolute", right: 0 }}>
+        <div style={{ position: "absolute", right: "15px" }}>
           <ButtonGroup>
             <Button
               onClick={this.save_to_disk}
@@ -565,6 +564,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           activeKey={this.props.tab}
           onSelect={key => this.get_actions().set_tab(key)}
           className={"smc-vfill"}
+          style={{ padding: "5px 0 0 5px" }}
         >
           <div className={"smc-vfill"}>
             <Nav bsStyle="pills">

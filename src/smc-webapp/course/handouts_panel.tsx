@@ -41,7 +41,8 @@ import {
   FormGroup,
   FormControl,
   Row,
-  Col
+  Col,
+  Grid
 } from "react-bootstrap";
 
 const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
@@ -290,29 +291,27 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       );
     }
 
-
     private render_no_handouts(): Rendered {
       return (
         <Alert
           bsStyle="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth:"800px" }}
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
         >
           <h3>Add a Handout to your Course</h3>
           <p>
-            A handout is a <i>directory</i> of files somewhere in your
-            CoCalc project, which you send to all of your students.  They
-            can then do anything they want with that handout.
+            A handout is a <i>directory</i> of files somewhere in your CoCalc
+            project, which you send to all of your students. They can then do
+            anything they want with that handout.
           </p>
 
           <p>
-            Add a handout to your course by creating a directory using the Files tab,
-            then type the name of the directory in the box in the upper right
-            and click to search.
+            Add a handout to your course by creating a directory using the Files
+            tab, then type the name of the directory in the box in the upper
+            right and click to search.
           </p>
         </Alert>
       );
     }
-
 
     public render(): Rendered {
       // Computed data from state changes have to go in render
@@ -340,6 +339,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       return (
         <div className="smc-vfill" style={{ margin: "5px" }}>
           {header}
+          <div style={{ marginTop: "5px" }} />
           {this.render_handouts(shown_handouts)}
           {num_deleted > 0
             ? this.render_show_deleted_button(
@@ -852,7 +852,8 @@ Select "Replace student files!" in case you do not want to create any backups an
           <Row style={{ marginLeft: "8px" }}>
             {this.render_handout_button(status)}
             <span style={{ color: "#666", marginLeft: "5px" }}>
-              ({status.handout}/{status.handout + status.not_handout} transferred)
+              ({status.handout}/{status.handout + status.not_handout}{" "}
+              transferred)
             </span>
           </Row>
           <Row style={{ marginLeft: "8px" }}>
@@ -875,16 +876,18 @@ Select "Replace student files!" in case you do not want to create any backups an
 
   public render(): Rendered {
     return (
-      <Row
-        style={
-          this.props.is_expanded ? styles.selected_entry : styles.entry_style
-        }
-      >
-        <Col xs={12}>
-          {this.render_handout_heading()}
-          {this.render_more()}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={
+            this.props.is_expanded ? styles.selected_entry : styles.entry_style
+          }
+        >
+          <Col xs={12}>
+            {this.render_handout_heading()}
+            {this.render_more()}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
@@ -935,7 +938,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
       return this.student_list;
     }
 
-    const v0 : any[] = util.immutable_to_list(this.props.students, "student_id");
+    const v0: any[] = util.immutable_to_list(this.props.students, "student_id");
 
     // Remove deleted students
     const v1: any[] = [];
@@ -1026,23 +1029,25 @@ class StudentHandoutInfoHeader extends Component<
 
   render() {
     return (
-      <Row style={{ borderBottom: "2px solid #aaa" }}>
-        <Col md={2} key="title">
-          <Tip
-            title={this.props.title}
-            tip={
-              this.props.title === "Handout"
-                ? "This column gives the directory name of the handout."
-                : "This column gives the name of the student."
-            }
-          >
-            <b>{this.props.title}</b>
-          </Tip>
-        </Col>
-        <Col md={10} key="rest">
-          {this.render_headers()}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row style={{ borderBottom: "2px solid #aaa" }}>
+          <Col md={2} key="title">
+            <Tip
+              title={this.props.title}
+              tip={
+                this.props.title === "Handout"
+                  ? "This column gives the directory name of the handout."
+                  : "This column gives the name of the student."
+              }
+            >
+              <b>{this.props.title}</b>
+            </Tip>
+          </Col>
+          <Col md={10} key="rest">
+            {this.render_headers()}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
@@ -1209,31 +1214,33 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   render() {
     const width = 12;
     return (
-      <Row
-        style={{
-          borderTop: "1px solid #aaa",
-          paddingTop: "5px",
-          paddingBottom: "5px"
-        }}
-      >
-        <Col md={2} key="title">
-          {this.props.title}
-        </Col>
-        <Col md={10} key="rest">
-          <Row>
-            <Col md={width} key="last_handout">
-              {this.render_last(
-                "Distribute",
-                this.props.info.status,
-                this.props.info,
-                true,
-                "Copy the handout from your project to this student's project.",
-                "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc."
-              )}
-            </Col>
-          </Row>
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={{
+            borderTop: "1px solid #aaa",
+            paddingTop: "5px",
+            paddingBottom: "5px"
+          }}
+        >
+          <Col md={2} key="title">
+            {this.props.title}
+          </Col>
+          <Col md={10} key="rest">
+            <Row>
+              <Col md={width} key="last_handout">
+                {this.render_last(
+                  "Distribute",
+                  this.props.info.status,
+                  this.props.info,
+                  true,
+                  "Copy the handout from your project to this student's project.",
+                  "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc."
+                )}
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
