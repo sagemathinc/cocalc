@@ -7,8 +7,7 @@ declare const $: any;
 //const DEFAULT_ROW_SIZE: number = 34;
 const DEFAULT_ROW_SIZE: number = 64;
 
-//import { WindowedList } from "../r_misc/windowed-list";
-import { WindowedList } from "../r_misc/windowed-list2";
+import { WindowedList } from "../r_misc/windowed-list";
 
 import { delay } from "awaiting";
 import * as immutable from "immutable";
@@ -316,10 +315,15 @@ export class CellList extends Component<CellListProps> {
     if (this.props.name != null && this.props.frame_actions != null) {
       cache_id = this.props.name + this.props.frame_actions.frame_id;
     }
+
+    // Heads up -- don't you dare change the overscan_row_count to bigger
+    // than 0.  If you do, the codemirror editor sometimes gets mounted off
+    // screen, which causes it to get scrolled into view, which breaks badly.
+    // Also, there is no real performance improvement for Jupyter.
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={5}
+        overscan_row_count={0 /* DO *NOT* CHANGE THIS!!! */}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}

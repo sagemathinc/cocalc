@@ -5,7 +5,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 const { SearchInput } = require("../r_misc");
 import { Icon } from "../r_misc/icon";
-import { WindowedList } from "../r_misc/windowed-list2";
+import { WindowedList } from "../r_misc/windowed-list";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 

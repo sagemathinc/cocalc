@@ -26,7 +26,7 @@
 //
 //##############################################################################
 
-import { WindowedList } from "../r_misc/windowed-list2";
+import { WindowedList } from "../r_misc/windowed-list";
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";

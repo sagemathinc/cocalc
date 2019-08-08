@@ -81,7 +81,7 @@ const {
   NumberInput
 } = require("../r_misc");
 
-import { WindowedList } from "../r_misc/windowed-list2";
+import { WindowedList } from "../r_misc/windowed-list";
 
 const { STEPS, step_direction, step_verb, step_ready } = util;
 import {

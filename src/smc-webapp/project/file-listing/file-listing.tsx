@@ -8,7 +8,7 @@ NOTES:
 
 import * as React from "react";
 import * as immutable from "immutable";
-import { WindowedList } from "../../r_misc/windowed-list2";
+import { WindowedList } from "../../r_misc/windowed-list";
 
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");

@@ -58,7 +58,7 @@ const {
 } = require("react-bootstrap");
 
 // CoCalc components
-import { WindowedList } from "../r_misc/windowed-list2";
+import { WindowedList } from "../r_misc/windowed-list";
 const { User } = require("../users");
 const { MarkdownInput, SearchInput, TimeAgo } = require("../r_misc");
 import { ErrorDisplay } from "../r_misc/error-display";
