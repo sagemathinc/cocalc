@@ -34,7 +34,7 @@ export function ProjectSelector({
 
   return (
     <ProjectListContainer>
-      <ProjectContainerHeader>Projects</ProjectContainerHeader>
+      <ProjectContainerHeader>Select a Project</ProjectContainerHeader>
       {project_rows}
     </ProjectListContainer>
   );

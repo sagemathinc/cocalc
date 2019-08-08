@@ -47,11 +47,7 @@ export function SelectedItemsList({
   return (
     <ItemListWrapper>
       <ItemsHeader>Selected Materials</ItemsHeader>
-      {project_items.length > 0 ? (
-        project_items
-      ) : (
-        <>Nothing selected yet!</>
-      )}
+      {project_items.length > 0 ? project_items : <>Nothing selected yet!</>}
     </ItemListWrapper>
   );
 }

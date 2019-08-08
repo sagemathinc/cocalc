@@ -87,7 +87,11 @@ export function ProjectContainer({
 
     return (
       <ProjectContainerRoot>
-        <ProjectTitle>{opened_project.title}</ProjectTitle>
+        <ProjectTitle>Select assignment contents</ProjectTitle>
+        {opened_project.title}
+        <br />
+        {"<"} Back
+        <br />
         {content}
       </ProjectContainerRoot>
     );
