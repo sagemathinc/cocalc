@@ -1743,6 +1743,11 @@ API(
         init: true,
         desc:
           "if false, the operation returns immediately with the copy_path_id for querying copy_path_status"
+      },
+      scheduled: {
+        init: undefined,
+        desc:
+          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string."
       }
     },
     desc: `\
@@ -1778,7 +1783,8 @@ message({
   event: "copy_path_between_projects_response",
   id: required,
   copy_path_id: undefined,
-  note: "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
+  note:
+    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
 });
 
 API(

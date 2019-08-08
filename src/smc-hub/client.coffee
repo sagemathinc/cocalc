@@ -1149,6 +1149,7 @@ class exports.Client extends EventEmitter
                                 timeout           : mesg.timeout
                                 exclude_history   : mesg.exclude_history
                                 wait_until_done   : mesg.wait_until_done
+                                scheduled         : mesg.scheduled
                                 cb                : (err, copy_id) =>
                                     if err
                                         cb(err)
@@ -1239,6 +1240,7 @@ class exports.Client extends EventEmitter
                     backup             : locals.copy_op.backup
                     started            : locals.copy_op.started
                     finished           : locals.copy_op.finished
+                    scheduled          : locals.copy_op.scheduled
                     error              : locals.copy_op.error
 
                 @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))

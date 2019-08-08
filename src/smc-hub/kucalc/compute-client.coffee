@@ -390,11 +390,17 @@ class Project extends EventEmitter
             timeout           : undefined
             bwlimit           : undefined
             wait_until_done   : 'true'  # by default, wait until done. false only gives the ID to query the status later
+            scheduled         : undefined # string, parseable by new Date()
             cb                : undefined
         if not opts.target_project_id
             opts.target_project_id = @project_id
         if not opts.target_path
             opts.target_path = opts.path
+
+        if opts.scheduled
+            opts.scheduled = new Date(opts.scheduled)
+            opts.wait_until_done = false
+
         synctable = undefined
         copy_id = misc.uuid()
         dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
@@ -422,6 +428,7 @@ class Project extends EventEmitter
                         "backup            ::BOOLEAN"   : opts.backup
                         "bwlimit           ::TEXT"      : opts.bwlimit
                         "timeout           ::NUMERIC"   : opts.timeout
+                        "scheduled         ::TIMESTAMP" : opts.scheduled
                     cb: cb
             (cb) =>
                 @active()
