@@ -1,6 +1,6 @@
 import { Map as iMap, List as iList } from "immutable";
 import { FileUseInfo } from "./info";
-import { Alert, Button, Col, Row } from "react-bootstrap";
+import { Alert, Button, Col, Row, Grid } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 const { SearchInput } = require("../r_misc");
@@ -221,15 +221,17 @@ export class FileUseViewer extends Component<Props, State> {
     const link = this.render_see_mentions_link();
     return (
       <div className={"smc-vfill smc-file-use-viewer"}>
-        <Row key="top">
-          <Col sm={7}>{this.render_search_box()}</Col>
-          <Col sm={2}>{link}</Col>
-          <Col sm={3}>
-            <div style={{ float: "right" }}>
-              {this.render_mark_all_read_button()}
-            </div>
-          </Col>
-        </Row>
+        <Grid fluid={true}>
+          <Row key="top">
+            <Col sm={7}>{this.render_search_box()}</Col>
+            <Col sm={2}>{link}</Col>
+            <Col sm={3}>
+              <div style={{ float: "right" }}>
+                {this.render_mark_all_read_button()}
+              </div>
+            </Col>
+          </Row>
+        </Grid>
         {this.render_how_many_hidden_by_search()}
         {this.render_list()}
       </div>

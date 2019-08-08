@@ -125,7 +125,9 @@ exports.TaskList = SortableContainer rclass
           row_key={(index) => @props.visible.get(index) ? 'filler'}
           cache_id={@props.actions.name}
           scroll_top={@props.scroll?.get('scrollTop')}
+          hide_resize={false}
         />
+        # hide_resize is false so drag and drop works.
 
     save_scroll_position: ->
         if not @props.actions?

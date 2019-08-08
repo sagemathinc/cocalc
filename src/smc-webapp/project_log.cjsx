@@ -25,7 +25,7 @@ underscore = require('underscore')
 immutable  = require('immutable')
 
 {React, ReactDOM, rtypes, rclass, Redux, redux}  = require('./app-framework')
-{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
+{Grid, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {WindowedList} = require("./r_misc/windowed-list")
 {User} = require('./users')
@@ -366,16 +366,18 @@ LogEntry = rclass
 
     render: ->
         style = if @props.cursor then selected_item else @props.backgroundStyle
-        <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
-            <Col sm={1} style={textAlign:'center'}>
-                <Icon name={@icon()} style={style} />
-            </Col>
-            <Col sm={11}>
-                {@render_user()}<Space/>
-                {@render_desc()}<Space/>
-                <TimeAgo style={style} date={@props.time} popover={true} />
-            </Col>
-        </Row>
+        <Grid fluid={true} style={{width:'100%'}}>
+            <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
+                <Col sm={1} style={textAlign:'center'}>
+                    <Icon name={@icon()} style={style} />
+                </Col>
+                <Col sm={11}>
+                    {@render_user()}<Space/>
+                    {@render_desc()}<Space/>
+                    <TimeAgo style={style} date={@props.time} popover={true} />
+                </Col>
+            </Row>
+        </Grid>
 
 exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'

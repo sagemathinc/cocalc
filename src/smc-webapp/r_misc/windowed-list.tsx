@@ -337,12 +337,10 @@ function create_row_component(windowed_list: WindowedList) {
       /* We use flex in the first nested div below so that the
        div expands to its contents. See
        https://stackoverflow.com/questions/1709442/make-divs-height-expand-with-its-content
-    */
+      */
       let wrap = this.render_wrap(index, key, isScrolling);
       if (windowed_list.props.hide_resize) {
         wrap = <div style={{ overflow: "hidden", height: "100%" }}>{wrap}</div>;
-      } else {
-        wrap = <div style={{ overflowX: "hidden" }}>{wrap}</div>;
       }
       return (
         <div style={style} key={`${index}-${key}`}>
