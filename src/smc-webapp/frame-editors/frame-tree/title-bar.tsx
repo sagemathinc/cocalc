@@ -258,7 +258,6 @@ export class FrameTitleBar extends Component<Props, State> {
     const is_active = this.props.active_id === this.props.id;
     const style: CSS.Properties = {
       float: "right" as "right",
-      zIndex: 1,
       paddingLeft: "5px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
     };
