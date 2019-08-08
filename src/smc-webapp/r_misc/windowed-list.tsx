@@ -110,7 +110,7 @@ export class WindowedList extends Component<Props, State> {
     this.is_mounted = false;
   }
 
-  public scrollToRow(row: number): void {
+  public scrollToRow(row: number, align: string = "auto"): void {
     if (this.list_ref.current == null) return;
     if (row < 0) {
       row = row % this.props.row_count;
@@ -118,7 +118,7 @@ export class WindowedList extends Component<Props, State> {
         row += this.props.row_count;
       }
     }
-    this.list_ref.current.scrollToItem(row);
+    this.list_ref.current.scrollToItem(row, align);
   }
 
   public scrollToPosition(pos: number): void {
