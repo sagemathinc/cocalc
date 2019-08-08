@@ -18,6 +18,16 @@ declare const CodeMirror: any; // TODO: type
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
+// We cache a little info about each Codemirror editor we make here,
+// so we can restore it when we make the same one again.  Due to
+// windowing, destroying and creating the same codemirror can happen
+// a lot. TODO: This **should** be an LRU cache to avoid a memory leak.
+interface CachedInfo {
+  sel?: any[];   // only cache the selections right now...
+}
+
+const cache: { [key: string]: CachedInfo } = {};
+
 const FOCUSED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
@@ -64,8 +74,12 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   private _cm_is_focused: any;
   private _vim_mode: any;
   private cm_ref = React.createRef<HTMLPreElement>();
+  private key?: string;
 
   componentDidMount() {
+    if (this.props.frame_actions != null) {
+      this.key = `${this.props.frame_actions}${this.props.id}`;
+    }
     this.init_codemirror(this.props.options, this.props.value);
   }
 
@@ -124,9 +138,16 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    const locs = this.cm
-      .listSelections()
-      .map(c => ({ x: c.anchor.ch, y: c.anchor.line, id: this.props.id }));
+    const sel = this.cm.listSelections();
+    if (this.key != null) {
+      if (cache[this.key] == null) cache[this.key] = {};
+      cache[this.key].sel = sel;
+    }
+    const locs = sel.map(c => ({
+      x: c.anchor.ch,
+      y: c.anchor.line,
+      id: this.props.id
+    }));
     this.props.actions.set_cursor_locs(locs, this.cm._setValueNoJump);
 
     // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
@@ -458,6 +479,12 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
 
     this._cm_last_remote = value;
     this.cm.setValue(value);
+    if (this.key != null) {
+      const info = cache[this.key];
+      if (info != null && info.sel != null) {
+        this.cm.getDoc().setSelections(info.sel);
+      }
+    }
 
     this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
     this.cm.on("change", this._cm_change);
@@ -585,7 +612,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         <div style={FOCUSED_STYLE}>
           <pre
             ref={this.cm_ref}
-            style={{ width: "100%", backgroundColor: "#fff", minHeight:'25px' }}
+            style={{
+              width: "100%",
+              backgroundColor: "#fff",
+              minHeight: "25px"
+            }}
           >
             {this.props.value}
           </pre>
