@@ -574,13 +574,11 @@ export class NotebookFrameActions {
     this.validate({ id });
     const editor = this.input_editors[id];
     if (editor == null) {
-      throw Error(`no input editor for cell ${id}`);
+      return;
     }
     const method = editor[name];
     if (method != null) {
       method(...args);
-    } else {
-      throw Error(`call_input_editor_method -- no such method "${name}"`);
     }
   }
 
