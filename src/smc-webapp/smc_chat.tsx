@@ -561,7 +561,11 @@ export class Message extends Component<MessageProps, MessageState> {
         cols = cols.reverse();
       }
     }
-    return <Row>{cols}</Row>;
+    return (
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row>{cols}</Row>
+      </Grid>
+    );
   }
 }
 
