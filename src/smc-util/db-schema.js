@@ -1523,7 +1523,7 @@ schema.copy_paths = {
       desc: "if the copy failed or output any errors, they are put here."
     }
   },
-  pg_indexes: ["time", "scheduled", "started IS NULL", "finished IS NULL"]
+  pg_indexes: ["time"]
 };
 // TODO: for now there are no user queries -- this is used entirely by backend servers,
 // actually only in kucalc; later that may change, so the user can make copy
