@@ -1152,6 +1152,7 @@ schema.projects = {
     get: {
       // if you change the interval, change the text in projects.cjsx
       pg_where: ["last_edited >= NOW() - interval '10 days'", "projects"],
+      options: [{ limit: 20, order_by: "-last_edited" }],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1231,6 +1232,7 @@ schema.projects = {
 
 // Same query above, but without the last_edited time constraint.
 schema.projects_all = misc.deep_copy(schema.projects);
+schema.projects_all.user_query.get.options = [];
 schema.projects_all.virtual = "projects";
 schema.projects_all.user_query.get.pg_where = ["projects"];
 
@@ -1505,7 +1507,8 @@ schema.copy_paths = {
     },
     scheduled: {
       type: "timestamp",
-      desc: "earliest time in the future, when the copy request should start (or null, for immediate execution)"
+      desc:
+        "earliest time in the future, when the copy request should start (or null, for immediate execution)"
     },
     started: {
       type: "timestamp",
