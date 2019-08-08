@@ -402,7 +402,8 @@ class Project extends EventEmitter
             opts.target_path = opts.path
 
         if opts.scheduled
-            # we have to remove the timezone info!
+            # we have to remove the timezone info, b/c the pg field is without tz
+            # ideally though, this is always UTC, e.g. "2019-08-08T18:34:49"
             d = new Date(opts.scheduled)
             offset = d.getTimezoneOffset() / 60
             opts.scheduled = new Date(d.getTime() - offset)

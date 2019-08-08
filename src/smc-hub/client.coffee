@@ -1187,6 +1187,8 @@ class exports.Client extends EventEmitter
                     cb    : one_result (err, x) =>
                         if err?
                             cb(err)
+                        else if not x?
+                            cb("Can't find copy operation with ID=#{mesg.copy_path_id}")
                         else
                             locals.copy_op = x
                             dbg("copy_op=#{misc.to_json(locals.copy_op)}")

@@ -17,12 +17,12 @@ KEY=sk_XB003g8HHcyT1y4S3T5w9IW2
 SRC=bc6f81b3-25ad-4d58-ae4a-65649fae4fa5
 TAR=e24ba30d-edcd-479f-8a26-bbe81f38296c
 PTH=x.md
-Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TAR -d wait_until_done=false -d scheduled="`date -d '+1 minute' --utc --iso-8601=seconds`" $API/copy_path_between_projects
+#Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TAR -d wait_until_done=false -d scheduled="`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'`" $API/copy_path_between_projects
 
 
 ## status
 ## TODO: use jq to extract the copy_path_id from above, query, wait a few secs, and then query it again
-PATHID=002cdde3-e79c-4d46-a759-f6464a5360c9
+PATHID=6e7c40ad-9aad-4aa0-a0e4-8201e6f6eb72
 Q -d copy_path_id=$PATHID $API/copy_path_status
 
 echo "double check DB"
