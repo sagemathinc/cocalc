@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { default_colors } from "../../values";
 
 interface Props {
   highlight: boolean;
@@ -6,6 +7,6 @@ interface Props {
 
 export const ItemRow = styled.div<Props>`
   cursor: pointer
-  color: ${props => (props.highlight ? "SeaGreen" : "inherit")};
+  color: ${props => (props.highlight ? "SeaGreen" : `${default_colors.color}`)};
   margin: 2px;
 `;
