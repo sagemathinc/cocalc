@@ -3,6 +3,8 @@ import styled from "styled-components";
 import { Action, Projects } from "../state/types";
 import * as API from "../api";
 
+import { PageTitle } from "./shared";
+
 export function ProjectSelectionPage({
   projects,
   account_id,
@@ -34,7 +36,7 @@ export function ProjectSelectionPage({
 
   return (
     <ProjectListContainer>
-      <ProjectContainerHeader>Select a Project</ProjectContainerHeader>
+      <PageTitle>Select a Project</PageTitle>
       {project_rows}
     </ProjectListContainer>
   );
@@ -42,10 +44,6 @@ export function ProjectSelectionPage({
 
 const ProjectListContainer = styled.div`
   margin: 0px 8px 8px 8px;
-`;
-
-const ProjectContainerHeader = styled.h2`
-  color: darkslategrey;
 `;
 
 const ProjectRow = styled.div`

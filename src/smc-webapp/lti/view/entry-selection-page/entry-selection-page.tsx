@@ -2,6 +2,7 @@ import * as React from "react";
 import styled from "styled-components";
 import { Set } from "immutable";
 
+import { PageTitle } from "../shared";
 import { FileListing } from "./file-listing";
 import { FinishSelectionButton } from "./finish-selection-button";
 import * as API from "../../api";
@@ -88,7 +89,7 @@ export function EntrySelectionPage({
 
     return (
       <ProjectContainer>
-        <ProjectTitle>Select assignment contents</ProjectTitle>
+        <PageTitle>Select assignment contents</PageTitle>
         <FinishSelectionButton
           disabled={selected_entries.size === 0}
           on_click={_ => {
@@ -105,8 +106,4 @@ const ProjectContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-`;
-
-const ProjectTitle = styled.h1`
-  color: darkslategrey;
 `;

@@ -1,6 +1,7 @@
 import * as React from "react";
 import styled from "styled-components";
 import { SubmitAssignmentButton } from "./submit-assignment-button";
+import { PageTitle } from "../shared";
 
 interface Props {
   context: { id_token: string; nonce: string; return_path: string };
@@ -9,6 +10,7 @@ interface Props {
 export function ConfigurationPage({ context }: Props) {
   return (
     <ConfigurationPageContainer>
+      <PageTitle>Configure your assignment</PageTitle>
       <SubmitAssignmentButton
         return_path={context.return_path}
         id_token={context.id_token}
@@ -18,4 +20,8 @@ export function ConfigurationPage({ context }: Props) {
   );
 }
 
-const ConfigurationPageContainer = styled.div``;
+const ConfigurationPageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
