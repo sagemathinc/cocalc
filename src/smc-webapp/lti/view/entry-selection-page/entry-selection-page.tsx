@@ -18,7 +18,7 @@ interface Props {
   dispatch: (action: Action) => void;
 }
 
-export function ProjectContainer({
+export function EntrySelectionPage({
   project_id,
   projects,
   file_listings,
@@ -93,6 +93,7 @@ export function ProjectContainer({
         <br />
         {"<"} Back
         <FinishSelectionButton
+          disabled={selected_entries.size === 0}
           on_click={_ => {
             dispatch({ type: "finished_selecting_entries" });
           }}

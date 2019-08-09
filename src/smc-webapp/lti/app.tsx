@@ -4,8 +4,8 @@ import styled from "styled-components";
 import * as querystring from "query-string";
 
 import {
-  ProjectSelector,
-  ProjectContainer,
+  ProjectSelectionPage,
+  EntrySelectionPage,
   //SelectedItemsList,
   ConfigurationPage
 } from "./view";
@@ -81,7 +81,7 @@ function App() {
     switch (state.route) {
       case Route.Home:
         content = (
-          <ProjectSelector
+          <ProjectSelectionPage
             projects={state.projects}
             account_id={state.account_info.account_id}
             dispatch={dispatch}
@@ -90,7 +90,7 @@ function App() {
         break;
       case Route.Project:
         content = (
-          <ProjectContainer
+          <EntrySelectionPage
             project_id={state.opened_project_id}
             projects={state.projects}
             current_path={state.current_path}

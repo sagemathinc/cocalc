@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { Action, Projects } from "../state/types";
 import * as API from "../api";
 
-export function ProjectSelector({
+export function ProjectSelectionPage({
   projects,
   account_id,
   dispatch
