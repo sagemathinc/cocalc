@@ -16,8 +16,6 @@ export function NameAssignment({
   }
 }: Props) {
   return (
-    <div>
-      <input style={style} placeholder={default_name} />
-    </div>
+    <input style={style} name="assignment_name" placeholder={default_name} />
   );
 }

@@ -12,12 +12,20 @@ export function ConfigurationPage({ context }: Props) {
   return (
     <ConfigurationPageContainer>
       <PageTitle>Configure your assignment</PageTitle>
-      <NameAssignment default_name={undefined} />
-      <SubmitAssignmentButton
-        return_path={context.return_path}
-        id_token={context.id_token}
-        nonce={context.nonce}
-      />
+      <form method="post" action={context.return_path}>
+        <NameAssignment default_name={undefined} />
+        <input
+          type={"hidden"}
+          name={"url"}
+          value={
+            "https://cocalc.com/projects/369491f1-9b8a-431c-8cd0-150dd15f7b11/files/work/2019-06-19.sage-chat?"
+          }
+        />
+        <SubmitAssignmentButton
+          id_token={context.id_token}
+          nonce={context.nonce}
+        />
+      </form>
     </ConfigurationPageContainer>
   );
 }

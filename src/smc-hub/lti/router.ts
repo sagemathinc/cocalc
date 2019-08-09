@@ -136,6 +136,7 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     const options = { algorithms: ["RS256"] };
     // TODO #V0: Use verify for security
     const token = jwt.decode(req.body.token_id, options);
+    const { assignment_name, url } = req.body;
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
     const nonce = uuid.v4();
@@ -168,9 +169,8 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
       "https://purl.imsglobal.org/spec/lti-dl/claim/content_items": [
         {
           type: "ltiResourceLink", // TODO: What types are available?
-          title: "MOCK FROM SELECTION UI",
-          url:
-            "https://cocalc.com/projects/369491f1-9b8a-431c-8cd0-150dd15f7b11/files/work/2019-06-19.sage-chat?session=default&fullscreen=kiosk"
+          title: `${assignment_name}`,
+          url: `${url}`
         }
       ] // Array of returned items (possibly empty)
     };
