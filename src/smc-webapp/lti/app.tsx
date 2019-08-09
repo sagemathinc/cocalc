@@ -7,7 +7,7 @@ import {
   ProjectSelector,
   ProjectContainer,
   //SelectedItemsList,
-  NameAssignment
+  //ConfigurationPage
 } from "./view";
 import * as API from "./api";
 import { Route } from "./state/types";
@@ -83,10 +83,8 @@ function App() {
 
   return (
     <Grid>
-      <HeaderContainer />
-      <LeftGutterContainer />
+      <HeaderContainer>Cocalc</HeaderContainer>
       <ContentContainer>{content}</ContentContainer>
-      <RightGutterContainer />
       <FooterContainer>
         <form method="post" action={"lti/return-deep-link"}>
           <input
@@ -106,8 +104,8 @@ function App() {
 const Grid = styled.div`
   display: grid;
   font-size: 24px;
-  grid-template-columns: 15% auto 15%;
-  grid-template-rows: 80px auto 80px;
+  grid-template-columns: 5% auto 5%;
+  grid-template-rows: 30px auto 80px;
   grid-template-areas:
     "header header header"
     "left-gutter content right-gutter"
@@ -120,20 +118,11 @@ const Grid = styled.div`
 const HeaderContainer = styled.div`
   grid-area: header;
   overflow: hidden;
-`;
-
-const LeftGutterContainer = styled.div`
-  grid-area: left-gutter;
-  overflow: scroll;
+  background: skyblue;
 `;
 
 const ContentContainer = styled.div`
   grid-area: content;
-  overflow: scroll;
-`;
-
-const RightGutterContainer = styled.div`
-  grid-area: right-gutter;
   overflow: scroll;
 `;
 
