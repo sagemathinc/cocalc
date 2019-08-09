@@ -130,6 +130,9 @@ function App() {
   if (project_title) {
     header += ` > ${project_title}`;
   }
+  if (state.route === Route.Configure) {
+    header += ` > Finalizing`;
+  }
 
   return (
     <Grid>
