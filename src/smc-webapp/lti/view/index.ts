@@ -1,5 +1,4 @@
-export { ProjectContainer } from "./project";
+export { ProjectContainer } from "./project-container";
 export { ProjectSelector } from "./project-selector";
 export { SelectedItemsList } from "./selected-items-list";
-export { NameAssignment } from "./name-assignment";
-export { ReturnButton } from "./return-button";
+export { ConfigurationPage } from "./configuration-page";

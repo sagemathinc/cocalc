@@ -126,7 +126,8 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     }
     const query_string = querystring.stringify({
       id_token: req.body.id_token,
-      nonce: req.body.state
+      nonce: req.body.state,
+      return_path: "lti/return-deep-link/"
     });
     res.redirect("../lti?" + query_string);
   });

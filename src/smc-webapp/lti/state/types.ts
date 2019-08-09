@@ -11,12 +11,13 @@ export type GlobalState = Readonly<{
   route: Route;
   selected_entries: SelectedEntries;
   excluded_entries: ExcludedEntries;
-  context: { id_token: string; nonce: string };
+  context: { id_token: string; nonce: string; return_path: string };
 }>;
 
 export enum Route {
   Home = "project-selection",
-  Project = "opened-project"
+  Project = "opened-project",
+  Configure = "assignment-configuration"
 }
 
 // Project UUID : ProjectInfo
@@ -70,4 +71,5 @@ export type Action =
   | { type: "open_directory"; path: string; project_id: string }
   | { type: "close_directory"; path: string; project_id: string }
   | { type: "add_entry"; path: string; project_id: string }
-  | { type: "remove_entry"; path: string; project_id: string };
+  | { type: "remove_entry"; path: string; project_id: string }
+  | { type: "finished_selecting_entries" };

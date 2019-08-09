@@ -7,7 +7,7 @@ import {
   ProjectSelector,
   ProjectContainer,
   //SelectedItemsList,
-  //ConfigurationPage
+  ConfigurationPage
 } from "./view";
 import * as API from "./api";
 import { GlobalState, Route } from "./state/types";
@@ -31,12 +31,19 @@ function with_data_from_params(global_state: GlobalState): GlobalState {
   if (Array.isArray(query_params.nonce)) {
     throw new Error("nonce recieved as an array. Should be a single value");
   }
+  if (Array.isArray(query_params.return_path)) {
+    throw new Error("nonce recieved as an array. Should be a single value");
+  }
+  if (query_params.return_path == undefined) {
+    throw new Error("nonce was undefined");
+  }
 
   return {
     ...global_state,
     context: {
       id_token: query_params.id_token,
-      nonce: query_params.nonce
+      nonce: query_params.nonce,
+      return_path: query_params.return_path
     }
   };
 }
@@ -97,6 +104,9 @@ function App() {
           />
         );
         break;
+      case Route.Configure:
+        content = <ConfigurationPage context={state.context} />;
+        break;
       default:
         assert_never(state.route);
     }
@@ -112,7 +122,9 @@ function App() {
     <Grid>
       <HeaderContainer>Cocalc</HeaderContainer>
       <ContentContainer>{content}</ContentContainer>
-      <FooterContainer>Select Project | Select Files | Configure</FooterContainer>
+      <FooterContainer>
+        Select Project | Select Files | Configure
+      </FooterContainer>
     </Grid>
   );
 }

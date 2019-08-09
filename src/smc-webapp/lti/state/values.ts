@@ -11,7 +11,5 @@ export const initial_global_state: GlobalState = {
   opened_directories: {},
   selected_entries: {},
   excluded_entries: {},
-  context: { id_token: "", nonce: "" }
+  context: { id_token: "", nonce: "", return_path: "" }
 };
-
-export const LTI_RETURN_PATH = "lti/return-deep-link";

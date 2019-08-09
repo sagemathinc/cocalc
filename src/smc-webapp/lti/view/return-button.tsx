@@ -11,7 +11,7 @@ export function ReturnButton({ id_token, nonce, return_path }: Props) {
     <form method="post" action={return_path}>
       <input type="hidden" name="token_id" value={id_token} />
       <button type="submit" name="state" value={nonce}>
-        This is a link that sends a POST request
+        Finish
       </button>
     </form>
   );

@@ -61,6 +61,11 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
         selected_entries,
         excluded_entries
       };
+    case "finished_selecting_entries":
+      return {
+        ...state,
+        route: Route.Configure
+      };
     default:
       return assert_never(action);
   }

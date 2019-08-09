@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { Set } from "immutable";
 
 import { FileListing } from "./file-listing";
+import { FinishSelectionButton } from "./finish-selection-button";
 import * as API from "../../api";
 import { Action, Projects } from "../../state/types";
 
@@ -91,6 +92,11 @@ export function ProjectContainer({
         {opened_project.title}
         <br />
         {"<"} Back
+        <FinishSelectionButton
+          on_click={_ => {
+            dispatch({ type: "finished_selecting_entries" });
+          }}
+        />
         <br />
         {content}
       </ProjectContainerRoot>
