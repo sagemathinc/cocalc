@@ -241,7 +241,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           fluid={true}
           style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
         >
-          <Row style={{marginRight:'0px'}}>
+          <Row style={{ marginRight: "0px" }}>
             <Col md={6}>
               {this.render_sort_link("dir_name", "Assignment Name")}
             </Col>
@@ -690,7 +690,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return (
       <Row key="more">
         <Col sm={12}>
-          <Panel heading={this.render_more_header()}>
+          <Panel header={this.render_more_header()}>
             <StudentListForAssignment
               redux={this.props.redux}
               name={this.props.name}

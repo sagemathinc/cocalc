@@ -785,7 +785,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     return (
       <Row key="more">
         <Col sm={12}>
-          <Panel heading={this.render_more_header()}>
+          <Panel header={this.render_more_header()}>
             <StudentListForHandout
               handout={this.props.handout}
               students={this.props.students}
