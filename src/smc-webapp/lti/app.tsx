@@ -8,7 +8,8 @@ import {
   ProjectSelectionPage,
   EntrySelectionPage,
   //SelectedItemsList,
-  ConfigurationPage
+  ConfigurationPage,
+  default_colors
 } from "./view";
 import * as API from "./api";
 import { GlobalState, Route } from "./state/types";
@@ -148,6 +149,7 @@ function App() {
 }
 
 const Grid = styled.div`
+  background-color: ${default_colors.background_color};
   display: grid;
   font-size: 24px;
   grid-template-columns: 8% auto 8%;
@@ -175,7 +177,7 @@ const LeftGutterContainer = styled.div`
 
 const ContentContainer = styled.div`
   grid-area: content;
-  overflow: hidden;
+  overflow: scroll;
 `;
 
 const RightGutterContainer = styled.div`

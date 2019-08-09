@@ -105,7 +105,7 @@ export function EntrySelectionPage({
 const ProjectContainer = styled.div`
   display: flex;
   flex-direction: column;
-  margin: 0px 8px 8px 8px;
+  height: 100%;
 `;
 
 const ProjectTitle = styled.h1`

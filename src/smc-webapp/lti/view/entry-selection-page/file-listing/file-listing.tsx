@@ -109,10 +109,10 @@ export function FileListing(props: Props) {
 }
 
 const ListingWrapper = styled.div`
-  overflow-y: scroll;
   margin-left: ${p => {
     return p.indent ? "15px" : "0px";
   }};
+  overflow: scroll;
 `;
 
 // Returns the inclusion/exclusion status of the youngest parent
