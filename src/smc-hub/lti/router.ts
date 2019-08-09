@@ -124,7 +124,10 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-    const query_string = querystring.stringify(req.body);
+    const query_string = querystring.stringify({
+      id_token: req.body.id_token,
+      nonce: req.body.state
+    });
     res.redirect("../lti?" + query_string);
   });
 

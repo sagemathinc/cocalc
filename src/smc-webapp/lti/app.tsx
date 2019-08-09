@@ -8,12 +8,11 @@ import {
   ProjectContainer,
   //SelectedItemsList,
   //ConfigurationPage
-  ReturnButton
 } from "./view";
 import * as API from "./api";
 import { GlobalState, Route } from "./state/types";
 import { reducer } from "./state/reducers";
-import { initial_global_state, LTI_RETURN_PATH } from "./state/values";
+import { initial_global_state } from "./state/values";
 import { assert_never } from "./helpers";
 
 // TODO: Put this somewhere ./state
@@ -113,13 +112,7 @@ function App() {
     <Grid>
       <HeaderContainer>Cocalc</HeaderContainer>
       <ContentContainer>{content}</ContentContainer>
-      <FooterContainer>
-        <ReturnButton
-          return_path={LTI_RETURN_PATH}
-          id_token={state.context.id_token}
-          nonce={state.context.nonce}
-        />
-      </FooterContainer>
+      <FooterContainer>Select Project | Select Files | Configure</FooterContainer>
     </Grid>
   );
 }
@@ -128,7 +121,7 @@ const Grid = styled.div`
   display: grid;
   font-size: 24px;
   grid-template-columns: 5% auto 5%;
-  grid-template-rows: 30px auto 80px;
+  grid-template-rows: 30px auto 30px;
   grid-template-areas:
     "header header header"
     "left-gutter content right-gutter"
@@ -152,6 +145,7 @@ const ContentContainer = styled.div`
 const FooterContainer = styled.div`
   grid-area: footer;
   oferflow: hidden;
+  background: skyblue;
 `;
 
 export function render_app() {
