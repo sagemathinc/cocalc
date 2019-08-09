@@ -32,10 +32,10 @@ function with_data_from_params(global_state: GlobalState): GlobalState {
     throw new Error("nonce recieved as an array. Should be a single value");
   }
   if (Array.isArray(query_params.return_path)) {
-    throw new Error("nonce recieved as an array. Should be a single value");
+    throw new Error("return_path recieved as an array. Should be a single value");
   }
   if (query_params.return_path == undefined) {
-    throw new Error("nonce was undefined");
+    throw new Error("return_path was undefined");
   }
 
   return {
