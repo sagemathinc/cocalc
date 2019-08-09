@@ -4,6 +4,7 @@ import styled from "styled-components";
 import * as querystring from "query-string";
 
 import {
+  BackButton,
   ProjectSelectionPage,
   EntrySelectionPage,
   //SelectedItemsList,
@@ -32,7 +33,9 @@ function with_data_from_params(global_state: GlobalState): GlobalState {
     throw new Error("nonce recieved as an array. Should be a single value");
   }
   if (Array.isArray(query_params.return_path)) {
-    throw new Error("return_path recieved as an array. Should be a single value");
+    throw new Error(
+      "return_path recieved as an array. Should be a single value"
+    );
   }
   if (query_params.return_path == undefined) {
     throw new Error("return_path was undefined");
@@ -118,13 +121,28 @@ function App() {
     content = <div>Loading...</div>;
   }
 
+  // TODO: Build header more intelligently
+  let header = "Cocalc";
+  const project_title = state.opened_project_id
+    ? state.projects[state.opened_project_id].title
+    : "";
+  if (project_title) {
+    header += ` > ${project_title}`;
+  }
+
   return (
     <Grid>
-      <HeaderContainer>Cocalc</HeaderContainer>
+      <HeaderContainer>{header}</HeaderContainer>
+      <LeftGutterContainer>
+        {state.route !== Route.Home && (
+          <BackButton
+            on_click={_ => dispatch({ type: "back_button_clicked" })}
+          />
+        )}
+      </LeftGutterContainer>
       <ContentContainer>{content}</ContentContainer>
-      <FooterContainer>
-        Select Project | Select Files | Configure
-      </FooterContainer>
+      <RightGutterContainer />
+      <FooterContainer />
     </Grid>
   );
 }
@@ -132,8 +150,8 @@ function App() {
 const Grid = styled.div`
   display: grid;
   font-size: 24px;
-  grid-template-columns: 5% auto 5%;
-  grid-template-rows: 30px auto 30px;
+  grid-template-columns: 8% auto 8%;
+  grid-template-rows: 30px auto 0px;
   grid-template-areas:
     "header header header"
     "left-gutter content right-gutter"
@@ -149,14 +167,26 @@ const HeaderContainer = styled.div`
   background: skyblue;
 `;
 
+const LeftGutterContainer = styled.div`
+  grid-area: left-gutter;
+  place-self: center;
+  overflow: scroll;
+`;
+
 const ContentContainer = styled.div`
   grid-area: content;
+  overflow: hidden;
+`;
+
+const RightGutterContainer = styled.div`
+  grid-area: right-gutter;
+  place-self: center;
   overflow: scroll;
 `;
 
 const FooterContainer = styled.div`
   grid-area: footer;
-  oferflow: hidden;
+  overflow: hidden;
   background: skyblue;
 `;
 

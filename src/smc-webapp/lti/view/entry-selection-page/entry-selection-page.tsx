@@ -87,11 +87,8 @@ export function EntrySelectionPage({
     }
 
     return (
-      <ProjectContainerRoot>
+      <ProjectContainer>
         <ProjectTitle>Select assignment contents</ProjectTitle>
-        {opened_project.title}
-        <br />
-        {"<"} Back
         <FinishSelectionButton
           disabled={selected_entries.size === 0}
           on_click={_ => {
@@ -100,12 +97,14 @@ export function EntrySelectionPage({
         />
         <br />
         {content}
-      </ProjectContainerRoot>
+      </ProjectContainer>
     );
   }
 }
 
-const ProjectContainerRoot = styled.div`
+const ProjectContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   margin: 0px 8px 8px 8px;
 `;
 

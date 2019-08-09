@@ -66,6 +66,24 @@ export function reducer(state: GlobalState, action: Action): GlobalState {
         ...state,
         route: Route.Configure
       };
+    case "back_button_clicked":
+      switch (state.route) {
+        case Route.Home:
+          throw new Error("Back button clicked at home...");
+        case Route.Project:
+          return {
+            ...state,
+            route: Route.Home,
+            opened_project_id: ""
+          };
+        case Route.Configure:
+          return {
+            ...state,
+            route: Route.Project
+          };
+        default:
+          return assert_never(state.route);
+      }
     default:
       return assert_never(action);
   }

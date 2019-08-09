@@ -72,4 +72,5 @@ export type Action =
   | { type: "close_directory"; path: string; project_id: string }
   | { type: "add_entry"; path: string; project_id: string }
   | { type: "remove_entry"; path: string; project_id: string }
-  | { type: "finished_selecting_entries" };
+  | { type: "finished_selecting_entries" }
+  | { type: "back_button_clicked" };
