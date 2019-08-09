@@ -8,18 +8,46 @@ import {
   ProjectContainer,
   //SelectedItemsList,
   //ConfigurationPage
+  ReturnButton
 } from "./view";
 import * as API from "./api";
-import { Route } from "./state/types";
+import { GlobalState, Route } from "./state/types";
 import { reducer } from "./state/reducers";
-import { initial_global_state } from "./state/values";
+import { initial_global_state, LTI_RETURN_PATH } from "./state/values";
 import { assert_never } from "./helpers";
 
-const QUERY_PARAMS = querystring.parse(window.location.search);
-console.log("Params", QUERY_PARAMS);
+// TODO: Put this somewhere ./state
+// Returns a shallow copy of global_state with a new context attached via url search query
+function with_data_from_params(global_state: GlobalState): GlobalState {
+  const query_params = querystring.parse(window.location.search);
+  if (query_params.id_token == undefined) {
+    throw new Error("id_token was undefined");
+  }
+  if (Array.isArray(query_params.id_token)) {
+    throw new Error("id_token recieved as an array. Should be a single value");
+  }
+  if (query_params.nonce == undefined) {
+    throw new Error("nonce was undefined");
+  }
+  if (Array.isArray(query_params.nonce)) {
+    throw new Error("nonce recieved as an array. Should be a single value");
+  }
+
+  return {
+    ...global_state,
+    context: {
+      id_token: query_params.id_token,
+      nonce: query_params.nonce
+    }
+  };
+}
 
 function App() {
-  const [state, dispatch] = React.useReducer(reducer, initial_global_state);
+  const [state, dispatch] = React.useReducer(
+    reducer,
+    initial_global_state,
+    with_data_from_params
+  );
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -86,16 +114,11 @@ function App() {
       <HeaderContainer>Cocalc</HeaderContainer>
       <ContentContainer>{content}</ContentContainer>
       <FooterContainer>
-        <form method="post" action={"lti/return-deep-link"}>
-          <input
-            type="hidden"
-            name="token_id"
-            value={QUERY_PARAMS.id_token || ""}
-          />
-          <button type="submit" name="state" value={QUERY_PARAMS.state || ""}>
-            This is a link that sends a POST request
-          </button>
-        </form>
+        <ReturnButton
+          return_path={LTI_RETURN_PATH}
+          id_token={state.context.id_token}
+          nonce={state.context.nonce}
+        />
       </FooterContainer>
     </Grid>
   );

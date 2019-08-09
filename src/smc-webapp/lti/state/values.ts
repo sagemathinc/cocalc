@@ -10,5 +10,8 @@ export const initial_global_state: GlobalState = {
   current_path: "",
   opened_directories: {},
   selected_entries: {},
-  excluded_entries: {}
+  excluded_entries: {},
+  context: { id_token: "", nonce: "" }
 };
+
+export const LTI_RETURN_PATH = "lti/return-deep-link";

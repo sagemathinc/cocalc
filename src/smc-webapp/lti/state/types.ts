@@ -1,6 +1,6 @@
 import { Set } from "immutable";
 
-export interface GlobalState {
+export type GlobalState = Readonly<{
   account_info?: AccountInfo;
   current_path: string;
   file_listings: { [key: string]: { [key: string]: string[] } };
@@ -11,7 +11,8 @@ export interface GlobalState {
   route: Route;
   selected_entries: SelectedEntries;
   excluded_entries: ExcludedEntries;
-}
+  context: { id_token: string; nonce: string };
+}>;
 
 export enum Route {
   Home = "project-selection",
