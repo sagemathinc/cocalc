@@ -6,7 +6,11 @@ interface Props {
   return_path: string;
 }
 
-export function ReturnButton({ id_token, nonce, return_path }: Props) {
+export function SubmitAssignmentButton({
+  id_token,
+  nonce,
+  return_path
+}: Props) {
   return (
     <form method="post" action={return_path}>
       <input type="hidden" name="token_id" value={id_token} />

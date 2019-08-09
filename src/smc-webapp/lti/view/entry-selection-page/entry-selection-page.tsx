@@ -95,7 +95,6 @@ export function EntrySelectionPage({
             dispatch({ type: "finished_selecting_entries" });
           }}
         />
-        <br />
         {content}
       </ProjectContainer>
     );
