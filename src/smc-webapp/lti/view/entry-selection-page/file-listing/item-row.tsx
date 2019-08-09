@@ -6,6 +6,6 @@ interface Props {
 
 export const ItemRow = styled.div<Props>`
   cursor: pointer
-  color: ${props => (props.highlight ? "ForestGreen" : "Black")};
+  color: ${props => (props.highlight ? "SeaGreen" : "inherit")};
   margin: 2px;
 `;

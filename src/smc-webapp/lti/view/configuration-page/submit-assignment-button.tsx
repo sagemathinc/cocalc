@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../shared";
 
 interface Props {
   id_token: string;
@@ -14,9 +15,9 @@ export function SubmitAssignmentButton({
   return (
     <form method="post" action={return_path}>
       <input type="hidden" name="token_id" value={id_token} />
-      <button type="submit" name="state" value={nonce}>
+      <Button type="submit" name="state" value={nonce}>
         Finish
-      </button>
+      </Button>
     </form>
   );
 }

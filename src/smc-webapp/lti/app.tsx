@@ -150,6 +150,7 @@ function App() {
 
 const Grid = styled.div`
   background-color: ${default_colors.background_color};
+  color: ${default_colors.color};
   display: grid;
   font-size: 24px;
   grid-template-columns: 8% auto 8%;
