@@ -155,9 +155,9 @@ const Grid = styled.div`
   background-color: ${default_colors.background_color};
   color: ${default_colors.color};
   display: grid;
-  font-size: 24px;
+  font-size: 1.5rem;
   grid-template-columns: 8% auto 8%;
-  grid-template-rows: 30px auto 0px;
+  grid-template-rows: 2rem auto 0rem;
   grid-template-areas:
     "header header header"
     "left-gutter content right-gutter"

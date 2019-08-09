@@ -9,9 +9,10 @@ export function NameAssignment({
   default_name = "Untitled Assignment",
   style = {
     border: "none",
-    backgroundColor: "skyblue",
-    fontSize: "26px",
-    margin: "10px"
+    fontSize: "1.5rem",
+    width: "100%",
+    padding: "0.5rem 0.3rem",
+    marginBottom: "1rem"
   }
 }: Props) {
   return (

@@ -53,7 +53,7 @@ export function SelectedItemsList({
 }
 
 const ItemListWrapper = styled.div`
-  margin: 0px 8px 8px 8px;
+  margin: 0rem 0.5rem 0.5rem 0.5rem;
 `;
 
 const ItemsHeader = styled.h2`

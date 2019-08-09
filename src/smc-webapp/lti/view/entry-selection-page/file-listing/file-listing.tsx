@@ -110,7 +110,7 @@ export function FileListing(props: Props) {
 
 const ListingWrapper = styled.div`
   margin-left: ${p => {
-    return p.indent ? "15px" : "0px";
+    return p.indent ? "1rem" : "0rem";
   }};
   overflow: scroll;
 `;

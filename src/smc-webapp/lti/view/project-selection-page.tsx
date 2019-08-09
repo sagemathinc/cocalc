@@ -43,7 +43,7 @@ export function ProjectSelectionPage({
 }
 
 const ProjectListContainer = styled.div`
-  margin: 0px 8px 8px 8px;
+  margin: 0rem 0.5rem 0.5rem 0.5rem;
 `;
 
 const ProjectRow = styled.div`

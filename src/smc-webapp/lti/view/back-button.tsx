@@ -14,6 +14,6 @@ const Button = styled.button`
   background-color: ${default_colors.background_color};
   border: none;
   cursor: pointer;
-  font-size: 36px;
+  font-size: 2.5rem;
   text-align: center;
 `;
