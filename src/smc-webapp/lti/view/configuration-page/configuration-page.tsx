@@ -2,7 +2,7 @@ import * as React from "react";
 import styled from "styled-components";
 import { PageTitle } from "../shared";
 import { SubmitAssignmentButton } from "./submit-assignment-button";
-import { NameAssignment } from "./name-assignment";
+import { AssignmentNameInput } from "./assignment-name-input";
 
 interface Props {
   context: { id_token: string; nonce: string; return_path: string };
@@ -13,7 +13,7 @@ export function ConfigurationPage({ context }: Props) {
     <ConfigurationPageContainer>
       <PageTitle>Configure your assignment</PageTitle>
       <form method="post" action={context.return_path}>
-        <NameAssignment default_name={undefined} />
+        <AssignmentNameInput name="assignment_name" placeholder={"Undefined"} />
         <input
           type={"hidden"}
           name={"url"}
