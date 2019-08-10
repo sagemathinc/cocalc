@@ -10,8 +10,9 @@ import json
 import yaml
 from pprint import pprint
 import arrow
+from os.path import expanduser
 
-KEY = open('test_api').read().splitlines()[0]
+KEY = open(expanduser('~/test_api')).read().splitlines()[0]
 
 
 def call_api(msg="",
@@ -42,6 +43,7 @@ def call_api(msg="",
     print(f"STATUS: {r.status_code}")
     return r.json()
 
+
 # jsonserialized timestamp, no timezone, a bit in the future...
 future = arrow.now('UTC').shift(seconds=+14).for_json()
 print(f"future = {future}")
@@ -61,5 +63,5 @@ data = {'copy_path_id': ret['copy_path_id']}
 while True:
     status = call_api("copy_path_status", data)
     pprint(status)
-    if status.get('finished'): break
+    if status['data'].get('finished'): break
     time.sleep(5)
