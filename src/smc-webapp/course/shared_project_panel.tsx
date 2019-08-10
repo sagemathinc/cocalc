@@ -25,14 +25,7 @@
 
 import { React, Component, AppRedux } from "../app-framework";
 import { CourseActions } from "./actions";
-const {
-  Alert,
-  Button,
-  ButtonToolbar,
-  Row,
-  Col,
-  Panel
-} = require("react-bootstrap");
+const { Alert, Button, ButtonToolbar, Panel } = require("react-bootstrap");
 const { HiddenXS, Icon, Tip, VisibleMDLG } = require("../r_misc");
 
 interface SharedProjectPanelProps {
@@ -79,19 +72,16 @@ export class SharedProjectPanel extends Component<
 
   render() {
     return (
-      <Row>
-        <Col md={6}>
-          <Panel
-            header={
-              <h4>
-                <Icon name="users" /> {this.panel_header_text()}{" "}
-              </h4>
-            }
-          >
-            {this.render_content()}
-          </Panel>
-        </Col>
-      </Row>
+      <Panel
+        style={{ margin: "auto", maxWidth: "800px" }}
+        header={
+          <h4>
+            <Icon name="users" /> {this.panel_header_text()}{" "}
+          </h4>
+        }
+      >
+        {this.render_content()}
+      </Panel>
     );
   }
 
@@ -123,8 +113,8 @@ export class SharedProjectPanel extends Component<
           </p>
         </div>
         <br />
-        <Button onClick={this.open_project}>
-          <Icon name="edit" /> Open shared project
+        <Button onClick={this.open_project} bsSize={"large"}>
+          <Icon name="edit" /> Open shared project...
         </Button>
       </div>
     );

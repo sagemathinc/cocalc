@@ -7,15 +7,15 @@ import { delay } from "awaiting";
 import { MentionsInput, Mention } from "react-mentions";
 import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
-const { FormControl } = require("react-bootstrap");
-const { Space } = require("../r_misc");
+import { FormControl } from "react-bootstrap";
+import { Space } from "../r_misc/space";
 const { Avatar } = require("../other-users");
-const { IS_MOBILE, isMobile } = require("../feature");
+import { IS_MOBILE, isMobile } from "../feature";
 
 interface Props {
   name: string;
   input: string;
-  input_ref: any;
+  input_ref: React.RefObject<HTMLTextAreaElement>;
   input_style?: any; // Used to override defaults
   enable_mentions: boolean;
   project_users: any;
@@ -37,13 +37,13 @@ export class ChatInput extends React.PureComponent<Props> {
     height: "100%"
   };
 
-  private mentions_input_ref: any;
-  private input_ref: any;
+  private mentions_input_ref = React.createRef<MentionsInput>();
+  private input_ref: React.RefObject<HTMLTextAreaElement>;
 
   constructor(props) {
     super(props);
-    this.mentions_input_ref = React.createRef();
-    this.input_ref = props.input_ref || React.createRef();
+    this.mentions_input_ref;
+    this.input_ref = props.input_ref || React.createRef<HTMLTextAreaElement>();
   }
 
   // Hack around updating mentions when pasting an image (which we have to handle ourselves)
@@ -121,27 +121,29 @@ export class ChatInput extends React.PureComponent<Props> {
     };
   });
 
-  private mentions_data = memoizeOne((project_users: immutable.Map<string, any>) => {
-    const user_array = project_users
-      .keySeq()
-      .filter(account_id => {
-        return account_id !== this.props.account_id;
-      })
-      .map(account_id => {
-        return {
-          id: account_id,
-          display: this.props.user_store.get_name(account_id),
-          last_active: this.props.user_store.get_last_active(account_id)
-        };
-      })
-      .toJS();
+  private mentions_data = memoizeOne(
+    (project_users: immutable.Map<string, any>) => {
+      const user_array = project_users
+        .keySeq()
+        .filter(account_id => {
+          return account_id !== this.props.account_id;
+        })
+        .map(account_id => {
+          return {
+            id: account_id,
+            display: this.props.user_store.get_name(account_id),
+            last_active: this.props.user_store.get_last_active(account_id)
+          };
+        })
+        .toJS();
 
-    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
+      user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
 
-    return user_array;
-  });
+      return user_array;
+    }
+  );
 
-  private on_change = (e, _, plain_text, mentions) => {
+  private on_change = (e, _?, plain_text?, mentions?) => {
     this.props.on_change(e.target.value, mentions, plain_text);
   };
 
@@ -185,12 +187,23 @@ export class ChatInput extends React.PureComponent<Props> {
     }
 
     if (!this.props.enable_mentions) {
+      // NOTE about the "this.input_ref as any" below.
+      // I think we want to style from react bootstraps
+      // FormControl, but we type things so input_ref
+      // must be a ref to a TextArea.  However, FormControl
+      // doesn't have the same interface type, so typescript
+      // gives an error.  So for now this is "as any".
+      // A better fix would probably be to just replace
+      // this by a normal FormControl, or even better
+      // would be to always allow mentions even for editing past tasks
+      // (which does make very good sense, if the UI would probably
+      // support it, which it should -- it's just more work).
       return (
         <FormControl
           id={id}
           autoFocus={!IS_MOBILE || isMobile.Android()}
           componentClass="textarea"
-          ref={this.input_ref}
+          ref={this.input_ref as any}
           onKeyDown={this.on_keydown}
           value={this.props.input}
           placeholder={"Type a message..."}

@@ -82,6 +82,7 @@ export interface CellInputProps {
   cell_toolbar?: string;
   trust?: boolean;
   is_readonly: boolean;
+  is_scrolling?: boolean;
   id: any; // TODO: what is this
 }
 
@@ -108,6 +109,7 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.font_size !== this.props.font_size ||
       nextProps.complete !== this.props.complete ||
       nextProps.is_readonly !== this.props.is_readonly ||
+      nextProps.is_scrolling !== this.props.is_scrolling ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       (nextProps.cell_toolbar === "slideshow" &&
         nextProps.cell.get("slide") !== this.props.cell.get("slide"))
@@ -177,6 +179,7 @@ export class CellInput extends Component<CellInputProps> {
         is_focused={this.props.is_focused}
         font_size={this.props.font_size}
         cursors={this.props.cell.get("cursors")}
+        is_scrolling={this.props.is_scrolling}
       />
     );
   }

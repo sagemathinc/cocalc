@@ -88,14 +88,20 @@ export function create_key_handler(
       return;
     }
     const mode = frame_actions.store.get("mode");
-    if (mode === "escape" && $(":focus").length > 0) {
-      // Never use keyboard shortcuts when something is focused, e.g.,
-      // getting a password or using text input widget.
-      return;
+    if (mode === "escape") {
+      const focused = $(":focus");
+      if (
+        focused.length > 0 &&
+        focused[0].className.indexOf("ReactVirtualized") == -1
+      ) {
+        // Never use keyboard shortcuts when something is focused, e.g.,
+        // getting a password or using text input widget.  However, ReactVirtualized
+        // itself gets focused often, so we have to avoid that special case.
+        return;
+      }
     }
     const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
-    // console.log 'shortcut', shortcut, cmd
     if (cmd != null) {
       last_evt = undefined;
       cmd.val.f();

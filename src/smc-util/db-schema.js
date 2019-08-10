@@ -745,9 +745,9 @@ schema.file_use = {
   // virtual table that lets you get older entries.
   user_query: {
     get: {
-      pg_where: ["last_edited >= NOW() - interval '14 days'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
       pg_changefeed: "projects",
-      options: [{ order_by: "-last_edited" }, { limit: 100 }], // limit is arbitrary
+      options: [{ order_by: "-last_edited" }, { limit: 200 }], // limit is arbitrary
       throttle_changes: 3000,
       fields: {
         id: null,

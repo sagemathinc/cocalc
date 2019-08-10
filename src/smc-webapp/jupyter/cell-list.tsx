@@ -4,8 +4,14 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
+//const DEFAULT_ROW_SIZE: number = 34;
+const DEFAULT_ROW_SIZE: number = 64;
+
+import { WindowedList } from "../r_misc/windowed-list";
+
 import { delay } from "awaiting";
 import * as immutable from "immutable";
+
 import { React, Component, Rendered } from "../app-framework";
 import { Loading } from "../r_misc/loading";
 import { Cell } from "./cell";
@@ -15,8 +21,6 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 import { NotebookMode, Scroll } from "./types";
-
-const PADDING = 100;
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -30,7 +34,7 @@ interface CellListProps {
   cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
   mode: NotebookMode;
   hook_offset?: number;
-  scroll?: Scroll;
+  scroll?: Scroll; // scroll by this amount
   cm_options: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
@@ -43,21 +47,43 @@ interface CellListProps {
 }
 
 export class CellList extends Component<CellListProps> {
-  private cell_list_ref: HTMLElement;
+  private cell_list_node: HTMLElement;
   private is_mounted: boolean = true;
+  private use_window_list: boolean;
+  private windowed_list_ref = React.createRef<WindowedList>();
+
+  constructor(props) {
+    super(props);
+    this.use_window_list =
+      this.props.actions != null && this.props.frame_actions != null;
+    if (this.use_window_list && this.props.frame_actions != null) {
+      this.props.frame_actions.set_windowed_list_ref(this.windowed_list_ref);
+    }
+  }
 
   public componentWillUnmount(): void {
     this.is_mounted = false;
-    if (this.cell_list_ref != null && this.props.frame_actions != null) {
-      this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
-    }
 
     if (this.props.frame_actions != null) {
+      this.save_scroll();
       // handle focus via an event handler on window.
       // We have to do this since, e.g., codemirror editors
       // involve spans that aren't even children, etc...
       $(window).unbind("click", this.window_click);
       this.props.frame_actions.disable_key_handler();
+    }
+  }
+
+  private save_scroll(): void {
+    if (
+      this.use_window_list &&
+      this.props.frame_actions != null &&
+      this.windowed_list_ref.current != null
+    ) {
+      const info = this.windowed_list_ref.current.get_scroll();
+      if (info != null) {
+        this.props.frame_actions.set_scrollTop(info.scrollOffset);
+      }
     }
   }
 
@@ -71,11 +97,17 @@ export class CellList extends Component<CellListProps> {
     let scrollHeight: number = 0;
     for (let tm of [0, 250, 750, 1500, 2000]) {
       if (!this.is_mounted) return;
-      const elt = this.cell_list_ref;
-      if (elt != null && elt.scrollHeight !== scrollHeight) {
-        // dynamically rendering actually changed something
-        elt.scrollTop = this.props.scrollTop;
-        scrollHeight = elt.scrollHeight;
+      if (this.use_window_list) {
+        if (this.windowed_list_ref.current != null) {
+          this.windowed_list_ref.current.scrollToPosition(this.props.scrollTop);
+        }
+      } else {
+        const elt = this.cell_list_node;
+        if (elt != null && elt.scrollHeight !== scrollHeight) {
+          // dynamically rendering actually changed something
+          elt.scrollTop = this.props.scrollTop;
+          scrollHeight = elt.scrollHeight;
+        }
       }
       await delay(tm);
     }
@@ -97,7 +129,7 @@ export class CellList extends Component<CellListProps> {
     }
 
     if (this.props.frame_actions != null) {
-      this.props.frame_actions.cell_list_div = $(this.cell_list_ref);
+      this.props.frame_actions.cell_list_div = $(this.cell_list_node);
     }
   }
 
@@ -110,7 +142,7 @@ export class CellList extends Component<CellListProps> {
       return;
     }
     // if click in the cell list, focus the cell list; otherwise, blur it.
-    const elt = $(this.cell_list_ref);
+    const elt = $(this.cell_list_node);
     // list no longer exists, nothing left to do
     // Maybe elt can be null? https://github.com/sagemathinc/cocalc/issues/3580
     if (elt == null) return;
@@ -150,75 +182,41 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  private scroll_cell_list = (scroll: Scroll): void => {
-    const elt = $(this.cell_list_ref);
-    if (elt == null) {
+  private scroll_cell_list(scroll: Scroll): void {
+    if (!this.use_window_list) return;
+    const list = this.windowed_list_ref.current;
+    if (list == null) return;
+    const info = list.get_scroll();
+
+    if (typeof scroll === "number") {
+      if (info == null) return;
+      list.scrollToPosition(info.scrollOffset + scroll);
       return;
     }
-    if (elt.length > 0) {
-      let cur, top;
-      if (typeof scroll === "number") {
-        elt.scrollTop(elt.scrollTop() + scroll);
-        return;
-      }
 
-      // supported scroll positions are in types.ts
-      if (scroll === "cell visible") {
-        if (!this.props.cur_id) return;
-        // ensure selected cell is visible
-        cur = elt.find(`#${this.props.cur_id}`);
-        if (cur.length > 0) {
-          top = cur.position().top - elt.position().top;
-          if (top < PADDING) {
-            scroll = "cell top";
-          } else if (top > elt.height() - PADDING) {
-            scroll = "cell bottom";
-          } else {
-            return;
-          }
-        }
+    // supported scroll positions are in types.ts
+    if (scroll === "cell visible") {
+      if (!this.props.cur_id) return;
+      const n = this.props.cell_list.indexOf(this.props.cur_id);
+      if (n != -1) {
+        list.scrollToRow(n);
       }
-      switch (scroll) {
-        case "list up":
-          // move scroll position of list up one page
-          return elt.scrollTop(elt.scrollTop() - elt.height() * 0.9);
-        case "list down":
-          // move scroll position of list up one page
-          return elt.scrollTop(elt.scrollTop() + elt.height() * 0.9);
-        case "cell top":
-          cur = elt.find(`#${this.props.cur_id}`);
-          if (cur != null && cur.length > 0) {
-            return elt.scrollTop(
-              elt.scrollTop() +
-                (cur.position().top - elt.position().top) -
-                PADDING
-            );
-          }
-          break;
-        case "cell center":
-          cur = elt.find(`#${this.props.cur_id}`);
-          if (cur != null && cur.length > 0) {
-            return elt.scrollTop(
-              elt.scrollTop() +
-                (cur.position().top - elt.position().top) -
-                elt.height() * 0.5
-            );
-          }
-          break;
-        case "cell bottom":
-          cur = elt.find(`#${this.props.cur_id}`);
-          if (cur.length > 0) {
-            return elt.scrollTop(
-              elt.scrollTop() +
-                (cur.position().top - elt.position().top) -
-                elt.height() * 0.9 +
-                PADDING
-            );
-          }
-          break;
-      }
+      return;
     }
-  };
+    if (info == null) return;
+
+    // TODO: I just hardcoded 400 for "1 page"!
+    switch (scroll) {
+      case "list up":
+        // move scroll position of list up one page
+        list.scrollToPosition(info.scrollOffset - 400);
+        break;
+      case "list down":
+        // move scroll position of list up one page
+        list.scrollToPosition(info.scrollOffset + 400);
+        break;
+    }
+  }
 
   private render_loading(): Rendered {
     return (
@@ -260,60 +258,90 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  public render(): Rendered {
-    if (this.props.cell_list == null) {
-      return this.render_loading();
+  private render_cell(id: string, isScrolling?: boolean): Rendered {
+    const cell = this.props.cells.get(id);
+    return (
+      <Cell
+        key={id}
+        id={id}
+        actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
+        name={this.props.name}
+        cm_options={this.props.cm_options}
+        cell={cell}
+        is_current={id === this.props.cur_id}
+        hook_offset={this.props.hook_offset}
+        is_selected={
+          this.props.sel_ids != null
+            ? this.props.sel_ids.contains(id)
+            : undefined
+        }
+        is_markdown_edit={
+          this.props.md_edit_ids != null
+            ? this.props.md_edit_ids.contains(id)
+            : undefined
+        }
+        mode={this.props.mode}
+        font_size={this.props.font_size}
+        project_id={this.props.project_id}
+        directory={this.props.directory}
+        complete={this.props.complete}
+        is_focused={this.props.is_focused}
+        more_output={
+          this.props.more_output != null
+            ? this.props.more_output.get(id)
+            : undefined
+        }
+        cell_toolbar={this.props.cell_toolbar}
+        trust={this.props.trust}
+        is_scrolling={isScrolling}
+      />
+    );
+  }
+
+  private window_list_row_renderer({ key, isScrolling }): Rendered {
+    const is_last: boolean = key === this.props.cell_list.get(-1);
+    return (
+      <div>
+        {this.render_insert_cell(key, "above")}
+        {this.render_cell(key, isScrolling)}
+        {is_last ? this.render_insert_cell(key, "below") : undefined}
+      </div>
+    );
+  }
+
+  private render_list_of_cells_using_window_list(): Rendered {
+    let cache_id: undefined | string = undefined;
+    if (this.props.name != null && this.props.frame_actions != null) {
+      cache_id = this.props.name + this.props.frame_actions.frame_id;
     }
 
-    const v: any[] = [];
+    // Heads up -- don't you dare change the overscan_row_count to bigger
+    // than 0.  If you do, the codemirror editor sometimes gets mounted off
+    // screen, which causes it to get scrolled into view, which breaks badly.
+    // Also, there is no real performance improvement for Jupyter.
+    return (
+      <WindowedList
+        ref={this.windowed_list_ref}
+        overscan_row_count={0 /* DO *NOT* CHANGE THIS!!! */}
+        estimated_row_size={DEFAULT_ROW_SIZE}
+        row_key={index => this.props.cell_list.get(index)}
+        row_count={this.props.cell_list.size}
+        row_renderer={this.window_list_row_renderer.bind(this)}
+        cache_id={cache_id}
+        use_is_scrolling={true}
+        hide_resize={true}
+      />
+    );
+  }
+
+  private render_list_of_cells_directly(): Rendered[] {
+    const v: Rendered[] = [];
     this.props.cell_list.forEach((id: string) => {
-      const cell_data = this.props.cells.get(id);
-      // is it possible/better idea to use the @actions.store here?
-      const editable = cell_data.getIn(["metadata", "editable"], true);
-      const deletable = cell_data.getIn(["metadata", "deletable"], true);
-      const cell = (
-        <Cell
-          key={id}
-          actions={this.props.actions}
-          frame_actions={this.props.frame_actions}
-          name={this.props.name}
-          id={id}
-          cm_options={this.props.cm_options}
-          cell={cell_data}
-          is_current={id === this.props.cur_id}
-          hook_offset={this.props.hook_offset}
-          is_selected={
-            this.props.sel_ids != null
-              ? this.props.sel_ids.contains(id)
-              : undefined
-          }
-          is_markdown_edit={
-            this.props.md_edit_ids != null
-              ? this.props.md_edit_ids.contains(id)
-              : undefined
-          }
-          mode={this.props.mode}
-          font_size={this.props.font_size}
-          project_id={this.props.project_id}
-          directory={this.props.directory}
-          complete={this.props.complete}
-          is_focused={this.props.is_focused}
-          more_output={
-            this.props.more_output != null
-              ? this.props.more_output.get(id)
-              : undefined
-          }
-          cell_toolbar={this.props.cell_toolbar}
-          trust={this.props.trust}
-          editable={editable}
-          deletable={deletable}
-          nbgrader={cell_data.getIn(["metadata", "nbgrader"])}
-        />
-      );
       if (this.props.actions != null) {
         v.push(this.render_insert_cell(id));
       }
-      v.push(cell);
+      v.push(this.render_cell(id));
     });
     if (this.props.actions != null && v.length > 0) {
       const id = this.props.cell_list.get(this.props.cell_list.size - 1);
@@ -322,33 +350,52 @@ export class CellList extends Component<CellListProps> {
       }
     }
 
+    return v;
+  }
+
+  private render_list_of_cells(): Rendered | Rendered[] {
+    const style: React.CSSProperties = {
+      backgroundColor: "#fff",
+      padding: "5px"
+    };
+
+    if (this.props.actions == null || this.props.frame_actions == null) {
+      return <div style={style}>{this.render_list_of_cells_directly()}</div>;
+    } else {
+      return (
+        <div className="smc-vfill" style={style}>
+          {this.render_list_of_cells_using_window_list()}
+        </div>
+      );
+    }
+  }
+
+  public render(): Rendered {
+    if (this.props.cell_list == null) {
+      return this.render_loading();
+    }
+
     const style: React.CSSProperties = {
       fontSize: `${this.props.font_size}px`,
-      padding: "5px",
+      paddingLeft: "5px",
       height: "100%",
       overflowY: "auto",
       overflowX: "hidden"
     };
 
-    const cells_style: React.CSSProperties = {
-      backgroundColor: "#fff",
-      padding: "15px",
-      boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
-    };
-
     return (
       <div
         key="cells"
+        className="smc-vfill"
         style={style}
-        ref={(node: any) => (this.cell_list_ref = node)}
+        ref={(node: any) => (this.cell_list_node = node)}
         onClick={
           this.props.actions != null && this.props.complete != null
             ? this.on_click
             : undefined
         }
       >
-        <div style={cells_style}>{v}</div>
-        <div style={{ minHeight: "100px" }} />
+        {this.render_list_of_cells()}
       </div>
     );
   }
