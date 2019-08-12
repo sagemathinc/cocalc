@@ -1794,11 +1794,43 @@ API(
       copy_path_id: {
         init: undefined,
         desc: "A unique UUID for a copy path operation"
+      },
+      src_project_id: {
+        init: undefined,
+        desc: "Source of copy operation to filter on"
+      },
+      target_project_id: {
+        init: undefined,
+        desc: "Target of copy operation to filter on"
+      },
+      src_path: {
+        init: undefined,
+        desc: "(src/targ only) Source path of copy operation to filter on"
+      },
+      offset: {
+        init: undefined,
+        desc: "(src/targ only) default 0; use a multiple of 1000"
+      },
+      pending: {
+        init: true,
+        desc:
+          "(src/targ only) if true, only show pending copy ops (default: true)"
+      },
+      errored: {
+        init: false,
+        desc:
+          "(src/targ only) if true, only show finished and failed copy ops (default: false)"
       }
     },
     desc: `\
-Retrieve status information about a copy operation for the given ID,
-which was returned by \`copy_path_between_projects\` earlier.
+Retrieve status information about a copy path operation.
+There are two possibilities:
+
+- for a given \`copy_path_id\`,
+  which was returned by \`copy_path_between_projects\` earlier;
+- or at last one of \`src_project_id\` or \`target_project_id\`
+  with an optionally given \`src_path\` for a set of statuses.
+  (limited at 1000; for more set \`offset\` to 1000 or more; most recent operations come first)
 `
   })
 );

@@ -1170,11 +1170,118 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.success(id:mesg.id))
         )
 
+
+
     mesg_copy_path_status: (mesg) =>
         dbg = @dbg('mesg_copy_path_status')
-        if not mesg.copy_path_id?
-            @error_to_client(id:mesg.id, error:"'copy_path_id' (UUID) of a copy operation must be defined")
+        # src_project_id, target_project_id and optionally src_path + offset (limit is 1000)
+        search_many = mesg.src_project_id? or mesg.target_project_id?
+        if not search_many and not mesg.copy_path_id?
+            @error_to_client(id:mesg.id, error:"'copy_path_id' (UUID) of a copy operation or 'src_project_id/target_project_id' must be defined")
             return
+        if search_many
+            @_mesg_copy_path_status_query(mesg)
+        else
+            @_mesg_copy_path_status_single(mesg)
+
+
+
+    _mesg_copy_path_status_query: (mesg) =>
+        locals =
+            allowed   : true   # this is not really necessary
+            copy_ops  : []
+
+        async.series([
+            (cb) =>
+                if not mesg.src_project_id?
+                    cb()
+                    return
+                access.user_has_read_access_to_project
+                    project_id     : mesg.src_project_id
+                    account_id     : @account_id
+                    account_groups : @groups
+                    database       : @database
+                    cb             : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            locals.allowed = false
+                            cb("ACCESS BLOCKED -- No read access to source project")
+                        else
+                            cb()
+            (cb) =>
+                if not mesg.target_project_id?
+                    cb()
+                    return
+                access.user_has_write_access_to_project
+                    database       : @database
+                    project_id     : mesg.target_project_id
+                    account_id     : @account_id
+                    account_groups : @groups
+                    cb             : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            locals.allowed = false
+                            cb("ACCESS BLOCKED -- No write access to target project")
+                        else
+                            cb()
+            (cb) =>
+                if not locals.allowed
+                    cb('Not allowed')
+                    return
+
+                where = [
+                    "source_project_id = $::UUID" : mesg.src_project_id,
+                    "target_project_id = $::UUID" : mesg.target_project_id
+                ]
+
+                if mesg.src_path?
+                    where.push("source_path = $" : mesg.src_path)
+
+                if mesg.errored == true or mesg.errored == 'true'
+                    where.push("error IS NOT NULL")
+                    mesg.pending = false
+
+                if mesg.pending == true
+                    where.push("finished IS NULL")
+
+                # sainitizing input!
+                if mesg.offset?
+                    o = parseInt(mesg.offset)
+                    if isNaN(o) or o < 0 or o > 100
+                        cb("ILLEGAL offset='#{mesg.offset}'")
+                        return
+                    offset = o
+                else
+                    offset = 0
+
+                @database._query
+                    query    : "SELECT * FROM copy_paths"
+                    where    : where
+                    offset   : offset
+                    limit    : 1000
+                    order_by : 'time DESC'
+                    cb       : (err, x) =>
+                        if err?
+                            cb(err)
+                        else if not x?
+                            cb("Can't find copy operations for given src_project_id/target_project_id")
+                        else
+                            for row in x.rows
+                                # be explicit about what we return
+                                locals.copy_ops.push(@_get_copy_op_data(row))
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.copy_path_status_response(id:mesg.id, data:locals.copy_ops))
+        )
+
+
+
+    _mesg_copy_path_status_single: (mesg) =>
         locals =
             copy_op : undefined
         async.series([
@@ -1231,22 +1338,25 @@ class exports.Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:err)
             else
                 # be explicit about what we return
-                data =
-                    time               : locals.copy_op.time
-                    source_project_id  : locals.copy_op.source_project_id
-                    source_path        : locals.copy_op.source_path
-                    target_project_id  : locals.copy_op.target_project_id
-                    target_path        : locals.copy_op.target_path
-                    overwrite_newer    : locals.copy_op.overwrite_newer
-                    delete_missing     : locals.copy_op.delete_missing
-                    backup             : locals.copy_op.backup
-                    started            : locals.copy_op.started
-                    finished           : locals.copy_op.finished
-                    scheduled          : locals.copy_op.scheduled
-                    error              : locals.copy_op.error
-
+                data = @_get_copy_op_data(locals.copy_op)
                 @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))
         )
+
+    _get_copy_op_data: (copy_op) =>
+        return
+            copy_path_id       : copy_op.id
+            time               : copy_op.time
+            source_project_id  : copy_op.source_project_id
+            source_path        : copy_op.source_path
+            target_project_id  : copy_op.target_project_id
+            target_path        : copy_op.target_path
+            overwrite_newer    : copy_op.overwrite_newer
+            delete_missing     : copy_op.delete_missing
+            backup             : copy_op.backup
+            started            : copy_op.started
+            finished           : copy_op.finished
+            scheduled          : copy_op.scheduled
+            error              : copy_op.error
 
     mesg_local_hub: (mesg) =>
         ###
