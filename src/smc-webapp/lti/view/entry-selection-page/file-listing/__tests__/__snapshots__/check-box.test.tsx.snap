@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Render regressions Mark.check: Box is a check mark 1`] = `
+<span
+  onClick={[Function]}
+>
+  ☑
+</span>
+`;
+
+exports[`Render regressions Mark.empty: Box is empty 1`] = `
+<span
+  onClick={[Function]}
+>
+  ☐
+</span>
+`;
+
+exports[`Render regressions Mark.slash: Box is a slash 1`] = `
+<span
+  onClick={[Function]}
+>
+  ⧅
+</span>
+`;

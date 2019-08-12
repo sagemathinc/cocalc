@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { ItemRow } from "./item-row";
 import { CheckBox, Mark } from "./check-box";
 import { DirectoryToggle } from "./directory-toggle";
+import { is_implicitly_included } from "./helpers";
 
 interface Props {
   working_directory: string;
@@ -77,8 +78,8 @@ export function FileListing(props: Props) {
           {is_directory && (
             <DirectoryToggle
               is_open={is_open}
-              on_click={_ => {
-                on_directory_click(path, is_open);
+              on_click={was_open => {
+                on_directory_click(path, was_open);
               }}
             />
           )}
@@ -114,24 +115,3 @@ const ListingWrapper = styled.div`
   }};
   overflow: scroll;
 `;
-
-// Returns the inclusion/exclusion status of the youngest parent
-// Assumes included and excluded are mutually exclusive
-function is_implicitly_included(
-  path: string,
-  included: Set<string>,
-  excluded: Set<string>
-) {
-  let is_selected = false;
-
-  path.split("/").reduce((ancestor, folder) => {
-    if (included.has(ancestor + "/")) {
-      is_selected = true;
-    } else if (excluded.has(ancestor + "/")) {
-      is_selected = false;
-    }
-    return ancestor + "/" + folder;
-  });
-
-  return is_selected;
-}
