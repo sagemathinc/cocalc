@@ -1280,22 +1280,33 @@ class exports.Client extends EventEmitter
         )
 
 
+    _get_copy_path_status_single: (mesg, cb) =>
+        if not mesg.copy_path_id?
+            cb("ERROR: copy_path_id missing")
+            return
 
-    _mesg_copy_path_status_single: (mesg) =>
+        dbg = @dbg("_get_copy_path_status_single")
         locals =
             copy_op : undefined
         async.series([
             # get the info
             (cb) =>
                 {one_result} = require('./postgres')
+                where = ["id = $::UUID" : mesg.copy_path_id]
+                if mesg.not_yet_done
+                    where.push("scheduled IS NOT NULL")
+                    where.push("finished IS NULL")
                 @database._query
                     query : "SELECT * FROM copy_paths"
-                    where : "id = $::UUID" : mesg.copy_path_id
+                    where : where
                     cb    : one_result (err, x) =>
                         if err?
                             cb(err)
                         else if not x?
-                            cb("Can't find copy operation with ID=#{mesg.copy_path_id}")
+                            if mesg.not_yet_done
+                                cb("Copy operation '#{mesg.copy_path_id}' either does not exist or already finished")
+                            else
+                                cb("Can't find copy operation with ID=#{mesg.copy_path_id}")
                         else
                             locals.copy_op = x
                             dbg("copy_op=#{misc.to_json(locals.copy_op)}")
@@ -1334,11 +1345,16 @@ class exports.Client extends EventEmitter
                                     cb()
                 ], cb)
         ], (err) =>
+            cb(err, locals.copy_op)
+        )
+
+    _mesg_copy_path_status_single: (mesg) =>
+         @_get_copy_path_status_single(mesg, (err, copy_op) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 # be explicit about what we return
-                data = @_get_copy_op_data(locals.copy_op)
+                data = @_get_copy_op_data(copy_op)
                 @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))
         )
 
@@ -1357,6 +1373,29 @@ class exports.Client extends EventEmitter
             finished           : copy_op.finished
             scheduled          : copy_op.scheduled
             error              : copy_op.error
+
+    mesg_copy_path_delete: (mesg) =>
+        dbg = @dbg('mesg_copy_path_delete')
+        # this filters possible results
+        mesg.not_yet_done = true
+        @_get_copy_path_status_single(mesg, (err, copy_op) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else if not copy_op?
+                @error_to_client(id:mesg.id, error:"copy op '${mesg.copy_path_id}' cannot be deleted.")
+            else
+                @database._query
+                    query : "DELETE FROM copy_paths"
+                    where : "id = $::UUID" : mesg.copy_path_id
+                    cb    : (err, x) =>
+                        if err?
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.copy_path_status_response(
+                                id:mesg.id,
+                                data:"copy_path_id = '#{mesg.copy_path_id}' deleted")
+                            )
+        )
 
     mesg_local_hub: (mesg) =>
         ###

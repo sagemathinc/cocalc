@@ -34,5 +34,7 @@ source_project_id=bc6f81b3-25ad-4d58-ae4a-65649fae4fa5
 source_path=bar.md
 target_project_id=e24ba30d-edcd-479f-8a26-bbe81f38296c
 
-Q -d offset=0 -d src_project_id=$source_project_id -d src_path=$source_path -d target_project_id=$target_project_id -d errored=true $API/copy_path_status
+#Q -d offset=0 -d src_project_id=$source_project_id -d src_path=$source_path -d target_project_id=$target_project_id -d errored=true $API/copy_path_status
+
+Q -d copy_path_id=$PATHID $API/copy_path_delete
 
