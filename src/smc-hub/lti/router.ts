@@ -136,7 +136,10 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     const options = { algorithms: ["RS256"] };
     // TODO #V0: Use verify for security
     const token = jwt.decode(req.body.token_id, options);
-    const { assignment_name, url } = req.body;
+    const { assignment_name } = req.body;
+
+    // `/launch` receives this url as target
+    const url = "https://cocalc.com/[lms_id]/[uuid]/[assignment_name]/"
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
     const nonce = uuid.v4();
