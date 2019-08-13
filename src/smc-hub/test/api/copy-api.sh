@@ -22,8 +22,8 @@ PTH=bar.md
 
 ## status
 ## TODO: use jq to extract the copy_path_id from above, query, wait a few secs, and then query it again
-PATHID=3d2168da-6168-4bf4-8e33-875f56c88418
-#Q -d copy_path_id=$PATHID $API/copy_path_status
+PATHID=63755ed1-a6d5-4c3e-9bdf-0a31f790bdcf
+Q -d copy_path_id=$PATHID $API/copy_path_status
 
 #echo "double check DB"
 #psql -x -c "SELECT * FROM copy_paths WHERE id = '$PATHID';"
@@ -35,9 +35,9 @@ source_path=bar.md
 target_project_id=e24ba30d-edcd-479f-8a26-bbe81f38296c
 
 #-d pending=false
-Q -d offset=0 -d src_project_id=$source_project_id -d src_path=$source_path -d target_project_id=$target_project_id -d failed=false -d limit=500  $API/copy_path_status
+Q -d offset=0 -d src_project_id=$source_project_id -d src_path=$source_path -d target_project_id=$target_project_id -d failed=true -d limit=500  $API/copy_path_status
 
 
-PATHID2=716024e5-14c9-410a-88a4-620affa8a479
+PATHID2=432c54ab-f0ac-4633-b59b-b7bbd8d5abe1
 #Q -d copy_path_id=$PATHID2 $API/copy_path_delete
 
