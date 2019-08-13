@@ -1,5 +1,13 @@
 // functions ported from misc_page.coffee
 
+// see entry-point, and via this useful in all TS files
+declare global {
+  interface Window {
+    COCALC_FULLSCREEN: string | undefined;
+    COCALC_MINIMAL: boolean;
+  }
+}
+
 export namespace QueryParams {
   export interface Params {
     [k: string]: string | boolean | (string | boolean)[];
