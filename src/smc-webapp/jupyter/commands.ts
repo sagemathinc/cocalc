@@ -609,18 +609,6 @@ export function commands(
       f: () => jupyter_actions.save()
     },
 
-    "scroll cell center": {
-      f: () => frame_actions.scroll("cell center")
-    },
-
-    "scroll cell top": {
-      f: () => frame_actions.scroll("cell top")
-    },
-
-    "scroll cell bottom": {
-      f: () => frame_actions.scroll("cell bottom")
-    },
-
     "scroll cell visible": {
       f: () => frame_actions.scroll("cell visible")
     },
