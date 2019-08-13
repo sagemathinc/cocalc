@@ -785,9 +785,11 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     student = store.get_student(student);
-    this.redux
-      .getActions("projects")
-      .clear_project_upgrades(student.get("project_id"));
+    const project_id = student.get("project_id");
+    if (project_id != null) {
+      // The student's project was created so let's clear any upgrades from it.
+      this.redux.getActions("projects").clear_project_upgrades(project_id);
+    }
     this._set({
       deleted: true,
       student_id: student.get("student_id"),
