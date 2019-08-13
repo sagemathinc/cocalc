@@ -164,10 +164,16 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_error() {
     if (this.props.error) {
+      const style = {
+        margin: "1ex",
+        whiteSpace: "pre" as "pre",
+        fontSize: "12px",
+        fontFamily: "monospace" as "monospace"
+      };
       return (
         <ErrorDisplay
           error={this.props.error}
-          style={{ margin: "1ex" }}
+          style={style}
           onClose={() => this.props.actions.set_error(undefined)}
         />
       );
@@ -312,6 +318,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         scroll={this.props.scroll}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
+        use_windowed_list={this.props.editor_settings != null && this.props.editor_settings.get('jupyter_window')}
       />
     );
   }

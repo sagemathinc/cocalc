@@ -99,7 +99,6 @@ export class Complete extends Component<CompleteProps> {
       >
         <ul
           className="dropdown-menu cocalc-complete"
-          style={{ maxHeight: "40vh" }}
           onKeyDown={this.key.bind(this)}
         >
           {this.get_items()}

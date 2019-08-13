@@ -443,7 +443,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     console.warn(s, ...args);
   }
 
-  set_cell_list = (): void => {
+  private set_cell_list(): void {
     const cells = this.store.get("cells");
     if (cells == null) {
       return;
@@ -453,16 +453,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({ cell_list });
       this.store.emit("cell-list-recompute");
     }
-  };
+  }
 
-  _syncdb_cell_change = (id: any, new_cell: any) => {
-    let left, obj;
-    if (typeof id !== "string") {
-      console.warn(`ignoring cell with invalid id='${JSON.stringify(id)}'`);
-      return;
-    }
-    const cells =
-      (left = this.store.get("cells")) != null ? left : immutable.Map();
+  private syncdb_cell_change(id: string, new_cell: any): boolean {
+    const cells: immutable.Map<
+      string,
+      immutable.Map<string, any>
+    > = this.store.get("cells");
+    if (cells == null) throw Error("BUG -- cells must have been initialized!");
     let cell_list_needs_recompute = false;
     //@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
     let old_cell = cells.get(id);
@@ -470,26 +468,23 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // delete cell
       this.reset_more_output(id); // free up memory locally
       if (old_cell != null) {
-        obj = { cells: cells.delete(id) };
-        const cell_list = this.store.get_cell_list();
-        obj.cell_list = cell_list.filter(x => x !== id);
-        this.setState(obj);
+        const cell_list = this.store.get_cell_list().filter(x => x !== id);
+        this.setState({ cells: cells.delete(id), cell_list });
       }
     } else {
       // change or add cell
       old_cell = cells.get(id);
       if (new_cell.equals(old_cell)) {
-        return; // nothing to do
+        return false; // nothing to do
       }
       if (old_cell != null && new_cell.get("start") !== old_cell.get("start")) {
         // cell re-evaluated so any more output is no longer valid.
         this.reset_more_output(id);
       }
-      obj = { cells: cells.set(id, new_cell) };
       if (old_cell == null || old_cell.get("pos") !== new_cell.get("pos")) {
         cell_list_needs_recompute = true;
       }
-      this.setState(obj);
+      this.setState({ cells: cells.set(id, new_cell) });
       if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
         this.edit_cell_metadata(id); // updates the state during active editing.
       }
@@ -501,7 +496,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.store.emit("cell_change", id, new_cell, old_cell);
 
     return cell_list_needs_recompute;
-  };
+  }
 
   _syncdb_change = (changes: any) => {
     if (this.syncdb == null) return;
@@ -514,23 +509,76 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   __syncdb_change = (changes: any): void => {
-    if (this.syncdb == null) {
+    if (this.syncdb == null || changes == null || (changes != null && changes.size == 0)) {
       return;
     }
     const do_init = this.is_project && this._state === "init";
-    //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
-    if (changes != null) {
-      changes.forEach(key => {
-        const record = this.syncdb.get_one(key);
-        switch (key.get("type")) {
+
+    if (this.store.get("cells") == null) {
+      // First time initialization, rather than some small
+      // update.  We could use the same code, e.g.,
+      // calling syncdb_cell_change, but that SCALES HORRIBLY
+      // as the number of cells gets large!
+
+      // this.syncdb.get() returns an immutable.List of all the records
+      // in the syncdb database.   These look like, e.g.,
+      //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
+      //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
+      let cells = immutable.Map();
+      this.syncdb.get().forEach(record => {
+        switch (record.get("type")) {
           case "cell":
-            if (this._syncdb_cell_change(key.get("id"), record)) {
+            cells = cells.set(record.get("id"), record);
+            break;
+          case "settings":
+            if (record == null) {
+              return;
+            }
+            let orig_kernel = this.store.get("kernel");
+            let kernel = record.get("kernel");
+            let obj: any = {
+              trust: !!record.get("trust"), // case to boolean
+              backend_state: record.get("backend_state"),
+              kernel_state: record.get("kernel_state"),
+              kernel_usage: record.get("kernel_usage"),
+              metadata: record.get("metadata"), // extra custom user-specified metadata
+              max_output_length: bounded_integer(
+                record.get("max_output_length"),
+                100,
+                100000,
+                20000
+              )
+            };
+            if (kernel !== orig_kernel) {
+              obj.kernel = kernel;
+              obj.kernel_info = this.store.get_kernel_info(kernel);
+              obj.backend_kernel_info = undefined;
+            }
+            this.setState(obj);
+            if (!this.is_project && orig_kernel !== kernel) {
+              this.set_backend_kernel_info();
+              this.set_cm_options();
+            }
+
+            break;
+        }
+      });
+
+      this.setState({ cells });
+      cell_list_needs_recompute = true;
+    } else {
+      changes.forEach(key => {
+        const type: string = key.get("type");
+        const record = this.syncdb.get_one(key);
+        switch (type) {
+          case "cell":
+            if (this.syncdb_cell_change(key.get("id"), record)) {
               cell_list_needs_recompute = true;
             }
             break;
           case "fatal":
-            var error = record != null ? record.get("error") : undefined;
+            let error = record != null ? record.get("error") : undefined;
             this.setState({ fatal: error });
             // This check can be deleted in a few weeks:
             if (
@@ -554,10 +602,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             if (record == null) {
               return;
             }
-            // TODO: var?
-            var orig_kernel = this.store.get("kernel");
-            var kernel = record.get("kernel");
-            var obj: any = {
+            let orig_kernel = this.store.get("kernel");
+            let kernel = record.get("kernel");
+            let obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
@@ -2386,17 +2433,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await this.format_cells(this.store.get_cell_ids_list(), sync);
   }
 
-  check_select_kernel = (): void => {
+  private check_select_kernel(): void  {
     const kernel = this.store.get("kernel");
     if (kernel == null) return;
 
     let unknown_kernel = false;
-
-    //console.log("jupyter::check_select_kernel", {
-    //  kernels: this.store.get("kernels"),
-    //  info: this.store.get_kernel_info(kernel)
-    //});
-
     if (this.store.get("kernels") != null)
       unknown_kernel = this.store.get_kernel_info(kernel) == null;
 

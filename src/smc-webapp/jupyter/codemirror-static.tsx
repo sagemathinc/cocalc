@@ -14,7 +14,7 @@ declare const CodeMirror: any; // TODO: find typings for this UMD
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
-  background: "#f7f7f7",
+  background: "#ffffff",
   lineHeight: "normal",
   height: "auto",
   fontSize: "inherit",

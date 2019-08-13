@@ -1,17 +1,12 @@
 import { Map as iMap, List as iList } from "immutable";
-
 import { FileUseInfo } from "./info";
-
-const { Button, Col, Row } = require("react-bootstrap");
-
+import { Alert, Button, Col, Row, Grid } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
-
 import { analytics_event } from "../tracker";
-
-const { Icon, SearchInput } = require("../r_misc");
-
+const { SearchInput } = require("../r_misc");
+import { Icon } from "../r_misc/icon";
+import { WindowedList } from "../r_misc/windowed-list";
 import { FileUseActions } from "./actions";
-
 import { open_file_use_entry } from "./util";
 
 const {
@@ -20,12 +15,9 @@ const {
   search_split
 } = require("smc-util/misc");
 
-// Number of notifications to show if "Show All" isn't clicked
-const SHORTLIST_LENGTH = 40;
-
 interface Props {
   redux: any;
-  file_use_list: iList<any>;
+  file_use_list: iList<FileUseInfoMap>;
   user_map: iMap<string, any>;
   project_map: iMap<string, any>;
   account_id: string;
@@ -35,20 +27,61 @@ interface Props {
 interface State {
   search: string;
   cursor: number; // cursor position
-  show_all: boolean;
 }
 
+type FileUseInfoMap = iMap<string, any>;
+
 export class FileUseViewer extends Component<Props, State> {
-  private _visible_list: iMap<string, any>[] = [];
-  private _num_missing: number = 0;
+  private num_missing: number = 0;
+  private windowed_list_ref = React.createRef<WindowedList>();
+  private visible_list: iList<FileUseInfoMap> | undefined = undefined;
 
   constructor(props) {
     super(props);
     this.state = {
       search: "",
-      cursor: 0,
-      show_all: false
+      cursor: 0
     };
+  }
+
+  public shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+    if (
+      this.props.file_use_list != nextProps.file_use_list ||
+      this.state.search != nextState.search
+    ) {
+      delete this.visible_list;
+      return true;
+    }
+    return (
+      this.props.unseen_mentions_size != nextProps.unseen_mentions_size ||
+      this.state.cursor != nextState.cursor ||
+      this.props.user_map != nextProps.user_map ||
+      this.props.project_map != nextProps.project_map
+    );
+  }
+
+  render_how_many_hidden_by_search(): Rendered {
+    this.get_visible_list(); // make sure num_missing is updated.
+    if (this.num_missing == 0) return;
+    return (
+      <Alert bsStyle="warning" key="not_showing">
+        Hiding {this.num_missing} file use notifications that do not match
+        search for '{this.state.search}'.
+      </Alert>
+    );
+  }
+
+  private set_cursor(cursor: number): void {
+    if (cursor >= this.get_visible_list().size) {
+      cursor = this.get_visible_list().size - 1;
+    }
+    if (cursor < 0) {
+      cursor = 0;
+    }
+    this.setState({ cursor });
+    if (this.windowed_list_ref.current != null) {
+      this.windowed_list_ref.current.scrollToRow(cursor);
+    }
   }
 
   render_search_box(): Rendered {
@@ -58,9 +91,7 @@ export class FileUseViewer extends Component<Props, State> {
           autoFocus={true}
           placeholder="Search..."
           default_value={this.state.search}
-          on_change={value =>
-            this.setState({ search: value, cursor: 0, show_all: false })
-          }
+          on_change={value => this.setState({ search: value, cursor: 0 })}
           on_submit={() => {
             this.open_selected();
           }}
@@ -70,19 +101,11 @@ export class FileUseViewer extends Component<Props, State> {
               if (a != null) {
                 (a as any).toggle_show_file_use();
               }
-              this.setState({ cursor: 0, show_all: false });
+              this.setState({ cursor: 0 });
             }
           }}
-          on_up={() =>
-            this.setState({ cursor: Math.max(0, this.state.cursor - 1) })
-          }
-          on_down={() => {
-            const cursor = Math.max(
-              0,
-              Math.min(this._visible_list.length - 1, this.state.cursor + 1)
-            );
-            this.setState({ cursor });
-          }}
+          on_up={() => this.set_cursor(this.state.cursor - 1)}
+          on_down={() => this.set_cursor(this.state.cursor + 1)}
         />
       </span>
     );
@@ -111,8 +134,8 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   open_selected(): void {
-    if (this._visible_list == null) return;
-    const x = this._visible_list[this.state.cursor];
+    if (this.visible_list == null) return;
+    const x = this.visible_list.get(this.state.cursor);
     if (x == null) return;
     open_file_use_entry(
       x.get("project_id"),
@@ -127,79 +150,54 @@ export class FileUseViewer extends Component<Props, State> {
     );
   }
 
-  render_list(): Rendered[] {
-    let v = this.props.file_use_list.toArray();
-    if (this.state.search) {
-      const s = search_split(this.state.search.toLowerCase());
-      const w: any[] = [];
-      for (let x of v) {
-        if (x && search_match(x.get("search"), s)) {
-          w.push(x);
-        }
+  private get_visible_list(): iList<FileUseInfoMap> {
+    if (this.visible_list == null) {
+      this.visible_list = this.props.file_use_list;
+      if (this.state.search) {
+        const s = search_split(this.state.search.toLowerCase());
+        this.visible_list = this.visible_list.filter(info =>
+          search_match(info.get("search"), s)
+        );
+        this.num_missing =
+          this.props.file_use_list.size - this.visible_list.size;
+      } else {
+        this.num_missing = 0;
       }
-      v = w;
+      if (this.visible_list == null) throw new Error("bug");
     }
-    if (!this.state.show_all) {
-      this._num_missing = Math.max(0, v.length - SHORTLIST_LENGTH);
-      v = v.slice(0, SHORTLIST_LENGTH);
-    }
-    this._visible_list = v;
-    const r: Rendered[] = [];
-    for (let i = 0; i < v.length; i++) {
-      const info = v[i];
-      r.push(
-        <FileUseInfo
-          key={`file-use-${i}`}
-          cursor={i === this.state.cursor}
-          redux={this.props.redux}
-          info={info}
-          account_id={this.props.account_id}
-          user_map={this.props.user_map}
-          project_map={this.props.project_map}
-        />
-      );
-    }
-    return r;
+    return this.visible_list;
   }
 
-  render_show_all(): Rendered {
-    if (this._num_missing) {
-      return (
-        <Button
-          key="show_all"
-          onClick={e => {
-            e.preventDefault();
-            return this.setState({ show_all: true });
-          }}
-        >
-          Show {this._num_missing} More
-        </Button>
-      );
-    }
+  private row_key(index: number): string {
+    return `${index}`;
   }
 
-  render_show_less(): Rendered {
-    const n = this._visible_list.length - SHORTLIST_LENGTH;
-    if (n > 0) {
-      return (
-        <Button
-          key="show_less"
-          onClick={e => {
-            e.preventDefault();
-            return this.setState({ show_all: false });
-          }}
-        >
-          Show {n} Less
-        </Button>
-      );
-    }
-  }
-
-  render_toggle_all(): Rendered {
+  private row_renderer({ index }): Rendered {
+    const info = this.get_visible_list().get(index);
+    if (info == null) return;
     return (
-      <div key="toggle_all" style={{ textAlign: "center", marginTop: "2px" }}>
-        {this.state.show_all ? this.render_show_less() : this.render_show_all()}
-      </div>
+      <FileUseInfo
+        cursor={index === this.state.cursor}
+        redux={this.props.redux}
+        info={info}
+        account_id={this.props.account_id}
+        user_map={this.props.user_map}
+        project_map={this.props.project_map}
+      />
+    );
+  }
+
+  private render_list(): Rendered {
+    return (
+      <WindowedList
+        ref={this.windowed_list_ref}
+        overscan_row_count={20}
+        estimated_row_size={56}
+        row_count={this.get_visible_list().size}
+        row_renderer={this.row_renderer.bind(this)}
+        row_key={this.row_key.bind(this)}
+        cache_id={"file-use"}
+      />
     );
   }
 
@@ -220,22 +218,22 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   render(): Rendered {
-    const link = this.render_see_mentions_link()
+    const link = this.render_see_mentions_link();
     return (
-      <div className={"smc-file-use-viewer"}>
-        <Row key="top">
-          <Col sm={7}>{this.render_search_box()}</Col>
-          <Col sm={2} style={{ padding: "8px 0px 0px 5px" }}>
-            {link}
-          </Col>
-          <Col sm={3}>
-            <div style={{ float: "right" }}>
-              {this.render_mark_all_read_button()}
-            </div>
-          </Col>
-        </Row>
+      <div className={"smc-vfill smc-file-use-viewer"}>
+        <Grid fluid={true}>
+          <Row key="top">
+            <Col sm={7}>{this.render_search_box()}</Col>
+            <Col sm={2}>{link}</Col>
+            <Col sm={3}>
+              <div style={{ float: "right" }}>
+                {this.render_mark_all_read_button()}
+              </div>
+            </Col>
+          </Row>
+        </Grid>
+        {this.render_how_many_hidden_by_search()}
         {this.render_list()}
-        {this.render_toggle_all()}
       </div>
     );
   }
