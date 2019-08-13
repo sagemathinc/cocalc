@@ -236,6 +236,7 @@ ProjectContentViewer = rclass
         file_path       : rtypes.string
         group           : rtypes.string
         save_scroll     : rtypes.func
+        show_new        : rtypes.bool
 
     getInitialState: -> # just for forcing updates sometimes
         counter : 0
@@ -398,7 +399,13 @@ ProjectContentViewer = rclass
         style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
         if !@props.is_visible
             style.display = "none"
-        <div style={style}>
+        # always make div remaining height,
+        # except for on the files page when New is being displayed:
+        if @props.active_tab_name == 'files' and @props.show_new
+            className = undefined
+        else
+            className = 'smc-vfill'
+        <div style={style} className={className}>
             {@render_tab_content()}
         </div>
 
@@ -419,6 +426,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             free_warning_closed   : rtypes.bool     # Makes bottom height update
             num_ghost_file_tabs   : rtypes.number
             current_path          : rtypes.string
+            show_new              : rtypes.bool
 
     propTypes :
         project_id : rtypes.string
@@ -578,6 +586,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 project_id      = {@props.project_id}
                 project_name    = {@props.name}
                 active_tab_name = {@props.active_project_tab}
+                show_new        = {@props.show_new}
                 opened_file     = {@props.open_files.get(active_path)}
                 file_path       = {active_path}
                 group           = {group}

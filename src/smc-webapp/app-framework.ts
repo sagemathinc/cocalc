@@ -229,6 +229,7 @@ export class AppRedux {
     init?: {} | State
   ): C {
     let S: C = this._stores[name];
+    if (S != null) throw Error(`store ${name} already exists`);
     if (init === undefined && typeof store_class !== "function") {
       // so can do createStore(name, {default init})
       init = store_class;
