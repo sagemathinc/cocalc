@@ -31,6 +31,8 @@
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
 
+import { is_different } from "smc-util/misc2";
+
 // React libraries and components
 import {
   Component,
@@ -165,8 +167,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     shouldComponentUpdate(props, state) {
       if (
-        this.state.search !== state.search ||
-        misc.is_different(this.props, props, [
+        is_different(this.state, state, ["search", "show_deleted"]) ||
+        is_different(this.props, props, [
           "students",
           "user_map",
           "active_student_sort"
@@ -177,7 +179,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       return (
         this.state !== state ||
-        misc.is_different(this.props, props, [
+        is_different(this.props, props, [
           "expanded_students",
           "name",
           "project_id",
@@ -665,21 +667,21 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
 
       // Deleted and non-deleted students
-      const w: any[] = [];
-      const w2: any[] = [];
+      const deleted: any[] = [];
+      const non_deleted: any[] = [];
       for (let x of students) {
         if (x.deleted) {
-          w.push(x);
+          deleted.push(x);
         } else {
-          w2.push(x);
+          non_deleted.push(x);
         }
       }
-      const num_deleted = w.length;
+      const num_deleted = deleted.length;
 
-      students = w2;
+      students = non_deleted;
       if (this.state.show_deleted) {
         // but show at the end...
-        students = students.concat(w);
+        students = students.concat(deleted);
       }
 
       let num_omitted = 0;
@@ -974,14 +976,14 @@ class Student extends Component<StudentProps, StudentState> {
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
-      misc.is_different(this.state, nextState, [
+      is_different(this.state, nextState, [
         "confirm_delete",
         "editing_student",
         "edited_first_name",
         "edited_last_name",
         "edited_email_address"
       ]) ||
-      misc.is_different(this.props, nextProps, [
+      is_different(this.props, nextProps, [
         "name",
         "student",
         "user_map",
