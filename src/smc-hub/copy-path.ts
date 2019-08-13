@@ -7,6 +7,7 @@ const message = require("smc-util/message");
 const access = require("./access");
 const misc = require("smc-util/misc");
 const { one_result } = require("./postgres");
+import { is_valid_uuid_string } from "../smc-util/misc2";
 
 type WhereQueries = ({ [query: string]: string } | string)[];
 
@@ -68,34 +69,50 @@ function row_to_copy_op(copy_op): CopyOp {
 export class CopyPath {
   private client: any;
   private dbg: (method: string) => (msg: string) => void;
+  //private err: (method: string) => (msg: string) => void;
+  private throw: (msg: string) => void;
 
   constructor(client) {
     this.client = client;
-    // client.dbg returns a function
-    this.dbg = function(method: string): (msg: string) => void {
-      return this.client.dbg(`CopyPath::${method}`);
-    };
+    this._init_errors();
     this.copy = this.copy.bind(this);
     this.status = this.status.bind(this);
     this.delete = this.delete.bind(this);
     this._status_query = this._status_query.bind(this);
     this._status_single = this._status_single.bind(this);
     this._get_status = this._get_status.bind(this);
+    this._read_access = this._read_access.bind(this);
+    this._write_access = this._write_access.bind(this);
+  }
+
+  private _init_errors(): void {
+    // client.dbg returns a function
+    this.dbg = function(method: string): (msg: string) => void {
+      return this.client.dbg(`CopyPath::${method}`);
+    };
+    //this.err = function(method: string): (msg: string) => void {
+    //  return msg => {
+    //    throw new Error(`CopyPath::${method}: ${msg}`);
+    //  };
+    //};
+    this.throw = (msg: string) => {
+      throw new Error(msg);
+    };
   }
 
   copy(mesg) {
     this.client.touch();
-    if (mesg.src_project_id == null) {
+    if (!is_valid_uuid_string(mesg.src_project_id)) {
       this.client.error_to_client({
         id: mesg.id,
-        error: "src_project_id must be defined"
+        error: `src_project_id='${mesg.src_project_id}' not valid`
       });
       return;
     }
-    if (mesg.target_project_id == null) {
+    if (!is_valid_uuid_string(mesg.target_project_id)) {
       this.client.error_to_client({
         id: mesg.id,
-        error: "target_project_id must be defined"
+        error: `target_project_id='${mesg.target_project_id}' not valid`
       });
       return;
     }
@@ -111,56 +128,15 @@ export class CopyPath {
 
     async.series(
       [
-        (cb): void => {
-          // Check permissions for the source and target projects (in parallel) --
-          // need read access to the source and write access to the target.
-          async.parallel(
-            [
-              (cb): void => {
-                access.user_has_read_access_to_project({
-                  project_id: mesg.src_project_id,
-                  account_id: this.client.account_id,
-                  account_groups: this.client.groups,
-                  database: this.client.database,
-                  cb: (err, result) => {
-                    if (err) {
-                      cb(err);
-                    } else if (!result) {
-                      cb(
-                        `user must have read access to source project ${
-                          mesg.src_project_id
-                        }`
-                      );
-                    } else {
-                      cb();
-                    }
-                  }
-                });
-              },
-              (cb): void => {
-                access.user_has_write_access_to_project({
-                  database: this.client.database,
-                  project_id: mesg.target_project_id,
-                  account_id: this.client.account_id,
-                  account_groups: this.client.groups,
-                  cb: (err, result) => {
-                    if (err) {
-                      cb(err);
-                    } else if (!result) {
-                      cb(
-                        `user must have write access to target project ${
-                          mesg.target_project_id
-                        }`
-                      );
-                    } else {
-                      return cb();
-                    }
-                  }
-                });
-              }
-            ],
-            cb
-          );
+        async (cb): Promise<void> => {
+          try {
+            const write = this._write_access(mesg.target_project_id);
+            const read = this._read_access(mesg.src_project_id);
+            await Promise.all([write, read]);
+            cb();
+          } catch (err) {
+            cb(err.message);
+          }
         },
 
         (cb): void => {
@@ -239,7 +215,6 @@ export class CopyPath {
 
   private _status_query(mesg) {
     const locals = {
-      allowed: true, // this is not really necessary
       copy_ops: [] as CopyOp[]
     };
 
@@ -247,56 +222,33 @@ export class CopyPath {
 
     async.series(
       [
-        (cb): void => {
+        async (cb): Promise<void> => {
           if (mesg.src_project_id == null) {
             cb();
             return;
           }
-          access.user_has_read_access_to_project({
-            project_id: mesg.src_project_id,
-            account_id: this.client.account_id,
-            account_groups: this.client.groups,
-            database: this.client.database,
-            cb: (err, result) => {
-              if (err) {
-                cb(err);
-              } else if (!result) {
-                locals.allowed = false;
-                cb("ACCESS BLOCKED -- No read access to source project");
-              } else {
-                cb();
-              }
-            }
-          });
+          try {
+            await this._read_access(mesg.src_project_id);
+          } catch (err) {
+            cb(err.message);
+            return;
+          }
+          cb();
         },
-        (cb): void => {
+        async (cb): Promise<void> => {
           if (mesg.target_project_id == null) {
             cb();
             return;
           }
-          access.user_has_write_access_to_project({
-            database: this.client.database,
-            project_id: mesg.target_project_id,
-            account_id: this.client.account_id,
-            account_groups: this.client.groups,
-            cb: (err, result) => {
-              if (err) {
-                cb(err);
-              } else if (!result) {
-                locals.allowed = false;
-                cb("ACCESS BLOCKED -- No write access to target project");
-              } else {
-                cb();
-              }
-            }
-          });
-        },
-        async (cb): Promise<void> => {
-          if (!locals.allowed) {
-            cb("Not allowed");
+          try {
+            await this._write_access(mesg.target_project_id);
+          } catch (err) {
+            cb(err.message);
             return;
           }
-
+          cb();
+        },
+        async (cb): Promise<void> => {
           const where: WhereQueries = [
             {
               "source_project_id = $::UUID": mesg.src_project_id,
@@ -525,5 +477,48 @@ export class CopyPath {
         }
       }
     });
+  }
+
+  private async _read_access(src_project_id): Promise<boolean> {
+    if (!is_valid_uuid_string(src_project_id)) {
+      this.throw(`invalid src_project_id=${src_project_id}`);
+    }
+
+    const read_ok = await callback2(access.user_has_read_access_to_project, {
+      project_id: src_project_id,
+      account_id: this.client.account_id,
+      account_groups: this.client.groups,
+      database: this.client.database
+    });
+    this.dbg("_read_access")(read_ok);
+    if (!read_ok) {
+      this.throw(
+        `ACCESS BLOCKED -- No read access to source project -- ${src_project_id}`
+      );
+      return false;
+    }
+    return true;
+  }
+
+  private async _write_access(target_project_id): Promise<boolean> {
+    if (!is_valid_uuid_string(target_project_id)) {
+      this.throw(`invalid target_project_id=${target_project_id}`);
+    }
+
+    const write_ok = await callback2(access.user_has_write_access_to_project, {
+      database: this.client.database,
+      project_id: target_project_id,
+      account_id: this.client.account_id,
+      account_groups: this.client.groups
+    });
+    this.dbg("_write_access")(write_ok);
+    if (!write_ok) {
+      this.throw(
+        `ACCESS BLOCKED -- No write access to target project -- ${target_project_id}`
+      );
+      return false;
+    }
+
+    return true;
   }
 }
