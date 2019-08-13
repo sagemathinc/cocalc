@@ -1807,6 +1807,11 @@ API(
         init: undefined,
         desc: "(src/targ only) Source path of copy operation to filter on"
       },
+      limit: {
+        init: 1000,
+        desc:
+          "(src/targ only) maximum number of results  (default 1000, max 1000)"
+      },
       offset: {
         init: undefined,
         desc: "(src/targ only) default 0; use a multiple of 1000"
@@ -1816,7 +1821,7 @@ API(
         desc:
           "(src/targ only) if true, only show pending copy ops (default: true)"
       },
-      errored: {
+      failed: {
         init: false,
         desc:
           "(src/targ only) if true, only show finished and failed copy ops (default: false)"
