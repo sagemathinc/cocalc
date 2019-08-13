@@ -23,7 +23,7 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 // windowing, destroying and creating the same codemirror can happen
 // a lot. TODO: This **should** be an LRU cache to avoid a memory leak.
 interface CachedInfo {
-  sel?: any[];   // only cache the selections right now...
+  sel?: any[]; // only cache the selections right now...
 }
 
 const cache: { [key: string]: CachedInfo } = {};
@@ -412,10 +412,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
-  private async init_codemirror(
+  private init_codemirror(
     options: ImmutableMap<string, any>,
     value: string
-  ): Promise<void> {
+  ): void {
     if (this.cm != null) return;
     const node = this.cm_ref.current;
     if (node == null) {
@@ -521,24 +521,12 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this.props.set_last_cursor();
     }
 
-    // Finally, do a refresh in the next render loop, once layout is done.
-    // See https://github.com/sagemathinc/cocalc/issues/2397
-    // Note that this also avoids a significant disturbing flicker delay
-    // even for non-raw cells.  This obviously probably slows down initial
-    // load or switch to of the page, unfortunately.  Such is life.
-    // CRITICAL: Also do the focus only after the refresh, or when
-    // switching from static to non-static, whole page gets badly
-    // repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
-    await delay(0);
-    if (this.cm != null) {
-      this.cm.refresh();
-      if (this.props.is_focused) {
-        this.cm.focus();
-      }
+    if (this.props.is_focused) {
+      this.cm.focus();
     }
   }
 
-  componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
+  async componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
     if (this.cm == null) {
       this.init_codemirror(nextProps.options, nextProps.value);
       return;
@@ -565,10 +553,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       // controlled loss of focus from store; we have to force
       // this somehow.  Note that codemirror has no .blur().
       // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
-      setTimeout(
-        () => (this.cm != null ? this.cm.getInputField().blur() : undefined),
-        1
-      );
+      await delay(1);
+      if (this.cm != null) {
+        this.cm.getInputField().blur();
+      }
     }
     if (this._vim_mode && !nextProps.is_focused && this.props.is_focused) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });

@@ -198,7 +198,7 @@ export class CellList extends Component<CellListProps> {
 
     // supported scroll positions are in types.ts
     if (scroll === "cell visible") {
-      if (!this.props.cur_id) return;
+      if (!this.props.cur_id || this.props.mode == "edit") return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
       if (n != -1) {
         list.scrollToRow(n);
@@ -260,7 +260,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_cell(id: string, isScrolling?: boolean): Rendered {
+  private render_cell(id: string, isScrolling: boolean=false): Rendered {
     const cell = this.props.cells.get(id);
     return (
       <Cell
@@ -301,12 +301,12 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private windowed_list_row_renderer({ key, isScrolling }): Rendered {
+  private windowed_list_row_renderer({ key, isVisible, isScrolling }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
         {this.render_insert_cell(key, "above")}
-        {this.render_cell(key, isScrolling)}
+        {this.render_cell(key, isScrolling || !isVisible)}
         {is_last ? this.render_insert_cell(key, "below") : undefined}
       </div>
     );
@@ -325,7 +325,7 @@ export class CellList extends Component<CellListProps> {
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={0 /* DO *NOT* CHANGE THIS!!! */}
+        overscan_row_count={50}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
@@ -333,6 +333,7 @@ export class CellList extends Component<CellListProps> {
         cache_id={cache_id}
         use_is_scrolling={true}
         hide_resize={true}
+        render_info={true}
       />
     );
   }
