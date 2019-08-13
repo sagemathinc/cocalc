@@ -9,6 +9,7 @@ import {
   EntrySelectionPage,
   //SelectedItemsList,
   ConfigurationPage,
+  ErrorListing,
   default_colors
 } from "./view";
 import * as API from "./api";
@@ -18,28 +19,38 @@ import { initial_global_state } from "./state/values";
 import { assert_never } from "./helpers";
 
 // TODO: Put this somewhere ./state
+// TODO: Report these errors to some DB
 // Returns a shallow copy of global_state with a new context attached via url search query
 function with_data_from_params(global_state: GlobalState): GlobalState {
   const query_params = querystring.parse(window.location.search);
-  if (query_params.id_token == undefined) {
-    throw new Error("id_token was undefined");
-  }
-  if (Array.isArray(query_params.id_token)) {
-    throw new Error("id_token recieved as an array. Should be a single value");
-  }
-  if (query_params.nonce == undefined) {
-    throw new Error("nonce was undefined");
-  }
-  if (Array.isArray(query_params.nonce)) {
-    throw new Error("nonce recieved as an array. Should be a single value");
-  }
-  if (Array.isArray(query_params.return_path)) {
-    throw new Error(
-      "return_path recieved as an array. Should be a single value"
-    );
-  }
-  if (query_params.return_path == undefined) {
-    throw new Error("return_path was undefined");
+  try {
+    if (query_params.id_token == undefined) {
+      throw new Error("id_token was undefined");
+    }
+    if (Array.isArray(query_params.id_token)) {
+      throw new Error(
+        "id_token recieved as an array. Should be a single value"
+      );
+    }
+    if (query_params.nonce == undefined) {
+      throw new Error("nonce was undefined");
+    }
+    if (Array.isArray(query_params.nonce)) {
+      throw new Error("nonce recieved as an array. Should be a single value");
+    }
+    if (Array.isArray(query_params.return_path)) {
+      throw new Error(
+        "return_path recieved as an array. Should be a single value"
+      );
+    }
+    if (query_params.return_path == undefined) {
+      throw new Error("return_path was undefined");
+    }
+  } catch (e) {
+    return {
+      ...global_state,
+      errors: [...global_state.errors, e]
+    };
   }
 
   return {
@@ -81,7 +92,9 @@ function App() {
     </>
   );
 
-  if (!state.loading && state.account_info) {
+  if (state.errors) {
+    content = <ErrorListing errors={state.errors} />;
+  } else if (!state.loading && state.account_info) {
     switch (state.route) {
       case Route.Home:
         content = (

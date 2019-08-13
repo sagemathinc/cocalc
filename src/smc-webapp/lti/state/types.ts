@@ -12,6 +12,7 @@ export type GlobalState = Readonly<{
   selected_entries: SelectedEntries;
   excluded_entries: ExcludedEntries;
   context: { id_token: string; nonce: string; return_path: string };
+  errors: Error[];
 }>;
 
 export enum Route {

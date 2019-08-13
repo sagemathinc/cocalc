@@ -11,5 +11,6 @@ export const initial_global_state: GlobalState = {
   opened_directories: {},
   selected_entries: {},
   excluded_entries: {},
-  context: { id_token: "", nonce: "", return_path: "" }
+  context: { id_token: "", nonce: "", return_path: "" },
+  errors: []
 };
