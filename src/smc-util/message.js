@@ -1738,6 +1738,11 @@ API(
       exclude_history: {
         init: false,
         desc: "if true, exclude all files of the form `*.sage-history`"
+      },
+      wait_until_done: {
+        init: true,
+        desc:
+          "if false, the operation returns immediately with the copy_path_id for querying copy_path_status"
       }
     },
     desc: `\
@@ -1768,6 +1773,35 @@ Folder \`A\` will be created in target project if it does not exist already.
 `
   })
 );
+
+message({
+  event: "copy_path_between_projects_response",
+  id: required,
+  copy_path_id: undefined,
+  note: "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
+});
+
+API(
+  message2({
+    event: "copy_path_status",
+    fields: {
+      copy_path_id: {
+        init: undefined,
+        desc: "A unique UUID for a copy path operation"
+      }
+    },
+    desc: `\
+Retrieve status information about a copy operation for the given ID,
+which was returned by \`copy_path_between_projects\` earlier.
+`
+  })
+);
+
+message({
+  event: "copy_path_status_response",
+  id: required,
+  data: required
+});
 
 //############################################
 // Admin Functionality

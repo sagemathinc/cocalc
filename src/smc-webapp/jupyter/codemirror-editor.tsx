@@ -6,7 +6,8 @@ declare const $: any;
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-import { React, Component, ReactDOM } from "../app-framework";
+import { delay } from "awaiting";
+import { React, Component } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
@@ -16,6 +17,16 @@ declare const CodeMirror: any; // TODO: type
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+// We cache a little info about each Codemirror editor we make here,
+// so we can restore it when we make the same one again.  Due to
+// windowing, destroying and creating the same codemirror can happen
+// a lot. TODO: This **should** be an LRU cache to avoid a memory leak.
+interface CachedInfo {
+  sel?: any[];   // only cache the selections right now...
+}
+
+const cache: { [key: string]: CachedInfo } = {};
 
 const FOCUSED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -51,6 +62,7 @@ interface CodeMirrorEditorProps {
   set_last_cursor: Function; // TODO: type
   last_cursor?: any;
   is_focused?: boolean;
+  is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
 }
 
@@ -61,9 +73,14 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   private _cm_blur_skip: any;
   private _cm_is_focused: any;
   private _vim_mode: any;
+  private cm_ref = React.createRef<HTMLPreElement>();
+  private key?: string;
 
   componentDidMount() {
-    return this.init_codemirror(this.props.options, this.props.value);
+    if (this.props.frame_actions != null) {
+      this.key = `${this.props.frame_actions}${this.props.id}`;
+    }
+    this.init_codemirror(this.props.options, this.props.value);
   }
 
   _cm_destroy = (): void => {
@@ -121,9 +138,16 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    const locs = this.cm
-      .listSelections()
-      .map(c => ({ x: c.anchor.ch, y: c.anchor.line, id: this.props.id }));
+    const sel = this.cm.listSelections();
+    if (this.key != null) {
+      if (cache[this.key] == null) cache[this.key] = {};
+      cache[this.key].sel = sel;
+    }
+    const locs = sel.map(c => ({
+      x: c.anchor.ch,
+      y: c.anchor.line,
+      id: this.props.id
+    }));
     this.props.actions.set_cursor_locs(locs, this.cm._setValueNoJump);
 
     // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
@@ -371,7 +395,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       if (!show_dialog) {
         this.props.frame_actions.set_mode("edit");
       }
-    } catch(err) {
+    } catch (err) {
       // ignore -- maybe another complete happened and this should be ignored.
     }
   };
@@ -387,12 +411,17 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     });
   };
 
-  init_codemirror = (options: any, value: any): void => {
-    const node = $(ReactDOM.findDOMNode(this)).find("textarea")[0]; // TODO: avoid findDOMNode
+  // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
+  private async init_codemirror(
+    options: ImmutableMap<string, any>,
+    value: string
+  ): Promise<void> {
+    if (this.cm != null) return;
+    const node = this.cm_ref.current;
     if (node == null) {
       return;
     }
-    const options0 = options.toJS();
+    const options0: any = options.toJS();
     if (this.props.actions != null) {
       if (options0.extraKeys == null) {
         options0.extraKeys = {};
@@ -405,36 +434,35 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       options0.extraKeys["PageDown"] = this.page_down_key;
       options0.extraKeys["Cmd-/"] = "toggleComment";
       options0.extraKeys["Ctrl-/"] = "toggleComment";
+      /*
+      Disabled for now since fold state isn't preserved.
+      if (options0.foldGutter) {
+        options0.extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
+        options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
+      }
+      */
     } else {
       options0.readOnly = true;
     }
 
-    /*
-        * Disabled for efficiency reasons:
-        *   100% for speed reasons, we only use codemirror for cells with cursors
-        *   or the active cell, so don't want to show a gutter.
-        if options0.foldGutter
-            options0.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
-            options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]  # TODO: if we later change options to disable folding, the gutter still remains in the editors.
-        */
+    this.cm = CodeMirror(function(elt) {
+      if (node.parentNode == null) return;
+      node.parentNode.replaceChild(elt, node);
+    }, options0);
 
-    this.cm = CodeMirror.fromTextArea(node, options0);
     this.cm.save = () => this.props.actions.save();
     if (this.props.actions != null && options0.keyMap === "vim") {
       this._vim_mode = true;
-      this.cm.on("vim-mode-change", obj => {
+      this.cm.on("vim-mode-change", async obj => {
         if (obj.mode === "normal") {
-          // The timeout is because this must not be set when the general
+          // The delay is because this must not be set when the general
           // keyboard handler for the whole editor gets called with escape.
           // This is ugly, but I'm not going to spend forever on this before
           // the #v1 release, as vim support is a bonus feature.
-          setTimeout(
-            () =>
-              this.props.frame_actions.setState({
-                cur_cell_vim_mode: "escape"
-              }),
-            0
-          );
+          await delay(0);
+          this.props.frame_actions.setState({
+            cur_cell_vim_mode: "escape"
+          });
         } else {
           this.props.frame_actions.setState({ cur_cell_vim_mode: "edit" });
         }
@@ -445,12 +473,18 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
 
     const css: any = { height: "auto" };
     if (options0.theme == null) {
-      css.backgroundColor = "#f7f7f7"; // this is what official jupyter looks like...
+      css.backgroundColor = "#fff";
     }
     $(this.cm.getWrapperElement()).css(css);
 
     this._cm_last_remote = value;
     this.cm.setValue(value);
+    if (this.key != null) {
+      const info = cache[this.key];
+      if (info != null && info.sel != null) {
+        this.cm.getDoc().setSelections(info.sel);
+      }
+    }
 
     this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
     this.cm.on("change", this._cm_change);
@@ -495,15 +529,14 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // CRITICAL: Also do the focus only after the refresh, or when
     // switching from static to non-static, whole page gets badly
     // repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
-    setTimeout(() => {
-      if (this.cm != null) {
-        this.cm.refresh();
-      }
+    await delay(0);
+    if (this.cm != null) {
+      this.cm.refresh();
       if (this.props.is_focused) {
-        this.cm != null ? this.cm.focus() : undefined;
+        this.cm.focus();
       }
-    }, 1);
-  };
+    }
+  }
 
   componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
     if (this.cm == null) {
@@ -513,8 +546,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (!this.props.options.equals(nextProps.options)) {
       this.update_codemirror_options(nextProps.options, this.props.options);
     }
-    if (this.props.font_size !== nextProps.font_size) {
-      this.cm.refresh();
+    if (
+      this.props.font_size !== nextProps.font_size ||
+      (this.props.is_scrolling && !nextProps.is_scrolling)
+    ) {
+      this._cm_refresh();
     }
     if (nextProps.value !== this.props.value) {
       this._cm_merge_remote(nextProps.value);
@@ -574,7 +610,16 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       <div style={{ width: "100%", overflow: "auto" }}>
         {this.render_cursors()}
         <div style={FOCUSED_STYLE}>
-          <textarea />
+          <pre
+            ref={this.cm_ref}
+            style={{
+              width: "100%",
+              backgroundColor: "#fff",
+              minHeight: "25px"
+            }}
+          >
+            {this.props.value}
+          </pre>
         </div>
         {this.render_complete()}
       </div>
