@@ -23,6 +23,8 @@ $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
+{COCALC_MINIMAL} = require('./fullscreen')
+
 {analytics_event} = require('./tracker')
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
@@ -917,7 +919,7 @@ class ProjectsAllTable extends Table
 
 all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
-    if all_projects_have_been_loaded
+    if all_projects_have_been_loaded # or COCALC_MINIMAL
         return
     all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
@@ -931,6 +933,7 @@ load_recent_projects = =>
     if redux.getTable('projects')._table.get().size == 0
         await load_all_projects()
 
+#if not COCALC_MINIMAL
 load_recent_projects()
 
 

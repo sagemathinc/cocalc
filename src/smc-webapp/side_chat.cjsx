@@ -112,7 +112,8 @@ ChatRoom = rclass ({name}) ->
             misc.original_path(@props.path)
         )
         @props.actions.send_chat(value)
-        @input_ref.current.focus();
+        if @input_ref.current?
+            @input_ref.current.focus()
 
     on_input_change: (value, mentions, plain_text) ->
         @props.actions.set_unsent_user_mentions(mentions, plain_text)
