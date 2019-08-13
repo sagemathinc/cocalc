@@ -44,19 +44,21 @@ interface CellListProps {
   more_output?: immutable.Map<string, any>;
   cell_toolbar?: string;
   trust?: boolean;
+  use_windowed_list?: boolean;
 }
 
 export class CellList extends Component<CellListProps> {
   private cell_list_node: HTMLElement;
   private is_mounted: boolean = true;
-  private use_window_list: boolean;
+  private use_windowed_list: boolean;
   private windowed_list_ref = React.createRef<WindowedList>();
 
   constructor(props) {
     super(props);
-    this.use_window_list =
-      this.props.actions != null && this.props.frame_actions != null;
-    if (this.use_window_list && this.props.frame_actions != null) {
+    this.use_windowed_list =
+      !!this.props.use_windowed_list &&
+      (this.props.actions != null && this.props.frame_actions != null);
+    if (this.use_windowed_list && this.props.frame_actions != null) {
       this.props.frame_actions.set_windowed_list_ref(this.windowed_list_ref);
     }
   }
@@ -76,7 +78,7 @@ export class CellList extends Component<CellListProps> {
 
   private save_scroll(): void {
     if (
-      this.use_window_list &&
+      this.use_windowed_list &&
       this.props.frame_actions != null &&
       this.windowed_list_ref.current != null
     ) {
@@ -97,7 +99,7 @@ export class CellList extends Component<CellListProps> {
     let scrollHeight: number = 0;
     for (let tm of [0, 250, 750, 1500, 2000]) {
       if (!this.is_mounted) return;
-      if (this.use_window_list) {
+      if (this.use_windowed_list) {
         if (this.windowed_list_ref.current != null) {
           this.windowed_list_ref.current.scrollToPosition(this.props.scrollTop);
         }
@@ -183,7 +185,7 @@ export class CellList extends Component<CellListProps> {
   }
 
   private scroll_cell_list(scroll: Scroll): void {
-    if (!this.use_window_list) return;
+    if (!this.use_windowed_list) return;
     const list = this.windowed_list_ref.current;
     if (list == null) return;
     const info = list.get_scroll();
@@ -299,7 +301,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private window_list_row_renderer({ key, isScrolling }): Rendered {
+  private windowed_list_row_renderer({ key, isScrolling }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
@@ -310,7 +312,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_list_of_cells_using_window_list(): Rendered {
+  private render_list_of_cells_using_windowed_list(): Rendered {
     let cache_id: undefined | string = undefined;
     if (this.props.name != null && this.props.frame_actions != null) {
       cache_id = this.props.name + this.props.frame_actions.frame_id;
@@ -327,7 +329,7 @@ export class CellList extends Component<CellListProps> {
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
-        row_renderer={this.window_list_row_renderer.bind(this)}
+        row_renderer={this.windowed_list_row_renderer.bind(this)}
         cache_id={cache_id}
         use_is_scrolling={true}
         hide_resize={true}
@@ -359,14 +361,14 @@ export class CellList extends Component<CellListProps> {
       padding: "5px"
     };
 
-    if (this.props.actions == null || this.props.frame_actions == null) {
-      return <div style={style}>{this.render_list_of_cells_directly()}</div>;
-    } else {
+    if (this.use_windowed_list) {
       return (
         <div className="smc-vfill" style={style}>
-          {this.render_list_of_cells_using_window_list()}
+          {this.render_list_of_cells_using_windowed_list()}
         </div>
       );
+    } else {
+      return <div style={style}>{this.render_list_of_cells_directly()}</div>;
     }
   }
 
