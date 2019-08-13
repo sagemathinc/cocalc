@@ -1,17 +1,12 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 // Copy Path Provider
 // Used in the "Client"
 
 const async = require("async");
+import { callback2 } from "smc-util/async-utils";
 const message = require("smc-util/message");
 const access = require("./access");
 const misc = require("smc-util/misc");
+const { one_result } = require("./postgres");
 
 type WhereQueries = ({ [query: string]: string } | string)[];
 
@@ -32,9 +27,14 @@ interface CopyOp {
 }
 
 // this is specific to here
-function sanitize(val, deflt, max, name) {
+function sanitize(
+  val: number | string,
+  deflt: number,
+  max: number,
+  name
+): number {
   if (val != null) {
-    const o = parseInt(val);
+    const o = typeof val == "string" ? parseInt(val) : val;
     if (isNaN(o) || o < 0 || o > max) {
       throw new Error(
         `ILLEGAL VALUE ${name}='${val}' (must be in [0, ${max}])`
@@ -109,45 +109,45 @@ export class CopyPath {
 
     const locals = { copy_id: undefined };
 
-    return async.series(
+    async.series(
       [
-        cb => {
+        (cb): void => {
           // Check permissions for the source and target projects (in parallel) --
           // need read access to the source and write access to the target.
-          return async.parallel(
+          async.parallel(
             [
-              cb => {
-                return access.user_has_read_access_to_project({
+              (cb): void => {
+                access.user_has_read_access_to_project({
                   project_id: mesg.src_project_id,
                   account_id: this.client.account_id,
                   account_groups: this.client.groups,
                   database: this.client.database,
                   cb: (err, result) => {
                     if (err) {
-                      return cb(err);
+                      cb(err);
                     } else if (!result) {
-                      return cb(
+                      cb(
                         `user must have read access to source project ${
                           mesg.src_project_id
                         }`
                       );
                     } else {
-                      return cb();
+                      cb();
                     }
                   }
                 });
               },
-              cb => {
-                return access.user_has_write_access_to_project({
+              (cb): void => {
+                access.user_has_write_access_to_project({
                   database: this.client.database,
                   project_id: mesg.target_project_id,
                   account_id: this.client.account_id,
                   account_groups: this.client.groups,
                   cb: (err, result) => {
                     if (err) {
-                      return cb(err);
+                      cb(err);
                     } else if (!result) {
-                      return cb(
+                      cb(
                         `user must have write access to target project ${
                           mesg.target_project_id
                         }`
@@ -163,43 +163,43 @@ export class CopyPath {
           );
         },
 
-        cb => {
+        (cb): void => {
           // do the copy
-          return this.client.compute_server.project({
+          this.client.compute_server.project({
             project_id: mesg.src_project_id,
             cb: (err, project) => {
               if (err) {
                 cb(err);
                 return;
-              } else {
-                return project.copy_path({
-                  path: mesg.src_path,
-                  target_project_id: mesg.target_project_id,
-                  target_path: mesg.target_path,
-                  overwrite_newer: mesg.overwrite_newer,
-                  delete_missing: mesg.delete_missing,
-                  backup: mesg.backup,
-                  timeout: mesg.timeout,
-                  exclude_history: mesg.exclude_history,
-                  wait_until_done: mesg.wait_until_done,
-                  scheduled: mesg.scheduled,
-                  cb: (err, copy_id) => {
-                    if (err) {
-                      return cb(err);
-                    } else {
-                      locals.copy_id = copy_id;
-                      return cb();
-                    }
-                  }
-                });
               }
+
+              project.copy_path({
+                path: mesg.src_path,
+                target_project_id: mesg.target_project_id,
+                target_path: mesg.target_path,
+                overwrite_newer: mesg.overwrite_newer,
+                delete_missing: mesg.delete_missing,
+                backup: mesg.backup,
+                timeout: mesg.timeout,
+                exclude_history: mesg.exclude_history,
+                wait_until_done: mesg.wait_until_done,
+                scheduled: mesg.scheduled,
+                cb: (err, copy_id) => {
+                  if (err) {
+                    cb(err);
+                  } else {
+                    locals.copy_id = copy_id;
+                    cb();
+                  }
+                }
+              });
             }
           });
         }
       ],
-      err => {
+      (err): void => {
         if (err) {
-          return this.client.error_to_client({ id: mesg.id, error: err });
+          this.client.error_to_client({ id: mesg.id, error: err });
         } else {
           // we only expect a copy_id in kucalc mode
           if (locals.copy_id != null) {
@@ -207,9 +207,9 @@ export class CopyPath {
               id: mesg.id,
               copy_path_id: locals.copy_id
             });
-            return this.client.push_to_client(resp);
+            this.client.push_to_client(resp);
           } else {
-            return this.client.push_to_client(message.success({ id: mesg.id }));
+            this.client.push_to_client(message.success({ id: mesg.id }));
           }
         }
       }
@@ -231,9 +231,9 @@ export class CopyPath {
       return;
     }
     if (search_many) {
-      return this._status_query(mesg);
+      this._status_query(mesg);
     } else {
-      return this._status_single(mesg);
+      this._status_single(mesg);
     }
   }
 
@@ -245,56 +245,53 @@ export class CopyPath {
 
     const dbg = this.dbg("status_query");
 
-    return async.series(
+    async.series(
       [
-        cb => {
+        (cb): void => {
           if (mesg.src_project_id == null) {
             cb();
             return;
           }
-          return access.user_has_read_access_to_project({
+          access.user_has_read_access_to_project({
             project_id: mesg.src_project_id,
             account_id: this.client.account_id,
             account_groups: this.client.groups,
             database: this.client.database,
             cb: (err, result) => {
               if (err) {
-                return cb(err);
+                cb(err);
               } else if (!result) {
                 locals.allowed = false;
-                return cb("ACCESS BLOCKED -- No read access to source project");
+                cb("ACCESS BLOCKED -- No read access to source project");
               } else {
-                return cb();
+                cb();
               }
             }
           });
         },
-        cb => {
+        (cb): void => {
           if (mesg.target_project_id == null) {
             cb();
             return;
           }
-          return access.user_has_write_access_to_project({
+          access.user_has_write_access_to_project({
             database: this.client.database,
             project_id: mesg.target_project_id,
             account_id: this.client.account_id,
             account_groups: this.client.groups,
             cb: (err, result) => {
               if (err) {
-                return cb(err);
+                cb(err);
               } else if (!result) {
                 locals.allowed = false;
-                return cb(
-                  "ACCESS BLOCKED -- No write access to target project"
-                );
+                cb("ACCESS BLOCKED -- No write access to target project");
               } else {
-                return cb();
+                cb();
               }
             }
           });
         },
-        cb => {
-          let limit, offset;
+        async (cb): Promise<void> => {
           if (!locals.allowed) {
             cb("Not allowed");
             return;
@@ -322,6 +319,7 @@ export class CopyPath {
           }
 
           // sanitizing input!
+          let limit, offset;
           try {
             offset = sanitize(mesg.offset, 0, 100, "offset");
             limit = sanitize(mesg.limit, 1000, 1000, "limit");
@@ -334,35 +332,36 @@ export class CopyPath {
 
           dbg(`offset=${offset}   limit=${limit}`);
 
-          return this.client.database._query({
-            query: "SELECT * FROM copy_paths",
-            where,
-            offset,
-            limit,
-            order_by: "time DESC",
-            cb: (err, x) => {
-              if (err != null) {
-                return cb(err);
-              } else if (x == null) {
-                return cb(
-                  "Can't find copy operations for given src_project_id/target_project_id"
-                );
-              } else {
-                for (let row of Array.from(x.rows)) {
-                  // be explicit about what we return
-                  locals.copy_ops.push(row_to_copy_op(row));
-                }
-                return cb();
+          try {
+            const status_data = await callback2(this.client.database._query, {
+              query: "SELECT * FROM copy_paths",
+              where,
+              offset,
+              limit,
+              order_by: "time DESC"
+            });
+
+            if (status_data == null) {
+              cb(
+                "Can't find copy operations for given src_project_id/target_project_id"
+              );
+            } else {
+              for (let row of Array.from(status_data.rows)) {
+                // be explicit about what we return
+                locals.copy_ops.push(row_to_copy_op(row));
               }
+              cb();
             }
-          });
+          } catch (err) {
+            cb(err);
+          }
         }
       ],
-      err => {
+      (err): void => {
         if (err) {
-          return this.client.error_to_client({ id: mesg.id, error: err });
+          this.client.error_to_client({ id: mesg.id, error: err });
         } else {
-          return this.client.push_to_client(
+          this.client.push_to_client(
             message.copy_path_status_response({
               id: mesg.id,
               data: locals.copy_ops
@@ -381,23 +380,24 @@ export class CopyPath {
 
     const dbg = this.dbg("_get_status");
     const locals: { copy_op: CopyOp | undefined } = { copy_op: undefined };
-    return async.series(
+    async.series(
       [
         // get the info
-        cb => {
-          const { one_result } = require("./postgres");
+        async (cb): Promise<void> => {
           const where: WhereQueries = [{ "id = $::UUID": mesg.copy_path_id }];
           if (mesg.not_yet_done) {
             where.push("scheduled IS NOT NULL");
             where.push("finished IS NULL");
           }
-          return this.client.database._query({
-            query: "SELECT * FROM copy_paths",
-            where,
-            cb: one_result((err, x) => {
-              if (err != null) {
-                return cb(err);
-              } else if (x == null) {
+
+          try {
+            const statuses = await callback2(this.client.database._query, {
+              query: "SELECT * FROM copy_paths",
+              where
+            });
+
+            one_result((_, x) => {
+              if (x == null) {
                 if (mesg.not_yet_done) {
                   cb(
                     `Copy operation '${
@@ -412,54 +412,57 @@ export class CopyPath {
                 dbg(`copy_op=${misc.to_json(locals.copy_op)}`);
                 cb();
               }
-            })
-          });
+            })(undefined, statuses);
+          } catch (err) {
+            cb(err);
+          }
         },
 
-        cb => {
+        (cb): void => {
           if (locals.copy_op == null) {
             cb(`Can't find copy operation with ID=${mesg.copy_path_id}`);
             return;
           }
+
           // now we prevent someone who was kicked out of a project to check the copy status
           const { target_project_id } = locals.copy_op;
           const { source_project_id } = locals.copy_op;
-          return async.parallel(
+          async.parallel(
             [
-              cb => {
-                return access.user_has_read_access_to_project({
+              (cb): void => {
+                access.user_has_read_access_to_project({
                   project_id: source_project_id,
                   account_id: this.client.account_id,
                   account_groups: this.client.groups,
                   database: this.client.database,
                   cb: (err, result) => {
                     if (err) {
-                      return cb(err);
+                      cb(err);
                     } else if (!result) {
-                      return cb(
+                      cb(
                         "ACCESS BLOCKED -- No read access to source project of this copy operation"
                       );
                     } else {
-                      return cb();
+                      cb();
                     }
                   }
                 });
               },
-              cb => {
-                return access.user_has_write_access_to_project({
+              (cb): void => {
+                access.user_has_write_access_to_project({
                   database: this.client.database,
                   project_id: target_project_id,
                   account_id: this.client.account_id,
                   account_groups: this.client.groups,
                   cb: (err, result) => {
                     if (err) {
-                      return cb(err);
+                      cb(err);
                     } else if (!result) {
-                      return cb(
+                      cb(
                         "ACCESS BLOCKED -- No write access to target project of this copy operation"
                       );
                     } else {
-                      return cb();
+                      cb();
                     }
                   }
                 });
@@ -469,14 +472,14 @@ export class CopyPath {
           );
         }
       ],
-      err => {
-        return cb(err, locals.copy_op);
+      (err): void => {
+        cb(err, locals.copy_op);
       }
     );
   }
 
   private _status_single(mesg) {
-    return this._get_status(mesg, (err, copy_op) => {
+    this._get_status(mesg, (err, copy_op) => {
       if (err) {
         this.client.error_to_client({ id: mesg.id, error: err });
       } else {
@@ -494,7 +497,7 @@ export class CopyPath {
     const dbg = this.dbg("delete");
     // this filters possible results
     mesg.not_yet_done = true;
-    this._get_status(mesg, (err, copy_op) => {
+    this._get_status(mesg, async (err, copy_op) => {
       if (err) {
         dbg(`stauts err=${err}`);
         this.client.error_to_client({ id: mesg.id, error: err });
@@ -504,23 +507,22 @@ export class CopyPath {
           error: "copy op '${mesg.copy_path_id}' cannot be deleted."
         });
       } else {
-        this.client.database._query({
-          query: "DELETE FROM copy_paths",
-          where: { "id = $::UUID": mesg.copy_path_id },
-          cb: (err, _) => {
-            if (err != null) {
-              dbg(`query err=${err}`);
-              this.client.error_to_client({ id: mesg.id, error: err });
-            } else {
-              this.client.push_to_client(
-                message.copy_path_status_response({
-                  id: mesg.id,
-                  data: `copy_path_id = '${mesg.copy_path_id}' deleted`
-                })
-              );
-            }
-          }
-        });
+        try {
+          await callback2(this.client.database._query, {
+            query: "DELETE FROM copy_paths",
+            where: { "id = $::UUID": mesg.copy_path_id }
+          });
+          // no error
+          this.client.push_to_client(
+            message.copy_path_status_response({
+              id: mesg.id,
+              data: `copy_path_id = '${mesg.copy_path_id}' deleted`
+            })
+          );
+        } catch (err) {
+          dbg(`query err=${err}`);
+          this.client.error_to_client({ id: mesg.id, error: err });
+        }
       }
     });
   }

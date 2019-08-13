@@ -35,9 +35,10 @@ source_path=bar.md
 target_project_id=e24ba30d-edcd-479f-8a26-bbe81f38296c
 
 #-d pending=false
-Q -d offset=0 -d src_project_id=$source_project_id -d src_path=$source_path -d target_project_id=$target_project_id -d failed=true -d limit=500  $API/copy_path_status
+Q -d offset=0 -d src_project_id=$source_project_id -d src_path=$source_path -d target_project_id=$target_project_id -d failed=false -d limit=500  $API/copy_path_status
 
 
-PATHID2=432c54ab-f0ac-4633-b59b-b7bbd8d5abe1
-#Q -d copy_path_id=$PATHID2 $API/copy_path_delete
-
+PATHID2=2303459e-612b-4b29-be20-9700fbf2355d
+Q -d copy_path_id=$PATHID2 $API/copy_path_status
+Q -d copy_path_id=$PATHID2 $API/copy_path_delete
+Q -d copy_path_id=$PATHID2 $API/copy_path_status
