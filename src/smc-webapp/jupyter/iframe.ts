@@ -6,15 +6,19 @@ MOTIVATION: Sage jmol.
 
 const misc = require("smc-util/misc"); // TODO: import type
 
-export function is_likely_iframe(content: string) {
+export function is_likely_iframe(content: string): boolean {
   if (!content) {
-    return;
+    return false;
   }
   content = content
-    .slice(0, 50)
+    .slice(0, 100)
     .trim()
     .toLowerCase();
-  return misc.startswith(content, '<iframe srcdoc="');
+  return (
+    misc.startswith(content, '<iframe srcdoc="') ||
+    content.indexOf("<!doctype html>") >= 0 ||
+    (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0)
+  );
 }
 
 export function process(content: string, blob_store: any) {

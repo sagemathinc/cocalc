@@ -53,7 +53,8 @@ function katex_plugin(): void {
     ) {
       const katex_options: KatexOptions = {
         displayMode: (node[0] as any).type == "math/tex; mode=display",
-        macros: macros
+        macros: macros,
+        trust: true
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
       let cached: any = math_cache.get(text);
@@ -66,8 +67,8 @@ function katex_plugin(): void {
         console.log("using mathjax for text since is a macro defn", text);
         // Use mathjax for this.
         // 1. clear anything in cache involving the command
-        const i = text.indexOf("{"),
-          j = text.indexOf("}");
+        const i = text.indexOf("{");
+        const j = text.indexOf("}");
         if (i != -1 && j != -1) {
           const cmd = text.slice(i + 1, j);
           math_cache.forEach(function(_, key) {
