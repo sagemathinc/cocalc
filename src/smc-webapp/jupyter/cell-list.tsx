@@ -184,9 +184,9 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  private scroll_cell_list(scroll: Scroll): void {
+  private async scroll_cell_list(scroll: Scroll): Promise<void> {
     if (!this.use_windowed_list) return;
-    const list = this.windowed_list_ref.current;
+    let list = this.windowed_list_ref.current;
     if (list == null) return;
     const info = list.get_scroll();
 
@@ -200,16 +200,12 @@ export class CellList extends Component<CellListProps> {
     if (scroll === "cell visible") {
       if (!this.props.cur_id || this.props.mode == "edit") return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
-      if (n == 0) {
-        this.scrollToPosition(0);
-        return;
-      }
       if (n != -1) {
-        // HACK: We scroll to very bottom, then back up so that
-        // the *top* is scrolled into view (not the middle
-        // of the output).
-        list.scrollToRow(this.props.cell_list.size + 1);
-        list.scrollToRow(n);
+        list.scrollToRow(n, "top");
+        await delay(0);
+        list = this.windowed_list_ref.current;
+        if (list == null) return;
+        list.scrollToRow(n, "top");
       }
       return;
     }
@@ -330,14 +326,10 @@ export class CellList extends Component<CellListProps> {
       cache_id = this.props.name + this.props.frame_actions.frame_id;
     }
 
-    // Heads up -- don't you dare change the overscan_row_count to bigger
-    // than 0.  If you do, the codemirror editor sometimes gets mounted off
-    // screen, which causes it to get scrolled into view, which breaks badly.
-    // Also, there is no real performance improvement for Jupyter.
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={10}
+        overscan_row_count={5}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
@@ -346,6 +338,7 @@ export class CellList extends Component<CellListProps> {
         use_is_scrolling={true}
         hide_resize={true}
         render_info={true}
+        scroll_margin={60}
       />
     );
   }
