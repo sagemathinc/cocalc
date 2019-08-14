@@ -1,7 +1,27 @@
-// Copy Path Provider
+//##############################################################################
+//
+//    CoCalc: Collaborative Calculation in the Cloud
+//
+//    Copyright (C) 2019, Sagemath Inc.
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//##############################################################################
+
+// Copy Operations Provider
 // Used in the "Client"
 
-const async = require("async");
 import { callback2 } from "smc-util/async-utils";
 const message = require("smc-util/message");
 const access = require("./access");
@@ -27,7 +47,7 @@ interface CopyOp {
   error: any;
 }
 
-// this is specific to here
+// this is specific to queries built here
 function sanitize(
   val: number | string,
   deflt: number,
@@ -44,6 +64,17 @@ function sanitize(
     return o;
   } else {
     return deflt;
+  }
+}
+
+// thrown errors are an object, but the response needs a string
+function err2str(err: string | { message?: string }) {
+  if (typeof err === "string") {
+    return err;
+  } else if (err.message != null) {
+    return err.message;
+  } else {
+    return `ERROR: ${misc.to_json(err)}`;
   }
 }
 
@@ -69,7 +100,7 @@ function row_to_copy_op(copy_op): CopyOp {
 export class CopyPath {
   private client: any;
   private dbg: (method: string) => (msg: string) => void;
-  //private err: (method: string) => (msg: string) => void;
+  private err: (method: string) => (msg: string) => void;
   private throw: (msg: string) => void;
 
   constructor(client) {
@@ -90,11 +121,11 @@ export class CopyPath {
     this.dbg = function(method: string): (msg: string) => void {
       return this.client.dbg(`CopyPath::${method}`);
     };
-    //this.err = function(method: string): (msg: string) => void {
-    //  return msg => {
-    //    throw new Error(`CopyPath::${method}: ${msg}`);
-    //  };
-    //};
+    this.err = function(method: string): (msg: string) => void {
+      return msg => {
+        throw new Error(`CopyPath::${method}: ${msg}`);
+      };
+    };
     this.throw = (msg: string) => {
       throw new Error(msg);
     };
@@ -151,11 +182,11 @@ export class CopyPath {
         this.client.push_to_client(message.success({ id: mesg.id }));
       }
     } catch (err) {
-      this.client.error_to_client({ id: mesg.id, error: err });
+      this.client.error_to_client({ id: mesg.id, error: err2str(err) });
     }
   }
 
-  status(mesg) {
+  async status(mesg): Promise<void> {
     this.client.touch();
     //const dbg = this.dbg("status");
     // src_project_id, target_project_id and optionally src_path + offset (limit is 1000)
@@ -170,278 +201,190 @@ export class CopyPath {
       return;
     }
     if (search_many) {
-      this._status_query(mesg);
+      await this._status_query(mesg);
     } else {
-      this._status_single(mesg);
+      await this._status_single(mesg);
     }
   }
 
-  private _status_query(mesg) {
-    const locals = {
-      copy_ops: [] as CopyOp[]
-    };
-
+  private async _status_query(mesg): Promise<void> {
     const dbg = this.dbg("status_query");
+    const err = this.err("status_query");
 
-    async.series(
-      [
-        async (cb): Promise<void> => {
-          if (mesg.src_project_id == null) {
-            cb();
-            return;
-          }
-          try {
-            await this._read_access(mesg.src_project_id);
-          } catch (err) {
-            cb(err.message);
-            return;
-          }
-          cb();
-        },
-        async (cb): Promise<void> => {
-          if (mesg.target_project_id == null) {
-            cb();
-            return;
-          }
-          try {
-            await this._write_access(mesg.target_project_id);
-          } catch (err) {
-            cb(err.message);
-            return;
-          }
-          cb();
-        },
-        async (cb): Promise<void> => {
-          const where: WhereQueries = [
-            {
-              "source_project_id = $::UUID": mesg.src_project_id,
-              "target_project_id = $::UUID": mesg.target_project_id
-            }
-          ];
-
-          if (mesg.src_path != null) {
-            where.push({ "source_path = $": mesg.src_path });
-          }
-
-          // all failed ones are implicitly also finished
-          if (mesg.failed === true || mesg.failed === "true") {
-            where.push("error IS NOT NULL");
-            mesg.pending = false;
-          }
-
-          if (mesg.pending === true || mesg.pending === "true") {
-            where.push("finished IS NULL");
-          } else {
-            where.push("finished IS NOT NULL");
-          }
-
-          // sanitizing input!
-          let limit, offset;
-          try {
-            offset = sanitize(mesg.offset, 0, 100, "offset");
-            limit = sanitize(mesg.limit, 1000, 1000, "limit");
-          } catch (error) {
-            const err = error;
-            dbg(err.message);
-            cb(err.message);
-            return;
-          }
-
-          dbg(`offset=${offset}   limit=${limit}`);
-
-          try {
-            const status_data = await callback2(this.client.database._query, {
-              query: "SELECT * FROM copy_paths",
-              where,
-              offset,
-              limit,
-              order_by: "time DESC"
-            });
-
-            if (status_data == null) {
-              cb(
-                "Can't find copy operations for given src_project_id/target_project_id"
-              );
-            } else {
-              for (let row of Array.from(status_data.rows)) {
-                // be explicit about what we return
-                locals.copy_ops.push(row_to_copy_op(row));
-              }
-              cb();
-            }
-          } catch (err) {
-            cb(err);
-          }
-        }
-      ],
-      (err): void => {
-        if (err) {
-          this.client.error_to_client({ id: mesg.id, error: err });
-        } else {
-          this.client.push_to_client(
-            message.copy_path_status_response({
-              id: mesg.id,
-              data: locals.copy_ops
-            })
-          );
-        }
+    try {
+      // prereq checks -- at least src or target must be set
+      if (mesg.src_project_id == null && mesg.target_project_id == null) {
+        // serious error: this should never happen, actually
+        err(
+          `At least one of "src_project_id" or "target_project_id" must be given!`
+        );
       }
-    );
+
+      // constructing the query
+      const where: WhereQueries = [];
+
+      if (mesg.src_project_id != null) {
+        await this._read_access(mesg.src_project_id);
+        where.push({ "source_project_id = $::UUID": mesg.src_project_id });
+      }
+      if (mesg.target_project_id != null) {
+        await this._write_access(mesg.target_project_id);
+        where.push({ "target_project_id = $::UUID": mesg.target_project_id });
+      }
+
+      if (mesg.src_path != null) {
+        where.push({ "source_path = $": mesg.src_path });
+      }
+
+      // all failed ones are implicitly also finished
+      if (mesg.failed === true || mesg.failed === "true") {
+        where.push("error IS NOT NULL");
+        mesg.pending = false;
+      }
+
+      if (mesg.pending === true || mesg.pending === "true") {
+        where.push("finished IS NULL");
+      } else {
+        where.push("finished IS NOT NULL");
+      }
+
+      // … and also sanitizing input!
+      const offset = sanitize(mesg.offset, 0, 100, "offset");
+      const limit = sanitize(mesg.limit, 1000, 1000, "limit");
+      dbg(`offset=${offset}   limit=${limit}`);
+
+      // essentially, we want to fill up and return this array
+      const copy_ops: CopyOp[] = [];
+
+      const status_data = await callback2(this.client.database._query, {
+        query: "SELECT * FROM copy_paths",
+        where,
+        offset,
+        limit,
+        order_by: "time DESC" // most recent first
+      });
+
+      if (status_data == null) {
+        this.throw(
+          "Can't find copy operations for given src_project_id/target_project_id"
+        );
+      }
+      for (let row of Array.from(status_data.rows)) {
+        // be explicit about what we return
+        copy_ops.push(row_to_copy_op(row));
+      }
+
+      // we're good
+      this.client.push_to_client(
+        message.copy_path_status_response({
+          id: mesg.id,
+          data: copy_ops
+        })
+      );
+    } catch (err) {
+      this.client.error_to_client({ id: mesg.id, error: err2str(err) });
+    }
   }
 
-  private _get_status(mesg, cb) {
+  private async _get_status(mesg): Promise<CopyOp | undefined> {
     if (mesg.copy_path_id == null) {
-      cb("ERROR: copy_path_id missing");
-      return;
+      this.throw("ERROR: copy_path_id missing");
     }
 
     const dbg = this.dbg("_get_status");
-    const locals: { copy_op: CopyOp | undefined } = { copy_op: undefined };
-    async.series(
-      [
-        // get the info
-        async (cb): Promise<void> => {
-          const where: WhereQueries = [{ "id = $::UUID": mesg.copy_path_id }];
-          if (mesg.not_yet_done) {
-            where.push("scheduled IS NOT NULL");
-            where.push("finished IS NULL");
-          }
 
-          try {
-            const statuses = await callback2(this.client.database._query, {
-              query: "SELECT * FROM copy_paths",
-              where
-            });
+    const where: WhereQueries = [{ "id = $::UUID": mesg.copy_path_id }];
+    // not_yet_done is set internally for deleting a scheduled copy op
+    if (mesg.not_yet_done) {
+      where.push("scheduled IS NOT NULL");
+      where.push("finished IS NULL");
+    }
 
-            one_result((_, x) => {
-              if (x == null) {
-                if (mesg.not_yet_done) {
-                  cb(
-                    `Copy operation '${
-                      mesg.copy_path_id
-                    }' either does not exist or already finished`
-                  );
-                } else {
-                  cb(`Can't find copy operation with ID=${mesg.copy_path_id}`);
-                }
-              } else {
-                locals.copy_op = x;
-                dbg(`copy_op=${misc.to_json(locals.copy_op)}`);
-                cb();
-              }
-            })(undefined, statuses);
-          } catch (err) {
-            cb(err);
-          }
-        },
-
-        (cb): void => {
-          if (locals.copy_op == null) {
-            cb(`Can't find copy operation with ID=${mesg.copy_path_id}`);
-            return;
-          }
-
-          // now we prevent someone who was kicked out of a project to check the copy status
-          const { target_project_id } = locals.copy_op;
-          const { source_project_id } = locals.copy_op;
-          async.parallel(
-            [
-              (cb): void => {
-                access.user_has_read_access_to_project({
-                  project_id: source_project_id,
-                  account_id: this.client.account_id,
-                  account_groups: this.client.groups,
-                  database: this.client.database,
-                  cb: (err, result) => {
-                    if (err) {
-                      cb(err);
-                    } else if (!result) {
-                      cb(
-                        "ACCESS BLOCKED -- No read access to source project of this copy operation"
-                      );
-                    } else {
-                      cb();
-                    }
-                  }
-                });
-              },
-              (cb): void => {
-                access.user_has_write_access_to_project({
-                  database: this.client.database,
-                  project_id: target_project_id,
-                  account_id: this.client.account_id,
-                  account_groups: this.client.groups,
-                  cb: (err, result) => {
-                    if (err) {
-                      cb(err);
-                    } else if (!result) {
-                      cb(
-                        "ACCESS BLOCKED -- No write access to target project of this copy operation"
-                      );
-                    } else {
-                      cb();
-                    }
-                  }
-                });
-              }
-            ],
-            cb
-          );
-        }
-      ],
-      (err): void => {
-        cb(err, locals.copy_op);
-      }
-    );
-  }
-
-  private _status_single(mesg) {
-    this._get_status(mesg, (err, copy_op) => {
-      if (err) {
-        this.client.error_to_client({ id: mesg.id, error: err });
-      } else {
-        // be explicit about what we return
-        const data = row_to_copy_op(copy_op);
-        this.client.push_to_client(
-          message.copy_path_status_response({ id: mesg.id, data })
-        );
-      }
+    // get the status info
+    const statuses = await callback2(this.client.database._query, {
+      query: "SELECT * FROM copy_paths",
+      where
     });
+
+    const copy_op: CopyOp = (() => {
+      let copy_op;
+      one_result((_, x) => {
+        if (x == null) {
+          if (mesg.not_yet_done) {
+            this.throw(
+              `Copy operation '${
+                mesg.copy_path_id
+              }' either does not exist or already finished`
+            );
+          } else {
+            this.throw(
+              `Can't find copy operation with ID=${mesg.copy_path_id}`
+            );
+          }
+        } else {
+          copy_op = x;
+          dbg(`copy_op=${misc.to_json(copy_op)}`);
+        }
+      })(undefined, statuses);
+      return copy_op;
+    })();
+
+    if (copy_op == null) {
+      this.throw(`Can't find copy operation with ID=${mesg.copy_path_id}`);
+      return;
+    }
+
+    // check read/write access
+    const write = this._write_access(copy_op.target_project_id);
+    const read = this._read_access(copy_op.source_project_id);
+    await Promise.all([write, read]);
+
+    return copy_op;
   }
 
-  delete(mesg): void {
+  private async _status_single(mesg): Promise<void> {
+    try {
+      const copy_op = await this._get_status(mesg);
+      // be explicit about what we return
+      const data = row_to_copy_op(copy_op);
+      this.client.push_to_client(
+        message.copy_path_status_response({ id: mesg.id, data })
+      );
+    } catch (err) {
+      this.client.error_to_client({ id: mesg.id, error: err2str(err) });
+    }
+  }
+
+  async delete(mesg): Promise<void> {
     this.client.touch();
     const dbg = this.dbg("delete");
     // this filters possible results
     mesg.not_yet_done = true;
-    this._get_status(mesg, async (err, copy_op) => {
-      if (err) {
-        dbg(`stauts err=${err}`);
-        this.client.error_to_client({ id: mesg.id, error: err });
-      } else if (copy_op == null) {
+    try {
+      const copy_op = await this._get_status(mesg);
+
+      if (copy_op == null) {
         this.client.error_to_client({
           id: mesg.id,
-          error: "copy op '${mesg.copy_path_id}' cannot be deleted."
+          error: `opy op '${mesg.copy_path_id}' cannot be deleted.`
         });
       } else {
-        try {
-          await callback2(this.client.database._query, {
-            query: "DELETE FROM copy_paths",
-            where: { "id = $::UUID": mesg.copy_path_id }
-          });
-          // no error
-          this.client.push_to_client(
-            message.copy_path_status_response({
-              id: mesg.id,
-              data: `copy_path_id = '${mesg.copy_path_id}' deleted`
-            })
-          );
-        } catch (err) {
-          dbg(`query err=${err}`);
-          this.client.error_to_client({ id: mesg.id, error: err });
-        }
+        await callback2(this.client.database._query, {
+          query: "DELETE FROM copy_paths",
+          where: { "id = $::UUID": mesg.copy_path_id }
+        });
+        // no error
+        this.client.push_to_client(
+          message.copy_path_status_response({
+            id: mesg.id,
+            data: `copy_path_id = '${mesg.copy_path_id}' deleted`
+          })
+        );
       }
-    });
+    } catch (err) {
+      dbg(`stauts err=${err2str(err)}`);
+      this.client.error_to_client({ id: mesg.id, error: err2str(err) });
+    }
   }
 
   private async _read_access(src_project_id): Promise<boolean> {
@@ -455,7 +398,7 @@ export class CopyPath {
       account_groups: this.client.groups,
       database: this.client.database
     });
-    this.dbg("_read_access")(read_ok);
+    // this.dbg("_read_access")(read_ok);
     if (!read_ok) {
       this.throw(
         `ACCESS BLOCKED -- No read access to source project -- ${src_project_id}`
@@ -476,14 +419,13 @@ export class CopyPath {
       account_id: this.client.account_id,
       account_groups: this.client.groups
     });
-    this.dbg("_write_access")(write_ok);
+    // this.dbg("_write_access")(write_ok);
     if (!write_ok) {
       this.throw(
         `ACCESS BLOCKED -- No write access to target project -- ${target_project_id}`
       );
       return false;
     }
-
     return true;
   }
 }

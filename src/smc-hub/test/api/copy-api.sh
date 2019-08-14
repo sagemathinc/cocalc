@@ -21,7 +21,7 @@ NOACC=4f6e8e03-6689-40b7-93fe-c2591278c252
 SRC=bc6f81b3-25ad-4d58-ae4a-65649fae4fa5
 TRG=7a5a42cf-b904-4a57-ba8d-1809533c1368
 PTH=bar.md
-Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TRG -d wait_until_done=false -d scheduled="`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'`" $API/copy_path_between_projects
+#Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TRG -d wait_until_done=false -d scheduled="`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'`" $API/copy_path_between_projects
 #Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TRG  $API/copy_path_between_projects
 
 ## status
@@ -39,10 +39,11 @@ PATHID=63755ed1-a6d5-4c3e-9bdf-0a31f790bdcf
 #-d failed=true
 #-d src_path=$PTH
 #-d src_project_id=$SRC 
-Q -d offset=0 -d target_project_id=$TRG  -d limit=10  $API/copy_path_status
+#
+Q -d offset=0   -d target_project_id=$TRG -d limit=10  $API/copy_path_status
 
 
-PATHID2=f4872d07-d3db-46c4-808a-0b38584ac2d0
-#Q -d copy_path_id=$PATHID2 $API/copy_path_status
-#Q -d copy_path_id=$PATHID2 $API/copy_path_delete
-#Q -d copy_path_id=$PATHID2 $API/copy_path_status
+PATHID2=d3814f78-28e2-47d7-8b15-b55d3476126f
+Q -d copy_path_id=$PATHID2 $API/copy_path_status
+Q -d copy_path_id=$PATHID2 $API/copy_path_delete
+Q -d copy_path_id=$PATHID2 $API/copy_path_status
