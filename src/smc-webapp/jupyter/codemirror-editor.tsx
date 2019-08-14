@@ -523,7 +523,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
 
     if (this.props.is_focused) {
-      this.cm.focus();
+      this.focus_cm();
     }
   }
 
@@ -547,7 +547,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (nextProps.is_focused && !this.props.is_focused) {
       // gain focus
       if (this.cm != null) {
-        this.cm.focus();
+        this.focus_cm();
       }
     }
     if (!nextProps.is_focused && this._cm_is_focused) {
@@ -569,6 +569,16 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this._cm_save();
       this._cm_destroy();
     }
+  }
+
+  private focus_cm(): void {
+    if (this.cm == null) return;
+    // Because we use react-window, it is critical to preventScroll
+    // when focusing!  Unfortunately, CodeMirror's api does not
+    // expose this option, so we have to bypass it in the dangerous
+    // way below, which could break were CodeMirror to be refactored!
+    // TODO: send them a PR to expose this.
+    this.cm.display.input.textarea.focus({ preventScroll: true });
   }
 
   render_complete() {
