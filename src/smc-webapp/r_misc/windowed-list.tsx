@@ -138,19 +138,18 @@ export class WindowedList extends Component<Props, State> {
       const meta = this.get_row_metadata(row);
       if (meta == null) return;
       const { scrollOffset } = this.get_scroll_info();
-      const height = this.height;
+      const height = this.get_window_height();
       const margin = this.props.scroll_margin ? this.props.scroll_margin : 10;
       let delta: number = 0;
       if (meta.offset >= scrollOffset + height - margin) {
         // cell is too far down
         delta = meta.offset - (scrollOffset + height - margin);
-        this.list_ref.current.scrollTo();
       } else if (meta.offset <= scrollOffset + margin) {
         // cell is too far up
         delta = meta.offset - (scrollOffset + margin);
       }
       if (delta != 0) {
-        this.list_ref.current.scrollTo(scrollOffset + delta);
+        this.scrollToPosition(scrollOffset + delta);
       }
     } else {
       // align is auto, end, start, center
@@ -169,12 +168,18 @@ export class WindowedList extends Component<Props, State> {
     return itemMetadataMap[row];
   }
 
-  public get_height(): number {
+  public get_window_height(): number {
     return this.height;
   }
 
-  public get_width(): number {
+  public get_window_width() : number {
     return this.width;
+  }
+
+  public get_total_height(): number {
+    const meta = this.get_row_metadata(this.props.row_count - 1);
+    if (meta == null) return 0;
+    return meta.offset + meta.size;
   }
 
   public get_scroll_info(): any {
@@ -182,7 +187,7 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToPosition(pos: number): void {
-    if (this.list_ref.current == null) return;
+    if (this.list_ref.current == null || pos==null) return;
     this.list_ref.current.scrollTo(pos);
   }
 

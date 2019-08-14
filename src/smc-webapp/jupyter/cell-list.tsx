@@ -202,7 +202,7 @@ export class CellList extends Component<CellListProps> {
       const n = this.props.cell_list.indexOf(this.props.cur_id);
       if (n != -1) {
         list.scrollToRow(n, "top");
-        await delay(0);
+        await delay(5);  // needed due to shift+enter causing output
         list = this.windowed_list_ref.current;
         if (list == null) return;
         list.scrollToRow(n, "top");
