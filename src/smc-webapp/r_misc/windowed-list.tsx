@@ -21,6 +21,7 @@ let ResizeObserver: any = (window as any).ResizeObserver;
 if (ResizeObserver == null) {
   ResizeObserver = require("resize-observer").ResizeObserver;
 }
+const RESIZE_THRESH: number = 5;
 
 import { VariableSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -151,7 +152,8 @@ export class WindowedList extends Component<Props, State> {
         key == null ||
         isNaN(entry.contentRect.height) ||
         entry.contentRect.height === 0 ||
-        this.row_heights_cache[key] == entry.contentRect.height
+        Math.abs(this.row_heights_cache[key] - entry.contentRect.height) <=
+          RESIZE_THRESH
       ) {
         // not really changed or just disappeared from DOM... so continue
         // using what we have cached (or the default).
@@ -197,7 +199,7 @@ export class WindowedList extends Component<Props, State> {
     }
 
     let ht = elt.height();
-    if (Math.abs(h - ht) < 5) {
+    if (Math.abs(h - ht) < 2*RESIZE_THRESH) {
       // don't shrink if there are little jiggles.
       ht = Math.max(h, ht);
     }
