@@ -92,7 +92,7 @@ function App() {
     </>
   );
 
-  if (state.errors) {
+  if (state.errors.length > 0) {
     content = <ErrorListing errors={state.errors} />;
   } else if (!state.loading && state.account_info) {
     switch (state.route) {

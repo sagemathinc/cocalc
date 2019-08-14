@@ -5,11 +5,16 @@ import * as jwt from "jsonwebtoken";
 import * as jwksClient from "jwks-rsa";
 import * as path from "path";
 
+import { inspect } from "util";
+
 import {
   IssuerData,
   LoginInitiationFromPlatform,
-  AuthRequestTokenData
+  AuthRequestTokenData,
+  PlatformResponse
 } from "./types";
+
+import * as database from "./non-db-api";
 
 const SMC_ROOT: string = process.env.SMC_ROOT as any;
 const STATIC_PATH = path.join(SMC_ROOT, "static");
@@ -65,6 +70,8 @@ const active_selection_sessions: {
   };
 } = {};
 */
+const JWT_OPTIONS = { algorithms: ["RS256"] };
+
 export function init_LTI_router(opts: { base_url: string }): express.Router {
   const router = express.Router();
   router.use(express.json());
@@ -74,6 +81,26 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     res.sendFile(path.join(STATIC_PATH, "lti.html"), { maxAge: 0 });
   });
 
+  let db = database.create({
+    platforms: {
+      "moodletest.cocalc.com": {
+        family_code: "bs string",
+        version: "bs string",
+        guid: "moodletest.cocalc.com",
+        name: "bs string",
+        description: "bs string"
+      }
+    },
+    users: {
+      "moodletest.cocalc.com - 3": {
+        LMS_id: "moodletest.cocalc.com",
+        LMS_user_id: "3",
+        cocalc_user_id: "8788a1b9-c8f7-4a61-be2b-bd5306737b39"
+      }
+    },
+    assignments: {}
+  });
+
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
   router.route("/login").all((req, res) => {
@@ -81,8 +108,7 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     const iss_data = get_iss_data(token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
-
-    console.log("ROUTE: Login\n\n\n\n", state);
+    console.log("\nLTI: Login\n");
 
     const auth_params: AuthRequestTokenData = {
       scope: "openid",
@@ -103,20 +129,28 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
   });
 
   // Tool Launch URL
-  router.post("/launch", (req, res) => {
+  router.route("/launch*").all((req, res) => {
+    console.log("\nLTI: Launch\n");
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-    const options = { algorithms: ["RS256"] };
 
     // TODO #V0: Use verify for security
-    jwt.verify(req.body.id_token, getKey, options, function(err, token) {
+    jwt.verify(req.body.id_token, getKey, JWT_OPTIONS, function(
+      err,
+      token: PlatformResponse
+    ) {
       if (err) {
         res.send("Error parsing jwt:" + err);
       }
       const details = get_auth_flow(token.nonce);
-      res.redirect(opts.base_url);
-      console.log(details);
+      const [user_id, new_db] = database.get_user(token, db);
+      db = new_db;
+      res.send(
+        `Our id of this user: ${user_id} ------- ${inspect(
+          details
+        )} ------- ${JSON.stringify(new_db)}`
+      );
     });
   });
 
@@ -124,22 +158,28 @@ export function init_LTI_router(opts: { base_url: string }): express.Router {
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
+    const token = jwt.decode(req.body.token_id, JWT_OPTIONS);
+    const [user_id, new_db] = database.get_user(token, db);
+    db = new_db;
     const query_string = querystring.stringify({
       id_token: req.body.id_token,
       nonce: req.body.state,
-      return_path: "lti/return-deep-link/"
+      return_path: "lti/return-deep-link/",
+      user_id
     });
     res.redirect("../lti?" + query_string);
   });
 
   router.post("/return-deep-link", (req, res) => {
-    const options = { algorithms: ["RS256"] };
+    console.log("\nreturn-deep-link\n");
     // TODO #V0: Use verify for security
-    const token = jwt.decode(req.body.token_id, options);
+    const token = jwt.decode(req.body.token_id, JWT_OPTIONS);
     const { assignment_name } = req.body;
 
     // `/launch` receives this url as target
-    const url = "https://cocalc.com/[lms_id]/[uuid]/[assignment_name]/"
+    let url = `https://cocalc.com/${opts.base_url}/api/lti/launch/${uuid.v4()}`;
+
+    console.log("    Return url is:", url);
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
     const nonce = uuid.v4();
