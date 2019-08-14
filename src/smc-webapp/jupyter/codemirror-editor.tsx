@@ -85,6 +85,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
 
   _cm_destroy = (): void => {
     if (this.cm != null) {
+      // console.log("destroy_codemirror", this.props.id);
       if (this.props.frame_actions != null) {
         this.props.frame_actions.unregister_input_editor(this.props.id);
       }
@@ -421,6 +422,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (node == null) {
       return;
     }
+    // console.log("init_codemirror", this.props.id);
     const options0: any = options.toJS();
     if (this.props.actions != null) {
       if (options0.extraKeys == null) {
@@ -482,10 +484,9 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.key != null) {
       const info = cache[this.key];
       if (info != null && info.sel != null) {
-        this.cm.getDoc().setSelections(info.sel);
+        this.cm.getDoc().setSelections(info.sel, undefined, { scroll: false });
       }
     }
-
     this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
     this.cm.on("change", this._cm_change);
     this.cm.on("focus", this._cm_focus);
