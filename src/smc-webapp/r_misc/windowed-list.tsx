@@ -21,7 +21,7 @@ let ResizeObserver: any = (window as any).ResizeObserver;
 if (ResizeObserver == null) {
   ResizeObserver = require("resize-observer").ResizeObserver;
 }
-const RESIZE_THRESH: number = 5;
+const SHRINK_THRESH: number = 10;
 
 import { VariableSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -172,7 +172,7 @@ export class WindowedList extends Component<Props, State> {
     return this.height;
   }
 
-  public get_window_width() : number {
+  public get_window_width(): number {
     return this.width;
   }
 
@@ -187,7 +187,7 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToPosition(pos: number): void {
-    if (this.list_ref.current == null || pos==null) return;
+    if (this.list_ref.current == null || pos == null) return;
     this.list_ref.current.scrollTo(pos);
   }
 
@@ -202,31 +202,29 @@ export class WindowedList extends Component<Props, State> {
   }
 
   private cell_resized(entries: any[]): void {
-    let n: number = 0;
+    let num_changed: number = 0;
     let min_index: number = 999999;
     for (let entry of entries) {
       // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
-      const elt = $(entry.target);
-      const key = elt.attr("data-key");
-      const index = elt.attr("data-index");
+      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0)
+        continue;
+      const elt = entry.target;
+      const key = elt.getAttribute("data-key");
+      if (key == null) continue;
+      const index = elt.getAttribute("data-index");
       if (index != null) {
         min_index = Math.min(min_index, parseInt(index));
       }
-      if (
-        key == null ||
-        isNaN(entry.contentRect.height) ||
-        entry.contentRect.height === 0 ||
-        Math.abs(this.row_heights_cache[key] - entry.contentRect.height) <=
-          RESIZE_THRESH
-      ) {
-        // not really changed or just disappeared from DOM... so continue
-        // using what we have cached (or the default).
+      const s = entry.contentRect.height - this.row_heights_cache[key];
+      if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
+        // not really changed or just disappeared from DOM or just shrunk a little,
+        // ... so continue using what we have cached (or the default).
         continue;
       }
       this.row_heights_stale[key] = true;
-      n += 1;
+      num_changed += 1;
     }
-    if (n > 0) this.refresh(min_index);
+    if (num_changed > 0) this.refresh(min_index);
   }
 
   public disable_refresh(): void {
@@ -263,7 +261,7 @@ export class WindowedList extends Component<Props, State> {
     }
 
     let ht = elt.height();
-    if (Math.abs(h - ht) < 2 * RESIZE_THRESH) {
+    if (Math.abs(h - ht) <= SHRINK_THRESH) {
       // don't shrink if there are little jiggles.
       ht = Math.max(h, ht);
     }
