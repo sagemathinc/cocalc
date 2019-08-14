@@ -364,16 +364,14 @@ class AddCollaboratorsPanel0 extends Component<
 
   default_email_body = () => {
     const name = this.props.get_fullname();
-    const project_id = this.props.project.get("project_id");
     const title = this.props.project.get("title");
-    const host = window.location.hostname;
-    const target = `[project '${title}'](https://${host}/projects/${project_id})`;
+    const target = `project '${title}'`;
     const SiteName =
       (redux.getStore as any)("customize").get("site_name") || SITE_NAME;
     const email_body = `
 Hello!
 
-Please collaborate with me using [${SiteName}](https://${host}) on ${target}.
+Please collaborate with me using ${SiteName} on ${target}.
 
 Best wishes,
 

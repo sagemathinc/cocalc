@@ -2,7 +2,7 @@
 //
 //    CoCalc: Collaborative Calculation in the Cloud
 //
-//    Copyright (C) 2016 -- 2017, Sagemath Inc.
+//    Copyright (C) 2016 -- 2019, Sagemath Inc.
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -36,6 +36,8 @@ const sendgrid = require("sendgrid");
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 
+import * as sanitizeHtml from "sanitize-html";
+
 const {
   SENDGRID_TEMPLATE_ID,
   SENDGRID_ASM_NEWSLETTER,
@@ -47,6 +49,78 @@ const {
   HELP_EMAIL,
   LIVE_DEMO_REQUEST
 } = require("smc-util/theme");
+
+function escapeEmailBody(body: string): string {
+  const config = {
+    // in particular, no img and no anchor a
+    allowedTags: [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "blockquote",
+      "p",
+      "ul",
+      "ol",
+      "nl",
+      "li",
+      "b",
+      "i",
+      "strong",
+      "em",
+      "strike",
+      "code",
+      "hr",
+      "br",
+      "div",
+      "table",
+      "thead",
+      "caption",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "pre"
+    ]
+  };
+  return sanitizeHtml(body, config);
+}
+
+export function makeEmailBody(
+  subject,
+  body,
+  email_address,
+  project_title,
+  link2proj
+): string {
+  const base_url_tokens = link2proj.split("/");
+  const base_url = `${base_url_tokens[0]}//#{base_url_tokens[2]}`;
+  const direct_link = `Open <a href='${link2proj}'>the project '${project_title}'</a>.`;
+
+  let email_body = "";
+  if (body) {
+    email_body = escapeEmailBody(body);
+  } else {
+    email_body = subject;
+  }
+
+  email_body += `
+<br/><br/>
+<b>To accept the invitation:
+<ol>
+<li>Open <a href="${base_url}/app">CoCalc</a></li>
+<li>Sign up/in using <i>exactly</i> your email address <code>${email_address}</code></li>
+<li>${direct_link}</li>
+</ol></b>
+<br/><br />
+(If you're already signed in via <i>another</i> email address,
+ you have to sign out and sign up/in using the mentioned email address.)
+`;
+
+  return email_body;
+}
 
 let email_server: any | undefined = undefined;
 

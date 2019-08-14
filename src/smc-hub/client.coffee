@@ -25,10 +25,11 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('./stripe/client')
 {get_support}        = require('./support')
-{send_email}         = require('./email')
+{send_email, makeEmailBody} = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
+{ escapeHtml }       = require("escape-html")
 
 underscore = require('underscore')
 
@@ -1407,25 +1408,7 @@ class exports.Client extends EventEmitter
                     if mesg.subject?
                         subject  = mesg.subject
 
-                    if mesg.link2proj? # make sure invitees know where to go
-                        base_url = mesg.link2proj.split("/")
-                        base_url = "#{base_url[0]}//#{base_url[2]}"
-                        direct_link = "Open <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
-                    else # fallback for outdated clients
-                        base_url = 'https://cocalc.com/'
-                        direct_link = ''
-
-                    email_body = (mesg.email ? '') + """
-                        <br/><br/>
-                        <b>To accept the invitation, please open
-                        <a href='#{base_url}'>#{base_url}</a>
-                        and sign in using your email address '#{locals.email_address}'.
-                        #{direct_link}</b><br/>
-                        """
-
-                    # The following is only for backwards compatibility with outdated webapp clients during the transition period
-                    if not mesg.title?
-                        subject = "Invitation to CoCalc for collaborating on a project"
+                    email_body = makeEmailBody(subject, mesg.email,locals.email_address,  mesg.title, mesg.link2proj)
 
                     # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
@@ -1487,9 +1470,6 @@ class exports.Client extends EventEmitter
 
             # users to invite
             to = (x for x in mesg.to.replace(/\s/g,",").replace(/;/g,",").split(',') when x)
-
-            # invitation template
-            email = mesg.email
 
             invite_user = (email_address, cb) =>
                 dbg("inviting #{email_address}")
@@ -1561,13 +1541,8 @@ class exports.Client extends EventEmitter
                             if mesg.subject?
                                 subject  = mesg.subject
 
-                            if mesg.link2proj? # make sure invitees know where to go
-                                base_url = mesg.link2proj.split("/")
-                                base_url = "#{base_url[0]}//#{base_url[2]}"
-                                direct_link = "Then go to <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
-                            else # fallback for outdated clients
-                                base_url = 'https://cocalc.com/'
-                                direct_link = ''
+                            email_body = makeEmailBody(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
+
 
                             # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
@@ -1580,11 +1555,7 @@ class exports.Client extends EventEmitter
                                 subject      : subject
                                 category     : "invite"
                                 asm_group    : SENDGRID_ASM_INVITES
-                                body         : email + """<br/><br/>
-                                               <b>To accept the invitation, please sign up at
-                                               <a href='#{base_url}'>#{base_url}</a>
-                                               using exactly the email address '#{email_address}'.
-                                               #{direct_link}</b><br/>"""
+                                body         : email_body
                                 cb           : (err) =>
                                     if err
                                         dbg("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")

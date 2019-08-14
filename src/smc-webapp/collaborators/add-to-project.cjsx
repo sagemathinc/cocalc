@@ -53,7 +53,7 @@ exports.AddCollaborators = rclass
             query : search
             limit : 50
             cb    : (err, select) =>
-                @write_email_invite(false)
+                @write_email_invite()
                 @setState(searching:false, err:err, select:select, email_to:undefined)
 
     render_options: (select) ->
@@ -123,10 +123,9 @@ exports.AddCollaborators = rclass
         name       = @props.get_fullname()
         project_id = @props.project.get('project_id')
         title      = @props.project.get('title')
-        host       = window.location.hostname
-        target     = "[project '#{title}'](https://#{host}/projects/#{project_id})"
+        target     = "project '#{title}'"
         SiteName   = redux.getStore('customize').get("site_name") ? SITE_NAME
-        body       = "Hello!\n\nPlease collaborate with me using [#{SiteName}](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
+        body       = "Hello!\n\nPlease collaborate with me using #{SiteName} on #{target}.\n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
