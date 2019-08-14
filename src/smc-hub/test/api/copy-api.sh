@@ -21,7 +21,7 @@ NOACC=4f6e8e03-6689-40b7-93fe-c2591278c252
 SRC=bc6f81b3-25ad-4d58-ae4a-65649fae4fa5
 TRG=7a5a42cf-b904-4a57-ba8d-1809533c1368
 PTH=bar.md
-#Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TRG -d wait_until_done=false -d scheduled="`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'`" $API/copy_path_between_projects
+Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TRG -d wait_until_done=false -d scheduled="`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'`" $API/copy_path_between_projects
 #Q -d src_project_id=$SRC -d src_path=$PTH -d target_project_id=$TRG  $API/copy_path_between_projects
 
 ## status

@@ -100,96 +100,59 @@ export class CopyPath {
     };
   }
 
-  copy(mesg) {
+  async copy(mesg): Promise<void> {
     this.client.touch();
-    if (!is_valid_uuid_string(mesg.src_project_id)) {
-      this.client.error_to_client({
-        id: mesg.id,
-        error: `src_project_id='${mesg.src_project_id}' not valid`
-      });
-      return;
-    }
-    if (!is_valid_uuid_string(mesg.target_project_id)) {
-      this.client.error_to_client({
-        id: mesg.id,
-        error: `target_project_id='${mesg.target_project_id}' not valid`
-      });
-      return;
-    }
-    if (mesg.src_path == null) {
-      this.client.error_to_client({
-        id: mesg.id,
-        error: "src_path must be defined"
-      });
-      return;
-    }
 
-    const locals = { copy_id: undefined };
-
-    async.series(
-      [
-        async (cb): Promise<void> => {
-          try {
-            const write = this._write_access(mesg.target_project_id);
-            const read = this._read_access(mesg.src_project_id);
-            await Promise.all([write, read]);
-            cb();
-          } catch (err) {
-            cb(err.message);
-          }
-        },
-
-        (cb): void => {
-          // do the copy
-          this.client.compute_server.project({
-            project_id: mesg.src_project_id,
-            cb: (err, project) => {
-              if (err) {
-                cb(err);
-                return;
-              }
-
-              project.copy_path({
-                path: mesg.src_path,
-                target_project_id: mesg.target_project_id,
-                target_path: mesg.target_path,
-                overwrite_newer: mesg.overwrite_newer,
-                delete_missing: mesg.delete_missing,
-                backup: mesg.backup,
-                timeout: mesg.timeout,
-                exclude_history: mesg.exclude_history,
-                wait_until_done: mesg.wait_until_done,
-                scheduled: mesg.scheduled,
-                cb: (err, copy_id) => {
-                  if (err) {
-                    cb(err);
-                  } else {
-                    locals.copy_id = copy_id;
-                    cb();
-                  }
-                }
-              });
-            }
-          });
-        }
-      ],
-      (err): void => {
-        if (err) {
-          this.client.error_to_client({ id: mesg.id, error: err });
-        } else {
-          // we only expect a copy_id in kucalc mode
-          if (locals.copy_id != null) {
-            const resp = message.copy_path_between_projects_response({
-              id: mesg.id,
-              copy_path_id: locals.copy_id
-            });
-            this.client.push_to_client(resp);
-          } else {
-            this.client.push_to_client(message.success({ id: mesg.id }));
-          }
-        }
+    try {
+      // prereq checks
+      if (!is_valid_uuid_string(mesg.src_project_id)) {
+        this.throw(`src_project_id='${mesg.src_project_id}' not valid`);
       }
-    );
+      if (!is_valid_uuid_string(mesg.target_project_id)) {
+        this.throw(`target_project_id='${mesg.target_project_id}' not valid`);
+      }
+      if (mesg.src_path == null) {
+        this.throw("src_path must be defined");
+      }
+
+      // check read/write access
+      const write = this._write_access(mesg.target_project_id);
+      const read = this._read_access(mesg.src_project_id);
+      await Promise.all([write, read]);
+
+      // get the "project" for issuing commands
+      const project = await callback2(this.client.compute_server.project, {
+        project_id: mesg.src_project_id
+      });
+
+      // do the copy
+      const copy_id = await callback2(project.copy_path, {
+        path: mesg.src_path,
+        target_project_id: mesg.target_project_id,
+        target_path: mesg.target_path,
+        overwrite_newer: mesg.overwrite_newer,
+        delete_missing: mesg.delete_missing,
+        backup: mesg.backup,
+        timeout: mesg.timeout,
+        exclude_history: mesg.exclude_history,
+        wait_until_done: mesg.wait_until_done,
+        scheduled: mesg.scheduled
+      });
+
+      // if we're still here, the copy was ok!
+      if (copy_id != null) {
+        // we only expect a copy_id in kucalc mode
+        const resp = message.copy_path_between_projects_response({
+          id: mesg.id,
+          copy_path_id: copy_id
+        });
+        this.client.push_to_client(resp);
+      } else {
+        this.client.push_to_client(message.success({ id: mesg.id }));
+      }
+    } catch (err) {
+      this.client.error_to_client({ id: mesg.id, error: err });
+    }
   }
 
   status(mesg) {
