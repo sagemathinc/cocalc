@@ -1814,12 +1814,12 @@ API(
       },
       offset: {
         init: undefined,
-        desc: "(src/targ only) default 0; use a multiple of 1000"
+        desc: "(src/targ only) default 0; set this to a multiple of the limit"
       },
       pending: {
         init: true,
         desc:
-          "(src/targ only) if true, only show pending copy ops (default: true)"
+          "(src/targ only) true returns copy ops, which did not finish yet (default: true)"
       },
       failed: {
         init: false,
@@ -1834,8 +1834,7 @@ There are two possibilities:
 - for a given \`copy_path_id\`,
   which was returned by \`copy_path_between_projects\` earlier;
 - or at last one of \`src_project_id\` or \`target_project_id\`
-  with an optionally given \`src_path\` for a set of statuses.
-  (limited at 1000; for more set \`offset\` to 1000 or more; most recent operations come first)
+  – additionally filtered by an optionally given \`src_path\` – for a list of statuses.
 `
   })
 );

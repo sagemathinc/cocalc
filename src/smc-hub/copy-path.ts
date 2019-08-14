@@ -266,8 +266,10 @@ export class CopyPath {
             mesg.pending = false;
           }
 
-          if (mesg.pending === true) {
+          if (mesg.pending === true || mesg.pending === "true") {
             where.push("finished IS NULL");
+          } else {
+            where.push("finished IS NOT NULL");
           }
 
           // sanitizing input!
