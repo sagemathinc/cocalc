@@ -45,6 +45,7 @@ interface CellProps {
   trust?: boolean;
   hook_offset?: number;
   is_scrolling?: boolean;
+  height?: number; // optional fixed height
 }
 
 export class Cell extends Component<CellProps> {
@@ -64,6 +65,7 @@ export class Cell extends Component<CellProps> {
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       nextProps.trust !== this.props.trust ||
       nextProps.is_scrolling !== this.props.is_scrolling ||
+      nextProps.height !== this.props.height ||
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
@@ -232,6 +234,11 @@ export class Cell extends Component<CellProps> {
     if (this.props.is_current || this.props.is_selected) {
       // style.color = COLORS.BS_RED;
       style.color = INPUT_PROMPT_COLOR; // should be the same as the prompt; it's not an error.
+    }
+
+    if (this.props.height) {
+      style.height = this.props.height + "px";
+      style.overflowY = "scroll";
     }
 
     return (
