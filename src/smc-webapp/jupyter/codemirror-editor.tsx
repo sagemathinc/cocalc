@@ -167,17 +167,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         );
       }
     }
-
-    this.set_hook_pos();
-  };
-
-  set_hook_pos = (): void => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
-    }
-    // Used for maintaining vertical scroll position with multiple simultaneous editors.
-    const offset = this.cm.cursorCoords(true, "local").top;
-    this.props.frame_actions.setState({ hook_offset: offset });
   };
 
   _cm_set_cursor = (pos: { x?: number; y?: number }): void => {
@@ -232,7 +221,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     });
     this._cm_last_remote = remote;
     this.cm.setValueNoJump(new_val);
-    this.set_hook_pos();
   };
 
   _cm_undo = (): void => {
@@ -357,6 +345,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         y
       }
     );
+    this.props.frame_actions.scroll("cell visible");
   };
 
   whitespace_before_cursor = (): boolean => {

@@ -4,7 +4,6 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
-//const DEFAULT_ROW_SIZE: number = 34;
 const DEFAULT_ROW_SIZE: number = 64;
 
 import { WindowedList } from "../r_misc/windowed-list";
@@ -97,7 +96,7 @@ export class CellList extends Component<CellListProps> {
        keep resetting scrollTop a few times.
     */
     let scrollHeight: number = 0;
-    for (let tm of [0, 250, 750, 1500, 2000]) {
+    for (let tm of [0, 1, 100, 150]) {
       if (!this.is_mounted) return;
       if (this.use_windowed_list) {
         if (this.windowed_list_ref.current != null) {
@@ -198,28 +197,25 @@ export class CellList extends Component<CellListProps> {
 
     // supported scroll positions are in types.ts
     if (scroll === "cell visible") {
-      if (!this.props.cur_id || this.props.mode == "edit") return;
+      if (this.props.cur_id == null) return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
-      if (n != -1) {
-        list.scrollToRow(n, "top");
-        await delay(5);  // needed due to shift+enter causing output
-        list = this.windowed_list_ref.current;
-        if (list == null) return;
-        list.scrollToRow(n, "top");
-      }
-      return;
+      if (n == -1) return;
+      list.scrollToRow(n, "top");
+      await delay(5); // needed due to shift+enter causing output
+      list = this.windowed_list_ref.current;
+      if (list == null) return;
+      list.scrollToRow(n, "top");
     }
     if (info == null) return;
 
-    // TODO: I just hardcoded 400 for "1 page"!
     switch (scroll) {
       case "list up":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset - 400);
+        list.scrollToPosition(info.scrollOffset - list.get_window_height() * 0.9);
         break;
       case "list down":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset + 400);
+        list.scrollToPosition(info.scrollOffset + list.get_window_height() * 0.9);
         break;
     }
   }
