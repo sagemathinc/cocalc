@@ -567,7 +567,13 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // expose this option, so we have to bypass it in the dangerous
     // way below, which could break were CodeMirror to be refactored!
     // TODO: send them a PR to expose this.
-    this.cm.display.input.textarea.focus({ preventScroll: true });
+    (window as any).cm = this.cm;
+    if (this.cm.display == null || this.cm.display.input == null) return;
+    if (this.cm.display.input.textarea != null) {
+      this.cm.display.input.textarea.focus({ preventScroll: true });
+    } else if (this.cm.display.input.div != null) {
+      this.cm.display.input.div.focus({ preventScroll: true });
+    }
   }
 
   render_complete() {

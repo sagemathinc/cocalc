@@ -295,6 +295,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         />
       );
     }
+
     return (
       <CellList
         actions={this.props.actions}
@@ -318,7 +319,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         scroll={this.props.scroll}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
-        use_windowed_list={this.props.frame_actions != null}
+        use_windowed_list={
+          this.props.frame_actions != null &&
+          this.props.editor_settings != null &&
+          !this.props.editor_settings.get("disable_jupyter_windowing")
+        }
       />
     );
   }
