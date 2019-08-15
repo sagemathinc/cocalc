@@ -43,7 +43,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     return (
       <div key={key} className="CodeMirror-gutter-wrapper">
         <div
-          style={{ left: `-${width + 10}px`, width: `${width - 9}px` }}
+          style={{ left: `-${width + 4}px`, width: `${width - 9}px` }}
           className="CodeMirror-linenumber CodeMirror-gutter-elt"
         >
           {line}
@@ -115,11 +115,11 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     ) {
       const num_lines = this.props.value.split("\n").length;
       if (num_lines < 100) {
-        width = 40;
+        width = 30;
       } else if (num_lines < 1000) {
-        width = 49;
+        width = 35;
       } else if (num_lines < 10000) {
-        width = 59;
+        width = 45;
       } else {
         // nobody better do this...?
         width = 69;
