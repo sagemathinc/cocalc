@@ -171,14 +171,14 @@ export function commands(
       m: "Restart and run all...",
       menu: "Run all...",
       i: "forward",
-      f: () => jupyter_actions.restart_and_run_all(false)
+      f: () => jupyter_actions.restart_and_run_all()
     },
 
     "confirm restart kernel and run all cells without halting on error": {
       m: "Run all (do not stop on errors)...",
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
-      f: () => jupyter_actions.restart_and_run_all(true)
+      f: () => jupyter_actions.restart_and_run_all_no_halt()
     },
 
     "confirm shutdown kernel": {
