@@ -260,12 +260,13 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_cell(id: string, isScrolling: boolean = false): Rendered {
+  private render_cell(id: string, isScrolling: boolean, index:number): Rendered {
     const cell = this.props.cells.get(id);
     return (
       <Cell
         key={id}
         id={id}
+        index={index}
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
         name={this.props.name}
@@ -304,13 +305,14 @@ export class CellList extends Component<CellListProps> {
   private windowed_list_row_renderer({
     key,
     isVisible,
-    isScrolling
+    isScrolling,
+    index
   }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
         {this.render_insert_cell(key, "above")}
-        {this.render_cell(key, isScrolling || !isVisible)}
+        {this.render_cell(key, isScrolling || !isVisible, index)}
         {is_last ? this.render_insert_cell(key, "below") : undefined}
       </div>
     );
@@ -341,11 +343,13 @@ export class CellList extends Component<CellListProps> {
 
   private render_list_of_cells_directly(): Rendered[] {
     const v: Rendered[] = [];
+    let index : number = 0;
     this.props.cell_list.forEach((id: string) => {
       if (this.props.actions != null) {
         v.push(this.render_insert_cell(id));
       }
-      v.push(this.render_cell(id));
+      v.push(this.render_cell(id, false, index));
+      index += 1;
     });
     if (this.props.actions != null && v.length > 0) {
       const id = this.props.cell_list.get(this.props.cell_list.size - 1);

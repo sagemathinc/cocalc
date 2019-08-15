@@ -83,7 +83,8 @@ export interface CellInputProps {
   trust?: boolean;
   is_readonly: boolean;
   is_scrolling?: boolean;
-  id: any; // TODO: what is this
+  id: string;
+  index: number;
 }
 
 export class CellInput extends Component<CellInputProps> {
@@ -111,6 +112,7 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.is_readonly !== this.props.is_readonly ||
       nextProps.is_scrolling !== this.props.is_scrolling ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
+      nextProps.index !== this.props.index ||
       (nextProps.cell_toolbar === "slideshow" &&
         nextProps.cell.get("slide") !== this.props.cell.get("slide"))
     );
@@ -278,7 +280,6 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private render_time(): Rendered {
-    if (this.props.cell.get("start") == null) return;
     return (
       <div
         style={{
@@ -301,13 +302,36 @@ export class CellInput extends Component<CellInputProps> {
             textAlign: "right"
           }}
         >
-          <CellTiming
-            start={this.props.cell.get("start")}
-            end={this.props.cell.get("end")}
-            state={this.props.cell.get("state")}
-          />
+          {this.render_cell_timing()}
+          {this.render_cell_number()}
         </div>
       </div>
+    );
+  }
+
+  private render_cell_timing(): Rendered {
+    if (this.props.cell.get("start") == null) return;
+    return (
+      <CellTiming
+        start={this.props.cell.get("start")}
+        end={this.props.cell.get("end")}
+        state={this.props.cell.get("state")}
+      />
+    );
+  }
+
+  private render_cell_number(): Rendered {
+    return (
+      <span
+        style={{
+          marginLeft: "3px",
+          paddingLeft: "3px",
+          borderLeft: "1px solid #ccc",
+          borderBottom: "1px solid #ccc"
+        }}
+      >
+        {this.props.index + 1}
+      </span>
     );
   }
 

@@ -29,6 +29,7 @@ interface CellProps {
   frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
+  index: number;
   cm_options: Map<string, any>;
   cell: Map<string, any>; // TODO: types
   is_current?: boolean;
@@ -53,6 +54,7 @@ export class Cell extends Component<CellProps> {
     // note: we assume project_id and directory don't change
     return !!(
       nextProps.id !== this.props.id ||
+      nextProps.index !== this.props.index ||
       nextProps.cm_options !== this.props.cm_options ||
       nextProps.cell !== this.props.cell ||
       nextProps.is_current !== this.props.is_current ||
@@ -95,6 +97,7 @@ export class Cell extends Component<CellProps> {
         is_focused={!!(this.props.is_current && this.props.mode === "edit")}
         is_current={!!this.props.is_current}
         id={this.props.id}
+        index={this.props.index}
         font_size={this.props.font_size}
         project_id={this.props.project_id}
         directory={this.props.directory}
