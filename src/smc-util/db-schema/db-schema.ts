@@ -91,21 +91,19 @@ schema.stats =
         ...
 
 */
+const misc = require("../misc");
 
-const DEFAULT_FONT_SIZE = (exports.DEFAULT_FONT_SIZE = 14);
+const { DEFAULT_QUOTAS } = require("../upgrade-spec");
 
-// key for new filenames algorithm in account/other_settings and associated default value
-const NEW_FILENAMES = (exports.NEW_FILENAMES = "new_filenames");
-const DEFAULT_NEW_FILENAMES = (exports.DEFAULT_NEW_FILENAMES = "iso");
+const {
+  DEFAULT_FONT_SIZE,
+  NEW_FILENAMES,
+  DEFAULT_NEW_FILENAMES,
+  DEFAULT_COMPUTE_IMAGE,
+  site_settings_conf
+} = require("./defaults");
 
-const misc = require("./misc");
-
-const { DEFAULT_QUOTAS } = require("./upgrade-spec");
-
-// better make sure the storage server has something available under "default"
-exports.DEFAULT_COMPUTE_IMAGE = "default";
-
-const schema = (exports.SCHEMA = {});
+export const schema: any = {};
 
 schema.account_creation_actions = {
   desc:
@@ -380,7 +378,7 @@ schema.accounts = {
         ssh_keys: true,
         sign_up_usage_intent: true
       },
-      check_hook(db, obj, account_id, project_id, cb) {
+      check_hook(_db, obj, _account_id, _project_id, cb) {
         // Hook to truncate some text fields to at most 254 characters, to avoid
         // further trouble down the line.
         for (let field of ["first_name", "last_name", "email_address"]) {
@@ -468,7 +466,7 @@ schema.blobs = {
   },
   user_query: {
     get: {
-      instead_of_query(database, obj, account_id, cb) {
+      instead_of_query(database, obj, _account_id, cb) {
         if (obj.id == null) {
           cb("id must be specified");
           return;
@@ -501,7 +499,7 @@ schema.blobs = {
         blob: true,
         project_id: true
       },
-      instead_of_change(database, old_val, new_val, account_id, cb) {
+      instead_of_change(database, _old_value, new_val, _account_id, cb) {
         database.save_blob({
           uuid: new_val.id,
           blob: new_val.blob,
@@ -571,7 +569,6 @@ schema.webapp_errors = {
     comment: { type: "string" },
     stacktrace: { type: "string" },
     file: { type: "string" },
-    path: { type: "string" },
     lineNumber: { type: "integer" },
     columnNumber: { type: "integer" },
     severity: { type: "string" },
@@ -774,7 +771,7 @@ schema.file_use = {
         project_id: true,
         path: true
       },
-      check_hook(db, obj, account_id, project_id, cb) {
+      check_hook(db, obj, account_id, _project_id, cb) {
         // hook to note that project is being used (CRITICAL: do not pass path
         // into db.touch since that would cause another write to the file_use table!)
         // CRITICAL: Only do this if what edit or chat for this user is very recent.
@@ -1133,9 +1130,7 @@ schema.projects = {
     },
     compute_image: {
       type: "string",
-      desc: `Specify the name of the underlying (kucalc) compute image (default: '${
-        exports.DEFAULT_COMPUTE_IMAGE
-      }')`
+      desc: `Specify the name of the underlying (kucalc) compute image (default: '${DEFAULT_COMPUTE_IMAGE}')`
     },
     addons: {
       type: "map",
@@ -1173,7 +1168,7 @@ schema.projects = {
         last_active: null,
         action_request: null, // last requested action -- {action:?, time:?, started:?, finished:?, err:?}
         course: null,
-        compute_image: exports.DEFAULT_COMPUTE_IMAGE,
+        compute_image: DEFAULT_COMPUTE_IMAGE,
         addons: null
       }
     },
@@ -1280,7 +1275,7 @@ schema.project_invite_requests = {
         project_id: true,
         invite_requests: true
       },
-      before_change(database, old_val, new_val, account_id, cb) {
+      before_change(_database, _old_val, _new_val, _account_id, cb) {
         cb();
       }
     }
@@ -1525,7 +1520,12 @@ schema.copy_paths = {
       desc: "if the copy failed or output any errors, they are put here."
     }
   },
-  pg_indexes: ["time", "scheduled", "((started IS NULL))", "((finished IS NULL))"]
+  pg_indexes: [
+    "time",
+    "scheduled",
+    "((started IS NULL))",
+    "((finished IS NULL))"
+  ]
 };
 // TODO: for now there are no user queries -- this is used entirely by backend servers,
 // actually only in kucalc; later that may change, so the user can make copy
@@ -1593,68 +1593,7 @@ schema.server_settings = {
   }
 };
 
-// Default settings to customize a given site, typically a private install of SMC.
-exports.site_settings_conf = {
-  site_name: {
-    name: "Site name",
-    desc: "The heading name of your CoCalc site.",
-    default: "CoCalc"
-  },
-  site_description: {
-    name: "Site description",
-    desc: "The description of your CoCalc site.",
-    default: ""
-  },
-  terms_of_service: {
-    name: "Terms of service",
-    desc:
-      "The text displayed for the terms of service link (make empty to not require).",
-    default:
-      'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
-  },
-  account_creation_email_instructions: {
-    name: "Account creation",
-    desc:
-      "Instructions displayed next to the box where a user creates their account using their name and email address.",
-    default: "Create an Account"
-  },
-  help_email: {
-    name: "Help email",
-    desc: "Email address that user is directed to use for support requests",
-    default: "help@cocalc.com"
-  },
-  commercial: {
-    name: "Commercial ('yes' or 'no')",
-    desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements.",
-    default: "no"
-  },
-  kucalc: {
-    name: "KuCalc UI ('yes' or 'no')",
-    desc:
-      "Whether to show UI elements adapted to what the KuCalc backend provides",
-    default: "no"
-  }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
-  version_min_project: {
-    name: "Required project version",
-    desc:
-      "Minimal version *required* by projects (if project older, will be force restarted).",
-    default: "0"
-  },
-  version_min_browser: {
-    name: "Required browser version",
-    desc:
-      "Minimal version *retuired* for browser clients (if older, forced disconnect).",
-    default: "0"
-  },
-  version_recommended_browser: {
-    name: "Recommended version",
-    desc: "Older clients receive an upgrade warning.",
-    default: "0"
-  }
-};
-
-const site_settings_fields = misc.keys(exports.site_settings_conf);
+const site_settings_fields = misc.keys(site_settings_conf);
 
 schema.site_settings = {
   virtual: "server_settings",
@@ -1672,7 +1611,7 @@ schema.site_settings = {
     set: {
       admin: true,
       fields: {
-        name(obj, db) {
+        name(obj, _db) {
           if (site_settings_fields.includes(obj.name)) {
             return obj.name;
           }
@@ -2010,6 +1949,9 @@ schema.user_tracking = {
 // Client side versions of some db functions, which are used, e.g., when setting fields.
 const sha1 = require("sha1");
 class ClientDB {
+  private _primary_keys_cache;
+  public r;
+
   constructor() {
     this.sha1 = this.sha1.bind(this);
     this._user_set_query_project_users = this._user_set_query_project_users.bind(
@@ -2045,10 +1987,10 @@ class ClientDB {
     return obj.users;
   }
 
-  _user_set_query_project_change_after(obj, old_val, new_val, cb) {
+  _user_set_query_project_change_after(_obj, _old_val, _new_val, cb) {
     cb();
   }
-  _user_set_query_project_change_before(obj, old_val, new_val, cb) {
+  _user_set_query_project_change_before(_obj, _old_val, _new_val, cb) {
     cb();
   }
 
@@ -2082,4 +2024,4 @@ class ClientDB {
   }
 }
 
-exports.client_db = new ClientDB();
+export const client_db = new ClientDB();
