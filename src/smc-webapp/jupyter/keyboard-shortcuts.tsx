@@ -17,6 +17,7 @@ import { commands, CommandDescription, KeyboardCommand } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
 // See http://xahlee.info/comp/unicode_computing_symbols.html
 const SYMBOLS = {
@@ -388,6 +389,7 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
 interface CommandListProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
+  editor_actions: JupyterEditorActions;
   taken: { [name: string]: boolean };
   search?: string;
 }
@@ -399,7 +401,11 @@ class CommandList extends Component<CommandListProps> {
 
   private render_commands(): Rendered[] {
     const v: any[] = [];
-    const obj = commands(this.props.actions, this.props.frame_actions);
+    const obj = commands(
+      this.props.actions,
+      this.props.frame_actions,
+      this.props.editor_actions
+    );
     for (let name in obj) {
       const val = obj[name];
       if (val != null) {
@@ -449,6 +455,7 @@ class CommandList extends Component<CommandListProps> {
 interface KeyboardShortcutsProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
+  editor_actions: JupyterEditorActions;
   keyboard_shortcuts?: Map<string, any>;
 }
 
@@ -466,7 +473,11 @@ export class KeyboardShortcuts extends Component<
     super(props, context);
     const obj = {
       search: "",
-      commands: commands(this.props.actions, this.props.frame_actions),
+      commands: commands(
+        this.props.actions,
+        this.props.frame_actions,
+        this.props.editor_actions
+      ),
       taken: {}
     };
     for (let name in obj.commands) {
@@ -570,6 +581,7 @@ export class KeyboardShortcuts extends Component<
                 <CommandList
                   actions={this.props.actions}
                   frame_actions={this.props.frame_actions}
+                  editor_actions={this.props.editor_actions}
                   taken={this.state.taken}
                   search={this.state.search}
                 />

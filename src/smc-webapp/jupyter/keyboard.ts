@@ -9,6 +9,7 @@ import { merge, copy_without } from "../../smc-util/misc";
 import { KeyboardCommand, commands } from "./commands";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
 
 export function keyCode_to_chr(keyCode: number): string {
@@ -52,7 +53,8 @@ function evt_to_shortcut(evt: any, mode: NotebookMode): string {
 
 export function create_key_handler(
   jupyter_actions: JupyterActions,
-  frame_actions: NotebookFrameActions
+  frame_actions: NotebookFrameActions,
+  editor_actions: JupyterEditorActions
 ): Function {
   let val: any;
   const shortcut_to_command: any = {};
@@ -72,7 +74,7 @@ export function create_key_handler(
     }
   }
 
-  const object = commands(jupyter_actions, frame_actions);
+  const object = commands(jupyter_actions, frame_actions, editor_actions);
   for (let name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {

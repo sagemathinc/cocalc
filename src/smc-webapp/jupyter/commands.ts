@@ -10,6 +10,7 @@ const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
 
 export interface KeyboardCommand {
@@ -33,7 +34,8 @@ export interface CommandDescription {
 
 export function commands(
   jupyter_actions: JupyterActions,
-  frame_actions: NotebookFrameActions
+  frame_actions: NotebookFrameActions,
+  editor_actions: JupyterEditorActions
 ): { [name: string]: CommandDescription } {
   if (jupyter_actions == null || frame_actions == null) {
     throw Error("both actions must be defined");
@@ -449,8 +451,13 @@ export function commands(
     },
 
     "nbconvert slides": {
-      m: "Slideshow...",
+      m: "Slideshow server via nbconvert...",
       f: () => jupyter_actions.show_nbconvert_dialog("slides")
+    },
+
+    slideshow: {
+      m: "Slideshow...",
+      f: () => editor_actions.show_revealjs_slideshow()
     },
 
     "nbconvert tex": {

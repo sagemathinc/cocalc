@@ -43,12 +43,14 @@ const KERNEL_STYLE: React.CSSProperties = {
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
 interface JupyterEditorProps {
   // PROPS
   error?: string;
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
+  editor_actions: JupyterEditorActions;
   name: string; // name of the redux store
 
   // Comes explicitly from frontend Jupyter state stored in
@@ -465,6 +467,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       <KeyboardShortcuts
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
+        editor_actions={this.props.editor_actions}
         keyboard_shortcuts={this.props.keyboard_shortcuts}
       />
     );
