@@ -46,3 +46,43 @@ export function times_n(s: string, n: number): string {
   for (let i = 0; i < n; i++) t += s;
   return t;
 }
+
+// These js_idx functions are adapted from https://github.com/jupyter/notebook/pull/2509
+// Also, see https://github.com/nteract/hydrogen/issues/807 for why.
+
+// javascript stores text as utf16 and string indices use "code units",
+// which stores high-codepoint characters as "surrogate pairs",
+// which occupy two indices in the javascript string.
+// We need to translate cursor_pos in the protocol (in characters)
+// to js offset (with surrogate pairs taking two spots).
+export function js_idx_to_char_idx(js_idx: number, text: string): number {
+  let char_idx = js_idx;
+  for (let i = 0; i + 1 < text.length && i < js_idx; i++) {
+    const char_code = text.charCodeAt(i);
+    // check for surrogate pair
+    if (char_code >= 0xd800 && char_code <= 0xdbff) {
+      const next_char_code = text.charCodeAt(i + 1);
+      if (next_char_code >= 0xdc00 && next_char_code <= 0xdfff) {
+        char_idx--;
+        i++;
+      }
+    }
+  }
+  return char_idx;
+}
+
+export function char_idx_to_js_idx(char_idx: number, text: string): number {
+  let js_idx = char_idx;
+  for (let i = 0; i + 1 < text.length && i < js_idx; i++) {
+    const char_code = text.charCodeAt(i);
+    // check for surrogate pair
+    if (char_code >= 0xd800 && char_code <= 0xdbff) {
+      const next_char_code = text.charCodeAt(i + 1);
+      if (next_char_code >= 0xdc00 && next_char_code <= 0xdfff) {
+        js_idx++;
+        i++;
+      }
+    }
+  }
+  return js_idx;
+}

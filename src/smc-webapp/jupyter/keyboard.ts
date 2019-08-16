@@ -66,6 +66,10 @@ export function create_key_handler(
       }
       return;
     }
+    if (s.key != null) {
+      // TODO: remove this when we switch from using event.which to event.key!
+      s = copy_without(s, ["key"]);
+    }
     shortcut_to_command[json(s)] = { name, val };
     if (s.alt) {
       s = copy_without(s, "alt");

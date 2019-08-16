@@ -21,6 +21,10 @@ export interface KeyboardCommand {
   shift?: boolean;
   twice?: boolean;
   meta?: boolean;
+  key?: string;
+  // TODO: key is currently only used for displaying what the shortcut is; however,
+  // "which" is deprecated and we should switch to using only key!
+  // See https://github.com/sagemathinc/cocalc/issues/4020
 }
 
 export interface CommandDescription {
@@ -595,7 +599,7 @@ export function commands(
     },
 
     "run cell and insert below": {
-      m: "Run cells and insert new cell below",
+      m: "Run cells and insert cell below",
       k: [{ which: 13, alt: true }],
       f: () => frame_actions.run_selected_cells_and_insert_new_cell_below()
     },
@@ -704,7 +708,10 @@ export function commands(
 
     "split cell at cursor": {
       m: "Split cell",
-      k: [{ ctrl: true, shift: true, which: 189 }],
+      k: [
+        { ctrl: true, shift: true, which: 189 },
+        { ctrl: true, key: ";", which: 186 }
+      ],
       f() {
         frame_actions.set_mode("escape");
         frame_actions.split_current_cell();

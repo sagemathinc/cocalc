@@ -47,28 +47,36 @@ function shortcut_to_string(shortcut: KeyboardCommand): string {
   if (shortcut.meta) {
     s += SYMBOLS.meta;
   }
-  const keyCode = shortcut.which;
-  switch (keyCode) {
-    case 8:
-      s += SYMBOLS.backspace;
-      break;
-    case 13:
-      s += SYMBOLS.return;
-      break;
-    case 32:
-      s += SYMBOLS.space;
-      break;
-    case 27:
-      s += "Esc";
-      break;
-    case 40:
-      s += SYMBOLS.down;
-      break;
-    case 38:
-      s += SYMBOLS.up;
-      break;
-    default:
-      s += keyCode_to_chr(keyCode);
+  if (shortcut.key) {
+    s += shortcut.key;
+  } else {
+    // TODO: using which is buggy/horrible/confusing/deprecated!
+    // we should get rid of this...
+    const keyCode = shortcut.which;
+    if (keyCode != null) {
+      switch (keyCode) {
+        case 8:
+          s += SYMBOLS.backspace;
+          break;
+        case 13:
+          s += SYMBOLS.return;
+          break;
+        case 32:
+          s += SYMBOLS.space;
+          break;
+        case 27:
+          s += "Esc";
+          break;
+        case 40:
+          s += SYMBOLS.down;
+          break;
+        case 38:
+          s += SYMBOLS.up;
+          break;
+        default:
+          s += keyCode_to_chr(keyCode);
+      }
+    }
   }
   if (shortcut.twice) {
     s = s + "," + s;
@@ -482,9 +490,14 @@ export class KeyboardShortcuts extends Component<
     };
     for (let name in obj.commands) {
       const val = obj.commands[name];
-      const arr = (val != null ? val.k : undefined) || [];
-      for (let s of arr) {
-        obj.taken[json(s)] = val.m || name;
+      if (val != null && val.k != null) {
+        for (let s of val.k) {
+          if (s.key != null) {
+            // TODO: remove this when we switch from using event.which to event.key!
+            s = misc.copy_without(s, ["key"]);
+          }
+          obj.taken[json(s)] = val.m || name;
+        }
       }
     }
     this.state = obj;
