@@ -157,6 +157,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "time travel",
       "",
       "print preview",
+      "slideshow",
       "nbconvert slides",
       "<Download as...",
       ">nbconvert ipynb",

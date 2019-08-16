@@ -114,7 +114,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     close_jupyter_actions(this.redux, this.name);
   }
 
-  private get_frame_actions(id?: string): NotebookFrameActions | undefined {
+  public get_frame_actions(id?: string): NotebookFrameActions | undefined {
     if (id === undefined) {
       id = this._get_active_id();
       if (id == null) throw Error("no active frame");
@@ -251,6 +251,27 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       case "jupyter_slideshow_revealjs":
         this.build_revealjs_slideshow();
         break;
+    }
+  }
+
+  public show_revealjs_slideshow(): void {
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      "jupyter_slideshow_revealjs"
+    );
+    if (id == null) {
+      // no slideshow view, so make one
+      this.split_frame(
+        "col",
+        this._get_active_id(),
+        "jupyter_slideshow_revealjs"
+      );
+      id = this._get_most_recent_active_frame_id_of_type(
+        "jupyter_slideshow_revealjs"
+      );
+    }
+    if (id != null) {
+      this.build_revealjs_slideshow();
+      this.focus(id);
     }
   }
 }

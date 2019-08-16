@@ -2,12 +2,12 @@
 Frame for showing the notebook as a slideshow for presentations.
 
 TODO:
- - [ ] build button
- - [ ] some key shortcuts (? for help, f for fullscreen)
+ - [ ] File --> Slideshow should do this now.
  - [ ] save the exact page being viewed; can be done via [iframe ref].contentDocument.URL
        and looking at the number after the slash.
  - [ ] presentation mode that makes it genuine fullscreen -- builtin "F" command *just works*,
        so even a button to cause the same would be more than enough.
+ - [ ] some key shortcuts (? for help, f for fullscreen)
  - [ ] ability to customize the compilation command.
  - [ ] progress bar based on last build time.
 */
@@ -64,9 +64,12 @@ class Slideshow extends Component<Props, {}> {
   private render_building(): Rendered {
     return (
       <div>
-        <h1 style={{ textAlign: "center", color: "#666" }}>Building...</h1>
+        <h3 style={{ textAlign: "center", color: "#666" }}>
+          Creating slideshow using nbconvert...
+        </h3>
       </div>
     );
+    // TODO: this would be a good place to draw a progress bar.
   }
 
   private async launch_build(): Promise<void> {
