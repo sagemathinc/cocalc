@@ -8,11 +8,22 @@ export function create<F extends Fields>({
   return { ...rules, fields };
 }
 
+export interface DBSchema {
+  [key: string]: TableSchema<any>;
+}
+
 interface Fields {
   [key: string]:
     | boolean
     | {
-        type: "uuid" | "timestamp" | "string" | "boolean" | "map" | "array" | "integer";
+        type:
+          | "uuid"
+          | "timestamp"
+          | "string"
+          | "boolean"
+          | "map"
+          | "array"
+          | "integer";
         desc: string;
         pg_type?: string;
         unique?: boolean;
@@ -22,12 +33,13 @@ interface Fields {
 interface TableSchema<F extends Fields> {
   desc: string;
   primary_key: keyof F | (keyof F)[]; // One of the fields or array of fields
+  fields: F;
   db_standby?: "unsafe" | "safer";
   durability?: "soft" | "hard"; // Default is hard
   anonymous?: boolean;
   virtual?: string; // Must be another table name
-  fields: F;
-  user_query: {
+  pg_indexes?: any[];
+  user_query?: {
     get: {
       fields: { [key in keyof Partial<F>]: any };
       pg_where: string[] | { [key: string]: string }[];

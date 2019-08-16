@@ -1,3 +1,9 @@
+
+import { schema } from "./db-schema"
+import { account_creation_actions } from "./account-creation-actions"
+
+export const SCHEMA = {...schema, account_creation_actions}
+
 export {
   DEFAULT_FONT_SIZE,
   NEW_FILENAMES,
@@ -6,4 +12,6 @@ export {
 } from "./defaults";
 
 export { site_settings_conf } from "./site-defaults";
-export { client_db, schema as SCHEMA } from "./db-schema";
+export { client_db } from "./db-schema";
+
+
