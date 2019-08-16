@@ -5,6 +5,7 @@ Jupyter Frame Editor Actions
 import { delay } from "awaiting";
 import { FrameTree } from "../frame-tree/types";
 import { Actions, CodeEditorState } from "../code-editor/actions";
+import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 import {
   create_jupyter_actions,
@@ -213,5 +214,14 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return markdown_only;
     return `Format selected code cells using "${tool}", stopping on first error; formats markdown using prettier.`;
+  }
+
+  // Uses nbconvert to create an html slideshow version of this notebook.
+  // - If this is foo.ipynb, the resulting slideshow is in the file
+  //   .foo.slides.html, so can reference local images, etc.
+  // - Returned string is a **raw url** link to the HTML slideshow file.
+  public async revealjs_slideshow_html() : Promise<string> {
+    await this.save();
+    return await revealjs_slideshow_html(this.project_id, this.path);
   }
 }
