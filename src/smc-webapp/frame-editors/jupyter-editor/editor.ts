@@ -60,7 +60,7 @@ export const EDITOR_SPEC = {
     name: "Slideshow (Reveal.js)",
     icon: "slideshare",
     component: Slideshow,
-    buttons: set([])
+    buttons: set(["build"])
   }
 };
 /*,

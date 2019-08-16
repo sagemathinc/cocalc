@@ -245,4 +245,12 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.set_error(`Error building slideshow -- ${err}`);
     }
   }
+
+  public async build(id: string): Promise<void> {
+    switch (this._get_frame_type(id)) {
+      case "jupyter_slideshow_revealjs":
+        this.build_revealjs_slideshow();
+        break;
+    }
+  }
 }

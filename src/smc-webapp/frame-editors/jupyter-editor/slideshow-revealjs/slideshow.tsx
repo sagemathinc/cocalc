@@ -9,6 +9,7 @@ TODO:
  - [ ] presentation mode that makes it genuine fullscreen -- builtin "F" command *just works*,
        so even a button to cause the same would be more than enough.
  - [ ] ability to customize the compilation command.
+ - [ ] progress bar based on last build time.
 */
 
 import { delay } from "awaiting";
@@ -63,8 +64,7 @@ class Slideshow extends Component<Props, {}> {
   private render_building(): Rendered {
     return (
       <div>
-        {this.render_loading()}
-        <h1 style={{ textAlign: "center" }}>(Building...)</h1>
+        <h1 style={{ textAlign: "center", color: "#666" }}>Building...</h1>
       </div>
     );
   }
