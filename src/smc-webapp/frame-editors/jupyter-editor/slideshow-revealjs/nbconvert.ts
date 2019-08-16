@@ -15,6 +15,9 @@ export async function revealjs_slideshow_html(
     project_id
   };
   await exec(opts);
-  const html_filename = [split.head, base + ".html"].join("/");
+  const ext = ".slides.html";
+  const html_filename = split.head
+    ? [split.head, base + ext].join("/")
+    : base + ext;
   return raw_url_of_file(project_id, html_filename);
 }

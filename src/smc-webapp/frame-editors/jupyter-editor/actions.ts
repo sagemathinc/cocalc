@@ -12,7 +12,12 @@ import {
   close_jupyter_actions
 } from "./jupyter-actions";
 
-interface JupyterEditorState extends CodeEditorState {}
+interface JupyterEditorState extends CodeEditorState {
+  slideshow?: {
+    state?: "built" | "building" | "";
+    url?: string;
+  };
+}
 
 import { JupyterActions } from "../../jupyter/browser-actions";
 
@@ -220,8 +225,24 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   // - If this is foo.ipynb, the resulting slideshow is in the file
   //   .foo.slides.html, so can reference local images, etc.
   // - Returned string is a **raw url** link to the HTML slideshow file.
-  public async revealjs_slideshow_html() : Promise<string> {
-    await this.save();
-    return await revealjs_slideshow_html(this.project_id, this.path);
+  public async build_revealjs_slideshow(): Promise<void> {
+    const slideshow = (this.store as any).get("slideshow");
+    if (slideshow != null && slideshow.get("state") == "building") {
+      return;
+    }
+    try {
+      this.setState({ slideshow: { state: "building" } });
+      this.set_status("Building slideshow: saving...", 10000);
+      await this.save();
+      if (this._state == "closed") return;
+      this.set_status("Building slideshow: running nbconvert...", 15000);
+      const url = await revealjs_slideshow_html(this.project_id, this.path);
+      if (this._state == "closed") return;
+      this.set_status(""); // really bad design... I need to make this like for courses...
+      this.setState({ slideshow: { state: "built", url } });
+    } catch (err) {
+      if (this._state == "closed") return;
+      this.set_error(`Error building slideshow -- ${err}`);
+    }
   }
 }
