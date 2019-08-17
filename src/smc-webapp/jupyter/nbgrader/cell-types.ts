@@ -13,13 +13,14 @@ interface CelltypeInfo {
   points?: number; // default number of points
   icon?: string; // icon that would make sense for this type of cell
   code_only?: boolean; // only code cells can be set to this type
+  template?: { [language: string]: string };
 }
 
 export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
     title: "-",
     student_title: "",
-    student_tip:"",
+    student_tip: "",
     value: "",
     grade: false,
     locked: false,
@@ -32,7 +33,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
     title: "Manually graded answer",
     student_title: "Your answer",
-    student_tip: "Type your answer in this cell.  It will be manually graded by a person later.",
+    student_tip:
+      "Type your answer in this cell.  It will be manually graded by a person later.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
     hover:
@@ -47,7 +49,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
     title: "Automatically graded answer",
     student_title: "Your answer (tests are below)",
-    student_tip:"Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
+    student_tip:
+      "Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
     hover:
@@ -57,12 +60,26 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: false,
     solution: true,
-    code_only: true
+    code_only: true,
+    template: {
+      python: `
+def squares(n):  # modify function name and parameters
+    """
+    Compute the squares of the numbers from 1 to n.  [replace with function description]
+    """
+    ### BEGIN SOLUTION
+    # Put correct code here.  This code is removed for the student version, but is used
+    # to confirm that your tests are valid.
+    if n < 1: raise ValueError("n must be at least 1")
+    return [i**2 for i in range(1, n+1)]
+    ### END SOLUTION`
+    }
   },
   {
     title: "Test cell",
     student_title: "Test your code",
-    student_tip:"You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
+    student_tip:
+      "You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
     hover:
@@ -73,12 +90,28 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     points: 1,
-    code_only: true
+    code_only: true,
+    template: {
+      python: `
+# [Modify the tests below for your own problem]
+# Check that squares returns the correct output for several inputs:
+from nose.tools import assert_equal
+assert_equal(squares(1), [1])
+assert_equal(squares(2), [1, 4])
+assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
+
+# Check that squares raises an error for invalid input:
+from nose.tools import assert_raises
+assert_raises(ValueError, squares, 0)
+assert_raises(ValueError, squares, -1)
+`
+    }
   },
   {
     title: "Readonly",
     student_title: "Readonly",
-    student_tip:"This is setup or explanatory code for your assignment.  It is readonly, so you should not need to change it.",
+    student_tip:
+      "This is setup or explanatory code for your assignment.  It is readonly, so you should not need to change it.",
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#read-only-cells",
     hover:
@@ -132,4 +165,25 @@ export function value_to_state(value: string): Metadata {
     solution: x.solution,
     points: x.points
   };
+}
+
+/*
+A template for a cell, which helps the instructor not have to copy/paste
+or memorize the syntax of nbgrader...
+*/
+export function value_to_template_content(
+  value: string,
+  language: string
+): string {
+  const x = CELLTYPE_INFO_MAP[value];
+  if (x == null) {
+    throw Error(`unknown value "${value}"`);
+  }
+  const template = x.template;
+  if (template == null) return "";
+  if (language == "sage" && template[language] == null) {
+    language = "python";
+  }
+  const content = template[language];
+  return content == null ? "" : content.trim();
 }

@@ -43,12 +43,14 @@ const KERNEL_STYLE: React.CSSProperties = {
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
 interface JupyterEditorProps {
   // PROPS
   error?: string;
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
+  editor_actions: JupyterEditorActions;
   name: string; // name of the redux store
 
   // Comes explicitly from frontend Jupyter state stored in
@@ -295,6 +297,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         />
       );
     }
+
     return (
       <CellList
         actions={this.props.actions}
@@ -318,7 +321,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         scroll={this.props.scroll}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
-        use_windowed_list={this.props.editor_settings != null && this.props.editor_settings.get('jupyter_window')}
+        use_windowed_list={
+          this.props.frame_actions != null &&
+          this.props.editor_settings != null &&
+          !this.props.editor_settings.get("disable_jupyter_windowing")
+        }
       />
     );
   }
@@ -460,6 +467,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       <KeyboardShortcuts
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
+        editor_actions={this.props.editor_actions}
         keyboard_shortcuts={this.props.keyboard_shortcuts}
       />
     );

@@ -85,6 +85,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
 
   _cm_destroy = (): void => {
     if (this.cm != null) {
+      // console.log("destroy_codemirror", this.props.id);
       if (this.props.frame_actions != null) {
         this.props.frame_actions.unregister_input_editor(this.props.id);
       }
@@ -166,17 +167,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         );
       }
     }
-
-    this.set_hook_pos();
-  };
-
-  set_hook_pos = (): void => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
-    }
-    // Used for maintaining vertical scroll position with multiple simultaneous editors.
-    const offset = this.cm.cursorCoords(true, "local").top;
-    this.props.frame_actions.setState({ hook_offset: offset });
   };
 
   _cm_set_cursor = (pos: { x?: number; y?: number }): void => {
@@ -231,7 +221,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     });
     this._cm_last_remote = remote;
     this.cm.setValueNoJump(new_val);
-    this.set_hook_pos();
   };
 
   _cm_undo = (): void => {
@@ -356,6 +345,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         y
       }
     );
+    this.props.frame_actions.scroll("cell visible");
   };
 
   whitespace_before_cursor = (): boolean => {
@@ -421,6 +411,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (node == null) {
       return;
     }
+    // console.log("init_codemirror", this.props.id);
     const options0: any = options.toJS();
     if (this.props.actions != null) {
       if (options0.extraKeys == null) {
@@ -434,6 +425,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       options0.extraKeys["PageDown"] = this.page_down_key;
       options0.extraKeys["Cmd-/"] = "toggleComment";
       options0.extraKeys["Ctrl-/"] = "toggleComment";
+      options0.extraKeys["Ctrl-Enter"] = () => {}; // ignore control+enter, since there's a shortcut
       /*
       Disabled for now since fold state isn't preserved.
       if (options0.foldGutter) {
@@ -482,10 +474,9 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.key != null) {
       const info = cache[this.key];
       if (info != null && info.sel != null) {
-        this.cm.getDoc().setSelections(info.sel);
+        this.cm.getDoc().setSelections(info.sel, undefined, { scroll: false });
       }
     }
-
     this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
     this.cm.on("change", this._cm_change);
     this.cm.on("focus", this._cm_focus);
@@ -522,7 +513,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
 
     if (this.props.is_focused) {
-      this.cm.focus();
+      this.focus_cm();
     }
   }
 
@@ -546,7 +537,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (nextProps.is_focused && !this.props.is_focused) {
       // gain focus
       if (this.cm != null) {
-        this.cm.focus();
+        this.focus_cm();
       }
     }
     if (!nextProps.is_focused && this._cm_is_focused) {
@@ -567,6 +558,22 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.cm != null) {
       this._cm_save();
       this._cm_destroy();
+    }
+  }
+
+  private focus_cm(): void {
+    if (this.cm == null) return;
+    // Because we use react-window, it is critical to preventScroll
+    // when focusing!  Unfortunately, CodeMirror's api does not
+    // expose this option, so we have to bypass it in the dangerous
+    // way below, which could break were CodeMirror to be refactored!
+    // TODO: send them a PR to expose this.
+    (window as any).cm = this.cm;
+    if (this.cm.display == null || this.cm.display.input == null) return;
+    if (this.cm.display.input.textarea != null) {
+      this.cm.display.input.textarea.focus({ preventScroll: true });
+    } else if (this.cm.display.input.div != null) {
+      this.cm.display.input.div.focus({ preventScroll: true });
     }
   }
 
