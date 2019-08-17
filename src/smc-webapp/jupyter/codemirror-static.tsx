@@ -63,7 +63,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     let mode: any = null;
     if (this.props.options != null) {
       mode = this.props.options.get("mode");
-      if (mode != null) {
+      if (mode != null && typeof mode.toJS === "function") {
         mode = mode.toJS();
       }
     } else {
