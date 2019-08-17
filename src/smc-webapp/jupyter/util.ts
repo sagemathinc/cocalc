@@ -49,6 +49,9 @@ export function times_n(s: string, n: number): string {
 
 // These js_idx functions are adapted from https://github.com/jupyter/notebook/pull/2509
 // Also, see https://github.com/nteract/hydrogen/issues/807 for why.
+// An example using a python3 kernel is to define
+//    𨭎𨭎𨭎𨭎𨭎 = 10
+// then type 𨭎𨭎[tab key] and see it properly complete.
 
 // javascript stores text as utf16 and string indices use "code units",
 // which stores high-codepoint characters as "surrogate pairs",

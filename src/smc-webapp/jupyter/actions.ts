@@ -1542,6 +1542,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     complete.base = code;
     complete.code = code;
     complete.pos = char_idx_to_js_idx(cursor_pos, code);
+    complete.cursor_start = char_idx_to_js_idx(complete.cursor_start, code);
+    complete.cursor_end = char_idx_to_js_idx(complete.cursor_end, code);
     complete.id = id;
     // Set the result so the UI can then react to the change.
     if (offset != null) {
