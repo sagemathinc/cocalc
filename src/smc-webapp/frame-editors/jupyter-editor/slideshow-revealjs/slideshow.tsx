@@ -2,7 +2,7 @@
 Frame for showing the notebook as a slideshow for presentations.
 
 TODO:
- - [ ] File --> Slideshow should do this now.
+ - [ ] Clicking on the slideshow iframe should focus that frame... if possible.
  - [ ] save the exact page being viewed; can be done via [iframe ref].contentDocument.URL
        and looking at the number after the slash.
  - [ ] presentation mode that makes it genuine fullscreen -- builtin "F" command *just works*,
@@ -10,6 +10,7 @@ TODO:
  - [ ] some key shortcuts (? for help, f for fullscreen)
  - [ ] ability to customize the compilation command.
  - [ ] progress bar based on last build time.
+ - [ ] support something like RISE, i.e., live functionality (?) -- https://github.com/damianavila/RISE
 */
 
 import { delay } from "awaiting";
