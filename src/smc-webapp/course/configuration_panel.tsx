@@ -40,7 +40,8 @@ const {
   Row,
   Col,
   Panel,
-  Checkbox
+  Checkbox,
+  Grid
 } = require("react-bootstrap");
 
 // CoCalc Components
@@ -786,9 +787,9 @@ export class ConfigurationPanel extends Component<
 
   handle_students_pay_checkbox = e => {
     if (e.target.checked) {
-      return this.get_actions().set_course_info(this.get_student_pay_when());
+      this.get_actions().set_course_info(this.get_student_pay_when());
     } else {
-      return this.get_actions().set_course_info("");
+      this.get_actions().set_course_info("");
     }
   };
 
@@ -980,7 +981,7 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <div>
+      <Grid fluid={true} style={{ width: "100%", overflowY: "scroll" }}>
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}
@@ -998,7 +999,7 @@ export class ConfigurationPanel extends Component<
             {this.render_disable_students()}
           </Col>
         </Row>
-      </div>
+      </Grid>
     );
   }
 }

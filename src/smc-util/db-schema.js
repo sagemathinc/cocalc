@@ -320,6 +320,8 @@ schema.accounts = {
           theme: "default",
           undo_depth: 300,
           jupyter_classic: false,
+          jupyter_window: false,
+          disable_jupyter_windowing: false,
           show_exec_warning: true,
           physical_keyboard: "default",
           keyboard_variant: "",
@@ -745,9 +747,9 @@ schema.file_use = {
   // virtual table that lets you get older entries.
   user_query: {
     get: {
-      pg_where: ["last_edited >= NOW() - interval '14 days'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
       pg_changefeed: "projects",
-      options: [{ order_by: "-last_edited" }, { limit: 100 }], // limit is arbitrary
+      options: [{ order_by: "-last_edited" }, { limit: 200 }], // limit is arbitrary
       throttle_changes: 3000,
       fields: {
         id: null,
@@ -1151,7 +1153,8 @@ schema.projects = {
   user_query: {
     get: {
       // if you change the interval, change the text in projects.cjsx
-      pg_where: ["last_edited >= NOW() - interval '2 months'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '10 days'", "projects"],
+      options: [{ limit: 20, order_by: "-last_edited" }],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1231,6 +1234,7 @@ schema.projects = {
 
 // Same query above, but without the last_edited time constraint.
 schema.projects_all = misc.deep_copy(schema.projects);
+schema.projects_all.user_query.get.options = [];
 schema.projects_all.virtual = "projects";
 schema.projects_all.user_query.get.pg_where = ["projects"];
 
@@ -1505,7 +1509,8 @@ schema.copy_paths = {
     },
     scheduled: {
       type: "timestamp",
-      desc: "earliest time in the future, when the copy request should start (or null, for immediate execution)"
+      desc:
+        "earliest time in the future, when the copy request should start (or null, for immediate execution)"
     },
     started: {
       type: "timestamp",
@@ -1520,7 +1525,7 @@ schema.copy_paths = {
       desc: "if the copy failed or output any errors, they are put here."
     }
   },
-  pg_indexes: ["time"]
+  pg_indexes: ["time", "scheduled", "((started IS NULL))", "((finished IS NULL))"]
 };
 // TODO: for now there are no user queries -- this is used entirely by backend servers,
 // actually only in kucalc; later that may change, so the user can make copy

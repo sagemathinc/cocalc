@@ -1,0 +1,2 @@
+. smc-env
+./dev/project/start_hub.py >out 2>err

@@ -466,31 +466,52 @@ export class JupyterActions extends JupyterActions0 {
     // this.blur();
   }
 
-  public async restart_and_run_all(no_halt: boolean = false): Promise<void> {
-    let halt_mesg: string;
-    if (no_halt) {
-      halt_mesg = "All cells will be evaluated, even if there is an error.";
-    } else {
-      halt_mesg =
-        "If there is an error evaluating any cell, then evaluation stops.";
-    }
+  public async restart_and_run_all_no_halt(): Promise<void> {
     const choice = await this.confirm_dialog({
-      title: "Restart kernel and re-run the whole notebook?",
+      title: "Restart kernel and run all cells (do not stop on errors)",
       body:
-        "Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel. " +
-        halt_mesg,
+        "Are you sure you want to restart the kernel and re-execute all cells?  All variable state and output will be reset, though past output is available in TimeTravel.",
       choices: [
-        { title: "Continue running" },
+        { title: "Cancel" },
         {
-          title: "Restart and run all cells",
+          title: "Restart and run all",
           style: "danger",
           default: true
         }
       ]
     });
-    if (choice === "Restart and run all cells") {
+    if (choice === "Restart and run all") {
       await this.restart();
-      this.run_all_cells(no_halt);
+      this.run_all_cells(true);
+    }
+  }
+  public async restart_and_run_all(): Promise<void> {
+    const STOP = "Run all (stop on first error)";
+    const NOSTOP = "Run all (do not stop on errors)";
+    const choice = await this.confirm_dialog({
+      title: "Restart kernel and run notebook",
+      body:
+        "Are you sure you want to restart the kernel and run the notebook?  All variable state and output will be reset, though past output is available in TimeTravel. ",
+      choices: [
+        { title: "Cancel" },
+        {
+          title: STOP,
+          style: "danger",
+          default: true
+        },
+        {
+          title: NOSTOP,
+          style: "danger"
+        }
+      ]
+    });
+    if (choice === STOP) {
+      await this.restart();
+      this.run_all_cells(false);
+    }
+    if (choice === NOSTOP) {
+      await this.restart();
+      this.run_all_cells(true);
     }
   }
 
@@ -498,7 +519,7 @@ export class JupyterActions extends JupyterActions0 {
     const choice = await this.confirm_dialog({
       title: "Restart kernel and clear all output?",
       body:
-        "Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
+        "Do you want to restart the kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
       choices: [
         { title: "Continue running" },
         {
@@ -518,7 +539,7 @@ export class JupyterActions extends JupyterActions0 {
     const choice = await this.confirm_dialog({
       title: "Restart kernel?",
       body:
-        "Do you want to restart the current kernel?  All variables will be lost.",
+        "Do you want to restart the kernel?  All variables will be lost.",
       choices: [
         { title: "Continue running" },
         { title: "Restart", style: "danger", default: true }

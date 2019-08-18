@@ -22,7 +22,7 @@ function yapf(input_path) {
 }
 
 // from a full stacktrace, only show user the last line (encodes some reason and line number) ... everything else does not help.
-function last_line(str?: string): string {
+function tail(str?: string, lines = 4): string {
   if (str == null) {
     return "Problem running formatter.";
   } else {
@@ -30,8 +30,9 @@ function last_line(str?: string): string {
       str
         .trim()
         .split(/\r?\n/)
-        .slice(-1)
-        .pop() || ""
+        .slice(-lines)
+        .filter(x => x.trim().length > 0)
+        .join("\n") || ""
     );
   }
 }
@@ -79,7 +80,7 @@ export async function python_format(
         // ENOENT
         throw new Error(`Formatting utility "${util}" is not installed`);
       }
-      stderr = last_line(stderr);
+      stderr = tail(stderr);
       const err_msg = `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`;
       logger.debug(`format python error: ${err_msg}`);
       throw new Error(err_msg);
