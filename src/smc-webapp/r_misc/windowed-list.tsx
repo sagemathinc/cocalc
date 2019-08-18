@@ -21,6 +21,7 @@ let ResizeObserver: any = (window as any).ResizeObserver;
 if (ResizeObserver == null) {
   ResizeObserver = require("resize-observer").ResizeObserver;
 }
+const SHRINK_THRESH: number = 10;
 
 import { VariableSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -45,6 +46,7 @@ interface Props {
   use_is_scrolling?: boolean;
   hide_resize?: boolean;
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
+  scroll_margin?: number;
 }
 
 interface State {
@@ -82,6 +84,17 @@ export class WindowedList extends Component<Props, State> {
   private is_mounted: boolean = true;
   private _disable_refresh: boolean = false;
   private RowComponent: any;
+  private height: number = 0;
+  private width: number = 0;
+  private scroll_info: {
+    scrollDirection: "backward" | "forward";
+    scrollOffset: number;
+    scrollUpdateWasRequested: boolean;
+  } = {
+    scrollDirection: "forward",
+    scrollOffset: 0,
+    scrollUpdateWasRequested: false
+  };
 
   public render_info: RenderInfo = {
     overscanStartIndex: 0,
@@ -118,11 +131,63 @@ export class WindowedList extends Component<Props, State> {
         row += this.props.row_count;
       }
     }
-    this.list_ref.current.scrollToItem(row, align);
+    if (align == "top") {
+      // react-window doesn't have align=top, but we **need** it for jupyter
+      // This implementation isn't done; it's just to prove we can do it.
+      // Here "top" means the top of the row is in view nicely.
+      const meta = this.get_row_metadata(row);
+      if (meta == null) return;
+      const { scrollOffset } = this.get_scroll_info();
+      const height = this.get_window_height();
+      const margin = this.props.scroll_margin ? this.props.scroll_margin : 10;
+      let delta: number = 0;
+      if (meta.offset >= scrollOffset + height - margin) {
+        // cell is too far down
+        delta = meta.offset - (scrollOffset + height - margin);
+      } else if (meta.offset <= scrollOffset + margin) {
+        // cell is too far up
+        delta = meta.offset - (scrollOffset + margin);
+      }
+      if (delta != 0) {
+        this.scrollToPosition(scrollOffset + delta);
+      }
+    } else {
+      // align is auto, end, start, center
+      this.list_ref.current.scrollToItem(row, align);
+    }
+  }
+
+  public get_row_metadata(
+    row: number
+  ): { offset: number; size: number } | undefined {
+    if (this.list_ref.current == null) return;
+    const instanceProps = this.list_ref.current._instanceProps;
+    if (instanceProps == null) return;
+    const { itemMetadataMap } = instanceProps;
+    if (itemMetadataMap == null) return;
+    return itemMetadataMap[row];
+  }
+
+  public get_window_height(): number {
+    return this.height;
+  }
+
+  public get_window_width(): number {
+    return this.width;
+  }
+
+  public get_total_height(): number {
+    const meta = this.get_row_metadata(this.props.row_count - 1);
+    if (meta == null) return 0;
+    return meta.offset + meta.size;
+  }
+
+  public get_scroll_info(): any {
+    return this.scroll_info;
   }
 
   public scrollToPosition(pos: number): void {
-    if (this.list_ref.current == null) return;
+    if (this.list_ref.current == null || pos == null) return;
     this.list_ref.current.scrollTo(pos);
   }
 
@@ -137,30 +202,29 @@ export class WindowedList extends Component<Props, State> {
   }
 
   private cell_resized(entries: any[]): void {
-    let n: number = 0;
+    let num_changed: number = 0;
     let min_index: number = 999999;
     for (let entry of entries) {
       // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
-      const elt = $(entry.target);
-      const key = elt.attr("data-key");
-      const index = elt.attr("data-index");
+      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0)
+        continue;
+      const elt = entry.target;
+      const key = elt.getAttribute("data-key");
+      if (key == null) continue;
+      const index = elt.getAttribute("data-index");
       if (index != null) {
         min_index = Math.min(min_index, parseInt(index));
       }
-      if (
-        key == null ||
-        isNaN(entry.contentRect.height) ||
-        entry.contentRect.height === 0 ||
-        this.row_heights_cache[key] == entry.contentRect.height
-      ) {
-        // not really changed or just disappeared from DOM... so continue
-        // using what we have cached (or the default).
+      const s = entry.contentRect.height - this.row_heights_cache[key];
+      if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
+        // not really changed or just disappeared from DOM or just shrunk a little,
+        // ... so continue using what we have cached (or the default).
         continue;
       }
       this.row_heights_stale[key] = true;
-      n += 1;
+      num_changed += 1;
     }
-    if (n > 0) this.refresh(min_index);
+    if (num_changed > 0) this.refresh(min_index);
   }
 
   public disable_refresh(): void {
@@ -197,7 +261,7 @@ export class WindowedList extends Component<Props, State> {
     }
 
     let ht = elt.height();
-    if (Math.abs(h - ht) < 5) {
+    if (Math.abs(h - ht) <= SHRINK_THRESH) {
       // don't shrink if there are little jiggles.
       ht = Math.max(h, ht);
     }
@@ -236,6 +300,7 @@ export class WindowedList extends Component<Props, State> {
     let on_scroll: undefined | Function = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {
       on_scroll = info => {
+        this.scroll_info = info;
         if (this.props.on_scroll != null) {
           this.props.on_scroll(info);
         }
@@ -262,6 +327,8 @@ export class WindowedList extends Component<Props, State> {
       >
         <AutoSizer>
           {({ height, width }) => {
+            this.height = height;
+            this.width = width;
             const elt = (
               <List
                 ref={this.list_ref}

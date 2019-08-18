@@ -1,5 +1,5 @@
 /*
-Frame for showing the notebook as a slideshow for presentations.
+Frame for showing the classic notebook
 */
 
 import { React, Rendered, Component } from "../../app-framework";

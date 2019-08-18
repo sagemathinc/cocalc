@@ -54,7 +54,7 @@ export class NotebookFrameActions {
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(this.jupyter_actions, this);
+    this.commands = commands(this.jupyter_actions, this, this.frame_tree_actions);
   }
 
   public set_windowed_list_ref(windowed_list_ref) {
@@ -221,7 +221,7 @@ export class NotebookFrameActions {
 
   public enable_key_handler(): void {
     if (this.key_handler == null) {
-      this.key_handler = create_key_handler(this.jupyter_actions, this);
+      this.key_handler = create_key_handler(this.jupyter_actions, this, this.frame_tree_actions);
     }
     this.frame_tree_actions.set_active_key_handler(this.key_handler);
   }
