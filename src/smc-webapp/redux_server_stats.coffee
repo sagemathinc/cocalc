@@ -2,6 +2,7 @@
 Redux: server stats
 ###
 
+{COCALC_MINIMAL} = require ("./fullscreen")
 {Table, redux} = require('./app-framework')
 
 name    = 'server_stats'
@@ -17,7 +18,8 @@ get_stats = ->
         actions.setState(data)
     setTimeout(get_stats, 90 * 1000)
 
-get_stats()
+if not COCALC_MINIMAL
+    get_stats()
 
 #class StatsTable extends Table
 

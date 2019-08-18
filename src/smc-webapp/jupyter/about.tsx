@@ -85,6 +85,11 @@ export class About extends Component<AboutProps> {
           redo, realtime synchronized ipywidgets
         </li>
         <li>
+          <b>Windowing:</b> Only visible cells are rendered, which makes it
+          possible to efficiently work with very large notebooks having hundreds
+          of cells
+        </li>
+        <li>
           <b>Document split:</b> edit and see multiple parts of a large notebook
           at once
         </li>
@@ -96,12 +101,14 @@ export class About extends Component<AboutProps> {
           <b>Snippets:</b> code samples for many kernels
         </li>
         <li>
-          {" "}
           <b>Zoom:</b> easily change font size
         </li>
         <li>
-          {" "}
           <b>Code folding:</b> see structure of input
+        </li>
+        <li>
+          <b>Code formatting:</b> click the Format button to automatically
+          format your code and markdown.
         </li>
         <li>
           <b>Modern look:</b> buttons, menus and cell execution hints that
@@ -112,14 +119,20 @@ export class About extends Component<AboutProps> {
         </li>
         <li>
           <b>Background capture of output:</b> works if no user has the notebook
-          open (<a href="https://github.com/jupyterlab/jupyterlab/issues/6545#issuecomment-501259211"  target="_blank" rel="noopener">discussion</a>)
+          open (
+          <a
+            href="https://github.com/jupyterlab/jupyterlab/issues/6545#issuecomment-501259211"
+            target="_blank"
+            rel="noopener"
+          >
+            discussion
+          </a>
+          )
         </li>
         <li>
-          {" "}
-          <b>Mobile support:</b> phones and tablets{" "}
+          <b>Mobile support:</b> phones and tablets
         </li>
         <li>
-          {" "}
           <b>Cell creation:</b> click blue line between cells to create new
           cells
         </li>

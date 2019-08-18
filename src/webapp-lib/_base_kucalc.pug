@@ -170,14 +170,18 @@ html.no-js(lang="en")
         .fit
           width          : 100%
           heigh          : auto
+        div.intro
+          img.fit
+            @media (max-width: 767px)
+              width      : 30%
         body
           div.container
             > footer
               margin-top     : 6rem
             > div.row#top
-              margin         : 14rem 0 4rem 0
+              margin         : 5rem 0 5rem 0
               @media (min-width: 992px)
-                margin       : 14rem 0 4rem 0
+                margin       : 5rem 0 5rem 0
             > div#software-env-top
               margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */

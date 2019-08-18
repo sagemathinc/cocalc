@@ -4,8 +4,6 @@ const misc = require("smc-util/misc");
 const { types } = misc;
 
 export const entry_style: CSSProperties = {
-  paddingTop: "5px",
-  paddingBottom: "5px"
 };
 
 export const selected_entry: CSSProperties = misc.merge(

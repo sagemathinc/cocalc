@@ -30,7 +30,7 @@ The Landing Page
 {SignUp} = require('./landing-page/sign-up')
 {SignIn} = require('./landing-page/sign-in')
 {ForgotPassword} = require('./landing-page/forgot-password')
-
+LA_NAME = require('./landing-actions').NAME
 
 DESC_FONT = 'sans-serif'
 
@@ -258,6 +258,9 @@ exports.LandingPage = rclass
             is_commercial : rtypes.bool
         account:
             sign_in_email_address : rtypes.string
+        "#{LA_NAME}":
+            type         : rtypes.string
+            launch       : rtypes.string
 
     render_password_reset: ->
         reset_key = reset_password_key()
@@ -305,6 +308,12 @@ exports.LandingPage = rclass
             Questions? Create a <ShowSupportLink />.
         </div>
 
+    render_launch_action: ->
+        return if not @props.type?
+        <Row>
+            <h3>Launch Action: <code>{@props.type}</code> for <code>{@props.launch}</code></h3>
+        </Row>
+
     render_main_page: ->
         if @props.remember_me and not @props.get_api_key
             # Just assume user will be signing in.
@@ -328,6 +337,7 @@ exports.LandingPage = rclass
             borderRadius    : 4
 
         <div style={margin: UNIT}>
+            {@render_launch_action()}
             {@render_password_reset()}
             {@render_forgot_password()}
             <Row

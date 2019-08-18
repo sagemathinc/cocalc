@@ -7,7 +7,7 @@ Top-level react component for task list
 {Loading}               = require('../r_misc')
 
 {TaskList}              = require('./list')
-{ButtonBar}             = require('./buttonbar')
+{ButtonBar}             = require('./buttonbar.cjsx')
 {Find}                  = require('./find')
 {DescVisible}           = require('./desc-visible')
 {HashtagBar}            = require('./hashtag-bar')
@@ -17,6 +17,8 @@ Top-level react component for task list
 {IS_MOBILE} = require('../feature')
 
 exports.TaskEditor = rclass ({name}) ->
+    displayName : "TaskEditor"
+
     propTypes :
         actions    : rtypes.object.isRequired
         path       : rtypes.string
@@ -127,11 +129,7 @@ exports.TaskEditor = rclass ({name}) ->
         if @props.visible.size == 0 and @props.actions?
             return @render_new_hint()
 
-        if IS_MOBILE # obviously, this is not going to dynamically change, but it at least makes mobile *usable*...
-            STYLE = {}
-        else
-            # The 300px is needed so the pop-up calendar is not hidden
-            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px', paddingTop:'15px'}
+        # The 300px is needed so the pop-up calendar is not hidden
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}
@@ -144,11 +142,9 @@ exports.TaskEditor = rclass ({name}) ->
             scroll               = {@props.local_view_state?.get('scroll')}
             scroll_into_view     = {@props.scroll_into_view}
             font_size            = {@props.local_view_state?.get('font_size')}
-            style                = {STYLE}
             sortable             = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             read_only            = {@props.read_only}
             selected_hashtags    = {@props.local_view_state?.get('selected_hashtags')}
-            show_max             = {@props.local_view_state?.get('show_max')}
             search_terms         = {@props.search_terms}
             onSortEnd            = {@on_sort_end}
             useDragHandle        = {true}
@@ -163,11 +159,7 @@ exports.TaskEditor = rclass ({name}) ->
             />
 
     render: ->
-        if IS_MOBILE
-            className = undefined
-        else
-            className='smc-vfill'
-        <div className={className}>
+        <div className={'smc-vfill'}>
             {@render_hashtag_bar()}
             {@render_find_bar()}
             {@render_button_bar()}
