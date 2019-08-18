@@ -19,6 +19,10 @@
 #
 ###############################################################################
 
+## NOTE: this whole file needs to
+#   (1) be in typescript (as multiple files)
+#   (2) and should be in smc-webapp, since it didn't end up getting used anywhere else...
+
 DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)

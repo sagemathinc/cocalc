@@ -5,13 +5,19 @@ Jupyter Frame Editor Actions
 import { delay } from "awaiting";
 import { FrameTree } from "../frame-tree/types";
 import { Actions, CodeEditorState } from "../code-editor/actions";
+import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 import {
   create_jupyter_actions,
   close_jupyter_actions
 } from "./jupyter-actions";
 
-interface JupyterEditorState extends CodeEditorState {}
+interface JupyterEditorState extends CodeEditorState {
+  slideshow?: {
+    state?: "built" | "building" | "";
+    url?: string;
+  };
+}
 
 import { JupyterActions } from "../../jupyter/browser-actions";
 
@@ -108,7 +114,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     close_jupyter_actions(this.redux, this.name);
   }
 
-  private get_frame_actions(id?: string): NotebookFrameActions | undefined {
+  public get_frame_actions(id?: string): NotebookFrameActions | undefined {
     if (id === undefined) {
       id = this._get_active_id();
       if (id == null) throw Error("no active frame");
@@ -213,5 +219,59 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return markdown_only;
     return `Format selected code cells using "${tool}", stopping on first error; formats markdown using prettier.`;
+  }
+
+  // Uses nbconvert to create an html slideshow version of this notebook.
+  // - If this is foo.ipynb, the resulting slideshow is in the file
+  //   .foo.slides.html, so can reference local images, etc.
+  // - Returned string is a **raw url** link to the HTML slideshow file.
+  public async build_revealjs_slideshow(): Promise<void> {
+    const slideshow = (this.store as any).get("slideshow");
+    if (slideshow != null && slideshow.get("state") == "building") {
+      return;
+    }
+    try {
+      this.setState({ slideshow: { state: "building" } });
+      this.set_status("Building slideshow: saving...", 10000);
+      await this.save();
+      if (this._state == "closed") return;
+      this.set_status("Building slideshow: running nbconvert...", 15000);
+      const url = await revealjs_slideshow_html(this.project_id, this.path);
+      if (this._state == "closed") return;
+      this.set_status(""); // really bad design... I need to make this like for courses...
+      this.setState({ slideshow: { state: "built", url } });
+    } catch (err) {
+      if (this._state == "closed") return;
+      this.set_error(`Error building slideshow -- ${err}`);
+    }
+  }
+
+  public async build(id: string): Promise<void> {
+    switch (this._get_frame_type(id)) {
+      case "jupyter_slideshow_revealjs":
+        this.build_revealjs_slideshow();
+        break;
+    }
+  }
+
+  public show_revealjs_slideshow(): void {
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      "jupyter_slideshow_revealjs"
+    );
+    if (id == null) {
+      // no slideshow view, so make one
+      this.split_frame(
+        "col",
+        this._get_active_id(),
+        "jupyter_slideshow_revealjs"
+      );
+      id = this._get_most_recent_active_frame_id_of_type(
+        "jupyter_slideshow_revealjs"
+      );
+    }
+    if (id != null) {
+      this.build_revealjs_slideshow();
+      this.focus(id);
+    }
   }
 }

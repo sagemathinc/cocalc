@@ -27,7 +27,8 @@ import {
   CELLTYPE_INFO_LIST,
   CELLTYPE_INFO_MAP,
   value_to_state,
-  state_to_value
+  state_to_value,
+  value_to_template_content
 } from "./cell-types";
 
 const OPTIONS_CODE: Rendered[] = [];
@@ -71,6 +72,14 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       this.props.cell.get("id"),
       metadata
     );
+
+    if (this.props.cell.get("input", "").trim() == "") {
+      const language: string = this.props.actions.store.get_kernel_language();
+      const input = value_to_template_content(value, language);
+      if (input != "") {
+        this.props.actions.set_cell_input(this.props.cell.get("id"), input);
+      }
+    }
   }
 
   private set_points(points: any): void {
