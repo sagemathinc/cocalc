@@ -257,33 +257,17 @@ exports.ConnectionIndicator = rclass
 
     propTypes :
         actions       : rtypes.object
-        ping          : rtypes.number
         status        : rtypes.string
         on_click      : rtypes.func
-        show_pingtime : rtypes.bool
 
     reduxProps :
         page :
-            avgping           : rtypes.number
             connection_status : rtypes.string
         account :
             mesg_info         : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info', 'show_pingtime'])
-
-    getDefaultProps: ->
-        show_pingtime : true
-
-    render_ping: ->
-        if @props.avgping?
-            <Tip
-                title     = {'Most recently recorded roundtrip time to the server.'}
-                placement = {'left'}
-                stable    = {true}
-                >
-                {Math.floor(@props.avgping)}ms
-            </Tip>
+        return misc.is_different(@props, next, ['connection_status', 'status', 'mesg_info'])
 
     render_connection_status: ->
         if @props.connection_status == 'connected'
@@ -298,7 +282,6 @@ exports.ConnectionIndicator = rclass
                 icon_style.color = 'grey'
             <div style={padding:'9px'}>
                 <Icon name='wifi' style={icon_style}/>
-                {@render_ping() if @props.show_pingtime}
             </div>
         else if @props.connection_status == 'connecting'
             <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>

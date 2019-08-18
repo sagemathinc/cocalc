@@ -70,7 +70,7 @@ FileUsePageWrapper = (props) ->
         width        : '50%'
         height       : '90%'
 
-    <div style={styles}>
+    <div style={styles} className="smc-vfill">
         {<FileUsePage redux={redux} />}
     </div>
 

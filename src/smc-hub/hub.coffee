@@ -730,6 +730,13 @@ command_line = () ->
             database?.uncaught_exception(err)
             uncaught_exception_total?.inc(1)
 
+        process.on 'unhandledRejection', (reason, p) ->
+            winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+            winston.debug('Unhandled Rejection at:', p, 'reason:', reason)
+            winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+            database?.uncaught_exception(p)
+            uncaught_exception_total?.inc(1)
+
         if program.passwd
             winston.debug("Resetting password")
             reset_password(program.passwd, (err) -> process.exit())

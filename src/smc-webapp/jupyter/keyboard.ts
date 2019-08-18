@@ -9,6 +9,7 @@ import { merge, copy_without } from "../../smc-util/misc";
 import { KeyboardCommand, commands } from "./commands";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
 
 export function keyCode_to_chr(keyCode: number): string {
@@ -52,7 +53,8 @@ function evt_to_shortcut(evt: any, mode: NotebookMode): string {
 
 export function create_key_handler(
   jupyter_actions: JupyterActions,
-  frame_actions: NotebookFrameActions
+  frame_actions: NotebookFrameActions,
+  editor_actions: JupyterEditorActions
 ): Function {
   let val: any;
   const shortcut_to_command: any = {};
@@ -64,6 +66,10 @@ export function create_key_handler(
       }
       return;
     }
+    if (s.key != null) {
+      // TODO: remove this when we switch from using event.which to event.key!
+      s = copy_without(s, ["key"]);
+    }
     shortcut_to_command[json(s)] = { name, val };
     if (s.alt) {
       s = copy_without(s, "alt");
@@ -72,7 +78,7 @@ export function create_key_handler(
     }
   }
 
-  const object = commands(jupyter_actions, frame_actions);
+  const object = commands(jupyter_actions, frame_actions, editor_actions);
   for (let name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
@@ -88,14 +94,20 @@ export function create_key_handler(
       return;
     }
     const mode = frame_actions.store.get("mode");
-    if (mode === "escape" && $(":focus").length > 0) {
-      // Never use keyboard shortcuts when something is focused, e.g.,
-      // getting a password or using text input widget.
-      return;
+    if (mode === "escape") {
+      const focused = $(":focus");
+      if (
+        focused.length > 0 &&
+        focused[0].className.indexOf("ReactVirtualized") == -1
+      ) {
+        // Never use keyboard shortcuts when something is focused, e.g.,
+        // getting a password or using text input widget.  However, ReactVirtualized
+        // itself gets focused often, so we have to avoid that special case.
+        return;
+      }
     }
     const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
-    // console.log 'shortcut', shortcut, cmd
     if (cmd != null) {
       last_evt = undefined;
       cmd.val.f();

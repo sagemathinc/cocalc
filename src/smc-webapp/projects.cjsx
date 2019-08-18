@@ -23,10 +23,13 @@ $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
+{COCALC_MINIMAL} = require('./fullscreen')
+
 {analytics_event} = require('./tracker')
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
-{once} = require('smc-util/async-utils')
+{once, callback2} = require('smc-util/async-utils')
+{callback} = require('awaiting')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
@@ -36,7 +39,8 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+{WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
@@ -62,16 +66,16 @@ which are in the projects/ subdirectory.
 {ProjectRow}        = require('./projects/project-row')
 {ProjectsFilterButtons} = require('./projects/projects-filter-buttons')
 
-MAX_DEFAULT_PROJECTS = 50
-
 _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
+    # **THIS IS AN ASYNC FUNCTION!**
     projects_table_set: (obj) =>
         the_table = @redux.getTable('projects')
-        the_table?.set(obj)
-        return
+        if not the_table?  # silently fail???
+            return
+        await the_table.set(obj)
 
     # Set whether the "add collaborators" component is displayed
     # for the given project in the project listing.
@@ -109,7 +113,7 @@ class ProjectsActions extends Actions
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
     # This may also trigger load_all_projects.
-    # async
+    # **THIS IS AN ASYNC FUNCTION!**
     have_project: (project_id) =>
         t = @redux.getTable('projects')?._table
         if not t? # called before initialization... -- shouldn't ever happen
@@ -128,6 +132,7 @@ class ProjectsActions extends Actions
         # and try again.  Because we loaded all projects, we won't hit infinite recurse.
         return await @have_project(project_id)
 
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_title: (project_id, title) =>
         if not await @have_project(project_id)
             console.warn("Can't set title -- you are not a collaborator on project '#{project_id}'.")
@@ -136,12 +141,13 @@ class ProjectsActions extends Actions
             # title is already set as requested; nothing to do
             return
         # set in the Table
-        @projects_table_set({project_id:project_id, title:title})
+        await @projects_table_set({project_id:project_id, title:title})
         # create entry in the project's log
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event : 'set'
             title : title
 
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_description: (project_id, description) =>
         if not await @have_project(project_id)
             console.warn("Can't set description -- you are not a collaborator on project '#{project_id}'.")
@@ -150,9 +156,9 @@ class ProjectsActions extends Actions
             # description is already set as requested; nothing to do
             return
         # set in the Table
-        @projects_table_set({project_id:project_id, description:description})
+        await @projects_table_set({project_id:project_id, description:description})
         # create entry in the project's log
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event       : 'set'
             description : description
 
@@ -204,6 +210,7 @@ class ProjectsActions extends Actions
             @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
     # only owner can set course description.
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not await @have_project(project_id)
             msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
@@ -215,7 +222,7 @@ class ProjectsActions extends Actions
             return
 
         # Set in the database (will get reflected in table); setting directly in the table isn't allowed (due to backend schema).
-        webapp_client.query
+        await callback2(webapp_client.query,
             query :
                 projects_owner :
                     project_id : project_id
@@ -224,29 +231,35 @@ class ProjectsActions extends Actions
                         path          : path
                         pay           : pay
                         account_id    : account_id
-                        email_address : email_address
-
-    set_project_course_info_paying: (project_id, cb) =>
-        webapp_client.query
-            query :
-                projects_owner :
-                    project_id : project_id
-                    course     :
-                        paying     : webapp_client.server_time()
-            cb : cb
+                        email_address : email_address)
 
     # Create a new project
-    create_project: (opts) =>
+    # **THIS IS AN ASYNC FUNCTION!**
+    create_project: (opts) =>     # returns Promise<string>
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
             image       : undefined  # if given, sets the compute image (the ID string)
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
-            token = opts.token; delete opts.token
-            opts.cb = (err, project_id) =>
-                _create_project_tokens[token] = {err:err, project_id:project_id}
-        webapp_client.create_project(opts)
+            token = opts.token
+            delete opts.token
+        else
+            token = false
+        project_id = await callback2(webapp_client.create_project, opts)
+        if token
+            _create_project_tokens[token] = {err:err, project_id:project_id}
+
+        # At this point we know the project_id and that the project exists.
+        # However, various code (e.g., setting the title) depends on the
+        # project_map also having the project in it, which requires some
+        # changefeeds to fire off and get handled.  So we wait for that.
+
+        store = @redux.getStore('projects')
+        while not store.getIn(['project_map', project_id])
+            await once(store, 'change')
+        return project_id
+
 
     # Open the given project
     open_project: (opts) =>
@@ -380,23 +393,27 @@ class ProjectsActions extends Actions
     ###
     # Collaborators
     ###
+    # **THIS IS AN ASYNC FUNCTION!**
     remove_collaborator: (project_id, account_id) =>
-        name = redux.getStore('users').get_name(account_id)
-        webapp_client.project_remove_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
-                    alert_message(type:'error', message:err)
-                else
-                    @redux.getProjectActions(project_id).log
-                        event    : 'remove_collaborator'
-                        removed_name : name
+        f = (cb) =>
+            name = redux.getStore('users').get_name(account_id)
+            webapp_client.project_remove_collaborator
+                project_id : project_id
+                account_id : account_id
+                cb         : (err) =>
+                    if err # TODO: -- set error in store for this project...
+                        err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
+                        alert_message(type:'error', message:err)
+                        cb(err)
+                    else
+                        cb()
+        await callback(f)
+        await @redux.getProjectActions(project_id).async_log({event: 'remove_collaborator', removed_name : name})
 
     # this is for inviting existing users, the email is only known by the back-end
+    # **THIS IS AN ASYNC FUNCTION!**
     invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event    : 'invite_user'
             invitee_account_id : account_id
 
@@ -412,24 +429,28 @@ class ProjectsActions extends Actions
         if body?
             body = markdown.markdown_to_html(body)
 
-        webapp_client.project_invite_collaborator
-            project_id   : project_id
-            account_id   : account_id
-            title        : title
-            link2proj    : link2proj
-            replyto      : replyto
-            replyto_name : replyto_name
-            email        : body         # no body? no email will be sent
-            subject      : subject
-            cb         : (err, resp) =>
-                if not silent
-                    if err # TODO: -- set error in store for this project...
-                        err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
-                        alert_message(type:'error', message:err)
+        f = (cb) =>
+            webapp_client.project_invite_collaborator
+                project_id   : project_id
+                account_id   : account_id
+                title        : title
+                link2proj    : link2proj
+                replyto      : replyto
+                replyto_name : replyto_name
+                email        : body         # no body? no email will be sent
+                subject      : subject
+                cb         : (err) =>
+                    if not silent
+                        if err # TODO: -- set error in store for this project...
+                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                            alert_message(type:'error', message:err)
+                    cb(err)
+        await callback(f)
 
     # this is for inviting non-existing users, email is set via the UI
+    # **THIS IS AN ASYNC FUNCTION!**
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).async_log
             event         : 'invite_nonuser'
             invitee_email : to
 
@@ -444,21 +465,24 @@ class ProjectsActions extends Actions
         # convert body from markdown to html, which is what the backend expects
         body = markdown.markdown_to_html(body)
 
-        webapp_client.invite_noncloud_collaborators
-            project_id   : project_id
-            title        : title
-            link2proj    : link2proj
-            replyto      : replyto
-            replyto_name : replyto_name
-            to           : to
-            email        : body
-            subject      : subject
-            cb           : (err, resp) =>
-                if not silent
-                    if err
-                        alert_message(type:'error', message:err, timeout:60)
-                    else
-                        alert_message(message:resp.mesg)
+        f = (cb) =>
+            webapp_client.invite_noncloud_collaborators
+                project_id   : project_id
+                title        : title
+                link2proj    : link2proj
+                replyto      : replyto
+                replyto_name : replyto_name
+                to           : to
+                email        : body
+                subject      : subject
+                cb           : (err, resp) =>
+                    if not silent
+                        if err
+                            alert_message(type:'error', message:err, timeout:60)
+                        else
+                            alert_message(message:resp.mesg)
+                    cb(err)
+        await callback(f)
 
     ###
     # Upgrades
@@ -466,6 +490,7 @@ class ProjectsActions extends Actions
     # - upgrades is a map from upgrade parameters to integer values.
     # - The upgrades get merged into any other upgrades this user may have already applied,
     #   unless merge=false (the third option)
+    # **THIS IS AN ASYNC FUNCTION!**
     apply_upgrades_to_project: (project_id, upgrades, merge=true) =>
         misc.assert_uuid(project_id)
         if not merge
@@ -473,13 +498,13 @@ class ProjectsActions extends Actions
             upgrades = misc.copy(upgrades)
             for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
                 # create entry in the project's log
         # log the change in the project log
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).log
             event    : 'upgrade'
             upgrades : upgrades
 
@@ -487,64 +512,73 @@ class ProjectsActions extends Actions
         misc.assert_uuid(project_id)
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
+    # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'save', time:webapp_client.server_time()}
 
+    # **THIS IS AN ASYNC FUNCTION!**
     start_project: (project_id) ->
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'start', time:webapp_client.server_time()}
 
+    # **THIS IS AN ASYNC FUNCTION!**
     stop_project: (project_id) =>
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).log
             event : 'project_stop_requested'
 
+    # **THIS IS AN ASYNC FUNCTION!**
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'close', time:webapp_client.server_time()}
 
+    # **THIS IS AN ASYNC FUNCTION!**
     restart_project: (project_id) ->
-        @projects_table_set
+        await @projects_table_set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
-        @redux.getProjectActions(project_id).log
+        await @redux.getProjectActions(project_id).log
             event : 'project_restart_requested'
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
+    # **THIS IS AN ASYNC FUNCTION!**
     set_project_hide: (account_id, project_id, state) =>
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
                     hide : !!state
 
     # Toggle whether or not project is hidden project
+    # **THIS IS AN ASYNC FUNCTION!**
     toggle_hide_project: (project_id) =>
         account_id = @redux.getStore('account').get_account_id()
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
                     hide : not @redux.getStore('projects').is_hidden_from(project_id, account_id)
 
+    # **THIS IS AN ASYNC FUNCTION!**
     delete_project: (project_id) =>
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             deleted    : true
 
     # Toggle whether or not project is deleted.
+    # **THIS IS AN ASYNC FUNCTION!**
     toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
             @clear_project_upgrades(project_id)
 
-        @projects_table_set
+        await @projects_table_set
             project_id : project_id
             deleted    : not is_deleted
 
@@ -554,6 +588,7 @@ class ProjectsActions extends Actions
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
 
+    # **THIS IS AN ASYNC FUNCTION!**
     load_all_projects: => # async
         if store.get('load_all_projects_done')
             return
@@ -848,6 +883,12 @@ init_store =
 
 store = redux.createStore('projects', ProjectsStore, init_store)
 
+# Every time a project actions gets created, there is a new listener
+# on the projects store, and there can be many projectActions, e.g.,
+# when working with a course with 200 students.
+# This is annoying and worrisome.
+store.setMaxListeners(1000)
+
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
 
@@ -878,7 +919,7 @@ class ProjectsAllTable extends Table
 
 all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
-    if all_projects_have_been_loaded
+    if all_projects_have_been_loaded # or COCALC_MINIMAL
         return
     all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
@@ -892,6 +933,7 @@ load_recent_projects = =>
     if redux.getTable('projects')._table.get().size == 0
         await load_all_projects()
 
+#if not COCALC_MINIMAL
 load_recent_projects()
 
 
@@ -984,7 +1026,7 @@ ProjectsListingDescription = rclass
             a = if @props.hidden and @props.deleted then ' and ' else ''
             n = @props.visible_projects.length
             desc = "Only showing #{n} #{d}#{a}#{h} #{misc.plural(n, 'project')}"
-            <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
+            <h4 style={color:'#666', wordWrap:'break-word', marginTop:0}>{desc}</h4>
 
     render_span: (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
@@ -1195,7 +1237,6 @@ ProjectsListingDescription = rclass
 
     render: ->
         <div>
-            <Space />
             {@render_header()}
             {@render_alert_message()}
         </div>
@@ -1205,44 +1246,43 @@ ProjectList = rclass
 
     propTypes :
         projects    : rtypes.array.isRequired
-        show_all    : rtypes.bool.isRequired
         images      : rtypes.immutable.Map
+        user_map    : rtypes.immutable.Map
         redux       : rtypes.object
+        load_all_projects_done : rtypes.bool
 
     getDefaultProps: ->
         projects : []
         user_map : undefined
 
-    show_all_projects: ->
-        @actions('projects').setState(show_all : not @props.show_all)
+    render_load_all_projects_button: ->
+        return <LoadAllProjects
+                    done = {@props.load_all_projects_done}
+                    redux = {redux} />
 
-    render_show_all: ->
-        if @props.projects.length > MAX_DEFAULT_PROJECTS
-            more = @props.projects.length - MAX_DEFAULT_PROJECTS
-            <br />
-            <Button
-                onClick={@show_all_projects}
-                bsStyle='info'
-                bsSize='large'>
-                Show {if @props.show_all then "#{more} Less" else "#{more} More"} Matching Projects...
-            </Button>
+    render_project: (index) ->
+        if index == @props.projects.length
+            return @render_load_all_projects_button()
+        project = @props.projects[index]
+        if not project?
+            return
+        return <ProjectRow
+                     project  = {project}
+                     images   = {@props.images}
+                     user_map = {@props.user_map}
+                     index    = {index}
+                     key      = {index}
+                     redux    = {redux} />
 
     render_list: ->
-        listing = []
-        i = 0
-        for project in @props.projects
-            if i >= MAX_DEFAULT_PROJECTS and not @props.show_all
-                break
-            listing.push <ProjectRow
-                             project  = {project}
-                             images   = {@props.images}
-                             user_map = {@props.user_map}
-                             index    = {i}
-                             key      = {i}
-                             redux    = {redux} />
-            i += 1
-
-        return listing
+        return <WindowedList
+              overscan_row_count={3}
+              estimated_row_size={90}
+              row_count={@props.projects.length + 1}
+              row_renderer={(x)=>@render_project(x.index)}
+              row_key={(index) => @props.projects[index]?.project_id ? 'button'}
+              cache_id={'projects'}
+        />
 
     render: ->
         if @props.nb_projects == 0
@@ -1251,9 +1291,8 @@ ProjectList = rclass
                 Click on "Create a new project" above to start working with <SiteName/>!
             </Alert>
         else
-            <div>
+            <div className={"smc-vfill"}>
                 {@render_list()}
-                {@render_show_all()}
             </div>
 
 parse_project_tags = (project) ->
@@ -1293,7 +1332,6 @@ exports.ProjectsPage = ProjectsPage = rclass
             deleted           : rtypes.bool
             search            : rtypes.string
             selected_hashtags : rtypes.object
-            show_all          : rtypes.bool
             load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
@@ -1310,7 +1348,6 @@ exports.ProjectsPage = ProjectsPage = rclass
         deleted           : false
         search            : ''
         selected_hashtags : {}
-        show_all          : false
 
     componentWillReceiveProps: (next) ->
         if not @props.project_map?
@@ -1469,9 +1506,9 @@ exports.ProjectsPage = ProjectsPage = rclass
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
-        <div className='container-content' style={flex: '1', overflow:'auto'}>
-            <Grid fluid className='constrained' style={minHeight:"75vh"}>
-                <Well style={marginTop:'1em',overflow:'hidden'}>
+        <div className='container-content smc-vfill'>
+            <Grid fluid className='constrained smc-vfill' style={{minWidth:'90%'}}>
+                <Well className="smc-vfill" style={marginTop:'15px'}>
                     <Row>
                         <Col sm={4}>
                             {@render_projects_title()}
@@ -1525,26 +1562,18 @@ exports.ProjectsPage = ProjectsPage = rclass
                             />
                         </Col>
                     </Row>
-                    <Row>
-                        <Col sm={12}>
+                    <Row className="smc-vfill">
+                        <Col sm={12} className="smc-vfill">
                             <ProjectList
                                 projects    = {visible_projects}
-                                show_all    = {@props.show_all}
                                 user_map    = {@props.user_map}
                                 images      = {@props.images}
+                                load_all_projects_done = {@props.load_all_projects_done}
                                 redux       = {redux} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12}>
-                            <LoadAllProjects
-                                done = {@props.load_all_projects_done}
-                                redux = {redux} />
                         </Col>
                     </Row>
                 </Well>
             </Grid>
-            <Footer/>
         </div>
 
 LoadAllProjects = rclass
@@ -1567,15 +1596,16 @@ LoadAllProjects = rclass
         <Button
             onClick={@load}
             bsStyle='info'
-            bsSize='large'>
+            bsSize='large'
+            style={width:'100%', fontSize:'18pt'}>
             {@render_loading()}
-            Show projects not used recently...
+            Load all older projects...
         </Button>
 
     render: ->
         if @props.done
-            return <span />
-        <div style={marginTop:'20px'}>
+            return <span/>
+        <div>
             {@render_button()}
         </div>
 

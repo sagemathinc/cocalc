@@ -8,7 +8,7 @@ exports[`smoke test 1`] = `
   style={
     Object {
       "marginRight": "1ex",
-      "maxWidth": "80ex",
+      "maxWidth": "100ex",
       "whiteSpace": "pre-line",
     }
   }

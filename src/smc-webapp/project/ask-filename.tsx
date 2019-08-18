@@ -29,7 +29,7 @@ export class AskNewFilename extends Component<Props, State> {
 
   constructor(props) {
     super(props);
-    this.searchRef = React.createRef();
+    this.searchRef = React.createRef<HTMLInputElement>();
   }
 
   componentWillReceiveProps(next): void {
