@@ -9,7 +9,7 @@ import { parse_path } from "../frame-tree/util";
 
 export async function bibtex(project_id: string, path: string, time?: number) {
   const { base, directory } = parse_path(path);
-  return exec({
+  return await exec({
     allow_post: true,
     command: "bibtex",
     args: [base],

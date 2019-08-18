@@ -49,7 +49,11 @@ import { JupyterKernelInterface } from "./project-interface";
 
 import { connection_to_project } from "../project/websocket/connect";
 
-import { codemirror_to_jupyter_pos } from "./util";
+import {
+  codemirror_to_jupyter_pos,
+  js_idx_to_char_idx,
+  char_idx_to_js_idx
+} from "./util";
 
 import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
 
@@ -398,7 +402,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._set({ type: "cell", id, pos }, save);
   }
 
-  public set_cell_type(id: string, cell_type: string = "code"): void {
+  public set_cell_type(
+    id: string,
+    cell_type: string = "code",
+    save: boolean = true
+  ): void {
     if (this.check_edit_protection(id)) return;
     if (
       cell_type !== "markdown" &&
@@ -418,7 +426,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // delete output and exec time info when switching to non-code cell_type
       obj.output = obj.start = obj.end = obj.collapsed = obj.scrolled = null;
     }
-    this._set(obj);
+    this._set(obj, save);
   }
 
   public set_selected_cell_type(cell_type: string): void {
@@ -509,7 +517,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   __syncdb_change = (changes: any): void => {
-    if (this.syncdb == null || changes == null || (changes != null && changes.size == 0)) {
+    if (
+      this.syncdb == null ||
+      changes == null ||
+      (changes != null && changes.size == 0)
+    ) {
       return;
     }
     const do_init = this.is_project && this._state === "init";
@@ -816,30 +828,37 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return "";
   }
 
-  insert_cell_at(pos: number): string {
+  insert_cell_at(pos: number, save: boolean = true): string {
     if (this.store.get("read_only")) {
       throw Error("document is read only");
     }
     const new_id = this.new_id();
-    this._set({
-      type: "cell",
-      id: new_id,
-      pos,
-      input: ""
-    });
+    this._set(
+      {
+        type: "cell",
+        id: new_id,
+        pos,
+        input: ""
+      },
+      save
+    );
     return new_id; // violates CQRS... (this *is* used elsewhere)
   }
 
   // insert a cell adjacent to the cell with given id.
   // -1 = above and +1 = below.
-  insert_cell_adjacent(id: string, delta: -1 | 1): string {
+  insert_cell_adjacent(
+    id: string,
+    delta: -1 | 1,
+    save: boolean = true
+  ): string {
     const pos = cell_utils.new_cell_pos(
       this.store.get("cells"),
       this.store.get_cell_list(),
       id,
       delta
     );
-    return this.insert_cell_at(pos);
+    return this.insert_cell_at(pos, save);
   }
 
   delete_selected_cells = (sync = true): void => {
@@ -1050,7 +1069,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     // insert a new cell before the currently selected one
-    const new_id: string = this.insert_cell_adjacent(id, -1);
+    const new_id: string = this.insert_cell_adjacent(id, -1, false);
 
     // split the cell content at the cursor loc
     const cell = this.store.get("cells").get(id);
@@ -1059,12 +1078,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const cell_type = cell.get("cell_type");
     if (cell_type !== "code") {
-      this.set_cell_type(new_id, cell_type);
-      // newly inserted cells are always editable
-      this.set_md_cell_editing(new_id);
+      this.set_cell_type(new_id, cell_type, false);
     }
     const input = cell.get("input");
     if (input == null) {
+      this.syncdb.commit();
       return; // very easy case.
     }
 
@@ -1457,7 +1475,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Returns true if a dialog with options appears, and false otherwise.
   public async complete(
     code: string,
-    pos?: any,
+    pos?: { line: number; ch: number } | number,
     id?: string,
     offset?: any
   ): Promise<boolean> {
@@ -1474,11 +1492,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     // pos can be either a {line:?, ch:?} object as in codemirror,
     // or a number.
-    if (misc.is_object(pos)) {
-      cursor_pos = codemirror_to_jupyter_pos(code, pos);
-    } else {
+    if (pos == null || typeof pos == "number") {
       cursor_pos = pos;
+    } else {
+      cursor_pos = codemirror_to_jupyter_pos(code, pos);
     }
+    cursor_pos = js_idx_to_char_idx(cursor_pos, code);
 
     const start = new Date();
     let complete;
@@ -1522,7 +1541,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     delete complete.status;
     complete.base = code;
     complete.code = code;
-    complete.pos = cursor_pos;
+    complete.pos = char_idx_to_js_idx(cursor_pos, code);
+    complete.cursor_start = char_idx_to_js_idx(complete.cursor_start, code);
+    complete.cursor_end = char_idx_to_js_idx(complete.cursor_end, code);
     complete.id = id;
     // Set the result so the UI can then react to the change.
     if (offset != null) {
@@ -1657,6 +1678,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cursor_pos == null) {
       cursor_pos = code.length;
     }
+    cursor_pos = js_idx_to_char_idx(cursor_pos, code);
 
     let introspect;
     try {
@@ -2433,7 +2455,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await this.format_cells(this.store.get_cell_ids_list(), sync);
   }
 
-  private check_select_kernel(): void  {
+  private check_select_kernel(): void {
     const kernel = this.store.get("kernel");
     if (kernel == null) return;
 
@@ -2454,7 +2476,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     this.setState({ check_select_kernel_init: true });
-  };
+  }
 
   update_select_kernel_data = (): void => {
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());

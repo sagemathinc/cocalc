@@ -15,7 +15,7 @@ const STYLE: React.CSSProperties = {
   padding: "10px 25px 5px",
   overflowY: "auto",
   borderTop: "2px solid #ccc",
-  height: "100vh"
+  height: "50%"
 };
 
 const INNER_STYLE: React.CSSProperties = {
