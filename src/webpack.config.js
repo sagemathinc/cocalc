@@ -390,6 +390,7 @@ for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
+      SCHEMA: require("smc-util/schema"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"

@@ -20,8 +20,10 @@
 //##############################################################################
 
 /*
-IMPORTANT: If you change this file, also update the date in webapp-lib/policies/pricing.pug
+IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
 */
+
+exports.CURRENT_DATE = "August 2019";
 
 /*
 Define upgrades to projects.
