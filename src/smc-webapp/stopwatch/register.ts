@@ -49,7 +49,7 @@ register_file_editor({
     return name;
   },
 
-  remove(path: string, redux: AppRedux, project_id: string) {
+  remove(path: string, redux: AppRedux, project_id: string) : string {
     const name = redux_name(project_id, path, this.is_public);
     const actions: InstanceType<typeof TimeActions> = redux.getActions(name);
     if (actions !== undefined && actions.syncdb !== undefined) {

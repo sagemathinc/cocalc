@@ -1,5 +1,3 @@
-declare const $: any;
-
 import { Set } from "immutable";
 import { delay } from "awaiting";
 
@@ -27,11 +25,13 @@ export class NotebookFrameActions {
   private key_handler?: Function;
   private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
+  private cur_id_before_change: string | undefined = undefined;
 
   public commands: { [name: string]: CommandDescription } = {};
   public frame_id: string;
   public store: NotebookFrameStore;
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
+  private windowed_list_ref?: any;
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
     bind_methods(this, [
@@ -54,7 +54,11 @@ export class NotebookFrameActions {
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(this.jupyter_actions, this);
+    this.commands = commands(this.jupyter_actions, this, this.frame_tree_actions);
+  }
+
+  public set_windowed_list_ref(windowed_list_ref) {
+    this.windowed_list_ref = windowed_list_ref;
   }
 
   private init_syncdb_change_hook(): void {
@@ -68,27 +72,82 @@ export class NotebookFrameActions {
     );
   }
 
-  // maintain scroll hook on change; critical for multiuser editing
-  private syncdb_before_change(): void {
-    const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
-    if (offset == null) {
+  private get_windowed_list(): any {
+    if (
+      this.windowed_list_ref == null ||
+      this.windowed_list_ref.current == null
+    )
       return;
-    }
-    this.scroll_before_change = offset.top;
+    return this.windowed_list_ref.current;
   }
 
-  private syncdb_after_change(): void {
-    if (this.scroll_before_change == null) {
-      return;
+  /*
+  The functions below: compute_cell_position, syncdb_before_change,
+  syncdb_after_change, scroll, etc. are all so that if you change
+  the document in one browser or frame it doesn't move around the
+  focused cell in any others.  This is tricky and complicated, and
+  doesn't work 100%, but is probably good enough.
+  */
+  private compute_cell_position(id: string): number | undefined {
+    const windowed_list = this.get_windowed_list();
+    if (windowed_list == null) return;
+
+    const cell_list = this.jupyter_actions.store.get("cell_list").toArray();
+    let computed: number = 0;
+    let index: number = 0;
+    for (let id0 of cell_list) {
+      if (id0 == id) break;
+      computed += windowed_list.row_height(index);
+      index += 1;
     }
-    const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
-    if (offset == null) {
-      return;
-    }
-    const scroll_after_change = offset.top;
-    const diff = scroll_after_change - this.scroll_before_change;
-    if (diff) {
+    return computed;
+  }
+
+  // maintain scroll hook on change; critical for multiuser editing
+  private syncdb_before_change(): void {
+    const windowed_list = this.get_windowed_list();
+    if (windowed_list == null) return;
+    windowed_list.disable_refresh();
+    const cur_id = this.store.get("cur_id");
+    const pos = this.compute_cell_position(cur_id);
+    this.scroll_before_change = pos;
+    this.cur_id_before_change = cur_id;
+  }
+
+  private async syncdb_after_change(): Promise<void> {
+    const windowed_list = this.get_windowed_list();
+    if (windowed_list == null) return;
+    try {
+      const id = this.cur_id_before_change;
+      if (this.scroll_before_change == null || id == null) {
+        return;
+      }
+      let after = this.compute_cell_position(id);
+      if (after == null) {
+        return;
+      }
+      // If you delete a cell, then the move amount is known immediately,
+      // and we do them immediately to avoid a jump.
+      // Other changes of cell size may only happen
+      // after a delay of 0 (next render loop).
+      // (There can be flicker if both happen at once.)
+      let diff = after - this.scroll_before_change;
+      if (after != this.scroll_before_change) {
+        this.scroll(diff);
+        windowed_list.enable_refresh();
+        windowed_list.refresh();
+        this.scroll_before_change = after;
+      }
+      await delay(0);
+      if (this.frame_id == null) return; // closed
+      after = this.compute_cell_position(id);
+      if (after == null) return;
+      diff = after - this.scroll_before_change;
+      this.scroll_before_change = after; // since we have compensated for it.
       this.scroll(diff);
+    } finally {
+      windowed_list.enable_refresh();
+      windowed_list.refresh();
     }
   }
 
@@ -162,7 +221,7 @@ export class NotebookFrameActions {
 
   public enable_key_handler(): void {
     if (this.key_handler == null) {
-      this.key_handler = create_key_handler(this.jupyter_actions, this);
+      this.key_handler = create_key_handler(this.jupyter_actions, this, this.frame_tree_actions);
     }
     this.frame_tree_actions.set_active_key_handler(this.key_handler);
   }
@@ -274,7 +333,9 @@ export class NotebookFrameActions {
   }
 
   public scroll(scroll?: Scroll): void {
-    this.setState({ scroll });
+    if (scroll != 0) {
+      this.setState({ scroll });
+    }
   }
 
   public set_scrollTop(scrollTop: number): void {
@@ -513,13 +574,11 @@ export class NotebookFrameActions {
     this.validate({ id });
     const editor = this.input_editors[id];
     if (editor == null) {
-      throw Error(`no input editor for cell ${id}`);
+      return;
     }
     const method = editor[name];
     if (method != null) {
       method(...args);
-    } else {
-      throw Error(`call_input_editor_method -- no such method "${name}"`);
     }
   }
 

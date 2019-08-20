@@ -7,7 +7,7 @@ const { Icon, TimeAgo, Tip } = require("../r_misc");
 
 const misc = require("smc-util/misc");
 
-const PROMPT_MIN_WIDTH = "125px";
+const PROMPT_MIN_WIDTH = "80px";
 
 export const INPUT_PROMPT_COLOR: string = "#303F9F";
 
@@ -83,7 +83,7 @@ export class InputPrompt extends Component<InputPromptProps> {
         }
     }
     return (
-      <div style={INPUT_STYLE} className="hidden-xs">
+      <div style={INPUT_STYLE}>
         <Tip title={"Code Cell"} tip={tip} placement="right">
           In [{n}]:
         </Tip>
@@ -116,10 +116,10 @@ export class OutputPrompt extends Component<OutputPromptProps> {
       n = this.props.exec_count != null ? this.props.exec_count : " ";
     }
     if (n == null) {
-      return <div style={OUTPUT_STYLE} className="hidden-xs" />;
+      return <div style={OUTPUT_STYLE}/>;
     }
     return (
-      <div style={OUTPUT_STYLE} className="hidden-xs">
+      <div style={OUTPUT_STYLE}>
         Out[{n}]:
       </div>
     );

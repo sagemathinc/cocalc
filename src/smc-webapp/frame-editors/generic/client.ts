@@ -293,3 +293,8 @@ import { API } from "smc-webapp/project/websocket/api";
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
 }
+
+// Returns the raw URL to read the file from the project.
+export function raw_url_of_file(project_id: string, path: string): string {
+  return webapp_client.read_file_from_project({ project_id, path });
+}

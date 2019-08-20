@@ -1932,6 +1932,7 @@ exports.clear_selection = ->
 # test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
 # NOTE: the comments on that stackoverflow are very critical of this; in particular,
 # there's no URI decoding, so I added that below...
+# these get_query functions are ported to misc_page2.ts
 exports.get_query_params = ->
     vars = {}
     href = window.location.href
