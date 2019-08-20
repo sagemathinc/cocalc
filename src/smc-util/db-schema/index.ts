@@ -1,8 +1,8 @@
+import { schema } from "./db-schema";
+import { account_creation_actions } from "./account-creation-actions";
+import { accounts } from "./accounts";
 
-import { schema } from "./db-schema"
-import { account_creation_actions } from "./account-creation-actions"
-
-export const SCHEMA = {...schema, account_creation_actions}
+export const SCHEMA = { ...schema, account_creation_actions, accounts };
 
 export {
   DEFAULT_FONT_SIZE,
@@ -13,5 +13,3 @@ export {
 
 export { site_settings_conf } from "./site-defaults";
 export { client_db } from "./db-schema";
-
-

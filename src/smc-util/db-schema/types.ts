@@ -40,14 +40,21 @@ interface TableSchema<F extends Fields> {
   virtual?: string; // Must be another table name
   pg_indexes?: any[];
   user_query?: {
-    get: {
+    get?: {
       fields: { [key in keyof Partial<F>]: any };
-      pg_where: string[] | { [key: string]: string }[];
-      options: any; // [{ limit: 1 }]
-      instead_of_query: (database, obj, instead_of_query, cb: Function) => void;
+      throttle_changes?: number;
+      pg_where?: string[] | { [key: string]: string }[];
+      options?: any; // [{ limit: 1 }]
+      instead_of_query?: (
+        database,
+        obj,
+        instead_of_query,
+        cb: Function
+      ) => void;
     };
-    set: {
-      check_hook: (
+    set?: {
+      fields: { [key in keyof Partial<F>]: any };
+      check_hook?: (
         database,
         obj,
         account_id: string,
@@ -59,7 +66,7 @@ interface TableSchema<F extends Fields> {
       // CRITICAL: Only do this if what edit or chat for this user is very recent.
       // Otherwise we touch the project just for seeing notifications or opening
       // the file, which is confusing and wastes a lot of resources.
-      instead_of_change: (
+      instead_of_change?: (
         database,
         old_val,
         new_val,
