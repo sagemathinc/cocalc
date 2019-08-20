@@ -1408,7 +1408,11 @@ class exports.Client extends EventEmitter
                     if mesg.subject?
                         subject  = mesg.subject
 
-                    email_body = makeEmailBody(subject, mesg.email,locals.email_address,  mesg.title, mesg.link2proj)
+                    try
+                        email_body = makeEmailBody(subject, mesg.email,locals.email_address,  mesg.title, mesg.link2proj)
+                    catch err
+                        cb(err)
+                        return
 
                     # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
@@ -1541,7 +1545,11 @@ class exports.Client extends EventEmitter
                             if mesg.subject?
                                 subject  = mesg.subject
 
-                            email_body = makeEmailBody(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
+                            try
+                                email_body = makeEmailBody(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
+                            catch err
+                                cb(err)
+                                return
 
 
                             # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager

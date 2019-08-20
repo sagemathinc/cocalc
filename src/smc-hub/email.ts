@@ -37,6 +37,7 @@ const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 
 import * as sanitizeHtml from "sanitize-html";
+import { contains_url } from "smc-util-node/misc2_node";
 
 const {
   SENDGRID_TEMPLATE_ID,
@@ -88,6 +89,8 @@ function escapeEmailBody(body: string): string {
   return sanitizeHtml(body, config);
 }
 
+// constructs the email body, also containing sign up instructions pointing to a project.
+// it might throw an error!
 export function makeEmailBody(
   subject,
   body,
@@ -102,6 +105,10 @@ export function makeEmailBody(
   let email_body = "";
   if (body) {
     email_body = escapeEmailBody(body);
+    // we check if there are plain URLs, which can be used to send SPAM
+    if (contains_url(email_body)) {
+      throw new Error("Sorry, links to specific websites are not allowed!");
+    }
   } else {
     email_body = subject;
   }
