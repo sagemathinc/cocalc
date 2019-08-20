@@ -193,6 +193,12 @@ upgrades.field_order = [
 // Switch to this on the frontend when we go live with the new pricing plans.
 upgrades.live_subscriptions = [
   ["standard2", "premium2", "professional2"],
+  [
+    "xsmall_premium_course",
+    "small_premium_course",
+    "medium_premium_course",
+    "large_premium_course"
+  ],
   ["xsmall_course2", "small_course2", "medium_course2", "large_course2"],
   [
     "xsmall_basic_course",
@@ -611,6 +617,98 @@ subscription.large_basic_course = {
     disk_quota: 0,
     memory: 0,
     memory_request: 0,
+    member_host: 250,
+    network: 250
+  }
+};
+
+/*
+Premium Courses
+*/
+
+subscription.xsmall_premium_course = {
+  icon: "battery-empty",
+  desc: "Premium Extra Small\nCourse (10 people)",
+  statement: "COCALC PREMIUM XS",
+  price: {
+    week: 79,
+    month4: 399,
+    year1: 999
+  },
+  cancel_at_period_end: true,
+  benefits: {
+    cores: 10,
+    cpu_shares: 10 * 128,
+    disk_quota: 10 * 3000,
+    mintime: 2 * 24 * 3600,
+    memory: 10 * 3 * 1000,
+    memory_request: 10 * 250,
+    member_host: 10,
+    network: 10
+  }
+};
+
+subscription.small_premium_course = {
+  icon: "battery-quarter",
+  desc: "Premium Small Course\n(25 people)",
+  statement: "COCALC PREMIUM SM",
+  price: {
+    week: 159,
+    month4: 799,
+    year1: 1999
+  },
+  cancel_at_period_end: true,
+  benefits: {
+    cores: 25,
+    cpu_shares: 25 * 128,
+    disk_quota: 25 * 3000,
+    mintime: 5 * 24 * 3600,
+    memory: 25 * 3 * 1000,
+    memory_request: 25 * 250,
+    member_host: 25,
+    network: 25
+  }
+};
+
+subscription.medium_premium_course = {
+  icon: "battery-three-quarters",
+  desc: "Premium Medium Course\n(70 people)",
+  statement: "COCALC PREMIUM MD",
+  price: {
+    week: 319,
+    month4: 1499,
+    year1: 2999
+  },
+  cancel_at_period_end: true,
+  benefits: {
+    cores: 70,
+    cpu_shares: 70 * 128,
+    disk_quota: 70 * 3000,
+    mintime: 14 * 24 * 3600,
+    memory: 70 * 3 * 1000,
+    memory_request: 70 * 250,
+    member_host: 70,
+    network: 70
+  }
+};
+
+subscription.large_premium_course = {
+  icon: "battery-full",
+  desc: "Premium Large Course\n(250 people)",
+  statement: "COCALC PREMIUM LG",
+  price: {
+    week: 799,
+    month4: 3749,
+    year1: 7499
+  },
+  cancel_at_period_end: true,
+  benefits: {
+    cores: 250,
+    cpu_shares: 250 * 128,
+    disk_quota: 250 * 3000,
+    mintime: 50 * 24 * 3600,
+    memory: 3 * 250 * 1000,
+    memory_request: 250 * 250,
     member_host: 250,
     network: 250
   }
