@@ -1743,6 +1743,11 @@ API(
         init: true,
         desc:
           "if false, the operation returns immediately with the copy_path_id for querying copy_path_status"
+      },
+      scheduled: {
+        init: undefined,
+        desc:
+          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string."
       }
     },
     desc: `\
@@ -1778,7 +1783,8 @@ message({
   event: "copy_path_between_projects_response",
   id: required,
   copy_path_id: undefined,
-  note: "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
+  note:
+    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
 });
 
 API(
@@ -1788,11 +1794,47 @@ API(
       copy_path_id: {
         init: undefined,
         desc: "A unique UUID for a copy path operation"
+      },
+      src_project_id: {
+        init: undefined,
+        desc: "Source of copy operation to filter on"
+      },
+      target_project_id: {
+        init: undefined,
+        desc: "Target of copy operation to filter on"
+      },
+      src_path: {
+        init: undefined,
+        desc: "(src/targ only) Source path of copy operation to filter on"
+      },
+      limit: {
+        init: 1000,
+        desc:
+          "(src/targ only) maximum number of results  (default 1000, max 1000)"
+      },
+      offset: {
+        init: undefined,
+        desc: "(src/targ only) default 0; set this to a multiple of the limit"
+      },
+      pending: {
+        init: true,
+        desc:
+          "(src/targ only) true returns copy ops, which did not finish yet (default: true)"
+      },
+      failed: {
+        init: false,
+        desc:
+          "(src/targ only) if true, only show finished and failed copy ops (default: false)"
       }
     },
     desc: `\
-Retrieve status information about a copy operation for the given ID,
-which was returned by \`copy_path_between_projects\` earlier.
+Retrieve status information about a copy path operation.
+There are two possibilities:
+
+- for a given \`copy_path_id\`,
+  which was returned by \`copy_path_between_projects\` earlier;
+- or at last one of \`src_project_id\` or \`target_project_id\`
+  – additionally filtered by an optionally given \`src_path\` – for a list of statuses.
 `
   })
 );
@@ -1802,6 +1844,24 @@ message({
   id: required,
   data: required
 });
+
+API(
+  message2({
+    event: "copy_path_delete",
+    fields: {
+      copy_path_id: {
+        init: undefined,
+        desc: "A unique UUID for a scheduled future copy path operation"
+      }
+    },
+    desc: `\
+Delete a copy_path operation with the given \`copy_path_id\`.
+You need to have read/write access to the associated src/target project.
+
+**Note:** This will only remove entries which are *scheduled* and not yet completed.
+`
+  })
+);
 
 //############################################
 // Admin Functionality

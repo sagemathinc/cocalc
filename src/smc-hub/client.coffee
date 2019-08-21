@@ -29,6 +29,7 @@ hub_projects         = require('./projects')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
+{CopyPath}           = require('./copy-path')
 
 underscore = require('underscore')
 
@@ -127,6 +128,8 @@ class exports.Client extends EventEmitter
             @init_conn()
         else
             @id = misc.uuid()
+
+        @copy_path = new CopyPath(@)
 
     init_conn: =>
         # initialize everything related to persistent connections
@@ -1084,165 +1087,13 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_copy_path_between_projects: (mesg) =>
-        @touch()
-        if not mesg.src_project_id?
-            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
-            return
-        if not mesg.target_project_id?
-            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
-            return
-        if not mesg.src_path?
-            @error_to_client(id:mesg.id, error:"src_path must be defined")
-            return
-
-        locals =
-            copy_id : undefined
-
-        async.series([
-            (cb) =>
-                # Check permissions for the source and target projects (in parallel) --
-                # need read access to the source and write access to the target.
-                async.parallel([
-                    (cb) =>
-                        access.user_has_read_access_to_project
-                            project_id     : mesg.src_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            database       : @database
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have read access to source project #{mesg.src_project_id}")
-                                else
-                                    cb()
-                    (cb) =>
-                        access.user_has_write_access_to_project
-                            database       : @database
-                            project_id     : mesg.target_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have write access to target project #{mesg.target_project_id}")
-                                else
-                                    cb()
-                ], cb)
-
-            (cb) =>
-                # do the copy
-                @compute_server.project
-                    project_id : mesg.src_project_id
-                    cb         : (err, project) =>
-                        if err
-                            cb(err); return
-                        else
-                            project.copy_path
-                                path              : mesg.src_path
-                                target_project_id : mesg.target_project_id
-                                target_path       : mesg.target_path
-                                overwrite_newer   : mesg.overwrite_newer
-                                delete_missing    : mesg.delete_missing
-                                backup            : mesg.backup
-                                timeout           : mesg.timeout
-                                exclude_history   : mesg.exclude_history
-                                wait_until_done   : mesg.wait_until_done
-                                cb                : (err, copy_id) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        locals.copy_id = copy_id
-                                        cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # we only expect a copy_id in kucalc mode
-                if locals.copy_id?
-                    resp = message.copy_path_between_projects_response
-                                                        id           : mesg.id
-                                                        copy_path_id : locals.copy_id
-                    @push_to_client(resp)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-        )
+        @copy_path.copy(mesg)
 
     mesg_copy_path_status: (mesg) =>
-        dbg = @dbg('mesg_copy_path_status')
-        if not mesg.copy_path_id?
-            @error_to_client(id:mesg.id, error:"'copy_path_id' (UUID) of a copy operation must be defined")
-            return
-        locals =
-            copy_op : undefined
-        async.series([
-            # get the info
-            (cb) =>
-                {one_result} = require('./postgres')
-                @database._query
-                    query : "SELECT * FROM copy_paths"
-                    where : "id = $::UUID" : mesg.copy_path_id
-                    cb    : one_result (err, x) =>
-                        if err?
-                            cb(err)
-                        else
-                            locals.copy_op = x
-                            dbg("copy_op=#{misc.to_json(locals.copy_op)}")
-                            cb()
+        @copy_path.status(mesg)
 
-            (cb) =>
-                # now we prevent someone who was kicked out of a project to check the copy status
-                target_project_id = locals.copy_op.target_project_id
-                source_project_id = locals.copy_op.source_project_id
-                async.parallel([
-                    (cb) =>
-                        access.user_has_read_access_to_project
-                            project_id     : source_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            database       : @database
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("ACCESS BLOCKED -- No read access to source project of this copy operation")
-                                else
-                                    cb()
-                    (cb) =>
-                        access.user_has_write_access_to_project
-                            database       : @database
-                            project_id     : target_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("ACCESS BLOCKED -- No write access to target project of this copy operation")
-                                else
-                                    cb()
-                ], cb)
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # be explicit about what we return
-                data =
-                    time               : locals.copy_op.time
-                    source_project_id  : locals.copy_op.source_project_id
-                    source_path        : locals.copy_op.source_path
-                    target_project_id  : locals.copy_op.target_project_id
-                    target_path        : locals.copy_op.target_path
-                    overwrite_newer    : locals.copy_op.overwrite_newer
-                    delete_missing     : locals.copy_op.delete_missing
-                    backup             : locals.copy_op.backup
-                    started            : locals.copy_op.started
-                    finished           : locals.copy_op.finished
-                    error              : locals.copy_op.error
-
-                @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))
-        )
+    mesg_copy_path_delete: (mesg) =>
+        @copy_path.delete(mesg)
 
     mesg_local_hub: (mesg) =>
         ###
