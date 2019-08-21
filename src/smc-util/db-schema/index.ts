@@ -1,9 +1,15 @@
 import { schema } from "./db-schema";
 import { account_creation_actions } from "./account-creation-actions";
 import { accounts } from "./accounts";
-const misc = require("../misc");
+import { platforms } from "./lti-schema";
+import * as misc from "../misc";
 
-export const SCHEMA = { ...schema, account_creation_actions, accounts };
+export const SCHEMA = {
+  ...schema,
+  account_creation_actions,
+  accounts,
+  platforms
+};
 
 export {
   DEFAULT_FONT_SIZE,
