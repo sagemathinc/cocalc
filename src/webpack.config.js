@@ -84,6 +84,8 @@ That way, the hub can send down the URL to the jupyter server (there is no webap
 
 // So we can require coffeescript code.
 require("coffeescript/register");
+// So we can require Typescript code.
+require("ts-node").register();
 
 let cleanWebpackPlugin,
   entries,

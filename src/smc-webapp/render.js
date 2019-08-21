@@ -1,7 +1,7 @@
 // Enable transparent server-side requiring of cjsx files.
 require("node-cjsx").transform();
 
-// Loading of ts/tsx (?).
+// Loading of ts/tsx.
 require("ts-node").register();
 
 const ReactDOMServer = require("react-dom/server");
