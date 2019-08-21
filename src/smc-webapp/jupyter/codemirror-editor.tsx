@@ -425,6 +425,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       options0.extraKeys["PageDown"] = this.page_down_key;
       options0.extraKeys["Cmd-/"] = "toggleComment";
       options0.extraKeys["Ctrl-/"] = "toggleComment";
+      options0.extraKeys["Ctrl-Enter"] = () => {}; // ignore control+enter, since there's a shortcut
       /*
       Disabled for now since fold state isn't preserved.
       if (options0.foldGutter) {
