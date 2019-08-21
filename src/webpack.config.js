@@ -327,7 +327,7 @@ for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
       template: path.join(INPUT, fn_in),
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       PREFIX: fn_in === "index.pug" ? "" : "../"
     })
   );
@@ -359,7 +359,7 @@ for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"
