@@ -1,0 +1,188 @@
+// navbar flex layout
+body
+  display: flex
+  flex-direction: column
+  height: 100vh
+  overflow: hidden
+
+div#content
+  flex: 1 1 auto
+  overflow: auto
+
+nav#nav-main
+  flex: 0 0 auto
+
+// min height for placeholder
+img[data-src]
+  min-height: 50px
+
+// actual navbar styling
+nav.navbar.navbar-default
+  position : relative
+  margin-bottom: 0
+  border-bottom    : 2px solid $COL_GRAY
+  background-color : $COL_GRAY_LL
+  .get-started
+    color        : $COL_BS_GREEN_DD
+    font-weight  : bold
+  .documentation
+    color        : $COL_BLUE_DOC
+    font-weight  : bold
+  .navbar-header
+    margin-top     : 5px
+    img.icon
+      height       : 4rem
+      width        : auto
+      margin-right : 2rem
+    img.name
+      height       : 3rem
+      width        : auto
+      margin-right : 2rem
+  .navbar-nav>li
+    >a
+      font-size      : 2rem
+    &.active>a
+      font-weight       : bold
+
+div.jumbotron
+  padding-top      : 10rem
+  background-color : $COL_GRAY_LL
+.center
+  text-align     : center
+.right
+  text-align     : right
+.vertical-expand
+  min-height     : 50vw
+.uppercase
+  text-transform : uppercase
+.fit
+  width          : 100%
+  heigh          : auto
+
+div.intro
+  img.fit
+    @media (max-width: 767px)
+      width      : 30%
+
+body
+  div.container
+    > footer
+      margin-top     : 6rem
+    > div.row#top
+      margin         : 5rem 0 5rem 0
+      @media (min-width: 992px)
+        margin       : 5rem 0 5rem 0
+    > div#software-env-top
+      margin         : 2rem 0 5rem 0
+
+/* adds offset for a.anchor#a-name links, better visibility */
+a.anchor
+  display        : block
+  position       : relative
+  top            : -1rem
+  visibility     : hidden
+
+blockquote.blockquote
+  font-size      : inherit
+th.software
+  white-space      : nowrap
+td.version
+  font-size        : 120%
+  font-weight      : bold
+.btn-xlg
+  font-size        : 24px
+  line-height      : 1.5
+  font-weight      : bold
+.cc-create-account-btn
+  font-weight      : bold
+.video-player
+  position         : relative
+  > .video-overlay
+    width            : 100%
+    height           : 100%
+    position         : absolute
+    top              : 0
+    left             : 0
+    color            : white
+    background-color : rgba(0, 0, 0, .5)
+    cursor           : pointer
+    z-index          : 2
+    text-align       : center
+    display          : flex
+    justify-content  : center
+    flex-direction   : column
+a.marker
+  padding-left     : 2rem
+  padding-right    : 1rem
+  text-decoration  : none
+  color            : $COL_GRAY_L
+  top              : -.5rem
+  position         : relative
+  font-size        : 90%
+  visibility       : hidden
+
+h1:hover, h2:hover, h3:hover
+  > a.marker
+    visibility     : visible
+    &:hover
+      color        : $COL_GRAY
+
+.youtube-video-container
+  width            : 100%
+  height           : 0
+  padding-bottom   : 45%
+  overflow         : hidden
+
+  iframe, object, embed
+    position   : absolute
+    width      : 95%
+    height     : 95%
+
+nav.navbar.navbar-default
+  .navbar-nav.features>li>a,
+  .navbar-nav.software>li>a,
+  .navbar-nav.policies>li>a
+    font-size: 1.5rem
+    padding: 5px 10px
+    &.documentation
+      color: $COL_BLUE_DOC
+
+div.navbar-menu
+  display: inline-block
+  cursor: pointer
+  float: right
+  @media (min-width: 768px)
+    display: none
+
+  > .bar1,
+  > .bar2,
+  > .bar3
+    width: 35px
+    height: 5px
+    background-color: #333
+    margin: 6px 0
+    transition: 0.2s
+
+div.navbar-menu.open
+  > .bar1
+    -webkit-transform: rotate(-45deg) translate(-9px, 6px)
+    transform: rotate(-45deg) translate(-9px, 6px)
+
+  > .bar2
+    opacity: 0
+
+  > .bar3
+    -webkit-transform: rotate(45deg) translate(-8px, -8px)
+    transform: rotate(45deg) translate(-8px, -8px)
+
+div.collapse.navbar-collapse.show-menu
+    display: block!important
+    height: auto!important
+    padding-bottom: 0
+    overflow: visible!important
+
+/* workaround, broken cocalc fonts */
+i.fa
+  &.fa-linux,
+  &.fa-lightbulb-o
+    display: none
