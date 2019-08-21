@@ -637,12 +637,12 @@ subscription.xsmall_premium_course = {
   },
   cancel_at_period_end: true,
   benefits: {
-    cores: 10,
-    cpu_shares: 10 * 128,
+    cores: 10 * 2,
+    cpu_shares: 0,
     disk_quota: 10 * 3000,
     mintime: 2 * 24 * 3600,
     memory: 10 * 3 * 1000,
-    memory_request: 10 * 250,
+    memory_request: 0,
     member_host: 10,
     network: 10
   }
@@ -659,12 +659,12 @@ subscription.small_premium_course = {
   },
   cancel_at_period_end: true,
   benefits: {
-    cores: 25,
-    cpu_shares: 25 * 128,
+    cores: 25 * 2,
+    cpu_shares: 0,
     disk_quota: 25 * 3000,
     mintime: 5 * 24 * 3600,
     memory: 25 * 3 * 1000,
-    memory_request: 25 * 250,
+    memory_request: 0,
     member_host: 25,
     network: 25
   }
@@ -676,17 +676,17 @@ subscription.medium_premium_course = {
   statement: "COCALC PREMIUM MD",
   price: {
     week: 319,
-    month4: 1499,
-    year1: 2999
+    month4: 1599,
+    year1: 3999
   },
   cancel_at_period_end: true,
   benefits: {
-    cores: 70,
-    cpu_shares: 70 * 128,
+    cores: 70 * 2,
+    cpu_shares: 0,
     disk_quota: 70 * 3000,
     mintime: 14 * 24 * 3600,
     memory: 70 * 3 * 1000,
-    memory_request: 70 * 250,
+    memory_request: 0,
     member_host: 70,
     network: 70
   }
@@ -698,17 +698,17 @@ subscription.large_premium_course = {
   statement: "COCALC PREMIUM LG",
   price: {
     week: 799,
-    month4: 3749,
-    year1: 7499
+    month4: 3999,
+    year1: 9999
   },
   cancel_at_period_end: true,
   benefits: {
-    cores: 250,
-    cpu_shares: 250 * 128,
+    cores: 250 * 2,
+    cpu_shares: 0,
     disk_quota: 250 * 3000,
     mintime: 50 * 24 * 3600,
     memory: 3 * 250 * 1000,
-    memory_request: 250 * 250,
+    memory_request: 0,
     member_host: 250,
     network: 250
   }
