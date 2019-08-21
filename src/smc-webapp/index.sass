@@ -89,6 +89,20 @@ div#smc-react-container
   overflow   : hidden
   position   : absolute
   top        : 0px
+  display    : flex
+  flex-direction: column
+  height        : 100vh
+  width         : 100vw
+  background    : white   /* this hides the "webapp crashed" banner! */
+
+  > .cocalc-announce
+    flex          : 0 0 auto
+
+  > .cocalc-page
+    flex          : 1 1 auto
+    display       : flex
+    flex-direction : column
+    overflow      : hidden
 
 
 div#cocalc-react-crash

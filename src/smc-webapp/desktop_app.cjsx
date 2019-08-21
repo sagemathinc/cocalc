@@ -264,14 +264,6 @@ Page = rclass
                 message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
 
     render: ->
-        style =
-            display       : 'flex'
-            flexDirection : 'column'
-            height        : '100vh'
-            width         : '100vw'
-            overflow      : 'hidden'
-            background    : 'white'
-
         top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 
         style_top_bar =
@@ -288,27 +280,33 @@ Page = rclass
         positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
         positionHackHeight = (NAV_HEIGHT + positionHackOffset) + 'px'
 
-        <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
-            {<FileUsePageWrapper /> if @props.show_file_use}
-            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} show_pingtime = {@state.show_label}/> if @props.show_connection}
-            {<Support actions={@actions('support')} /> if @props.show}
-            {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
-            {<CookieWarning /> if @props.cookie_warning}
-            {<LocalStorageWarning /> if @props.local_storage_warning}
-            {<GlobalInformationMessage actions = {@actions(system_notifications.NAME)} /> if @props.show_global_info}
-            {<Navbar className="smc-top-bar" style={style_top_bar}>
-                {@render_project_nav_button() if @props.is_logged_in}
-                <ProjectsNav dropdown={false} />
-                {@render_right_nav()}
+        <React.Fragment>
+            <div className={"cocalc-announce"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
+                {<GlobalInformationMessage actions = {@actions(system_notifications.NAME)} /> if @props.show_global_info}
+            </div>
+
+            {<Navbar className={"smc-top-bar"} style={style_top_bar}>
+                    {@render_project_nav_button() if @props.is_logged_in}
+                    <ProjectsNav dropdown={false} />
+                    {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
-            {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
-            {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
-            {### Children must define their own padding from navbar and screen borders ###}
-            {### Note that the parent is a flex container ###}
-            <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
-            </ErrorBoundary>
-        </div>
+
+            <div ref="page" className={"cocalc-page"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
+                {<FileUsePageWrapper /> if @props.show_file_use}
+                {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} show_pingtime = {@state.show_label}/> if @props.show_connection}
+                {<Support actions={@actions('support')} /> if @props.show}
+                {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
+                {<CookieWarning /> if @props.cookie_warning}
+                {<LocalStorageWarning /> if @props.local_storage_warning}
+                {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
+                {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
+                {### Children must define their own padding from navbar and screen borders ###}
+                {### Note that the parent is a flex container ###}
+                <ErrorBoundary>
+                    <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
+                </ErrorBoundary>
+            </div>
+        </React.Fragment>
 
 page =
     <Redux redux={redux}>
