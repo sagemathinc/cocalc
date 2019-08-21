@@ -2720,7 +2720,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(undefined, w)
 
     ###
-<<<<<<< HEAD
     DEV ONLY: Random announcement messages
     ###
 
@@ -2788,7 +2787,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 async.mapSeries(times, insert, cb)
 
         ], opts.cb)
-=======
+
+    ###
     Custom software images
     ###
 
@@ -2902,7 +2902,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("all done")
             opts.cb()
         )
->>>>>>> origin/master
 
 
     ###
