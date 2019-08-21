@@ -12,6 +12,7 @@ stat_rows = [
     ['Created projects', 'projects_created'],
     ['Created accounts', 'accounts_created'],
 ]
+
 opened_files = [
     ['Sage Worksheets',     'sagews'],
     ['Jupyter Notebooks',   'ipynb'],
