@@ -4,18 +4,20 @@ Frame that display a Jupyter notebook in the traditional way with input and outp
 
 import { Loading } from "../../../r_misc/loading";
 
-import { React, Rendered, Component } from "../../../app-framework";
+import { React, Rendered, Component, redux } from "../../../app-framework";
 
 import { JupyterEditor } from "../../../jupyter/main";
 
 import { redux_name } from "../jupyter-actions";
 
 import { Map } from "immutable";
+import { JupyterEditorActions } from "../actions";
+import { JupyterActions } from "../../../jupyter/browser-actions";
 
 interface Props {
   id: string;
   name: string;
-  actions: any;
+  actions: JupyterEditorActions;
   editor_state: Map<string, any>;
   is_fullscreen: boolean;
   project_id: string;
@@ -34,7 +36,7 @@ export class CellNotebook extends Component<Props, {}> {
     const name = redux_name(this.props.name);
 
     // Actions for the underlying Jupyter notebook state, kernel state, etc.
-    const jupyter_actions = this.props.actions.redux.getActions(name);
+    const jupyter_actions: JupyterActions = redux.getActions(name);
     if (jupyter_actions == null) {
       return <Loading />;
     }
@@ -47,6 +49,7 @@ export class CellNotebook extends Component<Props, {}> {
     return (
       <JupyterEditor
         actions={jupyter_actions}
+        editor_actions={this.props.actions}
         frame_actions={frame_actions}
         name={name}
         is_focused={this.props.is_current}

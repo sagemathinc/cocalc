@@ -73,11 +73,13 @@ export async function handle_all_mentions(db: any): Promise<void> {
     const source: string = row.source;
     const target: string = row.target;
     const priority: number = row.priority;
+    const description: string = row.description;
     await handle_mention(
       db,
       { project_id, path, time, target },
       source,
-      priority
+      priority,
+      description
     );
   }
 }
@@ -113,7 +115,8 @@ export async function handle_mention(
   db: Database,
   key: Key,
   source: string,
-  _priority: number // ignored for now.
+  _priority: number, // ignored for now.
+  description?: string
 ): Promise<void> {
   // Check that source and target are both currently
   // collaborators on the project.
@@ -129,7 +132,7 @@ export async function handle_mention(
         await set_action(db, key, "no-network");
         return;
       case "email":
-        await send_email_notification(db, key, source);
+        await send_email_notification(db, key, source, description);
         // Mark that we sent email.
         await set_action(db, key, "email");
         return;
@@ -144,7 +147,8 @@ export async function handle_mention(
 async function send_email_notification(
   db: Database,
   key: Key,
-  source: string
+  source: string,
+  description: string = ""
 ): Promise<void> {
   // Gather relevant information to use to construct notification.
   const user_names = await callback2(db.account_ids_to_usernames, {
@@ -158,11 +162,15 @@ async function send_email_notification(
     "title",
     key.project_id
   );
+  const context =
+    description.length > 0
+      ? `<br/><blockquote>${description}</blockquote>`
+      : "";
   const subject = `[${trunc(project_title, 40)}] ${key.path}`;
   const url = `https://cocalc.com/projects/${key.project_id}/files/${key.path}`;
   const body = `${source_name} mentioned you in <a href="${url}">a chat at ${
     key.path
-  } in ${project_title}</a>.`;
+  } in ${project_title}</a>.${context}`;
   let from: string;
   from = `${source_name} <${NOTIFICATIONS_EMAIL}>`;
   const to = await callback(db.get_user_column, "email_address", key.target);

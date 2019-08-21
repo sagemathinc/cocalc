@@ -4,7 +4,6 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
-//const DEFAULT_ROW_SIZE: number = 34;
 const DEFAULT_ROW_SIZE: number = 64;
 
 import { WindowedList } from "../r_misc/windowed-list";
@@ -97,7 +96,7 @@ export class CellList extends Component<CellListProps> {
        keep resetting scrollTop a few times.
     */
     let scrollHeight: number = 0;
-    for (let tm of [0, 250, 750, 1500, 2000]) {
+    for (let tm of [0, 1, 100, 150]) {
       if (!this.is_mounted) return;
       if (this.use_windowed_list) {
         if (this.windowed_list_ref.current != null) {
@@ -184,9 +183,9 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  private scroll_cell_list(scroll: Scroll): void {
+  private async scroll_cell_list(scroll: Scroll): Promise<void> {
     if (!this.use_windowed_list) return;
-    const list = this.windowed_list_ref.current;
+    let list = this.windowed_list_ref.current;
     if (list == null) return;
     const info = list.get_scroll();
 
@@ -198,24 +197,25 @@ export class CellList extends Component<CellListProps> {
 
     // supported scroll positions are in types.ts
     if (scroll === "cell visible") {
-      if (!this.props.cur_id) return;
+      if (this.props.cur_id == null) return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
-      if (n != -1) {
-        list.scrollToRow(n);
-      }
-      return;
+      if (n == -1) return;
+      list.scrollToRow(n, "top");
+      await delay(5); // needed due to shift+enter causing output
+      list = this.windowed_list_ref.current;
+      if (list == null) return;
+      list.scrollToRow(n, "top");
     }
     if (info == null) return;
 
-    // TODO: I just hardcoded 400 for "1 page"!
     switch (scroll) {
       case "list up":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset - 400);
+        list.scrollToPosition(info.scrollOffset - list.get_window_height() * 0.9);
         break;
       case "list down":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset + 400);
+        list.scrollToPosition(info.scrollOffset + list.get_window_height() * 0.9);
         break;
     }
   }
@@ -260,12 +260,13 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_cell(id: string, isScrolling?: boolean): Rendered {
+  private render_cell(id: string, isScrolling: boolean, index:number): Rendered {
     const cell = this.props.cells.get(id);
     return (
       <Cell
         key={id}
         id={id}
+        index={index}
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
         name={this.props.name}
@@ -301,12 +302,17 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private windowed_list_row_renderer({ key, isScrolling }): Rendered {
+  private windowed_list_row_renderer({
+    key,
+    isVisible,
+    isScrolling,
+    index
+  }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
         {this.render_insert_cell(key, "above")}
-        {this.render_cell(key, isScrolling)}
+        {this.render_cell(key, isScrolling || !isVisible, index)}
         {is_last ? this.render_insert_cell(key, "below") : undefined}
       </div>
     );
@@ -318,14 +324,10 @@ export class CellList extends Component<CellListProps> {
       cache_id = this.props.name + this.props.frame_actions.frame_id;
     }
 
-    // Heads up -- don't you dare change the overscan_row_count to bigger
-    // than 0.  If you do, the codemirror editor sometimes gets mounted off
-    // screen, which causes it to get scrolled into view, which breaks badly.
-    // Also, there is no real performance improvement for Jupyter.
     return (
       <WindowedList
         ref={this.windowed_list_ref}
-        overscan_row_count={0 /* DO *NOT* CHANGE THIS!!! */}
+        overscan_row_count={10}
         estimated_row_size={DEFAULT_ROW_SIZE}
         row_key={index => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
@@ -333,17 +335,21 @@ export class CellList extends Component<CellListProps> {
         cache_id={cache_id}
         use_is_scrolling={true}
         hide_resize={true}
+        render_info={true}
+        scroll_margin={60}
       />
     );
   }
 
   private render_list_of_cells_directly(): Rendered[] {
     const v: Rendered[] = [];
+    let index : number = 0;
     this.props.cell_list.forEach((id: string) => {
       if (this.props.actions != null) {
         v.push(this.render_insert_cell(id));
       }
-      v.push(this.render_cell(id));
+      v.push(this.render_cell(id, false, index));
+      index += 1;
     });
     if (this.props.actions != null && v.length > 0) {
       const id = this.props.cell_list.get(this.props.cell_list.size - 1);

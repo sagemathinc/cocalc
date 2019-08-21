@@ -1596,7 +1596,8 @@ LoadAllProjects = rclass
         <Button
             onClick={@load}
             bsStyle='info'
-            bsSize='large'>
+            bsSize='large'
+            style={width:'100%', fontSize:'18pt'}>
             {@render_loading()}
             Load all older projects...
         </Button>
@@ -1604,7 +1605,7 @@ LoadAllProjects = rclass
     render: ->
         if @props.done
             return <span/>
-        <div style={marginTop:'20px'}>
+        <div>
             {@render_button()}
         </div>
 

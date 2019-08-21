@@ -10,6 +10,7 @@ const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
 
 export interface KeyboardCommand {
@@ -20,6 +21,10 @@ export interface KeyboardCommand {
   shift?: boolean;
   twice?: boolean;
   meta?: boolean;
+  key?: string;
+  // TODO: key is currently only used for displaying what the shortcut is; however,
+  // "which" is deprecated and we should switch to using only key!
+  // See https://github.com/sagemathinc/cocalc/issues/4020
 }
 
 export interface CommandDescription {
@@ -33,7 +38,8 @@ export interface CommandDescription {
 
 export function commands(
   jupyter_actions: JupyterActions,
-  frame_actions: NotebookFrameActions
+  frame_actions: NotebookFrameActions,
+  editor_actions: JupyterEditorActions
 ): { [name: string]: CommandDescription } {
   if (jupyter_actions == null || frame_actions == null) {
     throw Error("both actions must be defined");
@@ -171,14 +177,14 @@ export function commands(
       m: "Restart and run all...",
       menu: "Run all...",
       i: "forward",
-      f: () => jupyter_actions.restart_and_run_all(false)
+      f: () => jupyter_actions.restart_and_run_all()
     },
 
     "confirm restart kernel and run all cells without halting on error": {
       m: "Run all (do not stop on errors)...",
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
-      f: () => jupyter_actions.restart_and_run_all(true)
+      f: () => jupyter_actions.restart_and_run_all_no_halt()
     },
 
     "confirm shutdown kernel": {
@@ -449,8 +455,13 @@ export function commands(
     },
 
     "nbconvert slides": {
-      m: "Slideshow...",
+      m: "Slideshow server via nbconvert...",
       f: () => jupyter_actions.show_nbconvert_dialog("slides")
+    },
+
+    slideshow: {
+      m: "Slideshow...",
+      f: () => editor_actions.show_revealjs_slideshow()
     },
 
     "nbconvert tex": {
@@ -588,7 +599,7 @@ export function commands(
     },
 
     "run cell and insert below": {
-      m: "Run cells and insert new cell below",
+      m: "Run cells and insert cell below",
       k: [{ which: 13, alt: true }],
       f: () => frame_actions.run_selected_cells_and_insert_new_cell_below()
     },
@@ -697,7 +708,10 @@ export function commands(
 
     "split cell at cursor": {
       m: "Split cell",
-      k: [{ ctrl: true, shift: true, which: 189 }],
+      k: [
+        { ctrl: true, shift: true, which: 189 },
+        { ctrl: true, key: ";", which: 186 }
+      ],
       f() {
         frame_actions.set_mode("escape");
         frame_actions.split_current_cell();
