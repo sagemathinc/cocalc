@@ -1751,8 +1751,8 @@ API(
       }
     },
     desc: `\
-Copy a file or directory from one project to another. User must be
-owner or collaborator on both projects.
+Copy a file or directory from one project to another.
+User must be owner or collaborator on both projects.
 
 Note: the \`timeout\` option is passed to a call to the \`rsync\` command.
 If no data is transferred for the specified number of seconds, then
@@ -1760,6 +1760,18 @@ the copy terminates. The default is 0, which means no timeout.
 
 Relative paths (paths not beginning with '/') are relative to the user's
 home directory in source and target projects.
+
+Further options:
+
+- \`wait_until_done\`: set this to false to immediately retrieve the \`copy_path_id\`.
+  This is the **recommended way** to use this ednpoint,
+  because a blocking request might time out and you'll never learn about outcome of the copy operation.
+  Learn about the status (success or failure, including an error message) via the :doc:\`copy_path_status\` endpoint.
+- \`scheduled\`: set this to a date in the future or postpone the copy operation.
+  Suiteable timestamps are created for example like that:
+  - Bash: 1 minute in the future \`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'\`
+  - Python using [arrow](https://arrow.readthedocs.io/en/latest/) library: \`arrow.now('UTC').shift(minutes=+1).for_json()\`
+  Later, learn about its outcome via :doc:\`copy_path_status\` as well.
 
 Example:
 
@@ -1809,8 +1821,7 @@ API(
       },
       limit: {
         init: 1000,
-        desc:
-          "(src/targ only) maximum number of results  (default 1000, max 1000)"
+        desc: "(src/targ only) maximum number of results  (max 1000)"
       },
       offset: {
         init: undefined,
@@ -1828,13 +1839,19 @@ API(
       }
     },
     desc: `\
-Retrieve status information about a copy path operation.
-There are two possibilities:
+Retrieve status information about copy path operation(s).
 
-- for a given \`copy_path_id\`,
+There are two ways to query:
+
+- **single result** for a specific \`copy_path_id\`,
   which was returned by \`copy_path_between_projects\` earlier;
-- or at last one of \`src_project_id\` or \`target_project_id\`
-  – additionally filtered by an optionally given \`src_path\` – for a list of statuses.
+- **array of results**, for at last one of \`src_project_id\` or \`target_project_id\`,
+  and additionally filtered by an optionally given \`src_path\`.
+
+Check for the field \`"finished"\`, containing the timestamp when the operation completed.
+There might also be an \`"error"\`!
+
+**Note:** You need to have read/write access to the associated src/target project.
 `
   })
 );
