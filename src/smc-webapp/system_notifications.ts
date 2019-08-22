@@ -43,12 +43,15 @@ export class NotificationsActions extends Actions<NotificationsState> {
     this.show_banner(true);
   };
 
-  dismiss = (show: Notification): void => {
-    const priority = show.get("priority");
-    const time = show.get("time");
-    redux
-      .getTable("account")
-      .set({ other_settings: { [`notification_${priority}`]: time } });
+  dismiss = (_show: string): void => {
+    // show: the string ID of an announcement
+
+    // const priority = show.get("priority");
+    // const time = show.get("time");
+    // redux
+    //   .getTable("account")
+    //   .set({ other_settings: { [`notification_${priority}`]: time } });
+    this.setState({ show: undefined });
   };
 
   send_message = (opts): void => {

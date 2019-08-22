@@ -1,7 +1,8 @@
-import { React, /*redux,*/ rtypes, Rendered, rclass } from "./app-framework";
-import { Button, Col, Row } from "react-bootstrap";
+import { React, rtypes, Rendered, rclass } from "./app-framework";
+import { Button } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
 import { is_different } from "smc-util/misc2";
+const { Markdown, Icon } = require("./r_misc");
 //import { Map as iMap } from "immutable";
 import {
   Notifications,
@@ -54,8 +55,7 @@ class GlobalInformationMessageComponent extends React.Component<
   }
 
   dismiss = (): void => {
-    // if (this.props.announcements == null) return;
-    // this.props.actions.dismiss(this.props.show);
+    if (this.props.show != null) this.props.actions.dismiss(this.props.show);
   };
 
   render(): Rendered | null {
@@ -75,35 +75,31 @@ class GlobalInformationMessageComponent extends React.Component<
     })();
 
     const style: React.CSSProperties = {
-      flex: "0 0 auto",
-      padding: "5px 0 5px 5px",
-      backgroundColor: bgcol,
-      fontSize: "18px",
-      right: 0,
-      left: 0
+      backgroundColor: bgcol
     };
 
     const text = announcement.get("text");
 
     return (
-      <Row style={style}>
-        <Col sm={9} style={{ paddingTop: 3 }}>
-          <p>
-            <b>Global notification: {text}</b>
-          </p>
-        </Col>
-        <Col sm={3}>
+      <div style={style} className={"cc-announcement-banner"}>
+        <div className={"cc-announcement-control"}>
+          <Icon name={"exclamation-triangle"} />
+        </div>
+        <div className={"cc-announcement-message"}>
+          <Markdown value={text} />
+        </div>
+        <div className={"cc-announcement-control"}>
           <Button
             bsStyle="danger"
             bsSize={"small"}
             className={"pull-right"}
-            style={{ marginRight: "10px" }}
+            style={{ margin: "0 10px" }}
             onClick={this.dismiss}
           >
             Close
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </div>
     );
   }
 }
