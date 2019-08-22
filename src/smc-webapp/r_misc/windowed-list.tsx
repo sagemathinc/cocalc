@@ -135,8 +135,11 @@ export class WindowedList extends Component<Props, State> {
       // react-window doesn't have align=top, but we **need** it for jupyter
       // This implementation isn't done; it's just to prove we can do it.
       // Here "top" means the top of the row is in view nicely.
+      this.scrollToRow(row, "auto"); // at least get it into view, so metadata useful.
       const meta = this.get_row_metadata(row);
-      if (meta == null) return;
+      if (meta == null) {
+        return;
+      }
       const { scrollOffset } = this.get_scroll_info();
       const height = this.get_window_height();
       const margin = this.props.scroll_margin ? this.props.scroll_margin : 10;

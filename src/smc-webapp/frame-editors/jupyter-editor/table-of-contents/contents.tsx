@@ -1,3 +1,5 @@
+import { delay } from "awaiting";
+
 import { List, Map } from "immutable";
 
 import {
@@ -18,6 +20,7 @@ import { JupyterEditorActions } from "../actions";
 interface Props {
   actions: JupyterEditorActions;
   id: string;
+  font_size: number;
 
   // REDUX PROPS
   cell_list?: List<string>; // list of ids of cells in order
@@ -28,7 +31,11 @@ class TableOfContents extends Component<Props> {
   private headings?: TableOfContentsInfo[];
 
   public shouldComponentUpdate(nextProps): boolean {
-    return this.props.cells != nextProps.cells;
+    return (
+      this.props.cells != nextProps.cells ||
+      this.props.cell_list != nextProps.cell_list ||
+      this.props.font_size != nextProps.font_size
+    );
   }
 
   public componentWillReceiveProps(nextProps): void {
@@ -72,6 +79,12 @@ class TableOfContents extends Component<Props> {
     }
   }
 
+  private async jump_to_cell(id: string): Promise<void> {
+    this.props.actions.jump_to_cell(id);
+    await delay(100); // temporary hack
+    this.props.actions.jump_to_cell(id);
+  }
+
   private render_contents(): Rendered {
     const headings = this.get_headings();
     if (headings == null) return this.render_loading();
@@ -80,14 +93,24 @@ class TableOfContents extends Component<Props> {
       v.push(
         <div
           key={id}
-          onClick={() => this.props.actions.jump_to_cell(id)}
+          onClick={() => this.jump_to_cell(id)}
           style={{ cursor: "pointer" }}
         >
           {this.render_header(level, value)}
         </div>
       );
     }
-    return <div style={{ overflowY: "auto", margin: "15px" }}>{v}</div>;
+    return (
+      <div
+        style={{
+          overflowY: "auto",
+          margin: "15px",
+          fontSize: `${this.props.font_size}px`
+        }}
+      >
+        {v}
+      </div>
+    );
   }
 
   private render_loading(): Rendered {

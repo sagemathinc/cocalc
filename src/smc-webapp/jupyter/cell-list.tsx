@@ -211,11 +211,15 @@ export class CellList extends Component<CellListProps> {
     switch (scroll) {
       case "list up":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset - list.get_window_height() * 0.9);
+        list.scrollToPosition(
+          info.scrollOffset - list.get_window_height() * 0.9
+        );
         break;
       case "list down":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset + list.get_window_height() * 0.9);
+        list.scrollToPosition(
+          info.scrollOffset + list.get_window_height() * 0.9
+        );
         break;
     }
   }
@@ -260,7 +264,11 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_cell(id: string, isScrolling: boolean, index:number): Rendered {
+  private render_cell(
+    id: string,
+    isScrolling: boolean,
+    index: number
+  ): Rendered {
     const cell = this.props.cells.get(id);
     return (
       <Cell
@@ -343,7 +351,7 @@ export class CellList extends Component<CellListProps> {
 
   private render_list_of_cells_directly(): Rendered[] {
     const v: Rendered[] = [];
-    let index : number = 0;
+    let index: number = 0;
     this.props.cell_list.forEach((id: string) => {
       if (this.props.actions != null) {
         v.push(this.render_insert_cell(id));

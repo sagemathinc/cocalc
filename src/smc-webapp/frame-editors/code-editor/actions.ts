@@ -562,21 +562,22 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Set which frame is active (unless setting is blocked).
   // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.s
-  set_active_id(active_id: string, ignore_if_missing?: boolean): void {
+  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.
+  // If a different frame is maximized, switch out of maximized mode.
+  public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
     }
-    this._cm[active_id];
+
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
 
-    // record which id was just made active.
+    // record which id is being made active.
     this._active_id_history.push(active_id);
     if (this._active_id_history.length > 100) {
       this._active_id_history = this._active_id_history.slice(
@@ -584,11 +585,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       );
     }
 
+    // We delete full_id to de-maximize if in full screen mode,
+    // so the active_id frame is visible.
     this.setState({
-      local_view_state: local.set("active_id", active_id)
+      local_view_state: local.set("active_id", active_id).delete('full_id')
     });
     this._save_local_view_state();
-
     this.focus(active_id);
   }
 
@@ -1238,7 +1240,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  focus(id?: string): void {
+  public focus(id?: string): void {
     if (id === undefined) {
       id = this._get_active_id();
     }
@@ -2081,5 +2083,24 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     (this.redux.getActions("page") as any).erase_active_key_handler(
       key_handler
     );
+  }
+
+  public show_focused_frame_of_type(
+    type: string,
+    dir: FrameDirection = "col"
+  ): string {
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      type
+    );
+    if (id == null) {
+      // no such frame, so make one
+      this.split_frame(dir, this._get_active_id(), type);
+      id = this._get_most_recent_active_frame_id_of_type(type);
+    }
+    if (id == null) {
+      throw Error("bug creating frame");
+    }
+    this.set_active_id(id);
+    return id;
   }
 }
