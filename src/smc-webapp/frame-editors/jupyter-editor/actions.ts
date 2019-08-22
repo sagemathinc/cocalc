@@ -272,7 +272,12 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   public async show_table_of_contents(): Promise<void> {
-    const id = this.show_focused_frame_of_type("jupyter_table_of_contents");
+    const id = this.show_focused_frame_of_type(
+      "jupyter_table_of_contents",
+      "col",
+      true,
+      1 / 3
+    );
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
     if (this._state === "closed") return;

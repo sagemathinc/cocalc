@@ -588,7 +588,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // We delete full_id to de-maximize if in full screen mode,
     // so the active_id frame is visible.
     this.setState({
-      local_view_state: local.set("active_id", active_id).delete('full_id')
+      local_view_state: local.set("active_id", active_id).delete("full_id")
     });
     this._save_local_view_state();
     this.focus(active_id);
@@ -638,6 +638,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _get_leaf_ids(): SetMap {
     return tree_ops.get_leaf_ids(this._get_tree());
+  }
+
+  private get_parent_id(id): string | undefined {
+    return tree_ops.get_parent_id(this._get_tree(), id);
   }
 
   _tree_op(op, ...args): void {
@@ -832,14 +836,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     direction: FrameDirection,
     id?: string, // id of frame being split (uses active_id by default)
     type?: string, // type of new frame
-    extra?: object // set this data in the new frame immediately.
+    extra?: object, // set this data in the new frame immediately.
+    first?: boolean // if true, new frame is left or top instead of right or bottom.
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
     const before = this._get_leaf_ids();
-    this._tree_op("split_leaf", id, direction, type, extra);
+    this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
     for (let new_id in after) {
       if (!before[new_id]) {
@@ -2087,15 +2092,24 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   public show_focused_frame_of_type(
     type: string,
-    dir: FrameDirection = "col"
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
   ): string {
     let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
       type
     );
     if (id == null) {
       // no such frame, so make one
-      this.split_frame(dir, this._get_active_id(), type);
+      const active_id = this._get_active_id();
+      this.split_frame(dir, active_id, type, undefined, first);
       id = this._get_most_recent_active_frame_id_of_type(type);
+      if (pos != null && id != null) {
+        const parent_id = this.get_parent_id(id);
+        if (parent_id != null) {
+          this.set_frame_tree({ id: parent_id, pos });
+        }
+      }
     }
     if (id == null) {
       throw Error("bug creating frame");
