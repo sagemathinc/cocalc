@@ -271,7 +271,9 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     actions.focus();
   }
 
-  public async show_table_of_contents(): Promise<void> {
+  public async show_table_of_contents(
+    _id: string | undefined = undefined
+  ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "jupyter_table_of_contents",
       "col",

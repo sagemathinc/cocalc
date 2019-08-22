@@ -166,10 +166,10 @@ export class WindowedList extends Component<Props, State> {
     align: string = "auto"
   ): Promise<void> {
     this.ensure_visible = { row, align };
-    for (let i = 0; i < 10; i++) {
+    for (let i = 1; i < 10; i++) {
       const { row, align } = this.ensure_visible;
       this.scrollToRow(row, align);
-      await delay(5*i);
+      await delay(30);
       if (!this.is_mounted) return;
       if (
         this.render_info != null &&

@@ -44,7 +44,7 @@ export const EDITOR_SPEC = {
       "undo",
       "redo",
       "format",
-      "contents"
+      "show_table_of_contents"
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),
