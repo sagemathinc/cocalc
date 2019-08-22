@@ -264,21 +264,16 @@ Page = rclass
                 message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
 
     render: ->
-        top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 
         style_top_bar =
+            flex          : '0 0 auto'
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
             minHeight     : "#{NAV_HEIGHT}px"
-            position      : 'fixed'
             right         : 0
             zIndex        : '100'
             borderRadius  : 0
-            top           : top
-
-        positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
-        positionHackHeight = (NAV_HEIGHT + positionHackOffset) + 'px'
 
         <React.Fragment>
             <div className={"cocalc-announce"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
@@ -298,7 +293,6 @@ Page = rclass
                 {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
                 {<CookieWarning /> if @props.cookie_warning}
                 {<LocalStorageWarning /> if @props.local_storage_warning}
-                {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
                 {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
                 {### Children must define their own padding from navbar and screen borders ###}
                 {### Note that the parent is a flex container ###}

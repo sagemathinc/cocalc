@@ -14,13 +14,14 @@ export type Notifications = iMap<string, any>; // iMap<string, any>>;
 
 interface NotificationsState {
   loading: boolean;
-  show?: Notification;
   notifications?: Notifications;
+  announcements?: Notifications;
+  show?: string; // which announcement to show
   dismissed_info?: any; // string or timestamp
   dismissed_high?: any; // string or timestamp
 }
 
-const init_state: NotificationsState = {
+const INIT_STATE: NotificationsState = {
   loading: true
 };
 
@@ -121,18 +122,21 @@ class NotificationsTable extends Table {
 }
 
 const table = redux.createTable(NAME, NotificationsTable);
-const store = redux.createStore(NAME, NotificationsStore, init_state);
+const store = redux.createStore(NAME, NotificationsStore, INIT_STATE);
 const actions = redux.createActions(NAME, NotificationsActions);
 
 /******************************************************************/
 
+const NAME_ANNOUNCEMENTS = "announcements";
+
 class AnnouncementsTable extends Table {
   query() {
-    return "announcements";
+    return NAME_ANNOUNCEMENTS;
   }
 
   private process_mesg(_id, mesg): void {
     debug("announcements::process_mesg", mesg);
+    actions.setState({ show: _id });
   }
 
   options() {
@@ -140,6 +144,7 @@ class AnnouncementsTable extends Table {
   }
 
   change = table => {
+    actions.setState({ loading: false, announcements: table.get() });
     table.get().map((m, id) => {
       this.process_mesg(id, m.toJS());
     });

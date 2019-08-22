@@ -1,18 +1,21 @@
 import { React, /*redux,*/ rtypes, Rendered, rclass } from "./app-framework";
 import { Button, Col, Row } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
+import { is_different } from "smc-util/misc2";
 //import { Map as iMap } from "immutable";
 import {
   Notifications,
   Notification,
-  NotificationsActions
+  NotificationsActions,
+  NAME as NotificationsName
 } from "./system_notifications";
 
 interface GlobalInformationMessageProps {
   actions: NotificationsActions;
   loading: boolean;
-  show?: Notification;
-  notifications: Notifications;
+  announcements?: Notification;
+  show?: string; // announcement id
+  notifications?: Notifications;
 }
 
 interface GlobalInformationMessageState {}
@@ -32,31 +35,36 @@ class GlobalInformationMessageComponent extends React.Component<
 
   public static reduxProps() {
     return {
-      system_notifications: {
+      [NotificationsName]: {
         loading: rtypes.bool,
-        show: rtypes.immutable.Map,
+        show: rtypes.string,
+        announcements: rtypes.immutable.Map,
         notifications: rtypes.immutable.Map
       }
     };
   }
 
   shouldComponentUpdate(next) {
-    return (
-      this.props.notifications != next.notifications ||
-      this.props.show != next.show ||
-      this.props.loading != next.loading
-    );
+    return is_different(this.props, next, [
+      "notifications",
+      "announcements",
+      "show",
+      "loading"
+    ]);
   }
 
   dismiss = (): void => {
-    if (this.props.show == null) return;
-    this.props.actions.dismiss(this.props.show);
+    // if (this.props.announcements == null) return;
+    // this.props.actions.dismiss(this.props.show);
   };
 
   render(): Rendered | null {
-    if (this.props.show == null) return null;
+    if (this.props.announcements == null || this.props.show == null)
+      return null;
 
-    const priority = this.props.show.get("priority");
+    const announcement = this.props.announcements.get(this.props.show);
+
+    const priority = announcement.get("priority");
     const bgcol = (function() {
       switch (priority) {
         case "high":
@@ -67,17 +75,15 @@ class GlobalInformationMessageComponent extends React.Component<
     })();
 
     const style: React.CSSProperties = {
+      flex: "0 0 auto",
       padding: "5px 0 5px 5px",
       backgroundColor: bgcol,
       fontSize: "18px",
-      position: "fixed" as "fixed",
-      zIndex: 101,
       right: 0,
-      left: 0,
-      height: "36px"
+      left: 0
     };
 
-    const text = this.props.show.get("text");
+    const text = announcement.get("text");
 
     return (
       <Row style={style}>
