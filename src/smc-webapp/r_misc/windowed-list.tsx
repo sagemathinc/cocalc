@@ -102,6 +102,7 @@ export class WindowedList extends Component<Props, State> {
     visibleStartIndex: 0,
     visibleStopIndex: 0
   };
+  private ensure_visible?: { row: number; align: string };
 
   constructor(props) {
     super(props);
@@ -164,7 +165,9 @@ export class WindowedList extends Component<Props, State> {
     row: number,
     align: string = "auto"
   ): Promise<void> {
-    for (let i = 0; i < 5; i++) {
+    this.ensure_visible = { row, align };
+    for (let i = 0; i < 10; i++) {
+      const { row, align } = this.ensure_visible;
       this.scrollToRow(row, align);
       await delay(5*i);
       if (!this.is_mounted) return;
