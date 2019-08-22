@@ -200,11 +200,11 @@ export class CellList extends Component<CellListProps> {
       if (this.props.cur_id == null) return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
       if (n == -1) return;
-      list.scrollToRow(n, "top");
+      list.ensure_row_is_visible(n, "top");
       await delay(5); // needed due to shift+enter causing output
       list = this.windowed_list_ref.current;
       if (list == null) return;
-      list.scrollToRow(n, "top");
+      list.ensure_row_is_visible(n, "top");
     }
     if (info == null) return;
 

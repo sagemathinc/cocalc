@@ -266,8 +266,9 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     if (actions == null) return;
     actions.set_cur_id(cell_id);
     actions.scroll("cell visible");
+    await delay(5);
     if (this._state === "closed") return;
-    actions.scroll("cell visible");
+    actions.focus();
   }
 
   public async show_table_of_contents(): Promise<void> {

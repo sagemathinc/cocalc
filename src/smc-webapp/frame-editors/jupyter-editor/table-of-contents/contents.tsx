@@ -63,19 +63,20 @@ class TableOfContents extends Component<Props> {
   }
 
   private render_header(level: number, value: string): Rendered {
+    const style = { marginTop: 0 };
     switch (level) {
       case 1:
-        return <h1>{value}</h1>;
+        return <h1 style={style}>{value}</h1>;
       case 2:
-        return <h2>{value}</h2>;
+        return <h2 style={style}>{value}</h2>;
       case 3:
-        return <h3>{value}</h3>;
+        return <h3 style={style}>{value}</h3>;
       case 4:
-        return <h4>{value}</h4>;
+        return <h4 style={style}>{value}</h4>;
       case 5:
-        return <h5>{value}</h5>;
+        return <h5 style={style}>{value}</h5>;
       default:
-        return <h6>{value}</h6>;
+        return <h6 style={style}>{value}</h6>;
     }
   }
 
@@ -94,7 +95,7 @@ class TableOfContents extends Component<Props> {
         <div
           key={id}
           onClick={() => this.jump_to_cell(id)}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: "pointer", paddingLeft: `${level * 2}em` }}
         >
           {this.render_header(level, value)}
         </div>
@@ -105,7 +106,7 @@ class TableOfContents extends Component<Props> {
         style={{
           overflowY: "auto",
           margin: "15px",
-          fontSize: `${this.props.font_size}px`
+          fontSize: `${this.props.font_size-4}px`
         }}
       >
         {v}

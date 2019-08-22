@@ -160,6 +160,24 @@ export class WindowedList extends Component<Props, State> {
     }
   }
 
+  public async ensure_row_is_visible(
+    row: number,
+    align: string = "auto"
+  ): Promise<void> {
+    for (let i = 0; i < 5; i++) {
+      this.scrollToRow(row, align);
+      await delay(5*i);
+      if (!this.is_mounted) return;
+      if (
+        this.render_info != null &&
+        this.render_info.visibleStartIndex <= row &&
+        row <= this.render_info.visibleStopIndex
+      ) {
+        return;
+      }
+    }
+  }
+
   public get_row_metadata(
     row: number
   ): { offset: number; size: number } | undefined {
