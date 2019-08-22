@@ -274,4 +274,25 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.focus(id);
     }
   }
+
+  public async jump_to_cell(cell_id: string): Promise<void> {
+    // Open or focus a notebook viewer and scroll to the given cell.
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      "jupyter_cell_notebook"
+    );
+    if (id == null) {
+      // no notebook view, so make one
+      this.split_frame("col", this._get_active_id(), "jupyter_cell_notebook");
+      id = this._get_most_recent_active_frame_id_of_type(
+        "jupyter_cell_notebook"
+      );
+    }
+    const actions = this.get_frame_actions(id);
+    if (actions == null) return;
+    this.focus(id);
+    actions.set_cur_id(cell_id);
+    actions.scroll("cell visible");
+    await delay(50);
+    actions.scroll("cell visible");
+  }
 }

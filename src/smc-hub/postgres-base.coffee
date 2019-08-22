@@ -440,6 +440,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
             limit       : undefined
+            offset      : undefined
             safety_check: true
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
             cb          : undefined
@@ -680,6 +681,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         if opts.limit?
             opts.query += " LIMIT #{opts.limit} "
+
+        if opts.offset?
+            opts.query += " OFFSET #{opts.offset} "
+
 
 
         if opts.safety_check

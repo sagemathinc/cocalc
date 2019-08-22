@@ -84,6 +84,8 @@ That way, the hub can send down the URL to the jupyter server (there is no webap
 
 // So we can require coffeescript code.
 require("coffeescript/register");
+// So we can require Typescript code.
+require("ts-node").register();
 
 let cleanWebpackPlugin,
   entries,
@@ -327,7 +329,7 @@ for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
       template: path.join(INPUT, fn_in),
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       PREFIX: fn_in === "index.pug" ? "" : "../"
     })
   );
@@ -359,7 +361,7 @@ for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"
@@ -390,6 +392,7 @@ for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
+      SCHEMA: require("smc-util/schema"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"
