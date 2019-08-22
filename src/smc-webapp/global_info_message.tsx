@@ -1,8 +1,8 @@
 import { React, rtypes, Rendered, rclass } from "./app-framework";
-import { Button } from "react-bootstrap";
+import { Button, ButtonGroup } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
 import { is_different } from "smc-util/misc2";
-const { Markdown, Icon } = require("./r_misc");
+const { Markdown, Icon, VisibleMDLG } = require("./r_misc");
 //import { Map as iMap } from "immutable";
 import {
   Notifications,
@@ -58,6 +58,31 @@ class GlobalInformationMessageComponent extends React.Component<
     if (this.props.show != null) this.props.actions.dismiss(this.props.show);
   };
 
+  previous = (): void => {};
+
+  next = (): void => {};
+
+  render_controls(): Rendered {
+    return (
+      <div className={"cc-announcement-control"}>
+        <ButtonGroup style={{ marginRight: "10px" }}>
+          <Button bsStyle={"default"} onClick={this.previous}>
+            <Icon name={"step-backward"} /> <VisibleMDLG>Previous</VisibleMDLG>
+          </Button>
+
+          <Button bsStyle={"default"} onClick={this.next}>
+            <Icon name={"step-forward"} /> <VisibleMDLG>Next</VisibleMDLG>
+          </Button>
+        </ButtonGroup>
+        <ButtonGroup>
+          <Button bsStyle={"danger"} onClick={this.dismiss}>
+            <Icon name={"times-circle"} /> <VisibleMDLG>Close</VisibleMDLG>
+          </Button>
+        </ButtonGroup>
+      </div>
+    );
+  }
+
   render(): Rendered | null {
     if (this.props.announcements == null || this.props.show == null)
       return null;
@@ -88,17 +113,7 @@ class GlobalInformationMessageComponent extends React.Component<
         <div className={"cc-announcement-message"}>
           <Markdown value={text} />
         </div>
-        <div className={"cc-announcement-control"}>
-          <Button
-            bsStyle="danger"
-            bsSize={"small"}
-            className={"pull-right"}
-            style={{ margin: "0 10px" }}
-            onClick={this.dismiss}
-          >
-            Close
-          </Button>
-        </div>
+        {this.render_controls()}
       </div>
     );
   }
