@@ -1113,18 +1113,20 @@ API(
       }
     },
     desc: `\
-Read a text file in the project whose id is supplied.
-User must be owner or collaborator in the target project.
-Argument 'path' is relative to home directory in target project.
-Unix user in the target project must have permissions to read file
-and containing directories if they do not already exist.
+Read a text file in the project whose \`project_id\` is supplied.
 
-You can also read multiple project_id/path's at once by
-making project_id and path arrays (of the same length).
+Argument \`'path'\` is relative to home directory in target project.
+
+You can also read multiple \`project_id\`/\`path\`'s at once by
+making \`project_id\` and \`path\` arrays (of the same length).
 In that case, the result will be an array
-of {project_id, path, content} objects, in some
-random order.  If there is an error reading a particular
-file, instead {project_id, path, error} is included.
+of \`{project_id, path, content}\` objects, in some random order.
+If there is an error reading a particular file,
+instead \`{project_id, path, error}\` is included.
+
+**Note:** You need to have read access to the project,
+the Linux user \`user\` in the target project must have permissions to read the file
+and containing directories.
 
 Example:
 
@@ -1189,12 +1191,13 @@ API(
       }
     },
     desc: `\
-Create a text file in the target project.
-User must be owner or collaborator in the target project.
+Create a text file in the target project with the given \`project_id\`.
 Directories containing the file are created if they do not exist already.
-Unix user in the target project must have permissions to create file
-and containing directories if they do not already exist.
 If a file already exists at the destination path, it is overwritten.
+
+**Note:** You need to have read access to the project.
+The Linux user \`user\` in the target project must have permissions to create files
+and containing directories if they do not already exist.
 
 Example:
 
@@ -1751,15 +1754,30 @@ API(
       }
     },
     desc: `\
-Copy a file or directory from one project to another. User must be
-owner or collaborator on both projects.
+Copy a file or directory from one project to another.
 
-Note: the \`timeout\` option is passed to a call to the \`rsync\` command.
+**Note:** the \`timeout\` option is passed to a call to the \`rsync\` command.
 If no data is transferred for the specified number of seconds, then
 the copy terminates. The default is 0, which means no timeout.
 
 Relative paths (paths not beginning with '/') are relative to the user's
 home directory in source and target projects.
+
+**Note:** You need to have read/write access to the associated src/target project.
+
+Further options:
+
+- \`wait_until_done\`: set this to false to immediately retrieve the \`copy_path_id\`.
+  This is the **recommended way** to use this endpoint,
+  because a blocking request might time out and you'll never learn about outcome of the copy operation.
+  Learn about the status (success or failure, including an error message) via the :doc:\`copy_path_status\` endpoint.
+- \`scheduled\`: set this to a date in the future or postpone the copy operation.
+  Suitable timestamps can be created as follows:
+  - Bash: 1 minute in the future \`date -d '+1 minute' --utc +'%Y-%m-%dT%H:%M:%S'\`
+  - Python using [arrow](https://arrow.readthedocs.io/en/latest/) library:
+    - 1 minute in the future: \`arrow.now('UTC').shift(minutes=+1).for_json()\`
+    - At a specific time: \`arrow.get("2019-08-29 22:00").for_json()\`
+  Later, learn about its outcome via :doc:\`copy_path_status\` as well.
 
 Example:
 
@@ -1809,8 +1827,7 @@ API(
       },
       limit: {
         init: 1000,
-        desc:
-          "(src/targ only) maximum number of results  (default 1000, max 1000)"
+        desc: "(src/targ only) maximum number of results  (max 1000)"
       },
       offset: {
         init: undefined,
@@ -1828,13 +1845,19 @@ API(
       }
     },
     desc: `\
-Retrieve status information about a copy path operation.
-There are two possibilities:
+Retrieve status information about copy path operation(s).
 
-- for a given \`copy_path_id\`,
+There are two ways to query:
+
+- **single result** for a specific \`copy_path_id\`,
   which was returned by \`copy_path_between_projects\` earlier;
-- or at last one of \`src_project_id\` or \`target_project_id\`
-  – additionally filtered by an optionally given \`src_path\` – for a list of statuses.
+- **array of results**, for at last one of \`src_project_id\` or \`target_project_id\`,
+  and additionally filtered by an optionally given \`src_path\`.
+
+Check for the field \`"finished"\`, containing the timestamp when the operation completed.
+There might also be an \`"error"\`!
+
+**Note:** You need to have read/write access to the associated src/target project.
 `
   })
 );
@@ -2081,7 +2104,7 @@ Attempt to read a file which is not public.
     -d path=Private/hello.txt
     https://cocalc.com/api/v1/public_get_text_file
   ==> {"event":"error","id":"0288b7d0-dda9-4895-87ba-aa71929b2bfb",
-       "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}+
+       "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}
 \`\`\`\
 `
   })
@@ -2140,12 +2163,13 @@ API(
       }
     },
     desc: `\
-Copy a file or directory from public project to a project for which the
-user is owner or collaborator.
+Copy a file or directory from a public project to a target project.
 
-Note: the \`timeout\` option is passed to a call to the \`rsync\` command.
+**Note:** the \`timeout\` option is passed to a call to the \`rsync\` command.
 If no data is transferred for the specified number of seconds, then
 the copy terminates. The default is 0, which means no timeout.
+
+**Note:** You need to have write access to the target project.
 
 Example:
 
