@@ -271,7 +271,7 @@ exports.ConnectionIndicator = rclass
 
     render_connection_status: ->
         if @props.connection_status == 'connected'
-            icon_style = {marginRight: '16px', fontSize: '13pt', display: 'inline'}
+            icon_style = {fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
             else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
@@ -300,13 +300,13 @@ exports.ConnectionIndicator = rclass
 
     render: ->
         outer_styles =
-            color      : '#666'
+            color      : COLORS.GRAY
             fontSize   : '10pt'
             lineHeight : '10pt'
             cursor     : 'pointer'
             float      : 'left'
         inner_styles =
-            paddingTop : '3px'
+            paddingTop : '1px'
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
@@ -418,43 +418,42 @@ exports.FullscreenButton = rclass
 
     reduxProps :
         page :
-            fullscreen : rtypes.oneOf(['default', 'kiosk'])
+            fullscreen             : rtypes.oneOf(['default', 'kiosk'])
             show_global_info       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
-        user_tracking("top_nav",{name:'fullscreen', enabled:!@props.fullscreen})
         @actions('page').toggle_fullscreen()
+        user_tracking("top_nav", {name:'fullscreen', enabled:!@props.fullscreen})
 
-    render: ->
-        icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = -1
-        if @props.show_global_info
-            top_px += announce_bar_offset
 
+    render_floating: ->
+        icon = 'compress'
         tip_style =
             position     : 'fixed'
             zIndex       : 10000
-            right        : 0
-            top          : "#{top_px}px"
-            borderRadius : '3px'
+            right        : '0px'
+            top          : "0px"
+            textAlign    : 'center'
+            background   : '#fff'
+            width        : "15pt"
+            height       : "15pt"
 
         icon_style =
             fontSize   : '13pt'
             padding    : 2
             color      : COLORS.GRAY
             cursor     : 'pointer'
-
-        if @props.fullscreen
-            icon_style.background = '#fff'
-            icon_style.opacity    = .7
-            icon_style.border     = '1px solid grey'
+            background : '#fff'
+            opacity    : .7
+            borderBottomLeftRadius: '3px'
+            border     : '1px solid grey'
 
         <Tip
             style     = {tip_style}
-            title     = {'Fullscreen mode, focused on the current document or page.'}
+            title     = {'Fullscreen mode enabled. Click to disable and reveal controls.'}
             placement = {'left'}
         >
             <Icon
@@ -463,6 +462,49 @@ exports.FullscreenButton = rclass
                 onClick = {@on_fullscreen}
             />
         </Tip>
+
+    render_menu: ->
+        icon  = 'expand'
+
+        tip_style =
+            display    : 'block'
+            fontSize   : '15pt'
+            padding    : '10px'
+
+        outer_style =
+            position    : 'relative'
+            float       : 'left'
+
+        icon_style =
+            color      : COLORS.GRAY
+            cursor     : 'pointer'
+
+        <NavItem
+            ref = {'fullscreen'}
+            style = {outer_style}
+            onClick = {@on_fullscreen}
+        >
+            <Tip
+                style     = {tip_style}
+                title     = {'Fullscreen mode, focused on the current document or page.'}
+                placement = {'left'}
+            >
+                <Icon
+                    style   = {icon_style}
+                    name    = {icon}
+                />
+            </Tip>
+        </NavItem>
+
+    render: ->
+        # kiosk mode is stuck in fullscreen
+        return null if @props.fullscreen == 'kiosk'
+
+        if @props.fullscreen
+            @render_floating()
+        else
+            @render_menu()
+
 
 exports.AppLogo = rclass
     displayName : 'AppLogo'

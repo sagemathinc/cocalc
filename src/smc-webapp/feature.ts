@@ -25,13 +25,7 @@
 //
 //###################################################
 
-export const {DEBUG} = require("./debug");
-
-export function debug(...args): void {
-  if (DEBUG) {
-    console.log(...args);
-  }
-}
+export const { DEBUG } = require("./debug");
 
 let IS_MOBILE,
   IS_TOUCH,
@@ -202,6 +196,25 @@ if ((global as any).window != undefined) {
   // TODO: maybe provide the full api?
   IS_MOBILE = IS_TOUCH = false;
 }
+
+// use debug(...) to spit out grouped debug messages (only if debug is set)
+export const debug = (function() {
+  if (!DEBUG) {
+    return (..._msg) => {};
+  }
+
+  return function(...msg) {
+    if (msg.length <= 1) {
+      console.log(msg[0]);
+      return;
+    }
+    console.group(msg[0]);
+    for (const m of msg.slice(1)) {
+      console.info(m);
+    }
+    console.groupEnd();
+  };
+})();
 
 export {
   IS_MOBILE,

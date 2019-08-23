@@ -226,6 +226,9 @@ class PageActions extends Actions
             return
         @setState(fullscreen : val)
         history.update_params()
+        # eventually hide an opened file use panel
+        if redux.getStore('page').get('show_file_use')
+            @toggle_show_file_use()
 
     set_get_api_key: (val) =>
         @setState(get_api_key: val)

@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#    Copyright (C) 2016 -- 2019, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -53,13 +53,15 @@ HIDE_LABEL_THOLD = 6
 NAV_HEIGHT = 36
 
 FileUsePageWrapper = (props) ->
+    top = NAV_HEIGHT - 2 + ($("div.cc-announcement-banner").height() ? 0)
+
     styles =
         zIndex       : '10'
         marginLeft   : '0'
         position     : 'fixed'
         boxShadow    : '0 0 15px #aaa'
         border       : '2px solid #ccc'
-        top          : "#{NAV_HEIGHT - 2}px"
+        top          : "#{top}px"
         background   : '#fff'
         right        : '2em'
         overflowY    : 'auto'
@@ -225,7 +227,7 @@ Page = rclass
             {@render_account_tab() if logged_in}
             {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
-            {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
+            <FullscreenButton />
         </Nav>
 
     render_project_nav_button: ->
@@ -277,9 +279,9 @@ Page = rclass
             borderRadius  : 0
 
         <React.Fragment>
-            <div className={"cocalc-announce"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
+            {<div className={"cocalc-announce"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
                 {<GlobalInformationMessage actions = {@actions(system_notifications.NAME)} /> if @props.show_global_info}
-            </div>
+            </div> if not @props.fullscreen}
 
             {<Navbar
                 className={"smc-top-bar"}
@@ -291,6 +293,8 @@ Page = rclass
                     <ProjectsNav dropdown={false} />
                     {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
+
+            {<FullscreenButton /> if @props.fullscreen}
 
             <div
                 ref={"page"}
