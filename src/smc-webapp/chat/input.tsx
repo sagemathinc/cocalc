@@ -8,17 +8,17 @@ import { delay } from "awaiting";
 import { MentionsInput, Mention } from "react-mentions";
 import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
-const { FormControl } = require("react-bootstrap");
-const { Space } = require("../r_misc");
+import { FormControl } from "react-bootstrap";
+import { Space } from "../r_misc/space";
 const { Avatar } = require("../other-users");
-const { IS_MOBILE, isMobile } = require("../feature");
+import { IS_MOBILE, isMobile } from "../feature";
 
 type InputHeight = "default" | "small";
 
 interface Props {
   name: string;
   input: string;
-  input_ref: any;
+  input_ref: React.RefObject<HTMLTextAreaElement>;
   input_style?: any; // Used to override defaults
   enable_mentions: boolean;
   project_users: any;
@@ -45,13 +45,13 @@ export class ChatInput extends React.PureComponent<Props> {
     singleLine: false
   };
 
-  private mentions_input_ref: any;
-  private input_ref: any;
+  private mentions_input_ref = React.createRef<MentionsInput>();
+  private input_ref: React.RefObject<HTMLTextAreaElement>;
 
   constructor(props) {
     super(props);
-    this.mentions_input_ref = React.createRef();
-    this.input_ref = props.input_ref || React.createRef();
+    this.mentions_input_ref;
+    this.input_ref = props.input_ref || React.createRef<HTMLTextAreaElement>();
   }
 
   // Hack around updating mentions when pasting an image (which we have to handle ourselves)
@@ -182,7 +182,7 @@ export class ChatInput extends React.PureComponent<Props> {
     }
   );
 
-  private on_change = (e, _, plain_text, mentions) => {
+  private on_change = (e, _?, plain_text?, mentions?) => {
     this.props.on_change(e.target.value, mentions, plain_text);
   };
 
@@ -233,12 +233,23 @@ export class ChatInput extends React.PureComponent<Props> {
     }
 
     if (!this.props.enable_mentions) {
+      // NOTE about the "this.input_ref as any" below.
+      // I think we want to style from react bootstraps
+      // FormControl, but we type things so input_ref
+      // must be a ref to a TextArea.  However, FormControl
+      // doesn't have the same interface type, so typescript
+      // gives an error.  So for now this is "as any".
+      // A better fix would probably be to just replace
+      // this by a normal FormControl, or even better
+      // would be to always allow mentions even for editing past tasks
+      // (which does make very good sense, if the UI would probably
+      // support it, which it should -- it's just more work).
       return (
         <FormControl
           id={id}
           autoFocus={!IS_MOBILE || isMobile.Android()}
           componentClass="textarea"
-          ref={this.input_ref}
+          ref={this.input_ref as any}
           onKeyDown={this.on_keydown}
           value={this.props.input}
           placeholder={"Type a message..."}

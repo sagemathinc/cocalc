@@ -229,6 +229,7 @@ export class AppRedux {
     init?: {} | State
   ): C {
     let S: C = this._stores[name];
+    if (S != null) throw Error(`store ${name} already exists`);
     if (init === undefined && typeof store_class !== "function") {
       // so can do createStore(name, {default init})
       init = store_class;
@@ -427,7 +428,8 @@ const connect_component = spec => {
         // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
         throw Error(
-          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " + JSON.stringify(spec)
+          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " +
+            JSON.stringify(spec)
         );
       }
       const info = spec[store_name];

@@ -673,7 +673,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Returns the random log entry uuid. If called later with that id, then the time isn't
   // changed and the event is merely updated.
   // Returns undefined if log event is ignored
-  log(event, id?: string): string | undefined {
+  // NOTE: we can't just make this log function async since it returns
+  // an id that we use later to update the log, and we would have
+  // to change whatever client code uses that id to be async.  Maybe later.
+  // So we make the new function async_log below.
+  log(event, id?: string, cb?: Function): string | undefined {
     const my_role = (this.redux.getStore("projects") as any).get_my_group(
       this.project_id
     );
@@ -681,6 +685,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // Ignore log events for *both* admin and public.
       // Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
       // Public users don't log anything.
+      if (cb != null) cb();
       return; // ignore log events
     }
     const obj: any = {
@@ -700,11 +705,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           // TODO: what do we want to do if a log doesn't get recorded?
           // (It *should* keep trying and store that in localStorage, and try next time, etc...
           //  of course done in a systematic way across everything.)
-          return console.warn("error recording a log entry: ", err, event);
+          console.warn("error recording a log entry: ", err, event);
         }
+        if (cb != null) cb(err);
       }
     });
     return id;
+  }
+
+  public async async_log(event, id?: string): Promise<void> {
+    await callback(this.log.bind(this), event, id);
   }
 
   log_opened_time(path): void {
@@ -1091,7 +1101,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         change_history: opts.change_history
       });
       if (opts.anchor) {
-        // Scroll the *visibile* one into view.  NOTE: it's possible
+        // Scroll the *visible* one into view.  NOTE: it's possible
         // that several notebooks (say) are all open in background tabs
         // and all have the same anchor tag in them; we only want to
         // try to scroll the visible one or ones.

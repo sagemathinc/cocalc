@@ -14,6 +14,7 @@ import {
   SelectCallback
 } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
+import { r_join } from "../r_misc/r_join";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 const misc_page = require("../misc_page");
 
@@ -154,9 +155,11 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "duplicate notebook",
       rename,
       save,
+      "table of contents",
       "time travel",
       "",
       "print preview",
+      "slideshow",
       "nbconvert slides",
       "<Download as...",
       ">nbconvert ipynb",
@@ -452,13 +455,14 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     }
 
     let s: Rendered;
-    const shortcut = obj.k != null ? obj.k[0] : undefined;
-    if (shortcut != null) {
-      s = (
-        <span className="pull-right">
-          <KeyboardShortcut shortcut={shortcut} />
-        </span>
-      );
+    if (obj.k != null) {
+      const v: Rendered[] = [];
+      let i = 0;
+      for (let shortcut of obj.k) {
+        v.push(<KeyboardShortcut key={i} shortcut={shortcut} />);
+        i += 1;
+      }
+      s = <span className="pull-right">{r_join(v, ", ")}</span>;
     } else {
       s = <span />;
     }

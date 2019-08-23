@@ -43,6 +43,7 @@ const {
   ButtonGroup,
   FormControl,
   FormGroup,
+  Grid,
   Row,
   Col
 } = require("react-bootstrap");
@@ -183,25 +184,27 @@ export class StudentAssignmentInfoHeader extends Component<
 
   render() {
     return (
-      <Row style={{ borderBottom: "2px solid #aaa" }}>
-        <Col md={2} key="title">
-          <Tip
-            title={this.props.title}
-            tip={
-              this.props.title === "Assignment"
-                ? "This column gives the directory name of the assignment."
-                : "This column gives the name of the student."
-            }
-          >
-            <b>{this.props.title}</b>
-          </Tip>
-        </Col>
-        <Col md={10} key="rest">
-          {this.props.peer_grade
-            ? this.render_headers_peer()
-            : this.render_headers()}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row style={{ borderBottom: "2px solid #aaa" }}>
+          <Col md={2} key="title">
+            <Tip
+              title={this.props.title}
+              tip={
+                this.props.title === "Assignment"
+                  ? "This column gives the directory name of the assignment."
+                  : "This column gives the name of the student."
+              }
+            >
+              <b>{this.props.title}</b>
+            </Tip>
+          </Col>
+          <Col md={10} key="rest">
+            {this.props.peer_grade
+              ? this.render_headers_peer()
+              : this.render_headers()}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
@@ -786,90 +789,118 @@ export class StudentAssignmentInfo extends Component<
 
     const width = peer_grade || this.props.use_peer_grade_layout ? 2 : 3;
     return (
-      <Row
-        style={{
-          borderTop: "1px solid #aaa",
-          paddingTop: "5px",
-          paddingBottom: "5px"
-        }}
-      >
-        <Col md={2} key="title">
-          {this.props.title}
-        </Col>
-        <Col md={10} key="rest">
-          <Row>
-            <Col md={width} key="last_assignment">
-              {this.render_last({
-                name: "Assign",
-                data: this.props.info.last_assignment,
-                type: "assigned",
-                enable_copy: true,
-                copy_tip:
-                  "Copy the assignment from your project to this student's project so they can do their homework.",
-                open_tip:
-                  "Open the student's copy of this assignment directly in their project. " +
-                  "You will be able to see them type, chat with them, leave them hints, etc.",
-                omit_errors: skip_assignment
-              })}
-            </Col>
-            <Col md={width} key="last_collect">
-              {skip_assignment ||
-              !(this.props.info.last_assignment != null
-                ? this.props.info.last_assignment.error
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={{
+            borderTop: "1px solid #aaa",
+            paddingTop: "5px",
+            paddingBottom: "5px"
+          }}
+        >
+          <Col md={2} key="title">
+            {this.props.title}
+          </Col>
+          <Col md={10} key="rest">
+            <Row>
+              <Col md={width} key="last_assignment">
+                {this.render_last({
+                  name: "Assign",
+                  data: this.props.info.last_assignment,
+                  type: "assigned",
+                  enable_copy: true,
+                  copy_tip:
+                    "Copy the assignment from your project to this student's project so they can do their homework.",
+                  open_tip:
+                    "Open the student's copy of this assignment directly in their project. " +
+                    "You will be able to see them type, chat with them, leave them hints, etc.",
+                  omit_errors: skip_assignment
+                })}
+              </Col>
+              <Col md={width} key="last_collect">
+                {skip_assignment ||
+                !(this.props.info.last_assignment != null
+                  ? this.props.info.last_assignment.error
+                  : undefined)
+                  ? this.render_last({
+                      name: "Collect",
+                      data: this.props.info.last_collect,
+                      type: "collected",
+                      enable_copy:
+                        this.props.info.last_assignment != null ||
+                        skip_assignment,
+                      copy_tip:
+                        "Copy the assignment from your student's project back to your project so you can grade their work.",
+                      open_tip:
+                        "Open the copy of your student's work in your own project, so that you can grade their work.",
+                      omit_errors: skip_collect
+                    })
+                  : undefined}
+              </Col>
+              {peer_grade &&
+              this.props.info.peer_assignment &&
+              !(this.props.info.last_collect != null
+                ? this.props.info.last_collect.error
                 : undefined)
-                ? this.render_last({
-                    name: "Collect",
-                    data: this.props.info.last_collect,
-                    type: "collected",
-                    enable_copy:
-                      this.props.info.last_assignment != null ||
-                      skip_assignment,
-                    copy_tip:
-                      "Copy the assignment from your student's project back to your project so you can grade their work.",
-                    open_tip:
-                      "Open the copy of your student's work in your own project, so that you can grade their work.",
-                    omit_errors: skip_collect
-                  })
+                ? this.render_peer_assign()
                 : undefined}
-            </Col>
-            {peer_grade &&
-            this.props.info.peer_assignment &&
-            !(this.props.info.last_collect != null
-              ? this.props.info.last_collect.error
-              : undefined)
-              ? this.render_peer_assign()
-              : undefined}
-            {peer_grade && this.props.info.peer_collect
-              ? this.render_peer_collect()
-              : undefined}
-            {!peer_grade && this.props.use_peer_grade_layout
-              ? this.render_empty_peer_col("assign")
-              : undefined}
-            {!peer_grade && this.props.use_peer_grade_layout
-              ? this.render_empty_peer_col("collect")
-              : undefined}
-            <Col md={width} key="grade">
-              {show_grade_col ? this.render_grade_col() : undefined}
-            </Col>
-            <Col md={width} key="return_graded">
-              {show_return_graded
-                ? this.render_last({
-                    name: "Return",
-                    data: this.props.info.last_return_graded,
-                    type: "graded",
-                    enable_copy:
-                      this.props.info.last_collect != null || skip_collect,
-                    copy_tip:
-                      "Copy the graded assignment back to your student's project.",
-                    open_tip:
-                      "Open the copy of your student's work that you returned to them. " +
-                      "This opens the returned assignment directly in their project."
-                  })
+              {peer_grade &&
+              this.props.info.peer_assignment &&
+              !(this.props.info.last_collect != null
+                ? this.props.info.last_collect.error
+                : undefined)
+                ? this.render_peer_assign()
                 : undefined}
-            </Col>
-          </Row>
-        </Col>
-      </Row>
+              {peer_grade && this.props.info.peer_collect
+                ? this.render_peer_collect()
+                : undefined}
+              {!peer_grade && this.props.use_peer_grade_layout
+                ? this.render_empty_peer_col("assign")
+                : undefined}
+              {!peer_grade && this.props.use_peer_grade_layout
+                ? this.render_empty_peer_col("collect")
+                : undefined}
+              <Col md={width} key="grade">
+                {show_grade_col ? this.render_grade_col() : undefined}
+              </Col>
+              <Col md={width} key="return_graded">
+                {show_return_graded
+                  ? this.render_last({
+                      name: "Return",
+                      data: this.props.info.last_return_graded,
+                      type: "graded",
+                      enable_copy:
+                        this.props.info.last_collect != null || skip_collect,
+                      copy_tip:
+                        "Copy the graded assignment back to your student's project.",
+                      open_tip:
+                        "Open the copy of your student's work that you returned to them. " +
+                        "This opens the returned assignment directly in their project."
+                    })
+                  : undefined}
+              </Col>
+              <Col md={width} key="grade">
+                {show_grade_col ? this.render_grade_col() : undefined}
+              </Col>
+              <Col md={width} key="return_graded">
+                {show_return_graded
+                  ? this.render_last({
+                      name: "Return",
+                      data: this.props.info.last_return_graded,
+                      type: "graded",
+                      enable_copy:
+                        this.props.info.last_collect != null || skip_collect,
+                      copy_tip:
+                        "Copy the graded assignment back to your student's project.",
+                      open_tip:
+                        "Open the copy of your student's work that you returned to them. " +
+                        "This opens the returned assignment directly in their project."
+                    })
+                  : undefined}
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }

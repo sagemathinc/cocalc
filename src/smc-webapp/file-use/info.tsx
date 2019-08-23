@@ -11,7 +11,7 @@ import { FileUseIcon } from "./icon";
 
 import { Map as iMap } from "immutable";
 
-const { Col, Row } = require("react-bootstrap");
+const { Col, Grid, Row } = require("react-bootstrap");
 
 const misc = require("smc-util/misc");
 
@@ -29,7 +29,7 @@ const TRUNCATE_LENGTH = 50;
 const file_use_style = {
   border: "1px solid #aaa",
   cursor: "pointer",
-  padding: "8px"
+  width: "100%"
 };
 
 interface Props {
@@ -182,8 +182,8 @@ export class FileUseInfo extends Component<Props, {}> {
       misc.merge(style, { background: "#08c", color: "white" });
     }
     return (
-      <div style={style} onClick={e => this.open(e)}>
-        <Row>
+      <Grid style={style} onClick={e => this.open(e)} fluid={true}>
+        <Row style={{ padding: "5px" }}>
           <Col key="action" sm={1} style={{ fontSize: "14pt" }}>
             {this.render_action_icon()}
           </Col>
@@ -195,7 +195,7 @@ export class FileUseInfo extends Component<Props, {}> {
             {this.render_type_icon()}
           </Col>
         </Row>
-      </div>
+      </Grid>
     );
   }
 }

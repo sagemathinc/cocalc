@@ -1830,7 +1830,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
         # be careful with adding height:'100%'. it could cause flex to miscalc. see #3904
         <div
-            style={flex: "1 0 100%", display: "flex", flexDirection: "column", height: "100%"}
+            className={"smc-vfill"}
         >
             <div
                 style={flex: "0 0 auto", display: "flex", flexDirection: "column", padding:'5px 5px 0 5px'}

@@ -137,7 +137,7 @@ export interface CourseState {
   expanded_skip_gradings: Set<string>;
   active_feedback_edits: IsGradingMap;
   handouts: HandoutsMap;
-  loading: boolean;  // initially loading the syncdoc from disk.
+  loading: boolean; // initially loading the syncdoc from disk.
   saving: boolean;
   settings: CourseSettingsRecord;
   show_save_button: boolean;
@@ -248,7 +248,7 @@ export class CourseStore extends Store<CourseState> {
 
   get_pay() {
     const pay = this.get("settings").get("pay");
-    if(!pay) return "";
+    if (!pay) return "";
     return pay;
   }
 
@@ -846,7 +846,9 @@ export class CourseStore extends Store<CourseState> {
     return x.get("time");
   }
 
-  get_handout_status(handout) {
+  public get_handout_status(
+    handout
+  ): undefined | { handout: number; not_handout: number } {
     //
     // Compute and return an object that has fields (deleted students are ignored)
     //
@@ -859,7 +861,7 @@ export class CourseStore extends Store<CourseState> {
       this._handout_status = {};
       this.on("change", () => {
         // clear cache on any change to the store
-        return (this._handout_status = {});
+        this._handout_status = {};
       });
     }
     handout = this.get_handout(handout);

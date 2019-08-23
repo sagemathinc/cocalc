@@ -31,6 +31,8 @@
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
 
+import { is_different } from "smc-util/misc2";
+
 // React libraries and components
 import {
   Component,
@@ -38,9 +40,12 @@ import {
   ReactDOM,
   rclass,
   rtypes,
-  AppRedux
+  AppRedux,
+  Rendered
 } from "../app-framework";
+
 const {
+  Alert,
   Button,
   ButtonToolbar,
   ButtonGroup,
@@ -49,22 +54,21 @@ const {
   InputGroup,
   Row,
   Col,
+  Grid,
   Panel,
   Well,
   Form
 } = require("react-bootstrap");
 
 // CoCalc components
+import { WindowedList } from "../r_misc/windowed-list";
 const { User } = require("../users");
-const {
-  ErrorDisplay,
-  Icon,
-  MarkdownInput,
-  SearchInput,
-  Space,
-  TimeAgo,
-  Tip
-} = require("../r_misc");
+const { MarkdownInput, SearchInput, TimeAgo } = require("../r_misc");
+import { ErrorDisplay } from "../r_misc/error-display";
+import { Icon } from "../r_misc/icon";
+import { Space } from "../r_misc/space";
+import { Tip } from "../r_misc/tip";
+
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "./common";
 import * as util from "./util";
 import * as styles from "./styles";
@@ -121,6 +125,15 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     StudentsPanelReactProps & StudentsPanelReduxProps,
     StudentsPanelState
   > {
+    // student_list not a list, but has one, plus some extra info.
+    private student_list:
+      | {
+          students: any[];
+          num_omitted: number;
+          num_deleted: number;
+        }
+      | undefined = undefined;
+
     constructor(props) {
       super(props);
       this.state = {
@@ -153,16 +166,23 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     };
 
     shouldComponentUpdate(props, state) {
-      return (
-        this.state !== state ||
-        misc.is_different(this.props, props, [
-          "expanded_students",
-          "active_student_sort",
-          "name",
-          "project_id",
+      if (
+        is_different(this.state, state, ["search", "show_deleted"]) ||
+        is_different(this.props, props, [
           "students",
           "user_map",
-          "project_map",
+          "active_student_sort"
+        ])
+      ) {
+        delete this.student_list;
+        return true;
+      }
+      return (
+        this.state !== state ||
+        is_different(this.props, props, [
+          "expanded_students",
+          "name",
+          "project_id",
           "assignments",
           "active_feedback_edits"
         ])
@@ -290,7 +310,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         <Icon name="search" />
       );
 
-      return <Button onClick={this.do_add_search}>{icon} Search</Button>;
+      return (
+        <Button onClick={this.do_add_search}>
+          {icon} Search (shift+enter)
+        </Button>
+      );
     }
 
     add_selector_clicked = () => {
@@ -404,11 +428,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          <div style={{ paddingTop: "15px" }}>
+          <Grid fluid={true} style={{ width: "100%" }}>
             {this.render_add_selector_button(options)}
             <Space />
             {this.render_add_all_students_button(options)}
-          </div>
+          </Grid>
         </FormGroup>
       );
     }
@@ -520,11 +544,16 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (ed != null) {
         return (
-          <Row style={{ marginTop: "1em", marginBottom: "-10px" }}>
-            <Col md={5} lgOffset={7}>
-              {ed}
-            </Col>
-          </Row>
+          <Grid
+            fluid={true}
+            style={{ width: "100%", marginTop: "1em", marginBottom: "-10px" }}
+          >
+            <Row>
+              <Col md={5} lgOffset={7}>
+                {ed}
+              </Col>
+            </Row>
+          </Grid>
         );
       }
     }
@@ -555,8 +584,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     render_header(num_omitted) {
       return (
-        <div>
-          <Row style={{ marginBottom: "-15px" }}>
+        <Grid
+          fluid={true}
+          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
+        >
+          <Row>
             <Col md={3}>
               <SearchInput
                 placeholder="Find students..."
@@ -566,7 +598,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
             <Col md={4}>
               {num_omitted ? (
-                <h6>(Omitting {num_omitted} students)</h6>
+                <h5>(Omitting {num_omitted} students)</h5>
               ) : (
                 undefined
               )}
@@ -595,12 +627,15 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
           </Row>
           {this.render_error()}
-        </div>
+        </Grid>
       );
     }
 
-    compute_student_list() {
-      // TODO: good place to cache something...
+    private get_student_list(): {
+      students: any[];
+      num_omitted: number;
+      num_deleted: number;
+    } {
       // turn map of students into a list
       // account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's CoCalc account ID
       // email_address  : "4@student.com"                        # Email the instructor signed the student up with.
@@ -612,14 +647,14 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // create_project : True
       // deleted        : False
       // note           : "Is younger sister of Abby Florence (TA)"
+      if (this.student_list != null) return this.student_list;
 
-      let x;
-      let v = util.parse_students(
+      let students = util.parse_students(
         this.props.students,
         this.props.user_map,
         this.props.redux
       );
-      v.sort(
+      students.sort(
         util.pick_student_sorter(
           this.props.active_student_sort != null
             ? this.props.active_student_sort.toJS()
@@ -628,32 +663,25 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
 
       if (this.props.active_student_sort.get("is_descending")) {
-        v.reverse();
+        students.reverse();
       }
 
-      // Deleted students
-      const w = (() => {
-        const result: any[] = [];
-        for (x of v) {
-          if (x.deleted) {
-            result.push(x);
-          }
+      // Deleted and non-deleted students
+      const deleted: any[] = [];
+      const non_deleted: any[] = [];
+      for (let x of students) {
+        if (x.deleted) {
+          deleted.push(x);
+        } else {
+          non_deleted.push(x);
         }
-        return result;
-      })();
-      const num_deleted = w.length;
-      v = (() => {
-        const result1: any[] = [];
-        for (x of v) {
-          if (!x.deleted) {
-            result1.push(x);
-          }
-        }
-        return result1;
-      })();
+      }
+      const num_deleted = deleted.length;
+
+      students = non_deleted;
       if (this.state.show_deleted) {
         // but show at the end...
-        v = v.concat(w);
+        students = students.concat(deleted);
       }
 
       let num_omitted = 0;
@@ -674,18 +702,17 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           }
           return true;
         };
-        v = (() => {
-          const result2: any[] = [];
-          for (x of v) {
-            if (match(search(x))) {
-              result2.push(x);
-            }
+        const w3: any[] = [];
+        for (let x of students) {
+          if (match(search(x))) {
+            w3.push(x);
           }
-          return result2;
-        })();
+        }
+        students = w3;
       }
 
-      return { students: v, num_omitted, num_deleted };
+      this.student_list = { students, num_omitted, num_deleted };
+      return this.student_list;
     }
 
     render_sort_link(column_name, display_name) {
@@ -716,23 +743,28 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     render_student_table_header() {
-      // HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
+      // HACK: that marginRight is to get things to line up with students.
+      // This is done all wrong due to using react-window...  We need
+      // to make an extension to our WindowedList that supports explicit
+      // headers (and uses css grid).
       return (
-        <Row style={{ marginTop: "-10px", marginBottom: "3px" }}>
-          <Col md={3}>
-            <div style={{ display: "inline-block", width: "50%" }}>
-              {this.render_sort_link("first_name", "First Name")}
-            </div>
-            <div style={{ display: "inline-block" }}>
-              {this.render_sort_link("last_name", "Last Name")}
-            </div>
-          </Col>
-          <Col md={2}>{this.render_sort_link("email", "Student Email")}</Col>
-          <Col md={4}>
-            {this.render_sort_link("last_active", "Last Active")}
-          </Col>
-          <Col md={3}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
-        </Row>
+        <Grid fluid={true} style={{ width: "100%" }}>
+          <Row style={{ marginRight: 0 }}>
+            <Col md={3}>
+              <div style={{ display: "inline-block", width: "50%" }}>
+                {this.render_sort_link("first_name", "First Name")}
+              </div>
+              <div style={{ display: "inline-block" }}>
+                {this.render_sort_link("last_name", "Last Name")}
+              </div>
+            </Col>
+            <Col md={2}>{this.render_sort_link("email", "Email Address")}</Col>
+            <Col md={4}>
+              {this.render_sort_link("last_active", "Last Active")}
+            </Col>
+            <Col md={3}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
+          </Row>
+        </Grid>
       );
     }
 
@@ -744,37 +776,66 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return student as any;
     }
 
-    render_students(students) {
-      return (() => {
-        const result: any[] = [];
-        for (let i = 0; i < students.length; i++) {
-          const x = students[i];
-          let name: StudentNameDescription = {
-            full: this.props.get_student_name(x.student_id),
-            first: x.first_name,
-            last: x.last_name
-          };
+    private render_student(student_id: string, index: number): Rendered {
+      const x = this.get_student_list().students[index];
+      if (x == null) return;
+      let name: StudentNameDescription = {
+        full: this.props.get_student_name(x.student_id),
+        first: x.first_name,
+        last: x.last_name
+      };
+      return (
+        <Student
+          background={index % 2 === 0 ? "#eee" : undefined}
+          key={student_id}
+          student_id={student_id}
+          student={this.get_student(student_id)}
+          user_map={this.props.user_map}
+          redux={this.props.redux}
+          name={this.props.name}
+          project_map={this.props.project_map}
+          assignments={this.props.assignments}
+          is_expanded={this.props.expanded_students.has(student_id)}
+          student_name={name}
+          display_account_name={true}
+          active_feedback_edits={this.props.active_feedback_edits}
+        />
+      );
+    }
 
-          result.push(
-            <Student
-              background={i % 2 === 0 ? "#eee" : undefined}
-              key={x.student_id}
-              student_id={x.student_id}
-              student={this.get_student(x.student_id)}
-              user_map={this.props.user_map}
-              redux={this.props.redux}
-              name={this.props.name}
-              project_map={this.props.project_map}
-              assignments={this.props.assignments}
-              is_expanded={this.props.expanded_students.has(x.student_id)}
-              student_name={name}
-              display_account_name={true}
-              active_feedback_edits={this.props.active_feedback_edits}
-            />
-          );
-        }
-        return result;
-      })();
+    private render_students(students): Rendered {
+      if (students.length == 0) {
+        return this.render_no_students();
+      }
+      return (
+        <WindowedList
+          overscan_row_count={5}
+          estimated_row_size={37}
+          row_count={students.length}
+          row_renderer={({ key, index }) => this.render_student(key, index)}
+          row_key={index =>
+            students[index] != null ? students[index].student_id : undefined
+          }
+          cache_id={"course-student-" + this.props.name}
+        />
+      );
+    }
+
+    private render_no_students(): Rendered {
+      return (
+        <Alert
+          bsStyle="info"
+          style={{
+            margin: "auto",
+            fontSize: "12pt",
+            maxWidth: "800px"
+          }}
+        >
+          <h3>Add Students to your Course</h3>
+          Add some students to your course by entering their email addresses in
+          the box in the upper right, then click on Search.
+        </Alert>
+      );
     }
 
     render_show_deleted(num_deleted, shown_students) {
@@ -815,20 +876,26 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
     }
 
-    render() {
-      const {
-        students,
-        num_omitted,
-        num_deleted
-      } = this.compute_student_list();
+    private render_student_info(students, num_deleted): Rendered {
       return (
-        <Panel header={this.render_header(num_omitted)}>
+        <div className="smc-vfill">
           {students.length > 0 ? this.render_student_table_header() : undefined}
           {this.render_students(students)}
           {num_deleted
             ? this.render_show_deleted(num_deleted, students)
             : undefined}
-        </Panel>
+        </div>
+      );
+    }
+
+    render() {
+      const { students, num_omitted, num_deleted } = this.get_student_list();
+
+      return (
+        <div className="smc-vfill">
+          {this.render_header(num_omitted)}
+          {this.render_student_info(students, num_deleted)}
+        </div>
       );
     }
   }
@@ -909,14 +976,14 @@ class Student extends Component<StudentProps, StudentState> {
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
-      misc.is_different(this.state, nextState, [
+      is_different(this.state, nextState, [
         "confirm_delete",
         "editing_student",
         "edited_first_name",
         "edited_last_name",
         "edited_email_address"
       ]) ||
-      misc.is_different(this.props, nextProps, [
+      is_different(this.props, nextProps, [
         "name",
         "student",
         "user_map",
@@ -1501,12 +1568,14 @@ class Student extends Component<StudentProps, StudentState> {
 
   render() {
     return (
-      <Row style={this.state.more ? styles.selected_entry : undefined}>
-        <Col xs={12}>
-          {this.render_basic_info()}
-          {this.props.is_expanded ? this.render_more_panel() : undefined}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row style={this.state.more ? styles.selected_entry : undefined}>
+          <Col xs={12}>
+            {this.render_basic_info()}
+            {this.props.is_expanded ? this.render_more_panel() : undefined}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }

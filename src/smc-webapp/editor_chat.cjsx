@@ -69,6 +69,8 @@ misc_page = require('./misc_page')
 
 {alert_message} = require('./alerts')
 
+{delay} = require("awaiting")
+
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./app-framework')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
@@ -187,19 +189,20 @@ exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     # 20 for covering margin of bottom message
     saved_position + offset + 20 > height
 
-exports.scroll_to_bottom = scroll_to_bottom = (log_container, actions) ->
-    if log_container?
-        node = ReactDOM.findDOMNode(log_container)
-        node.scrollTop = node.scrollHeight
-        actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
-        actions.set_use_saved_position(false)
+exports.scroll_to_bottom = scroll_to_bottom = (log_container_ref, force) ->
+    if (not force and log_container_ref.current?.chat_manual_scroll) or log_container_ref.current?.chat_scroll_to_bottom
+        return
+    try
+        # this "chat_scroll_to_bottom" is an abusive hack because I'm lazy -- ws.
+        log_container_ref.current?.chat_scroll_to_bottom = true
+        delete log_container_ref.current?.chat_manual_scroll
+        for d in [1, 50, 200]
+            log_container_ref.current?.chat_scroll_to_bottom = true
+            windowed_list = log_container_ref.current
+            if windowed_list?
+                windowed_list.scrollToRow(-1)
+                await delay(d)
+    finally
+        delete log_container_ref.current?.chat_scroll_to_bottom
 
-exports.scroll_to_position = (log_container, saved_position, offset, height, use_saved_position, actions) ->
-    if log_container?
-        actions.set_use_saved_position(not is_at_bottom(saved_position, offset, height))
-        if use_saved_position
-            node = ReactDOM.findDOMNode(log_container)
-            node.scrollTop = saved_position
-        else
-            scroll_to_bottom(log_container, actions)
 

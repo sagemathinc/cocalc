@@ -4,7 +4,7 @@ A single task
 
 {React, rclass, rtypes}  = require('../app-framework')
 
-{Row, Col} = require('react-bootstrap')
+{Grid, Row, Col} = require('react-bootstrap')
 
 
 {MinToggle}    = require('./min-toggle')
@@ -109,8 +109,7 @@ exports.Task = rclass
 
     render: ->
         style =
-            padding      : '5px 5px 0 5px'
-            margin       : '5px'
+            margin       : '2px 5px'
             background   : 'white'
         if @props.is_current
             style.border       = '1px solid rgb(171, 171, 171)'
@@ -135,7 +134,7 @@ exports.Task = rclass
             # not editing, so maybe a min toggle...
             min_toggle = header_part(desc) != desc.trim()
 
-        <div style={style} onClick={@on_click}>
+        <Grid style={style} onClick={@on_click} fluid={true}>
             <Row>
                 <Col md={1}>
                     {@render_drag_handle()}
@@ -154,4 +153,4 @@ exports.Task = rclass
                     {@render_done_checkbox()}
                 </Col>
             </Row>
-        </div>
+        </Grid>

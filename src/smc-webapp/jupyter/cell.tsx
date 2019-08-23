@@ -1,5 +1,10 @@
 /*
 React component that describes a single cell
+
+        editable={cell.getIn(["metadata", "editable"], true)}
+        deletable={cell.getIn(["metadata", "deletable"], true)}
+        nbgrader={cell.getIn(["metadata", "nbgrader"])}
+
 */
 
 import { React, Component, Rendered } from "../app-framework";
@@ -19,13 +24,12 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 
-import { merge } from "smc-util/misc2";
-
 interface CellProps {
   actions?: JupyterActions;
   frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
+  index: number;
   cm_options: Map<string, any>;
   cell: Map<string, any>; // TODO: types
   is_current?: boolean;
@@ -40,10 +44,9 @@ interface CellProps {
   more_output?: Map<string, any>; // TODO: types
   cell_toolbar?: string;
   trust?: boolean;
-  editable?: boolean;
-  deletable?: boolean;
-  nbgrader?: Map<string, any>;
   hook_offset?: number;
+  is_scrolling?: boolean;
+  height?: number; // optional fixed height
 }
 
 export class Cell extends Component<CellProps> {
@@ -51,6 +54,7 @@ export class Cell extends Component<CellProps> {
     // note: we assume project_id and directory don't change
     return !!(
       nextProps.id !== this.props.id ||
+      nextProps.index !== this.props.index ||
       nextProps.cm_options !== this.props.cm_options ||
       nextProps.cell !== this.props.cell ||
       nextProps.is_current !== this.props.is_current ||
@@ -62,13 +66,24 @@ export class Cell extends Component<CellProps> {
       nextProps.more_output !== this.props.more_output ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       nextProps.trust !== this.props.trust ||
-      nextProps.editable !== this.props.editable ||
-      nextProps.deletable !== this.props.deletable ||
-      nextProps.nbgrader !== this.props.nbgrader ||
+      nextProps.is_scrolling !== this.props.is_scrolling ||
+      nextProps.height !== this.props.height ||
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
   } // only worry about complete when editing this cell
+
+  private is_editable(): boolean {
+    return this.props.cell.getIn(["metadata", "editable"], true);
+  }
+
+  private is_deletable(): boolean {
+    return this.props.cell.getIn(["metadata", "deletable"], true);
+  }
+
+  private nbgrader(): undefined | Map<string, any> {
+    return this.props.cell.getIn(["metadata", "nbgrader"]);
+  }
 
   private render_cell_input(cell: Map<string, any>): Rendered {
     return (
@@ -82,13 +97,15 @@ export class Cell extends Component<CellProps> {
         is_focused={!!(this.props.is_current && this.props.mode === "edit")}
         is_current={!!this.props.is_current}
         id={this.props.id}
+        index={this.props.index}
         font_size={this.props.font_size}
         project_id={this.props.project_id}
         directory={this.props.directory}
         complete={this.props.is_current ? this.props.complete : undefined}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
-        is_readonly={!this.props.editable}
+        is_readonly={!this.is_editable()}
+        is_scrolling={this.props.is_scrolling}
       />
     );
   }
@@ -106,6 +123,7 @@ export class Cell extends Component<CellProps> {
         directory={this.props.directory}
         more_output={this.props.more_output}
         trust={this.props.trust}
+        complete={this.props.is_current && this.props.complete != null}
       />
     );
   }
@@ -122,18 +140,6 @@ export class Cell extends Component<CellProps> {
     this.props.frame_actions.set_cur_id(this.props.id);
     this.props.frame_actions.unselect_all_cells();
   };
-
-  private render_hook(): Rendered {
-    if (this.props.is_current && this.props.frame_actions != null) {
-      return (
-        <Hook
-          hook_offset={this.props.hook_offset}
-          mode={this.props.mode}
-          frame_id={this.props.frame_actions.frame_id}
-        />
-      );
-    }
-  }
 
   private double_click = (event: any): void => {
     if (this.props.frame_actions == null) {
@@ -153,8 +159,8 @@ export class Cell extends Component<CellProps> {
     event.stopPropagation();
   };
 
-  private render_deletable(): Rendered {
-    if (this.props.deletable) return;
+  private render_not_deletable(): Rendered {
+    if (this.is_deletable()) return;
     return (
       <Tip
         title={"Protected from deletion"}
@@ -167,8 +173,8 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  private render_editable(): Rendered {
-    if (this.props.editable) return;
+  private render_not_editable(): Rendered {
+    if (this.is_editable()) return;
     return (
       <Tip
         title={"Protected from modifications"}
@@ -182,12 +188,13 @@ export class Cell extends Component<CellProps> {
   }
 
   private render_nbgrader(): Rendered {
-    if (this.props.nbgrader == null) return;
+    const nbgrader = this.nbgrader();
+    if (nbgrader == null) return;
     return (
       <span>
         <Icon name="graduation-cap" style={{ marginRight: "5px" }} />
         <NBGraderMetadata
-          nbgrader={this.props.nbgrader}
+          nbgrader={nbgrader}
           start={this.props.cell.get("start")}
           state={this.props.cell.get("state")}
           output={this.props.cell.get("output")}
@@ -203,11 +210,12 @@ export class Cell extends Component<CellProps> {
     // nbgrader demo has tons of cells with all the metadata
     // empty... which *cocalc* would not produce, but
     // evidently official tools do.
+    const nbgrader = this.nbgrader();
     const no_nbgrader: boolean =
-      this.props.nbgrader == null ||
-      (!this.props.nbgrader.get("grade") &&
-        !this.props.nbgrader.get("solution") &&
-        !this.props.nbgrader.get("locked"));
+      nbgrader == null ||
+      (!nbgrader.get("grade") &&
+        !nbgrader.get("solution") &&
+        !nbgrader.get("locked"));
     if (no_nbgrader) {
       // Will not need more than two tiny icons.
       // If we add more metadata state indicators
@@ -231,10 +239,15 @@ export class Cell extends Component<CellProps> {
       style.color = INPUT_PROMPT_COLOR; // should be the same as the prompt; it's not an error.
     }
 
+    if (this.props.height) {
+      style.height = this.props.height + "px";
+      style.overflowY = "scroll";
+    }
+
     return (
       <div style={style}>
-        {this.render_deletable()}
-        {this.render_editable()}
+        {this.render_not_deletable()}
+        {this.render_not_editable()}
         {no_nbgrader ? undefined : this.render_nbgrader()}
       </div>
     );
@@ -284,52 +297,9 @@ export class Cell extends Component<CellProps> {
         id={this.props.id}
         cocalc-test={"jupyter-cell"}
       >
-        {this.render_hook()}
         {this.render_metadata_state()}
         {this.render_cell_input(this.props.cell)}
         {this.render_cell_output(this.props.cell)}
-      </div>
-    );
-  }
-}
-/*
-VISIBLE_STYLE =
-    position   : 'absolute'
-    color      : '#ccc'
-    fontSize   : '6pt'
-    paddingTop : '5px'
-    right      : '-10px'
-    zIndex     : 10
-*/
-
-const NOT_VISIBLE_STYLE: React.CSSProperties = {
-  position: "absolute",
-  fontSize: 0,
-  zIndex: -100,
-  left: 0,
-  top: 0
-};
-
-interface Props {
-  frame_id: string;
-  hook_offset?: number;
-  mode?: string;
-}
-
-class Hook extends Component<Props> {
-  public render(): Rendered {
-    let style;
-    if (this.props.mode === "edit") {
-      style = merge({ top: this.props.hook_offset }, NOT_VISIBLE_STYLE);
-    } else {
-      style = NOT_VISIBLE_STYLE;
-    }
-    return (
-      <div
-        style={style}
-        className={`cocalc-jupyter-hook-${this.props.frame_id}`}
-      >
-        &nbsp;
       </div>
     );
   }
