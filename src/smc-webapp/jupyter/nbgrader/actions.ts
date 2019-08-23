@@ -3,6 +3,7 @@ import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
 import { clear_solution } from "./clear-solutions";
+import { clear_hidden_tests } from "./clear-hidden-tests";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
@@ -92,7 +93,11 @@ export class NBGraderActions {
       body: `Creating the student version of the notebook will make a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)`,
       choices: [
         { title: "Cancel" },
-        { title: "Create or update student version", style: "success", default: true }
+        {
+          title: "Create or update student version",
+          style: "success",
+          default: true
+        }
       ]
     });
     if (choice === "Cancel") return;
@@ -139,7 +144,8 @@ export class NBGraderActions {
            accidentally (or on purpose!)
 
         3. It removes solutions from the notebooks and replaces them with
-           code or text stubs saying (for example) "YOUR ANSWER HERE".
+           code or text stubs saying (for example) "YOUR ANSWER HERE", and
+           similarly for hidden tests.
 
         4. It clears all outputs from the cells of the notebooks.
 
@@ -149,7 +155,8 @@ export class NBGraderActions {
            done by computing a checksum of the cell contents and saving it
            into the cell metadata.
     */
-    this.assign_clear_solutions(); // step 3
+    this.assign_clear_solutions(); // step 3a
+    this.assign_clear_hidden_tests(); // step 3b
     this.jupyter_actions.clear_all_outputs(false); // step 4
     this.assign_save_checksums(); // step 5
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
@@ -162,6 +169,24 @@ export class NBGraderActions {
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = clear_solution(cell, kernel_language);
+      if (cell !== cell2) {
+        // set the input
+        this.jupyter_actions.set_cell_input(
+          cell.get("id"),
+          cell2.get("input"),
+          false
+        );
+      }
+    });
+  }
+
+  private assign_clear_hidden_tests(): void {
+    //console.log("assign_clear_solutions");
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      // only care about test cells, which have: grade=true and solution=false.
+      if (!cell.getIn(["metadata", "nbgrader", "grade"])) return;
+      if (cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      const cell2 = clear_hidden_tests(cell);
       if (cell !== cell2) {
         // set the input
         this.jupyter_actions.set_cell_input(
