@@ -43,7 +43,8 @@ export const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
+      "format",
+      "show_table_of_contents"
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),

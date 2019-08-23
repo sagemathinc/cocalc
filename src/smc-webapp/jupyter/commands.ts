@@ -460,8 +460,13 @@ export function commands(
     },
 
     slideshow: {
-      m: "Slideshow...",
+      m: "Slideshow",
       f: () => editor_actions.show_revealjs_slideshow()
+    },
+
+    "table of contents": {
+      m: "Table of Contents",
+      f: () => editor_actions.show_table_of_contents()
     },
 
     "nbconvert tex": {
@@ -734,7 +739,7 @@ export function commands(
     },
 
     "time travel": {
-      m: "TimeTravel...",
+      m: "TimeTravel",
       f: () => jupyter_actions.show_history_viewer()
     },
 

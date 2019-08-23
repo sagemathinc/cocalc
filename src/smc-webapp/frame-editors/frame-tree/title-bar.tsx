@@ -884,6 +884,21 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
+  render_table_of_contents(): Rendered {
+    if (!this.is_visible("show_table_of_contents")) return;
+    return (
+      <Button
+        key={"contents"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.show_table_of_contents(this.props.id)}
+        title={"Show the Table of Contents"}
+      >
+        <Icon name={"align-right"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Contents" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_build(): Rendered {
     if (!this.is_visible("build", true)) {
       return;
@@ -1091,7 +1106,7 @@ export class FrameTitleBar extends Component<Props, State> {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
       style = {
-        maxHeight: "30px",
+        maxHeight: "30px"
       };
     } else {
       style = {
@@ -1108,7 +1123,6 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_force_build());
     v.push(this.render_sync());
     v.push(this.render_clean());
-    v.push(this.render_format());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());
     }
@@ -1127,9 +1141,11 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_edit_init_script());
     v.push(this.render_count_words());
     v.push(this.render_kick_other_users_out());
+    v.push(this.render_format());
     v.push(this.render_shell());
     v.push(this.render_print());
     v.push(this.render_help(labels));
+    v.push(this.render_table_of_contents());
 
     const w: Rendered[] = [];
     for (let c of v) {
