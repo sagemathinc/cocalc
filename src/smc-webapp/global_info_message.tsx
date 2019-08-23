@@ -15,7 +15,9 @@ interface GlobalInformationMessageProps {
   actions: NotificationsActions;
   loading: boolean;
   announcements?: Notification;
-  show?: string; // announcement id
+  show_announcement?: string; // announcement id
+  have_next: boolean;
+  have_previous: boolean;
   notifications?: Notifications;
 }
 
@@ -38,7 +40,9 @@ class GlobalInformationMessageComponent extends React.Component<
     return {
       [NotificationsName]: {
         loading: rtypes.bool,
-        show: rtypes.string,
+        show_announcement: rtypes.string,
+        have_next: rtypes.bool,
+        have_previous: rtypes.bool,
         announcements: rtypes.immutable.Map,
         notifications: rtypes.immutable.Map
       }
@@ -49,34 +53,49 @@ class GlobalInformationMessageComponent extends React.Component<
     return is_different(this.props, next, [
       "notifications",
       "announcements",
-      "show",
-      "loading"
+      "show_announcement",
+      "loading",
+      "have_next",
+      "have_previous"
     ]);
   }
 
   dismiss = (): void => {
-    if (this.props.show != null) this.props.actions.dismiss(this.props.show);
+    this.props.actions.dismiss();
   };
 
-  previous = (): void => {};
+  previous = (): void => {
+    this.props.actions.previous();
+  };
 
-  next = (): void => {};
+  next = (): void => {
+    this.props.actions.next();
+  };
 
   render_controls(): Rendered {
     return (
       <div className={"cc-announcement-control"}>
         <ButtonGroup style={{ marginRight: "10px" }}>
-          <Button bsStyle={"default"} onClick={this.previous}>
+          <Button
+            bsStyle={"default"}
+            onClick={this.previous}
+            disabled={!this.props.have_previous}
+          >
             <Icon name={"step-backward"} /> <VisibleMDLG>Previous</VisibleMDLG>
           </Button>
 
-          <Button bsStyle={"default"} onClick={this.next}>
+          <Button
+            bsStyle={"default"}
+            onClick={this.next}
+            disabled={!this.props.have_next}
+          >
             <Icon name={"step-forward"} /> <VisibleMDLG>Next</VisibleMDLG>
           </Button>
         </ButtonGroup>
+
         <ButtonGroup>
-          <Button bsStyle={"danger"} onClick={this.dismiss}>
-            <Icon name={"times-circle"} /> <VisibleMDLG>Close</VisibleMDLG>
+          <Button bsStyle={"success"} onClick={this.dismiss}>
+            <Icon name={"check-circle"} /> <VisibleMDLG>Read</VisibleMDLG>
           </Button>
         </ButtonGroup>
       </div>
@@ -84,10 +103,15 @@ class GlobalInformationMessageComponent extends React.Component<
   }
 
   render(): Rendered | null {
-    if (this.props.announcements == null || this.props.show == null)
+    if (
+      this.props.announcements == null ||
+      this.props.show_announcement == null
+    ) {
       return null;
-
-    const announcement = this.props.announcements.get(this.props.show);
+    }
+    const announcement = this.props.announcements.get(
+      this.props.show_announcement
+    );
 
     const priority = announcement.get("priority");
     const bgcol = (function() {

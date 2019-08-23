@@ -1212,7 +1212,7 @@ OtherSettings = rclass
         set_account_table(other_settings:{"#{name}":value})
 
     show_announcement: (priority) ->
-        @on_change("announcement_#{priority}", null)
+        @on_change("notification_#{priority}", null)
 
     render_first_steps: ->
         <Checkbox
