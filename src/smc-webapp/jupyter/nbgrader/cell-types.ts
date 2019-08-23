@@ -98,12 +98,16 @@ def squares(n):  # modify function name and parameters
 from nose.tools import assert_equal
 assert_equal(squares(1), [1])
 assert_equal(squares(2), [1, 4])
-assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
 
 # Check that squares raises an error for invalid input:
 from nose.tools import assert_raises
 assert_raises(ValueError, squares, 0)
 assert_raises(ValueError, squares, -1)
+
+### BEGIN HIDDEN TESTS
+# students will NOT see these extra tests
+assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
+### END HIDDEN TESTS
 `
     }
   },

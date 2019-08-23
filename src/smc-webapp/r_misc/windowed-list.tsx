@@ -102,6 +102,7 @@ export class WindowedList extends Component<Props, State> {
     visibleStartIndex: 0,
     visibleStopIndex: 0
   };
+  private ensure_visible?: { row: number; align: string };
 
   constructor(props) {
     super(props);
@@ -124,19 +125,23 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToRow(row: number, align: string = "auto"): void {
-    if (this.list_ref.current == null) return;
+    if (this.list_ref.current == null || this.props.row_count == 0) return;
     if (row < 0) {
       row = row % this.props.row_count;
       if (row < 0) {
         row += this.props.row_count;
       }
     }
+
     if (align == "top") {
       // react-window doesn't have align=top, but we **need** it for jupyter
       // This implementation isn't done; it's just to prove we can do it.
       // Here "top" means the top of the row is in view nicely.
+      this.scrollToRow(row, "auto"); // at least get it into view, so metadata useful.
       const meta = this.get_row_metadata(row);
-      if (meta == null) return;
+      if (meta == null) {
+        return;
+      }
       const { scrollOffset } = this.get_scroll_info();
       const height = this.get_window_height();
       const margin = this.props.scroll_margin ? this.props.scroll_margin : 10;
@@ -154,6 +159,26 @@ export class WindowedList extends Component<Props, State> {
     } else {
       // align is auto, end, start, center
       this.list_ref.current.scrollToItem(row, align);
+    }
+  }
+
+  public async ensure_row_is_visible(
+    row: number,
+    align: string = "auto"
+  ): Promise<void> {
+    this.ensure_visible = { row, align };
+    for (let i = 1; i < 10; i++) {
+      const { row, align } = this.ensure_visible;
+      this.scrollToRow(row, align);
+      await delay(30);
+      if (!this.is_mounted) return;
+      if (
+        this.render_info != null &&
+        this.render_info.visibleStartIndex <= row &&
+        row <= this.render_info.visibleStopIndex
+      ) {
+        return;
+      }
     }
   }
 
