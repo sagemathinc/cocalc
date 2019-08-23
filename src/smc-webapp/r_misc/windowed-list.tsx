@@ -125,13 +125,14 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToRow(row: number, align: string = "auto"): void {
-    if (this.list_ref.current == null) return;
+    if (this.list_ref.current == null || this.props.row_count == 0) return;
     if (row < 0) {
       row = row % this.props.row_count;
       if (row < 0) {
         row += this.props.row_count;
       }
     }
+
     if (align == "top") {
       // react-window doesn't have align=top, but we **need** it for jupyter
       // This implementation isn't done; it's just to prove we can do it.

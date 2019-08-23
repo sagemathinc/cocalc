@@ -270,7 +270,7 @@ class ProjectsActions extends Actions
             switch_to       : true      # bool    Whether or not to foreground it
             ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
             change_history  : true      # bool    Whether or not to alter browser history
-            restore_session : true      # bool    Open's up previously closed editor tabs (false iff restoring full session)
+            restore_session : true      # bool    Opens up previously closed editor tabs
         if not store.get_project(opts.project_id)?
             # trying to open a not-known project -- maybe
             # we have not yet loaded the full project list?
