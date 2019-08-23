@@ -24,6 +24,7 @@ import { Export } from "./export";
 import { ClassicalNotebook } from "./classical-notebook";
 */
 import { Slideshow } from "./slideshow-revealjs/slideshow";
+import { TableOfContents } from "./table-of-contents/contents";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -42,7 +43,8 @@ export const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
+      "format",
+      "show_table_of_contents"
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),
@@ -61,6 +63,13 @@ export const EDITOR_SPEC = {
     icon: "slideshare",
     component: Slideshow,
     buttons: set(["build"])
+  },
+  jupyter_table_of_contents: {
+    short: "Contents",
+    name: "Table of Contents",
+    icon: "align-right",
+    component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"])
   }
 };
 /*,
