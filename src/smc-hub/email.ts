@@ -51,7 +51,7 @@ const {
   LIVE_DEMO_REQUEST
 } = require("smc-util/theme");
 
-function escapeEmailBody(body: string): string {
+export function escape_email_body(body: string): string {
   const config = {
     // in particular, no img and no anchor a
     allowedTags: [
@@ -91,7 +91,7 @@ function escapeEmailBody(body: string): string {
 
 // constructs the email body, also containing sign up instructions pointing to a project.
 // it might throw an error!
-export function makeEmailBody(
+function create_email_body(
   subject,
   body,
   email_address,
@@ -99,12 +99,12 @@ export function makeEmailBody(
   link2proj
 ): string {
   const base_url_tokens = link2proj.split("/");
-  const base_url = `${base_url_tokens[0]}//#{base_url_tokens[2]}`;
+  const base_url = `${base_url_tokens[0]}//${base_url_tokens[2]}`;
   const direct_link = `Open <a href='${link2proj}'>the project '${project_title}'</a>.`;
 
   let email_body = "";
   if (body) {
-    email_body = escapeEmailBody(body);
+    email_body = escape_email_body(body);
     // we check if there are plain URLs, which can be used to send SPAM
     if (contains_url(email_body)) {
       throw new Error("Sorry, links to specific websites are not allowed!");
@@ -128,6 +128,8 @@ export function makeEmailBody(
 
   return email_body;
 }
+
+exports.create_email_body = create_email_body;
 
 let email_server: any | undefined = undefined;
 

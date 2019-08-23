@@ -25,7 +25,7 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('./stripe/client')
 {get_support}        = require('./support')
-{send_email, makeEmailBody} = require('./email')
+{send_email, create_email_body} = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
@@ -1260,7 +1260,7 @@ class exports.Client extends EventEmitter
                         subject  = mesg.subject
 
                     try
-                        email_body = makeEmailBody(subject, mesg.email,locals.email_address,  mesg.title, mesg.link2proj)
+                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj)
                     catch err
                         cb(err)
                         return
@@ -1397,7 +1397,7 @@ class exports.Client extends EventEmitter
                                 subject  = mesg.subject
 
                             try
-                                email_body = makeEmailBody(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
+                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
                             catch err
                                 cb(err)
                                 return
