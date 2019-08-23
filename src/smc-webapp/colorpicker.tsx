@@ -10,6 +10,11 @@
 #    - Travis Scholl
 #    - Vivek Venkatachalam
 ###
+
+WARNING: I (wstein) tried to use this component in two places in cocalc and it
+blew up in my face.  I.e., it has some weird hidden global shared state.
+Try to integrate maybe something like react-color instead, though my
+attempt to do tht broke lots of other things (strangely).
 */
 import { React, Component } from "./app-framework"; // TODO: this will move
 
@@ -37,7 +42,7 @@ interface ColorPickerProps {
   onChange?: (color: string) => void; // defaults to () => undefined
 }
 
-export class ColorPicker extends Component<ColorPickerProps, void> {
+export class ColorPicker extends Component<ColorPickerProps, {}> {
   private svgRef: any;
   private panelRef: any;
   shouldComponentUpdate(nextProps: any) {

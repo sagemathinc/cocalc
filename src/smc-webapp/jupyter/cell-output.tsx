@@ -23,6 +23,7 @@ interface CellOutputProps {
   directory?: string;
   more_output?: ImmutableMap<string, any>;
   trust?: boolean;
+  complete?: boolean;
 }
 
 export class CellOutput extends Component<CellOutputProps> {
@@ -40,7 +41,8 @@ export class CellOutput extends Component<CellOutputProps> {
     }
     if (
       this.props.more_output !== nextProps.more_output ||
-      this.props.trust !== nextProps.trust
+      this.props.trust !== nextProps.trust ||
+      this.props.complete !== nextProps.complete
     ) {
       return true;
     }
@@ -153,16 +155,26 @@ export class CellOutput extends Component<CellOutputProps> {
   }
 
   public render(): Rendered {
+    const minHeight = this.props.complete ? "60vh" : undefined;
     if (this.props.cell.getIn(["metadata", "jupyter", "outputs_hidden"])) {
-      return this.render_hidden();
+      return (
+        <div key="out" style={{ minHeight }}>
+          {this.render_hidden()}
+        </div>
+      );
     }
     if (this.props.cell.get("output") == null) {
-      return <div />;
+      return <div key="out" style={{ minHeight }} />;
     }
     return (
       <div
         key="out"
-        style={{ display: "flex", flexDirection: "row", alignItems: "stretch" }}
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "stretch",
+          minHeight
+        }}
       >
         {this.render_output_prompt()}
         {this.render_output_value()}

@@ -17,6 +17,7 @@ import { commands, CommandDescription, KeyboardCommand } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
 // See http://xahlee.info/comp/unicode_computing_symbols.html
 const SYMBOLS = {
@@ -46,28 +47,36 @@ function shortcut_to_string(shortcut: KeyboardCommand): string {
   if (shortcut.meta) {
     s += SYMBOLS.meta;
   }
-  const keyCode = shortcut.which;
-  switch (keyCode) {
-    case 8:
-      s += SYMBOLS.backspace;
-      break;
-    case 13:
-      s += SYMBOLS.return;
-      break;
-    case 32:
-      s += SYMBOLS.space;
-      break;
-    case 27:
-      s += "Esc";
-      break;
-    case 40:
-      s += SYMBOLS.down;
-      break;
-    case 38:
-      s += SYMBOLS.up;
-      break;
-    default:
-      s += keyCode_to_chr(keyCode);
+  if (shortcut.key) {
+    s += shortcut.key;
+  } else {
+    // TODO: using which is buggy/horrible/confusing/deprecated!
+    // we should get rid of this...
+    const keyCode = shortcut.which;
+    if (keyCode != null) {
+      switch (keyCode) {
+        case 8:
+          s += SYMBOLS.backspace;
+          break;
+        case 13:
+          s += SYMBOLS.return;
+          break;
+        case 32:
+          s += SYMBOLS.space;
+          break;
+        case 27:
+          s += "Esc";
+          break;
+        case 40:
+          s += SYMBOLS.down;
+          break;
+        case 38:
+          s += SYMBOLS.up;
+          break;
+        default:
+          s += keyCode_to_chr(keyCode);
+      }
+    }
   }
   if (shortcut.twice) {
     s = s + "," + s;
@@ -388,6 +397,7 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
 interface CommandListProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
+  editor_actions: JupyterEditorActions;
   taken: { [name: string]: boolean };
   search?: string;
 }
@@ -399,7 +409,11 @@ class CommandList extends Component<CommandListProps> {
 
   private render_commands(): Rendered[] {
     const v: any[] = [];
-    const obj = commands(this.props.actions, this.props.frame_actions);
+    const obj = commands(
+      this.props.actions,
+      this.props.frame_actions,
+      this.props.editor_actions
+    );
     for (let name in obj) {
       const val = obj[name];
       if (val != null) {
@@ -449,6 +463,7 @@ class CommandList extends Component<CommandListProps> {
 interface KeyboardShortcutsProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
+  editor_actions: JupyterEditorActions;
   keyboard_shortcuts?: Map<string, any>;
 }
 
@@ -466,14 +481,23 @@ export class KeyboardShortcuts extends Component<
     super(props, context);
     const obj = {
       search: "",
-      commands: commands(this.props.actions, this.props.frame_actions),
+      commands: commands(
+        this.props.actions,
+        this.props.frame_actions,
+        this.props.editor_actions
+      ),
       taken: {}
     };
     for (let name in obj.commands) {
       const val = obj.commands[name];
-      const arr = (val != null ? val.k : undefined) || [];
-      for (let s of arr) {
-        obj.taken[json(s)] = val.m || name;
+      if (val != null && val.k != null) {
+        for (let s of val.k) {
+          if (s.key != null) {
+            // TODO: remove this when we switch from using event.which to event.key!
+            s = misc.copy_without(s, ["key"]);
+          }
+          obj.taken[json(s)] = val.m || name;
+        }
       }
     }
     this.state = obj;
@@ -570,6 +594,7 @@ export class KeyboardShortcuts extends Component<
                 <CommandList
                   actions={this.props.actions}
                   frame_actions={this.props.frame_actions}
+                  editor_actions={this.props.editor_actions}
                   taken={this.state.taken}
                   search={this.state.search}
                 />

@@ -29,6 +29,7 @@ hub_projects         = require('./projects')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
+{CopyPath}           = require('./copy-path')
 
 underscore = require('underscore')
 
@@ -38,6 +39,8 @@ underscore = require('underscore')
 {record_user_tracking} = require('./postgres/user-tracking')
 {project_has_network_access} = require('./postgres/project-queries')
 {is_paying_customer} = require('./postgres/account-queries')
+
+{SENDGRID_ASM_INVITES} = require('smc-util/theme')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -125,6 +128,8 @@ class exports.Client extends EventEmitter
             @init_conn()
         else
             @id = misc.uuid()
+
+        @copy_path = new CopyPath(@)
 
     init_conn: =>
         # initialize everything related to persistent connections
@@ -1082,74 +1087,13 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_copy_path_between_projects: (mesg) =>
-        @touch()
-        if not mesg.src_project_id?
-            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
-            return
-        if not mesg.target_project_id?
-            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
-            return
-        if not mesg.src_path?
-            @error_to_client(id:mesg.id, error:"src_path must be defined")
-            return
+        @copy_path.copy(mesg)
 
-        async.series([
-            (cb) =>
-                # Check permissions for the source and target projects (in parallel) --
-                # need read access to the source and write access to the target.
-                async.parallel([
-                    (cb) =>
-                        access.user_has_read_access_to_project
-                            project_id     : mesg.src_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            database       : @database
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have read access to source project #{mesg.src_project_id}")
-                                else
-                                    cb()
-                    (cb) =>
-                        access.user_has_write_access_to_project
-                            database       : @database
-                            project_id     : mesg.target_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have write access to target project #{mesg.target_project_id}")
-                                else
-                                    cb()
-                ], cb)
+    mesg_copy_path_status: (mesg) =>
+        @copy_path.status(mesg)
 
-            (cb) =>
-                # do the copy
-                @compute_server.project
-                    project_id : mesg.src_project_id
-                    cb         : (err, project) =>
-                        if err
-                            cb(err); return
-                        else
-                            project.copy_path
-                                path              : mesg.src_path
-                                target_project_id : mesg.target_project_id
-                                target_path       : mesg.target_path
-                                overwrite_newer   : mesg.overwrite_newer
-                                delete_missing    : mesg.delete_missing
-                                backup            : mesg.backup
-                                timeout           : mesg.timeout
-                                exclude_history   : mesg.exclude_history
-                                cb                : cb
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-        )
+    mesg_copy_path_delete: (mesg) =>
+        @copy_path.delete(mesg)
 
     mesg_local_hub: (mesg) =>
         ###
@@ -1334,7 +1278,7 @@ class exports.Client extends EventEmitter
                     if not mesg.title?
                         subject = "Invitation to CoCalc for collaborating on a project"
 
-                    # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
                         to           : locals.email_address
                         bcc          : 'invites@cocalc.com'
@@ -1344,7 +1288,7 @@ class exports.Client extends EventEmitter
                         replyto_name : mesg.replyto_name
                         subject      : subject
                         category     : "invite"
-                        asm_group    : 699
+                        asm_group    : SENDGRID_ASM_INVITES
                         body         : email_body
                         cb           : (err) =>
                             if err
@@ -1476,7 +1420,7 @@ class exports.Client extends EventEmitter
                                 base_url = 'https://cocalc.com/'
                                 direct_link = ''
 
-                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                            # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to           : email_address
                                 bcc          : 'invites@cocalc.com'
@@ -1486,7 +1430,7 @@ class exports.Client extends EventEmitter
                                 replyto_name : mesg.replyto_name
                                 subject      : subject
                                 category     : "invite"
-                                asm_group    : 699
+                                asm_group    : SENDGRID_ASM_INVITES
                                 body         : email + """<br/><br/>
                                                <b>To accept the invitation, please sign up at
                                                <a href='#{base_url}'>#{base_url}</a>

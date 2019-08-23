@@ -87,7 +87,7 @@ Do not share your API key with others or post it in publicly accessible forums.
 ## Additional References
 
 - The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
-- The CoCalc PostgreSQL schema definition [src/smc-util/db-schema.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js) has information on tables and fields used with the API \`query\` request.
+- The CoCalc PostgreSQL schema definition [src/smc-util/db-schema](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema) has information on tables and fields used with the API \`query\` request.
 - The API test suite [src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api) contains mocha unit tests for the API messages.
 - The CoCalc message definition file [src/smc-util/message.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.js) contains the source for this guide.
 
@@ -1738,6 +1738,16 @@ API(
       exclude_history: {
         init: false,
         desc: "if true, exclude all files of the form `*.sage-history`"
+      },
+      wait_until_done: {
+        init: true,
+        desc:
+          "if false, the operation returns immediately with the copy_path_id for querying copy_path_status"
+      },
+      scheduled: {
+        init: undefined,
+        desc:
+          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string."
       }
     },
     desc: `\
@@ -1765,6 +1775,90 @@ Folder \`A\` will be created in target project if it does not exist already.
   ==> {"event":"success",
        "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
 \`\`\`\
+`
+  })
+);
+
+message({
+  event: "copy_path_between_projects_response",
+  id: required,
+  copy_path_id: undefined,
+  note:
+    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful."
+});
+
+API(
+  message2({
+    event: "copy_path_status",
+    fields: {
+      copy_path_id: {
+        init: undefined,
+        desc: "A unique UUID for a copy path operation"
+      },
+      src_project_id: {
+        init: undefined,
+        desc: "Source of copy operation to filter on"
+      },
+      target_project_id: {
+        init: undefined,
+        desc: "Target of copy operation to filter on"
+      },
+      src_path: {
+        init: undefined,
+        desc: "(src/targ only) Source path of copy operation to filter on"
+      },
+      limit: {
+        init: 1000,
+        desc:
+          "(src/targ only) maximum number of results  (default 1000, max 1000)"
+      },
+      offset: {
+        init: undefined,
+        desc: "(src/targ only) default 0; set this to a multiple of the limit"
+      },
+      pending: {
+        init: true,
+        desc:
+          "(src/targ only) true returns copy ops, which did not finish yet (default: true)"
+      },
+      failed: {
+        init: false,
+        desc:
+          "(src/targ only) if true, only show finished and failed copy ops (default: false)"
+      }
+    },
+    desc: `\
+Retrieve status information about a copy path operation.
+There are two possibilities:
+
+- for a given \`copy_path_id\`,
+  which was returned by \`copy_path_between_projects\` earlier;
+- or at last one of \`src_project_id\` or \`target_project_id\`
+  – additionally filtered by an optionally given \`src_path\` – for a list of statuses.
+`
+  })
+);
+
+message({
+  event: "copy_path_status_response",
+  id: required,
+  data: required
+});
+
+API(
+  message2({
+    event: "copy_path_delete",
+    fields: {
+      copy_path_id: {
+        init: undefined,
+        desc: "A unique UUID for a scheduled future copy path operation"
+      }
+    },
+    desc: `\
+Delete a copy_path operation with the given \`copy_path_id\`.
+You need to have read/write access to the associated src/target project.
+
+**Note:** This will only remove entries which are *scheduled* and not yet completed.
 `
   })
 );
@@ -2526,8 +2620,8 @@ Get title and description for a project, given the project id.
 
 Get info on all projects for the account whose security key is provided.
 The information returned may be any of the api-accessible fields in the
-\`projects\` table. These fields are listed in CoCalc source file
-src/smc-util/db-schema.js, under \`schema.projects.user_query\`.
+\`projects\` table. These fields are listed in CoCalc source directory
+src/smc-util/db-schema, under \`schema.projects.user_query\`.
 In this example, project name and description are returned.
 
 Note: to get info only on projects active in the past 3 weeks, use
@@ -2715,10 +2809,10 @@ if you are only setting the \`jupyter_classic\` attribute because changes are me
 
 
 __NOTE:__ Information on which fields are gettable and settable in the database tables
-via API message is in file 'db-schema.js', in CoCalc sources on GitHub at
-https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js
+via API message is in the directory 'db-schema', in CoCalc sources on GitHub at
+https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema
 
-Within file 'db-schema.js':
+Within directory 'db-schema':
 
 - for _project_ fields you can get, see the definition of
 \`schema.projects.user_query.get.fields\`
@@ -2786,6 +2880,7 @@ API(
       }
     },
     desc: `\
+.. index:: pair: Token; Authentication
 Example:
 
 Obtain a temporary authentication token for an account, which

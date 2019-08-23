@@ -21,9 +21,10 @@ import { FileEditor } from "./file-editor";
 import { PlainTerminal } from "./plain-terminal";
 import { IPythonTerminal } from "./ipython-terminal";
 import { Export } from "./export";
-import { Slideshow } from "./slideshow";
 import { ClassicalNotebook } from "./classical-notebook";
 */
+import { Slideshow } from "./slideshow-revealjs/slideshow";
+import { TableOfContents } from "./table-of-contents/contents";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -42,7 +43,8 @@ export const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
+      "format",
+      "show_table_of_contents"
       /* ,
       "shell" -- disable for now since not fully implemented*/
     ]),
@@ -54,7 +56,21 @@ export const EDITOR_SPEC = {
       }
     }
   },
-  terminal
+  terminal,
+  jupyter_slideshow_revealjs: {
+    short: "Slideshow",
+    name: "Slideshow (Reveal.js)",
+    icon: "slideshare",
+    component: Slideshow,
+    buttons: set(["build"])
+  },
+  jupyter_table_of_contents: {
+    short: "Contents",
+    name: "Table of Contents",
+    icon: "align-right",
+    component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  }
 };
 /*,
   jupyter_singledoc_notebook: {
@@ -139,13 +155,6 @@ export const EDITOR_SPEC = {
     name: "Export (nbconvert)",
     icon: "file-export",
     component: Export,
-    buttons: set([])
-  },
-  jupyter_slideshow: {
-    short: "Slideshow",
-    name: "Slideshow View",
-    icon: "slideshare",
-    component: Slideshow,
     buttons: set([])
   },
   jupyter_classical: {

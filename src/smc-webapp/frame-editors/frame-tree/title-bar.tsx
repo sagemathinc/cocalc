@@ -16,16 +16,12 @@ const {
   MenuItem
 } = require("react-bootstrap");
 import { get_default_font_size } from "../generic/client";
-const {
-  VisibleMDLG,
-  EditorFileInfoDropdown
-} = require("smc-webapp/r_misc");
+const { VisibleMDLG, EditorFileInfoDropdown } = require("smc-webapp/r_misc");
 
 import { r_join } from "smc-webapp/r_misc/r_join";
 import { Icon } from "smc-webapp/r_misc/icon";
 import { Space } from "smc-webapp/r_misc/space";
 import { Tip } from "smc-webapp/r_misc/tip";
-
 
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
@@ -41,10 +37,13 @@ import { ConnectionStatus, EditorSpec } from "./types";
 
 import { Available as AvailableFeatures } from "../../project_configuration";
 
+const COL_BAR_BACKGROUND = "#f8f8f8";
+const COL_BAR_BACKGROUND_DARK = "#ddd";
+const COL_BAR_BORDER = "rgb(204,204,204)";
 
 const title_bar_style: CSS.Properties = {
-  background: "#ddd",
-  border: "1px solid rgb(204,204,204)",
+  background: COL_BAR_BACKGROUND_DARK,
+  border: `1px solid ${COL_BAR_BORDER}`,
   padding: "1px"
 };
 
@@ -257,8 +256,13 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_control(): Rendered {
     const is_active = this.props.active_id === this.props.id;
+    const style: CSS.Properties = {
+      float: "right" as "right",
+      paddingLeft: "5px",
+      background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
+    };
     return (
-      <ButtonGroup style={{ float: "right" }} key={"close"}>
+      <ButtonGroup style={style} key={"close"}>
         {is_active ? this.render_types() : undefined}
         {is_active && !this.props.is_full ? this.render_split_row() : undefined}
         {is_active && !this.props.is_full ? this.render_split_col() : undefined}
@@ -859,7 +863,10 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     if (!this.is_visible("format")) return;
-    let desc : any = this.props.actions.has_format_support(this.props.id, this.props.available_features);
+    let desc: any = this.props.actions.has_format_support(
+      this.props.id,
+      this.props.available_features
+    );
     if (!desc) return;
     if (desc === true) {
       desc = "Canonically format the entire document.";
@@ -873,6 +880,21 @@ export class FrameTitleBar extends Component<Props, State> {
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_table_of_contents(): Rendered {
+    if (!this.is_visible("show_table_of_contents")) return;
+    return (
+      <Button
+        key={"contents"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.show_table_of_contents(this.props.id)}
+        title={"Show the Table of Contents"}
+      >
+        <Icon name={"align-right"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Contents" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1084,13 +1106,11 @@ export class FrameTitleBar extends Component<Props, State> {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
       style = {
-        maxHeight: "30px",
-        flex: 1
+        maxHeight: "30px"
       };
     } else {
       style = {
         maxHeight: "34px",
-        flex: 1,
         marginLeft: "2px"
       };
     }
@@ -1103,7 +1123,6 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_force_build());
     v.push(this.render_sync());
     v.push(this.render_clean());
-    v.push(this.render_format());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());
     }
@@ -1122,9 +1141,11 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_edit_init_script());
     v.push(this.render_count_words());
     v.push(this.render_kick_other_users_out());
+    v.push(this.render_format());
     v.push(this.render_shell());
     v.push(this.render_print());
     v.push(this.render_help(labels));
+    v.push(this.render_table_of_contents());
 
     const w: Rendered[] = [];
     for (let c of v) {
@@ -1272,7 +1293,7 @@ export class FrameTitleBar extends Component<Props, State> {
     const is_active = this.props.id === this.props.active_id;
     if (is_active) {
       style = misc.copy(title_bar_style);
-      style.background = "#f8f8f8";
+      style.background = COL_BAR_BACKGROUND;
       if (!this.props.is_only && !this.props.is_full) {
         style.maxHeight = "34px";
       }
