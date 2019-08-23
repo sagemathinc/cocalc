@@ -128,8 +128,7 @@ class SagewsPrinter extends Printer
                     @html(cb, progress)
         catch e
             err = "Exception trying to print to #{target_ext} -- #{e}"
-            console.error(err, e)
-            console.trace()
+            console.log(err, e)
             {reportException} = require('webapp-lib/webapp-error-reporter')
             reportException(e, null, 'warning', 'SagewPrinter.print: '+ err)
             cb(err)
@@ -410,7 +409,7 @@ class SagewsPrinter extends Printer
             ext = if ext == 'jpg' then 'jpeg' else ext
             if ext == 'svg'
                 ext = 'svg+xml'
-            else if ext in ['png', 'jpeg']
+            else if ext in ['png', 'jpeg', 'gif']
                 _
             else
                 console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
@@ -607,7 +606,7 @@ class SagewsPrinter extends Printer
                 path       : @output_file
                 content    : content
                 cb         : (err, resp) =>
-                    console.debug("write_text_file_to_project.resp: '#{resp}'")
+                    #console.info("write_text_file_to_project.resp: '#{resp}'")
                     cb?(err)
 
         # parallel is tempting, but videos depend on process lines
