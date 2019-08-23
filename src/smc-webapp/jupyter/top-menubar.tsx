@@ -155,6 +155,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "duplicate notebook",
       rename,
       save,
+      "table of contents",
       "time travel",
       "",
       "print preview",

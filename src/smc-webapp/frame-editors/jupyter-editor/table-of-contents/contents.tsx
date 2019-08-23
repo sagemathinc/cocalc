@@ -1,3 +1,5 @@
+import { delay } from "awaiting";
+
 import { List, Map } from "immutable";
 
 import {
@@ -18,6 +20,7 @@ import { JupyterEditorActions } from "../actions";
 interface Props {
   actions: JupyterEditorActions;
   id: string;
+  font_size: number;
 
   // REDUX PROPS
   cell_list?: List<string>; // list of ids of cells in order
@@ -28,7 +31,11 @@ class TableOfContents extends Component<Props> {
   private headings?: TableOfContentsInfo[];
 
   public shouldComponentUpdate(nextProps): boolean {
-    return this.props.cells != nextProps.cells;
+    return (
+      this.props.cells != nextProps.cells ||
+      this.props.cell_list != nextProps.cell_list ||
+      this.props.font_size != nextProps.font_size
+    );
   }
 
   public componentWillReceiveProps(nextProps): void {
@@ -56,20 +63,27 @@ class TableOfContents extends Component<Props> {
   }
 
   private render_header(level: number, value: string): Rendered {
+    const style = { marginTop: 0 };
     switch (level) {
       case 1:
-        return <h1>{value}</h1>;
+        return <h1 style={style}>{value}</h1>;
       case 2:
-        return <h2>{value}</h2>;
+        return <h2 style={style}>{value}</h2>;
       case 3:
-        return <h3>{value}</h3>;
+        return <h3 style={style}>{value}</h3>;
       case 4:
-        return <h4>{value}</h4>;
+        return <h4 style={style}>{value}</h4>;
       case 5:
-        return <h5>{value}</h5>;
+        return <h5 style={style}>{value}</h5>;
       default:
-        return <h6>{value}</h6>;
+        return <h6 style={style}>{value}</h6>;
     }
+  }
+
+  private async jump_to_cell(id: string): Promise<void> {
+    this.props.actions.jump_to_cell(id);
+    await delay(100); // temporary hack
+    this.props.actions.jump_to_cell(id);
   }
 
   private render_contents(): Rendered {
@@ -80,14 +94,24 @@ class TableOfContents extends Component<Props> {
       v.push(
         <div
           key={id}
-          onClick={() => this.props.actions.jump_to_cell(id)}
-          style={{ cursor: "pointer" }}
+          onClick={() => this.jump_to_cell(id)}
+          style={{ cursor: "pointer", paddingLeft: `${level * 2}em` }}
         >
           {this.render_header(level, value)}
         </div>
       );
     }
-    return <div style={{ overflowY: "auto", margin: "15px" }}>{v}</div>;
+    return (
+      <div
+        style={{
+          overflowY: "auto",
+          margin: "15px",
+          fontSize: `${this.props.font_size-4}px`
+        }}
+      >
+        {v}
+      </div>
+    );
   }
 
   private render_loading(): Rendered {
