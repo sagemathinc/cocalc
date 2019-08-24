@@ -249,7 +249,7 @@ export class CopyPath {
       }
 
       // … and also sanitizing input!
-      const offset = sanitize(mesg.offset, 0, 100, "offset");
+      const offset = sanitize(mesg.offset, 0, 100 * 1000, "offset");
       const limit = sanitize(mesg.limit, 1000, 1000, "limit");
       dbg(`offset=${offset}   limit=${limit}`);
 
