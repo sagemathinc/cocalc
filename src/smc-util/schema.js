@@ -49,3 +49,4 @@ const upgrade_spec = require("./upgrade-spec");
 exports.PROJECT_UPGRADES = upgrade_spec.upgrades;
 
 exports.DEFAULT_QUOTAS = upgrade_spec.DEFAULT_QUOTAS;
+exports.UPGRADES_CURRENT_DATE = upgrade_spec.CURRENT_DATE;

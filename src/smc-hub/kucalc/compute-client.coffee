@@ -390,14 +390,28 @@ class Project extends EventEmitter
             timeout           : undefined
             bwlimit           : undefined
             wait_until_done   : 'true'  # by default, wait until done. false only gives the ID to query the status later
+            scheduled         : undefined # string, parseable by new Date()
             cb                : undefined
+
+        dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
+
         if not opts.target_project_id
             opts.target_project_id = @project_id
+
         if not opts.target_path
             opts.target_path = opts.path
+
+        if opts.scheduled
+            # we have to remove the timezone info, b/c the pg field is without tz
+            # ideally though, this is always UTC, e.g. "2019-08-08T18:34:49"
+            d = new Date(opts.scheduled)
+            offset = d.getTimezoneOffset() / 60
+            opts.scheduled = new Date(d.getTime() - offset)
+            opts.wait_until_done = false
+            dbg("opts.scheduled = #{opts.scheduled}")
+
         synctable = undefined
         copy_id = misc.uuid()
-        dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
         dbg("copy a path using rsync from one project to another")
         @active()
         async.series([
@@ -422,6 +436,7 @@ class Project extends EventEmitter
                         "backup            ::BOOLEAN"   : opts.backup
                         "bwlimit           ::TEXT"      : opts.bwlimit
                         "timeout           ::NUMERIC"   : opts.timeout
+                        "scheduled         ::TIMESTAMP" : opts.scheduled
                     cb: cb
             (cb) =>
                 @active()
