@@ -1087,7 +1087,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         change_history: opts.change_history
       });
       if (opts.anchor) {
-        // Scroll the *visibile* one into view.  NOTE: it's possible
+        // Scroll the *visible* one into view.  NOTE: it's possible
         // that several notebooks (say) are all open in background tabs
         // and all have the same anchor tag in them; we only want to
         // try to scroll the visible one or ones.

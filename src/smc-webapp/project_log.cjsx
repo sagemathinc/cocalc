@@ -23,6 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
+TRUNC = 90
 
 {React, ReactDOM, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Grid, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
@@ -139,7 +140,7 @@ LogEntry = rclass
                 path       = {@props.event.filename}
                 full       = {true}
                 style      = {if @props.cursor then selected_item}
-                trunc      = {50}
+                trunc      = {TRUNC}
                 project_id = {@props.project_id} />
             {@render_took()}
         </span>
@@ -159,7 +160,7 @@ LogEntry = rclass
     render_miniterm_command: (cmd) ->
         if cmd.length > 50
             <Tip title='Full command' tip={cmd} delayHide={10000} rootClose={true} >
-                <kbd>{misc.trunc_middle(cmd, 50)}</kbd>
+                <kbd>{misc.trunc_middle(cmd, TRUNC)}</kbd>
             </Tip>
         else
             <kbd>{cmd}</kbd>
@@ -176,7 +177,7 @@ LogEntry = rclass
             full       = {true}
             style      = {if @props.cursor then selected_item}
             key        = {i}
-            trunc      = {50}
+            trunc      = {TRUNC}
             link       = {link}
             project_id = {project_id ? @props.project_id} />
 
@@ -246,7 +247,7 @@ LogEntry = rclass
                         path       = {@props.event.path}
                         full       = {true}
                         style      = {if @props.cursor then selected_item}
-                        trunc      = {50}
+                        trunc      = {TRUNC}
                         project_id = {@props.project_id}
                     />
                 </span>
