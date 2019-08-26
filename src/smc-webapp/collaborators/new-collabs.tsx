@@ -13,6 +13,8 @@ import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
+import { contains_url } from "smc-util/misc2";
+import { debounce } from "lodash";
 
 import { has_internet_access } from "../upgrades/upgrade-utils";
 
@@ -86,6 +88,8 @@ interface AddCollaboratorsPanelState {
   email_to: string;
   email_body: string;
   is_editing_email: boolean;
+  add_disabled: boolean;
+  error_body?: string;
 }
 
 class AddCollaboratorsPanel0 extends Component<
@@ -105,6 +109,11 @@ class AddCollaboratorsPanel0 extends Component<
   constructor(props: AddCollaboratorsPanelProps, context: any) {
     super(props, context);
     this.state = this.initialState();
+    this.on_change_email_body = debounce(
+      this.on_change_email_body.bind(this),
+      50,
+      { leading: true, trailing: true }
+    );
   }
   initialState = () => {
     return {
@@ -115,7 +124,9 @@ class AddCollaboratorsPanel0 extends Component<
       results: [],
       email_to: "",
       email_body: this.default_email_body(),
-      is_editing_email: false
+      is_editing_email: false,
+      add_disabled: false,
+      error_body: undefined
     };
   };
 
@@ -380,6 +391,17 @@ ${name}
     return email_body.trim();
   };
 
+  on_change_email_body(value: string): void {
+    if (contains_url(value)) {
+      this.setState({
+        error_body: "Sending URLs is not allowed. (anti-spam measure)",
+        add_disabled: true
+      });
+    } else {
+      this.setState({ error_body: undefined, add_disabled: false });
+    }
+  }
+
   render_invitation_editor() {
     return (
       <>
@@ -412,8 +434,10 @@ ${name}
             on_cancel={value =>
               this.setState({ email_body: value, is_editing_email: false })
             }
+            on_change={this.on_change_email_body}
           />
         </div>
+        {this.render_invitation_error()}
       </>
     );
   }
@@ -467,12 +491,22 @@ ${name}
   render_buttons() {
     return (
       <ButtonToolbar>
-        <Button onClick={this.send_invites} bsStyle="primary">
+        <Button
+          onClick={this.send_invites}
+          disabled={this.state.add_disabled}
+          bsStyle="primary"
+        >
           <Icon name="user-plus" /> Add Collaborator
         </Button>
         <Button onClick={this.reset}>Cancel</Button>
       </ButtonToolbar>
     );
+  }
+
+  render_invitation_error() {
+    if (this.state.error_body == null) return;
+
+    return <ErrorDisplay error={this.state.error_body} />;
   }
 
   render() {
