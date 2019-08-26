@@ -88,7 +88,6 @@ interface AddCollaboratorsPanelState {
   email_to: string;
   email_body: string;
   is_editing_email: boolean;
-  add_disabled: boolean;
   error_body?: string;
 }
 
@@ -109,11 +108,10 @@ class AddCollaboratorsPanel0 extends Component<
   constructor(props: AddCollaboratorsPanelProps, context: any) {
     super(props, context);
     this.state = this.initialState();
-    this.on_change_email_body = debounce(
-      this.on_change_email_body.bind(this),
-      50,
-      { leading: true, trailing: true }
-    );
+    this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
+      leading: true,
+      trailing: true
+    });
   }
   initialState = () => {
     return {
@@ -125,7 +123,6 @@ class AddCollaboratorsPanel0 extends Component<
       email_to: "",
       email_body: this.default_email_body(),
       is_editing_email: false,
-      add_disabled: false,
       error_body: undefined
     };
   };
@@ -391,14 +388,13 @@ ${name}
     return email_body.trim();
   };
 
-  on_change_email_body(value: string): void {
+  check_email_body(value: string): void {
     if (contains_url(value)) {
       this.setState({
-        error_body: "Sending URLs is not allowed. (anti-spam measure)",
-        add_disabled: true
+        error_body: "Sending URLs is not allowed. (anti-spam measure)"
       });
     } else {
-      this.setState({ error_body: undefined, add_disabled: false });
+      this.setState({ error_body: undefined });
     }
   }
 
@@ -425,6 +421,7 @@ ${name}
             margin: "15px"
           }}
         >
+          {this.render_invitation_error()}
           <MarkdownInput
             default_value={this.state.email_body}
             rows={8}
@@ -434,10 +431,10 @@ ${name}
             on_cancel={value =>
               this.setState({ email_body: value, is_editing_email: false })
             }
-            on_change={this.on_change_email_body}
+            on_change={this.check_email_body}
+            save_disabled={this.state.error_body != null}
           />
         </div>
-        {this.render_invitation_error()}
       </>
     );
   }
@@ -493,7 +490,7 @@ ${name}
       <ButtonToolbar>
         <Button
           onClick={this.send_invites}
-          disabled={this.state.add_disabled}
+          disabled={this.state.error_body != null}
           bsStyle="primary"
         >
           <Icon name="user-plus" /> Add Collaborator
