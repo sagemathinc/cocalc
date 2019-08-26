@@ -429,7 +429,11 @@ ${name}
               this.setState({ email_body: value, is_editing_email: false })
             }
             on_cancel={value =>
-              this.setState({ email_body: value, is_editing_email: false })
+              this.setState({
+                email_body: value,
+                is_editing_email: false,
+                error_body: undefined
+              })
             }
             on_change={this.check_email_body}
             save_disabled={this.state.error_body != null}

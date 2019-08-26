@@ -14,6 +14,8 @@ Add collaborators to a project
 
 {SITE_NAME} = require('smc-util/theme')
 
+{contains_url} = require('smc-util/misc2')
+
 exports.AddCollaborators = rclass
     displayName : 'ProjectSettings-AddCollaborators'
 
@@ -35,6 +37,7 @@ exports.AddCollaborators = rclass
         err              : ''          # display an error in case something went wrong doing a search
         email_to         : ''          # if set, adding user via email to this address
         email_body       : ''          # with this body.
+        email_body_error : undefined
 
     reset: ->
         @setState(@getInitialState())
@@ -146,6 +149,19 @@ exports.AddCollaborators = rclass
         @setState(email_to:'',email_body:'')
         @reset()
 
+    check_email_body: (value) ->
+        if contains_url(value)
+            @setState(email_body_error: "Sending URLs is not allowed. (anti-spam measure)")
+        else
+            @setState(email_body_error: undefined)
+
+    render_email_body_error: ->
+        return null if not this.state.email_body_error?
+        return <ErrorDisplay error={this.state.email_body_error} />
+
+    on_cancel: () ->
+        @setState(email_body_editing:false, email_body_error:undefined)
+
     render_send_email: ->
         if not @state.email_to
             return
@@ -164,13 +180,16 @@ exports.AddCollaborators = rclass
                         />
                 </FormGroup>
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    {@render_email_body_error()}
                     <MarkdownInput
                         default_value = {@state.email_body}
                         rows          = {8}
                         on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
-                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_cancel     = {@on_cancel}
                         on_edit       = {=>@setState(email_body_editing:true)}
-                        />
+                        save_disabled = {this.state.email_body_error != null}
+                        on_change     = {@check_email_body}
+                    />
                 </div>
                 <ButtonToolbar>
                     <Button bsStyle='primary' onClick={@send_email_invite} disabled={!!@state.email_body_editing}>Send Invitation</Button>
@@ -249,13 +268,16 @@ exports.AddCollaborators = rclass
                     </FormControl>
                 </FormGroup>
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    {@render_email_body_error()}
                     <MarkdownInput
                         default_value = {@state.email_body}
                         rows          = {8}
                         on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
-                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_cancel     = {@on_cancel}
                         on_edit       = {=>@setState(email_body_editing:true)}
-                        />
+                        save_disabled = {this.state.email_body_error != null}
+                        on_change     = {@check_email_body}
+                    />
                 </div>
                 {@render_select_list_button(select)}
             </div>

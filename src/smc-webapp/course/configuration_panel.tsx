@@ -655,7 +655,6 @@ export class ConfigurationPanel extends Component<
 
   render_email_body_error() {
     if (this.state.email_body_error == null) return;
-
     return <ErrorDisplay error={this.state.email_body_error} />;
   }
 
@@ -687,6 +686,7 @@ export class ConfigurationPanel extends Component<
             on_save={body => this.get_actions().set_email_invite(body)}
             save_disabled={this.state.email_body_error != null}
             on_change={this.check_email_body}
+            on_cancel={() => this.setState({ email_body_error: undefined })}
           />
         </div>
         <hr />
