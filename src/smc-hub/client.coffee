@@ -1303,9 +1303,12 @@ class exports.Client extends EventEmitter
         ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
         ## return
 
-
-        # We only allow sending email invites if: (a) the sender is a
-        # paying customer, or (b) the project has network access.
+        ###
+        #
+        # I am commenting this out since it is now being triggered for projects in courses for some reason, which makes
+        # it very hard to setup a course without pre-paying.
+        #
+        # We only allow sending email invites if: (a) the sender is a paying customer, or (b) the project has network access.
         if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
             # In practice, the frontend client should always prevent ever having to do this
             # check.  However, a malicious user controls the frontend, so we must still make
@@ -1313,6 +1316,7 @@ class exports.Client extends EventEmitter
             dbg("NOT send_email invites due to no network access (and user not a customer); in fact don't even make the invite!")
             @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. First upgrade this project to have the 'Internet Access' quota.");
             return
+        ###
 
         @touch()
         @get_project mesg, 'write', (err, project) =>
