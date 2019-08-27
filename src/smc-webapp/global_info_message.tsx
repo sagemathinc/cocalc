@@ -1,8 +1,8 @@
-import { React, rtypes, Rendered, rclass } from "./app-framework";
-import { Button, ButtonGroup } from "react-bootstrap";
+import { React, rtypes, Rendered, rclass, redux } from "./app-framework";
+import { Button, ButtonGroup, NavItem } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
 import { is_different } from "smc-util/misc2";
-const { Markdown, Icon, VisibleMDLG } = require("./r_misc");
+const { Markdown, Icon, VisibleMDLG, Tip } = require("./r_misc");
 //import { Map as iMap } from "immutable";
 import {
   Notifications,
@@ -10,6 +10,60 @@ import {
   NotificationsActions,
   NAME as NotificationsName
 } from "./system_notifications";
+
+interface GlobalInformationToggleProps {
+  open: boolean;
+}
+
+export class GlobalInformationToggle extends React.Component<
+  GlobalInformationToggleProps
+> {
+  constructor(props, state) {
+    super(props, state);
+  }
+
+  private static tip_style: React.CSSProperties = {
+    display: "block",
+    fontSize: "15pt",
+    padding: "10px"
+  };
+
+  private static outer_style: React.CSSProperties = {
+    position: "relative",
+    float: "left"
+  };
+
+  private static icon_style: React.CSSProperties = {
+    color: COLORS.GRAY,
+    cursor: "pointer"
+  };
+
+  private toggle = (): void => {
+    (redux.getActions("page") as any).toggle_global_information();
+  };
+
+  render(): Rendered {
+    const icon = this.props.open ? "far fa-envelope-open" : "far fa-envelope";
+
+    return (
+      <NavItem
+        ref={"fullscreen"}
+        style={GlobalInformationToggle.outer_style}
+        onClick={this.toggle}
+      >
+        <Tip
+          style={GlobalInformationToggle.tip_style}
+          title={
+            "Show global announcements, system notifications and application alerts."
+          }
+          placement={"left"}
+        >
+          <Icon style={GlobalInformationToggle.icon_style} name={icon} />
+        </Tip>
+      </NavItem>
+    );
+  }
+}
 
 interface GlobalInformationMessageProps {
   actions: NotificationsActions;

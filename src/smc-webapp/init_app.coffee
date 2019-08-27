@@ -220,6 +220,10 @@ class PageActions extends Actions
     set_new_version: (version) =>
         @setState(new_version : version)
 
+    hide_show_file_use: =>
+        if redux.getStore('page').get('show_file_use')
+            @toggle_show_file_use()
+
     set_fullscreen: (val) =>  # val = 'default', 'kiosk', undefined
         # if kiosk is ever set, disable toggling back
         if redux.getStore('page').get('fullscreen') == 'kiosk'
@@ -227,8 +231,7 @@ class PageActions extends Actions
         @setState(fullscreen : val)
         history.update_params()
         # eventually hide an opened file use panel
-        if redux.getStore('page').get('show_file_use')
-            @toggle_show_file_use()
+        @hide_show_file_use()
 
     set_get_api_key: (val) =>
         @setState(get_api_key: val)
@@ -236,6 +239,17 @@ class PageActions extends Actions
 
     toggle_fullscreen: =>
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
+
+    toggle_global_information: =>
+        show = !redux.getStore('page').get('show_global_info', false)
+        @set_global_information(show)
+
+    set_global_information: (show) =>
+        @setState(show_global_info:show)
+
+    show_mentions: =>
+        @hide_show_file_use()
+        @set_active_tab("notifications")
 
     set_session: (val) =>
         # If existing different session, close it.

@@ -42,8 +42,8 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
-{GlobalInformationMessage} = require('./global_info_message')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, MentionsButton, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
+{GlobalInformationMessage, GlobalInformationToggle} = require('./global_info_message')
 system_notifications = require('./system_notifications')
 
 nav_class = 'hidden-xs'
@@ -93,7 +93,7 @@ PAGE_REDUX_PROPS =
         cookie_warning         : rtypes.bool
         local_storage_warning  : rtypes.bool
         show_file_use          : rtypes.bool
-        show_global_info       : rtypes.bool  # also used for layout calculations
+        show_global_info       : rtypes.bool
     file_use :
         notify_count           : rtypes.number
     account :
@@ -207,6 +207,14 @@ Page = rclass
             count  = {@props.notify_count}
             active = {@props.show_file_use} />
 
+    render_global_information_toggle: ->
+        return if not @props.is_logged_in
+        <GlobalInformationToggle open = {@props.show_global_info} />
+
+    render_mentions_button: ->
+        return if not @props.is_logged_in
+        <MentionsButton />
+
     render_right_nav: ->
         logged_in = @props.is_logged_in
         <Nav id='smc-right-tabs-fixed' style={height:"#{NAV_HEIGHT}px", lineHeight:'20px', margin:'0', overflowY:'hidden'}>
@@ -225,6 +233,8 @@ Page = rclass
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
             {@render_account_tab() if logged_in}
+            {@render_global_information_toggle()}
+            {@render_mentions_button()}
             {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
             <FullscreenButton />
@@ -303,7 +313,13 @@ Page = rclass
                 onDrop={@drop}
             >
                 {<FileUsePageWrapper /> if @props.show_file_use}
-                {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} show_pingtime = {@state.show_label}/> if @props.show_connection}
+                {<ConnectionInfo
+                    ping={@props.ping}
+                    status={@props.connection_status}
+                    avgping={@props.avgping}
+                    actions={@actions('page')}
+                    show_pingtime = {@state.show_label}
+                /> if @props.show_connection}
                 {<Support actions={@actions('support')} /> if @props.show}
                 {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
                 {<CookieWarning /> if @props.cookie_warning}

@@ -505,6 +505,43 @@ exports.FullscreenButton = rclass
         else
             @render_menu()
 
+exports.MentionsButton = rclass
+    displayName : 'MentionsButton'
+
+    render: ->
+        icon  = 'fas fa-at'
+
+        tip_style =
+            display    : 'block'
+            fontSize   : '15pt'
+            padding    : '10px'
+
+        outer_style =
+            position    : 'relative'
+            float       : 'left'
+
+        icon_style =
+            color      : COLORS.GRAY
+            cursor     : 'pointer'
+
+        <NavItem
+            ref = {'fullscreen'}
+            style = {outer_style}
+            onClick = {=>@actions("page").show_mentions()}
+        >
+            <Tip
+                style     = {tip_style}
+                title     = {'Show where you were mentioned.'}
+                placement = {'left'}
+            >
+                <Icon
+                    style   = {icon_style}
+                    name    = {icon}
+                />
+            </Tip>
+        </NavItem>
+
+
 
 exports.AppLogo = rclass
     displayName : 'AppLogo'
