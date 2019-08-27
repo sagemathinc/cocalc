@@ -508,6 +508,11 @@ exports.FullscreenButton = rclass
 exports.MentionsButton = rclass
     displayName : 'MentionsButton'
 
+    reduxProps :
+        mentions:
+            mentions: rtypes.immutable.Map,
+            get_unseen_size: rtypes.func
+
     render: ->
         icon  = 'fas fa-at'
 
@@ -523,6 +528,10 @@ exports.MentionsButton = rclass
         icon_style =
             color      : COLORS.GRAY
             cursor     : 'pointer'
+
+        # copied from smc-webapp/file-use/viewer.tsx
+        if this.props.get_unseen_size(this.props.mentions) > 0
+            icon_style.color = COLOR.FG_RED
 
         <NavItem
             ref = {'fullscreen'}

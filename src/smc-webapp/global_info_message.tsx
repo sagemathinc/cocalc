@@ -5,8 +5,8 @@ import { is_different } from "smc-util/misc2";
 const { Markdown, Icon, VisibleMDLG, Tip } = require("./r_misc");
 //import { Map as iMap } from "immutable";
 import {
-  Notifications,
-  Notification,
+  Messages,
+  Message,
   NotificationsActions,
   NAME as NotificationsName
 } from "./system_notifications";
@@ -33,18 +33,16 @@ export class GlobalInformationToggle extends React.Component<
     float: "left"
   };
 
-  private static icon_style: React.CSSProperties = {
-    color: COLORS.GRAY,
-    cursor: "pointer"
-  };
-
   private toggle = (): void => {
     (redux.getActions("page") as any).toggle_global_information();
   };
 
   render(): Rendered {
     const icon = this.props.open ? "far fa-envelope-open" : "far fa-envelope";
-
+    const icon_style: React.CSSProperties = {
+      color: this.props.open ? COLORS.BLUE : COLORS.GRAY,
+      cursor: "pointer"
+    };
     return (
       <NavItem
         ref={"fullscreen"}
@@ -58,7 +56,7 @@ export class GlobalInformationToggle extends React.Component<
           }
           placement={"left"}
         >
-          <Icon style={GlobalInformationToggle.icon_style} name={icon} />
+          <Icon style={icon_style} name={icon} />
         </Tip>
       </NavItem>
     );
@@ -68,11 +66,11 @@ export class GlobalInformationToggle extends React.Component<
 interface GlobalInformationMessageProps {
   actions: NotificationsActions;
   loading: boolean;
-  announcements?: Notification;
-  show_announcement?: string; // announcement id
+  announcements?: Messages;
+  show_announcement?: Message;
   have_next: boolean;
   have_previous: boolean;
-  notifications?: Notifications;
+  notifications?: Messages;
 }
 
 interface GlobalInformationMessageState {}
@@ -94,7 +92,7 @@ class GlobalInformationMessageComponent extends React.Component<
     return {
       [NotificationsName]: {
         loading: rtypes.bool,
-        show_announcement: rtypes.string,
+        show_announcement: rtypes.immutable.Map,
         have_next: rtypes.bool,
         have_previous: rtypes.bool,
         announcements: rtypes.immutable.Map,
@@ -114,8 +112,8 @@ class GlobalInformationMessageComponent extends React.Component<
     ]);
   }
 
-  dismiss = (): void => {
-    this.props.actions.dismiss();
+  dismiss_all = (priority): void => {
+    this.props.actions.dismiss_all(priority);
   };
 
   previous = (): void => {
@@ -126,7 +124,7 @@ class GlobalInformationMessageComponent extends React.Component<
     this.props.actions.next();
   };
 
-  render_controls(): Rendered {
+  render_controls(priority): Rendered {
     return (
       <div className={"cc-announcement-control"}>
         <ButtonGroup style={{ marginRight: "10px" }}>
@@ -148,8 +146,12 @@ class GlobalInformationMessageComponent extends React.Component<
         </ButtonGroup>
 
         <ButtonGroup>
-          <Button bsStyle={"success"} onClick={this.dismiss}>
-            <Icon name={"check-circle"} /> <VisibleMDLG>Read</VisibleMDLG>
+          <Button
+            bsStyle={"success"}
+            onClick={() => this.dismiss_all(priority)}
+          >
+            <Icon name={"check-circle"} />{" "}
+            <VisibleMDLG>Mark all read</VisibleMDLG>
           </Button>
         </ButtonGroup>
       </div>
@@ -157,23 +159,18 @@ class GlobalInformationMessageComponent extends React.Component<
   }
 
   render(): Rendered | null {
-    if (
-      this.props.announcements == null ||
-      this.props.show_announcement == null
-    ) {
+    if (this.props.show_announcement == null) {
       return null;
     }
-    const announcement = this.props.announcements.get(
-      this.props.show_announcement
-    );
+    const announcement = this.props.show_announcement;
 
     const priority = announcement.get("priority");
-    const bgcol = (function() {
+    const [bgcol, info_icon] = (function() {
       switch (priority) {
         case "high":
-          return COLORS.YELL_L;
+          return [COLORS.YELL_L, "exclamation-triangle"];
         case "info":
-          return COLORS.BLUE_LL;
+          return [COLORS.BLUE_LL, "info-circle"];
       }
     })();
 
@@ -186,12 +183,12 @@ class GlobalInformationMessageComponent extends React.Component<
     return (
       <div style={style} className={"cc-announcement-banner"}>
         <div className={"cc-announcement-control"}>
-          <Icon name={"exclamation-triangle"} />
+          <Icon name={info_icon} />
         </div>
         <div className={"cc-announcement-message"}>
           <Markdown value={text} />
         </div>
-        {this.render_controls()}
+        {this.render_controls(priority)}
       </div>
     );
   }

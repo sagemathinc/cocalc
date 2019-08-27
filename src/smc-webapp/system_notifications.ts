@@ -9,14 +9,15 @@ import * as LS from "misc/local-storage";
 
 export const NAME = "system_notifications";
 
-export type Notification = Map<string, any>;
-export type Notifications = OrderedMap<string, any>; // iMap<string, any>>;
+export type Priority = "high" | "info";
+export type Message = Map<string, any>;
+export type Messages = OrderedMap<string, any>;
 
 interface NotificationsState {
   loading: boolean;
-  notifications?: Notifications;
-  announcements?: Notifications;
-  show_announcement?: string; // which announcement to show
+  notifications?: Messages;
+  announcements?: Messages;
+  show_announcement?: Message; // which announcement to show
   have_next: boolean;
   have_previous: boolean;
   dismissed_info?: any; // string or timestamp
@@ -35,92 +36,80 @@ export class NotificationsActions extends Actions<NotificationsState> {
   show_banner = (show = true): void => {
     // this controls if the global banner is shown
     const page_actions = redux.getActions("page");
-    if (page_actions == null) return;
     page_actions.setState({ show_global_info: show });
   };
 
   update = (dismissed_high, dismissed_info): void => {
     debug("NotificationsActions::update", { dismissed_info, dismissed_high });
-    this.setState({
-      dismissed_info,
-      dismissed_high
-    });
-    this.process_announcements();
-    this.show_banner(true);
+    this.setState({ dismissed_info, dismissed_high });
+    this.process_all_messages();
   };
 
-  process_announcements(): void {
-    // announcements ordered by newest first
-    const announcements = store.get("announcements");
-    if (announcements == null) {
-      return;
-    }
-    let show_id: undefined | string = undefined;
-    const start: number | null = store.get("dismissed_info");
-    announcements.forEach((mesg, id) => {
-      const time = mesg.get("time", new Date(0));
-      debug("announcements::process", time, time.getTime(), start);
-      if (time.getTime() > (start || 0)) {
-        show_id = id;
-      } else {
-        return false;
-      }
-    });
-    this.set_show_announcement(show_id);
+  process_all_messages(): void {
+    this.process_announcements();
   }
 
-  dismiss = (): void => {
+  private process_announcements(): void {
+    // announcements ordered by newest first
     const announcements = store.get("announcements");
     if (announcements == null) return;
+    const start: number = store.get("dismissed_info", 0);
+    const newest = announcements.first();
+    if (newest == null) return;
+    const time = newest.get("time").getTime();
+    // show newest announcement iff it is newer than the last dismissed update
+    if (time > start) {
+      this.set_show_announcement(newest);
+    }
+  }
 
-    const id = store.get("show_announcement");
-    if (id == null) return;
-
-    const current = announcements.get(id);
-    if (current == null) return;
-    const time = current.get("time").getTime();
+  dismiss_all = (priority: Priority): void => {
+    const announcements = store.get("announcements");
+    if (announcements == null) return;
+    // first (newest) entry with the given priority
+    const first = announcements.find(mesg => mesg.get("priority") == priority);
+    const time = first != null ? first.get("time").getTime() : undefined;
     redux
       .getTable("account")
-      .set({ other_settings: { notification_info: time } });
+      .set({ other_settings: { [`notification_${priority}`]: time } });
   };
 
-  private set_show_announcement(id: string | undefined) {
+  private set_show_announcement(mesg: Message | undefined) {
     // also update first/last button status
+    const id = mesg != null ? mesg.get("id") : undefined;
     const announcements = store.get("announcements");
     if (announcements == null) return;
     const first = announcements.first();
     const last = announcements.last();
     const have_previous = last != null && last.get("id") != id;
     const have_next = first != null && first.get("id") != id;
-    actions.setState({ show_announcement: id, have_next, have_previous });
+    actions.setState({ show_announcement: mesg, have_next, have_previous });
   }
 
   private skip(forward: boolean) {
     const a = store.get("announcements");
     if (a == null) return;
 
-    const id = store.get("show_announcement");
-    if (id == null) return;
+    const current = store.get("show_announcement");
+    if (current == null) return;
 
     const announcements = forward ? a : a.reverse();
-    const current = announcements.get(id);
-    if (current == null) return;
     const current_time = current.get("time").getTime();
 
     // linear scan, and we lag one behind
-    let show_id: undefined | string = undefined;
+    let next_mesg: undefined | Message = undefined;
     let first = true;
-    announcements.forEach((mesg, id) => {
+    announcements.forEach((mesg, _id) => {
       const time = mesg.get("time", new Date(0));
-      if (time > current_time || first) {
-        show_id = id;
+      if (forward ? time > current_time : time < current_time || first) {
+        next_mesg = mesg;
       } else {
         return false;
       }
       first = false;
     });
 
-    this.set_show_announcement(show_id);
+    this.set_show_announcement(next_mesg);
   }
 
   next = (): void => this.skip(true);
@@ -132,7 +121,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
       id: misc.uuid(),
       time: new Date(),
       text: required,
-      priority: "high"
+      priority: "high" as Priority
     });
     table.set(opts);
   };
@@ -158,7 +147,7 @@ class NotificationsTable extends Table {
 
   private process_mesg(_id, mesg): void {
     debug("system_notifications::process_mesg", mesg);
-    switch (mesg.priority) {
+    switch (mesg.priority as Priority) {
       case "high":
         // filter old messages or those which are marked "done"
         if (mesg.time < this.recent || mesg.done) return;
@@ -166,7 +155,7 @@ class NotificationsTable extends Table {
         const lt = mesg.time.toLocaleString();
         const message = `SYSTEM MESSAGE (${lt}): ${mesg.text}`;
         alert_message({
-          type: "info",
+          type: "info" as Priority,
           message,
           timeout: 3600
         });
@@ -217,7 +206,7 @@ class AnnouncementsTable extends Table {
   change = table => {
     const announcements = table.get().sortBy(a => -a.get("time").getTime());
     actions.setState({ loading: false, announcements });
-    actions.process_announcements();
+    actions.process_all_messages();
   };
 
   _change = (table, _keys) => {
