@@ -1130,33 +1130,32 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
 
     const attachments = cell.get("attachments");
-    if (attachments != null) {
-      attachments.forEach((x, name) => {
-        if ((x != null ? x.get("type") : undefined) === "load") {
-          // need to load from disk
+    if (attachments == null) return; // nothing to do
+    attachments.forEach(async (x, name) => {
+      if (x == null) return;
+      if (x.get("type") === "load") {
+        if (this.jupyter_kernel == null) return; // try later
+        // need to load from disk
+        this.set_cell_attachment(cell.get("id"), name, {
+          type: "loading",
+          value: null
+        });
+        let sha1: string;
+        try {
+          sha1 = await this.jupyter_kernel.load_attachment(x.get("value"));
+        } catch (err) {
           this.set_cell_attachment(cell.get("id"), name, {
-            type: "loading",
-            value: null
+            type: "error",
+            value: `${err}`
           });
-          if (this.jupyter_kernel != null) {
-            this.jupyter_kernel
-              .load_attachment(x.get("value"))
-              .then(sha1 => {
-                this.set_cell_attachment(cell.get("id"), name, {
-                  type: "sha1",
-                  value: sha1
-                });
-              })
-              .catch(err => {
-                this.set_cell_attachment(cell.get("id"), name, {
-                  type: "error",
-                  value: err
-                });
-              });
-          }
+          return;
         }
-      });
-    }
+        this.set_cell_attachment(cell.get("id"), name, {
+          type: "sha1",
+          value: sha1
+        });
+      }
+    });
   };
 
   private handle_ipywidgets_state_change(keys): void {

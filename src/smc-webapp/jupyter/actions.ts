@@ -1924,6 +1924,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public insert_image(id: string): void {
+    if (this.check_edit_protection(id)) {
+      return;
+    }
     if (this.store.get_cell_type(id) != "markdown") {
       throw Error("must be a markdown cell -- id " + id);
     }
