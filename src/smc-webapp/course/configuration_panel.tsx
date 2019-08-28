@@ -331,6 +331,7 @@ interface ConfigurationPanelProps {
   name: string;
   path: string;
   project_id: string;
+  allow_urls: boolean;
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   shared_project_id?: string;
@@ -644,7 +645,7 @@ export class ConfigurationPanel extends Component<
    */
 
   check_email_body(value) {
-    if (contains_url(value)) {
+    if (!this.props.allow_urls && contains_url(value)) {
       this.setState({
         email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
       });

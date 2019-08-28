@@ -938,7 +938,7 @@ export class CourseActions extends Actions<CourseState> {
       table: "students",
       student_id
     });
-    await this.configure_project(student_id, undefined, project_id);
+    await this.configure_project(student_id, false, project_id);
   }
 
   private async configure_project_users(

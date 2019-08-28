@@ -1168,6 +1168,13 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
         )
 
+
+    # this is an async function
+    allow_urls_in_emails: (project_id) =>
+        is_paying = await is_paying_customer(@database, @account_id)
+        has_network = await project_has_network_access(@database, project_id)
+        return is_paying or has_network
+
     mesg_invite_collaborator: (mesg) =>
         @touch()
         dbg = @dbg('mesg_invite_collaborator')
@@ -1232,12 +1239,14 @@ class exports.Client extends EventEmitter
                         dbg("NOT send_email invite to #{locals.email_address}")
                         cb(); return
 
-                    cb()  # we return early, because there is no need to let someone wait for sending the email
+                    ## do not send email if project doesn't have network access (and user is not a paying customer)
+                    #if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+                    #    dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
+                    #    return
 
-                    # do not send email if project doesn't have network access (and user is not a paying customer)
-                    if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
-                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
-                        return
+                    # we always send invite emails. for non-upgraded projects, we sanitize the content of the body
+                    # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+                    # also see mesg_invite_noncloud_collaborators
 
                     dbg("send_email invite to #{locals.email_address}")
                     # available message fields
@@ -1260,7 +1269,7 @@ class exports.Client extends EventEmitter
                         subject  = mesg.subject
 
                     try
-                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj)
+                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
                     catch err
                         cb(err)
                         return
@@ -1303,20 +1312,12 @@ class exports.Client extends EventEmitter
         ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
         ## return
 
-        ###
+        # Otherwise we always allow sending email invites
+        # The body is sanitized and not allowed to contain any URLs (anti-spam), unless
+        # (a) the sender is a paying customer or (b) the project has network access.
         #
-        # I am commenting this out since it is now being triggered for projects in courses for some reason, which makes
-        # it very hard to setup a course without pre-paying.
-        #
-        # We only allow sending email invites if: (a) the sender is a paying customer, or (b) the project has network access.
-        if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
-            # In practice, the frontend client should always prevent ever having to do this
-            # check.  However, a malicious user controls the frontend, so we must still make
-            # this check anyways.
-            dbg("NOT send_email invites due to no network access (and user not a customer); in fact don't even make the invite!")
-            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. First upgrade this project to have the 'Internet Access' quota.");
-            return
-        ###
+        # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+        # also see mesg_invite_collaborator
 
         @touch()
         @get_project mesg, 'write', (err, project) =>
@@ -1390,44 +1391,44 @@ class exports.Client extends EventEmitter
                         if done
                             dbg("NOT send_email invite to #{email_address}")
                             cb()
-                        else
+                            return
+
+                        # send an email to the user -- async, not blocking user.
+                        # TODO: this can take a while -- we need to take some action
+                        # if it fails, e.g., change a setting in the projects table!
+                        subject  = "CoCalc Invitation"
+                        # override subject if explicitly given
+                        if mesg.subject?
+                            subject  = mesg.subject
+
+                        try
+                            email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
                             cb()
-                            # send an email to the user -- async, not blocking user.
-                            # TODO: this can take a while -- we need to take some action
-                            # if it fails, e.g., change a setting in the projects table!
-                            subject  = "CoCalc Invitation"
-                            # override subject if explicitly given
-                            if mesg.subject?
-                                subject  = mesg.subject
+                        catch err
+                            cb(err)
+                            return
 
-                            try
-                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
-                            catch err
-                                cb(err)
-                                return
-
-
-                            # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                            opts =
-                                to           : email_address
-                                bcc          : 'invites@cocalc.com'
-                                fromname     : 'CoCalc'
-                                from         : 'invites@cocalc.com'
-                                replyto      : mesg.replyto ? 'help@cocalc.com'
-                                replyto_name : mesg.replyto_name
-                                subject      : subject
-                                category     : "invite"
-                                asm_group    : SENDGRID_ASM_INVITES
-                                body         : email_body
-                                cb           : (err) =>
-                                    if err
-                                        dbg("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
-                                    @database.sent_project_invite
-                                        project_id : mesg.project_id
-                                        to         : email_address
-                                        error      : err
-                            dbg("send_email invite to #{email_address}")
-                            send_email(opts)
+                        # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                        opts =
+                            to           : email_address
+                            bcc          : 'invites@cocalc.com'
+                            fromname     : 'CoCalc'
+                            from         : 'invites@cocalc.com'
+                            replyto      : mesg.replyto ? 'help@cocalc.com'
+                            replyto_name : mesg.replyto_name
+                            subject      : subject
+                            category     : "invite"
+                            asm_group    : SENDGRID_ASM_INVITES
+                            body         : email_body
+                            cb           : (err) =>
+                                if err
+                                    dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
+                                @database.sent_project_invite
+                                    project_id : mesg.project_id
+                                    to         : email_address
+                                    error      : err
+                        dbg("send_email invite to #{email_address}")
+                        send_email(opts)
 
                 ], cb)
 

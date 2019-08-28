@@ -849,6 +849,16 @@ class ProjectsStore extends Store
         upgrades = @get_total_project_upgrades(project_id)
         return misc.map_sum(base_values, upgrades)
 
+    # we allow URLs in projects, which have member hosting or internet access
+    # this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators
+    allow_urls_in_emails: (project_id) =>
+        quotas = @get_total_project_quotas(project_id)
+        if not quotas?
+            return false
+        else
+            return quotas.network or quotas.member_host
+
+
     # Return javascript mapping from project_id's to the upgrades for the given projects.
     # Only includes projects with at least one upgrade
     get_upgraded_projects: =>
