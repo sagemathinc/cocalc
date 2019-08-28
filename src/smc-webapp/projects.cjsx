@@ -246,9 +246,13 @@ class ProjectsActions extends Actions
             delete opts.token
         else
             token = false
-        project_id = await callback2(webapp_client.create_project, opts)
-        if token
-            _create_project_tokens[token] = {err:err, project_id:project_id}
+        try
+            project_id = await callback2(webapp_client.create_project, opts)
+            if token
+                _create_project_tokens[token] = {project_id:project_id}
+        catch err
+            if token
+                _create_project_tokens[token] = {err:err}
 
         # At this point we know the project_id and that the project exists.
         # However, various code (e.g., setting the title) depends on the

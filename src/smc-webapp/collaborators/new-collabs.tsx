@@ -13,6 +13,8 @@ import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
+import { contains_url } from "smc-util/misc2";
+import { debounce } from "lodash";
 
 import { has_internet_access } from "../upgrades/upgrade-utils";
 
@@ -86,6 +88,7 @@ interface AddCollaboratorsPanelState {
   email_to: string;
   email_body: string;
   is_editing_email: boolean;
+  error_body?: string;
 }
 
 class AddCollaboratorsPanel0 extends Component<
@@ -105,6 +108,10 @@ class AddCollaboratorsPanel0 extends Component<
   constructor(props: AddCollaboratorsPanelProps, context: any) {
     super(props, context);
     this.state = this.initialState();
+    this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
+      leading: true,
+      trailing: true
+    });
   }
   initialState = () => {
     return {
@@ -115,7 +122,8 @@ class AddCollaboratorsPanel0 extends Component<
       results: [],
       email_to: "",
       email_body: this.default_email_body(),
-      is_editing_email: false
+      is_editing_email: false,
+      error_body: undefined
     };
   };
 
@@ -364,16 +372,14 @@ class AddCollaboratorsPanel0 extends Component<
 
   default_email_body = () => {
     const name = this.props.get_fullname();
-    const project_id = this.props.project.get("project_id");
     const title = this.props.project.get("title");
-    const host = window.location.hostname;
-    const target = `[project '${title}'](https://${host}/projects/${project_id})`;
+    const target = `project '${title}'`;
     const SiteName =
       (redux.getStore as any)("customize").get("site_name") || SITE_NAME;
     const email_body = `
 Hello!
 
-Please collaborate with me using [${SiteName}](https://${host}) on ${target}.
+Please collaborate with me using ${SiteName} on ${target}.
 
 Best wishes,
 
@@ -381,6 +387,16 @@ ${name}
 `;
     return email_body.trim();
   };
+
+  check_email_body(value: string): void {
+    if (contains_url(value)) {
+      this.setState({
+        error_body: "Sending URLs is not allowed. (anti-spam measure)"
+      });
+    } else {
+      this.setState({ error_body: undefined });
+    }
+  }
 
   render_invitation_editor() {
     return (
@@ -405,6 +421,7 @@ ${name}
             margin: "15px"
           }}
         >
+          {this.render_invitation_error()}
           <MarkdownInput
             default_value={this.state.email_body}
             rows={8}
@@ -412,8 +429,14 @@ ${name}
               this.setState({ email_body: value, is_editing_email: false })
             }
             on_cancel={value =>
-              this.setState({ email_body: value, is_editing_email: false })
+              this.setState({
+                email_body: value,
+                is_editing_email: false,
+                error_body: undefined
+              })
             }
+            on_change={this.check_email_body}
+            save_disabled={this.state.error_body != null}
           />
         </div>
       </>
@@ -469,12 +492,22 @@ ${name}
   render_buttons() {
     return (
       <ButtonToolbar>
-        <Button onClick={this.send_invites} bsStyle="primary">
+        <Button
+          onClick={this.send_invites}
+          disabled={this.state.error_body != null}
+          bsStyle="primary"
+        >
           <Icon name="user-plus" /> Add Collaborator
         </Button>
         <Button onClick={this.reset}>Cancel</Button>
       </ButtonToolbar>
     );
+  }
+
+  render_invitation_error() {
+    if (this.state.error_body == null) return;
+
+    return <ErrorDisplay error={this.state.error_body} />;
   }
 
   render() {
