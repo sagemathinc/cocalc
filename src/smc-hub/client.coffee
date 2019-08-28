@@ -1168,6 +1168,13 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
         )
 
+
+    # this is an async function
+    allow_urls_in_emails: =>
+        is_paying = await is_paying_customer(@database, @account_id)
+        has_network = await project_has_network_access(@database, mesg.project_id)
+        return is_paying or has_network
+
     mesg_invite_collaborator: (mesg) =>
         @touch()
         dbg = @dbg('mesg_invite_collaborator')
@@ -1234,10 +1241,14 @@ class exports.Client extends EventEmitter
 
                     cb()  # we return early, because there is no need to let someone wait for sending the email
 
-                    # do not send email if project doesn't have network access (and user is not a paying customer)
-                    if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
-                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
-                        return
+                    ## do not send email if project doesn't have network access (and user is not a paying customer)
+                    #if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+                    #    dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
+                    #    return
+
+                    # we always send invite emails. for non-upgraded projects, we sanitize the content of the body
+                    # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+                    # also see mesg_invite_noncloud_collaborators
 
                     dbg("send_email invite to #{locals.email_address}")
                     # available message fields
@@ -1260,7 +1271,7 @@ class exports.Client extends EventEmitter
                         subject  = mesg.subject
 
                     try
-                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj)
+                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails())
                     catch err
                         cb(err)
                         return
@@ -1308,10 +1319,7 @@ class exports.Client extends EventEmitter
         # (a) the sender is a paying customer or (b) the project has network access.
         #
         # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
-
-        is_paying = await is_paying_customer(@database, @account_id)
-        has_network = await project_has_network_access(@database, mesg.project_id))
-        allow_urls_in_emails = is_paying or has_network
+        # also see mesg_invite_collaborator
 
         @touch()
         @get_project mesg, 'write', (err, project) =>
@@ -1396,7 +1404,7 @@ class exports.Client extends EventEmitter
                                 subject  = mesg.subject
 
                             try
-                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, allow_urls_in_emails)
+                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails())
                             catch err
                                 cb(err)
                                 return
