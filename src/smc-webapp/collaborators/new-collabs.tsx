@@ -77,6 +77,7 @@ interface AddCollaboratorsPanelProps {
   get_fullname(): string;
   user_map: immutable.Map<any, any>;
   actions: any;
+  allow_urls: boolean;
 }
 
 interface AddCollaboratorsPanelState {
@@ -389,7 +390,7 @@ ${name}
   };
 
   check_email_body(value: string): void {
-    if (contains_url(value)) {
+    if (!this.props.allow_urls && contains_url(value)) {
       this.setState({
         error_body: "Sending URLs is not allowed. (anti-spam measure)"
       });

@@ -22,6 +22,7 @@ exports.AddCollaborators = rclass
     propTypes :
         project : rtypes.immutable.Map.isRequired
         inline  : rtypes.bool
+        allow_urls : rtypes.bool
 
     reduxProps :
         account :
@@ -150,7 +151,7 @@ exports.AddCollaborators = rclass
         @reset()
 
     check_email_body: (value) ->
-        if contains_url(value)
+        if !@props.allow_urls and contains_url(value)
             @setState(email_body_error: "Sending URLs is not allowed. (anti-spam measure)")
         else
             @setState(email_body_error: undefined)
