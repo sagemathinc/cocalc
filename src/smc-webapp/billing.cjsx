@@ -1478,14 +1478,14 @@ FAQ = exports.FAQ = rclass
             <ul>
                 <li>
                     <a href="https://doc.cocalc.com/billing.html" rel="noopener" target="_blank">
-                        Questions about billing, quotas, upgrades, ...
+                        Billing, quotas, and upgrades
                     </a>
                 </li>
                 <li>
                     <a href="https://doc.cocalc.com/project-faq.html" rel="noopener" target="_blank">
-                        Project related questions.
+                        Projects
                     </a>
-                <li>
+                </li>
             </ul>
         </div>
 
