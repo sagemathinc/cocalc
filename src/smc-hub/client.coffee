@@ -1303,20 +1303,15 @@ class exports.Client extends EventEmitter
         ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
         ## return
 
-        ###
+        # Otherwise we always allow sending email invites
+        # The body is sanitized and not allowed to contain any URLs (anti-spam), unless
+        # (a) the sender is a paying customer or (b) the project has network access.
         #
-        # I am commenting this out since it is now being triggered for projects in courses for some reason, which makes
-        # it very hard to setup a course without pre-paying.
-        #
-        # We only allow sending email invites if: (a) the sender is a paying customer, or (b) the project has network access.
-        if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
-            # In practice, the frontend client should always prevent ever having to do this
-            # check.  However, a malicious user controls the frontend, so we must still make
-            # this check anyways.
-            dbg("NOT send_email invites due to no network access (and user not a customer); in fact don't even make the invite!")
-            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. First upgrade this project to have the 'Internet Access' quota.");
-            return
-        ###
+        # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+
+        is_paying = await is_paying_customer(@database, @account_id)
+        has_network = await project_has_network_access(@database, mesg.project_id))
+        allow_urls_in_emails = is_paying or has_network
 
         @touch()
         @get_project mesg, 'write', (err, project) =>
@@ -1401,7 +1396,7 @@ class exports.Client extends EventEmitter
                                 subject  = mesg.subject
 
                             try
-                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj)
+                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, allow_urls_in_emails)
                             catch err
                                 cb(err)
                                 return

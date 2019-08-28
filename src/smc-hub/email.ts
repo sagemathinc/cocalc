@@ -51,42 +51,43 @@ const {
   LIVE_DEMO_REQUEST
 } = require("smc-util/theme");
 
-export function escape_email_body(body: string): string {
-  const config = {
-    // in particular, no img and no anchor a
-    allowedTags: [
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "blockquote",
-      "p",
-      "ul",
-      "ol",
-      "nl",
-      "li",
-      "b",
-      "i",
-      "strong",
-      "em",
-      "strike",
-      "code",
-      "hr",
-      "br",
-      "div",
-      "table",
-      "thead",
-      "caption",
-      "tbody",
-      "tr",
-      "th",
-      "td",
-      "pre"
-    ]
-  };
-  return sanitizeHtml(body, config);
+export function escape_email_body(body: string, allow_urls: boolean): string {
+  // in particular, no img and no anchor a
+  const allowedTags: string[] = [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "blockquote",
+    "p",
+    "ul",
+    "ol",
+    "nl",
+    "li",
+    "b",
+    "i",
+    "strong",
+    "em",
+    "strike",
+    "code",
+    "hr",
+    "br",
+    "div",
+    "table",
+    "thead",
+    "caption",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "pre"
+  ];
+  if (allow_urls) {
+    allowedTags.push("a");
+  }
+  return sanitizeHtml(body, { allowedTags });
 }
 
 // constructs the email body, also containing sign up instructions pointing to a project.
@@ -96,7 +97,8 @@ function create_email_body(
   body,
   email_address,
   project_title,
-  link2proj
+  link2proj,
+  allow_urls_in_emails
 ): string {
   const base_url_tokens = link2proj.split("/");
   const base_url = `${base_url_tokens[0]}//${base_url_tokens[2]}`;
@@ -104,9 +106,9 @@ function create_email_body(
 
   let email_body = "";
   if (body) {
-    email_body = escape_email_body(body);
+    email_body = escape_email_body(body, allow_urls_in_emails);
     // we check if there are plain URLs, which can be used to send SPAM
-    if (contains_url(email_body)) {
+    if (!allow_urls_in_emails && contains_url(email_body)) {
       throw new Error("Sorry, links to specific websites are not allowed!");
     }
   } else {
