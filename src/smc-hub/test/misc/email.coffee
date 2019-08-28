@@ -39,7 +39,7 @@ describe 'create_email_body', ->
 
     it 'contains instructions what to do', ->
 
-        body = email.create_email_body(subject, message, recipient, proj_title, link2proj)
+        body = email.create_email_body(subject, message, recipient, proj_title, link2proj, false)
         expect(body).toInclude('<div>invite <b>message</b></div>') #sanitized
         expect(body).toInclude("<code>#{recipient}</code>")
         expect(body).toInclude("href=\'#{link2proj}\'")
@@ -50,7 +50,17 @@ describe 'create_email_body', ->
         message = 'please goto <a href="http://bad.com">good.com</a> thank you'
         err = ''
         try
-            email.create_email_body(subject, message, recipient, proj_title, link2proj)
+            email.create_email_body(subject, message, recipient, proj_title, link2proj, false)
         catch err0
             err = err0
         expect(err.message).toInclude('not allowed')
+
+
+    it 'allow URLs in the message if told so', ->
+        message = 'please goto <a href="http://bad.com">good.com</a> thank you'
+        err = 'no-error'
+        try
+            email.create_email_body(subject, message, recipient, proj_title, link2proj, true)
+        catch err0
+            err = err0
+        expect(err).toBe('no-error')

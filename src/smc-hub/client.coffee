@@ -1239,8 +1239,6 @@ class exports.Client extends EventEmitter
                         dbg("NOT send_email invite to #{locals.email_address}")
                         cb(); return
 
-                    cb()  # we return early, because there is no need to let someone wait for sending the email
-
                     ## do not send email if project doesn't have network access (and user is not a paying customer)
                     #if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
                     #    dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
@@ -1272,6 +1270,7 @@ class exports.Client extends EventEmitter
 
                     try
                         email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails())
+                        cb()
                     catch err
                         cb(err)
                         return
