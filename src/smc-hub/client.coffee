@@ -1170,9 +1170,9 @@ class exports.Client extends EventEmitter
 
 
     # this is an async function
-    allow_urls_in_emails: =>
+    allow_urls_in_emails: (project_id) =>
         is_paying = await is_paying_customer(@database, @account_id)
-        has_network = await project_has_network_access(@database, mesg.project_id)
+        has_network = await project_has_network_access(@database, project_id)
         return is_paying or has_network
 
     mesg_invite_collaborator: (mesg) =>
@@ -1269,8 +1269,7 @@ class exports.Client extends EventEmitter
                         subject  = mesg.subject
 
                     try
-                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails())
-                        cb()
+                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
                     catch err
                         cb(err)
                         return
@@ -1392,44 +1391,44 @@ class exports.Client extends EventEmitter
                         if done
                             dbg("NOT send_email invite to #{email_address}")
                             cb()
-                        else
+                            return
+
+                        # send an email to the user -- async, not blocking user.
+                        # TODO: this can take a while -- we need to take some action
+                        # if it fails, e.g., change a setting in the projects table!
+                        subject  = "CoCalc Invitation"
+                        # override subject if explicitly given
+                        if mesg.subject?
+                            subject  = mesg.subject
+
+                        try
+                            email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
                             cb()
-                            # send an email to the user -- async, not blocking user.
-                            # TODO: this can take a while -- we need to take some action
-                            # if it fails, e.g., change a setting in the projects table!
-                            subject  = "CoCalc Invitation"
-                            # override subject if explicitly given
-                            if mesg.subject?
-                                subject  = mesg.subject
+                        catch err
+                            cb(err)
+                            return
 
-                            try
-                                email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails())
-                            catch err
-                                cb(err)
-                                return
-
-
-                            # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                            opts =
-                                to           : email_address
-                                bcc          : 'invites@cocalc.com'
-                                fromname     : 'CoCalc'
-                                from         : 'invites@cocalc.com'
-                                replyto      : mesg.replyto ? 'help@cocalc.com'
-                                replyto_name : mesg.replyto_name
-                                subject      : subject
-                                category     : "invite"
-                                asm_group    : SENDGRID_ASM_INVITES
-                                body         : email_body
-                                cb           : (err) =>
-                                    if err
-                                        dbg("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
-                                    @database.sent_project_invite
-                                        project_id : mesg.project_id
-                                        to         : email_address
-                                        error      : err
-                            dbg("send_email invite to #{email_address}")
-                            send_email(opts)
+                        # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                        opts =
+                            to           : email_address
+                            bcc          : 'invites@cocalc.com'
+                            fromname     : 'CoCalc'
+                            from         : 'invites@cocalc.com'
+                            replyto      : mesg.replyto ? 'help@cocalc.com'
+                            replyto_name : mesg.replyto_name
+                            subject      : subject
+                            category     : "invite"
+                            asm_group    : SENDGRID_ASM_INVITES
+                            body         : email_body
+                            cb           : (err) =>
+                                if err
+                                    dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
+                                @database.sent_project_invite
+                                    project_id : mesg.project_id
+                                    to         : email_address
+                                    error      : err
+                        dbg("send_email invite to #{email_address}")
+                        send_email(opts)
 
                 ], cb)
 
