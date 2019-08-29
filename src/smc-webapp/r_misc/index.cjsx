@@ -378,6 +378,7 @@ TimeAgoWrapper = rclass
             tip               = {@props.tip}
             live              = {@props.live}
             time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
+            style             = {@props.style}
         />
 
 # The TimeAgoWrapper above is absolutely really necessary **until** the react rewrite is completely
@@ -405,6 +406,7 @@ exports.TimeAgo = rclass
                 placement = {@props.placement}
                 tip       = {@props.tip}
                 live      = {@props.live}
+                style     = {@props.style}
             />
         </Redux>
 

@@ -5,6 +5,7 @@ import { SiteSettings } from "./site-settings";
 import { StripeAPIKeys } from "./stripe-api-keys";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
+import { AnnouncementEditor } from "./announcements";
 import { UserSearch } from "./users/user-search";
 
 import { User } from "smc-webapp/frame-editors/generic/client";
@@ -16,7 +17,7 @@ interface ReduxProps {
   user_search_result: User[];
 }
 
-require('./init').init(redux);
+require("./init").init(redux);
 const admin_actions = redux.getActions("admin-page");
 
 export const AdminPage = rclass(
@@ -56,6 +57,8 @@ export const AdminPage = rclass(
           <SiteSettings />
           <hr />
           <SystemNotifications />
+          <hr />
+          <AnnouncementEditor />
           <hr />
           <StripeAPIKeys />
           <hr />

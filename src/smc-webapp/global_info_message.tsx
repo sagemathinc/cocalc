@@ -2,7 +2,7 @@ import { React, rtypes, Rendered, rclass, redux } from "./app-framework";
 import { Button, ButtonGroup, NavItem } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
 import { is_different } from "smc-util/misc2";
-const { Markdown, Icon, VisibleMDLG, Tip } = require("./r_misc");
+const { Markdown, Icon, VisibleMDLG, Tip, TimeAgo } = require("./r_misc");
 //import { Map as iMap } from "immutable";
 import {
   Messages,
@@ -63,6 +63,10 @@ export class GlobalInformationToggle extends React.Component<
   }
 }
 
+const TIMEAGO_STYLE: React.CSSProperties = {
+  fontSize: "10pt"
+};
+
 interface GlobalInformationMessageProps {
   actions: NotificationsActions;
   loading: boolean;
@@ -95,7 +99,7 @@ class GlobalInformationMessageComponent extends React.Component<
         current_message: rtypes.immutable.Map,
         have_next: rtypes.bool,
         have_previous: rtypes.bool,
-        messages: rtypes.immutable.Map,
+        messages: rtypes.immutable.Map
       }
     };
   }
@@ -186,6 +190,13 @@ class GlobalInformationMessageComponent extends React.Component<
         </div>
         <div className={"cc-announcement-message"}>
           <Markdown value={text} />
+        </div>
+        <div className={"cc-announcement-control"}>
+          <TimeAgo
+            date={message.get("time")}
+            placement={"bottom"}
+            style={TIMEAGO_STYLE}
+          />
         </div>
         {this.render_controls(priority)}
       </div>
