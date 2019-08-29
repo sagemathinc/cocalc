@@ -267,6 +267,7 @@ export class AppRedux {
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "admin-page"): AdminStore;
   getStore(name: "file_use"): FileUseStore | undefined;
+  getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {

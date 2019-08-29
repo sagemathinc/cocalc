@@ -87,7 +87,7 @@ let init_cafe_store_state: cafeState = {
 
 redux.createStore("cafeStore", cafeStore, init_cafe_store_state);
 
-let cafestore: cafeStore | undefined = redux.getStore("cafeStore");
+let cafestore: cafeStore | undefined = redux.getStore<cafeState, cafeStore>("cafeStore");
 
 if (cafestore != undefined) {
   let costs = cafestore.get("costs");
