@@ -1,6 +1,6 @@
-import { Map } from "immutable";
+import { Map, Set } from "immutable";
 
-import { redux, Store} from "../app-framework";
+import { redux, Store } from "../app-framework";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;
@@ -12,10 +12,14 @@ export interface BillingStoreState {
   customer?: any;
   loaded?: boolean;
   invoices?: any;
+  continue_first_purchase?: boolean;
+  selected_plan?: string;
+  course_pay: Set<string>;
 }
 
-class BillingStore  extends Store<BillingStoreState> {}
+class BillingStore extends Store<BillingStoreState> {}
 
 export const store = redux.createStore("billing", BillingStore, {
-  applied_coupons: Map()
+  applied_coupons: Map<string, any>(),
+  course_pay: Set<string>()
 });

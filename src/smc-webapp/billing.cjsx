@@ -29,8 +29,6 @@ _             = require('underscore')
 
 # The billing actions and store:
 require('./billing/actions');
-actions = redux.getActions('billing');
-store = redux.getStore('billing');
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -71,10 +69,13 @@ AddPaymentMethod = rclass
         @setState(error: false, submitting:true)
         if not redux.getStore('billing').get('customer')?
             @props.redux.getActions('billing').setState({continue_first_purchase: true})
-        @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
-            @setState(error: err, submitting:false)
-            if not err
-                @props.on_close?()
+        try
+            await @props.redux.getActions('billing').submit_payment_method(@state.new_payment_info)
+        catch err
+            @setState(error: err.toString())
+        finally
+            @setState(submitting:false)
+            @props.on_close?()
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.address_country != "United States"
@@ -489,6 +490,9 @@ PaymentMethods = rclass
     render_payment_methods: ->
         # this happens, when it is a customer but all credit cards are deleted!
         return null if not @props.sources?
+        # Always sort sources in the same order.  This way when you select
+        # a default source, they don't get reordered, which is really confusing.
+        @props.sources.data.sort((a,b) -> misc.cmp(a.id,b.id))
         for source in @props.sources.data
             @render_payment_method(source)
 
@@ -1581,15 +1585,19 @@ exports.PayCourseFee = PayCourseFee = rclass
     getInitialState: ->
         confirm : false
 
-    key: ->
-        return "course-pay-#{@props.project_id}"
-
     buy_subscription: ->
+        if @props.redux.getStore('billing').get('course_pay').has(@props.project_id)
+            # already buying.
+            return
         actions = @props.redux.getActions('billing')
         # Set semething in billing store that says currently doing
-        actions.setState("#{@key()}": true)
+        actions.set_is_paying_for_course(this.props.project_id, true)
         # Purchase 1 course subscription
-        actions.create_subscription('student_course')
+        try
+            await actions.create_subscription('student_course')
+        catch err
+            actions.set_is_paying_for_course(this.props.project_id, false)
+            return
         # Wait until a members-only upgrade and network upgrade are available, due to buying it
         @setState(confirm:false)
         @props.redux.getStore('account').wait
@@ -1608,12 +1616,12 @@ exports.PayCourseFee = PayCourseFee = rclass
                     upgrades = {member_host: 1, network: 1}
                     @props.redux.getActions('projects').apply_upgrades_to_project(@props.project_id, upgrades)
                 # Set in billing that done
-                actions.setState("#{@key()}": undefined)
+                actions.set_is_paying_for_course(this.props.project_id, false);
 
     render_buy_button: ->
-        if @props.redux.getStore('billing').get(@key())
+        if @props.redux.getStore('billing').get('course_pay').has(@props.project_id)
             <Button bsStyle='primary' disabled={true}>
-                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time ${STUDENT_COURSE_PRICE} fee for this course...
+                <Icon name="cc-icon-cocalc-ring" spin /> Currently paying the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
         else
             <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>

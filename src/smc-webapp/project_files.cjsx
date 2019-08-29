@@ -1412,7 +1412,7 @@ exports.ProjectFiles = rclass ({name}) ->
         # Should probably be moved elsewhere
         # Prevents cascading changes which impact responsiveness
         # https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
-        setTimeout(@props.redux.getActions('billing')?.update_customer, 200)
+        setTimeout((() => @props.redux.getActions('billing')?.update_customer()), 200)
         $(window).on("keydown", @handle_files_key_down)
         $(window).on("keyup", @handle_files_key_up)
 

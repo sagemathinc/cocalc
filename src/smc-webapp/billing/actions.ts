@@ -236,6 +236,20 @@ class BillingActions extends Actions<BillingStoreState> {
       await this.cancel_subscription(x.id);
     }
   }
+
+  // Set this while we are paying for the course.
+  public set_is_paying_for_course(
+    project_id: string,
+    is_paying: boolean
+  ): void {
+    let course_pay = this.store.get("course_pay");
+    if (is_paying) {
+      course_pay = course_pay.add(project_id);
+    } else {
+      course_pay = course_pay.remove(project_id);
+    }
+    this.setState({ course_pay });
+  }
 }
 
 export const actions = redux.createActions("billing", BillingActions);
