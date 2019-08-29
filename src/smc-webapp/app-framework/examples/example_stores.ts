@@ -51,7 +51,7 @@ export interface cafeState {
 }
 
 class cafeStore extends Store<cafeState> {
-  selectors = {
+  protected selectors = {
     subTotal: {
       dependencies: literal(["order_amount", "costs"]),
       fn: () => {

@@ -681,14 +681,20 @@ function _sort_on_numerical_field(field, factor = 1) {
 export function init(project_id: string, redux: AppRedux): ProjectStore {
   const name = project_redux_name(project_id);
   if (redux.hasStore(name)) {
-    const store: ProjectStore | undefined = redux.getStore(name);
+    const store: ProjectStore | undefined = redux.getProjectStore(name);
     // this makes TS happy. we already check that it exists due to "hasStore()"
     if (store != null) return store;
   }
 
   // Initialize everything
-  const store = redux.createStore(name, ProjectStore);
-  const actions = redux.createActions(name, ProjectActions);
+  const store: ProjectStore = redux.createStore<
+    ProjectStoreState,
+    ProjectStore
+  >(name, ProjectStore);
+  const actions = redux.createActions<ProjectStoreState, ProjectActions>(
+    name,
+    ProjectActions
+  );
   store.project_id = project_id;
   actions.project_id = project_id; // so actions can assume this is available on the object
   store._init();

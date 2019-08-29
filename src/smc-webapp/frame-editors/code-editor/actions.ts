@@ -108,7 +108,7 @@ export interface CodeEditorState {
   visible: boolean;
 }
 
-export class Actions<T = CodeEditorState> extends BaseActions<
+export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseActions<
   T | CodeEditorState
 > {
   protected _state: "closed" | undefined;
@@ -119,7 +119,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager;
+  protected terminals: TerminalManager<T>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -127,7 +127,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   public project_id: string;
   public path: string;
-  public store: Store<CodeEditorState>;
+  public store: Store<T>;
   public is_public: boolean;
 
   private _save_local_view_state: () => void;
@@ -151,7 +151,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager(this);
+    this.terminals = new TerminalManager<T>(this);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -1201,7 +1201,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._cm[this._active_id()];
   }
 
-  _get_terminal(id: string, parent: HTMLElement): Terminal {
+  _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     return this.terminals.get_terminal(id, parent);
   }
 
