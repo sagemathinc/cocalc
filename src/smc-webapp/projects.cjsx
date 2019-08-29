@@ -856,7 +856,7 @@ class ProjectsStore extends Store
         if not quotas?
             return false
         else
-            return quotas.network or quotas.member_host
+            return !!(quotas.network or quotas.member_host)
 
 
     # Return javascript mapping from project_id's to the upgrades for the given projects.
