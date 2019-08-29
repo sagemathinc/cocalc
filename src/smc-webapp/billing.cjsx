@@ -30,6 +30,7 @@ _             = require('underscore')
 # The billing actions and store:
 require('./billing/actions')
 {STATES, COUNTRIES} = require('./billing/data')
+{ FAQ} = require("./billing/faq")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -1298,34 +1299,6 @@ exports.DedicatedVM = DedicatedVM = rclass
             {@render_intro()}
             {@render_dedicated()}
         </React.Fragment>
-
-# ~~~ FAQ START
-
-
-
-FAQ = exports.FAQ = rclass
-    displayName : 'FAQ'
-
-    render: ->
-        <div>
-            <a name="faq"></a>
-            <h2>Frequently asked questions</h2>
-            <ul>
-                <li>
-                    <a href="https://doc.cocalc.com/billing.html" rel="noopener" target="_blank">
-                        Billing, quotas, and upgrades
-                    </a>
-                </li>
-                <li>
-                    <a href="https://doc.cocalc.com/project-faq.html" rel="noopener" target="_blank">
-                        Projects
-                    </a>
-                </li>
-            </ul>
-        </div>
-
-# ~~~ FAQ END
-
 
 Subscription = rclass
     displayName : 'Subscription'
