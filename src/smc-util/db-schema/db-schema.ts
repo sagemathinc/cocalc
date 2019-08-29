@@ -1412,14 +1412,14 @@ schema.system_notifications = {
   pg_indexes: ["time"],
   user_query: {
     get: {
-      pg_where: ["time >= NOW() - INTERVAL '1 hour'"],
+      pg_where: ["time >= NOW() - INTERVAL '1 hour'", "priority = 'high'"],
       pg_changefeed: "one-hour",
       throttle_changes: 3000,
       fields: {
         id: null,
         time: null,
         text: "",
-        priority: "info",
+        priority: "high",
         done: false
       }
     },
@@ -1436,7 +1436,7 @@ schema.system_notifications = {
   }
 };
 
-// derived from system_notifications, in particular going longer in time, etc.
+// derived from system_notifications, in particular going back longer in time, etc.
 schema.announcements = {
   primary_key: "id",
   db_standby: "unsafe",
@@ -1451,7 +1451,7 @@ schema.announcements = {
   },
   user_query: {
     get: {
-      pg_where: ["time >= NOW() - INTERVAL '100 days'"],
+      pg_where: ["time >= NOW() - INTERVAL '100 days'", "priority = 'info'"],
       pg_changefeed: "quarter",
       throttle_changes: 3000,
       fields: {

@@ -7,17 +7,23 @@ import { debug } from "./feature";
 import { once } from "smc-util/async-utils";
 import * as LS from "misc/local-storage";
 
-export const NAME = "system_notifications";
+export const NAME_SYSTEM = "system_notifications";
 
 export type Priority = "high" | "info";
 export type Message = Map<string, any>;
 export type Messages = OrderedMap<string, any>;
 
+function sort_messages(messages: Messages): Messages {
+  // we sort by time. this is an opportunity to also sort by priority.
+  return messages.sortBy(a => -a.get("time").getTime());
+}
+
 interface NotificationsState {
   loading: boolean;
   notifications?: Messages;
   announcements?: Messages;
-  show_announcement?: Message; // which announcement to show
+  messages?: Messages; // synthesized ordered map of notifications+announcements
+  current_message?: Message; // which message to display
   have_next: boolean;
   have_previous: boolean;
   dismissed_info?: any; // string or timestamp
@@ -33,11 +39,11 @@ const INIT_STATE: NotificationsState = {
 export class NotificationsStore extends Store<NotificationsState> {}
 
 export class NotificationsActions extends Actions<NotificationsState> {
-  show_banner = (show = true): void => {
+  private show_banner(show = true): void {
     // this controls if the global banner is shown
     const page_actions = redux.getActions("page");
     page_actions.setState({ show_global_info: show });
-  };
+  }
 
   update = (dismissed_high, dismissed_info): void => {
     debug("NotificationsActions::update", { dismissed_info, dismissed_high });
@@ -46,20 +52,22 @@ export class NotificationsActions extends Actions<NotificationsState> {
   };
 
   process_all_messages(): void {
-    this.process_announcements();
-  }
+    // messages ordered by newest first
+    const messages = sort_messages(
+      (store.get("announcements") || Map<string, any>()).merge(
+        store.get("notifications") || Map<string, any>()
+      )
+    );
+    this.setState({ messages });
 
-  private process_announcements(): void {
-    // announcements ordered by newest first
-    const announcements = store.get("announcements");
-    if (announcements == null) return;
-    const start: number = store.get("dismissed_info", 0);
-    const newest = announcements.first();
+    const start: number = store.get("dismissed_info") || 0;
+    const newest = messages.first();
     if (newest == null) return;
     const time = newest.get("time").getTime();
     // show newest announcement iff it is newer than the last dismissed update
     if (time > start) {
-      this.set_show_announcement(newest);
+      this.set_current_message(newest);
+      this.show_banner(true);
     }
   }
 
@@ -74,7 +82,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
       .set({ other_settings: { [`notification_${priority}`]: time } });
   };
 
-  private set_show_announcement(mesg: Message | undefined) {
+  private set_current_message(mesg: Message | undefined) {
     // also update first/last button status
     const id = mesg != null ? mesg.get("id") : undefined;
     const announcements = store.get("announcements");
@@ -83,14 +91,14 @@ export class NotificationsActions extends Actions<NotificationsState> {
     const last = announcements.last();
     const have_previous = last != null && last.get("id") != id;
     const have_next = first != null && first.get("id") != id;
-    actions.setState({ show_announcement: mesg, have_next, have_previous });
+    actions.setState({ current_message: mesg, have_next, have_previous });
   }
 
   private skip(forward: boolean) {
     const a = store.get("announcements");
     if (a == null) return;
 
-    const current = store.get("show_announcement");
+    const current = store.get("current_message");
     if (current == null) return;
 
     const announcements = forward ? a : a.reverse();
@@ -109,13 +117,14 @@ export class NotificationsActions extends Actions<NotificationsState> {
       first = false;
     });
 
-    this.set_show_announcement(next_mesg);
+    this.set_current_message(next_mesg);
   }
 
   next = (): void => this.skip(true);
 
   previous = (): void => this.skip(false);
 
+  // ADMIN ONLY
   send_message = (opts): void => {
     opts = defaults(opts, {
       id: misc.uuid(),
@@ -126,7 +135,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
     table.set(opts);
   };
 
-  // set all recent messages to done
+  // ADMIN ONLY: set all recent messages to done
   mark_all_done = () => {
     const notifications = store.get("notifications");
     if (notifications == null) return;
@@ -141,39 +150,40 @@ export class NotificationsActions extends Actions<NotificationsState> {
 class NotificationsTable extends Table {
   private recent: any; // a date ?
 
+  constructor(name, redux) {
+    super(name, redux);
+    this._change = this._change.bind(this);
+  }
+
   query() {
-    return NAME;
+    return NAME_SYSTEM;
   }
 
   private process_mesg(_id, mesg): void {
     debug("system_notifications::process_mesg", mesg);
-    switch (mesg.priority as Priority) {
-      case "high":
-        // filter old messages or those which are marked "done"
-        if (mesg.time < this.recent || mesg.done) return;
+    // we only care about priority = high
+    if (mesg.priority != ("high" as Priority)) return;
 
-        const lt = mesg.time.toLocaleString();
-        const message = `SYSTEM MESSAGE (${lt}): ${mesg.text}`;
-        alert_message({
-          type: "info" as Priority,
-          message,
-          timeout: 3600
-        });
-        break;
+    // filter old messages or those which are marked "done"
+    if (mesg.time < this.recent || mesg.done) return;
 
-      case "info":
-        debug("show info message", mesg);
-        break;
-    }
+    const lt = mesg.time.toLocaleString();
+    const message = `SYSTEM MESSAGE (${lt}): ${mesg.text}`;
+    alert_message({
+      type: "info" as Priority,
+      message,
+      timeout: 3600
+    });
   }
 
   options() {
     return [];
   }
 
-  _change = (table, _keys) => {
-    console.log("_change", table.get());
-    actions.setState({ loading: false, notifications: table.get() });
+  change = table => {
+    const notifications = sort_messages(table.get());
+    actions.setState({ loading: false, notifications });
+    actions.process_all_messages();
 
     // show any message from the last hour that we have not seen already
     this.recent = misc.minutes_ago(60);
@@ -182,21 +192,31 @@ class NotificationsTable extends Table {
     });
 
     // delete old entries from localStorage.system_notifications
-    LS.del(NAME);
+    LS.del(NAME_SYSTEM);
   };
+
+  _change(table, _keys): void {
+    console.log(`_change ${NAME_SYSTEM}:`, table.get());
+    this.change(table);
+  }
 }
 
-const table = redux.createTable(NAME, NotificationsTable);
-const store = redux.createStore(NAME, NotificationsStore, INIT_STATE);
-const actions = redux.createActions(NAME, NotificationsActions);
+const table = redux.createTable(NAME_SYSTEM, NotificationsTable);
+const store = redux.createStore(NAME_SYSTEM, NotificationsStore, INIT_STATE);
+const actions = redux.createActions(NAME_SYSTEM, NotificationsActions);
 
 /******************************************************************/
 
-const NAME_ANNOUNCEMENTS = "announcements";
+const NAME_ANNOUNCE = "announcements";
 
 class AnnouncementsTable extends Table {
+  constructor(name, redux) {
+    super(name, redux);
+    this._change = this._change.bind(this);
+  }
+
   query() {
-    return NAME_ANNOUNCEMENTS;
+    return NAME_ANNOUNCE;
   }
 
   options() {
@@ -204,22 +224,28 @@ class AnnouncementsTable extends Table {
   }
 
   change = table => {
-    const announcements = table.get().sortBy(a => -a.get("time").getTime());
+    const announcements = sort_messages(table.get());
     actions.setState({ loading: false, announcements });
     actions.process_all_messages();
   };
 
-  _change = (table, _keys) => {
-    debug("_change announcements:", table.get());
+  _change(table, _keys): void {
+    debug(`_change ${NAME_ANNOUNCE}:`, table.get());
     this.change(table);
-  };
+  }
 }
 
-const ann_table = redux.createTable("announcements", AnnouncementsTable);
+const ann_table = redux.createTable(NAME_ANNOUNCE, AnnouncementsTable);
 
 // TODO why is this necessary? what does it do?
 (async () => {
-  const table = redux.getTable("announcements")._table;
-  await once(table, "connected");
-  ann_table.change(table);
+  const redux_announce_table = redux.getTable(NAME_ANNOUNCE)._table;
+  await once(redux_announce_table, "connected");
+  ann_table.change(redux_announce_table);
+})();
+
+(async () => {
+  const redux_sysnoti_table = redux.getTable(NAME_SYSTEM)._table;
+  await once(redux_sysnoti_table, "connected");
+  table.change(redux_sysnoti_table);
 })();

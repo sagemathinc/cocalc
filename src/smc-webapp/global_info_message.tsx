@@ -8,7 +8,7 @@ import {
   Messages,
   Message,
   NotificationsActions,
-  NAME as NotificationsName
+  NAME_SYSTEM as NotificationsName
 } from "./system_notifications";
 
 interface GlobalInformationToggleProps {
@@ -66,8 +66,8 @@ export class GlobalInformationToggle extends React.Component<
 interface GlobalInformationMessageProps {
   actions: NotificationsActions;
   loading: boolean;
-  announcements?: Messages;
-  show_announcement?: Message;
+  messages?: Messages;
+  current_message?: Message;
   have_next: boolean;
   have_previous: boolean;
   notifications?: Messages;
@@ -92,11 +92,10 @@ class GlobalInformationMessageComponent extends React.Component<
     return {
       [NotificationsName]: {
         loading: rtypes.bool,
-        show_announcement: rtypes.immutable.Map,
+        current_message: rtypes.immutable.Map,
         have_next: rtypes.bool,
         have_previous: rtypes.bool,
-        announcements: rtypes.immutable.Map,
-        notifications: rtypes.immutable.Map
+        messages: rtypes.immutable.Map,
       }
     };
   }
@@ -105,7 +104,7 @@ class GlobalInformationMessageComponent extends React.Component<
     return is_different(this.props, next, [
       "notifications",
       "announcements",
-      "show_announcement",
+      "current_message",
       "loading",
       "have_next",
       "have_previous"
@@ -159,12 +158,12 @@ class GlobalInformationMessageComponent extends React.Component<
   }
 
   render(): Rendered | null {
-    if (this.props.show_announcement == null) {
+    if (this.props.current_message == null) {
       return null;
     }
-    const announcement = this.props.show_announcement;
+    const message = this.props.current_message;
 
-    const priority = announcement.get("priority");
+    const priority = message.get("priority");
     const [bgcol, info_icon] = (function() {
       switch (priority) {
         case "high":
@@ -178,7 +177,7 @@ class GlobalInformationMessageComponent extends React.Component<
       backgroundColor: bgcol
     };
 
-    const text = announcement.get("text");
+    const text = message.get("text");
 
     return (
       <div style={style} className={"cc-announcement-banner"}>

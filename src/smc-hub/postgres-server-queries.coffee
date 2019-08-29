@@ -2732,11 +2732,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             rtb = require('random-textblock')
             options =
                 minWords: 4
-                maxWords: 10
+                maxWords: 14
                 minSentences: 1
                 maxSentences: 2
-            # embed timestamp into text for debugging purposes
-            return "`#{ts.toISOString().slice(0, 16)}`: #{rtb.getTextBlock(options)}"
+            return rtb.getTextBlock(options)
 
         insert = (ts, cb) =>
             values =

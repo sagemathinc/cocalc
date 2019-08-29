@@ -30,7 +30,7 @@ class AccountActions extends Actions
     derive_system_notification_state: (store) =>
         ni = store.getIn(['other_settings', 'notification_info'])
         nh = store.getIn(['other_settings', 'notification_high'])
-        system_notifications_actions = redux.getActions(system_notifications.NAME)
+        system_notifications_actions = redux.getActions(system_notifications.NAME_SYSTEM)
         system_notifications_actions.update(nh, ni)
 
     set_user_type: (user_type) =>

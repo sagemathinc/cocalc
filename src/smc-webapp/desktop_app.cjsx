@@ -290,7 +290,7 @@ Page = rclass
 
         <React.Fragment>
             {<div className={"cocalc-announce"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
-                {<GlobalInformationMessage actions = {@actions(system_notifications.NAME)} /> if @props.show_global_info}
+                {<GlobalInformationMessage actions = {@actions(system_notifications.NAME_SYSTEM)} /> if @props.show_global_info}
             </div> if not @props.fullscreen}
 
             {<Navbar
