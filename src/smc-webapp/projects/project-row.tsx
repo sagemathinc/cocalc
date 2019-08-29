@@ -121,10 +121,11 @@ export const ProjectRow = rclass<ReactProps>(
       // long ago, and I'm not fixing this now.  This won't result
       // in bad/stale data that matters, since when this object
       // changes, then @props.project changes.
-      const imm = this.props.redux
-        .getStore("projects")
-        .getIn(["project_map", this.props.project.project_id]);
-      return <AddCollaboratorsArea project={imm} />;
+      const projects_store = this.props.redux.getStore("projects");
+      const project_id = this.props.project.project_id;
+      const imm = projects_store.getIn(["project_map", project_id]);
+      const allow_urls = projects_store.allow_urls_in_emails(project_id);
+      return <AddCollaboratorsArea project={imm} allow_urls={allow_urls} />;
     }
 
     render_collab_caret() {
@@ -176,12 +177,22 @@ export const ProjectRow = rclass<ReactProps>(
         const img = this.props.images.get(id);
         if (img == null) return;
         const name = img.get("display");
-        return <div style={image_name_style}>{name} <span title="Custom image created by a third party">(custom)</span></div>;
+        return (
+          <div style={image_name_style}>
+            {name}{" "}
+            <span title="Custom image created by a third party">(custom)</span>
+          </div>
+        );
       } else {
         // official
         const name = id2name(ci);
         if (name === "Default") return; // avoid clutter for the default.
-        return <div style={image_name_style}>{name} <span title="Official image created by CoCalc">(official)</span></div>;
+        return (
+          <div style={image_name_style}>
+            {name}{" "}
+            <span title="Official image created by CoCalc">(official)</span>
+          </div>
+        );
       }
     }
 
@@ -288,14 +299,18 @@ export const ProjectRow = rclass<ReactProps>(
   }
 );
 
-function AddCollaboratorsArea({ project }) {
+function AddCollaboratorsArea({ project, allow_urls }) {
   return (
     <div>
       <h5>Add people</h5>
       <div style={{ color: "#666", marginBottom: "10px" }}>
         Who would you like to work with on this project?
       </div>
-      <AddCollaborators project={project} inline={true} />
+      <AddCollaborators
+        project={project}
+        inline={true}
+        allow_urls={allow_urls}
+      />
     </div>
   );
 }

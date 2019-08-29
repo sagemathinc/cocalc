@@ -9,6 +9,7 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 
 import * as lodash from "lodash";
 export const keys = lodash.keys;
+const urlRegex = require("url-regex");
 
 interface SplittedPath {
   head: string;
@@ -501,4 +502,11 @@ export function human_readable_size(bytes: number | null | undefined): string {
   }
   const b = Math.floor(bytes / 100000000);
   return `${b / 10} GB`;
+}
+
+// used to test for URLs in a string
+export const re_url = urlRegex({ exact: false, strict: false });
+
+export function contains_url(str: string): boolean {
+  return !!str.toLowerCase().match(re_url);
 }

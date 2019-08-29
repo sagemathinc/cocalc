@@ -944,7 +944,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     if (file.type.indexOf("image") !== -1) {
       final_insertion_text = `<img src=\".chat-images/${
         file.name
-      }\" width='100%'>`;
+      }\" style="max-width:100%">`;
     } else {
       final_insertion_text = `[${file.name}](${file.name})`;
     }
@@ -1000,7 +1000,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.path
     );
     this.props.actions.send_chat(input);
-    if (this.input_ref.current != null) {
+    if (this.input_ref.current != null && this.input_ref.current.focus != null) {
       this.input_ref.current.focus();
     }
   };
