@@ -86,8 +86,8 @@ export class CustomSoftwareReset extends Component<Props, {}> {
               Note, that this will overwrite any changes you did to these
               accompanying files, but does not modify or delete any other files.
               However, nothing is lost: you can still access the previous
-              version via {A(doc_snap, "Snapshot Backups")} or{" "}
-              {A(doc_tt, "TimeTravel")}.
+              version via <A href={doc_snap}>Snapshot Backups</A> or{" "}
+              <A href={doc_tt}>TimeTravel</A>.
             </p>
             <p>This action will also restart your project!</p>
           </Col>

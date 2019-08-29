@@ -1,4 +1,5 @@
 import { Component, React, Rendered } from "../app-framework";
+import { A } from "smc-webapp/r_misc/A";
 
 export class FAQ extends Component {
   public render(): Rendered {
@@ -8,22 +9,12 @@ export class FAQ extends Component {
         <h2>Frequently asked questions</h2>
         <ul>
           <li>
-            <a
-              href="https://doc.cocalc.com/billing.html"
-              rel="noopener"
-              target="_blank"
-            >
+            <A href={"https://doc.cocalc.com/billing.html"}>
               Billing, quotas, and upgrades
-            </a>
+            </A>
           </li>
           <li>
-            <a
-              href="https://doc.cocalc.com/project-faq.html"
-              rel="noopener"
-              target="_blank"
-            >
-              Projects
-            </a>
+            <A href="https://doc.cocalc.com/project-faq.html">Projects</A>
           </li>
         </ul>
       </div>
