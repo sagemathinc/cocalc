@@ -19,12 +19,18 @@
 #
 ###############################################################################
 
+
 $             = window.$
 async         = require('async')
 misc          = require('smc-util/misc')
 _             = require('underscore')
 
 {redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./app-framework')
+
+# The billing actions and store:
+require('./billing/actions');
+actions = redux.getActions('billing');
+store = redux.getStore('billing');
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -33,182 +39,6 @@ _             = require('underscore')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
-
-# TODO: Upgrade to v3 and Stripe Elements
-load_stripe = (cb) ->
-    if Stripe?
-        cb()
-    else
-        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support; make sure your browser is not blocking stripe.com.'))
-
-last_subscription_attempt = null
-
-actions = store = undefined
-# Create the billing actions
-class BillingActions extends Actions
-    clear_error: =>
-        @setState(error:'')
-
-    update_customer: (cb) =>
-        if @_update_customer_lock
-            return
-        @_update_customer_lock=true
-        @setState(action:"Updating billing information")
-        customer_is_defined = false
-        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
-        async.series([
-            (cb) =>
-                webapp_client.stripe_get_customer
-                    cb : (err, resp) =>
-                        @_update_customer_lock = false
-                        if not err and not resp?.stripe_publishable_key?
-                            err = "WARNING: Stripe is not configured -- billing not available"
-                            @setState(no_stripe:true)
-                        if not err
-                            @setState
-                                customer               : resp.customer
-                                loaded                 : true
-                                stripe_publishable_key : resp.stripe_publishable_key
-                            customer_is_defined = resp.customer?
-                        cb(err)
-            (cb) =>
-                if not customer_is_defined
-                    cb()
-                else
-                    # only call get_invoices if the customer already exists in the system!
-                    webapp_client.stripe_get_invoices
-                        limit : 100  # FUTURE: -- this will change when we use webhooks and our own database of info.
-                        cb: (err, invoices) =>
-                            if not err
-                                @setState(invoices: invoices)
-                            cb(err)
-        ], (err) =>
-            @setState(error:err, action:'')
-            cb?(err)
-        )
-
-    _action: (action, desc, opts) =>
-        @setState(action: desc)
-        cb = opts.cb
-        opts.cb = (err, value) =>
-            @setState(action:'')
-            if action == 'get_coupon'
-                cb(err, value)
-            else if err
-                @setState(error:JSON.stringify(err))
-                cb?(err)
-            else
-                @update_customer(cb)
-        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
-        webapp_client["stripe_#{action}"](opts)
-
-    clear_action: =>
-        @setState(action:"", error:"")
-
-    delete_payment_method: (id, cb) =>
-        @_action('delete_source', 'Deleting a payment method', {card_id:id, cb:cb})
-
-    set_as_default_payment_method: (id, cb) =>
-        @_action('set_default_source', 'Setting payment method as default', {card_id:id, cb:cb})
-
-    submit_payment_method: (info, cb) =>
-        response = undefined
-        async.series([
-            (cb) =>
-                if not store.get("stripe_publishable_key")?
-                    @update_customer(cb)  # this defines stripe_publishable_key, or fails
-                else
-                    cb()
-            (cb) =>
-                load_stripe(cb)
-            (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
-                @setState(action:"Creating a new payment method -- get token from Stripe")
-                Stripe.setPublishableKey(store.get("stripe_publishable_key"))
-                Stripe.card.createToken info, (status, _response) =>
-                    if status != 200
-                        cb(_response.error.message)
-                    else
-                        response = _response
-                        cb()
-            (cb) =>
-                @_action('create_source', 'Creating a new payment method (sending token)', {token:response.id, cb:cb})
-        ], (err) =>
-            @setState(action:'', error:err)
-            cb?(err)
-        )
-
-    cancel_subscription: (id, cb) =>
-        @_action('cancel_subscription', 'Cancel a subscription', {subscription_id : id, cb : cb})
-
-    create_subscription: (plan='standard') =>
-        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
-        lsa = last_subscription_attempt
-        if lsa? and lsa.plan == plan and lsa.timestamp > misc.server_minutes_ago(2)
-            @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
-        else
-            @setState(error: '')
-            # TODO: Support multiple coupons.
-            if store.get('applied_coupons').size > 0
-                coupon = store.get('applied_coupons').first()
-            opts =
-                plan      : plan
-                coupon_id : coupon?.id
-            @_action('create_subscription', 'Create a subscription', opts)
-            last_subscription_attempt = {timestamp:misc.server_time(), plan:plan}
-            @track_subscription(plan)
-
-    apply_coupon: (id) =>
-        cb = (err, coupon) =>
-            if err
-                @setState(coupon_error: JSON.stringify(err))
-            else
-                applied_coupons = store.get('applied_coupons').set(coupon.id, coupon)
-                @setState(applied_coupons : applied_coupons, coupon_error:'')
-
-        opts =
-            coupon_id : id
-            cb        : cb
-        @_action('get_coupon', "Applying coupon: #{id}", opts)
-
-    clear_coupon_error: =>
-        @setState(coupon_error : '')
-
-    remove_all_coupons: =>
-        @setState(applied_coupons : {}, coupon_error : '')
-
-    remove_coupon: (id) =>
-        @setState(applied_coupons : store.get('applied_coupons').delete(id))
-
-    # conversion tracking (commercial only)
-    track_subscription: (plan) =>
-        usd = 7.00 # TODO derive this from the plan
-        {track_conversion} = require('./misc_page')
-        track_conversion('subscription', usd)
-
-    # Cancel all subscriptions, remove credit cards, etc. -- this is not a normal action, and is used
-    # only when deleting an account.  We allow it a callback.
-    cancel_everything: (cb) =>
-        async.series([
-            (cb) =>
-                # update info about this customer
-                @update_customer(cb)
-            (cb) =>
-                # delete stuff
-                async.parallel([
-                    (cb) =>
-                        # delete payment methods
-                        ids = (x.id for x in redux.getStore('billing').getIn(['customer', 'sources', 'data'])?.toJS() ? [])
-                        async.map(ids, @delete_payment_method, cb)
-                    (cb) =>
-                        # cancel subscriptions
-                        ids = (x.id for x in redux.getStore('billing').getIn(['customer', 'subscriptions', 'data'])?.toJS() ? []   when not x.canceled_at)
-                        async.map(ids, @cancel_subscription, cb)
-                ], cb)
-        ], cb)
-
-
-store   = redux.createStore('billing', Store, {applied_coupons:{}})
-actions = redux.createActions('billing', BillingActions)
 
 validate =
     valid   : {border:'1px solid green'}
