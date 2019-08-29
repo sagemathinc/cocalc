@@ -50,6 +50,7 @@ import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 import { AdminStore, AdminActions } from "./admin";
 
 import { MentionsActions, MentionsStore } from "./notifications";
+import { FileUseStore } from "./file-use/store";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
@@ -265,6 +266,7 @@ export class AppRedux {
   getStore(name: "users"): any;
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "admin-page"): AdminStore;
+  getStore(name: "file_use"): FileUseStore | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
