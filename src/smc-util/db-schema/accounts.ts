@@ -147,7 +147,7 @@ export const accounts = create({
     sign_up_usage_intent: {
       type: "string",
       desc: "What user intended to use CoCalc for at sign up"
-    }
+    },
   },
   rules: {
     desc: "All user accounts.",

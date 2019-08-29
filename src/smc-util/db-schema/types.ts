@@ -30,7 +30,7 @@ interface Fields {
       };
 }
 
-interface TableSchema<F extends Fields> {
+export interface TableSchema<F extends Fields> {
   desc: string;
   primary_key: keyof F | (keyof F)[]; // One of the fields or array of fields
   fields: F;

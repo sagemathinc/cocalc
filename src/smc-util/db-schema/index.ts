@@ -1,14 +1,14 @@
 import { schema } from "./db-schema";
 import { account_creation_actions } from "./account-creation-actions";
 import { accounts } from "./accounts";
-import { platforms } from "./lti-schema";
+import { lti_schema } from "./lti-schema";
 import * as misc from "../misc";
 
 export const SCHEMA = {
   ...schema,
   account_creation_actions,
   accounts,
-  platforms
+  ...lti_schema
 };
 
 export {
