@@ -71,6 +71,7 @@ install:
   - "cd src"
   - "source smc-env"
   - 'if [[ $KUCALC_MODE != "services" ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE != "services" ]]; then tsc --version; fi'
   - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-install-services.sh"; fi'
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
