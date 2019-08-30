@@ -6,15 +6,16 @@ export class FAQ extends Component {
     return (
       <div>
         <a id="faq" />
-        <h2>Frequently asked questions</h2>
         <ul>
           <li>
             <A href={"https://doc.cocalc.com/billing.html"}>
-              Billing, quotas, and upgrades
+              Billing, quotas, and upgrades FAQ
             </A>
           </li>
           <li>
-            <A href="https://doc.cocalc.com/project-faq.html">Projects</A>
+            <A href="https://doc.cocalc.com/project-faq.html">
+              Questions about projects
+            </A>
           </li>
         </ul>
       </div>

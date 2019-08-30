@@ -30,7 +30,7 @@ _             = require('underscore')
 # The billing actions and store:
 require('./billing/actions')
 {STATES, COUNTRIES} = require('./billing/data')
-{ FAQ} = require("./billing/faq")
+{FAQ} = require("./billing/faq")
 {AddPaymentMethod} = require('./billing/add-payment-method')
 {PaymentMethod} = require('./billing/payment-method')
 {PaymentMethods} = require('./billing/payment-methods')
@@ -38,10 +38,13 @@ require('./billing/actions')
 {powered_by_stripe} = require("./billing/util")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
-{ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
+{ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer, A} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
+{COLORS} = require('smc-util/theme')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+BILLING_FAQ = "https://doc.cocalc.com/billing.html"
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -258,6 +261,15 @@ AddSubscription = rclass
             </Col>
         </Row>
 
+    render_explain_currency: ->
+        <Col sm={12} style={color:COLORS.GRAY, fontStyle:"italic"}>
+          <hr/>
+          Listed prices are in <strong>US dollars</strong>.
+          When charging in local currency,
+          the prices are converted into local currency
+          using the conversion rates published by leading financial institutions.
+        </Col>
+
     render: ->
         plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
         <Row>
@@ -274,6 +286,9 @@ AddSubscription = rclass
                         <Col sm={5} smOffset={7}>
                             <CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />
                         </Col>
+                    </Row>
+                    <Row>
+                        {@render_explain_currency()}
                     </Row>
                 </Well>
                 <ExplainResources type='shared'/>
@@ -515,7 +530,6 @@ exports.ExplainResources = ExplainResources = rclass
                 <li><b><a href="#dedicated">Dedicated VMs</a></b>:{' '}
                     a node in the cluster for large workloads
                 </li>
-                <li><b><a href="#faq">FAQ</a></b>: frequently asked questions</li>
             </ul>
             <Space/>
         </React.Fragment>
@@ -526,9 +540,11 @@ exports.ExplainResources = ExplainResources = rclass
                 <Col md={8} sm={12}>
                     <h4>Questions</h4>
                     <div style={fontSize:'12pt'}>
-                        Please immediately email us at <HelpEmailLink/>,{' '}
-                        {if not @props.is_static then <span> click the Help button above or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
-                        if anything is unclear to you, or you just have a quick question and do not want to wade through all the text below.
+                        If anything is unclear to you or you just have a quick question,
+                        please do not hesitate to email us at <HelpEmailLink/>,{' '}
+                        {if not @props.is_static then <span> click the Help button above </span>}
+                        or read our{' '}
+                        <a target='_blank' href="#{BILLING_FAQ}" rel="noopener">Billing/Upgrades FAQ</a>.
                     </div>
                     <Space/>
 
@@ -537,16 +553,19 @@ exports.ExplainResources = ExplainResources = rclass
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
-                    Your work on <SiteName/> happens inside <em>projects</em>.
-                    You may create any number of independent projects.
+                    Your work on <SiteName/> happens inside one or more{' '}
+                    <A href="https://doc.cocalc.com/project.html">projects</A>.
                     They form your personal workspaces,
                     where you privately store your files, computational worksheets, and data.
                     You typically run computations through a web browser,
-                    either via a worksheet, notebook, or by executing a program in a terminal
-                    (you can also ssh into any project).
-                    You can also invite collaborators to work with you inside a project,
-                    and you can explicitly make files or directories publicly available
-                    to everybody.
+                    either via a <A href="https://doc.cocalc.com/sagews.html">Sage Worksheet</A>,{' '}
+                    <A href="https://doc.cocalc.com/jupyter.html">Jupyter Notebook</A>,{' '}
+                    or by executing a program in a <A href="https://doc.cocalc.com/terminal.html">terminal</A>.
+                    You can also{' '}
+                    <A href="https://doc.cocalc.com/project-settings.html#add-new-collaborators">invite collaborators</A>{' '}
+                    to work with you inside a project,
+                    and you can explicitly make files or directories{' '}
+                    <A href="https://doc.cocalc.com/share.html">publicly available to everybody</A>.
                     </div>
                     <Space/>
 
@@ -562,8 +581,9 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <h4>Quota upgrades</h4>
                     <div>
-                    By purchasing one or more of our subscriptions,
-                    you receive a certain amount of <em>quota upgrades</em>.
+                    By purchasing one or more of our subscriptions or plans,
+                    you receive a certain amount of{' '}
+                    <A href="https://doc.cocalc.com/billing.html#quota-upgrades">quota upgrades</A>.
                     <ul style={paddingLeft:"20px"}>
                     <li>You can upgrade the quotas on any of your projects
                         up to the total amount given by your subscription(s)
@@ -573,10 +593,14 @@ exports.ExplainResources = ExplainResources = rclass
                         in order to increase the quotas of their common project
                         &mdash; these contributions add together to benefit all project collaborators equally.</li>
                     <li>You can remove your contributions to any project at any time.</li>
-                    <li>You may also purchase multiple plans more than once,
+                    <li>You may also purchase any plans more than once,
                         in order to increase the total amount of upgrades available to you.</li>
                     </ul>
                     </div>
+                    <Space/>
+
+                    <h4>More information</h4>
+                    <FAQ/>
                     <Space/>
 
                 </Col>
@@ -641,58 +665,89 @@ exports.ExplainPlan = ExplainPlan = rclass
             <h3>Course packages</h3>
             <div>
                 <p>
-                We offer course packages to support teaching using <SiteName/>.
-                They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank" rel="noopener">instructor guide</a> to create a course file for your new course.
-                Each time you add a student to your course, a project will be automatically created for that student.
+                We offer upgrade packages for teaching a course using <SiteName/>.
+                </p>
+
+                <p>
+                In a course, each student works in his or her own project.
+                The upgrades are distributed across your student projects.
+                This will ensure that your students have a better experience,{' '}
+                network access, and receive priority support.
+                </p>
+
+                <p>
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
                 in realtime and answer their questions),
                 and you later collect and grade their assignments, then return them.
                 </p>
+                <Space/>
+
+                <p><b>Payment is required:</b>{' '}
+                The cost is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>,
+                depending on class size and whether you or your students pay.
+                </p>
+                <Space/>
 
                 <p>
-                Payment is required. This will ensure that your students have a better
-                experience, network access, and receive priority support.  The cost
-                is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
-                you or your students pay.  <b>Start right now:</b> <i>you can fully set up your class
-                and add students immediately before you pay us anything!</i>
-
+                <b>Start right now:</b> <i>you can fully set up your class
+                and add students immediately, before you pay anything!</i>{' '}
+                Right after the course package purchase, you the upgrades are added to your account
+                and last for the indicated period &mdash; packages do not <b>no auto-renew</b>.
                 </p>
+                <Space/>
 
-                <h4>You or your institution pays</h4>
-                You or your institution may pay for one of the course plans.
-                You then use your plan to upgrade all projects in the course in the settings tab of the course file.
+                <h4>Payment options</h4>
+                <ul>
+                <li><b><A href={'https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgrades'}>You or your institution pays</A></b>{' '}
+                for one or more course plans.
+                You then distribute the quota upgrades to all projects in the course in the settings tab of the course file.
+                </li>
 
-                <h4>Students pay</h4>
-                In the settings tab of your course, you require that all students
-                pay a one-time ${STUDENT_COURSE_PRICE} fee to move their
-                projects to members only hosts and enable full internet access.
+                <li><b><A href="https://doc.cocalc.com/teaching-create-course.html#option-1-students-pay-for-upgrades">Students pay a one-time fee.</A></b>{' '}
+                In the settings tab of your course, you
+                require that all students pay a one-time ${STUDENT_COURSE_PRICE} fee
+                to move their projects to members only hosts and enable full internet access.
+                </li>
+                </ul>
+                <Space/>
 
-                <br/>
-
-                <h4>Basic or Standard?</h4>
+                <h4>Basic, Standard or Premium?</h4>
+                <p>
                 Our basic plans work well for cases where you are only doing
-                small computations or just need internet access and better hosting uptime.
-
+                small computations in a single notebook/worksheet
+                or just need internet access and better hosting uptime.
+                </p>
+                <p>
                 However, we find that many data science and computational science courses
-                run much smoother with the additional RAM and CPU found in the standard plan.
+                run much smoother with the additional RAM and CPU found in the standard or premium plan.
+                </p>
+                <Space/>
 
                 <h4>Custom Course Plans</h4>
+                <p>
                 In addition to the plans listed on this page, we can offer the following on a custom basis:
-                    <ul>
-                        <li>start on a specified date after payment</li>
-                        <li>customized duration</li>
-                        <li>customized number of students</li>
-                        <li>bundle several courses with different start dates</li>
-                        <li>transfer upgrades from purchasing account to course administrator account</li>
-                    </ul>
+                </p>
+                <ul>
+                    <li>start on a specified date after payment</li>
+                    <li>customized duration</li>
+                    <li>customized number of students</li>
+                    <li>bundle several courses with different start dates</li>
+                    <li>transfer upgrades from purchasing account to course administrator account</li>
+                </ul>
+                <p>
                 To learn more about these options, email us at <HelpEmailLink/> with a description
                 of your specific requirements.
-                <br/>
+                </p>
+                <Space/>
 
-                <br/>
-
+                <h4>More information</h4>
+                <p>
+                The <b><A href="https://doc.cocalc.com/teaching-instructors.html">instructor guide</A></b>{' '}
+                explains how to create a course, add students, apply upgrades,
+                create/distribute assignments, and later collect and grade them.
+                </p>
+                <Space/>
             </div>
         </div>
 
@@ -1368,7 +1423,6 @@ exports.render_static_pricing_page = () ->
         <hr/>
         <DedicatedVM />
         <hr/>
-        <FAQ/>
     </div>
 
 exports.visit_billing_page = ->
