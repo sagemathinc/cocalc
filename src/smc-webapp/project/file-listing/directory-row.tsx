@@ -79,7 +79,7 @@ export class DirectoryRow extends React.Component<Props, State> {
 
   handle_mouse_down = () => {
     this.setState({
-      selection_at_last_mouse_down: window.getSelection().toString()
+      selection_at_last_mouse_down: (window.getSelection() || "").toString()
     });
   };
 
@@ -89,7 +89,7 @@ export class DirectoryRow extends React.Component<Props, State> {
       return;
     }
     if (
-      window.getSelection().toString() ===
+      (window.getSelection() || "").toString() ===
       this.state.selection_at_last_mouse_down
     ) {
       this.props.actions.open_directory(this.full_path());

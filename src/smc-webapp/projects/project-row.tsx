@@ -21,7 +21,7 @@ import { id2name, ComputeImages } from "../custom-software/init";
 import {
   CUSTOM_IMG_PREFIX,
   compute_image2basename
-} from "custom-software/util";
+} from "../custom-software/util";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
@@ -210,12 +210,12 @@ export const ProjectRow = rclass<ReactProps>(
 
     handle_mouse_down = () => {
       this.setState({
-        selection_at_last_mouse_down: window.getSelection().toString()
+        selection_at_last_mouse_down: (window.getSelection() || "").toString()
       });
     };
 
     handle_click = e => {
-      const cur_sel = window.getSelection().toString();
+      const cur_sel = (window.getSelection() || "").toString();
       // Check if user has highlighted some text.
       // Do NOT open if the user seems to be trying to highlight text on the row
       // eg. for copy pasting.

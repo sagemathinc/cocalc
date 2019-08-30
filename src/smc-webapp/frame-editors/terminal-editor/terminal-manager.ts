@@ -2,16 +2,16 @@
 Manage a collection of terminals in the frame tree.
 */
 
-import { Actions } from "../code-editor/actions";
+import { Actions, CodeEditorState } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { len } from "smc-util/misc2";
 import { Terminal } from "./connected-terminal";
 
-export class TerminalManager {
-  private terminals: { [key: string]: Terminal } = {};
-  private actions: Actions;
+export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
+  private terminals: { [key: string]: Terminal<T> } = {};
+  private actions: Actions<T>;
 
-  constructor(actions: Actions) {
+  constructor(actions: Actions<T>) {
     this.actions = actions;
   }
 
@@ -64,7 +64,7 @@ export class TerminalManager {
     return number;
   }
 
-  get_terminal(id: string, parent: HTMLElement): Terminal {
+  get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     let node = this.actions._get_frame_node(id);
 
     if (this.terminals[id] != null) {
@@ -76,7 +76,7 @@ export class TerminalManager {
         command = node.get("command");
         args = node.get("args");
       }
-      this.terminals[id] = new Terminal(
+      this.terminals[id] = new Terminal<T>(
         this.actions,
         this._node_number(id, command),
         id,
@@ -120,7 +120,7 @@ export class TerminalManager {
     }
   }
 
-  get(id: string): Terminal | undefined {
+  get(id: string): Terminal<T> | undefined {
     return this.terminals[id];
   }
 
