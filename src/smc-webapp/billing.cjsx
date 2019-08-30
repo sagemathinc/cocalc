@@ -32,6 +32,7 @@ require('./billing/actions')
 {STATES, COUNTRIES} = require('./billing/data')
 { FAQ} = require("./billing/faq")
 {AddPaymentMethod} = require('./billing/add-payment-method')
+{PaymentMethod} = require('./billing/payment-method')
 {powered_by_stripe} = require("./billing/util")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
@@ -41,111 +42,6 @@ require('./billing/actions')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
-
-#address_city: nulladdress_country: "United States"address_line1: nulladdress_line1_check: nulladdress_line2: nulladdress_state: "WA"address_zip: "98122"address_zip_check: "pass"brand: "Diners Club"country: nullcustomer: "cus_6TzOs3X3oawJxr"cvc_check: "pass"dynamic_last4: nullexp_month: 2exp_year: 2020fingerprint: "ukp9e1Ie0rPtwrXy"funding: "credit"id: "card_16MMxEGbwvoRbeYxoQoOUyno"last4: "5904"metadata: Object__proto__: Objectname: "William Stein"object: "card"tokenization_method: null__proto__: Object1: Objectlength: 2__proto__: Array[0]has_more: falseobject: "list"total_count: 2url: "/v1/customers/cus_6TzOs3X3oawJxr/sources"__proto__: Objectsubscriptions: Object__proto__: Object__proto__: Object
-
-
-PaymentMethod = rclass
-    displayName : "PaymentMethod"
-
-    propTypes :
-        source         : rtypes.object.isRequired
-        default        : rtypes.bool  # required for set_as_default
-        set_as_default : rtypes.func  # called when this card should be set to default
-        delete_method  : rtypes.func  # called when this card should be deleted
-
-    getInitialState: ->
-        confirm_default : false
-        confirm_delete  : false
-
-    icon_name: ->
-        return brand_to_icon(@props.source.brand?.toLowerCase())
-
-    render_confirm_default: ->
-        <Alert bsStyle='warning'>
-            <Row>
-                <Col md={5} mdOffset={2}>
-                    <p>Are you sure you want to set this payment card to be the default?</p>
-                    <p>All future payments will be made with the card that is the default <b>at the time of renewal</b>.
-                    Changing your default card right before a subscription renewal will cause the <Space/>
-                    new default to be charged instead of the previous one.</p>
-                </Col>
-                <Col md={5}>
-                    <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
-                            <Icon name='trash'/> Set to Default
-                        </Button>
-                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
-                    </ButtonToolbar>
-                </Col>
-            </Row>
-        </Alert>
-
-    render_confirm_delete: ->
-        <Alert bsStyle='danger'>
-            <Row>
-                <Col md={5} mdOffset={2}>
-                    Are you sure you want to delete this payment method?
-                </Col>
-                <Col md={5}>
-                    <ButtonToolbar>
-                        <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
-                            <Icon name='trash'/> Delete Payment Method
-                        </Button>
-                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
-                    </ButtonToolbar>
-                </Col>
-            </Row>
-        </Alert>
-
-    render_card: ->
-        <Row>
-            <Col md={2}>
-                <Icon name={@icon_name()} /> {@props.source.brand}
-            </Col>
-            <Col md={1}>
-                <em>····</em>{@props.source.last4}
-            </Col>
-            <Col md={1}>
-                {@props.source.exp_month}/{@props.source.exp_year}
-            </Col>
-            <Col md={2}>
-                {@props.source.name}
-            </Col>
-            <Col md={1}>
-                {@props.source.country}
-            </Col>
-            <Col md={2}>
-                {@props.source.address_state}
-                <Space/><Space/>
-                {@props.source.address_zip}
-            </Col>
-            {@render_action_buttons() if @props.set_as_default? or @props.delete_method?}
-        </Row>
-
-    render_action_buttons: ->
-        <Col md={3}>
-            <ButtonToolbar style={float: "right"}>
-                {<Button
-                    onClick  = {=>@setState(confirm_default:true)}
-                    disabled = {@props.default}
-                    bsStyle  = {if @props.default then 'primary' else 'default'}
-                >
-                    Default{<span>... </span> if not @props.default}
-                </Button> if @props.set_as_default? }
-
-                {<Button onClick={=>@setState(confirm_delete:true)}>
-                    <Icon name="trash" /> Delete
-                </Button> if @props.delete_method? }
-            </ButtonToolbar>
-        </Col>
-
-    render: ->
-        <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
-            {@render_card()}
-            {@render_confirm_default() if @state.confirm_default}
-            {@render_confirm_delete()  if @state.confirm_delete}
-        </div>
 
 PaymentMethods = rclass
     displayName : 'PaymentMethods'
