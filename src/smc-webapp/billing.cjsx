@@ -1466,199 +1466,26 @@ exports.DedicatedVM = DedicatedVM = rclass
 
 # ~~~ FAQ START
 
-# some variables used in the text below
-faq_course_120 = 2 * PROJECT_UPGRADES.subscription.medium_course.benefits.member_host
-faq_academic_students =  PROJECT_UPGRADES.subscription.small_course.benefits.member_host
-faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.subscription.standard.benefits.member_host)
-faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.subscription.standard.price.month
-faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
-
-# the structured react.js FAQ text
-FAQS =
-    differences:
-        q: <span>What is the difference between <b>free and paid plans</b>?</span>
-        a: <span>The main differences are increased quotas and the quality of hosting; we also
-           prioritize supporting paying users.
-           We very strongly encourage you to make an account and explore our product for free!
-           There is no difference in functionality between the free and for-pay versions of
-           <SiteName/>; everything is still private by default for free users, and you can
-           make as many projects as you want.  You can even fully start teaching a course
-           in <SiteName/> completely for free, then upgrade at any point later so that your students
-           have a <b>much</b> better quality experience (for a small fraction of the cost of
-           their textbook).
-           </span>
-    member_hosting:
-        q: <span>What does <b>"member hosting"</b> mean?</span>
-        a: <span>
-            There are two types of projects: "free projects" and "member projects".
-            Free projects run on heavily loaded computers.
-            Quite often, these computers will house over 150 simultaneously running projects!
-            Member-hosted projects are moved to much less loaded machine,
-            which are reserved only for paying customers.<br/>
-            Working in member-hosted projects feels much smoother because commands execute
-            more quickly with lower latency,
-            and CPU, memory and I/O heavy operations run more quickly.
-            Additionally, members only projects are always "ready to start".
-            Free projects that are not used for a few weeks are moved to "cold storage",
-            and it can take a while to move them back onto a free machine when you
-            later start them.
-           </span>
-    network_access:
-        q: <span>What exactly does the quota <b>"internet access"</b> mean?</span>
-        a: <span>
-            Despite the fact that you are accessing <SiteName/> through the internet,
-            you are actually working in a highly restricted environment.
-            Processes running <em>inside</em> a free project are not allowed to directly
-            access the internet.  (We do not allow such access for free users, since when we did,
-            malicious users launched attacks on other computers from <SiteName/>.)
-            Enable internet access by adding the "internet access" quota.
-           </span>
-    idle_timeout:
-        q: <span>What exactly does the quota <b>"idle timeout"</b> mean?</span>
-        a: <span>
-            By default, free projects stop running after {faq_idle_time_free_h} hour of idle time.
-            This makes doing an overnight research computation &mdash;
-            e.g., searching for special prime numbers &mdash; impossible.
-            With an increased idle timeout, projects are allowed to run longer unattended.
-            Processes might still stop if they use too much memory, crash due to an exception, or if the server they are
-            running on is rebooted.
-            (NOTE: Projects do not normally stop if you are continuously using them, and there are no
-            daily or monthly caps on how much you may use a <SiteName/> project, even a free one.)
-           </span>
-    cpu_shares:
-        q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
-        a: <span>
-            All projects on a single server share the underlying resources.
-            These quotas determine how CPU resources are shared between projects.
-            Increasing them increases the priority of a project compared to others on the same host computer.<br/>
-            In particular, "shares" determines the amount of relative CPU time you get.
-           </span>
-    course120:
-        q: <span>
-            I have a <b>course of {faq_course_120 - 20} students</b>.
-            Which plan should I purchase?
-           </span>
-        a: <span>
-            You can combine and add up course subscriptions!
-            By ordering two times the 'medium course plan',
-            you will get {faq_course_120} upgrades covering all your students.
-            </span>
-    academic:
-        q: <span>Do you offer <b>academic discounts</b>?</span>
-        a: <span>
-            Our course subscriptions are for academic use, and are already significantly discounted from the standard plans.
-            Please compare our monthly plans with the 4 month course plans.
-            For example, giving {faq_academic_students} students better member hosting and internet access
-            would require subscribing to {faq_academic_nb_standard} "standard plans" for 4 months
-            amounting to ${faq_academic_full}.
-            </span>
-    academic_quotas:
-        q: <span>There are no CPU/RAM upgrades for courses. Is this enough?</span>
-        a: <span>
-            From our experience, we have found that for the type of computation used in most courses,
-            the free quotas for memory and disk space are plenty.
-            We do strongly suggest the classes upgrade all projects to "members-only" hosting,
-            since this provides much better computers with higher availability.
-           </span>
-    invoice:
-        q: <span>How do I get an <b>invoice</b> with a specific information?</span>
-        a: <span>
-            After purchasing, please email us at <HelpEmailLink />, reference what you bought,
-            and tell us the payer{"'"}s name, contact information and any other specific
-            instructions.   We will then respond with a custom invoice for your purchase that
-            satisfies your unique requirements.
-           </span>
-    course_required_plan:
-        q: <span>Am I <strong>required to pay</strong> for conducting a course?</span>
-        a: <span>
-            <strong>No.</strong> You can use all course related functionalities under a free plan.
-           </span>
-    student_files:
-        q: <span>What happens with the <strong>files of my students</strong> after the course finishes?</span>
-        a: <span>
-            Students will <strong>continue to have access</strong> to their files after the course,
-            regardless of running the course under a paid plan or for free.
-            Their projects remain accessible,
-            they can (optionally) upgrade their projects with their own subscriptions,
-            and they can also download all files to their local computer.
-           </span>
-    close_browser:
-        q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
-        a: <span>
-            <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
-            You can start a computation, shut down your computer, go somewhere else,  sign in
-            on another computer, and continue working where you left off.
-            (Note that output from Jupyter notebook computations will be lost, though Sage worksheet output is
-            properly captured.)
-            <br/>
-            The only reasons why a project or process stops are
-            that it hits its <em>idle timeout</em>, has used too much memory,
-            crashed due to an exception, or the server had to reboot.
-           </span>
-    private:
-        q: <span>Which plan offers <b>"private" file storage</b>?</span>
-        a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href={PolicyPrivacyPageUrl} rel="noopener">Privacy Policy</a> and {" "}
-            <a target="_blank" href={PolicyCopyrightPageUrl} rel="noopener">Copyright Notice</a>.
-           </span>
-    git:
-        q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
-        a: <span>
-            Git and various other source control tools are installed and ready to use via the "Terminal".
-            But, in order to also interoperate with sites hosting Git repositories,
-            you have to purchase a plan giving you "internet upgrades" and then applying this upgrade to your project.
-           </span>
-    backups:
-        q: <span>Are my files backed up?</span>
-        a: <span>
-            All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
-            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, <SiteName/> records
-            the history of all edits you or your collaborators make to most files, and you can browse
-            that history with a slider by clicking on the "History" button (next to save) in files.
-            We care about your data, and also make offsite backups periodically to encrypted USB
-            drives that are not physically connected to the internet.
-           </span>
-    download_everything:
-        q: <span>How can I <strong>download my project files</strong>?</span>
-        a: <ol>
-             <li>
-                 You can download each file individually via the "Files" interface.
-                 Select the file and click the "Download" button.
-             </li>
-             <li>
-                 It is also possible to create an archive for a directory or all files.
-                 For that, create a "Terminal"-file and issue one of these commands:
-                 <ul>
-                  <li>
-                      ZIP archive (Windows): <code>zip -r9 "[filename].zip" [directory-name...]</code>
-                  </li>
-                  <li>
-                      Tarball (Unix-like): <code>tar cjvf "[filename].tar.bz2" [directory-name...]</code>
-                  </li>
-                 </ul>
-                 (Replace <code>[filename]</code> with the actual filename and <code>[directory-name]</code> by one or more filenames or directory names.)
-                 Afterwards, download the archive as explained above.
-             </li>
-           </ol>
 
 
 FAQ = exports.FAQ = rclass
     displayName : 'FAQ'
-
-    faq: ->
-        for qid, qa of FAQS
-            <li key={qid} style={marginBottom:"10px"}>
-                <em style={fontSize:"120%"}>{qa.q}</em>
-                <br/>
-                <span>{qa.a}</span>
-            </li>
 
     render: ->
         <div>
             <a name="faq"></a>
             <h2>Frequently asked questions</h2>
             <ul>
-                {@faq()}
+                <li>
+                    <a href="https://doc.cocalc.com/billing.html" rel="noopener" target="_blank">
+                        Billing, quotas, and upgrades
+                    </a>
+                </li>
+                <li>
+                    <a href="https://doc.cocalc.com/project-faq.html" rel="noopener" target="_blank">
+                        Projects
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -2072,10 +1899,19 @@ BillingPage = rclass
     # the space in "Contact us" below is a Unicode no-break space, UTF-8: C2 A0. "&nbsp;" didn't work there [hal]
     render_help_suggestion: ->
         <span>
-            <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
+            <Space/> If you have any questions at all, read the{' '}
+            <a
+                href={"https://doc.cocalc.com/billing.html"}
+                target={"_blank"}
+                rel={"noopener"}
+            >Billing{"/"}Upgrades FAQ</a> or {' '}
+            email <HelpEmailLink /> immediately.
             <b>
-                <Space/> <HelpEmailLink text={"Contact us"} /> if you are considering purchasing a course subscription and need a short trial
-                to test things out first.<Space/>
+                <Space/>
+                <HelpEmailLink text={"Contact us"} />{' '}
+                if you are considering purchasing a course subscription and need a short trial
+                to test things out first.
+                <Space/>
             </b>
             <b>
                 <Space/> Customized course plans are available.<Space/>
@@ -2094,8 +1930,13 @@ BillingPage = rclass
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
                 <span>
-                    If you are teaching a course, choose one of the course packages.
-                    If you need to upgrade your projects, choosing a recurring subscription.
+                    If you are {' '}
+                    <a
+                      href={"https://doc.cocalc.com/teaching-instructors.html"}
+                      target={"_blank"}
+                      rel={"noopener"}
+                    >teaching a course</a>, choose one of the course packages.
+                    If you need to upgrade your personal projects, choose a recurring subscription.
                     You will <b>not be charged</b> until you explicitly click
                     "Add Subscription or Course Package".
                     {help}
@@ -2114,8 +1955,14 @@ BillingPage = rclass
         else if subs == 0
             # have a payment source, but no subscriptions
             <span>
-                Click "Add Subscription or Course Package...".   If you are teaching a course, choose one of the course packages.
-                    If you need to upgrade your projects, choosing a recurring subscription.
+                Click "Add Subscription or Course Package...".
+                If you are{' '}
+                <a
+                  href={"https://doc.cocalc.com/teaching-instructors.html"}
+                  target={"_blank"}
+                  rel={"noopener"}
+                >teaching a course</a>, choose one of the course packages.
+                If you need to upgrade your personal projects, choose a recurring subscription.
                 You will be charged only after you select a specific subscription and click
                 "Add Subscription or Course Package".
                 {help}
@@ -2132,7 +1979,7 @@ BillingPage = rclass
             <span>
                 You may sign up for the same subscription package more than
                 once to increase the number of upgrades that you can use.
-                Past invoices and receipts are also available below.
+                Past invoices and receipts are available below.
                 {help}
             </span>
 

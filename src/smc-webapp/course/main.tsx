@@ -60,6 +60,7 @@ let {
 // Course components
 import {
   CourseStore,
+  CourseState,
   StudentsMap,
   AssignmentsMap,
   HandoutsMap,
@@ -429,7 +430,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
-            store_object={this.props.redux.getStore(this.props.name)}
+            store_object={this.props.redux.getStore<CourseState, CourseStore>(this.props.name)}
             project_actions={this.props.redux.getProjectActions(
               this.props.project_id
             )}
@@ -447,12 +448,16 @@ export const CourseEditor = rclass<CourseReactProps>(
         this.props.redux != null &&
         this.props.settings != null
       ) {
+        const allow_urls = redux
+          .getStore("projects")
+          .allow_urls_in_emails(this.props.project_id);
         return (
           <ConfigurationPanel
             redux={this.props.redux}
             settings={this.props.settings}
             name={this.props.name}
             project_id={this.props.project_id}
+            allow_urls={allow_urls}
             path={this.props.path}
             shared_project_id={
               this.props.settings != null
