@@ -20,7 +20,7 @@ webLinks.apply(XTerminal);
 
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
-import { Actions } from "../code-editor/actions";
+import { Actions, CodeEditorState } from "../code-editor/actions";
 
 import { endswith, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
@@ -48,9 +48,9 @@ function bind(that: any, v: string[]): void {
   }
 }
 
-export class Terminal {
+export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private state: string = "ready";
-  private actions: Actions;
+  private actions: Actions<T>;
   private account: any;
   private terminal_settings: Map<string, any>;
   private project_id: string;
@@ -89,7 +89,7 @@ export class Terminal {
   private args?: string[];
 
   constructor(
-    actions: Actions,
+    actions: Actions<T>,
     number: number,
     id: string,
     parent: HTMLElement,

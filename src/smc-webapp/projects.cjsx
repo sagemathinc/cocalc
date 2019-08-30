@@ -246,9 +246,13 @@ class ProjectsActions extends Actions
             delete opts.token
         else
             token = false
-        project_id = await callback2(webapp_client.create_project, opts)
-        if token
-            _create_project_tokens[token] = {err:err, project_id:project_id}
+        try
+            project_id = await callback2(webapp_client.create_project, opts)
+            if token
+                _create_project_tokens[token] = {project_id:project_id}
+        catch err
+            if token
+                _create_project_tokens[token] = {err:err}
 
         # At this point we know the project_id and that the project exists.
         # However, various code (e.g., setting the title) depends on the
@@ -844,6 +848,16 @@ class ProjectsStore extends Store
         misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
         return misc.map_sum(base_values, upgrades)
+
+    # we allow URLs in projects, which have member hosting or internet access
+    # this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators
+    allow_urls_in_emails: (project_id) =>
+        quotas = @get_total_project_quotas(project_id)
+        if not quotas?
+            return false
+        else
+            return !!(quotas.network or quotas.member_host)
+
 
     # Return javascript mapping from project_id's to the upgrades for the given projects.
     # Only includes projects with at least one upgrade

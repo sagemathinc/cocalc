@@ -30,6 +30,8 @@
 // CoCalc libraries
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
+import { contains_url } from "smc-util/misc2";
+import { debounce } from "lodash";
 
 // React libraries and Components
 import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";
@@ -55,7 +57,8 @@ const {
   Space,
   TextInput,
   TimeAgo,
-  Tip
+  Tip,
+  ErrorDisplay
 } = require("../r_misc");
 
 import { StudentProjectUpgrades } from "./upgrades";
@@ -328,6 +331,7 @@ interface ConfigurationPanelProps {
   name: string;
   path: string;
   project_id: string;
+  allow_urls: boolean;
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   shared_project_id?: string;
@@ -335,6 +339,7 @@ interface ConfigurationPanelProps {
 
 interface ConfigurationPanelState {
   show_students_pay_dialog: boolean;
+  email_body_error?: string;
   students_pay?: boolean;
 }
 
@@ -347,13 +352,21 @@ export class ConfigurationPanel extends Component<
   constructor(props) {
     super(props);
     this.state = {
-      show_students_pay_dialog: false
+      show_students_pay_dialog: false,
+      email_body_error: undefined
     };
+    this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
+      leading: true,
+      trailing: true
+    });
   }
 
   shouldComponentUpdate(props, state) {
     return (
-      state.show_students_pay_dialog !== this.state.show_students_pay_dialog ||
+      misc.is_different(this.state, state, [
+        "show_students_pay_dialog",
+        "email_body_error"
+      ]) ||
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
@@ -630,6 +643,22 @@ export class ConfigurationPanel extends Component<
   /*
    * Custom invitation email body
    */
+
+  check_email_body(value) {
+    if (!this.props.allow_urls && contains_url(value)) {
+      this.setState({
+        email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
+      });
+    } else {
+      this.setState({ email_body_error: undefined });
+    }
+  }
+
+  render_email_body_error() {
+    if (this.state.email_body_error == null) return;
+    return <ErrorDisplay error={this.state.email_body_error} />;
+  }
+
   render_email_invite_body() {
     const template_instr =
       " Also, {title} will be replaced by the title of the course and {name} by your name.";
@@ -648,6 +677,7 @@ export class ConfigurationPanel extends Component<
             borderRadius: "5px"
           }}
         >
+          {this.render_email_body_error()}
           <MarkdownInput
             persist_id={this.props.name + "email-invite-body"}
             attach_to={this.props.name}
@@ -655,6 +685,9 @@ export class ConfigurationPanel extends Component<
             type="textarea"
             default_value={this.get_store().get_email_invite()}
             on_save={body => this.get_actions().set_email_invite(body)}
+            save_disabled={this.state.email_body_error != null}
+            on_change={this.check_email_body}
+            on_cancel={() => this.setState({ email_body_error: undefined })}
           />
         </div>
         <hr />

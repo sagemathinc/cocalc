@@ -251,10 +251,10 @@ export class CourseStore extends Store<CourseState> {
 
   get_email_invite() {
     let left;
-    const { SITE_NAME, DOMAIN_NAME } = require("smc-util/theme");
+    const { SITE_NAME } = require("smc-util/theme");
     return (left = this.get("settings").get("email_invite")) != null
       ? left
-      : `We will use [${SITE_NAME}](${DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}`;
+      : `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
   }
 
   get_activity() {
