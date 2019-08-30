@@ -5,7 +5,9 @@
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "incremental": true,
+    "tsBuildInfoFile": "~/.cache/cocalc-buildcache/project"
   },
   "exclude": [
     "../smc-webapp/node_modules/",

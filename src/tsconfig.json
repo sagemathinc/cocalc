@@ -8,7 +8,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "downlevelIteration": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "incremental": true,
+    "tsBuildInfoFile": "~/.cache/cocalc-buildcache/src"
   },
   "exclude": [
     "./data",

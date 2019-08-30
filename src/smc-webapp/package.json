@@ -116,6 +116,7 @@
     "superb": "^3.0.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
+    "ts-node": "^8.3.0",
     "underscore": "^1.9.1",
     "xterm": "^3.12.1",
     "zlibjs": "^0.3.1"
