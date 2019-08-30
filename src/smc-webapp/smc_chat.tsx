@@ -1000,7 +1000,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.path
     );
     this.props.actions.send_chat(input);
-    if (this.input_ref.current != null && this.input_ref.current.focus != null) {
+    if (
+      this.input_ref.current != null &&
+      this.input_ref.current.focus != null
+    ) {
       this.input_ref.current.focus();
     }
   };
@@ -1022,9 +1025,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       overflowX: "hidden",
       margin: "0",
       padding: "0",
-      paddingRight: "10px",
       background: "white",
-      flex: 1
+      flex: "1 0 auto"
     };
 
     // the immutable.Map() default is because of admins:
