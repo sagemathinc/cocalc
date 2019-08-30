@@ -33,6 +33,7 @@ require('./billing/actions')
 { FAQ} = require("./billing/faq")
 {AddPaymentMethod} = require('./billing/add-payment-method')
 {PaymentMethod} = require('./billing/payment-method')
+{PaymentMethods} = require('./billing/payment-methods')
 {powered_by_stripe} = require("./billing/util")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
@@ -43,76 +44,6 @@ require('./billing/actions')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
-PaymentMethods = rclass
-    displayName : 'PaymentMethods'
-
-    propTypes :
-        redux   : rtypes.object.isRequired
-        sources : rtypes.object # could be undefined, if it is a customer and all sources are removed
-        default : rtypes.string
-
-    getInitialState: ->
-        state : 'view'   #  'delete' <--> 'view' <--> 'add_new'
-        error : ''
-
-    add_payment_method: ->
-        @setState(state:'add_new')
-
-    render_add_payment_method: ->
-        if @state.state == 'add_new'
-            <AddPaymentMethod redux={@props.redux} on_close={=>@setState(state:'view')} />
-
-    render_add_payment_method_button: ->
-        <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' className='pull-right'>
-            <Icon name='plus-circle' /> Add Payment Method...
-        </Button>
-
-    render_header: ->
-        <Row>
-            <Col sm={6}>
-                <Icon name='credit-card' /> Payment methods
-            </Col>
-            <Col sm={6}>
-                {@render_add_payment_method_button()}
-            </Col>
-        </Row>
-
-    set_as_default: (id) ->
-        @props.redux.getActions('billing').set_as_default_payment_method(id)
-
-    delete_method: (id) ->
-        @props.redux.getActions('billing').delete_payment_method(id)
-
-    render_payment_method: (source) ->
-        <PaymentMethod
-            key            = {source.id}
-            source         = {source}
-            default        = {source.id==@props.default}
-            set_as_default = {=>@set_as_default(source.id)}
-            delete_method  = {=>@delete_method(source.id)}
-        />
-
-    render_payment_methods: ->
-        # this happens, when it is a customer but all credit cards are deleted!
-        return null if not @props.sources?
-        # Always sort sources in the same order.  This way when you select
-        # a default source, they don't get reordered, which is really confusing.
-        @props.sources.data.sort((a,b) -> misc.cmp(a.id,b.id))
-        for source in @props.sources.data
-            @render_payment_method(source)
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@render_error()}
-            {@render_add_payment_method() if @state.state in ['add_new']}
-            {@render_payment_methods()}
-        </Panel>
-
-exports.PaymentMethods = PaymentMethods
 
 exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render_project_quota: (name, value) ->
@@ -1433,7 +1364,7 @@ BillingPage = rclass
         else if not @props.customer? and @props.for_course
             # user not initialized yet -- only thing to do is add a card.
             <div>
-                <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+                <PaymentMethods sources={data:[]} default='' />
             </div>
         else if not @props.for_course and (not @props.customer? or @props.continue_first_purchase)
             <div>
@@ -1448,19 +1379,19 @@ BillingPage = rclass
             # data loaded and customer exists
             if @props.is_simplified and subs > 0
                 <div>
-                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                    <PaymentMethods sources={@props.customer.sources} default={@props.customer.default_source} />
                     {<Panel header={@get_panel_header('list-alt', 'Subscriptions and Course Packages')} eventKey='2'>
                         {@render_subscriptions()}
                     </Panel> if not @props.for_course}
                 </div>
             else if @props.is_simplified
                 <div>
-                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                    <PaymentMethods sources={@props.customer.sources} default={@props.customer.default_source} />
                     {@render_subscriptions() if not @props.for_course}
                 </div>
             else
                 <div>
-                    <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                    <PaymentMethods sources={@props.customer.sources} default={@props.customer.default_source} />
                     {@render_subscriptions() if not @props.for_course}
                     <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
                 </div>
