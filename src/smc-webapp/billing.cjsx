@@ -34,6 +34,7 @@ require('./billing/actions')
 {AddPaymentMethod} = require('./billing/add-payment-method')
 {PaymentMethod} = require('./billing/payment-method')
 {PaymentMethods} = require('./billing/payment-methods')
+{PlanInfo} = require('./billing/plan-info')
 {powered_by_stripe} = require("./billing/util")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
@@ -127,91 +128,6 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
             </div>
         </Panel>
 
-PlanInfo = rclass
-    displayName : 'PlanInfo'
-
-    propTypes :
-        plan     : rtypes.string.isRequired
-        period   : rtypes.string.isRequired  # 'week', 'month', 'year', or 'month year'
-        selected : rtypes.bool
-        on_click : rtypes.func
-
-    getDefaultProps: ->
-        selected : false
-
-    render_plan_info_line: (name, value, data) ->
-        <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
-            <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#444'}>
-                    {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
-                </span>
-                <Space/>
-                <span style={color:'#666'}>
-                    {data.display}
-                </span>
-            </Tip>
-        </div>
-
-    render_cost: (price, period) ->
-        period = PROJECT_UPGRADES.period_names[period] ? period
-        <span key={period} style={whiteSpace:'nowrap'}>
-            <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/>
-            <span style={fontSize:'30px'}>{price}</span>
-            <span style={fontSize:'14px'}> / {period}</span>
-        </span>
-
-    render_price: (prices, periods) ->
-        if @props.on_click?
-            # note: in non-static, there is always just *one* price (several only on "static" pages)
-            for i in [0...prices.length]
-                <Button key={i} bsStyle={if @props.selected then 'primary'}>
-                    {@render_cost(prices[i], periods[i])}
-                </Button>
-        else
-            <h3 style={textAlign:'left'}>
-                {r_join((@render_cost(prices[i], periods[i]) for i in [0...prices.length]), <br/>)}
-            </h3>
-
-    render_plan_name: (plan_data) ->
-        if plan_data.desc?
-            name = plan_data.desc
-            if name.indexOf('\n') != -1
-                v = name.split('\n')
-                name = <span>{v[0].trim()}<br/>{v[1].trim()}</span>
-        else
-            name = misc.capitalize(@props.plan).replace(/_/g,' ') + ' plan'
-        <div style={paddingLeft:"10px"}>
-            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{name}</span>
-        </div>
-
-    render: ->
-        plan_data = PROJECT_UPGRADES.subscription[@props.plan]
-        if not plan_data?
-            return <div>Unknown plan type: {@props.plan}</div>
-
-        params   = PROJECT_UPGRADES.params
-        periods  = misc.split(@props.period)
-        prices   = (plan_data.price[period] for period in periods)
-        benefits = plan_data.benefits
-
-        style =
-            cursor : if @props.on_click? then 'pointer'
-
-        <Panel
-            style     = {style}
-            header    = {@render_plan_name(plan_data)}
-            bsStyle   = {if @props.selected then 'primary' else 'info'}
-            onClick   = {=>@props.on_click?()}
-        >
-            <Space/>
-            {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order when benefits[name]}
-            <Space/>
-
-            <div style={textAlign : 'center', marginTop:'10px'}>
-                {@render_price(prices, periods)}
-            </div>
-
-        </Panel>
 
 AddSubscription = rclass
     displayName : 'AddSubscription'
