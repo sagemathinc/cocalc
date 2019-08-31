@@ -7,14 +7,16 @@ const { ErrorDisplay, Icon, MarkdownInput } = require("../r_misc");
 import { PickerList } from "./picker-list";
 const { webapp_client } = require("../webapp_client");
 const { ProjectSettingsPanel } = require("../project/project-settings-support");
-const {
-  callback_opts
-} = require("smc-webapp/frame-editors/generic/async-utils");
+const { callback_opts } = require("smc-util/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
+import { contains_url } from "smc-util/misc2";
+import { debounce } from "lodash";
+
+import { has_internet_access } from "../upgrades/upgrade-utils";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
@@ -70,10 +72,12 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
 interface AddCollaboratorsPanelProps {
   // OWN PROPS
   project: any;
+  on_invite?: () => void;
   // REDUX PROPS
   get_fullname(): string;
   user_map: immutable.Map<any, any>;
   actions: any;
+  allow_urls: boolean;
 }
 
 interface AddCollaboratorsPanelState {
@@ -85,6 +89,7 @@ interface AddCollaboratorsPanelState {
   email_to: string;
   email_body: string;
   is_editing_email: boolean;
+  error_body?: string;
 }
 
 class AddCollaboratorsPanel0 extends Component<
@@ -104,6 +109,10 @@ class AddCollaboratorsPanel0 extends Component<
   constructor(props: AddCollaboratorsPanelProps, context: any) {
     super(props, context);
     this.state = this.initialState();
+    this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
+      leading: true,
+      trailing: true
+    });
   }
   initialState = () => {
     return {
@@ -114,11 +123,26 @@ class AddCollaboratorsPanel0 extends Component<
       results: [],
       email_to: "",
       email_body: this.default_email_body(),
-      is_editing_email: false
+      is_editing_email: false,
+      error_body: undefined
     };
   };
+
   reset = () => this.setState(this.initialState());
+
   render_manual_email_entry() {
+    if (!this.props.project) return;
+    if (!has_internet_access(this.props.project)) {
+      return (
+        <>
+          If you enable the Internet Access upgrade for this project, then you
+          can also invite people to collaborate on this project who do not
+          currently have a CoCalc account. They will receive an email
+          invitation. Otherwise, you must ask them to create an account, and
+          then invite them using the box above.
+        </>
+      );
+    }
     return (
       <>
         Or, type a comma-separated list of email addresses:
@@ -133,6 +157,7 @@ class AddCollaboratorsPanel0 extends Component<
       </>
     );
   }
+
   render_avatar(u: UserAndProfile) {
     const size = 30;
     if (u.profile.image) {
@@ -171,6 +196,7 @@ class AddCollaboratorsPanel0 extends Component<
       </span>
     );
   }
+
   query_for_results = search => {
     this.setState({ search, loading: true });
     search_for_accounts(search)
@@ -235,6 +261,7 @@ class AddCollaboratorsPanel0 extends Component<
         });
       });
   };
+
   render_cocalc_user_search() {
     return (
       <>
@@ -343,18 +370,17 @@ class AddCollaboratorsPanel0 extends Component<
       </>
     );
   }
+
   default_email_body = () => {
     const name = this.props.get_fullname();
-    const project_id = this.props.project.get("project_id");
     const title = this.props.project.get("title");
-    const host = window.location.hostname;
-    const target = `[project '${title}'](https://${host}/projects/${project_id})`;
+    const target = `project '${title}'`;
     const SiteName =
       (redux.getStore as any)("customize").get("site_name") || SITE_NAME;
     const email_body = `
 Hello!
 
-Please collaborate with me using [${SiteName}](https://${host}) on ${target}.
+Please collaborate with me using ${SiteName} on ${target}.
 
 Best wishes,
 
@@ -362,6 +388,17 @@ ${name}
 `;
     return email_body.trim();
   };
+
+  check_email_body(value: string): void {
+    if (!this.props.allow_urls && contains_url(value)) {
+      this.setState({
+        error_body: "Sending URLs is not allowed. (anti-spam measure)"
+      });
+    } else {
+      this.setState({ error_body: undefined });
+    }
+  }
+
   render_invitation_editor() {
     return (
       <>
@@ -374,7 +411,8 @@ ${name}
                 ? this.state.email_to.split(",").map(s => `"${s.trim()}"`)
                 : []
             )
-        )}.
+        )}
+        .
         <div
           style={{
             border: "1px solid lightgrey",
@@ -384,6 +422,7 @@ ${name}
             margin: "15px"
           }}
         >
+          {this.render_invitation_error()}
           <MarkdownInput
             default_value={this.state.email_body}
             rows={8}
@@ -391,8 +430,14 @@ ${name}
               this.setState({ email_body: value, is_editing_email: false })
             }
             on_cancel={value =>
-              this.setState({ email_body: value, is_editing_email: false })
+              this.setState({
+                email_body: value,
+                is_editing_email: false,
+                error_body: undefined
+              })
             }
+            on_change={this.check_email_body}
+            save_disabled={this.state.error_body != null}
           />
         </div>
       </>
@@ -439,23 +484,36 @@ ${name}
           replyto_name
         );
     });
+    if (this.props.on_invite) {
+      this.props.on_invite();
+    }
     this.reset();
   };
 
   render_buttons() {
     return (
       <ButtonToolbar>
-        <Button onClick={this.send_invites} bsStyle="primary">
-          <Icon name="user-plus" /> Send Invitation
+        <Button
+          onClick={this.send_invites}
+          disabled={this.state.error_body != null}
+          bsStyle="primary"
+        >
+          <Icon name="user-plus" /> Add Collaborator
         </Button>
         <Button onClick={this.reset}>Cancel</Button>
       </ButtonToolbar>
     );
   }
 
+  render_invitation_error() {
+    if (this.state.error_body == null) return;
+
+    return <ErrorDisplay error={this.state.error_body} />;
+  }
+
   render() {
     return (
-      <ProjectSettingsPanel title="Add New Collaborators" icon="plus">
+      <ProjectSettingsPanel title="Add new collaborators" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.

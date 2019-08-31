@@ -8,7 +8,5 @@ while True:
      if time.time() - t > 0.15:
          i += 1
          os.system('date')
-         print i; sys.stdout.flush()
-
-
-
+         print(i)
+         sys.stdout.flush()

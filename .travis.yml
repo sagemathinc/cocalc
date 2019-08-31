@@ -1,69 +1,90 @@
 # CoCalc Travis-CI Configuration File
 sudo: required
-dist: trusty
+dist: xenial
 
-language: python
-python:
-  - '2.7'
+# no need to build all branches
+branches:
+  only:
+    - master
 
+# there is no single language, but python is ok
+language: "python"
+python: 3.6
+
+# travis supports 8 and 11 (as of winter 2018)
+node_js:
+  - "8"
+
+git:
+  depth: 3
+
+# we want our database
+services:
+  - postgresql
+
+# specify postgres version and additional linux packages here
 addons:
-  rethinkdb: '2.3.4'
+  postgresql: "10"
+  apt:
+    update: true
+    packages:
+      - "python-pip"
+      - "python-yaml"
+      - "python-pytest"
+      - "python3-pip"
+      - "python3-pytest"
+      - "python3-yaml"
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
 env:
+  global: # note: we cannot use $VARs here
+    - REPORTER=min # for mocha tests
+    - PGUSER='smc'
   matrix:
-    - MODE=util
-    #- MODE=sagews
-    #- MODE=server
+    # this runs the "normal" tests
+    - KUCALC_MODE=false    NODE_ENV=production
+    # - KUCALC_MODE=false   NODE_ENV=development   # disabled: just uses resources, no real gain
+    # this just builds the webapp for production (full minifaction, all static pages, etc.)
+    - KUCALC_MODE=webapp   NODE_ENV=production CC_COMP_ENV=true
+    # this compiles the hub, project, etc. and runs hubs in test mode
+    - KUCALC_MODE=services NODE_ENV=production CC_COMP_ENV=true
 
-# installation and setup
+before_install: []
+
+# installation and setup: make notes about the environment and init&start postgres
 before_script:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y python-pip python-yaml
-  - source /etc/lsb-release
-  - rethinkdb --version
-  - pip -V
-  - python -V
-  - nvm install v5.11
-  - node --version
-  - sudo pip install pytest
-  - pytest --version
+  - "source /etc/lsb-release"
+  - "pip -V"
+  - "pip3 -V"
+  - "python -V"
+  - "node --version"
+  - "pytest --version"
+  - 'export PGHOST="$TRAVIS_BUILD_DIR/src/dev/project/postgres_data/socket"'
+  - "python2 $TRAVIS_BUILD_DIR/src/dev/project/start_postgres.py &"
+  - "sleep 10" # for starting up postgres in the background (db init, etc.)
 
-# the setup & compilation of SMC
+# the setup & compilation of CoCalc
+# if broken, this will also trigger a test failure, i.e. that's also a test
 install:
-  - cd smc/src
-  - source smc-env
-  - npm install
-  - npm run make
-  - cd smc_webapp
-  - npm install
-  - cd ../smc-util
-  - npm install
-  - cd ../smc_pyutil
-  - sudo pip install --upgrade ./
-  - cd ../smc_sagews
-  - sudo pip install --upgrade ./
+  - "pip3 install --upgrade pytest PyYAML"
+  - "cd src"
+  - "source smc-env"
+  - 'if [[ $KUCALC_MODE != "services" ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-install-services.sh"; fi'
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
-# npm test is the usual, but we also run coverage reporting
+# npm test is the usual, and coverage reporting is disabled
 script:
-  - if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi 
-  - if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi
-  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
-  - if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi
+  - 'if [[ $KUCALC_MODE != "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test.sh"; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test-services.sh"; fi'
 
 # send coverage report over to https://coveralls.io
 #after_success:
 #  - if [[ $MODE = "server" ]]; then sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'; fi
 
 notifications:
-  slack:
-    rooms:
-      - sagemath:imLn6eVwpZSOBCWBIKu97HXx#dev
   email:
-    recipients:
-      - hsy@sagemath.com
     on_success: change
     on_failure: change

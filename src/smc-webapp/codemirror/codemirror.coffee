@@ -37,7 +37,6 @@ require('codemirror/addon/hint/html-hint.js')
 require('codemirror/addon/hint/javascript-hint.js')
 
 require('codemirror/addon/hint/show-hint.js')
-require('codemirror/addon/hint/show-hint.css')
 
 require('codemirror/addon/hint/sql-hint.js')
 require('codemirror/addon/hint/xml-hint.js')
@@ -60,7 +59,7 @@ require('codemirror/lib/codemirror.css')
 require('codemirror/theme/3024-day.css')
 require('codemirror/theme/3024-night.css')
 require('codemirror/theme/abcdef.css')
-require('codemirror/theme/ambiance-mobile.css')
+#require('codemirror/theme/ambiance-mobile.css') # doesn't highlight python, confusing
 require('codemirror/theme/ambiance.css')
 require('codemirror/theme/base16-dark.css')
 require('codemirror/theme/base16-light.css')
@@ -114,3 +113,8 @@ require('codemirror/theme/yeti.css')
 require('codemirror/theme/zenburn.css')
 
 require('./mode/mediawiki/mediawiki.css')
+
+# Have to strengthen this to "fight off" the adverse buggy global
+# impact of some of the above themes... (namely idea and darcula
+# at time of writing).
+require('./addon/show-hint.css')

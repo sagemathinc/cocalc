@@ -12,8 +12,6 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-{get_utm, get_referrer} = require('./misc_page')
-
 help = ->
     return redux.getStore('customize').get('help_email')
 
@@ -59,19 +57,24 @@ class AccountActions extends Actions
             is_logged_in : user_type == 'signed_in'
 
     sign_in: (email, password) =>
+        doc_conn = '[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)'
+        err_help = """
+                   Please reload this browser tab and try again.
+
+                   If that doesn't work after a few minutes, try these #{doc_conn} or email #{help()}.
+                   """
+
         @setState(signing_in: true)
         webapp_client.sign_in
             email_address : email
             password      : password
             remember_me   : true
             timeout       : 30
-            utm           : get_utm()
-            referrer      : get_referrer()
             get_api_key   : redux.getStore('page')?.get('get_api_key')
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
-                    @setState(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email #{help()}.")
+                    @setState(sign_in_error : "There was an error signing you in (#{error}). #{err_help}")
                     return
                 switch mesg.event
                     when 'sign_in_failed'
@@ -85,17 +88,16 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    create_account: (first_name, last_name, email, password, token) =>
+    create_account: (first_name, last_name, email, password, token, usage_intent) =>
         @setState(signing_up: true)
         webapp_client.create_account
             first_name      : first_name
             last_name       : last_name
             email_address   : email
             password        : password
+            usage_intent    : usage_intent
             agreed_to_terms : true
             token           : token
-            utm             : get_utm()
-            referrer        : get_referrer()
             get_api_key     : redux.getStore('page')?.get('get_api_key')
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
@@ -292,7 +294,7 @@ class AccountStore extends Store
         return ups? and (v for k, v of ups).reduce(((a, b) -> a + b), 0) > 0
 
     get_page_size: =>
-        return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
+        return @getIn(['other_settings', 'page_size']) ? 500  # at least have a valid value if loading (actual default is in db-schema.js)
 
 
 # Register account store
@@ -300,6 +302,7 @@ class AccountStore extends Store
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
 # ... except for show_global_info2 (null or a timestamp)
 init.other_settings.show_global_info2 = 'loading' # indicates there is no data yet
+init.editor_settings.physical_keyboard = 'NO_DATA' # indicator that there is no data
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 store = redux.createStore('account', AccountStore, init)
 

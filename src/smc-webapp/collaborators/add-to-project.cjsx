@@ -2,7 +2,7 @@
 Add collaborators to a project
 ###
 
-{React, ReactDOM, redux, rtypes, rclass}  = require('../app-framework')
+{React, ReactDOM, redux, rtypes, rclass, Fragment}  = require('../app-framework')
 
 {Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 
@@ -10,7 +10,11 @@ Add collaborators to a project
 
 {webapp_client}      = require('../webapp_client')
 
+{ has_internet_access } = require("../upgrades/upgrade-utils");
+
 {SITE_NAME} = require('smc-util/theme')
+
+{contains_url} = require('smc-util/misc2')
 
 exports.AddCollaborators = rclass
     displayName : 'ProjectSettings-AddCollaborators'
@@ -18,6 +22,7 @@ exports.AddCollaborators = rclass
     propTypes :
         project : rtypes.immutable.Map.isRequired
         inline  : rtypes.bool
+        allow_urls : rtypes.bool
 
     reduxProps :
         account :
@@ -33,6 +38,7 @@ exports.AddCollaborators = rclass
         err              : ''          # display an error in case something went wrong doing a search
         email_to         : ''          # if set, adding user via email to this address
         email_body       : ''          # with this body.
+        email_body_error : undefined
 
     reset: ->
         @setState(@getInitialState())
@@ -51,7 +57,7 @@ exports.AddCollaborators = rclass
             query : search
             limit : 50
             cb    : (err, select) =>
-                @write_email_invite(false)
+                @write_email_invite()
                 @setState(searching:false, err:err, select:select, email_to:undefined)
 
     render_options: (select) ->
@@ -121,10 +127,9 @@ exports.AddCollaborators = rclass
         name       = @props.get_fullname()
         project_id = @props.project.get('project_id')
         title      = @props.project.get('title')
-        host       = window.location.hostname
-        target     = "[project '#{title}'](https://#{host}/projects/#{project_id})"
+        target     = "project '#{title}'"
         SiteName   = redux.getStore('customize').get("site_name") ? SITE_NAME
-        body       = "Hello!\n\nPlease collaborate with me using [#{SiteName}](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
+        body       = "Hello!\n\nPlease collaborate with me using #{SiteName} on #{target}.\n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
@@ -145,9 +150,23 @@ exports.AddCollaborators = rclass
         @setState(email_to:'',email_body:'')
         @reset()
 
+    check_email_body: (value) ->
+        if !@props.allow_urls and contains_url(value)
+            @setState(email_body_error: "Sending URLs is not allowed. (anti-spam measure)")
+        else
+            @setState(email_body_error: undefined)
+
+    render_email_body_error: ->
+        return null if not this.state.email_body_error?
+        return <ErrorDisplay error={this.state.email_body_error} />
+
+    on_cancel: () ->
+        @setState(email_body_editing:false, email_body_error:undefined)
+
     render_send_email: ->
         if not @state.email_to
             return
+
         <div>
             <hr />
             <Well>
@@ -162,13 +181,16 @@ exports.AddCollaborators = rclass
                         />
                 </FormGroup>
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    {@render_email_body_error()}
                     <MarkdownInput
                         default_value = {@state.email_body}
                         rows          = {8}
                         on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
-                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_cancel     = {@on_cancel}
                         on_edit       = {=>@setState(email_body_editing:true)}
-                        />
+                        save_disabled = {this.state.email_body_error != null}
+                        on_change     = {@check_email_body}
+                    />
                 </div>
                 <ButtonToolbar>
                     <Button bsStyle='primary' onClick={@send_email_invite} disabled={!!@state.email_body_editing}>Send Invitation</Button>
@@ -181,18 +203,31 @@ exports.AddCollaborators = rclass
         # TODO: we should not say 'search for "h"' when someone
         # has already searched for "h".
         # Instead it should be:
-        # 
+        #
         # - Search [...]
         # - if results.length > 0:
         #   - Select names from below to add
         #   - list of users
-        #   - add button 
+        #   - add button
         # - else
         #   - no results found
         #   - send invitation
         #
         if @state.search and (@state.searching or @state.select)
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
+
+    render_send_email_invite: ->
+        if has_internet_access(this.props.project)
+            <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
+                <Icon name='envelope' />  Send Email Invitation...
+            </Button>
+        else
+            <div>
+                Enable the Internet Access upgrade to this project
+                in project settings
+                in order to send an email invitation.
+            </div>
+
 
     render_select_list: ->
         if @state.searching
@@ -210,13 +245,11 @@ exports.AddCollaborators = rclass
                 select.push(r)
         if select.length == 0
             if existing.length == 0
-                <>
+                <Fragment>
                     Sorry, no accounts found.
                     <br/>
-                    <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                        <Icon name='envelope' />  Send Email Invitation...
-                    </Button>
-                </>
+                    {@render_send_email_invite()}
+                </Fragment>
             else
                 # no hit, but at least one existing collaborator
                 collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
@@ -236,13 +269,16 @@ exports.AddCollaborators = rclass
                     </FormControl>
                 </FormGroup>
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    {@render_email_body_error()}
                     <MarkdownInput
                         default_value = {@state.email_body}
                         rows          = {8}
                         on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
-                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_cancel     = {@on_cancel}
                         on_edit       = {=>@setState(email_body_editing:true)}
-                        />
+                        save_disabled = {this.state.email_body_error != null}
+                        on_change     = {@check_email_body}
+                    />
                 </div>
                 {@render_select_list_button(select)}
             </div>

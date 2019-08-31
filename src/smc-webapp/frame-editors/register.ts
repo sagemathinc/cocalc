@@ -2,7 +2,7 @@
 
 import "./generic/jquery-plugins";
 
-import "./code-editor/register";  // should be first.
+import "./code-editor/register"; // should be first.
 
 import "./wiki-editor/register";
 import "./rmd-editor/register";
@@ -19,6 +19,10 @@ import "./pdf-editor/register";
 
 import "./terminal-editor/register";
 
+import "./x11-editor/register";
+
 import "./lean-editor/register";
+
+import "./jupyter-editor/register";
 
 import "./generic/test/init";

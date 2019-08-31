@@ -4,30 +4,41 @@ Generic register function -- used by each frame tree editor to register itself w
 Basically, this is like register_file_editor, but much more specialized.
 */
 
-const general_register_file_editor = require("smc-webapp/file-editors").register_file_editor;
+const general_register_file_editor = require("smc-webapp/file-editors")
+  .register_file_editor;
 
 const { redux_name } = require("smc-webapp/app-framework");
 
 interface Register {
+  icon?: string;
   ext:
     | string
     | string[] /* the filename extension or extentions that this editor should handle. */;
   component: any /* the renderable react component used for this editor */;
   Actions: any /* the class that defines the actions. */;
+  is_public?: boolean /* if given, only register public or not public editors (not both) */;
 }
 
 export function register_file_editor(opts: Register) {
-  for (let is_public of [true, false]) {
-    register(opts.ext, opts.component, opts.Actions, is_public);
+  const v: boolean[] = [];
+  if (opts.is_public != undefined) {
+    v.push(opts.is_public);
+  } else {
+    v.push(true);
+    v.push(false);
+  }
+  for (let is_public of v) {
+    register(opts.icon, opts.ext, opts.component, opts.Actions, is_public);
   }
 }
 
-function register(ext, component, Actions, is_public) {
+function register(icon, ext, component, Actions, is_public) {
   general_register_file_editor({
+    icon,
     ext,
     is_public,
     component,
-    init(path : string, redux, project_id : string) {
+    init(path: string, redux, project_id: string) {
       const name = redux_name(project_id, path, is_public);
       if (redux.getActions(name) != null) {
         return name; // already initialized
@@ -43,7 +54,7 @@ function register(ext, component, Actions, is_public) {
       return name;
     },
 
-    remove(path : string, redux, project_id : string)  : void {
+    remove(path: string, redux, project_id: string): void {
       const name = redux_name(project_id, path, is_public);
       const actions = redux.getActions(name);
       if (actions != null) {
@@ -58,7 +69,7 @@ function register(ext, component, Actions, is_public) {
       return name;
     },
 
-    save(path : string, redux, project_id : string) : void  {
+    save(path: string, redux, project_id: string): void {
       if (is_public) return;
       const name = redux_name(project_id, path, is_public);
       const actions = redux.getActions(name);

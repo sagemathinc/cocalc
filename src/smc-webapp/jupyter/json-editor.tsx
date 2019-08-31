@@ -4,9 +4,9 @@ A JSON Editor
 This is just built using codemirror for now.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 const json_stable = require("json-stable-stringify");
-const syncstring = require("smc-util/syncstring");
+import { make_patch, apply_patch } from "smc-util/sync/editor/generic/util";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 declare const CodeMirror: any; // TODO: import this
@@ -103,8 +103,8 @@ export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
     remote = this.to_json(remote);
     if (local !== this._cm_last_save) {
       // merge in our local changes
-      const local_changes = syncstring.make_patch(this._cm_last_save, local);
-      new_val = syncstring.apply_patch(local_changes, remote)[0];
+      const local_changes = make_patch(this._cm_last_save, local);
+      new_val = apply_patch(local_changes, remote)[0];
     } else {
       // just set to remote value
       this._cm_last_save = new_val = remote;

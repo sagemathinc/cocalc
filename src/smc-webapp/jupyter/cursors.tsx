@@ -4,11 +4,27 @@ React component that represents cursors of other users.
 
 // How long until another user's cursor is no longer displayed, if they don't move.
 // (NOTE: might take a little longer since we use a long interval.)
-const CURSOR_TIME_S = 15;
+const CURSOR_TIME_MS = 20000;
+const HIDE_NAME_TIMEOUT_MS = 3000;
 
-import { React, Component, rclass, rtypes, ReactDOM } from "../app-framework"; // TODO: this will move
-import { Map as ImmutableMap } from "immutable";
-const misc = require("smc-util/misc");
+import { Map } from "immutable";
+import {
+  React,
+  Component,
+  rclass,
+  rtypes,
+  ReactDOM,
+  Rendered
+} from "../app-framework";
+
+import { times_n } from "./util";
+
+import { server_time, trunc_middle, is_different } from "smc-util/misc";
+
+const UNKNOWN_USER_PROFILE = {
+  color: "rgb(170,170,170)",
+  name: "Private User"
+};
 
 interface CursorProps {
   name: string;
@@ -24,61 +40,65 @@ interface CursorState {
 export class Cursor extends Component<CursorProps, CursorState> {
   private _mounted: any; // TODO: dont do this
   private _timer: any;
-  constructor(props: CursorProps, context: any) {
+
+  constructor(props, context) {
     super(props, context);
     this.state = { show_name: true };
   }
-  shouldComponentUpdate(nextProps, nextState) {
+
+  public shouldComponentUpdate(
+    nextProps: CursorProps,
+    nextState: CursorState
+  ): boolean {
     if (this.props.time !== nextProps.time) {
-      this.show_name(2000);
+      this.show_name(HIDE_NAME_TIMEOUT_MS);
     }
     return (
-      misc.is_different(this.props, nextProps, ["name", "color"]) ||
+      is_different(this.props, nextProps, ["name", "color"]) ||
       this.state.show_name !== nextState.show_name
     );
   }
 
-  componentDidMount() {
+  public componentDidMount(): void {
     this._mounted = true;
-    return this._set_timer(2000);
+    this._set_timer(HIDE_NAME_TIMEOUT_MS);
   }
 
-  componentWillUnmount() {
-    return (this._mounted = false);
+  public componentWillUnmount(): void {
+    this._mounted = false;
   }
 
-  _clear_timer() {
+  private _clear_timer(): void {
     if (this._timer != null) {
       clearTimeout(this._timer);
-      return delete this._timer;
+      delete this._timer;
     }
   }
 
-  _set_timer(timeout: number) {
+  private _set_timer(timeout: number): void {
     this._clear_timer();
-    return (this._timer = setTimeout(() => this.hide_name(), timeout));
+    this._timer = setTimeout(() => this.hide_name(), timeout);
   }
 
-  hide_name() {
+  private hide_name(): void {
     if (!this._mounted) {
       return;
     }
     this._clear_timer();
-    return this.setState({ show_name: false });
+    this.setState({ show_name: false });
   }
 
-  show_name = (timeout?: number) => {
+  private show_name(timeout?: number): void {
     if (!this._mounted) {
       return;
     }
     this.setState({ show_name: true });
     if (timeout) {
-      return this._set_timer(timeout);
+      this._set_timer(timeout);
     }
-  };
+  }
 
-  render() {
-    // onClick is needed for mobile.
+  public render(): Rendered {
     return (
       <span
         style={{
@@ -89,9 +109,9 @@ export class Cursor extends Component<CursorProps, CursorState> {
           top: this.props.top
         }}
         onMouseEnter={() => this.show_name()}
-        onMouseLeave={() => this.show_name(2000)}
+        onMouseLeave={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
         onTouchStart={() => this.show_name()}
-        onTouchEnd={() => this.show_name(2000)}
+        onTouchEnd={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
       >
         <span
           style={{
@@ -150,8 +170,9 @@ class PositionedCursor extends Component<PositionedCursorProps> {
   private _elt: any;
   private _mounted: any; // TODO: dont do this
   private _pos: any;
-  shouldComponentUpdate(next) {
-    return misc.is_different(this.props, next, [
+
+  public shouldComponentUpdate(next: PositionedCursorProps): boolean {
+    return is_different(this.props, next, [
       "line",
       "ch",
       "name",
@@ -160,7 +181,7 @@ class PositionedCursor extends Component<PositionedCursorProps> {
     ]);
   }
 
-  _render_cursor(props: any) {
+  private _render_cursor(props: PositionedCursorProps): Rendered {
     return ReactDOM.render(
       <Cursor
         name={props.name}
@@ -172,7 +193,7 @@ class PositionedCursor extends Component<PositionedCursorProps> {
     );
   }
 
-  componentDidMount() {
+  public componentDidMount(): void {
     this._mounted = true;
     this._elt = document.createElement("div");
     this._elt.style.position = "absolute";
@@ -185,7 +206,7 @@ class PositionedCursor extends Component<PositionedCursorProps> {
     );
   }
 
-  _position_cursor() {
+  private _position_cursor(): void {
     if (!this._mounted || this._pos == null || this._elt == null) {
       return;
     }
@@ -197,13 +218,13 @@ class PositionedCursor extends Component<PositionedCursorProps> {
     const x = this.props.codemirror.getLine(this._pos.line);
     if (x == null || this._pos.ch > x.length) {
       // oh crap, impossible to position cursor!  Try again in 1s.
-      return setTimeout(this._position_cursor, 1000);
+      setTimeout(this._position_cursor, 1000);
     } else {
-      return this.props.codemirror.addWidget(this._pos, this._elt, false);
+      this.props.codemirror.addWidget(this._pos, this._elt, false);
     }
   }
 
-  componentWillReceiveProps(next) {
+  public componentWillReceiveProps(next: PositionedCursorProps): void {
     if (this._elt == null) {
       return;
     }
@@ -212,19 +233,19 @@ class PositionedCursor extends Component<PositionedCursorProps> {
       this._position_cursor();
     }
     // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
-    return this._render_cursor(next);
+    this._render_cursor(next);
   }
 
-  componentWillUnmount() {
+  public componentWillUnmount(): void {
     this._mounted = false;
     if (this._elt != null) {
       ReactDOM.unmountComponentAtNode(this._elt);
       this._elt.remove();
-      return delete this._elt;
+      delete this._elt;
     }
   }
 
-  render() {
+  public render(): Rendered {
     // A simple (unused) container to satisfy react.
     return <span />;
   }
@@ -239,7 +260,9 @@ interface StaticPositionedCursorProps {
 }
 
 class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
-  shouldComponentUpdate(nextProps) {
+  public shouldComponentUpdate(
+    nextProps: StaticPositionedCursorProps
+  ): boolean {
     return (
       this.props.line !== nextProps.line ||
       this.props.ch !== nextProps.ch ||
@@ -248,8 +271,7 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
     );
   }
 
-  render() {
-    let _;
+  public render(): Rendered {
     const style: React.CSSProperties = {
       position: "absolute",
       height: 0,
@@ -263,30 +285,7 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
 
     // we position using newlines and blank spaces, so no measurement is needed.
     const position =
-      (() => {
-        let asc, end;
-        const result: any[] = [];
-        for (
-          _ = 0, end = this.props.line, asc = 0 <= end;
-          asc ? _ < end : _ > end;
-          asc ? _++ : _--
-        ) {
-          result.push("\n");
-        }
-        return result;
-      })().join("") +
-      (() => {
-        let asc1, end1;
-        const result1: any[] = [];
-        for (
-          _ = 0, end1 = this.props.ch, asc1 = 0 <= end1;
-          asc1 ? _ < end1 : _ > end1;
-          asc1 ? _++ : _--
-        ) {
-          result1.push(" ");
-        }
-        return result1;
-      })().join("");
+      times_n("\n", this.props.line) + times_n(" ", this.props.ch);
     return (
       <div style={style}>
         {position}
@@ -302,11 +301,11 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
 
 interface CursorsProps {
   // OwnProps
-  cursors: ImmutableMap<any, any>;
+  cursors: Map<string, any>;
   codemirror?: any; // optional codemirror editor instance
   // ReduxProps
-  user_map: ImmutableMap<any, any>;
-  account_id: string;
+  user_map?: Map<string, any>;
+  account_id?: string;
 }
 
 interface CursorsState {
@@ -315,6 +314,7 @@ interface CursorsState {
 
 class Cursors0 extends Component<CursorsProps, CursorsState> {
   private _interval: any;
+
   public static reduxProps = () => ({
     users: {
       user_map: rtypes.immutable.Map
@@ -324,79 +324,76 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     }
   });
 
-  constructor(props: CursorsProps, context: any) {
+  constructor(props, context) {
     super(props, context);
     this.state = { n: 0 };
   }
 
-  shouldComponentUpdate(props, state) {
+  public shouldComponentUpdate(
+    props: CursorsProps,
+    state: CursorsState
+  ): boolean {
     return (
-      misc.is_different(
-        this.props,
-        props,
-        ["cursors", "user_map", "account_id"]
-      ) || this.state.n !== state.n
+      is_different(this.props, props, ["cursors", "user_map", "account_id"]) ||
+      this.state.n !== state.n
     );
   }
 
-  componentDidMount() {
+  public componentDidMount(): void {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
-      CURSOR_TIME_S / 2 * 1000
+      CURSOR_TIME_MS / 2
     );
   }
 
-  componentWillUnmount() {
+  public componentWillUnmount(): void {
     clearInterval(this._interval);
   }
 
-  profile = (account_id: any) => {
-    let color, name;
+  private profile(account_id: string): { color: string; name: string } {
+    if (this.props.user_map == null) return UNKNOWN_USER_PROFILE;
     const user = this.props.user_map.get(account_id);
-    if (user != null) {
-      let left;
-      color =
-        (left = user.getIn(["profile", "color"])) != null
-          ? left
-          : "rgb(170,170,170)";
-      name = misc.trunc_middle(
-        user.get("first_name") + " " + user.get("last_name"),
-        60
-      );
-    } else {
-      color = "rgb(170,170,170)";
-      name = "Private User";
-    }
+    if (user == null) return UNKNOWN_USER_PROFILE;
+    const color = user.getIn(["profile", "color"], "rgb(170,170,170)");
+    const name = trunc_middle(
+      user.get("first_name", "") + " " + user.get("last_name", ""),
+      60
+    );
     return { color, name };
-  };
+  }
 
-  render() {
+  public render(): Rendered {
     let C: any;
-    const now = misc.server_time();
+    const now = server_time().valueOf();
     const v: any[] = [];
     if (this.props.codemirror != null) {
       C = PositionedCursor;
     } else {
       C = StaticPositionedCursor;
     }
-    if (this.props.cursors != null) {
+    if (this.props.cursors != null && this.props.user_map != null) {
       this.props.cursors.forEach((locs: any, account_id: any) => {
         const { color, name } = this.profile(account_id);
-        return locs.forEach(pos => {
-          if (now - pos.get("time") <= CURSOR_TIME_S * 1000) {
-            let left, left1;
-            if (account_id === this.props.account_id) {
-              // don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
+        locs.forEach(pos => {
+          const tm = pos.get("time");
+          if (tm == null) {
+            return;
+          }
+          const t = tm.valueOf();
+          if (now - t <= CURSOR_TIME_MS) {
+            /* if (account_id === this.props.account_id) {
+              // Don't show our own cursor, we just haven't made this
+              // possible due to only keying by account_id.
               return;
-            }
+            }*/
             v.push(
               <C
                 key={v.length}
-                time={pos.get("time") - 0}
+                time={t}
                 color={color}
                 name={name}
-                line={(left = pos.get("y")) != null ? left : 0}
-                ch={(left1 = pos.get("x")) != null ? left1 : 0}
+                line={pos.get("y", 0)}
+                ch={pos.get("x", 0)}
                 codemirror={this.props.codemirror}
               />
             );

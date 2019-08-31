@@ -2,10 +2,11 @@
 Modal for editing attachments that are attached to a markdown cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 const { Icon } = require("../r_misc");
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
+import { JupyterActions } from "./browser-actions";
 
 const ROW_STYLE: React.CSSProperties = {
   display: "flex",
@@ -15,11 +16,11 @@ const ROW_STYLE: React.CSSProperties = {
 };
 
 interface EditAttachmentsProps {
-  actions: any; // TODO: type
-  cell: ImmutableMap<any, any>; // TODO: type
+  actions: JupyterActions;
+  cell: ImmutableMap<string, any>;
 }
 
-export class EditActtachments extends Component<EditAttachmentsProps> {
+export class EditAttachments extends Component<EditAttachmentsProps> {
   shouldComponentUpdate(nextProps) {
     return nextProps.cell !== this.props.cell;
   }
@@ -30,7 +31,10 @@ export class EditActtachments extends Component<EditAttachmentsProps> {
   };
 
   delete_attachment = (name: string) => {
-    this.props.actions.delete_attachment_from_cell(this.props.cell.get("id"), name);
+    this.props.actions.delete_attachment_from_cell(
+      this.props.cell.get("id"),
+      name
+    );
   };
 
   render_attachment = (name: string) => {
@@ -60,7 +64,11 @@ export class EditActtachments extends Component<EditAttachmentsProps> {
       }
     }
     if (v.length === 0) {
-      return <span>There are no attachments. To attach images, use Edit -> Insert Image.</span>;
+      return (
+        <span>
+          There are no attachments. To attach images, use Edit -> Insert Image.
+        </span>
+      );
     }
     return v;
   };

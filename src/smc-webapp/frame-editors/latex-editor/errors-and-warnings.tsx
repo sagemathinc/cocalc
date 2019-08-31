@@ -3,7 +3,7 @@ Show errors and warnings.
 */
 
 import { Map } from "immutable";
-import { capitalize, is_different, path_split } from "../generic/misc";
+import { capitalize, is_different, path_split } from "smc-util/misc2";
 import {
   Component,
   React,
@@ -74,7 +74,7 @@ const ITEM_STYLES = {
 
 interface item {
   line: string;
-  file: string;
+  file?: string;
   level: number;
   message?: string;
   content?: string;
@@ -93,7 +93,8 @@ class Item extends Component<ItemProps, {}> {
   edit_source(e: React.SyntheticEvent<any>): void {
     e.stopPropagation();
     const line: number = parseInt(this.props.item.get("line"));
-    const filename: string = this.props.item.get("file");
+    const filename = this.props.item.get("file");
+    if (!filename) return;
     this.props.actions.open_code_editor({
       line: line,
       file: filename,
@@ -108,17 +109,23 @@ class Item extends Component<ItemProps, {}> {
     if (!this.props.item.get("line")) {
       return;
     }
-    return (
-      <div>
-        <a
-          onClick={e => this.edit_source(e)}
-          style={{ cursor: "pointer", float: "right" }}
-        >
-          Line {this.props.item.get("line")} of{" "}
-          {path_split(this.props.item.get("file")).tail}
-        </a>
-      </div>
-    );
+    // https://github.com/sagemathinc/cocalc/issues/3413
+    const file = this.props.item.get("file");
+
+    if (file) {
+      return (
+        <div>
+          <a
+            onClick={e => this.edit_source(e)}
+            style={{ cursor: "pointer", float: "right" }}
+          >
+            Line {this.props.item.get("line")} of {path_split(file).tail}
+          </a>
+        </div>
+      );
+    } else {
+      return <div>Line {this.props.item.get("line")}</div>;
+    }
   }
 
   render_message(): React.ReactElement<any> | undefined {
@@ -183,7 +190,11 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       this.props.build_logs.getIn(["latex", "parse"]) !=
         props.build_logs.getIn(["latex", "parse"]) ||
       this.props.build_logs.getIn(["knitr", "parse"]) !=
-        props.build_logs.getIn(["knitr", "parse"])
+        props.build_logs.getIn(["knitr", "parse"]) ||
+      this.props.build_logs.getIn(["pythontex", "parse"]) !=
+        props.build_logs.getIn(["pythontex", "parse"])||
+      this.props.build_logs.getIn(["sagetex", "parse"]) !=
+        props.build_logs.getIn(["sagetex", "parse"])
     );
   }
 
@@ -235,12 +246,15 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     if (!content) {
       return;
     }
+    const header = (
+      <>
+        <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
+        {capitalize(group)} ({capitalize(tool)})
+      </>
+    );
     return (
       <div key={group}>
-        <h3>
-          <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
-          {capitalize(group)} ({capitalize(tool)})
-        </h3>
+        {content.size == 0 ? <h5>{header}</h5> : <h3>{header}</h3>}
         {this.render_group_content(content)}
       </div>
     );
@@ -273,7 +287,9 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         {["errors", "typesetting", "warnings"].map(group =>
           this.render_group("latex", group)
         )}
+        {this.render_group("sagetex", "errors")}
         {["errors", "warnings"].map(group => this.render_group("knitr", group))}
+        {this.render_group("pythontex", "errors")}
       </div>
     );
   }

@@ -21,3 +21,28 @@ export interface SetMap {
 }
 
 export type ErrorStyles = undefined | "monospace";
+
+export type ConnectionStatus = "disconnected" | "connected" | "connecting";
+
+// Editor spec
+
+interface ButtonCustomize {
+  text?: string; // overrides text content of the button
+  title?: string; // overrides tooltip that pops up on hover.
+}
+
+type ButtonFunction = (path: string) => { [button_name: string]: true };
+
+interface EditorDescription {
+  short: string; // short description of the editor
+  name: string; // slighlty longer description
+  icon: string;
+  component: any; // React component
+  buttons?: { [button_name: string]: true } | ButtonFunction;
+  // NOTE: customize is only implemented for shell button right now!
+  customize_buttons?: { [button_name: string]: ButtonCustomize };
+}
+
+export interface EditorSpec {
+  [editor_name: string]: EditorDescription;
+}

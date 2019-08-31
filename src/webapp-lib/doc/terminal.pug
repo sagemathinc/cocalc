@@ -1,0 +1,38 @@
+extends _terminal.pug
+
+block vars
+  -
+    navbar_active = 'features';
+    subnavbar_active = 'terminal';
+    subtitle = 'Online Linux Terminal';
+
+block header
+  meta(name="description" content=NAME + ' - ' + subtitle)
+  script(type="text/javascript")
+    include:coffee-script ../index.coffee
+
+block content
+  //- CSS overwrites styles defined in the header
+  style
+    :sass
+      @import "webapp-lib/doc/_style.sass"
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/linux-logo.svg")).fit
+      div.col-sm-12.center
+        h1 #{subtitle}
+
+    +linux-terminal-main
+
+  +terminal-real-time
+
+  a.anchor#a-software
+  div.container#software
+    +linux-software
+
+  +linux-snapshot-backups
+
+  +start_free_banner

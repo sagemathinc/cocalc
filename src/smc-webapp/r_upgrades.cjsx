@@ -24,12 +24,17 @@ exports.UpgradesPage = rclass
         project_map     : rtypes.object
         stripe_customer : rtypes.immutable.Map
 
+    reduxProps:
+        projects:
+            all_projects_have_been_loaded : rtypes.bool
+
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
         {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
         <div>
-            <h3>Sign up for a subscription in the billing tab</h3>
+            <h3>Sign up</h3>
+            To sign up for a subscription, visit the "Subscriptions and Course Packages tab".
 
             <ExplainResources type='shared'/>
 
@@ -54,7 +59,7 @@ exports.UpgradesPage = rclass
         <div style={margin:'10px 0'}>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing
+                We offer many <a href={PolicyPricingPageUrl} target='_blank' rel='noopener'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
@@ -78,7 +83,7 @@ exports.UpgradesPage = rclass
                         {<span>{u} {misc.plural(u, info.display_unit)}</span> if u?}
                     </Col>
                     <Col sm={7}>
-                        <ProgressBar striped now={percent_used} style={marginBottom: '0px'}/>
+                        <ProgressBar striped now={percent_used} style={margin: '3px 0px', border:'1px solid grey'}/>
                     </Col>
                 </Row>
             </Col>
@@ -103,7 +108,12 @@ exports.UpgradesPage = rclass
         if not upgrades? or not used?
             return @render_no_upgrades()
 
-        <Panel header={<h2>Upgrades that you get from your subscriptions and course packages</h2>}>
+        # Ensure that all projects loaded -- this can change used above, which is fine,
+        # and would re-render this component.  The issue is that it's conceivable you have
+        # a project nobody has touched for a month, which has upgrades applied to it.
+        @props.redux.getActions('projects').load_all_projects()
+
+        <Panel header={<h2>Upgrades from your subscriptions and course packages</h2>}>
             <Row key='header'>
                 <Col sm={2}>
                     <strong>Quota</strong>
@@ -123,7 +133,11 @@ exports.UpgradesPage = rclass
 
     render: ->
         if not @props.redux? or not @props.project_map?
-            return <Loading />
+            return <Loading theme={"medium"}  />
+        if not @props.all_projects_have_been_loaded
+            # See https://github.com/sagemathinc/cocalc/issues/3802
+            @props.redux.getActions('projects').load_all_projects()
+            return <Loading theme={"medium"} />
         if not @props.stripe_customer?.getIn(['subscriptions', 'total_count'])
             @render_no_upgrades()
         else
@@ -194,6 +208,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
         <UpgradeAdjustor
             key                                  = {"adjustor-#{project_id}"}
             project_id                           = {project_id}
+            total_project_quotas                 = {@props.get_total_project_quotas(project_id) }
             upgrades_you_can_use                 = {@props.get_total_upgrades()}
             upgrades_you_applied_to_all_projects = {@props.get_total_upgrades_you_have_applied()}
             upgrades_you_applied_to_this_project = {@props.get_upgrades_you_applied_to_project(project_id)}
@@ -231,7 +246,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        webapp_client.remove_all_upgrades (err) =>
+        webapp_client.remove_all_upgrades undefined, (err) =>
             @setState
                 expand_remove_all_upgrades : false
                 remove_all_upgrades_error  : err
@@ -296,10 +311,10 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             {@render_upgraded_projects_rows(upgraded_projects)}
         </Panel>
 
-ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
+exports.ResetProjectsConfirmation = ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
     <Well style={marginBottom:'0px', marginTop:'10px', background:'white'}>
-        Are you sure you want to remove all your upgrades from all projects?<br/>
-        You will have all your upgrades available to use.<br/>
+        Are you sure you want to remove all upgrades that you have contributed to these projects?<br/>
+        Your upgrades will then be available to use on projects.<br/>
         <UpgradeRestartWarning style={display:'inline-block', margin:'15px 0'} />
         <ButtonToolbar>
             <Button bsStyle='warning' onClick={on_confirm}>

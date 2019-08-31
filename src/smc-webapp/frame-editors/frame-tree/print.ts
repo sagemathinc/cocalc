@@ -4,7 +4,7 @@ Convert an *HTML* file (raw url or string content) to printable form.
 TODO: refactor with markdown print (?).
 */
 
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 
 //import { HTML } from 'smc-webapp/r_misc';
 const { HTML } = require("smc-webapp/r_misc");
@@ -16,11 +16,11 @@ import { React, Redux, redux } from "../../app-framework";
 
 let BLOCKED: boolean | undefined = undefined;
 
-export function popup(url: string): any {
+export function popup(url: string, width:number=800, height:number=640): any {
   const w: any = window.open(
     url,
     "_blank",
-    "menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800"
+    `menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=${height},width=${width}`
   );
   if (!w || w.closed === undefined) {
     if (BLOCKED || BLOCKED === undefined) {
@@ -111,12 +111,14 @@ function html_with_deps(
             integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
             crossOrigin = "anonymous" />
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.35.0/codemirror.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css"
+            integrity="sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
+            crossorigin="anonymous" />
 
         <link
             rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css"
-            integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei"
+            href="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css"
+            integrity="sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG"
             crossorigin="anonymous" />
 
     </head>

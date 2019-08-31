@@ -28,7 +28,7 @@ def is_dataframe(obj):
     # CRITICAL: do not import pandas at the top level since it can take up to 3s -- it's **HORRIBLE**.
     try:
         from pandas import DataFrame
-    except:
+    except ImportError:
         return False
     return isinstance(obj, DataFrame)
 
@@ -159,7 +159,6 @@ class InteractCell(object):
             elif len(left) == 0 and len(right) > 0:
                 new_layout.append([''] + right[0])
                 del right[0]
-            i = 0
             while len(left) > 0 and len(right) > 0:
                 new_layout.append(left[0] + ['_salvus_'] + right[0])
                 del left[0]
@@ -320,7 +319,7 @@ class InteractFunction(object):
 
             @interact
             def f(n=True, m=False, xyz=[1,2,3]):
-                print n, m, xyz, interact.changed()
+                print(n, m, xyz, interact.changed())
         """
         return self.__dict__['interact_cell'].changed
 
@@ -444,7 +443,7 @@ class Interact(object):
 
         @interact(auto_update=False)
         def f(a=True, b=False):
-            print a, b
+            print(a, b)
 
     You can access the value of a control associated to a variable foo
     that you create using interact.foo, and check whether there is a
@@ -551,7 +550,7 @@ class Interact(object):
 
             @interact
             def f(n=True, m=False, xyz=[1,2,3]):
-                print n, m, xyz, interact.changed()
+                print(n, m, xyz, interact.changed())
         """
         return interact_exec_stack[-1].changed
 
@@ -624,9 +623,6 @@ class control:
         for k, v in self._opts.iteritems():
             X[k] = jsonable(v)
         return X
-
-
-import types, inspect
 
 
 def list_of_first_n(v, n):
@@ -1586,7 +1582,6 @@ def latex0(s=None, **kwds):
     """
     if s is None:
         return lambda t: latex0(t, **kwds)
-    import os
     if 'filename' not in kwds:
         import tempfile
         delete_file = True
@@ -1840,13 +1835,12 @@ def asy(code=None, **kwds):
     # asy command can also be used to make .eps file
     import tempfile
     import subprocess
-    import os
     fname1 = tempfile.mkstemp(suffix=".asy")[1]
     fname2 = tempfile.mkstemp(suffix=".png")[1]
     with open(fname1, "w") as outf1:
         outf1.write(code + '\n')
     cmd = "/usr/bin/asy -offscreen -f png -o {} {}".format(fname2, fname1)
-    p = subprocess.call(cmd.split())
+    subprocess.call(cmd.split())
     salvus.file(fname2)
     os.unlink(fname1)
     os.unlink(fname2)
@@ -1894,7 +1888,6 @@ def cython(code=None, **kwds):
     finally:
         del sys.path[0]
 
-    import inspect
     defined = []
     for name, value in inspect.getmembers(module):
         if not name.startswith('_') and name != 'init_memory_functions':
@@ -2024,7 +2017,10 @@ def python3(code=None, **kwargs):
     if python3.jupyter_kernel is None:
         python3.jupyter_kernel = jupyter("python3")
     return python3.jupyter_kernel(code, **kwargs)
+
+
 python3.jupyter_kernel = None
+
 
 def anaconda(code=None, **kwargs):
     """
@@ -2053,7 +2049,10 @@ def anaconda(code=None, **kwargs):
     if anaconda.jupyter_kernel is None:
         anaconda.jupyter_kernel = jupyter("anaconda5")
     return anaconda.jupyter_kernel(code, **kwargs)
+
+
 anaconda.jupyter_kernel = None
+
 
 def singular_kernel(code=None, **kwargs):
     """
@@ -2223,7 +2222,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         s_lib_path = ""
         s_lib = ""
         for s in library_paths:
-            s_lib_path = s_lib_path + "-L%s "
+            s_lib_path = s_lib_path + "-L%s " % s
 
         for s in libraries:
             s_lib = s_lib + "-l%s " % s
@@ -2444,16 +2443,18 @@ def prun(code):
             title=text_control('', "<h1>Salvus Profiler</h1>"),
             sort=(
                 "First sort by",
-                selector(
-                    [('calls', 'number of calls to the function'),
-                     ('time', ' total time spent in the function'),
-                     ('cumulative',
-                      'total time spent in this and all subfunctions (from invocation till exit)'
-                      ), ('module',
-                          'name of the module that contains the function'),
-                     ('name', 'name of the function')],
-                    width="100%",
-                    default='time')),
+                selector([
+                    ('calls', 'number of calls to the function'),
+                    ('time', ' total time spent in the function'),
+                    ('cumulative',
+                     'total time spent in this and all subfunctions (from invocation till exit)'
+                     ),
+                    ('module',
+                     'name of the module that contains the function'),
+                    ('name', 'name of the function')
+                ],
+                         width="100%",
+                         default='time')),
             strip_dirs=True):
         try:
             p = pstats.Stats(filename)
@@ -3086,8 +3087,8 @@ class Exercise:
         self._number_of_attempts = 0
         attempts = []
 
-        @interact(layout=[[('question', 12)], [('attempt', 12)], [('feedback',
-                                                                   12)]])
+        @interact(layout=[[('question', 12)], [('attempt', 12)],
+                          [('feedback', 12)]])
         def f(
                 question=("<b>Question:</b>", text_control(self._question)),
                 attempt=('<b>Answer:</b>', self._answer[1])):
@@ -3213,8 +3214,8 @@ def exercise(code):
     the_times = []
 
     @interact(
-        layout=[[('go', 1), ('title', 11, '')], [('')], [('times', 12,
-                                                          "<b>Times:</b>")]],
+        layout=[[('go', 1), ('title', 11, '')], [('')],
+                [('times', 12, "<b>Times:</b>")]],
         flicker=True)
     def h(
             go=button(
@@ -3448,16 +3449,14 @@ def md2html(s):
     from markdown2 import markdown
 
     delims = [('\\(', '\\)'), ('$$', '$$'), ('\\[', '\\]'),
-              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}',
-                                                         '\\end{equation*}'),
-              ('\\begin{align}',
-               '\\end{align}'), ('\\begin{align*}',
-                                 '\\end{align*}'), ('\\begin{eqnarray}',
-                                                    '\\end{eqnarray}'),
-              ('\\begin{eqnarray*}',
-               '\\end{eqnarray*}'), ('\\begin{math}',
-                                     '\\end{math}'), ('\\begin{displaymath}',
-                                                      '\\end{displaymath}')]
+              ('\\begin{equation}', '\\end{equation}'),
+              ('\\begin{equation*}', '\\end{equation*}'),
+              ('\\begin{align}', '\\end{align}'),
+              ('\\begin{align*}', '\\end{align*}'),
+              ('\\begin{eqnarray}', '\\end{eqnarray}'),
+              ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
+              ('\\begin{math}', '\\end{math}'),
+              ('\\begin{displaymath}', '\\end{displaymath}')]
 
     tmp = [((s, None), None)]
     for d in delims:
@@ -3696,11 +3695,10 @@ def pandoc(fmt, doc=None, hide=True):
     if doc is None:
         return lambda x : html(pandoc(fmt, x), hide=hide) if x is not None else ''
     import subprocess
-    p = subprocess.Popen(
-        ['pandoc', '-f', fmt, '--mathjax'],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        stdin=subprocess.PIPE)
+    p = subprocess.Popen(['pandoc', '-f', fmt, '--mathjax'],
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         stdin=subprocess.PIPE)
     if not isinstance(doc, unicode):
         doc = unicode(doc, 'utf8')
     p.stdin.write(doc.encode('UTF-8'))
@@ -3880,12 +3878,12 @@ def load(*args, **kwds):
         i = arg.find('.')
 
     # now handle remaining non-web arguments.
-    if len(other_args) > 0:
+    if other_args:
         try:
-            exec 'salvus.namespace["%s"] = sage.misc.persist.load(*__args, **__kwds)' % t in salvus.namespace, {
-                '__args': other_args,
-                '__kwds': kwds
-            }
+            exec('salvus.namespace["%s"] = sage.misc.persist.load(*__args, **__kwds)' % t,
+                 salvus.namespace,
+                 {'__args': other_args,
+                  '__kwds': kwds})
             return salvus.namespace[t]
         finally:
             try:
@@ -4248,7 +4246,7 @@ def java(s):
     if name:
         name = name.group('name')
     else:
-        print 'error public class name not found'
+        print('error public class name not found')
         return
     try:
         open(name + '.java', 'w').write(s.encode("UTF-8"))
@@ -4298,7 +4296,7 @@ def julia(code=None, **kwargs):
 
     """
     if julia.jupyter_kernel is None:
-        julia.jupyter_kernel = jupyter("julia")
+        julia.jupyter_kernel = jupyter("julia-1.1")
     return julia.jupyter_kernel(code, **kwargs)
 
 
@@ -4349,7 +4347,6 @@ def license():
 
 
 # search_src
-import os
 import glob
 
 

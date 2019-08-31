@@ -1881,6 +1881,8 @@ class ProjectClient extends EventEmitter
             exclude_history   : false
             timeout           : 5*60
             bwlimit           : undefined
+            wait_until_done   : undefined # not used, only relevant for the kucalc variant
+            scheduled         : undefined # --*--
             cb                : required
         dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
         dbg("copy a path using rsync from one project to another")
@@ -2078,9 +2080,7 @@ class ProjectClient extends EventEmitter
         # Ignore any quotas that aren't in the list below: these are the only ones that
         # the local compute server supports.   It is convenient to allow the caller to
         # pass in additional quota settings.
-        if @_dev
-            opts.cb(); return
-        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'cb'])
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'cb'])
         dbg = @dbg("set_quotas")
         dbg("set various quotas")
         commands = undefined
@@ -2130,6 +2130,24 @@ class ProjectClient extends EventEmitter
                             @_action
                                 action : 'disk_quota'
                                 args   : [opts.disk_quota]
+                                cb     : cb
+                        else
+                            cb()
+                    (cb) =>
+                        if opts.ephemeral_state? and commands.indexOf('ephemeral_state') != -1
+                            dbg("ephemeral_state")
+                            @_action
+                                action : 'ephemeral_state'
+                                args   : [opts.ephemeral_state]
+                                cb     : cb
+                        else
+                            cb()
+                    (cb) =>
+                        if opts.ephemeral_disk? and commands.indexOf('ephemeral_disk') != -1
+                            dbg("ephemeral_disk")
+                            @_action
+                                action : 'ephemeral_disk'
+                                args   : [opts.ephemeral_disk]
                                 cb     : cb
                         else
                             cb()

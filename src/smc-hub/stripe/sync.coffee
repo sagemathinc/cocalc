@@ -18,7 +18,8 @@ exports.stripe_sync = (opts) ->
         logger    : {debug:console.log}
         database  : required
         target    : undefined
-        limit     : 3  # number at once
+        limit     : 1  # number at once -- stripe will kick us out due to exceeding rate limit thresh if this is bigger than 1...
+        delay     : 10 # ms, additional delay to avoid rate limiting
         cb        : undefined
 
     dbg = (m) -> opts.logger?.debug("stripe_sync: #{m}")
@@ -39,10 +40,9 @@ exports.stripe_sync = (opts) ->
                 logger   : opts.logger
                 cb       : cb
         (cb) ->
-            dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
-            # TODO: we could make this faster by putting an index on the stripe_customer_id field.
+            dbg("get all customers from the database with stripe that have been active in the last month")
             opts.database._query
-                query : 'SELECT account_id, stripe_customer_id, stripe_customer FROM accounts WHERE stripe_customer_id IS NOT NULL'
+                query : "SELECT account_id, stripe_customer_id, stripe_customer FROM accounts WHERE stripe_customer_id IS NOT NULL AND last_active >= NOW() - INTERVAL '1 MONTH'"
                 cb    : (err, x) ->
                     users = x?.rows
                     cb(err)
@@ -58,7 +58,9 @@ exports.stripe_sync = (opts) ->
                     account_id  : x.account_id
                     stripe      : stripe
                     customer_id : x.stripe_customer_id
-                    cb          : cb
+                    cb          : (err) ->
+                        # rate limiting
+                        setTimeout(cb, opts.delay)
             async.mapLimit(users, opts.limit, f, cb)
     ], (err) ->
         if err
@@ -67,3 +69,4 @@ exports.stripe_sync = (opts) ->
             dbg("updated all customer info successfully")
         opts.cb?(err)
     )
+

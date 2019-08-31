@@ -23,7 +23,7 @@ $ = window.$
 
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
-{dmp}       = require('smc-util/syncstring')
+{dmp}       = require('smc-util/sync/editor/generic/util')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
@@ -198,7 +198,7 @@ $.fn.html_noscript = (html) ->
 
 # MathJax some code -- jQuery plugin
 # ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
-# from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc.cjsx)
+# from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc)
 
 # this queue is used, when starting up or when it isn't configured (yet)
 mathjax_queue = []
@@ -218,7 +218,12 @@ exports.mathjax_finish_startup = ->
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!
-    mathjax_enqueue(["Typeset", el])
+    try
+        mathjax_enqueue(["Typeset", el])
+    catch err
+        # This exception *does* happen sometimes -- see
+        #     https://github.com/sagemathinc/cocalc/issues/3620
+        # This is probably a bug in Mathjax, but whatever.
 
 $.fn.extend
     mathjax: (opts={}) ->
@@ -629,35 +634,35 @@ exports.define_codemirror_extensions = () ->
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\section")
                 # article section
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsection")
                 # article subsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsection")
                 # article subsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsubsection")
                 # article subsubsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "%\\begin{}")
                 # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
@@ -786,8 +791,6 @@ exports.define_codemirror_extensions = () ->
                 @scrollIntoView(last_pos)
                 @setCursor(last_pos)
 
-        delete @_setValueNoJump
-
         # Just do an expensive double check that the above worked.  I have no reason
         # to believe the above could ever fail... but maybe it does in some very rare
         # cases, and if it did, the results would be PAINFUL.  So... we just brutally
@@ -796,6 +799,9 @@ exports.define_codemirror_extensions = () ->
         if value != @getValue()
             console.warn("setValueNoJump failed -- just setting value directly")
             @setValue(value)
+
+        delete @_setValueNoJump
+
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## OPTIMIZATION: this is a very stupid/inefficient way to turn
@@ -1102,8 +1108,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                tab = window.open(how.url, '_blank')
-                tab.focus()
+                exports.open_new_tab(how.url)
                 done = true
 
             if how?.wrap?
@@ -1361,7 +1366,7 @@ exports.define_codemirror_extensions = () ->
                 title  = title.val().trim()
 
                 if target == "_blank"
-                    target = " target='_blank'"
+                    target = " target='_blank' rel='noopener'"
 
                 if title.length > 0
                     title = " title='#{title}'"
@@ -1874,9 +1879,9 @@ exports.open_new_tab = (url, popup=false, opts) ->
 
     if popup
         popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
-        tab = window.open(url, '_blank', popup_opts)
+        tab = window.open("", '_blank', popup_opts)
     else
-        tab = window.open(url, '_blank')
+        tab = window.open("", '_blank')
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
         if url
@@ -1889,6 +1894,11 @@ exports.open_new_tab = (url, popup=false, opts) ->
             type    : 'info'
             timeout : 15
         return null
+    # equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
+    # credits: https://stackoverflow.com/a/49276673/54236
+    tab.opener = null
+    # only *after* the above, we set the URL!
+    tab.location = url
     return tab
 
 exports.get_cookie = (name) ->
@@ -1922,6 +1932,7 @@ exports.clear_selection = ->
 # test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
 # NOTE: the comments on that stackoverflow are very critical of this; in particular,
 # there's no URI decoding, so I added that below...
+# these get_query functions are ported to misc_page2.ts
 exports.get_query_params = ->
     vars = {}
     href = window.location.href
@@ -1939,44 +1950,8 @@ exports.get_query_params = ->
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
 
-# If there is UTM information in the known cookie, extract and return it
-# Then, delete this cookie.
-# Reference: https://en.wikipedia.org/wiki/UTM_parameters
-#
-# Parameter                 Purpose/Example
-# utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
-#                           utm_source=Google
-#
-# utm_medium                Identifies what type of link was used,
-#                           such as cost per click or email.
-#                           utm_medium=cpc
-#
-# utm_campaign              Identifies a specific product promotion or strategic campaign.
-#                           utm_campaign=spring_sale
-#
-# utm_term                  Identifies search terms.
-#                           utm_term=running+shoes
-#
-# utm_content               Identifies what specifically was clicked to bring the user to the site,
-#                           such as a banner ad or a text link. It is often used for A/B testing
-#                           and content-targeted ads.
-#                           utm_content=logolink or utm_content=textlink
-
-
-# get eventually available information form the utm cookie
-# delete it afterwards
-exports.get_utm = ->
-    c = exports.get_cookie(misc.utm_cookie_name)
-    return if not c
-    try
-        data = misc.from_json(window.decodeURIComponent(c))
-        if DEBUG then console.log("get_utm cookie data", data)
-        exports.delete_cookie(misc.utm_cookie_name)
-        return data
-
-# get referrer information
-exports.get_referrer = ->
-    c = exports.get_cookie(misc.referrer_cookie_name)
-    return if not c
-    exports.delete_cookie(misc.referrer_cookie_name)
-    return c
+# returns true, if a target page should be loaded
+exports.should_load_target_url = ->
+    return window.smc_target \
+        and window.smc_target != 'login' \
+        and not exports.get_query_param('test')

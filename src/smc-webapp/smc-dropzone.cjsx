@@ -2,15 +2,23 @@
 Drag'n'Drop dropzone area
 ###
 
+# This limit is mainly to show a nice error message.
+# The actual limit is imposed somewhere else mysteriously
+# along the chain of proxies (e.g., cloudflare?), and
+# is about 200MB.  I completely failed to figure out
+# how to raise this.  See https://github.com/sagemathinc/cocalc/issues/3716
+MAX_FILE_SIZE_MB    = 200 # 200MB
+
 ReactDOMServer      = require('react-dom/server')   # for dropzone below
 Dropzone            = require('dropzone')
 {DropzoneComponent} = require('react-dropzone-component')
 
 misc           = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes} = require('./app-framework')
+{React, ReactDOM, rclass, rtypes, redux} = require('./app-framework')
 
 {Icon, Tip} = require('./r_misc')
+os_path = require('path')
 
 Dropzone.autoDiscover = false
 
@@ -19,7 +27,7 @@ DROPSTYLE =
     boxShadow    : '4px 4px 2px #bbb'
     borderRadius : '5px'
     padding      : 0
-    margin       : '10px'
+    margin       : '10px 0'
 
 render_header = ->
     <Tip
@@ -41,6 +49,10 @@ exports.SMC_Dropzone = rclass
         current_path         : rtypes.string.isRequired
         dropzone_handler     : rtypes.object.isRequired
         close_button_onclick : rtypes.func
+        show_header          : rtypes.bool
+
+    getDefaultProps: ->
+        show_header          : true
 
     dropzone_template : ->
         <div className='dz-preview dz-file-preview'>
@@ -73,12 +85,13 @@ exports.SMC_Dropzone = rclass
     render: ->
         <div>
             {@render_close_button() if @props.close_button_onclick?}
-            {render_header()}
+            {render_header() if @props.show_header}
             <div style={DROPSTYLE}>
                 <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
-                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
+                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template()), maxFilesize:MAX_FILE_SIZE_MB}
+                />
             </div>
         </div>
 
@@ -95,6 +108,7 @@ exports.SMC_Dropwrapper = rclass
         show_upload      : rtypes.bool                 # Whether or not to show upload area
         on_close         : rtypes.func
         disabled         : rtypes.bool
+        style            : rtypes.object               # css styles to apply to the containing div
 
     getDefaultProps: ->
         config         : {}
@@ -109,7 +123,7 @@ exports.SMC_Dropwrapper = rclass
             url : @postUrl()
             previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
-            maxFilesize       : 10000
+            maxFilesize       : MAX_FILE_SIZE_MB
         , true
         return misc.merge(with_defaults, @props.config)
 
@@ -210,7 +224,7 @@ exports.SMC_Dropwrapper = rclass
         </div>
 
     render: ->
-        <div>
+        <div style={@props.style}>
             {@render_preview() if not @props.disabled}
             {@props.children}
         </div>
@@ -219,6 +233,10 @@ exports.SMC_Dropwrapper = rclass
         if not @dropzone? and not @props.disabled
             dropzone_node = ReactDOM.findDOMNode(@)
             @dropzone = new Dropzone(dropzone_node, @get_djs_config())
+
+    log: (entry) ->
+        actions = redux.getProjectActions(@props.project_id)
+        actions.log(entry)
 
     _set_up_events: ->
         return unless @dropzone?
@@ -243,6 +261,11 @@ exports.SMC_Dropwrapper = rclass
                 files = @state.files
                 files.push(file)
                 @setState(files : files)
+                full_path = os_path.join(@props.dest_path, file.name)
+                @log
+                    event: "file_action"
+                    action: "uploaded"
+                    file: full_path
 
     # Removes ALL listeners and Destroys dropzone.
     # see https://github.com/enyo/dropzone/issues/1175

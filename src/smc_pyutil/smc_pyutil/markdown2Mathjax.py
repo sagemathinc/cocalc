@@ -70,18 +70,18 @@ def sanitizeInput(string,
         #find the next point of interest.
         while startmatches[0] and startmatches[0].start() < post:
             startmatches[0] = placeholder_scan.search()
-            startpoints[0] = startmatches[0].start() if startmatches[
-                0] else stlen
+            startpoints[0] = startmatches[0].start(
+            ) if startmatches[0] else stlen
         while startmatches[1] and startmatches[1].start() < post:
             startmatches[1] = ilscanner[0].search()
-            startpoints[1] = startmatches[1].start() if startmatches[
-                1] else stlen
+            startpoints[1] = startmatches[1].start(
+            ) if startmatches[1] else stlen
         while startmatches[2] and startmatches[2].start() < post:
             startmatches[2] = eqscanner[0].search()
-            startpoints[2] = startmatches[2].start() if startmatches[
-                2] else stlen
+            startpoints[2] = startmatches[2].start(
+            ) if startmatches[2] else stlen
     #Found start of next block of each type
-        #Placeholder type always takes precedence if it exists and is next...
+    #Placeholder type always takes precedence if it exists and is next...
         if startmatches[0] and min(startpoints) == startpoints[0]:
             #We can do it all in one!
             #First add the "stripped" code to the blocks
@@ -108,8 +108,8 @@ def sanitizeInput(string,
             if not inBlock:
                 inBlock = break_tie(startmatches[1], startmatches[2])
     #Magic to ensure minimum index is 0
-        sanitizedString = sanitizedString + string[(
-            post * (post >= 0)):startpoints[inBlock]]
+        sanitizedString = sanitizedString + string[
+            (post * (post >= 0)):startpoints[inBlock]]
         post = startmatches[inBlock].end()
         #Now find the matching end...
         while terminator < post:
@@ -117,7 +117,8 @@ def sanitizeInput(string,
             #If we run out of terminators before ending this loop, we're done
             if endpoint is None:
                 #Add the unterminated codeblock to the sanitized string
-                sanitizedString = sanitizedString + string[startpoints[inBlock]:]
+                sanitizedString = sanitizedString + string[
+                    startpoints[inBlock]:]
                 return (sanitizedString, codeblocks)
             terminator = endpoint.start()
     #We fonud a matching endpoint, add the bit to the appropriate codeblock...
@@ -204,7 +205,7 @@ def findBoundaries(string):
             #The last character was a valid $, but this one isn't...
             #This means the last character was a valid $, but this isn't
             if inoned:
-                print "THIS SHOULD NEVER HAPPEN!"
+                print("THIS SHOULD NEVER HAPPEN!")
             elif intwod:
                 #ignore it...
                 pass

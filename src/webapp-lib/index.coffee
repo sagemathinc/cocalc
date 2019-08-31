@@ -12,10 +12,12 @@ stat_rows = [
     ['Created projects', 'projects_created'],
     ['Created accounts', 'accounts_created'],
 ]
+
 opened_files = [
     ['Sage Worksheets',     'sagews'],
     ['Jupyter Notebooks',   'ipynb'],
-    ['LaTeX Documents',     'tex']
+    ['LaTeX Documents',     'tex'],
+    ['Markdown',            'md']
 ]
 
 sum_clients = (stats) ->
@@ -24,6 +26,12 @@ sum_clients = (stats) ->
     for h in hubs
         s += h.clients ? 0
     return s
+
+
+# improve understanding of large numbers
+fmt = (num) ->
+    num = parseInt(num)
+    num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
 
 update_stats = (stats) ->
     #console.log stats
@@ -39,7 +47,8 @@ update_stats = (stats) ->
         cell.innerHTML = "<strong>#{name}</strong>"
         for j in window.stat_times
             cell = row.insertCell()
-            cell.appendChild(document.createTextNode("#{stats[key][j]}"))
+            num = fmt(stats[key][j])
+            cell.appendChild(document.createTextNode(num))
 
     row   = table.insertRow()
     delim = row.insertCell()
@@ -48,10 +57,10 @@ update_stats = (stats) ->
     row   = table.insertRow()
     cell  = row.insertCell()
     cell.className = 'left'
-    cell.innerHTML = '<strong>Number of files</strong>'
+    cell.innerHTML = '<strong>Edited files</strong>'
     cell  = row.insertCell()
     cell.setAttribute("colspan", 4)
-    cell.innerHTML = 'opened or edited, counting total and unique file paths'
+    #cell.innerHTML = 'newly opened or edited'
 
     for [name, ext] in opened_files
         row     = table.insertRow()
@@ -60,9 +69,10 @@ update_stats = (stats) ->
         cell.innerHTML = "<strong>#{name}</strong>"
         for j in window.stat_times
             cell       = row.insertCell()
-            total      = stats.files_opened?.total[j]?[ext] ? 0
-            distinct   = stats.files_opened?.distinct[j]?[ext] ? 0
-            cell.innerHTML = "<span title='total files opened'>#{total}</span>  (<span title='distinct files opened'>#{distinct})</span>"
+            total      = fmt(stats.files_opened?.total[j]?[ext] ? 0)
+            # distinct   = fmt(stats.files_opened?.distinct[j]?[ext] ? 0)
+            cell.innerHTML = "<span title='total files opened'>#{total}</span>"
+            #   (<span title='distinct files opened'>#{distinct})</span>
 
     document.getElementById("sum_clients").innerHTML = sum_clients(stats)
 
@@ -83,7 +93,7 @@ init_video = ->
     for vplayer in document.getElementsByClassName("video-player")
         vid  = vplayer.getElementsByTagName("video")[0]
         over = vplayer.getElementsByClassName("video-overlay")[0]
-        do (vplayer, vid) ->
+        do (vplayer, vid, over) ->
             vplayer.onclick = (el) ->
                 #console.log vplayer, over, vid
                 vplayer.removeChild(over)
@@ -118,7 +128,13 @@ init_magic_anchors = ->
             marker.appendChild(document.createTextNode('¶'))
             header.appendChild(marker)
 
+init_lozad = ->
+    imgs = document.querySelectorAll('img[data-src]')
+    observer = window.lozad(imgs)
+    observer.observe()
+
 document.addEventListener "DOMContentLoaded", ->
+    init_lozad()
     if document.getElementById('statstable')?
         get_stats()
     init_video()

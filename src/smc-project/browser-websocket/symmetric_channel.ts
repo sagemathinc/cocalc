@@ -1,10 +1,10 @@
 /*
-Channels used for optimizing realtime sync.
+Channels used for maybe nothing right now.
+
+I thought this would be useful, but it hasn't yet turned out to be.
 */
 
 import { EventEmitter } from "events";
-
-const json = require("json-stable-stringify");
 
 const sync_tables = {};
 
@@ -13,7 +13,7 @@ function get_name(name: string): string {
 }
 
 export async function browser_symmetric_channel(
-  client: any,
+  _: any,
   primus: any,
   logger: any,
   name: string

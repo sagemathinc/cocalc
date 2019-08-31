@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#    Copyright (C) 2016 -- 2019, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -27,6 +27,9 @@ history                 = require('./history')
 {set_window_title}      = require('./browser')
 
 {alert_message}         = require('./alerts')
+
+{QueryParams} = require('./misc_page2')
+{COCALC_FULLSCREEN, COCALC_MINIMAL} = require('./fullscreen')
 
 # Ephemeral websockets mean a browser that kills the websocket whenever
 # the page is backgrounded.  So far, it seems that maybe all mobile devices
@@ -129,29 +132,47 @@ class PageActions extends Actions
         # if there happens to be a websocket to this project, get rid of it.  Nothing will be using it when the project is closed.
         require('./project/websocket/connect').disconnect_from_project(project_id)
 
-        
-    set_active_tab: (key) =>
+    set_active_tab: (key, change_history=true) =>
+        prev_key = @redux.getStore('page').get('active_top_tab')
         @setState(active_top_tab : key)
+
+        if prev_key?.length == 36 and prev_key != key
+            # fire hide actions on project we are switching from.
+            redux.getProjectActions(prev_key)?.hide()
+        if key?.length == 36
+            # fire show action on project we are switching to
+            redux.getProjectActions(key)?.show()
+
         switch key
             when 'projects'
-                history.set_url('/projects')
+                if change_history
+                    history.set_url('/projects')
                 set_window_title('Projects')
             when 'account'
-                redux.getActions('account').push_state()
+                if change_history
+                    redux.getActions('account').push_state()
                 set_window_title('Account')
             when 'about'
-                history.set_url('/help')
+                if change_history
+                    history.set_url('/help')
                 set_window_title('Help')
             when 'file-use'
-                history.set_url('/file-use')
+                if change_history
+                    history.set_url('/file-use')
                 set_window_title('File Usage')
             when 'admin'
-                history.set_url('/admin')
+                if change_history
+                    history.set_url('/admin')
                 set_window_title('Admin')
+            when 'notifications'
+                if change_history
+                    history.set_url('/notifications')
+                set_window_title('Notifications')
             when undefined
                 return
             else
-                redux.getProjectActions(key)?.push_state()
+                if change_history
+                    redux.getProjectActions(key)?.push_state()
                 set_window_title("Loading Project")
                 projects_store = redux.getStore('projects')
 
@@ -199,7 +220,7 @@ class PageActions extends Actions
     set_new_version: (version) =>
         @setState(new_version : version)
 
-    set_fullscreen: (val) =>
+    set_fullscreen: (val) =>  # val = 'default', 'kiosk', undefined
         # if kiosk is ever set, disable toggling back
         if redux.getStore('page').get('fullscreen') == 'kiosk'
             return
@@ -223,9 +244,11 @@ class PageActions extends Actions
         @setState(session : val)
         history.update_params()
 
-        # Make new session manager if necessary
-        if val
-            @_session_manager ?= require('./session').session_manager(val, redux)
+        # Make new session manager, but only register it if we have an actual session name!
+        if not @_session_manager
+            sm = require('./session').session_manager(val, redux)
+            if val
+                @_session_manager = sm
 
     save_session: =>
         @_session_manager?.save()
@@ -240,6 +263,9 @@ class PageActions extends Actions
         @setState(local_storage_warning : true)
 
     check_unload: (e) =>
+        if redux.getStore('page')?.get('get_api_key')
+            # never confirm close if get_api_key is set.
+            return
         # Returns a defined string if the user should confirm exiting the site.
         s = redux.getStore('account')
         if s?.get_user_type() == 'signed_in' and s?.get_confirm_close()
@@ -257,7 +283,8 @@ class PageActions extends Actions
     sign_in: =>
         false
 
-redux.createStore('page', {active_top_tab: 'account'})
+{parse_target} = require("./history2")
+redux.createStore('page', {active_top_tab: parse_target(window.smc_target).page})
 redux.createActions('page', PageActions)
 ###
     name: 'page'
@@ -315,6 +342,8 @@ exports.recent_wakeup_from_standby = recent_wakeup_from_standby
 
 if DEBUG
     window.smc ?= {}
+    window.smc.misc = misc
+    window.smc.misc_page = require('./misc_page')
     window.smc.init_app =
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects
@@ -325,7 +354,7 @@ if prom_client.enabled
          {buckets : [50, 100, 150, 200, 300, 500, 1000, 2000, 5000]})
     prom_ping_time_last = prom_client.new_gauge('ping_last_ms', 'last reported ping time')
 
-webapp_client.on "ping", (ping_time) ->
+webapp_client.on "ping", (ping_time, clock_skew) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
     # reset outside 3x
     if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
@@ -333,7 +362,9 @@ webapp_client.on "ping", (ping_time) ->
     else
         decay = 1 - Math.exp(-1)
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
-    redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
+    page_actions = redux.getActions('page')
+    page_actions.set_ping(ping_time, Math.round(ping_time_smooth))
+    page_actions.setState(clock_skew:clock_skew)
 
     if prom_client.enabled
         prom_ping_time.observe(ping_time)
@@ -403,16 +434,14 @@ webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
 
 # enable fullscreen mode upon a URL like /app?fullscreen and additionally kiosk-mode upon /app?fullscreen=kiosk
-misc_page = require('./misc_page')
-fullscreen_query_value = misc_page.get_query_param('fullscreen')
-if fullscreen_query_value
-    if fullscreen_query_value == 'kiosk'
+if COCALC_FULLSCREEN
+    if COCALC_FULLSCREEN == 'kiosk'
         redux.getActions('page').set_fullscreen('kiosk')
     else
         redux.getActions('page').set_fullscreen('default')
 
 # setup for frontend mocha testing.
-test_query_value = misc_page.get_query_param('test')
+test_query_value = QueryParams.get('test')
 if test_query_value
     # include entryway for running mocha tests.
     redux.getActions('page').setState(test: test_query_value)
@@ -429,14 +458,14 @@ if test_query_value
 # This makes it so the default session is 'default' and there is no
 # way to NOT have a session, except via session=, which is treated
 # as "no session" (also no session for kiosk mode).
-session = misc_page.get_query_param('session') ? 'default'
-if fullscreen_query_value == 'kiosk' or test_query_value
+session = QueryParams.get('session') ? 'default'
+if COCALC_FULLSCREEN == 'kiosk' or test_query_value
     # never have a session in kiosk mode, since you can't access the other files.
     session = ''
 
 redux.getActions('page').set_session(session)
 
-get_api_key_query_value = misc_page.get_query_param('get_api_key')
+get_api_key_query_value = QueryParams.get('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
     redux.getActions('page').set_fullscreen('kiosk')

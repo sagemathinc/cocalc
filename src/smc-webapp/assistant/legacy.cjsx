@@ -25,12 +25,12 @@
 {React, ReactDOM, redux, Redux} = require('../app-framework')
 
 # Assistant functions
-{ExamplesDialog} = require('./dialog')
+{SnippetsDialog} = require('./dialog')
 {redux_name, init_action_and_store} = require('./main')
 
 # This is a legacy wrapper, which is used in editor.coffee for sagews worksheets.
 # "target" is a DOM element somewhere in the buttonbar of the editor's html
-exports.render_examples_dialog = (opts) ->
+exports.render_snippets_dialog = (opts) ->
     opts = defaults opts,
         target     : required
         project_id : required
@@ -43,7 +43,7 @@ exports.render_examples_dialog = (opts) ->
     actions.init(opts.lang)
     actions.set(lang_select:true)
     dialog = <Redux redux={redux}>
-                 <ExamplesDialog actions={actions} name={name}/>
+                 <SnippetsDialog actions={actions} name={name}/>
              </Redux>
     ReactDOM.render(dialog, opts.target)
     return actions

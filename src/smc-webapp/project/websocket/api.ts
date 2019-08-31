@@ -3,44 +3,104 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { callback } from "awaiting";
-
 import { Channel } from "./types";
+import {
+  ConfigurationAspect,
+  Capabilities,
+  ProjectConfiguration,
+  isMainConfiguration
+} from "../../project_configuration";
+import { redux } from "../../app-framework";
+import { parser2tool } from "../../../smc-util/code-formatter";
+import { Options as FormatterOptions } from "../../../smc-project/formatters/prettier";
 
 export class API {
   private conn: any;
+  private project_id: string;
 
-  constructor(conn: string) {
+  constructor(conn: string, project_id: string) {
     this.conn = conn;
+    this.project_id = project_id;
   }
 
-  async call(mesg: object, timeout_ms?: number): Promise<any> {
-    if (timeout_ms === undefined) {
-      timeout_ms = 30000;
+  async call(mesg: object, timeout_ms: number): Promise<any> {
+    const resp = await callback(call, this.conn, mesg, timeout_ms);
+    if (resp != null && resp.status === "error") {
+      throw Error(resp.error);
     }
-    return await callback(call, this.conn, mesg, timeout_ms);
+    return resp;
   }
 
   async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call({ cmd: "listing", path: path, hidden: hidden });
+    return await this.call(
+      { cmd: "listing", path: path, hidden: hidden },
+      15000
+    );
   }
 
-  async prettier(path: string, options: any): Promise<any> {
-    return await this.call({ cmd: "prettier", path: path, options: options });
+  async configuration(aspect: ConfigurationAspect): Promise<object[]> {
+    return await this.call({ cmd: "configuration", aspect }, 15000);
   }
 
-  async prettier_string(str: string, options: any): Promise<any> {
-    return await this.call({
-      cmd: "prettier_string",
-      str: str,
-      options: options
-    });
+  async prettier(path: string, options: FormatterOptions): Promise<any> {
+    return await this.call(
+      { cmd: "prettier", path: path, options: options },
+      15000
+    );
+  }
+
+  get_formatting(): Capabilities | undefined {
+    const project_store = redux.getProjectStore(this.project_id) as any;
+    const configuration = project_store.get(
+      "configuration"
+    ) as ProjectConfiguration;
+    // configuration check only for backwards compatibility, i.e. newer clients and old projects
+    if (configuration == null) {
+      return;
+    }
+    const main = configuration.get("main");
+    if (main != null && isMainConfiguration(main)) {
+      return main.capabilities.formatting;
+    } else {
+      return {} as Capabilities;
+    }
+  }
+
+  async prettier_string(str: string, options: FormatterOptions): Promise<any> {
+    const formatting = this.get_formatting();
+    if (formatting == null) {
+      throw new Error(
+        "Code formatting status not available. Please restart your project!"
+      );
+    }
+    // TODO refactor the assocated formatter and smc-project into a common configuration object
+    const tool = parser2tool[options.parser];
+    if (tool == null) {
+      throw new Error(`No known tool for '${options.parser}' available`);
+    }
+    if (formatting[tool] !== true) {
+      throw new Error(
+        `For this project, the code formatter '${tool}' for language '${
+          options.parser
+        }' is not available.`
+      );
+    }
+
+    return await this.call(
+      {
+        cmd: "prettier_string",
+        str: str,
+        options: options
+      },
+      15000
+    );
   }
 
   async jupyter(
     path: string,
     endpoint: string,
-    query?: any,
-    timeout_ms?: number
+    query: any = undefined,
+    timeout_ms: number = 20000
   ): Promise<any> {
     return await this.call(
       { cmd: "jupyter", path, endpoint, query },
@@ -57,39 +117,104 @@ export class API {
   }
 
   async terminal(path: string, options: object = {}): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "terminal",
-      path: path,
-      options
-    });
+    const channel_name = await this.call(
+      {
+        cmd: "terminal",
+        path: path,
+        options
+      },
+      60000
+    );
     //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
   }
 
-  async lean(path: string): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "lean",
-      path: path
-    });
+  // Get the lean *channel* for the given '.lean' path.
+  async lean_channel(path: string): Promise<Channel> {
+    const channel_name = await this.call(
+      {
+        cmd: "lean_channel",
+        path: path
+      },
+      60000
+    );
     return this.conn.channel(channel_name);
   }
 
-  async symmetric_channel(name:string): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "symmetric_channel",
-      name
-    });
+  // Get the x11 *channel* for the given '.x11' path.
+  async x11_channel(path: string, display: number): Promise<Channel> {
+    const channel_name = await this.call(
+      {
+        cmd: "x11_channel",
+        path,
+        display
+      },
+      60000
+    );
+    return this.conn.channel(channel_name);
+  }
+
+  // Get the sync *channel* for the given SyncTable project query.
+  async synctable_channel(
+    query: { [field: string]: any },
+    options: { [field: string]: any }[]
+  ): Promise<Channel> {
+    const channel_name = await this.call(
+      {
+        cmd: "synctable_channel",
+        query,
+        options
+      },
+      10000
+    );
+    // console.log("synctable_channel", query, options, channel_name);
+    return this.conn.channel(channel_name);
+  }
+
+  // Command-response API for synctables.
+  //   - mesg = {cmd:'close'} -- closes the synctable, even if persistent.
+  async syncdoc_call(
+    path: string,
+    mesg: { [field: string]: any },
+    timeout_ms: number = 30000 // ms timeout for call
+  ): Promise<any> {
+    return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
+  }
+
+  // Do a request/response command to the lean server.
+  async lean(opts: any): Promise<any> {
+    let timeout_ms = 10000;
+    if (opts.timeout) {
+      timeout_ms = opts.timeout * 1000 + 2000;
+    }
+    return await this.call({ cmd: "lean", opts }, timeout_ms);
+  }
+
+  // I think this isn't used.  It was going to support
+  // sync_channel, but obviously a more nuanced protocol
+  // was required.
+  async symmetric_channel(name: string): Promise<Channel> {
+    const channel_name = await this.call(
+      {
+        cmd: "symmetric_channel",
+        name
+      },
+      30000
+    );
     return this.conn.channel(channel_name);
   }
 }
 
 function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
   let done: boolean = false;
-  let timer = setTimeout(function() {
-    if (done) return;
-    done = true;
-    cb("timeout");
-  }, timeout_ms);
+  let timer: any = 0;
+  if (timeout_ms) {
+    timer = setTimeout(function() {
+      if (done) return;
+      done = true;
+      cb("timeout");
+    }, timeout_ms);
+  }
 
   const t = new Date().valueOf();
   conn.writeAndWait(mesg, function(resp) {
@@ -100,7 +225,9 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
       return;
     }
     done = true;
-    clearTimeout(timer);
+    if (timer) {
+      clearTimeout(timer);
+    }
     cb(undefined, resp);
   });
 }

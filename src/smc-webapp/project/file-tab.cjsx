@@ -4,13 +4,15 @@ A single file tab that
 There is one of these for each open file in a project.
 ###
 
-{React, ReactDOM, Fragment, rclass, rtypes} = require('../app-framework')
+{React, ReactDOM, rclass, rtypes, Fragment} = require('../app-framework')
 
 misc = require('smc-util/misc')
 
 {NavItem} = require('react-bootstrap')
 
 {COLORS, HiddenXS, Icon, Tip} = require('../r_misc')
+
+{analytics_event} = require("../tracker")
 
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
@@ -29,7 +31,7 @@ exports.FileTab = rclass
         project_id   : rtypes.string
         tooltip      : rtypes.string
         is_active    : rtypes.bool
-        file_tab     : rtypes.bool      # Whether or not this tab holds a file
+        file_tab     : rtypes.bool      # Whether or not this tab holds a file *editor*
         shrink       : rtypes.bool      # Whether or not to shrink to just the icon
         has_activity : rtypes.bool      # Whether or not some activity is happening with the file
 
@@ -67,6 +69,16 @@ exports.FileTab = rclass
         else
             actions.set_active_tab(@props.name)
 
+        if @props.file_tab
+            analytics_event('project_navigation', 'opened_a_file', misc.filename_extension(@props.name))
+        else
+            analytics_event('project_navigation', 'opened_project_' + @props.name)
+
+    # middle mouse click closes
+    onMouseDown: (e) ->
+        if e.button == 1
+            @close_file(e, misc.tab_to_path(@props.name))
+
     render : ->
         styles = {}
 
@@ -94,8 +106,6 @@ exports.FileTab = rclass
         x_button_styles =
             float      : 'right'
             whiteSpace : 'nowrap'
-            fontSize   : '12pt'
-            marginTop  : '-3px'
 
         if @state.x_hovered
             x_button_styles.color = 'lightblue'
@@ -114,10 +124,12 @@ exports.FileTab = rclass
             content = <Tip title={@props.tooltip} stable={true} placement={'bottom'} size={'small'}> {content} </Tip>
 
         <NavItem
-            ref     = 'tab'
-            style   = {styles}
-            active  = {@props.is_active}
-            onClick = {@click}
+            ref         = 'tab'
+            style       = {styles}
+            active      = {@props.is_active}
+            onClick     = {@click}
+            cocalc-test = {@props.label}
+            onMouseDown = {@onMouseDown}
         >
             <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_styles}>

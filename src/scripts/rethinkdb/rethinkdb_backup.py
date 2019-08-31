@@ -28,7 +28,7 @@ os.chdir(BACKUP_DIR)
 
 
 def cmd(s):
-    print s
+    print(s)
     i = os.system(s)
     if i:
         raise RuntimeError
@@ -98,7 +98,7 @@ def bup_save():
 
 # UNFINISHED
 def dump_blobs():
-    print "WARNING: blob backup will be done differently"
+    print("WARNING: blob backup will be done differently")
     return
 
     from os.path import join
@@ -128,7 +128,7 @@ def dump_blobs():
             pct = idx / total
             if pct > .05:
                 eta = ((now() - start).total_seconds() * (1 - pct)) / 60.
-                print "dumping blobs: %5.1%% (ETA: %5.1f minutes)" % (100. * pct, eta)
+                print("dumping blobs: %5.1%% (ETA: %5.1f minutes)" % (100. * pct, eta))
         id = blob["id"]
 
         blob_fn = join(BLOBSDIR, id[:2], id[2:])
@@ -153,12 +153,12 @@ def backup(args):
     else:
         table_fields = {}
 
-    print 'Dumping %s'%", ".join(T)
+    print('Dumping %s'%", ".join(T))
     # the target URL at GCS, e.g. gs://smc-db-backup/admin0-0/
     gs_url = "gs://%s/%s" % (args.bucket, args.target)
     for e in table_fields.items():
-        print 'Exporting table "%s" with fields %s only' % e
-    print 'GCS storage target: "%s"' % gs_url
+        print('Exporting table "%s" with fields %s only' % e)
+    print('GCS storage target: "%s"' % gs_url)
     # dump_blobs()
     dump_tables(T, table_fields)
     bup_save()

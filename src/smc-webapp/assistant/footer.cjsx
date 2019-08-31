@@ -28,7 +28,7 @@ immutable = require('immutable')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
-# Assistant
+# Snippets
 {REPO_URL} = require('./common')
 
 
@@ -65,6 +65,7 @@ exports.ExamplesFooter = rclass
                 className  = {'contrib-link'}
                 href       = {REPO_URL}
                 target     = {'_blank'}
+                rel        = {"noopener"}
             >
                 <Icon name = {'code-fork'} /> Contribute
             </Button>

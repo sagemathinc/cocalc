@@ -243,7 +243,7 @@ def divide_into_blocks(code):
             if done:
                 break
         code = v
-    except Exception, mesg:
+    except Exception as mesg:
         code = c
 
     ## Tested this: Completely disable block parsing:
@@ -304,9 +304,8 @@ def divide_into_blocks(code):
             merge()
 
         # function definitions
-        elif (s.startswith('def')
-              or s.startswith('@')) and blocks[i - 1][-1].splitlines(
-              )[-1].lstrip().startswith('@'):
+        elif (s.startswith('def') or s.startswith('@')) and blocks[
+                i - 1][-1].splitlines()[-1].lstrip().startswith('@'):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
@@ -428,15 +427,15 @@ def introspect(code, namespace, preparse=True):
         else:
             # Now for all of the other harder cases.
             i = max([expr.rfind(s) for s in '?('])
-            if i >= 1 and i == len(
-                    expr
-            ) - 1 and expr[i - 1] == '?':  # expr ends in two ?? -- source code
+            if i >= 1 and i == len(expr) - 1 and expr[
+                    i - 1] == '?':  # expr ends in two ?? -- source code
                 get_source = True
                 get_completions = False
                 get_help = False
                 target = ""
                 obj = expr[:i - 1]
-            elif i == len(expr) - 1:  # ends in ( or ? (but not ??) -- docstring
+            elif i == len(
+                    expr) - 1:  # ends in ( or ? (but not ??) -- docstring
                 get_help = True
                 get_completions = False
                 get_source = False
@@ -524,7 +523,7 @@ def introspect(code, namespace, preparse=True):
                         exec(
                             before_expr if not preparse else preparse_code(
                                 before_expr)) in namespace
-                    except Exception, msg:
+                    except Exception as msg:
                         pass
                         # uncomment for debugging only
                         # traceback.print_exc()
@@ -540,8 +539,8 @@ def introspect(code, namespace, preparse=True):
                     obj = guess_last_expression(obj)
                     try:
                         O = eval(
-                            obj
-                            if not preparse else preparse_code(obj), namespace)
+                            obj if not preparse else preparse_code(obj),
+                            namespace)
                     except:
                         pass
             finally:
@@ -555,7 +554,7 @@ def introspect(code, namespace, preparse=True):
                             'getdoc': sage.misc.sageinspect.sage_getfile,
                             'O': O
                         }) + "\n"
-                except Exception, err:
+                except Exception as err:
                     return "Unable to read source filename (%s)" % err
 
             if get_help:
@@ -591,7 +590,7 @@ def introspect(code, namespace, preparse=True):
                         return t
 
                     result += eval('getdoc(O)', {'getdoc': our_getdoc, 'O': O})
-                except Exception, err:
+                except Exception as err:
                     result += "Unable to read docstring (%s)" % err
                 result = result.lstrip().replace(
                     '\n   ',
@@ -606,7 +605,7 @@ def introspect(code, namespace, preparse=True):
                             'getsource': sage.misc.sageinspect.sage_getsource,
                             'O': O
                         })
-                except Exception, err:
+                except Exception as err:
                     result += "Unable to read source code (%s)" % err
 
             elif get_completions:
@@ -635,7 +634,7 @@ def introspect(code, namespace, preparse=True):
             result = list(
                 sorted(set(v), lambda x, y: cmp(x.lower(), y.lower())))
 
-    except Exception, msg:
+    except Exception as msg:
         traceback.print_exc()
         result = []
         status = 'ok'

@@ -3,7 +3,8 @@ import {
   rclass,
   rtypes,
   Component,
-  Rendered
+  Rendered,
+  project_redux_name
 } from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
@@ -11,11 +12,13 @@ const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
-import { ErrorStyles } from "../frame-tree/types";
+import { EditorSpec, ErrorStyles } from "./types";
 
-import { copy, is_different } from "../generic/misc";
+import { copy, is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
+
+import { Available as AvailableFeatures } from "../../project_configuration";
 
 interface FrameTreeEditorReactProps {
   name: string;
@@ -29,6 +32,7 @@ interface FrameTreeEditorReactProps {
 
 interface FrameTreeEditorReduxProps {
   editor_settings?: Map<string, any>;
+  terminal?: Map<string, any>;
   is_public: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
@@ -47,6 +51,9 @@ interface FrameTreeEditorReduxProps {
   is_saving: boolean;
   gutter_markers: Map<string, any>;
   settings: Map<string, any>;
+  complete: Map<string, any>;
+  derived_file_types: Set<string>;
+  available_features: AvailableFeatures;
 }
 
 type FrameTreeEditorProps = FrameTreeEditorReactProps &
@@ -70,10 +77,12 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     }
   }
 
-  static reduxProps({ name }) {
+  static reduxProps({ name, project_id }) {
+    const project_store_name = project_redux_name(project_id);
     return {
       account: {
-        editor_settings: rtypes.immutable.Map
+        editor_settings: rtypes.immutable.Map,
+        terminal: rtypes.immutable.Map
       },
       [name]: {
         is_public: rtypes.bool.isRequired,
@@ -97,7 +106,14 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         gutter_markers: rtypes.immutable.Map.isRequired,
 
-        settings: rtypes.immutable.Map.isRequired
+        settings: rtypes.immutable.Map.isRequired,
+
+        complete: rtypes.immutable.Map.isRequired,
+
+        derived_file_types: rtypes.immutable.Set
+      },
+      [project_store_name]: {
+        available_features: rtypes.object
       }
     };
   }
@@ -109,34 +125,34 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     )
       return true;
     return (
-      is_different(
-        this.props,
-        next,
-        [
-          // do NOT include editor_spec below -- it is assumed to never change
-          "is_public",
-          "has_unsaved_changes",
-          "has_uncommitted_changes",
-          "read_only",
-          "is_loaded",
-          "local_view_state",
-          "error",
-          "errorstyle",
-          "cursors",
-          "status",
-          "load_time_estimate",
-          "value",
-          "reload",
-          "resize",
-          "misspelled_words",
-          "has_unsaved_changes",
-          "has_uncommitted_changes",
-          "is_saving",
-          "gutter_markers",
-          "editor_settings",
-          "settings"
-        ]
-      ) ||
+      is_different(this.props, next, [
+        // do NOT include editor_spec below -- it is assumed to never change
+        "is_public",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "read_only",
+        "is_loaded",
+        "local_view_state",
+        "error",
+        "errorstyle",
+        "cursors",
+        "status",
+        "load_time_estimate",
+        "value",
+        "reload",
+        "resize",
+        "misspelled_words",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "is_saving",
+        "gutter_markers",
+        "editor_settings",
+        "terminal",
+        "settings",
+        "complete",
+        "derived_file_types",
+        "available_features"
+      ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
     );
@@ -152,7 +168,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
       return (
         <FormatBar
           actions={this.props.actions}
-          extension={"html"}
+          extension={filename_extension(this.props.path)}
           exclude={this.props.format_bar_exclude}
         />
       );
@@ -189,8 +205,12 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          terminal={this.props.terminal}
           settings={this.props.settings}
           status={this.props.status}
+          complete={this.props.complete}
+          derived_file_types={this.props.derived_file_types}
+          available_features={this.props.available_features}
         />
       </div>
     );
@@ -209,6 +229,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (this.props.errorstyle === "monospace") {
       style.fontFamily = "monospace";
       style.fontSize = "85%";
+      style.whiteSpace = "pre";
     }
     return (
       <ErrorDisplay
@@ -220,13 +241,13 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   }
 
   render_status_bar(): Rendered {
-    let status: string;
     if (!this.props.is_loaded) {
-      status = `Waiting for ${this.props.path}...`;
-    } else {
-      status = this.props.status;
+      return;
     }
-    return <StatusBar status={status} />;
+    if (!this.props.status) {
+      return;
+    }
+    return <StatusBar status={this.props.status} />;
   }
 
   render_loading(): Rendered {
@@ -265,7 +286,7 @@ interface Options {
   display_name: string;
   format_bar: boolean;
   format_bar_exclude?: SetMap;
-  editor_spec: any;
+  editor_spec: EditorSpec;
 }
 
 interface EditorProps {

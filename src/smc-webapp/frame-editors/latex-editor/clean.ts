@@ -17,7 +17,10 @@ const EXTENSIONS: string[] = [
   ".sagetex.scmd",
   ".sagetex.sout",
   ".pdfsync",
-  "-concordance.tex"
+  "-concordance.tex",
+  ".pytxcode",
+  ".pgf-plot.gnuplot",
+  ".pgf-plot.table"
 ];
 
 export async function clean(
@@ -44,10 +47,17 @@ export async function clean(
     // this looks weird, but in case of .rnw/.rtex, Knitr generates the .tex file
     exts = exts.concat(".tex");
   }
-  const files = exts.map(ext => `${base}${ext}`);
+  let files = exts.map(ext => `${base}${ext}`);
+
+  // for PythonTeX, we need to derive the cache directory path
+  // https://github.com/sagemathinc/cocalc/issues/3228
+  // it also converts spaces to dashes, see #3229
+  const pytexdir = `pythontex-files-${base.replace(/ /g, "-")}`;
+  files = files.concat(pytexdir);
+
   // -f: don't complain when it doesn't exist
   // --: then it works with filenames starting with a "-"
-  const args = ["-v", "-f", "--"].concat(files);
+  const args = ["-v", "-f", "-r", "--"].concat(files);
   logger(`Removing ${files.join(", ")}`);
   output = await exec({
     command: "rm",

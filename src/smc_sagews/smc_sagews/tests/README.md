@@ -23,9 +23,18 @@
 
 ### Running the Tests
 
+Use `runtests.sh` to set up environment for doctests, otherwise they will be skipped.
+
 ```
-cd smc/src/smc_sagews/smc_sagews/tests
-python3 -m pytest
+cd ~/cocalc/src/smc_sagews/smc_sagews/tests
+./runtests.sh
+```
+
+to skip doctests:
+
+```
+cd ~/cocalc/src/smc_sagews/smc_sagews/tests
+python -m pytest
 ```
 
 ### Test Results

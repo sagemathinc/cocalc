@@ -3,7 +3,7 @@ Convert LaTeX file to PDF using latexmk.
 */
 
 import { exec, ExecOutput } from "../generic/client";
-import { path_split, change_filename_extension } from "../generic/misc";
+import { path_split, change_filename_extension } from "smc-util/misc2";
 
 export async function latexmk(
   project_id: string,
@@ -25,9 +25,9 @@ export async function latexmk(
     status([command].concat(args).join(" "));
   }
   return await exec({
-    bash: true,    // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
+    bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
     allow_post: false, // definitely could take a long time to fully run latex
-    timeout: 60,
+    timeout: 4 * 60, // 4 minutes, on par with Overleaf
     command: command,
     args: args,
     project_id: project_id,
@@ -37,7 +37,28 @@ export async function latexmk(
   });
 }
 
-export type Engine = "PDFLaTeX" | "XeLaTeX" | "LuaTex";
+export type Engine =
+  | "PDFLaTeX"
+  | "PDFLaTeX (shell-escape)"
+  | "XeLaTeX"
+  | "LuaTex";
+
+export function get_engine_from_config(config: string): Engine | null {
+  switch (config.toLowerCase()) {
+    case "latex":
+    case "pdflatex":
+      return "PDFLaTeX";
+
+    case "xelatex":
+    case "xetex":
+      return "XeLaTeX";
+
+    case "lua":
+    case "luatex":
+      return "LuaTex";
+  }
+  return null;
+}
 
 export function build_command(
   engine: Engine,
@@ -47,23 +68,28 @@ export function build_command(
   /*
   errorstopmode recommended by
   http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
-  since in some cases things will hang (using )
+  since in some cases things will hang using
   return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
-  However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
+  However, users hate errorstopmode, so we use nonstopmode, which can hang in rare cases with tikz.
   See https://github.com/sagemathinc/cocalc/issues/156
   */
-  let name: string = "pdf";
-  switch (engine) {
-    case "PDFLaTeX":
-      name = "pdf";
-      break;
-    case "XeLaTeX":
-      name = "xelatex";
-      break;
-    case "LuaTex":
-      name = "lualatex";
-      break;
-  }
+  const name: string = (function() {
+    switch (engine) {
+      case "PDFLaTeX":
+      case "PDFLaTeX (shell-escape)":
+        return "pdf";
+      case "XeLaTeX":
+        return "xelatex";
+      case "LuaTex":
+        return "lualatex";
+      default:
+        console.warn(
+          `LaTeX engine ${engine} unknown -- switching to fallback "PDFLaTeX"`
+        );
+        return "pdf";
+    }
+  })();
+
   if (knitr) {
     filename = change_filename_extension(filename, "tex");
   }
@@ -75,8 +101,16 @@ export function build_command(
     synctex: forward/inverse search in pdf
     nonstopmode: continue after errors (otherwise, partial files)
     */
-  return [
-    "latexmk",
+  const head = ["latexmk"];
+
+  // shell escape is potentially dangerous, but pretty much save when tamed inside a cocalc project
+  if (engine == ("PDFLaTeX (shell-escape)" as Engine)) {
+    head.push("-e");
+    // yes, this is in one piece. in a shell it would be enclosed in '...'
+    head.push("$pdflatex=q/pdflatex %O -shell-escape %S/");
+  }
+
+  const tail = [
     `-${name}`,
     "-f",
     "-g",
@@ -85,4 +119,6 @@ export function build_command(
     "-interaction=nonstopmode",
     filename
   ];
+
+  return head.concat(tail);
 }

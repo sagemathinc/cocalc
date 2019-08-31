@@ -41,7 +41,8 @@ const {
   FormControl,
   FormGroup,
   Row,
-  Col
+  Col,
+  Grid
 } = require("react-bootstrap");
 
 const SEARCH_STYLE = { marginBottom: "0px" };
@@ -81,11 +82,12 @@ class MultipleAddSearch extends Component<
 
   shouldComponentUpdate(newProps, newState) {
     return (
-      misc.is_different(
-        this.props,
-        newProps,
-        ["search_results", "item_name", "is_searching", "none_found"]
-      ) ||
+      misc.is_different(this.props, newProps, [
+        "search_results",
+        "item_name",
+        "is_searching",
+        "none_found"
+      ]) ||
       !underscore.isEqual(newState.selected_items, this.state.selected_items)
     );
   }
@@ -100,7 +102,7 @@ class MultipleAddSearch extends Component<
   clear_and_focus_search_input = () => {
     this.props.clear_search();
     return this.setState({ selected_items: [] });
-  }
+  };
 
   search_button() {
     if (this.props.is_searching) {
@@ -127,7 +129,7 @@ class MultipleAddSearch extends Component<
     }
   }
 
-  add_button_clicked = (e) => {
+  add_button_clicked = e => {
     e.preventDefault();
     if (this.state.selected_items.length === 0) {
       const first_entry = ReactDOM.findDOMNode(this.refs.selector).firstChild
@@ -137,15 +139,15 @@ class MultipleAddSearch extends Component<
       this.props.add_selected(this.state.selected_items);
     }
     return this.clear_and_focus_search_input();
-  }
+  };
 
-  change_selection = (e) => {
+  change_selection = e => {
     const v: string[] = [];
     for (let option of e.target.selectedOptions) {
       v.push(option.label);
     }
     return this.setState({ selected_items: v });
-  }
+  };
 
   render_results_list() {
     if (this.props.search_results == undefined) {
@@ -172,10 +174,11 @@ class MultipleAddSearch extends Component<
           size={5}
           rows={10}
           onChange={this.change_selection}
+          style={{ marginTop: "15px" }}
         >
           {this.render_results_list()}
         </FormControl>
-        <ButtonToolbar>
+        <ButtonToolbar style={{ marginTop: "15px" }}>
           {this.render_add_selector_button()}
           <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
         </ButtonToolbar>
@@ -320,7 +323,7 @@ export class FoldersToolbar extends Component<
     plural_item_name: "items"
   };
 
-  do_add_search = (search) => {
+  do_add_search = search => {
     search = search.trim();
 
     if (this.state.add_is_searching && search === this.state.last_add_search) {
@@ -382,9 +385,9 @@ export class FoldersToolbar extends Component<
         });
       }
     });
-  }
+  };
 
-  submit_selected = (path_list) => {
+  submit_selected = path_list => {
     if (path_list != null) {
       // If nothing is selected and the user clicks the button to "Add handout (etc)" then
       // path_list is undefined, hence don't do this.
@@ -393,51 +396,54 @@ export class FoldersToolbar extends Component<
       this.props.add_folders(path_list);
     }
     return this.clear_add_search();
-  }
+  };
 
   clear_add_search = () => {
     return this.setState({
       add_search_results: immutable.List([]),
       none_found: false
     });
-  }
+  };
 
   render() {
     return (
-      <Row>
-        <Col md={3}>
-          <SearchInput
-            placeholder={`Find ${this.props.plural_item_name}...`}
-            default_value={this.props.search}
-            on_change={this.props.search_change}
-            style={SEARCH_STYLE}
-          />
-        </Col>
-        <Col md={4}>
-          {this.props.num_omitted ? (
-            <h5>
-              (Omitting {this.props.num_omitted}{" "}
-              {this.props.num_omitted > 1
-                ? this.props.plural_item_name
-                : this.props.item_name})
-            </h5>
-          ) : (
-            undefined
-          )}
-        </Col>
-        <Col md={5}>
-          <MultipleAddSearch
-            add_selected={this.submit_selected}
-            do_search={this.do_add_search}
-            clear_search={this.clear_add_search}
-            is_searching={this.state.add_is_searching}
-            item_name={this.props.item_name}
-            err={undefined}
-            search_results={this.state.add_search_results}
-            none_found={this.state.none_found}
-          />
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row>
+          <Col md={3}>
+            <SearchInput
+              placeholder={`Find ${this.props.plural_item_name}...`}
+              default_value={this.props.search}
+              on_change={this.props.search_change}
+              style={SEARCH_STYLE}
+            />
+          </Col>
+          <Col md={4}>
+            {this.props.num_omitted ? (
+              <h5>
+                (Omitting {this.props.num_omitted}{" "}
+                {this.props.num_omitted > 1
+                  ? this.props.plural_item_name
+                  : this.props.item_name}
+                )
+              </h5>
+            ) : (
+              undefined
+            )}
+          </Col>
+          <Col md={5}>
+            <MultipleAddSearch
+              add_selected={this.submit_selected}
+              do_search={this.do_add_search}
+              clear_search={this.clear_add_search}
+              is_searching={this.state.add_is_searching}
+              item_name={this.props.item_name}
+              err={undefined}
+              search_results={this.state.add_search_results}
+              none_found={this.state.none_found}
+            />
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }

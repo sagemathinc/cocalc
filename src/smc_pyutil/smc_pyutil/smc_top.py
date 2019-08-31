@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 ###############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
@@ -49,7 +49,7 @@ from pytz import utc
 from datetime import datetime
 import psutil as ps
 from dateutil.parser import parse as date_parser
-from collections import OrderedDict, Counter, defaultdict
+from collections import defaultdict
 
 # byte -> ki(lo/bi)byte; see IEC 80000-13:2008
 KBMB = 1024.
@@ -204,16 +204,8 @@ class SmcTop(object):
             and `smem` is not used either.
             '''
             if impl == "smem":
-                # smem is in kilobytes
-                try:
-                    # User     Count     Swap      USS      PSS      RSS
-                    smem = run("/usr/bin/smem", "-uH").split()[2:]
-                    smem = [int(_) / KBMB for _ in smem]
-                    smem = dict(zip(["swap", "uss", "pss", "rss"], smem))
-                    add_human_readable(smem)
-                    return smem
-                except Exception as e:
-                    return {"error": str(e)}
+                # No longer supported -- just give back nothing.  It's way too slow.
+                return {}
 
             elif impl == "cgroup":
                 # cgroups is in bytes
@@ -329,7 +321,8 @@ class SmcTop(object):
             # memory in pct of cgroup limit, exclucing swap.
             # i.e. a value near or above 100% indicates excessive usage
             if not "error" in self._totals["mem"]:
-                mem_pct = 100. * mem.rss / KBMB**2 / self._totals["mem"]["mem_max"]
+                mem_pct = 100. * mem.rss / KBMB**2 / self._totals["mem"][
+                    "mem_max"]
             else:
                 mem_pct = 0.
 
@@ -428,7 +421,6 @@ class SmcTop(object):
     def text(self, sortby=None, width=130):
         from io import StringIO
         from itertools import groupby
-        from textwrap import wrap
 
         ret = StringIO()
         data = self.data()
@@ -493,8 +485,8 @@ class SmcTop(object):
                 sums = data["summaries"][cat]
                 sums["time"] = secs2hms(sums["time"])
                 print0(
-                    "{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
-                    .format(**sums))
+                    "{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}".
+                    format(**sums))
 
         totals = data["totals"]
         print0()

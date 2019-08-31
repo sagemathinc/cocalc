@@ -2,7 +2,7 @@
 Utility functions useful for frame-tree editors.
 */
 
-import { path_split, separate_file_extension } from "../generic/misc";
+import { path_split, separate_file_extension } from "smc-util/misc2";
 
 export function parse_path(
   path: string
@@ -34,19 +34,4 @@ export function aux_file(path: string, ext: string): string {
   }
 }
 
-// the list of filename extensions where we do support source formatting
-export const PRETTIER_SUPPORT = {
-  js: true,
-  jsx: true,
-  md: true,
-  css: true,
-  ts: true,
-  tsx: true,
-  json: true,
-  yaml: true,
-  yml: true,
-  py: true, // use external tool
-  tex: true, // actually use latexformat
-  html: true, // uses old-school "tidy" with some specific parameters
-  r: true // formatR
-};
+

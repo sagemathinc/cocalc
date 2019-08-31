@@ -30,6 +30,10 @@
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
+{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+{JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+{NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
+{NEW_FILENAMES} = require('smc-util/db-schema')
 
 md5 = require('md5')
 
@@ -46,6 +50,12 @@ smc_version = require('smc-util/smc-version')
 
 # Define a component for working with the user's basic
 # account information.
+
+set_account_table = (obj) ->
+    table = redux.getTable('account')
+    if table?
+        table.set(obj)
+    return;
 
 # in a grid:   Title [text input]
 TextSetting = rclass
@@ -173,7 +183,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    @props.redux.getTable('account').set(email_address: @state.email_address)
+                    set_account_table(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -247,7 +257,7 @@ NewsletterSetting = rclass
         redux          : rtypes.object
 
     on_change: (value) ->
-        @props.redux.getTable('account').set({"other_settings": {"newsletter" : value}})
+        set_account_table({"other_settings": {"newsletter" : value}})
 
     blog: ->
         {BLOG_URL} = require('smc-util/theme')
@@ -435,7 +445,7 @@ AccountSettings = rclass
 
     save_change: (evt, field) ->
         value = evt.target.value
-        @props.redux.getTable('account').set("#{field}": value)
+        set_account_table("#{field}": value)
 
     render_add_strategy_link: ->
         if not @state.add_strategy_link
@@ -679,6 +689,8 @@ DeleteAccountConfirmation = rclass
             Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
+            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
+            <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
                 <FormControl
@@ -707,6 +719,20 @@ DeleteAccountConfirmation = rclass
                 </Button>
             </ButtonToolbar>
             {@render_error()}
+        </Well>
+
+    # Make this the render function to disable account deletion
+    xxx_render: ->
+        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
+            To delete your account, contact us at <a href="mailto:help@cocalc.com" target="_blank">help@cocalc.com</a>{" "}
+            or open a support request by clicking "Help" in the top right menu.<br/>
+            <Button
+                style = {marginTop:'5px'}
+                bsStyle = 'primary'
+                onClick = {@props.cancel_click}
+            >
+                Cancel
+            </Button>
         </Well>
 
 ###
@@ -742,7 +768,7 @@ ProfileSettings = rclass
         show_instructions : false
 
     onColorChange: (value) ->
-        @props.redux.getTable('account').set(profile : {color: value})
+        set_account_table(profile : {color: value})
 
     render_header: ->
         <h2>
@@ -785,34 +811,34 @@ TerminalSettings = rclass
         return @props.terminal != props.terminal
 
     handleChange: (obj) ->
-        @props.redux.getTable('account').set(terminal: obj)
+        set_account_table(terminal: obj)
+
+    render_color_scheme: ->
+        <LabeledRow label='Terminal color scheme'>
+            <SelectorInput
+                selected  = {@props.terminal.get('color_scheme')}
+                options   = {TERMINAL_COLOR_SCHEMES}
+                on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+            />
+        </LabeledRow>
+
+    render_font_family: ->
+        return  # disabled due to https://github.com/sagemathinc/cocalc/issues/3304
+        <LabeledRow label='Terminal font family'>
+            <SelectorInput
+                selected  = {@props.terminal.get('font')}
+                options   = {TERMINAL_FONT_FAMILIES}
+                on_change = {(font)=>@handleChange(font:font)}
+            />
+        </LabeledRow>
+
 
     render: ->
         if not @props.terminal?
             return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal settings <span className='lighten'>(applied to newly opened terminals)</span></h2>}>
-            <LabeledRow label='Terminal font size'>
-                <NumberInput
-                    on_change = {(font_size)=>@handleChange(font_size:font_size)}
-                    min       = {3}
-                    max       = {80}
-                    number    = {@props.terminal.get('font_size')}
-                    unit      = "px" />
-            </LabeledRow>
-            <LabeledRow label='Terminal font family'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('font')}
-                    options   = {TERMINAL_FONT_FAMILIES}
-                    on_change = {(font)=>@handleChange(font:font)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Terminal color scheme'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('color_scheme')}
-                    options   = {TERMINAL_COLOR_SCHEMES}
-                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
-                />
-            </LabeledRow>
+        <Panel header={<h2> <Icon name='terminal' /> Terminal settings</h2>}>
+            {@render_color_scheme()}
+            {@render_font_family()}
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
@@ -832,13 +858,16 @@ EDITOR_SETTINGS_CHECKBOXES =
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
     build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
-    jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
+    ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
+    jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
+    disable_jupyter_windowing         : 'do NOT use windowing with Jupyter notebooks (windowing makes it possible to work with very large notebooks)'
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
 
     propTypes :
         editor_settings : rtypes.immutable.Map.isRequired
+        email_address : rtypes.string
         on_change       : rtypes.func.isRequired
 
     shouldComponentUpdate: (props) ->
@@ -851,6 +880,8 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
+        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
+            return
         <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
                ref      = {name}
@@ -891,8 +922,8 @@ EditorSettingsIndentSize = rclass
         <LabeledRow label='Indent size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('tab_size',n)}
-                min       = {1}
-                max       = {10}
+                min       = {2}
+                max       = {32}
                 number    = {@props.tab_size} />
         </LabeledRow>
 
@@ -909,18 +940,18 @@ EditorSettingsFontSize = rclass
         <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = {6}
+                min       = {5}
                 max       = {32}
                 number    = {@props.font_size}
                 unit      = "px" />
         </LabeledRow>
 
-EDITOR_COLOR_SCHEMES =
+EDITOR_COLOR_SCHEMES = exports.EDITOR_COLOR_SCHEMES =
     'default'                 : 'Default'
     '3024-day'                : '3024 day'
     '3024-night'              : '3024 night'
     'abcdef'                  : 'abcdef'
-    'ambiance-mobile'         : 'Ambiance mobile'
+    #'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
     'ambiance'                : 'Ambiance'
     'base16-dark'             : 'Base 16 dark'
     'base16-light'            : 'Base 16 light'
@@ -938,12 +969,11 @@ EDITOR_COLOR_SCHEMES =
     'gruvbox-dark'            : 'Gruvbox-Dark'
     'hopscotch'               : 'Hopscotch'
     'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'
+    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
     'isotope'                 : 'Isotope'
     'lesser-dark'             : 'Lesser dark'
     'liquibyte'               : 'Liquibyte'
     'lucario'                 : 'Lucario'
-    'the-matrix'              : 'The Matrix'
     'material'                : 'Material'
     'mbo'                     : 'mbo'
     'mdn-like'                : 'MDN like'
@@ -964,6 +994,7 @@ EDITOR_COLOR_SCHEMES =
     'solarized dark'          : 'Solarized dark'
     'solarized light'         : 'Solarized light'
     'ssms'                    : 'ssms'
+    'the-matrix'              : 'The Matrix'
     'tomorrow-night-bright'   : 'Tomorrow Night - Bright'
     'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
     'ttcn'                    : 'ttcn'
@@ -1013,6 +1044,46 @@ EditorSettingsKeyboardBindings = rclass
             />
         </LabeledRow>
 
+EditorSettingsPhysicalKeyboard = rclass
+    displayName : 'Account-EditorSettingsPhysicalKeyboard'
+
+    propTypes :
+        physical_keyboard  : rtypes.string.isRequired
+        on_change          : rtypes.func.isRequired
+
+    render: ->
+        if @props.physical_keyboard == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {PHYSICAL_KEYBOARDS}
+                    selected  = {@props.physical_keyboard}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+EditorSettingsKeyboardVariant = rclass
+    displayName : 'Account-EditorSettingsKeyboardVariant'
+
+    propTypes :
+        keyboard_variant         : rtypes.string.isRequired
+        on_change                : rtypes.func.isRequired
+        keyboard_variant_options : rtypes.array.isRequired
+
+    render: ->
+        if @props.keyboard_variant == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {@props.keyboard_variant_options}
+                    selected  = {@props.keyboard_variant}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
@@ -1021,16 +1092,33 @@ EditorSettings = rclass
         autosave        : rtypes.number
         tab_size        : rtypes.number
         font_size       : rtypes.number
+        email_address   : rtypes.string
         editor_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings', 'tab_size'])
 
+    get_keyboard_variant_options: (val) ->
+        val ?= @props.editor_settings.get('physical_keyboard')
+        options = misc.deep_copy(KEYBOARD_VARIANTS[val] ? [])
+        options.unshift({value:"", display: "No variant"})
+        return options
+
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
-            @props.redux.getTable('account').set("#{name}" : val)
+            set_account_table("#{name}" : val)
         else
-            @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
+            set_account_table(editor_settings:{"#{name}":val})
+
+        if name == 'physical_keyboard'
+            options = @get_keyboard_variant_options(val)
+            @actions('account').setState(keyboard_variant_options: options)
+            for opt in options
+                if opt.value == 'nodeadkeys'
+                    @on_change('keyboard_variant', opt.value)
+                    return
+            # otherwise, select default
+            @on_change('keyboard_variant', '')
 
     render: ->
         if not @props.editor_settings?
@@ -1046,8 +1134,12 @@ EditorSettings = rclass
                 on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
+            <EditorSettingsPhysicalKeyboard
+                on_change={(value)=>@on_change('physical_keyboard',value)} physical_keyboard={@props.editor_settings.get('physical_keyboard')} />
+            <EditorSettingsKeyboardVariant
+                on_change={(value)=>@on_change('keyboard_variant',value)} keyboard_variant={@props.editor_settings.get('keyboard_variant')} keyboard_variant_options = {@get_keyboard_variant_options()} />
             <EditorSettingsCheckboxes
-                on_change={@on_change} editor_settings={@props.editor_settings} />
+                on_change={@on_change} editor_settings={@props.editor_settings} email_address={@props.email_address}/>
         </Panel>
 
 KEYBOARD_SHORTCUTS =
@@ -1063,7 +1155,7 @@ KEYBOARD_SHORTCUTS =
     'Fold/unfold selected code'    : 'control+Q'
     'Shift selected text right'    : 'tab'
     'Shift selected text left'     : 'shift+tab'
-    'Split view in any editor'     : 'control+I'
+    'Split view in Sage worksheet' : 'shift+control+I'
     'Autoindent selection'         : "control+'"
     'Format code (use Prettier)'   : 'control+shift+F'
     'Multiple cursors'             : 'control+click'
@@ -1089,7 +1181,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        @props.redux.getTable('account').set(evaluate_key : value)
+        set_account_table(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -1117,7 +1209,7 @@ OtherSettings = rclass
         is_stripe_customer : rtypes.bool
 
     on_change: (name, value) ->
-        @props.redux.getTable('account').set(other_settings:{"#{name}":value})
+        set_account_table(other_settings:{"#{name}":value})
 
     toggle_global_banner: (val) ->
         if val
@@ -1173,7 +1265,7 @@ OtherSettings = rclass
             </Checkbox>
 
     render_page_size_warning: ->
-        BIG_PAGE_SIZE = 500
+        BIG_PAGE_SIZE = 5000
         if @props.other_settings.get('page_size') > BIG_PAGE_SIZE
             <Alert bsStyle='warning'>
                 Your file listing page size is set to {@props.other_settings.get('page_size')}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
@@ -1209,6 +1301,18 @@ OtherSettings = rclass
             />
         </LabeledRow>
 
+
+    render_new_filenames: ->
+        selected = @props.other_settings.get(NEW_FILENAMES) ? NewFilenames.default_family
+        <LabeledRow label='Generated filenames'>
+            <SelectorInput
+                selected  = {selected}
+                options   = {NewFilenameFamilies}
+                on_change = {(value)=>@on_change(NEW_FILENAMES, value)}
+            />
+        </LabeledRow>
+
+
     render_page_size: ->
         <LabeledRow label='Number of files per page'>
             <NumberInput
@@ -1232,6 +1336,15 @@ OtherSettings = rclass
             Hide free warnings: do <b><i>not</i></b> show a warning banner when using a free trial project {extra}
         </Checkbox>
 
+    render_allow_mentions: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('allow_mentions')}
+            ref      = 'allow_mentions'
+            onChange = {(e)=>@on_change('allow_mentions', e.target.checked)}
+        >
+            Allow mentioning others in chats (disable to work around a bug)
+        </Checkbox>
+
     render: ->
         if not @props.other_settings
             return <Loading />
@@ -1239,10 +1352,12 @@ OtherSettings = rclass
             {@render_confirm()}
             {@render_first_steps()}
             {@render_global_banner()}
+            {@render_allow_mentions()}
             {@render_time_ago_absolute()}
             {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}
+            {@render_new_filenames()}
             {@render_default_file_sort()}
             {@render_page_size()}
             {@render_standby_timeout()}
@@ -1250,18 +1365,6 @@ OtherSettings = rclass
         </Panel>
 
 
-
-AdminSettings = rclass
-    propTypes :
-        groups : rtypes.immutable.List
-
-    render: ->
-        if not @props.groups?.contains('admin')
-            return <span />
-
-        <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            Moved to the new Admin top level page.
-        </Panel>
 
 # Render the entire settings component
 exports.AccountSettingsTop = rclass
@@ -1304,12 +1407,15 @@ exports.AccountSettingsTop = rclass
                         everywhere             = {@props.everywhere}
                         other_settings         = {@props.other_settings}
                         redux                  = {@props.redux} />
-                    <TerminalSettings
-                        terminal = {@props.terminal}
-                        redux    = {@props.redux} />
-                    <KeyboardSettings
-                        evaluate_key = {@props.evaluate_key}
-                        redux        = {@props.redux} />
+                    <OtherSettings
+                        other_settings     = {@props.other_settings}
+                        is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
+                        redux              = {@props.redux} />
+                    <ProfileSettings
+                        email_address = {@props.email_address}
+                        first_name    = {@props.first_name}
+                        last_name     = {@props.last_name}
+                        redux         = {@props.redux} />
                 </Col>
                 <Col xs={12} md={6}>
                     <EditorSettings
@@ -1317,17 +1423,14 @@ exports.AccountSettingsTop = rclass
                         tab_size        = {@props.tab_size}
                         font_size       = {@props.font_size}
                         editor_settings = {@props.editor_settings}
+                        email_address   = {@props.email_address}
                         redux           = {@props.redux} />
-                    <OtherSettings
-                        other_settings     = {@props.other_settings}
-                        is_stripe_customer = {@props.stripe_customer?}
-                        redux              = {@props.redux} />
-                    <ProfileSettings
-                        email_address = {@props.email_address}
-                        first_name    = {@props.first_name}
-                        last_name     = {@props.last_name}
-                        redux         = {@props.redux} />
-                    <AdminSettings groups={@props.groups} />
+                    <TerminalSettings
+                        terminal = {@props.terminal}
+                        redux    = {@props.redux} />
+                    <KeyboardSettings
+                        evaluate_key = {@props.evaluate_key}
+                        redux        = {@props.redux} />
                 </Col>
             </Row>
             <Footer/>
@@ -1338,6 +1441,14 @@ f = () ->
     $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
+
+            ###
+            # Pro Tip:
+            # Type the following in the javascript console to make all strategy
+            # buttons appear, purely for UI testing:
+            #  smc.redux.getActions('account').setState({strategies:["email","facebook","github","google","twitter"]})
+            ###
+
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!
             # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.

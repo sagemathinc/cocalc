@@ -29,6 +29,9 @@
 //
 //##############################################################################
 
+// Number of days to wait until re-inviting students via email.
+const EMAIL_REINVITE_DAYS = 6;
+
 // 3rd party libs
 import * as async from "async";
 import * as awaiting from "awaiting";
@@ -36,10 +39,12 @@ import { resilient, timed } from "async-await-utils/hof";
 const markdownlib = require("../markdown");
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { defaults, required } = misc;
+import * as misc from "smc-util/misc";
+import { defaults, required } from "smc-util/misc";
+import { callback2 } from "smc-util/async-utils";
+
 const { webapp_client } = require("../webapp_client");
-const { alert_message } = require("../alerts");
+//const { alert_message } = require("../alerts");
 
 // Course Library
 import { previous_step, Step, assignment_identifier } from "./util";
@@ -50,6 +55,10 @@ import {
   StudentRecord,
   Feedback
 } from "./store";
+
+import { delay } from "awaiting";
+
+import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
 import { Actions } from "../app-framework";
@@ -68,8 +77,6 @@ export class CourseActions extends Actions<CourseState> {
   public syncdb: any;
   private _last_collaborator_state: any;
   private _activity_id: number;
-  private _create_student_project_queue: any[];
-  private _creating_student_project: boolean;
   private project_actions_in_progress: { [key: string]: boolean };
 
   constructor(name, redux) {
@@ -115,9 +122,6 @@ export class CourseActions extends Actions<CourseState> {
     this.set_active_student_sort = this.set_active_student_sort.bind(this);
     this.set_internal_student_info = this.set_internal_student_info.bind(this);
     this.create_student_project = this.create_student_project.bind(this);
-    this._process_create_student_project_queue = this._process_create_student_project_queue.bind(
-      this
-    );
     this.configure_project_users = this.configure_project_users.bind(this);
     this.configure_project_visibility = this.configure_project_visibility.bind(
       this
@@ -213,6 +217,7 @@ export class CourseActions extends Actions<CourseState> {
       this
     );
     this.open_handout = this.open_handout.bind(this);
+    this.is_closed = this.is_closed.bind(this);
     if (this.name == null) {
       throw Error("@name must be defined");
     }
@@ -224,6 +229,10 @@ export class CourseActions extends Actions<CourseState> {
   get_store = (): CourseStore | undefined => {
     return this.redux.getStore<CourseState, CourseStore>(this.name);
   };
+
+  private is_closed(): boolean {
+    return this.get_store() == null; // for now.
+  }
 
   _loaded() {
     if (this.syncdb == null) {
@@ -256,26 +265,29 @@ export class CourseActions extends Actions<CourseState> {
   _set(obj) {
     if (
       !this._loaded() ||
-      (this.syncdb != null ? this.syncdb.is_closed() : undefined)
+      (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
     ) {
       return;
     }
-    return this.syncdb.set(obj);
+    this.syncdb.set(obj);
+    this.syncdb.commit();
   }
 
   // Get one object from @syncdb as a Javascript object (or undefined)
   _get_one(obj) {
-    if (this.syncdb != null ? this.syncdb.is_closed() : undefined) {
+    if (
+      this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined
+    ) {
       return;
     }
     return __guard__(this.syncdb.get_one(obj), x => x.toJS());
   }
 
   set_tab(tab) {
-    return this.setState({ tab });
+    this.setState({ tab });
   }
 
-  save() {
+  async save(): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -285,20 +297,19 @@ export class CourseActions extends Actions<CourseState> {
     }
     const id = this.set_activity({ desc: "Saving..." });
     this.setState({ saving: true });
-    return this.syncdb.save(err => {
+    try {
+      await this.syncdb.save_to_disk();
+      this.setState({ show_save_button: false });
+    } catch (err) {
+      this.set_error(`Error saving -- ${err}`);
+      this.setState({ show_save_button: true });
+      return;
+    } finally {
       this.clear_activity(id);
       this.setState({ saving: false });
-      this.setState({
-        unsaved:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
-      });
-      if (err) {
-        this.set_error(`Error saving -- ${err}`);
-        return this.setState({ show_save_button: true });
-      } else {
-        return this.setState({ show_save_button: false });
-      }
-    });
+      this.update_unsaved_changes();
+      setTimeout(this.update_unsaved_changes.bind(this), 1000);
+    }
   }
 
   _syncdb_change(changes) {
@@ -338,11 +349,16 @@ export class CourseActions extends Actions<CourseState> {
     if (!cur.equals(t)) {
       // something definitely changed
       this.setState(t);
-      return this.setState({
-        unsaved:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
-      });
     }
+    this.update_unsaved_changes();
+  }
+
+  private update_unsaved_changes(): void {
+    if (this.syncdb == null) {
+      return;
+    }
+    const unsaved = this.syncdb.has_unsaved_changes();
+    this.setState({ unsaved });
   }
 
   handle_projects_store_update(state) {
@@ -364,7 +380,7 @@ export class CourseActions extends Actions<CourseState> {
     if (!this._last_collaborator_state.equals(users)) {
       this.configure_all_projects();
     }
-    return (this._last_collaborator_state = users);
+    this._last_collaborator_state = users;
   }
 
   _init_who_pay() {
@@ -495,7 +511,7 @@ export class CourseActions extends Actions<CourseState> {
 
   set_allow_collabs(allow_collabs) {
     this._set({ allow_collabs, table: "settings" });
-    return this.configure_all_projects();
+    this.configure_all_projects();
   }
 
   set_email_invite(body) {
@@ -514,7 +530,7 @@ export class CourseActions extends Actions<CourseState> {
       }`,
       description:
         store.get("settings").get("description") +
-        "\n---\n This project is shared with all students."
+        "\n\n---\n\nThis project is shared with all students in the course."
     };
     return x;
   }
@@ -566,7 +582,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // configure the shared project so that it has everybody as collaborators
-  configure_shared_project() {
+  public async configure_shared_project(): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -575,71 +591,76 @@ export class CourseActions extends Actions<CourseState> {
     if (!shared_project_id) {
       return; // no shared project
     }
-    this.set_shared_project_title();
-    // add collabs -- all collaborators on course project and all students
-    const projects = this.redux.getStore("projects");
-    const shared_project_users = projects.get_users(shared_project_id);
-    if (shared_project_users == null) {
-      return;
-    }
-    const course_project_users = projects.get_users(
-      store.get("course_project_id")
-    );
-    if (course_project_users == null) {
-      return;
-    }
-    const student_account_ids = {};
-    store.get_students().map((student, _) => {
-      if (!student.get("deleted")) {
-        const account_id = student.get("account_id");
-        if (account_id != null) {
-          return (student_account_ids[account_id] = true);
-        }
+    const id = this.set_activity({ desc: "Configuring shared project..." });
+    try {
+      await this.set_shared_project_title();
+      // add collabs -- all collaborators on course project and all students
+      const projects = this.redux.getStore("projects");
+      const shared_project_users = projects.get_users(shared_project_id);
+      if (shared_project_users == null) {
+        return;
       }
-    });
-
-    // Each of shared_project_users or course_project_users are
-    // immutable.js maps from account_id's to something, and students is a map from
-    // the student account_id's.
-    // Our goal is to ensur that:
-    //   {shared_project_users} = {course_project_users} union {students}.
-
-    const actions = this.redux.getActions("projects");
-    if (!store.get_allow_collabs()) {
-      // Ensure the shared project users are all either course or students
-      shared_project_users.map((_, account_id) => {
-        if (
-          !course_project_users.get(account_id) &&
-          !student_account_ids[account_id]
-        ) {
-          actions.remove_collaborator(shared_project_id, account_id);
+      const course_project_users = projects.get_users(
+        store.get("course_project_id")
+      );
+      if (course_project_users == null) {
+        return;
+      }
+      const student_account_ids = {};
+      store.get_students().map((student, _) => {
+        if (!student.get("deleted")) {
+          const account_id = student.get("account_id");
+          if (account_id != null) {
+            student_account_ids[account_id] = true;
+          }
         }
       });
-    }
-    // Ensure every course project user is on the shared project
-    course_project_users.map((_, account_id) => {
-      if (!shared_project_users.get(account_id)) {
-        return actions.invite_collaborator(shared_project_id, account_id);
+
+      // Each of shared_project_users or course_project_users are
+      // immutable.js maps from account_id's to something, and students is a map from
+      // the student account_id's.
+      // Our goal is to ensur that:
+      //   {shared_project_users} = {course_project_users} union {students}.
+
+      const actions = this.redux.getActions("projects");
+      if (!store.get_allow_collabs()) {
+        // Ensure the shared project users are all either course or students
+        for (let account_id in shared_project_users.toJS()) {
+          if (
+            !course_project_users.get(account_id) &&
+            !student_account_ids[account_id]
+          ) {
+            await actions.remove_collaborator(shared_project_id, account_id);
+          }
+        }
       }
-    });
-    // Ensure every student is on the shared project
-    for (let account_id in student_account_ids) {
-      if (!shared_project_users.get(account_id)) {
-        actions.invite_collaborator(shared_project_id, account_id);
+      // Ensure every course project user is on the shared project
+      for (let account_id in course_project_users.toJS()) {
+        if (!shared_project_users.get(account_id)) {
+          await actions.invite_collaborator(shared_project_id, account_id);
+        }
       }
+      // Ensure every student is on the shared project
+      for (let account_id in student_account_ids) {
+        if (!shared_project_users.get(account_id)) {
+          await actions.invite_collaborator(shared_project_id, account_id);
+        }
+      }
+    } finally {
+      this.set_activity({ id });
     }
   }
 
   // set the shared project id in our syncdb
-  _set_shared_project_id(project_id) {
-    return this._set({
+  private _set_shared_project_id(project_id): void {
+    this._set({
       table: "settings",
       shared_project_id: project_id
     });
   }
 
   // create the globally shared project if it doesn't exist
-  create_shared_project() {
+  public async create_shared_project(): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -647,34 +668,30 @@ export class CourseActions extends Actions<CourseState> {
     if (store.get_shared_project_id()) {
       return;
     }
-    const id = this.set_activity({
-      desc: "Creating global shared project for everybody."
-    });
     let x: any = this.shared_project_settings();
-    x.token = misc.uuid();
-    this.redux.getActions("projects").create_project(x);
-    return this.redux
-      .getStore("projects")
-      .wait_until_project_created(x.token, 30, (err, project_id) => {
-        this.clear_activity(id);
-        if (err) {
-          return this.set_error(`error creating shared project -- ${err}`);
-        } else {
-          this._set_shared_project_id(project_id);
-          return this.configure_shared_project();
-        }
-      });
+    const id = this.set_activity({ desc: "Creating shared project..." });
+    let project_id: string;
+    try {
+      project_id = await this.redux.getActions("projects").create_project(x);
+    } catch (err) {
+      this.set_error(`error creating shared project -- ${err}`);
+      return;
+    } finally {
+      this.set_activity({ id });
+    }
+    this._set_shared_project_id(project_id);
+    await this.configure_shared_project();
   }
 
   // Set the pay option for the course, and ensure that the course fields are
   // set on every student project in the course (see schema.coffee for format
   // of the course field) to reflect this change in the database.
-  set_course_info(pay = "") {
+  public async set_course_info(pay = ""): Promise<void> {
     this._set({
       pay,
       table: "settings"
     });
-    return this.set_all_student_project_course_info(pay);
+    await this.set_all_student_project_course_info(pay);
   }
 
   // Takes an item_name and the id of the time
@@ -716,6 +733,7 @@ export class CourseActions extends Actions<CourseState> {
       x.student_id = student_id;
       this.syncdb.set(x);
     }
+    this.syncdb.commit();
     const f = (student_id, cb) => {
       return async.series(
         [
@@ -761,7 +779,7 @@ export class CourseActions extends Actions<CourseState> {
       }
       // after adding students, always run configure all projects,
       // to ensure everything is set properly
-      return this.configure_all_projects();
+      this.configure_all_projects();
     });
   }
 
@@ -771,15 +789,17 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     student = store.get_student(student);
-    this.redux
-      .getActions("projects")
-      .clear_project_upgrades(student.get("project_id"));
+    const project_id = student.get("project_id");
+    if (project_id != null) {
+      // The student's project was created so let's clear any upgrades from it.
+      this.redux.getActions("projects").clear_project_upgrades(project_id);
+    }
     this._set({
       deleted: true,
       student_id: student.get("student_id"),
       table: "students"
     });
-    return this.configure_all_projects(); // since they may get removed from shared project, etc.
+    this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
   undelete_student(student) {
@@ -793,7 +813,7 @@ export class CourseActions extends Actions<CourseState> {
       student_id: student.get("student_id"),
       table: "students"
     });
-    return this.configure_all_projects(); // since they may get added back to shared project, etc.
+    this.configure_all_projects(); // since they may get added back to shared project, etc.
   }
 
   // Some students might *only* have been added using their email address, but they
@@ -876,39 +896,19 @@ export class CourseActions extends Actions<CourseState> {
       student_id: student.get("student_id"),
       table: "students"
     });
-    return this.configure_all_projects(); // since they may get removed from shared project, etc.
+    this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
   // Student projects
 
   // Create a single student project.
-  create_student_project(student) {
+  public async create_student_project(student): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
     }
     if (store.get("students") == null || store.get("settings") == null) {
-      this.set_error("attempt to create when stores not yet initialized");
-      return;
-    }
-    if (this._create_student_project_queue == null) {
-      this._create_student_project_queue = [student];
-    } else {
-      this._create_student_project_queue.push(student);
-    }
-    if (!this._creating_student_project) {
-      return this._process_create_student_project_queue();
-    }
-  }
-
-  // Process first requested student project creation action, then each subsequent one until
-  // there aren't any more to do.
-  _process_create_student_project_queue() {
-    this._creating_student_project = true;
-    const queue = this._create_student_project_queue;
-    const student = queue[0];
-    const store = this.get_store();
-    if (store == null) {
+      this.set_error("BUG: attempt to create when stores not yet initialized");
       return;
     }
     const student_id = store.get_student(student).get("student_id");
@@ -920,66 +920,54 @@ export class CourseActions extends Actions<CourseState> {
     const id = this.set_activity({
       desc: `Create project for ${store.get_student_name(student_id)}.`
     });
-    const token = misc.uuid();
-    this.redux.getActions("projects").create_project({
-      title: store.get("settings").get("title"),
-      description: store.get("settings").get("description"),
-      token
-    });
-    return this.redux
-      .getStore("projects")
-      .wait_until_project_created(token, 30, (err, project_id) => {
-        this.clear_activity(id);
-        if (err) {
-          this.set_error(
-            `error creating student project for ${store.get_student_name(
-              student_id
-            )} -- ${err}`
-          );
-        } else {
-          this._set({
-            create_project: null,
-            project_id,
-            table: "students",
-            student_id
-          });
-          this.configure_project(student_id, undefined, project_id);
-        }
-        delete this._creating_student_project;
-        queue.shift();
-        if (queue.length > 0) {
-          // do next one
-          return this._process_create_student_project_queue();
-        }
+    let project_id: string;
+    try {
+      project_id = await this.redux.getActions("projects").create_project({
+        title: store.get("settings").get("title"),
+        description: store.get("settings").get("description")
       });
+    } catch (err) {
+      this.set_error(
+        `error creating student project for ${store.get_student_name(
+          student_id
+        )} -- ${err}`
+      );
+      return;
+    } finally {
+      this.clear_activity(id);
+    }
+    this._set({
+      create_project: null,
+      project_id,
+      table: "students",
+      student_id
+    });
+    await this.configure_project(student_id, false, project_id);
   }
 
-  configure_project_users(
+  private async configure_project_users(
     student_project_id,
     student_id,
     do_not_invite_student_by_email
-  ) {
+  ): Promise<void> {
     //console.log("configure_project_users", student_project_id, student_id)
     // Add student and all collaborators on this project to the project with given project_id.
     // users = who is currently a user of the student's project?
-    let left;
     const users = this.redux.getStore("projects").get_users(student_project_id); // immutable.js map
-    if (users == null) {
-      // can't do anything if this isn't known...
-      return;
-    }
-    // Define function to invite or add collaborator
+    if (users == null) return; // can't do anything if this isn't known...
+
     const s = this.get_store();
-    if (s == null) {
-      return;
+    if (s == null) return;
+    const student = s.get_student(student_id);
+
+    let site_name = this.redux.getStore("customize").site_name;
+    if (!site_name) {
+      site_name = require("smc-util/theme").SITE_NAME;
     }
-    const { SITE_NAME } = require("smc-util/theme");
-    const SiteName =
-      (left = this.redux.getStore("customize").site_name) != null
-        ? left
-        : SITE_NAME;
     let body = s.get_email_invite();
-    const invite = x => {
+
+    // Define function to invite or add collaborator
+    const invite = async x => {
       // console.log("invite", x, " to ", student_project_id);
       const account_store = this.redux.getStore("account");
       const name = account_store.get_fullname();
@@ -987,10 +975,10 @@ export class CourseActions extends Actions<CourseState> {
       if (x.includes("@")) {
         if (!do_not_invite_student_by_email) {
           const title = s.get("settings").get("title");
-          const subject = `${SiteName} Invitation to Course ${title}`;
+          const subject = `${site_name} Invitation to Course ${title}`;
           body = body.replace(/{title}/g, title).replace(/{name}/g, name);
           body = markdownlib.markdown_to_html(body);
-          this.redux
+          await this.redux
             .getActions("projects")
             .invite_collaborators_by_email(
               student_project_id,
@@ -1003,52 +991,75 @@ export class CourseActions extends Actions<CourseState> {
             );
         }
       } else {
-        this.redux
+        await this.redux
           .getActions("projects")
           .invite_collaborator(student_project_id, x);
       }
     };
     // Make sure the student is on the student's project:
-    const student = s.get_student(student_id);
     const student_account_id = student.get("account_id");
     if (student_account_id == null) {
-      // no known account yet
-      invite(student.get("email_address"));
+      // No known account yet, so invite by email.  That said,
+      // we only do this at most once every few days.
+      const last_email_invite = student.get("last_email_invite");
+      if (
+        !last_email_invite ||
+        new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS)
+      ) {
+        await invite(student.get("email_address"));
+        this._set({
+          table: "students",
+          student_id,
+          last_email_invite: new Date().valueOf()
+        });
+      }
     } else if (
       (users != null ? users.get(student_account_id) : undefined) == null
     ) {
       // users might not be set yet if project *just* created
-      invite(student_account_id);
+      await invite(student_account_id);
     }
     // Make sure all collaborators on course project are on the student's project:
-    const target_users = this.redux
+    const course_collaborators = this.redux
       .getStore("projects")
       .get_users(s.get("course_project_id"));
-    if (target_users == null) {
+    if (course_collaborators == null) {
       // console.log("projects store isn't sufficiently initialized yet...");
       return;
     }
-    target_users.map((_, account_id) => {
-      if (users.get(account_id) == null) {
-        invite(account_id);
+    for (let account_id of course_collaborators.keys()) {
+      if (!users.has(account_id)) {
+        await invite(account_id);
       }
-    });
-    if (!s.get_allow_collabs()) {
+    }
+    // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
+    // The problem is that student_account_id might not yet be known to the .course, even though
+    // the student has been added and the account_id exists, and is known to the account opening
+    // the .course file.  This is just due to a race condition somewhere else.  For now -- before
+    // just factoring out and rewriting all this code better -- we at least make this one change
+    // so the student isn't "brutally" kicked out of the course.
+    if (
+      s.get("settings") != undefined &&
+      !s.get_allow_collabs() &&
+      student_account_id != undefined
+    ) {
       // Remove anybody extra on the student project
-      return users.map((_, account_id) => {
+      for (let account_id of users.keys()) {
         if (
-          target_users.get(account_id) == null &&
+          !course_collaborators.has(account_id) &&
           account_id !== student_account_id
         ) {
-          return this.redux
+          await this.redux
             .getActions("projects")
             .remove_collaborator(student_project_id, account_id);
         }
-      });
+      }
     }
   }
 
-  configure_project_visibility(student_project_id) {
+  private async configure_project_visibility(
+    student_project_id: string
+  ): Promise<void> {
     const users_of_student_project = this.redux
       .getStore("projects")
       .get_users(student_project_id);
@@ -1068,17 +1079,20 @@ export class CourseActions extends Actions<CourseState> {
       // TODO: should really wait until users is defined, which is a supported thing to do on stores!
       return;
     }
-    return users.map((_, account_id) => {
+    for (let account_id of users.keys()) {
       const x = users_of_student_project.get(account_id);
       if (x != null && !x.get("hide")) {
-        return this.redux
+        await this.redux
           .getActions("projects")
           .set_project_hide(account_id, student_project_id, true);
       }
-    });
+    }
   }
 
-  configure_project_title(student_project_id, student_id) {
+  private async configure_project_title(
+    student_project_id: string,
+    student_id: string
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1086,7 +1100,7 @@ export class CourseActions extends Actions<CourseState> {
     const title = `${store.get_student_name(student_id)} - ${store
       .get("settings")
       .get("title")}`;
-    return this.redux
+    await this.redux
       .getActions("projects")
       .set_project_title(student_project_id, title);
   }
@@ -1120,48 +1134,79 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  set_all_student_project_titles(title) {
-    const actions = this.redux.getActions("projects");
-    __guard__(this.get_store(), x =>
-      x.get_students().map((student, student_id) => {
-        const student_project_id = student.get("project_id");
-        const store = this.get_store();
-        if (store == undefined) {
-          return;
-        }
-        const project_title = `${store.get_student_name(
-          student_id
-        )} - ${title}`;
-        if (student_project_id != null) {
-          actions.set_project_title(student_project_id, project_title);
-        }
-      })
+  async run_in_all_student_projects(
+    command: string,
+    args?: string[],
+    timeout?: number,
+    log?: Function
+  ): Promise<Result[]> {
+    const store = this.get_store();
+    if (store == null) {
+      return [];
+    }
+    // calling start also deals with possibility that
+    // it's in stop state.
+    this.action_all_student_projects("start");
+    return await run_in_all_projects(
+      store.get_student_project_ids(),
+      command,
+      args,
+      timeout,
+      log
     );
   }
 
-  configure_project_description(student_project_id) {
-    this.redux
+  async set_all_student_project_titles(title: string): Promise<void> {
+    const actions = this.redux.getActions("projects");
+    const store = this.get_store();
+    if (store == null) return;
+    for (let student of store
+      .get_students()
+      .valueSeq()
+      .toArray()) {
+      const student_project_id = student.get("project_id");
+      const project_title = `${store.get_student_name(
+        student.get("student_id")
+      )} - ${title}`;
+      if (student_project_id != null) {
+        await actions.set_project_title(student_project_id, project_title);
+        if (this.is_closed()) return;
+      }
+    }
+  }
+
+  async configure_project_description(
+    student_project_id: string
+  ): Promise<void> {
+    const store = this.get_store();
+    if (store == null) return;
+    await this.redux
       .getActions("projects")
       .set_project_description(
         student_project_id,
-        __guard__(this.get_store(), x => x.getIn(["settings", "description"]))
+        store.get("settings").get("description")
       );
   }
 
-  set_all_student_project_descriptions(description) {
-    __guard__(this.get_store(), x =>
-      x.get_students().map(student => {
-        const student_project_id = student.get("project_id");
-        if (student_project_id != null) {
-          return this.redux
-            .getActions("projects")
-            .set_project_description(student_project_id, description);
-        }
-      })
-    );
+  async set_all_student_project_descriptions(
+    description: string
+  ): Promise<void> {
+    const store = this.get_store();
+    if (store == null) return;
+    const actions = this.redux.getActions("projects");
+    for (let student of store
+      .get_students()
+      .valueSeq()
+      .toArray()) {
+      const student_project_id = student.get("project_id");
+      if (student_project_id != null) {
+        await actions.set_project_description(student_project_id, description);
+        if (this.is_closed()) return;
+      }
+    }
   }
 
-  set_all_student_project_course_info(pay?) {
+  async set_all_student_project_course_info(pay?): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1174,32 +1219,38 @@ export class CourseActions extends Actions<CourseState> {
         table: "settings"
       });
     }
-    return store.get_students().map(student => {
-      const student_project_id = student.get("project_id");
-      // account_id: might not be known when student first added, or if student
-      // hasn't joined smc yet so there is no id.
-      const student_account_id = student.get("account_id");
-      const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
-      if (student_project_id != null) {
-        return this.redux
-          .getActions("projects")
-          .set_project_course_info(
-            student_project_id,
-            store.get("course_project_id"),
-            store.get("course_filename"),
-            pay,
-            student_account_id,
-            student_email_address
-          );
+    const actions = this.redux.getActions("projects");
+    const id = this.set_activity({ desc: "Updating project course info..." });
+    try {
+      for (let student of store
+        .get_students()
+        .valueSeq()
+        .toArray()) {
+        const student_project_id = student.get("project_id");
+        if (student_project_id == null) continue;
+        // account_id: might not be known when student first added, or if student
+        // hasn't joined smc yet so there is no id.
+        const student_account_id = student.get("account_id");
+        const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
+        await actions.set_project_course_info(
+          student_project_id,
+          store.get("course_project_id"),
+          store.get("course_filename"),
+          pay,
+          student_account_id,
+          student_email_address
+        );
       }
-    });
+    } finally {
+      this.set_activity({ id });
+    }
   }
 
-  configure_project(
+  private async configure_project(
     student_id,
     do_not_invite_student_by_email,
     student_project_id?
-  ): void {
+  ): Promise<void> {
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
     // description, and collaborators for belonging to the indicated student.
@@ -1216,17 +1267,16 @@ export class CourseActions extends Actions<CourseState> {
     }
     // console.log("configure_project", student_id, student_project_id);
     if (student_project_id == null) {
-      this.create_student_project(student_id);
+      await this.create_student_project(student_id);
     } else {
-      // console.log("configure_project", student_project_id, "will config users");
-      this.configure_project_users(
+      await this.configure_project_users(
         student_project_id,
         student_id,
         do_not_invite_student_by_email
       );
-      this.configure_project_visibility(student_project_id);
-      this.configure_project_title(student_project_id, student_id);
-      this.configure_project_description(student_project_id);
+      await this.configure_project_visibility(student_project_id);
+      await this.configure_project_title(student_project_id, student_id);
+      await this.configure_project_description(student_project_id);
     }
   }
 
@@ -1261,8 +1311,10 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  configure_all_projects(): void {
-    const id = this.set_activity({ desc: "Configuring all projects" });
+  async configure_all_projects(): Promise<void> {
+    const id = this.set_activity({
+      desc: "Ensuring all projects are configured..."
+    });
     this.setState({ configure_projects: "Configuring projects" });
     const store = this.get_store();
     if (store == null) {
@@ -1273,12 +1325,20 @@ export class CourseActions extends Actions<CourseState> {
     if (ids == undefined) {
       return;
     }
+    let i = 0;
     for (let student_id of ids) {
-      this.configure_project(student_id, false);
+      if (this.is_closed()) return;
+      i += 1;
+      const id = this.set_activity({
+        desc: `Configuring student project ${i} of ${ids.length}`
+      });
+      await this.configure_project(student_id, false);
+      this.set_activity({ id });
+      await delay(0); // give UI, etc. a solid chance to render
     } // always re-invite students on running this.
-    this.configure_shared_project();
+    await this.configure_shared_project();
+    await this.set_all_student_project_course_info();
     this.set_activity({ id });
-    this.set_all_student_project_course_info();
   }
 
   // Deletes student projects and removes students from those projects
@@ -1329,7 +1389,7 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     // make the course itself forget about the shared project:
-    return this._set({
+    this._set({
       table: "settings",
       shared_project_id: ""
     });
@@ -1366,50 +1426,31 @@ export class CourseActions extends Actions<CourseState> {
   // project as indicated by the quotas object.  E.g., to increase the core quota from 1 to 2, do
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
-  admin_upgrade_all_student_projects(quotas) {
+  public async admin_upgrade_all_student_projects(quotas): Promise<void> {
     if (
-      !__guard__(this.redux.getStore("account").get("groups"), x =>
-        x.contains("admin")
-      )
+      !this.redux
+        .getStore("account")
+        .get("groups", [])
+        .contains("admin")
     ) {
-      console.warn("must be an admin to upgrade");
+      throw Error("must be an admin to upgrade");
       return;
     }
     const store = this.get_store();
     if (store == null) {
-      console.warn("unable to get store");
+      throw Error("unable to get store");
       return;
     }
-    const f = (project_id, cb) => {
+    const ids: string[] | undefined = store.get_student_project_ids();
+    if (ids == null) {
+      throw Error("student project ids not defined");
+      return;
+    }
+    for (let project_id of ids) {
       const x = misc.copy(quotas);
       x.project_id = project_id;
-      x.cb = (err, mesg) => {
-        if (err || mesg.event === "error") {
-          console.warn(
-            `failed to set quotas for ${project_id} -- ${misc.to_json(mesg)}`
-          );
-        } else {
-          console.log(`set quotas for ${project_id}`);
-        }
-        return cb(err);
-      };
-      return webapp_client.project_set_quotas(x);
-    };
-    const ids = store.get_student_ids();
-    if (ids == undefined) {
-      return;
+      await callback2(webapp_client.project_set_quotas, x);
     }
-    return (
-      async.mapSeries(ids),
-      f,
-      err => {
-        if (err) {
-          return console.warn(`FAIL -- ${err}`);
-        } else {
-          return console.log("SUCCESS");
-        }
-      }
-    );
   }
 
   set_student_note(student, note) {
@@ -1418,7 +1459,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     student = store.get_student(student);
-    return this._set({
+    this._set({
       note,
       table: "students",
       student_id: student.get("student_id")
@@ -2957,7 +2998,7 @@ You can find the comments they made in the folders below.\
       id: activity_id,
       desc: `Setting all projects to ${new_image}`
     });
-    this.setState({compute_image_is_changing: true});
+    this.setState({ compute_image_is_changing: true });
     await this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
@@ -2967,14 +3008,14 @@ You can find the comments they made in the folders below.\
       },
       {
         max_tries: 5,
-        on_failure: (err) => {
+        on_failure: err => {
           this.set_error(
             `An error occured while changing the course project image. Please check your internet connection and try again. ${err}`
           );
         }
       }
     );
-    this.setState({compute_image_is_changing: false})
+    this.setState({ compute_image_is_changing: false });
     this.clear_activity(activity_id);
   };
 
@@ -2988,7 +3029,7 @@ You can find the comments they made in the folders below.\
       max_tries = 3
     }: {
       on_clean_up?: () => void;
-      on_failure?: () => void;
+      on_failure?: (err) => void;
       timeout?: number;
       max_tries?: number;
     } = {}

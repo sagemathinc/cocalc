@@ -2,30 +2,48 @@
 React component that describes the output of a cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-const { CellOutputMessages } = require("./cell-output-message");
-const { OutputPrompt } = require("./prompt");
-const { OutputToggle, CollapsedOutput } = require("./cell-output-toggle");
+import { CellOutputMessages } from "./output-messages/message";
+
+import { OutputPrompt } from "./prompt";
+import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
+import { CellHiddenPart } from "./cell-hidden-part";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CellOutputProps {
-  actions?: any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
+  name?: string;
   id: string;
-  cell: ImmutableMap<any, any>;
+  cell: ImmutableMap<string, any>;
   project_id?: string;
   directory?: string;
-  more_output?: ImmutableMap<any, any>;
+  more_output?: ImmutableMap<string, any>;
   trust?: boolean;
+  complete?: boolean;
 }
 
 export class CellOutput extends Component<CellOutputProps> {
-  shouldComponentUpdate(nextProps) {
-    for (let field of ["collapsed", "scrolled", "exec_count", "state"]) {
+  public shouldComponentUpdate(nextProps: CellOutputProps): boolean {
+    for (let field of [
+      "collapsed",
+      "scrolled",
+      "exec_count",
+      "state",
+      "metadata"
+    ]) {
       if (nextProps.cell.get(field) !== this.props.cell.get(field)) {
         return true;
       }
     }
-    if (this.props.more_output !== nextProps.more_output || this.props.trust !== nextProps.trust) {
+    if (
+      this.props.more_output !== nextProps.more_output ||
+      this.props.trust !== nextProps.trust ||
+      this.props.complete !== nextProps.complete
+    ) {
       return true;
     }
     const new_output = nextProps.cell.get("output");
@@ -39,12 +57,12 @@ export class CellOutput extends Component<CellOutputProps> {
     return !new_output.equals(cur_output);
   }
 
-  render_output_prompt() {
+  private render_output_prompt(): Rendered {
     const collapsed = this.props.cell.get("collapsed");
     let exec_count = undefined;
     const output = this.props.cell.get("output");
     if (output != null) {
-      output.forEach((x) => {
+      output.forEach(x => {
         if (x.has("exec_count")) {
           exec_count = x.get("exec_count");
           return false;
@@ -58,7 +76,12 @@ export class CellOutput extends Component<CellOutputProps> {
         collapsed={collapsed}
       />
     );
-    if (this.props.actions == null || collapsed || output == null || output.size === 0) {
+    if (
+      this.props.actions == null ||
+      collapsed ||
+      output == null ||
+      output.size === 0
+    ) {
       return prompt;
     }
     if (this.props.actions != null) {
@@ -74,11 +97,11 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
-  render_collapsed() {
+  private render_collapsed(): Rendered {
     return <CollapsedOutput actions={this.props.actions} id={this.props.id} />;
   }
 
-  render_output_value() {
+  private render_output_value(): Rendered {
     if (this.props.cell.get("collapsed")) {
       return this.render_collapsed();
     } else {
@@ -112,6 +135,8 @@ export class CellOutput extends Component<CellOutputProps> {
           project_id={this.props.project_id}
           directory={this.props.directory}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
+          name={this.props.name}
           trust={this.props.trust}
           id={this.props.id}
         />
@@ -119,12 +144,38 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
-  render() {
+  private render_hidden(): Rendered {
+    return (
+      <CellHiddenPart
+        title={
+          "Output is hidden; show via Edit --> Toggle hide output in the menu."
+        }
+      />
+    );
+  }
+
+  public render(): Rendered {
+    const minHeight = this.props.complete ? "60vh" : undefined;
+    if (this.props.cell.getIn(["metadata", "jupyter", "outputs_hidden"])) {
+      return (
+        <div key="out" style={{ minHeight }}>
+          {this.render_hidden()}
+        </div>
+      );
+    }
     if (this.props.cell.get("output") == null) {
-      return <div />;
+      return <div key="out" style={{ minHeight }} />;
     }
     return (
-      <div key="out" style={{ display: "flex", flexDirection: "row", alignItems: "stretch" }}>
+      <div
+        key="out"
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "stretch",
+          minHeight
+        }}
+      >
         {this.render_output_prompt()}
         {this.render_output_value()}
       </div>

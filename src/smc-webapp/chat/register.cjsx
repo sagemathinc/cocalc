@@ -5,38 +5,42 @@
 {webapp_client} = require('../webapp_client')
 
 # Sibling Libraries
-util = require('./util')
+utils = require('./utils')
 {ChatStore} = require('./store')
 {ChatActions} = require('./actions')
 {ChatRoom} = require('../smc_chat')
 
 exports.init = init = (path, redux, project_id) ->
-    name = util.generate_name(project_id, path)
+    name = utils.generate_name(project_id, path)
     if redux.getActions(name)?
         return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
     store   = redux.createStore(name, ChatStore)
 
-    syncdb = webapp_client.sync_db
+    syncdb = webapp_client.sync_db2
         project_id   : project_id
         path         : path
         primary_keys : ['date']
-    syncdb.once 'init', (err) =>
-        if err
-            mesg = "Error opening '#{path}' -- #{err}"
-            console.warn(mesg)
-            alert_message(type:"error", message:mesg)
-            return
+
+    syncdb.once 'error', (err) =>
+        mesg = "Error using '#{path}' -- #{err}"
+        console.warn(mesg)
+        alert_message(type:"error", message:mesg)
+
+    syncdb.once 'ready', =>
         actions.syncdb = syncdb
         actions.store = store
         actions.init_from_syncdb()
         syncdb.on('change', actions._syncdb_change)
+        syncdb.on('has-uncommitted-changes', (val) => actions.setState({has_uncommitted_changes:val}))
+        syncdb.on('has-unsaved-changes', (val) => actions.setState({has_unsaved_changes:val}))
         redux.getProjectActions(project_id)?.log_opened_time(path)
+
     return name
 
 exports.remove = remove = (path, redux, project_id) ->
-    name = util.generate_name(project_id, path)
+    name = utils.generate_name(project_id, path)
     actions = redux.getActions(name)
     actions?.syncdb?.close()
     store = redux.getStore(name)
@@ -50,7 +54,7 @@ exports.remove = remove = (path, redux, project_id) ->
     return name
 
 ChatEditorGenerator = (path, redux, project_id) ->
-    name = util.generate_name(project_id, path)
+    name = utils.generate_name(project_id, path)
     C_ChatRoom = ({actions}) ->
         <ChatRoom
             redux       = {redux}

@@ -101,14 +101,6 @@ class Connection extends client.Connection
         if prom_client.enabled
             @on('start_metrics', prom_client.start_metrics)
 
-        # Wait until load totally done.
-        setTimeout(@_firefox60_bug, 5000)
-
-    _firefox60_bug: =>
-        {name, version} = require('misc/browser').get_browser()
-        if name == 'Firefox' and (version == '59' or version == '60' or version == '61')
-            @alert_message(type:'error', block:'true', timeout:10000, message:"Firefox versions 59, 60 and 61 have a MAJOR bug. You *must* use a different web browser or change your TLS settings. See https://tinyurl.com/y9hphj39 and https://tinyurl.com/yboeepsf")
-
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
         window.enable_post = =>
@@ -130,7 +122,6 @@ class Connection extends client.Connection
         window.smc.sha1                = require('sha1')
         window.smc.schema              = require('smc-util/schema')
         # use to enable/disable verbose synctable logging
-        window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
         window.smc.prom_client         = prom_client
         window.smc.redux               = require('./app-framework').redux
@@ -220,8 +211,8 @@ class Connection extends client.Connection
         @_idle_reset()
 
     _connect: (url, ondata) ->
-        log = (mesg) ->
-            console.log("websocket -", mesg)
+        log = (mesg...) ->
+            console.log("websocket -", mesg...)
         log("connect")
 
         @url = url
@@ -230,19 +221,6 @@ class Connection extends client.Connection
             return
 
         @ondata = ondata
-
-        ###
-        opts =
-            ping      : 25000  # used for maintaining the connection and deciding when to reconnect.
-            pong      : 12000  # used to decide when to reconnect
-            strategy  : 'disconnect,online,timeout'
-            reconnect :
-                max      : 5000
-                min      : 1000
-                factor   : 1.25
-                retries  : 100000  # why ever stop trying...?
-        conn = new Primus(url, opts)
-        ###
 
         opts =
             reconnect:
@@ -312,21 +290,6 @@ class Connection extends client.Connection
         conn.on 'reconnect', =>
             @emit("connecting")
 
-        conn.on 'incoming::pong', (time) =>
-            #log("pong latency=#{conn.latency}")
-            if not window.document.hasFocus? or window.document.hasFocus()
-                # networking/pinging slows down when browser not in focus...
-                if conn.latency > 10000
-                    # We get some ridiculous values from Primus when the browser
-                    # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
-                    # that throttle.  Just discard them, since otherwise they lead to ridiculous false
-                    # numbers displayed in the browser.
-                    return
-                @emit "ping", conn.latency
-
-        #conn.on 'outgoing::ping', () =>
-        #    log(new Date() - 0, "sending a ping")
-
         @_write = (data) =>
             conn.write(data)
 
@@ -345,10 +308,12 @@ class Connection extends client.Connection
         @_conn.end()
         @_conn.open()
 
-    _cookies: (mesg) =>
-        $.ajax
+    _cookies: (mesg, cb) =>
+        j = $.ajax
             url     : mesg.url
             data    : {id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value}
+        j.done(=> cb?())
+        j.fail(=> cb?('failed'))
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)

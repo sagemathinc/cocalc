@@ -28,6 +28,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
+{analytics_event}       = require('./tracker')
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 {required, defaults}    = misc
@@ -38,8 +39,8 @@ misc                    = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
+ DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed, A} = require('./r_misc')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {User} = require('./users')
 
 {HelpEmailLink}   = require('./customize')
@@ -51,8 +52,11 @@ misc                    = require('smc-util/misc')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
 {ProjectControlPanel} = require('./project/project-control-panel')
+{JupyterLabServerPanel}   = require('./project/jupyterlab-server')
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
+
+{CUSTOM_IMG_PREFIX, CUSTOM_SOFTWARE_HELP_URL, compute_image2name, compute_image2basename} = require('./custom-software/util')
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -151,7 +155,6 @@ QuotaConsole = rclass
                     </li>
                 upgrade_list.push(li)
 
-        amount = misc.round2(base_value * factor)
         if base_value
             # amount given by free project
             upgrade_list.unshift(<li key='free'>{text(base_value)} given by free project</li>)
@@ -161,7 +164,7 @@ QuotaConsole = rclass
             tip   = {params_data.desc}>{params_data.display}</Tip>}
             key   = {params_data.display}
             style = {borderBottom:'1px solid #ccc'}
-            >
+        >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -178,6 +181,7 @@ QuotaConsole = rclass
             cpu_shares  : Math.round(@state.cpu_shares * 256)
             disk_quota  : @state.disk_quota
             memory      : @state.memory
+            memory_request : @state.memory_request
             mintime     : Math.floor(@state.mintime * 3600)
             network     : @state.network
             member_host : @state.member_host
@@ -361,6 +365,7 @@ UsagePanel = rclass
         upgrades_you_applied_to_this_project : rtypes.object
         total_project_quotas                 : rtypes.object
         all_upgrades_to_this_project         : rtypes.object
+        all_projects_have_been_loaded        : rtypes.bool
         actions                              : rtypes.object.isRequired # projects actions
 
     getInitialState: ->
@@ -374,17 +379,17 @@ UsagePanel = rclass
         <Row>
             <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust Quotas...
+                    <Icon name='arrow-circle-up' /> Adjust your upgrade contributions...
                 </Button>
             </Col>
         </Row>
 
-    render: ->
-        if not require('./customize').commercial
-            return null
-        <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
-            {@render_upgrades_button()}
-            {<UpgradeAdjustor
+    render_upgrade_adjustor: ->
+        if not @props.all_projects_have_been_loaded
+            # See https://github.com/sagemathinc/cocalc/issues/3802
+            redux.getActions('projects').load_all_projects()
+            return <Loading theme={"medium"}  />
+        <UpgradeAdjustor
                 project_id                           = {@props.project_id}
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
                 upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
@@ -392,7 +397,15 @@ UsagePanel = rclass
                 quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 submit_upgrade_quotas                = {@submit_upgrade_quotas}
                 cancel_upgrading                     = {=>@setState(show_adjustor : false)}
-            /> if @state.show_adjustor}
+                total_project_quotas                 = {@props.total_project_quotas}
+        />
+
+    render: ->
+        if not require('./customize').commercial
+            return null
+        <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
+            {@render_upgrades_button()}
+            {@render_upgrade_adjustor() if @state.show_adjustor}
             <QuotaConsole
                 project_id                   = {@props.project_id}
                 project_settings             = {@props.project.get('settings')}
@@ -431,9 +444,18 @@ HideDeletePanel = rclass
     toggle_delete_project: ->
         @actions('projects').toggle_delete_project(@props.project.get('project_id'))
         @hide_delete_conf()
+        if @props.project.get('deleted')
+            analytics_event('project_settings', 'undelete project')
+        else
+            analytics_event('project_settings', 'delete project')
 
     toggle_hide_project: ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
+        user = @props.project.getIn(['users', webapp_client.account_id])
+        if user.get('hide')
+            analytics_event('project_settings', 'unhide project')
+        else
+            analytics_event('project_settings', 'hide project')
 
     # account_id : String
     # project    : immutable.Map
@@ -590,6 +612,147 @@ SageWorksheetPanel = rclass
             {@render_message()}
         </ProjectSettingsPanel>
 
+
+ProjectCapabilitiesPanel = rclass ({name}) ->
+    displayName : 'ProjectSettings-ProjectCapabilitiesPanel'
+
+    propTypes :
+        project           : rtypes.object.isRequired
+
+    reduxProps :
+        "#{name}" :
+            configuration         : rtypes.immutable
+            configuration_loading : rtypes.bool
+            available_features    : rtypes.object
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, [
+            'project',
+            'configuration',
+            'configuration_loading',
+            'available_features'
+        ])
+
+
+    render_features: (avail) ->
+        {sortBy} = require('lodash')
+        feature_map = [['spellcheck', 'Spellchecking'],
+               ['rmd', 'RMarkdown'],
+               ['sage', 'SageMath Worksheets'],
+               ['jupyter_notebook', 'Classical Jupyter Notebook'],
+               ['jupyter_lab', 'Jupyter Lab'],
+               ['library', 'Library of documents'],
+               ['x11', 'Graphical applications'],
+               ['latex', 'LaTeX editor']]
+        features = []
+        any_nonavail = false
+        for [key, display] in sortBy(feature_map, ((f) -> f[1]))
+            available = avail[key]
+            any_nonavail |= not available
+            color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
+            icon  = if available then "check-square"    else 'minus-square'
+            features.push(
+                <Fragment key={key}>
+                    <dt><Icon name={icon} style={color: color} /></dt>
+                    <dd>{display}</dd>
+                </Fragment>
+            )
+
+        component = <Fragment>
+            <dl className={"dl-horizontal cc-project-settings-features"}>
+                {features}
+            </dl>
+        </Fragment>
+        return [component, any_nonavail]
+
+    render_formatter: (formatter) ->
+        {sortBy, keys} = require('lodash')
+        if formatter == false
+            return <div>No code formatters are available</div>
+        if formatter == true
+            return <div>All code formatters are available</div>
+
+        tool2display = require("smc-util/code-formatter").tool2display
+
+        r_formatters = []
+        any_nonavail = false
+        for tool in sortBy(keys(formatter), ((x) -> x))
+            available = formatter[tool]
+            color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
+            icon  = if available then "check-square"    else 'minus-square'
+            langs = tool2display[tool]
+            # only tell users about tools where we know what for they're used
+            continue if (not langs?) or langs.length == 0
+            # only consider availiability after eventually ignoring a specific tool,
+            # because it will not show up in the UI
+            any_nonavail |= not available
+
+            r_formatters.push(
+                <Fragment key={tool}>
+                    <dt><Icon name={icon} style={color: color} />{' '}</dt>
+                    <dd><b>{tool}</b> for {misc.to_human_list(langs)}</dd>
+                </Fragment>
+            )
+
+        component = <Fragment>
+            {@render_debug_info(formatter)}
+            <dl className={"dl-horizontal cc-project-settings-features"}>
+                {r_formatters}
+            </dl>
+        </Fragment>
+        return [component, any_nonavail]
+
+    render_noavail_info: ->
+        <Fragment>
+            <hr/>
+            <div style={color:COLORS.GRAY}>
+                Some features are not available,{' '}
+                because this project runs a small{' '}
+                {A(CUSTOM_SOFTWARE_HELP_URL, 'customized stack of software')}.
+                To enable all features,{' '}
+                please create a new project using the default software environment.
+            </div>
+        </Fragment>
+
+    render_available: ->
+        avail = @props.available_features
+        if not avail?
+            return <div>
+                Information about available features will show up here.
+                <br/>
+                {<Loading /> if @props.configuration_loading}
+            </div>
+
+        [features, non_avail_1] = @render_features(avail)
+        [formatter, non_avail_2] = @render_formatter(avail.formatting)
+
+        <React.Fragment>
+            <h3>Available features</h3>
+            {features}
+            <h3>Available formatter</h3>
+            {formatter}
+            {@render_noavail_info() if non_avail_1 or non_avail_2}
+        </React.Fragment>
+
+    render_debug_info: (conf) ->
+        if conf? and DEBUG
+            <pre style={fontSize:'9px', color:'black'}>
+                {JSON.stringify(conf, '', 2)}
+            </pre>
+
+    render : ->
+        conf = @props.configuration
+
+        <ProjectSettingsPanel
+            title={'Features and configuration'}
+            icon={'clipboard-check'}
+        >
+            {@render_debug_info(conf)}
+            {@render_available()}
+        </ProjectSettingsPanel>
+
+
+
 SSHPanel = rclass
     displayName: 'ProjectSettings-SSHPanel'
 
@@ -601,11 +764,13 @@ SSHPanel = rclass
     add_ssh_key: (opts) ->
         opts.project_id = @props.project.get('project_id')
         @actions('projects').add_ssh_key_to_project(opts)
+        analytics_event('project_settings', 'add project ssh key')
 
     delete_ssh_key: (fingerprint) ->
         @actions('projects').delete_ssh_key_from_project
             fingerprint : fingerprint
             project_id  : @props.project.get('project_id')
+        analytics_event('project_settings', 'remove project ssh key')
 
     render_ssh_notice: ->
         user = misc.replace_all(@props.project.get('project_id'), '-', '')
@@ -613,7 +778,7 @@ SSHPanel = rclass
         <div>
             <span>Use the following username@host:</span>
             <pre>{addr}</pre>
-            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank" rel="noopener">
                 <Icon name='life-ring'/> How to create SSH keys
             </a>
         </div>
@@ -662,10 +827,22 @@ ProjectSettingsBody = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
             compute_images : rtypes.immutable.Map
+            all_projects_have_been_loaded : rtypes.bool
+        "#{name}" :
+            configuration         : rtypes.immutable
+            available_features    : rtypes.object
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images']) or \
-                (props.customer? and not props.customer.equals(@props.customer))
+        return misc.is_different(@props, props, [
+            'project',
+            'user_map',
+            'project_map',
+            'compute_images',
+            'configuration',
+            'available_features',
+            'all_projects_have_been_loaded'
+        ]) or \
+        (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
         # get the description of the share, in case the project is being shared
@@ -678,8 +855,14 @@ ProjectSettingsBody = rclass ({name}) ->
         upgrades_you_applied_to_this_project = @props.get_upgrades_you_applied_to_project(id)
         total_project_quotas                 = @props.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = @props.get_upgrades_to_project(id)
+        allow_urls                           = redux.getStore("projects").allow_urls_in_emails(@props.project_id)
 
         {commercial} = require('./customize')
+
+        {is_available} = require('./project_configuration')
+        available = is_available(@props.configuration)
+        have_jupyter_lab = available.jupyter_lab
+        have_jupyter_notebook = available.jupyter_notebook
 
         <div>
             {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}
@@ -702,18 +885,31 @@ ProjectSettingsBody = rclass ({name}) ->
                         upgrades_you_applied_to_all_projects = {upgrades_you_applied_to_all_projects}
                         upgrades_you_applied_to_this_project = {upgrades_you_applied_to_this_project}
                         total_project_quotas                 = {total_project_quotas}
-                        all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
+                        all_upgrades_to_this_project         = {all_upgrades_to_this_project}
+                        all_projects_have_been_loaded        = {@props.all_projects_have_been_loaded}
+                    />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
-
+                    <ProjectCapabilitiesPanel
+                        name={name}
+                        key={'capabilities'}
+                        project={@props.project}
+                    />
                 </Col>
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
-                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} name={@props.name} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} allow_urls = {allow_urls}/>
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
-                    <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
+                    {
+                        if have_jupyter_notebook
+                            <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
+                    }
+                    {
+                        if have_jupyter_lab
+                            <JupyterLabServerPanel  key='jupyterlab' project_id={@props.project_id} />
+                    }
                 </Col>
             </Row>
         </div>
@@ -752,7 +948,7 @@ exports.ProjectSettings = rclass ({name}) ->
         query = {}
         for k in misc.keys(require('smc-util/schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
-        @_table = webapp_client.sync_table({projects_admin : query})
+        @_table = webapp_client.sync_table2({projects_admin : query}, []);
         @_table.on 'change', =>
             @setState(admin_project : @_table.get(@props.project_id))
 

@@ -205,6 +205,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 client.removeAllListeners()
         delete @_clients
 
+    is_connected: () =>
+        return @_clients? and @_clients.length > 0
+
     _connect: (cb) =>
         dbg = @_dbg("_do_connect")
         dbg("connect to #{@_host}")
@@ -321,7 +324,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # disable doing so!
                 @_connect_time = new Date()
                 locals.i = 0
+
+                # Weird and unfortunate fact -- this query can and does **HANG** never returning
+                # in some edge cases.  That's why we have to be paranoid about this entire _connect
+                # function...
                 f = (client, cb) =>
+                    it_hung = =>
+                        cb("hung")
+                        cb = undefined
+                    timeout = setTimeout(it_hung, 15000)
                     dbg("now connected; disabling nestloop query planning for client #{locals.i}")
                     locals.i += 1
                     client.query "SET enable_nestloop TO off", (err) =>
@@ -329,6 +340,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                             dbg("disabling nestloop failed for client #{locals.i}")
                         else
                             dbg("disabling nestloop done for client #{locals.i}")
+                        clearTimeout(timeout)
                         cb(err)
                 async.map(locals.clients, f, cb)
             (cb) =>
@@ -428,6 +440,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
             limit       : undefined
+            offset      : undefined
             safety_check: true
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
             cb          : undefined
@@ -441,7 +454,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_query_retry_until_success(opts)
             return
 
-        if not @_clients?
+        if not @is_connected()
             dbg = @_dbg("_query")
             dbg("connecting first...")
             @connect
@@ -484,7 +497,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}',id='#{misc.uuid().slice(0,6)}')")
-        if not @_clients?
+        if not @is_connected()
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
             return
@@ -668,6 +681,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         if opts.limit?
             opts.query += " LIMIT #{opts.limit} "
+
+        if opts.offset?
+            opts.query += " OFFSET #{opts.offset} "
+
 
 
         if opts.safety_check
@@ -985,7 +1002,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             cb()
             return
         if schema.virtual
-            cb("table '#{table}' is virtual")
+            dbg("nothing to do -- table is virtual");
+            cb()
             return
         async.series([
             (cb) => @_update_table_schema_columns(table, cb)

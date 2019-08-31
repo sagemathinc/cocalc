@@ -36,13 +36,24 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
 li_style = exports.li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
+
+# improve understanding of large numbers
+fmt_large = (num) ->
+    num = parseInt(num)
+    if localStorage.fmt_large
+        return num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    else
+        return num.toLocaleString()
+    #num += 31 * num + 7890
+    # num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+
 
 HelpPageUsageSection = rclass
     reduxProps :
@@ -55,6 +66,7 @@ HelpPageUsageSection = rclass
             accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
+            files_opened        : rtypes.object
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
@@ -83,27 +95,47 @@ HelpPageUsageSection = rclass
         n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
+    timespan_keys: ->
+        ['last_hour', 'last_day', 'last_week', 'last_month']
+
     recent_usage_stats_rows: ->
         stats = [
             ['Modified projects', @props.projects_edited],
             ['Created projects', @props.projects_created],
             ['Created accounts', @props.accounts_created]
         ]
+
         for stat in stats
             <tr key={stat[0]}>
                 <th style={textAlign:'left'}>{stat[0]}</th>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_hour]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_day]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_week]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_month]}
-                </td>
+                {
+                    for k in @timespan_keys()
+                        <td key={k}>
+                            {fmt_large(stat[1]?[RECENT_TIMES_KEY[k]])}
+                        </td>
+                }
+            </tr>
+
+    render_filetype_stats_rows: ->
+        stats = [
+            ['Sage Worksheets',   'sagews'],
+            ['Jupyter Notebooks', 'ipynb'],
+            ['LaTeX Documents',   'tex'],
+            ['Markdown Documents','md']
+        ]
+        #if DEBUG then console.log('@props.files_opened', @props.files_opened)
+        for [name, ext] in stats
+            <tr key={name}>
+                <th style={textAlign:'left'}>{name}</th>
+                {
+                    for timespan in @timespan_keys()
+                        k        = RECENT_TIMES_KEY[timespan]
+                        total    = @props.files_opened?.total?[k]?[ext]    ? 0
+                        #distinct = @props.files_opened?.distinct?[k]?[ext] ? 0
+                        <td key={k}>
+                            {fmt_large(total)}
+                        </td>
+                }
             </tr>
 
     render_recent_usage_stats: ->
@@ -121,6 +153,12 @@ HelpPageUsageSection = rclass
             </thead>
             <tbody>
                 {@recent_usage_stats_rows()}
+                <tr><td colSpan={5}>&nbsp;</td></tr>
+                <tr>
+                    <th style={textAlign:'left'}>Edited files</th>
+                    <td colSpan={4}>&nbsp;</td>
+                </tr>
+                {@render_filetype_stats_rows()}
             </tbody>
         </Table>
 
@@ -155,8 +193,8 @@ HelpPageUsageSection = rclass
                 </div>
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
-                <a target='_blank' href='https://share.cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html'>
-                More data...
+                <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                Historical CoCalc Usage Statistics...
                 </a>
                 <br/>
                 {@render_historical_metrics()}
@@ -172,15 +210,20 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
-    frequently_asked_questions :
+    doc :
+        icon : 'book'
+        bold : true
+        href : DOC_URL
+        link : <span><SiteName/> manual</span>
+    wiki :
         icon : 'question-circle'
         bold : true
         href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
+        link : <span><SiteName/> WIKI portal</span>
     teaching :
         icon : 'graduation-cap'
-        href : 'https://tutorial.cocalc.com/'
-        link : <span>How to teach a course with <SiteName/></span>
+        href : 'https://doc.cocalc.com/teaching-instructors.html'
+        link : <span>Instructor Guide: How to teach a course with <SiteName/></span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
@@ -189,7 +232,7 @@ SUPPORT_LINKS =
     docker_image:
         icon : 'window-maximize'
         href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
-        link : <span>Docker image for offline usage</span>
+        link : <span>Free open source version of CoCalc to run on your own server (a $799 commercial license is available)</span>
     courses :
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
@@ -234,10 +277,10 @@ CONNECT_LINKS =
         href : 'https://github.com/sagemathinc/cocalc'
         link : 'GitHub'
         text : <span>
-                 <a href='https://github.com/sagemathinc/cocalc/tree/master/src' target='_blank'>source code</a>,{' '}
-                 <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank'>bugs</a>
+                 <a href='https://github.com/sagemathinc/cocalc/tree/master/src' target='_blank' rel='noopener'>source code</a>,{' '}
+                 <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank' rel='noopener'>bugs</a>
                  {' and '}
-                 <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank'>issues</a>
+                 <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank' rel='noopener'>issues</a>
                </span>
 
 THIRD_PARTY =
@@ -256,15 +299,15 @@ THIRD_PARTY =
         href : 'http://www.scipy-lectures.org/'
         link : 'Scientific Python'
         text : <span>i.e.{' '}
-                    <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
-                    <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
-                    <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
-                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a>,{' '}
-                    <a href='http://www.nltk.org/' target='_blank'>NLTK</a> and many more
+                    <a href='http://statsmodels.sourceforge.net/stable/' target='_blank' rel='noopener'>Statsmodels</a>,{' '}
+                    <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank' rel='noopener'>Pandas</a>,{' '}
+                    <a href='http://docs.sympy.org/latest/index.html' target='_blank' rel='noopener'>SymPy</a>,{' '}
+                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank' rel='noopener'>Scikit Learn</a>,{' '}
+                    <a href='http://www.nltk.org/' target='_blank' rel='noopener'>NLTK</a> and many more
                </span>
     julia :
         icon : 'cc-icon-julia'
-        href : 'http://docs.julialang.org/en/stable/manual/introduction/'
+        href : 'https://www.julialang.org/'
         link : 'Julia'
         text : 'programming language for numerical computing'
     octave :
@@ -297,24 +340,24 @@ ABOUT_LINKS =
     developers :
         icon : 'keyboard-o'
         text : <span>
-                Core developers: John Jeng,{' '}
-                <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
-                <a target="_blank" href='https://twitter.com/haldroid'>Hal Snyder</a>,{' '}
-                <a target='_blank' href='http://wstein.org'>William Stein</a>
+                <a target='_blank' rel='noopener' href='http://blog.sagemath.com/cocalc/2018/09/10/where-is-cocalc-from.html'>Core developers</a>: John Jeng,{' '}
+                <a target='_blank' rel='noopener' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
+                <a target="_blank" rel='noopener' href='https://twitter.com/haldroid'>Hal Snyder</a>,{' '}
+                <a target='_blank' rel='noopener' href='http://wstein.org'>William Stein</a>
                </span>
     #funding :
     #    <span>
-    #        <SiteName/> currently funded by paying customers, private investment, and <a target='_blank'  href="https://cloud.google.com/developers/startups/">the Google startup program</a>
+    #        <SiteName/> currently funded by paying customers, private investment, and <a target='_blank' rel='noopener' href="https://cloud.google.com/developers/startups/">the Google startup program</a>
     #    </span>
     #launched :
     #    <span>
     #        <SiteName/> launched (as "SageMathCloud") April 2013 with support from the National Science Foundation and
-    #        <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
+    #        <a target='_blank' rel='noopener' href='https://research.google.com/university/relations/appengine/index.html'> the Google
     #        Education Grant program</a>
     #    </span>
     incorporated :
         icon : 'gavel'
-        text : 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+        text : 'SageMath, Inc. is a Delaware C Corporation that was incorporated Feb 2, 2015, founded on sustainable principles. The company has not and will not take Venture Capital funding or be acquired.'
 
 
 LinkList = rclass
@@ -337,9 +380,11 @@ LinkList = rclass
             style = misc.copy(li_style)
             if data.bold
                 style.fontWeight = 'bold'
+            is_target_blank = data.href?.indexOf('#') != 0
+
             <div key={name} style={style} className={if data.className? then data.className}>
                 <Icon name={data.icon} fixedWidth />{' '}
-                { <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
+                { <a target={if is_target_blank then '_blank'} rel={if is_target_blank then 'noopener'}  href={data.href}>
                    {data.link}
                 </a> if data.href}
                 {<span style={color:COLORS.GRAY_D}>
@@ -366,8 +411,7 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render_compute_env: ->
-        env = <ComputeEnvironment />
-        return <Row>{env}</Row> if env?
+        return <Row><ComputeEnvironment /></Row>
 
     render: ->
         banner_style =
@@ -411,7 +455,7 @@ exports.HelpPage = HelpPage = rclass
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
                 </Row>
-                {@render_compute_env() if KUCALC_COMP_ENV}
+                {@render_compute_env()}
             </Col>
             <Col sm={1} md={2} xsHidden></Col>
             <Col xs={12} sm={12} md={12}>

@@ -6,13 +6,16 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
+const { EDITOR_COLOR_SCHEMES } = require("../../r_account");
 
 const { filename_extension_notilde, defaults } = require("misc");
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
+
+import { valid_indent } from "./util";
 
 export function cm_options(
   filename: string, // extension determines editor mode
@@ -34,9 +37,18 @@ export function cm_options(
         : undefined
       : {};
 
+  let theme = editor_settings.get("theme");
+  // if we do not know the theme, fallback to default
+  if (EDITOR_COLOR_SCHEMES[theme] == null) {
+    console.warn(
+      `codemirror theme '${theme}' not known -- fallback to 'Default'`
+    );
+    theme = "default";
+  }
+
   let opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
-    mode: 'txt',
+    mode: "txt",
     show_trailing_whitespace: editor_settings.get(
       "show_trailing_whitespace",
       true
@@ -58,7 +70,7 @@ export function cm_options(
     spaces_instead_of_tabs: editor_settings.get("spaces_instead_of_tabs", true),
     style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
-    theme: editor_settings.get("theme")
+    theme: theme
   });
   if (opts.mode == null) {
     // to satisfy typescript
@@ -176,7 +188,7 @@ export function cm_options(
       extraKeys[k] = v;
     }
     if (opts.bindings !== "emacs") {
-      extraKeys["Ctrl-P"] = () => actions.print();
+      extraKeys["Ctrl-P"] = () => actions.print(frame_id);
     }
   }
 
@@ -222,11 +234,35 @@ export function cm_options(
     opts.style_active_line = false;
   }
 
-  const ext = filename_extension_notilde(filename);
+  const ext = filename_extension_notilde(filename).toLowerCase();
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
-  if (["js", "jsx", "ts", "tsx", "json", "md", "r", "html"].includes(ext)) {
+  const tab2exts = [
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "json",
+    "md",
+    "rmd",
+    "r",
+    "html",
+    "c",
+    "c++",
+    "cc",
+    "cpp",
+    "h",
+    "bib"
+  ];
+  if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
+  }
+
+  // special case gofmt? yes, the whole go-world use 8-space-tabs instead of normal spaces.
+  // we change it to 4 in the editor, though, because 8 is really wide.
+  if ("go" === ext) {
+    opts.spaces_instead_of_tabs = false;
+    opts.tab_size = opts.indent_unit = 4;
   }
 
   const options: any = {
@@ -235,15 +271,18 @@ export function cm_options(
     mode: { name: opts.mode, globalVars: true },
     lineNumbers: opts.line_numbers,
     showTrailingSpace: opts.show_trailing_whitespace,
-    indentUnit: opts.indent_unit,
-    tabSize: opts.tab_size,
+    indentUnit: valid_indent(opts.indent_unit),
+    tabSize: valid_indent(opts.tab_size),
     smartIndent: opts.smart_indent,
     electricChars: opts.electric_chars,
     undoDepth: opts.undo_depth,
     matchBrackets: opts.match_brackets,
     autoCloseBrackets: opts.auto_close_brackets && !["hs", "lhs"].includes(ext), //972
     autoCloseTags:
-      opts.mode.indexOf("xml") !== -1 || opts.mode.indexOf("html") !== -1
+      opts.mode.indexOf("xml") !== -1 ||
+      opts.mode.indexOf("html") !== -1 ||
+      opts.mode.indexOf("cml") !== -1 ||
+      opts.mode.indexOf("kml") !== -1
         ? opts.auto_close_xml_tags
         : undefined,
     autoCloseLatex:
@@ -282,8 +321,12 @@ export function cm_options(
     options.keyMap = opts.bindings;
   }
 
-  if (opts.theme != null && opts.theme !== "standard") {
+  if (opts.theme != null) {
     options.theme = opts.theme;
+  } else {
+    // options.theme MUST be set to something because this code is in CodeMirror
+    //    cm.options.theme.replace...
+    options.theme = "default";
   }
 
   return options;

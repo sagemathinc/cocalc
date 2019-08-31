@@ -41,11 +41,6 @@ $(document).on "click", (e) ->
     if $(e.target).data('toggle') != 'popover' and $(e.target).parents('.popover.in').length == 0
         $('[data-toggle="popover"]').popover('hide')
 
-remember_me = webapp_client.remember_me_key()
-if window.smc_target and not misc.get_local_storage(remember_me) and window.smc_target != 'login'
-    require('./history').load_target(window.smc_target, true)
-else
-    redux.getActions('page').set_active_tab('account')
 
 client = webapp_client
 if client._connected
@@ -54,6 +49,7 @@ if client._connected
     client.emit('connected')
     if client._signed_in
         client.emit("signed_in", client._sign_in_mesg)
+
 
 # load the mathjax configuration before mathjax starts up
 {MathJaxConfig} = require('smc-util/mathjax-config')
@@ -98,8 +94,6 @@ $ ->
     # TODO compute an report startup initialization time
     prom_client = require('./prom-client')
     if prom_client.enabled
-        startup_time_gauge = prom_client.new_gauge('startup_time', 'When the webapp started')
-        startup_time_gauge.set(misc.get_start_time_ts().getTime())
         browser_info_gauge = prom_client.new_gauge('browser_info', 'Information about the browser', ['browser', 'mobile', 'touch', 'git_version'])
         feature = require('./feature')
         browser_info_gauge.labels(feature.get_browser(), feature.IS_MOBILE, feature.IS_TOUCH, (SMC_GIT_REV ? 'N/A')).set(1)

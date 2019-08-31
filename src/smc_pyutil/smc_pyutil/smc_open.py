@@ -63,17 +63,17 @@ def process(paths):
         else:
             v.append({'file': name})
 
-    if len(v) > 0:
+    if v:
         mesg = {'event': 'open', 'paths': v}
-        print prefix + '\x1b]49;%s\x07' % json.dumps(
-            mesg, separators=(',', ':')) + postfix
+        print(prefix + '\x1b]49;%s\x07' % json.dumps(
+            mesg, separators=(',', ':')) + postfix)
 
 
 def main():
     if len(sys.argv) == 1:
-        print "Usage: open [path names] ..."
-        print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
-        print "If the named file doesn't exist, it is created."
+        print("Usage: open [path names] ...")
+        print("Opens each file (or directory) in the CoCalc web-based editor from the shell.")
+        print("If the named file doesn't exist, it is created.")
     else:
         process(sys.argv[1:])
 

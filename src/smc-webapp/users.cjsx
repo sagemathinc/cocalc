@@ -21,6 +21,8 @@
 
 misc = require('smc-util/misc')
 
+{COCALC_MINIMAL} = require('./fullscreen')
+
 {React, Actions, Store, Table, redux, rtypes, rclass}  = require('./app-framework')
 
 {TimeAgo, Tip} = require('./r_misc')
@@ -94,6 +96,7 @@ class UsersStore extends Store
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(@get_last_name(a.account_id), @get_last_name(b.account_id))
 
+
 # Register user store
 store = redux.createStore('users', UsersStore)
 
@@ -122,6 +125,8 @@ class UsersTable extends Table
             return false
         @redux.getActions('users').setState(user_map: user_map)
 
+## disabling this createTable effectively hides cursors of collaborators, etc.
+# if not COCALC_MINIMAL
 redux.createTable('users', UsersTable)
 
 #TODO: Make useable without passing in user_map
@@ -181,7 +186,7 @@ exports.User = User = rclass
         info = @props.user_map?.get(@props.account_id)
         if not info?
             if not misc.is_valid_uuid_string(@props.account_id)
-                return <span>{@props.account_id} unsucessfully</span>
+                return <span>Unknown User {@props.account_id}</span>
             actions.fetch_non_collaborator(@props.account_id)
             return <span>Loading...</span>
         else

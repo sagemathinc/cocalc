@@ -61,29 +61,29 @@ restart_sage_server = (cb) ->
 
 # Get a new connection to the Sage server.  If the server
 # isn't running, e.g., it was killed due to running out of memory,
-# so attempt to restart it and try to connect.
-exports.get_sage_socket = (cb) ->   # cb(err, socket)
+# attempt to restart it and try to connect.
+get_sage_socket = (cb) ->   # cb(err, socket)
     socket = undefined
     try_to_connect = (cb) ->
         _get_sage_socket (err, _socket) ->
             if not err
                 socket = _socket
                 cb()
-            else
-                # Failed for some reason: try to restart one time, then try again.
-                # We do this because the Sage server can easily get killed due to out of memory conditions.
-                # But we don't constantly try to restart the server, since it can easily fail to start if
-                # there is something wrong with a local Sage install.
-                # Note that restarting the sage server doesn't impact currently running worksheets (they
-                # have their own process that isn't killed).
-                restart_sage_server (err) ->  # won't actually try to restart if called recently.
-                    if err
-                        cb(err)
-                        return
-                    # success at restarting sage server: *IMMEDIATELY* try to connect
-                    _get_sage_socket (err, _socket) ->
-                        socket = _socket
-                        cb(err)
+                return
+            # Failed for some reason: try to restart one time, then try again.
+            # We do this because the Sage server can easily get killed due to out of memory conditions.
+            # But we don't constantly try to restart the server, since it can easily fail to start if
+            # there is something wrong with a local Sage install.
+            # Note that restarting the sage server doesn't impact currently running worksheets (they
+            # have their own process that isn't killed).
+            restart_sage_server (err) ->  # won't actually try to restart if called recently.
+                if err
+                    cb(err)
+                    return
+                # success at restarting sage server: *IMMEDIATELY* try to connect
+                _get_sage_socket (err, _socket) ->
+                    socket = _socket
+                    cb(err)
 
     misc.retry_until_success
         f           : try_to_connect
@@ -154,6 +154,7 @@ class SageSession
         opts = defaults opts,
             client : required
             path   : required   # the path to the *worksheet* file
+        @dbg('constructor')()
         @_path = opts.path
         @_client = opts.client
         @_output_cb = {}
@@ -175,13 +176,24 @@ class SageSession
     is_running: () =>
         return @_socket?
 
-    _init_socket: (cb) =>
-        dbg = @dbg('_init_socket()')
+    # NOTE: There can be many simultaneous init_socket calls at the same time,
+    # if e.g., the socket doesn't exist and there are a bunch of calls to @call
+    # at the same time.
+    # See https://github.com/sagemathinc/cocalc/issues/3506
+    init_socket: (cb) =>
+        dbg = @dbg('init_socket()')
         dbg()
-        exports.get_sage_socket (err, socket) =>
+        if @_init_socket_cbs?
+            @_init_socket_cbs.push(cb)
+            return
+        @_init_socket_cbs = [cb]
+        get_sage_socket (err, socket) =>
             if err
                 dbg("fail -- #{err}.")
-                cb(err)
+                cbs = @_init_socket_cbs
+                delete @_init_socket_cbs
+                for c in cbs
+                    c(err)
                 return
 
             dbg("successfully opened a sage session")
@@ -198,7 +210,11 @@ class SageSession
                 dbg("sage session: received message #{type}")
                 @["_handle_mesg_#{type}"]?(mesg)
 
-            @_init_path(cb)
+            @_init_path (err) =>
+                cbs = @_init_socket_cbs
+                delete @_init_socket_cbs
+                for c in cbs
+                    c(err)
 
     _init_path: (cb) =>
         dbg = @dbg("_init_path()")
@@ -239,7 +255,7 @@ class SageSession
                 dbg("restarting sage session")
                 if @_socket?
                     @close()
-                @_init_socket (err) =>
+                @init_socket (err) =>
                     if err
                         opts.cb?({error:err})
                     else
@@ -254,7 +270,7 @@ class SageSession
                         if @_socket?
                             cb()
                         else
-                            @_init_socket(cb)
+                            @init_socket(cb)
                     (cb) =>
                         if not opts.input.id?
                             opts.input.id = misc.uuid()

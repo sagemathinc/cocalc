@@ -1,6 +1,6 @@
 import { React, Component, Rendered, redux } from "smc-webapp/app-framework";
 
-import { cmp } from "smc-webapp/frame-editors/generic/misc";
+import { cmp } from "smc-util/misc2";
 
 const { Loading, TimeAgo } = require("smc-webapp/r_misc");
 

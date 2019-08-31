@@ -1,7 +1,6 @@
 import * as immutable from "immutable";
 import { React, Component } from "../app-framework";
 
-const { alert_message } = require("../alerts");
 const { COLORS } = require("smc-util/theme");
 const {
   COMPUTE_IMAGES,

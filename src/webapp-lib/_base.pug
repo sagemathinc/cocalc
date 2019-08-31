@@ -5,14 +5,35 @@ mixin start_button
     a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
   p or #[a(href=PREFIX + "app") sign in] with your account
 
+mixin start_free
+  -
+    var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+    var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+    var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+  div.col-sm-12.center
+    h2 Start free, upgrade later
+  div.col-sm-6.col-sm-offset-3.center
+    p.
+       A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+       Purchasing #[a(href=PREFIX + "policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increases its quotas.
+
+mixin start_free_banner
+  div(style="margin-top: 6rem").darkbg
+    div.container
+      +start_free
+      div.col-sm-12.center
+        +start_button
+
+
 mixin video-player
   div.video-player.fit
     div.video-overlay.
-      #[i.fa.fa-play-circle-o(style="font-size: 6rem;")]
+      #[span(style="font-size:300%") &#9654;]
       #[br/]
       click to play
     video(loop).fit
       block
+
 
 mixin software-environment-table(lang)
   -
@@ -68,11 +89,10 @@ doctype html
   var subtitle      = null;
   var navbar_active = null;
   function navbar_highlight(what) {
-    if (navbar_active == what) {
-      return 'active';
-    } else {
-      return '';
-    }
+    return (navbar_active == what ? 'active' : '');
+  };
+  function subnavbar_highlight(what) {
+    return (subnavbar_active == what ? 'active' : '');
   };
 
 block vars
@@ -92,20 +112,39 @@ html.no-js(lang="en")
           display : none
 
   body
+    style
+      :sass
+        @import "smc-webapp/_colors.sass"
+        @import "webapp-lib/_base.sass"
 
-    nav.navbar.navbar-default.navbar-fixed-top
+
+    script.
+      function toggle_menu(menu) {
+        menu.classList.toggle("open");
+        let nav_bars = document.querySelectorAll('div.collapse.navbar-collapse');
+        Array.from(nav_bars).forEach(function(nav){
+          nav.classList.toggle("show-menu");
+        });
+      }
+
+    nav#nav-main.navbar.navbar-default.navbar-fixed-top
       div.container
         div.navbar-header
           a(href=PREFIX)
             img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
             img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+          div.navbar-menu(onclick="toggle_menu(this)")
+            div.bar1
+            div.bar2
+            div.bar3
+
         div.collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
 
-            li(class=navbar_highlight("policies"))
-              a(href=PREFIX + "policies/index.html") Policies
+            li(class=navbar_highlight('features'))
+              a(href=PREFIX + "doc/index.html") Features
 
             if htmlWebpackPlugin.options.COMP_ENV
               li(class=navbar_highlight('software'))
@@ -114,126 +153,70 @@ html.no-js(lang="en")
             li(class=navbar_highlight('pricing'))
               a(href=PREFIX + "policies/pricing.html") Pricing
 
-            li(class=navbar_highlight('api'))
-              a(href=PREFIX + "doc/api.html") API
+            li(class=navbar_highlight("policies"))
+              a(href=PREFIX + "policies/index.html") Policies
+
+            li
+              a.documentation(href="https://doc.cocalc.com/") Doc
+
             li
               a.get-started(href=PREFIX + "app") Sign In
 
-    block content
+        if navbar_active == 'features' || navbar_active == 'index'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.features
+              li(class=subnavbar_highlight('jupyter'))
+                a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter
+              li(class=subnavbar_highlight('latex'))
+                a(href=PREFIX + "doc/latex-editor.html") LaTeX
+              li(class=subnavbar_highlight('linux'))
+                a(href=PREFIX + "doc/linux.html") Linux
+              li(class=subnavbar_highlight('python'))
+                a(href=PREFIX + "doc/python.html") Python
+              li(class=subnavbar_highlight('r'))
+                a(href=PREFIX + "doc/r-statistical-software.html") R Stats
+              li(class=subnavbar_highlight('teaching'))
+                a(href=PREFIX + "doc/teaching.html") Teaching
+              li(class=subnavbar_highlight('terminal'))
+                a(href=PREFIX + "doc/terminal.html") Terminal
+              li(class=subnavbar_highlight('x11'))
+                a(href=PREFIX + "doc/x11.html") X11
+              li
+                a.documentation(href="https://doc.cocalc.com/api/") API
 
-    include _footer.pug
+        if navbar_active == 'software'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.software
+              li(class=subnavbar_highlight('software-executables'))
+                a(href=PREFIX + "doc/software-executables.html") Executables
+              li(class=subnavbar_highlight('software-python'))
+                a(href=PREFIX + "doc/software-python.html") Python
+              li(class=subnavbar_highlight('software-r'))
+                a(href=PREFIX + "doc/software-r.html") R Statistics
+              li(class=subnavbar_highlight('software-julia'))
+                a(href=PREFIX + "doc/software-julia.html") Julia
 
-    style
-      :sass
-        @import "smc-webapp/_colors.sass"
-        nav.navbar.navbar-default
-          border-bottom    : 2px solid $COL_GRAY
-          background-color : $COL_GRAY_LL
-          .get-started
-            color        : $COL_BS_GREEN_DD
-            font-weight  : bold
-          .navbar-header
-            margin-top     : 5px;
-            img.icon
-              height       : 4rem
-              width        : auto
-              margin-right : 2rem
-            img.name
-              height       : 3rem
-              width        : auto
-              margin-right : 2rem
-          .navbar-nav>li
-            >a
-              font-size      : 2rem
-            &.active>a
-              font-weight  : bold
-        div.jumbotron
-          padding-top      : 10rem
-          background-color : $COL_GRAY_LL
-        .center
-          text-align     : center
-        .right
-          text-align     : right
-        .vertical-expand
-          min-height     : 50vw
-        .uppercase
-          text-transform : uppercase
-        .fit
-          width          : 100%
-          heigh          : auto
-        body
-          div.container
-            > footer
-              margin-top     : 6rem
-            > div.row#top
-              margin         : 5rem 0 0 0
-            > div#software-env-top
-              margin         : 2rem 0 5rem 0
-        /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
-        a.anchor
-          display        : block
-          position       : relative
-          top            : -5rem
-          visibility     : hidden
-        blockquote.blockquote
-          font-size      : inherit
-        th.software
-          white-space      : nowrap
-        td.version
-          font-size        : 120%
-          font-weight      : bold
-        .btn-xlg
-          font-size        : 24px
-          line-height      : 1.5
-          font-weight      : bold
-        .cc-create-account-btn
-          font-weight      : bold
-        .video-player
-          position         : relative
-          > .video-overlay
-            width            : 100%
-            height           : 100%
-            position         : absolute
-            top              : 0
-            left             : 0
-            color            : white
-            background-color : rgba(0, 0, 0, .5)
-            cursor           : pointer
-            z-index          : 2
-            text-align       : center
-            display          : flex
-            justify-content  : center
-            flex-direction   : column
-        a.marker
-          padding-left     : 2rem
-          padding-right    : 1rem
-          text-decoration  : none
-          color            : $COL_GRAY_L
-          top              : -.5rem
-          position         : relative
-          font-size        : 90%
-          visibility       : hidden
-        h1:hover, h2:hover, h3:hover
-          > a.marker
-            visibility     : visible
-            &:hover
-              color        : $COL_GRAY
-        .youtube-video-container
-          width            : 100%
-          height           : 0
-          padding-bottom   : 56.25%
-          overflow         : hidden
+        if navbar_active == 'policies'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.policies
+              li(class=subnavbar_highlight('copyright'))
+                a(href=PREFIX + "policies/copyright.html") Copyright
+              li(class=subnavbar_highlight('privacy'))
+                a(href=PREFIX + "policies/privacy.html") Privacy
+              li(class=subnavbar_highlight('terms'))
+                a(href=PREFIX + "policies/terms.html") Terms
 
-          iframe, object, embed
-            position   : absolute
-            width      : 95%
-            height     : 95%
+    div#content
+      block content
+
+      include _footer.pug
 
     script
       :coffee-script
         html = document.documentElement
         window.onload = ->
           html.className = html.className.replace(/\bno-js\b/, 'js')
+
     noscript
       style.
         html.no-js { display: block; }

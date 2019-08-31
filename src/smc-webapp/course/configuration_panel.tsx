@@ -30,6 +30,8 @@
 // CoCalc libraries
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
+import { contains_url } from "smc-util/misc2";
+import { debounce } from "lodash";
 
 // React libraries and Components
 import { React, Component, AppRedux } from "../app-framework";
@@ -40,7 +42,8 @@ const {
   Row,
   Col,
   Panel,
-  Checkbox
+  Checkbox,
+  Grid
 } = require("react-bootstrap");
 
 // CoCalc Components
@@ -54,7 +57,8 @@ const {
   Space,
   TextInput,
   TimeAgo,
-  Tip
+  Tip,
+  ErrorDisplay
 } = require("../r_misc");
 
 import { StudentProjectUpgrades } from "./upgrades";
@@ -66,6 +70,7 @@ import { StudentProjectsControlPanel } from "./projects_control_panel";
 const { HelpBox } = require("./help_box");
 const { DeleteStudentsPanel } = require("./delete_students");
 const { DeleteSharedProjectPanel } = require("./delete_shared_project");
+const { TerminalCommandPanel } = require("./terminal-command");
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -127,6 +132,7 @@ interface ConfigurationPanelProps {
   name: string;
   path: string;
   project_id: string;
+  allow_urls: boolean;
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   shared_project_id?: string;
@@ -134,6 +140,7 @@ interface ConfigurationPanelProps {
 
 interface ConfigurationPanelState {
   show_students_pay_dialog: boolean;
+  email_body_error?: string;
   students_pay?: boolean;
 }
 
@@ -146,13 +153,21 @@ export class ConfigurationPanel extends Component<
   constructor(props) {
     super(props);
     this.state = {
-      show_students_pay_dialog: false
+      show_students_pay_dialog: false,
+      email_body_error: undefined
     };
+    this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
+      leading: true,
+      trailing: true
+    });
   }
 
   shouldComponentUpdate(props, state) {
     return (
-      state.show_students_pay_dialog !== this.state.show_students_pay_dialog ||
+      misc.is_different(this.state, state, [
+        "show_students_pay_dialog",
+        "email_body_error"
+      ]) ||
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
@@ -170,8 +185,8 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-     * Editing title/description
-     */
+   * Editing title/description
+   */
   render_title_desc_header() {
     return (
       <h4>
@@ -217,8 +232,8 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-     * Grade export
-     */
+   * Grade export
+   */
   render_grades_header() {
     return (
       <h4>
@@ -260,6 +275,11 @@ export class ConfigurationPanel extends Component<
     });
   };
 
+  // newlines and duplicated double-quotes
+  _sanitize_csv_entry = (s: string): string => {
+    return s.replace(/\n/g, "\\n").replace(/"/g, '""');
+  };
+
   save_grades_to_csv = () => {
     let assignment;
     const store = this.get_store();
@@ -291,32 +311,27 @@ export class ConfigurationPanel extends Component<
       let grades = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
-          var left;
-          result2.push(
-            `\"${
-              (left = store.get_grade(assignment, student)) != null ? left : ""
-            }\"`
-          );
+          let grade = store.get_grade(assignment, student);
+          grade = grade != null ? grade : "";
+          grade = this._sanitize_csv_entry(grade);
+          result2.push(`\"${grade}\"`);
         }
         return result2;
       })().join(",");
-      grades = grades.replace(/\n/g, "\\n");
+
       let comments = (() => {
         const result3: any[] = [];
         for (assignment of assignments) {
-          var left1;
-          result3.push(
-            `\"${
-              (left1 = store.get_comments(assignment, student)) != null
-                ? left1
-                : ""
-            }\"`
-          );
+          let comment = store.get_comments(assignment, student);
+          comment = comment != null ? comment : "";
+          comment = this._sanitize_csv_entry(comment);
+          result3.push(`\"${comment}\"`);
         }
         return result3;
       })().join(",");
-      comments = comments.replace(/\n/g, "\\n");
-      const name = `\"${store.get_student_name(student)}\"`;
+      const name = `\"${this._sanitize_csv_entry(
+        store.get_student_name(student)
+      )}\"`;
       const email = `\"${
         (left2 = store.get_student_email(student)) != null ? left2 : ""
       }\"`;
@@ -427,8 +442,23 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-     * Custom invitation email body
-     */
+   * Custom invitation email body
+   */
+
+  check_email_body(value) {
+    if (!this.props.allow_urls && contains_url(value)) {
+      this.setState({
+        email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
+      });
+    } else {
+      this.setState({ email_body_error: undefined });
+    }
+  }
+
+  render_email_body_error() {
+    if (this.state.email_body_error == null) return;
+    return <ErrorDisplay error={this.state.email_body_error} />;
+  }
 
   render_email_invite_body() {
     const template_instr =
@@ -448,6 +478,7 @@ export class ConfigurationPanel extends Component<
             borderRadius: "5px"
           }}
         >
+          {this.render_email_body_error()}
           <MarkdownInput
             persist_id={this.props.name + "email-invite-body"}
             attach_to={this.props.name}
@@ -455,6 +486,9 @@ export class ConfigurationPanel extends Component<
             type="textarea"
             default_value={this.get_store().get_email_invite()}
             on_save={body => this.get_actions().set_email_invite(body)}
+            save_disabled={this.state.email_body_error != null}
+            on_change={this.check_email_body}
+            on_cancel={() => this.setState({ email_body_error: undefined })}
           />
         </div>
         <hr />
@@ -480,8 +514,8 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-    Students pay
-    */
+  Students pay
+  */
   get_student_pay_when() {
     const date = this.props.settings.get("pay");
     if (date) {
@@ -587,9 +621,9 @@ export class ConfigurationPanel extends Component<
 
   handle_students_pay_checkbox = e => {
     if (e.target.checked) {
-      return this.get_actions().set_course_info(this.get_student_pay_when());
+      this.get_actions().set_course_info(this.get_student_pay_when());
     } else {
-      return this.get_actions().set_course_info("");
+      this.get_actions().set_course_info("");
     }
   };
 
@@ -764,6 +798,12 @@ export class ConfigurationPanel extends Component<
     );
   }
 
+  render_terminal_command() {
+    return (
+      <TerminalCommandPanel redux={this.props.redux} name={this.props.name} />
+    );
+  }
+
   render_disable_students() {
     return (
       <DisableStudentCollaboratorsPanel
@@ -775,13 +815,14 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <div>
+      <Grid fluid={true} style={{ width: "100%", overflowY: "scroll" }}>
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}
             {this.render_require_institute_pay()}
             {this.render_save_grades()}
             {this.render_start_all_projects()}
+            {this.render_terminal_command()}
             {this.render_delete_students()}
             {this.render_delete_shared_project()}
           </Col>
@@ -792,7 +833,7 @@ export class ConfigurationPanel extends Component<
             {this.render_disable_students()}
           </Col>
         </Row>
-      </div>
+      </Grid>
     );
   }
 }

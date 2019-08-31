@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { React } from "../../app-framework";
 import { fromJS } from "immutable";
 import { print_window, popup } from "./print";
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 
 const { CodeMirrorStatic } = require("smc-webapp/jupyter/codemirror-static");
 
@@ -23,19 +23,21 @@ export function print_code(opts: Options) {
   const w = popup("");
 
   let options = fromJS(opts.options);
-  options = options.delete("lineNumbers"); // doesn't work yet
 
   // We add a trailing whitespace, since some printers grey the last line (e.g., chrome, but not firefox)
   const value = opts.value + "\n";
   const props = {
     value,
     options,
-    style: { background: "white", padding: "7%", width: "auto" },
+    style: { background: "white", width: "auto" },
     no_border: true
   };
   const s: string = renderToStaticMarkup(
     React.createElement(CodeMirrorStatic, props)
   );
+
+  const font_size =
+    opts.font_size != null ? `font-size:${opts.font_size}px` : "";
 
   const t: string = `\
 <html lang="en">
@@ -44,7 +46,7 @@ export function print_code(opts: Options) {
         <meta name="google" content="notranslate"/>
         <style>${CODEMIRROR_CSS}</style>
     </head>
-    <body style='font-size:${opts.font_size}'>
+    <body style='${font_size}'>
         ${s}
     </body>
 </html>\

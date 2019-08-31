@@ -24,7 +24,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
 # CoCalc Pages
@@ -34,7 +34,7 @@
 {ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
-{FileUsePage}  = require('./file_use')
+{FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
 
@@ -48,6 +48,8 @@ nav_class = 'hidden-xs'
 
 HIDE_LABEL_THOLD = 6
 
+NAV_HEIGHT = 36
+
 FileUsePageWrapper = (props) ->
     styles =
         zIndex       : '10'
@@ -55,7 +57,7 @@ FileUsePageWrapper = (props) ->
         position     : 'fixed'
         boxShadow    : '0 0 15px #aaa'
         border       : '2px solid #ccc'
-        top          : '43px'
+        top          : "#{NAV_HEIGHT - 2}px"
         background   : '#fff'
         right        : '2em'
         overflowY    : 'auto'
@@ -66,7 +68,7 @@ FileUsePageWrapper = (props) ->
         width        : '50%'
         height       : '90%'
 
-    <div style={styles}>
+    <div style={styles} className="smc-vfill">
         {<FileUsePage redux={redux} />}
     </div>
 
@@ -159,6 +161,13 @@ Page = rclass
             @actions('page').sign_in()
 
     render_sign_in_tab: ->
+        if @props.active_top_tab != 'account'
+            # Strongly encourage clicking on the sign in tab.
+            # Especially important if user got signed out due
+            # to cookie expiring or being deleted (say).
+            style = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG, fontSize:'16pt'}
+        else
+            style = undefined
         <NavTab
             name            = 'account'
             label           = 'Sign in'
@@ -168,7 +177,7 @@ Page = rclass
             on_click        = {@sign_in_tab_clicked}
             actions         = {@actions('page')}
             active_top_tab  = {@props.active_top_tab}
-            style           = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}
+            style           = {style}
             add_inner_style = {color: 'black'}
             show_label     = {@state.show_label}
         />
@@ -196,8 +205,7 @@ Page = rclass
 
     render_right_nav: ->
         logged_in = @props.is_logged_in
-        <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
-            {@render_account_tab() if logged_in}
+        <Nav id='smc-right-tabs-fixed' style={height:"#{NAV_HEIGHT}px", lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
@@ -212,6 +220,7 @@ Page = rclass
             />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
+            {@render_account_tab() if logged_in}
             {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
@@ -220,10 +229,9 @@ Page = rclass
         projects_styles =
             whiteSpace : 'nowrap'
             float      : 'right'
-            padding    : '11px 7px'
-            fontWeight : 'bold'
+            padding    : '10px 7px'
 
-        <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
+        <Nav style={height:"#{NAV_HEIGHT}px", margin:'0', overflow:'hidden'}>
             <NavTab
                 name           = {'projects'}
                 inner_style    = {padding:'0px'}
@@ -231,7 +239,7 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                {<div style={projects_styles} className={nav_class}>
+                {<div style={projects_styles} cocalc-test="project-button" className={nav_class}>
                     Projects
                 </div> if @state.show_label}
                 <AppLogo />
@@ -243,7 +251,7 @@ Page = rclass
     drop: (e) ->
         if DEBUG
             e.persist()
-            console.log "react desktop_app.drop", e
+            #console.log "react desktop_app.drop", e
         e.preventDefault()
         e.stopPropagation()
         if e.dataTransfer.files.length > 0
@@ -260,6 +268,7 @@ Page = rclass
             height        : '100vh'
             width         : '100vw'
             overflow      : 'hidden'
+            background    : 'white'
 
         top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 
@@ -267,7 +276,7 @@ Page = rclass
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
-            minHeight     : '40px'
+            minHeight     : "#{NAV_HEIGHT}px"
             position      : 'fixed'
             right         : 0
             zIndex        : '100'
@@ -275,7 +284,7 @@ Page = rclass
             top           : top
 
         positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
-        positionHackHeight = (40 + positionHackOffset) + 'px'
+        positionHackHeight = (NAV_HEIGHT + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
@@ -295,7 +304,7 @@ Page = rclass
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
             </ErrorBoundary>
         </div>
 

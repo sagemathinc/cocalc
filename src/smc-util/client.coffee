@@ -19,6 +19,10 @@
 #
 ###############################################################################
 
+## NOTE: this whole file needs to
+#   (1) be in typescript (as multiple files)
+#   (2) and should be in smc-webapp, since it didn't end up getting used anywhere else...
+
 DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
@@ -30,9 +34,10 @@ MAX_CONCURRENT = 75
 async = require('async')
 underscore = require('underscore')
 
-syncstring = require('./syncstring')
-synctable  = require('./synctable')
-db_doc = require('./db-doc')
+synctable2 = require('./sync/table')
+{synctable_project} = require('smc-webapp/project/websocket/synctable')
+SyncString2 = require('smc-util/sync/editor/string/sync').SyncString
+SyncDB2 = require('smc-util/sync/editor/db').SyncDB
 
 smc_version = require('./smc-version')
 
@@ -41,6 +46,7 @@ misc    = require("./misc")
 
 client_aggregate = require('./client-aggregate')
 
+{once} = require('./async-utils')
 
 {validate_client_query} = require('./schema-validate')
 
@@ -214,7 +220,11 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
-        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 750)
+        # We heavily throttle this, since it's ONLY used for the connections dialog, which users
+        # never look at, and it could waste cpu trying to update things for no reason.  It also
+        # impacts the color of the connection indicator, so throttling will make that color
+        # change a bit more laggy.  That's probably worth it.
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 10000)
 
         @emit("connecting")
         @_call             =
@@ -232,7 +242,12 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
-        @_redux = undefined # set this if you want to be able to use mark_file
+
+        # Browser client should set @_redux, since this
+        # is used in a few ways:
+        #   - to be able to use mark_file
+        #   - raising an error on attempt to get project_websocket for non-collab
+        @_redux = undefined
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -275,11 +290,14 @@ class exports.Connection extends EventEmitter
                 @emit("data", channel, data)
         @_connected = false
 
-        # start pinging -- not used/needed for primus, but *is* needed for getting information about server_time
-        # In particular, this ping time is not reported to the user and is not used as a keep-alive, hence it
-        # can be fairly long.
-        @_ping_interval = 60000
-        @_ping()
+        # start pinging -- not used/needed for primus,
+        # but *is* needed for getting information about
+        # server_time skew and showing ping time
+        # to user.
+        @_ping_interval = 30000
+        # Starting pinging a few seconds after connecting the first time,
+        # after things have settled down a little (to not throw off ping time).
+        @once("connected", => setTimeout(@_ping, 5000))
 
     dbg: (f) =>
         return (m...) ->
@@ -293,26 +311,49 @@ class exports.Connection extends EventEmitter
             console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
 
     _ping: () =>
-        @_ping_interval ?= 60000 # frequency to ping
-        @_last_ping = new Date()
+        @_ping_interval ?= 30000 # frequency to ping
+        start = @_last_ping = new Date()
         @call
             allow_post : false
             message    : message.ping()
-            timeout    : 15     # CRITICAL that this timeout be less than the @_ping_interval
+            timeout    : 10     # CRITICAL that this timeout be less than the @_ping_interval
             cb         : (err, pong) =>
-                if not err
-                    now = new Date()
-                    # Only record something if success, got a pong, and the round trip is short!
-                    # If user messes with their clock during a ping and we don't do this, then
-                    # bad things will happen.
-                    if pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                        @_last_pong = {server:pong.now, local:now}
-                        # See the function server_time below; subtract @_clock_skew from local time to get a better
-                        # estimate for server time.
-                        @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                        misc.set_local_storage('clock_skew', @_clock_skew)
+                # console.log("response to ping message", err, pong)
+                if err
+                    # try again **sooner**
+                    setTimeout(@_ping, @_ping_interval/2)
+                    return
+                now = new Date()
+                # Only record something if success, got a pong, and the round trip is short!
+                # If user messes with their clock during a ping and we don't do this, then
+                # bad things will happen.
+                if pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                    @_last_pong = {server:pong.now, local:now}
+                    # See the function server_time below; subtract @_clock_skew from local time to get a better
+                    # estimate for server time.
+                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                    misc.set_local_storage('clock_skew', @_clock_skew)
+
+                this._emit_latency(now.valueOf() - start.valueOf(), @_clock_skew)
+
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
+
+    _emit_latency: (latency, clock_skew) =>
+        # console.log("_emit_latency", latency, clock_skew)
+        if not window?.document?.hasFocus?()
+            # console.log("latency: not in focus")
+            return
+        # networking/pinging slows down when browser not in focus...
+        if latency > 10000
+            # console.log("latency: discarding huge latency", latency)
+            # We get some ridiculous values from Primus when the browser
+            # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+            # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+            # numbers displayed in the browser.
+            return
+        @emit("ping", latency, clock_skew)
+
 
     # Returns (approximate) time in ms since epoch on the server.
     # NOTE:
@@ -508,6 +549,10 @@ class exports.Connection extends EventEmitter
 
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
+
+    _set_signed_out: =>
+        @_signed_in = false
+        @_redux?.getActions('account')?.set_user_type('public')
 
     change_data_channel: (opts) =>
         opts = defaults opts,
@@ -793,17 +838,16 @@ class exports.Connection extends EventEmitter
     #################################################
     create_account: (opts) =>
         opts = defaults opts,
-            first_name     : required
-            last_name      : required
-            email_address  : required
-            password       : required
-            agreed_to_terms: required
-            get_api_key    : undefined       # if given, will create/get api token in response message
-            token          : undefined       # only required if an admin set the account creation token.
-            utm            : undefined
-            referrer       : undefined
-            timeout        : 40
-            cb             : required
+            first_name       : required
+            last_name        : required
+            email_address    : required
+            password         : required
+            agreed_to_terms  : required
+            usage_intent     : undefined
+            get_api_key      : undefined       # if given, will create/get api token in response message
+            token            : undefined       # only required if an admin set the account creation token.
+            timeout          : 40
+            cb               : required
 
         if not opts.agreed_to_terms
             opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
@@ -823,9 +867,8 @@ class exports.Connection extends EventEmitter
                 email_address   : opts.email_address
                 password        : opts.password
                 agreed_to_terms : opts.agreed_to_terms
+                usage_intent    : opts.usage_intent
                 token           : opts.token
-                utm             : opts.utm
-                referrer        : opts.referrer
                 get_api_key     : opts.get_api_key
             timeout : opts.timeout
             cb      : (err, resp) =>
@@ -858,26 +901,31 @@ class exports.Connection extends EventEmitter
 
     sign_in: (opts) ->
         opts = defaults opts,
-            email_address : required
-            password      : required
-            remember_me   : false
-            cb            : required
-            timeout       : 40
-            utm           : undefined
-            referrer      : undefined
-            get_api_key   : undefined       # if given, will create/get api token in response message
+            email_address   : required
+            password        : required
+            remember_me     : false
+            cb              : required
+            timeout         : 40
+            get_api_key     : undefined       # if given, will create/get api token in response message
 
         @call
             allow_post : false
             message : message.sign_in
-                email_address : opts.email_address
-                password      : opts.password
-                remember_me   : opts.remember_me
-                utm           : opts.utm
-                referrer      : opts.referrer
-                get_api_key   : opts.get_api_key
+                email_address    : opts.email_address
+                password         : opts.password
+                remember_me      : opts.remember_me
+                get_api_key      : opts.get_api_key
             timeout : opts.timeout
             cb      : opts.cb
+
+    delete_remember_me_cookie: (cb) =>
+        # This actually sets the content of the cookie to empty.
+        # (I just didn't implement a delete action on the backend yet.)
+        base_url = window.app_base_url ? ''
+        mesg =
+            url  : base_url + '/cookies'
+            set  : base_url + 'remember_me'
+        @_cookies(mesg, cb)
 
     sign_out: (opts) ->
         opts = defaults opts,
@@ -885,15 +933,20 @@ class exports.Connection extends EventEmitter
             cb           : undefined
             timeout      : DEFAULT_TIMEOUT # seconds
 
-        @account_id = undefined
+        @delete_remember_me_cookie (err) =>
+            if err
+                opts.cb?("error deleting remember me cookie")
+                return
 
-        @call
-            allow_post : false
-            message    : message.sign_out(everywhere:opts.everywhere)
-            timeout    : opts.timeout
-            cb         : opts.cb
+            @account_id = undefined
 
-        @emit('signed_out')
+            @call
+                allow_post : false
+                message    : message.sign_out(everywhere:opts.everywhere)
+                timeout    : opts.timeout
+                cb         : opts.cb
+
+            @emit('signed_out')
 
     change_password: (opts) ->
         opts = defaults opts,
@@ -1000,9 +1053,10 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
+            image       : undefined
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description)
+            message: message.create_project(title:opts.title, description:opts.description, image:opts.image)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -1010,6 +1064,7 @@ class exports.Connection extends EventEmitter
                     opts.cb?(resp.error)
                 else
                     opts.cb?(undefined, resp.project_id)
+                    @user_tracking({event:'create_project', value:{project_id:resp.project_id, title:opts.title}})
 
     #################################################
     # Individual Projects
@@ -1045,8 +1100,8 @@ class exports.Connection extends EventEmitter
 
     read_text_file_from_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            path       : required
+            project_id : required  # string or array of strings
+            path       : required  # string or array of strings
             cb         : required
             timeout    : DEFAULT_TIMEOUT
 
@@ -1156,6 +1211,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             memory      : undefined    # see message.coffee for the units, etc., for all these settings
+            memory_request : undefined
             cpu_shares  : undefined
             cores       : undefined
             disk_quota  : undefined
@@ -1280,7 +1336,8 @@ class exports.Connection extends EventEmitter
             bash            : false
             aggregate       : undefined  # see comment above.
             err_on_exit     : true
-            allow_post      : true       # set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            allow_post      : true       # **DEPRECATED** set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            env             : undefined  # extra environment variables
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
         start_time = new Date()
@@ -1294,6 +1351,7 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
+                env         : opts.env
                 aggregate   : opts.aggregate
             opts.cb(undefined, await ws.api.exec(exec_opts))
         catch err
@@ -1364,7 +1422,7 @@ class exports.Connection extends EventEmitter
             query_id : -1     # So we can check that it matches the most recent query
             limit    : 20
             timeout  : DEFAULT_TIMEOUT
-            active   : '6 months'
+            active   : ''   # if given, would restrict to users active this recently
             admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
             cb       : required
 
@@ -1424,6 +1482,23 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, result)
 
+    # Directly add one (or more) collaborators to (one or more) projects via
+    # a single API call.  There is no invite process, etc.
+    project_add_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id : required   # string or array of strings
+            account_id : required   # string or array of strings
+            cb         : (err) =>
+        @call
+            message : message.add_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else if result.event == 'error'
+                    opts.cb(result.error)
+                else
+                    opts.cb(undefined, result)
+
     ###
     Bulk information about several accounts (may be used by chat, etc.).
     Currently used for admin and public views, mainly.
@@ -1442,6 +1517,9 @@ class exports.Connection extends EventEmitter
     # File Management
     #################################################
     project_websocket: (project_id) =>
+        group = @_redux?.getStore('projects')?.get_my_group(project_id)
+        if not group? or group == 'public'
+            throw Error("no access to project websocket")
         return await require('smc-webapp/project/websocket/connect').connection_to_project(project_id)
 
     project_directory_listing: (opts) =>
@@ -1527,6 +1605,10 @@ class exports.Connection extends EventEmitter
         @_stripe_call message.stripe_get_customer(), (err, mesg) =>
             if err
                 opts.cb(err)
+            else if not mesg?
+                # evidently this happened -- see
+                #   https://github.com/sagemathinc/cocalc/issues/3711
+                opts.cb("mesg must be defined")
             else
                 resp =
                     stripe_publishable_key : mesg.stripe_publishable_key
@@ -1755,9 +1837,9 @@ class exports.Connection extends EventEmitter
             cb          : cb
 
     # Remove all upgrades from all projects that this user collaborates on.
-    remove_all_upgrades: (cb) =>
+    remove_all_upgrades: (projects, cb) =>
         @call
-            message     : message.remove_all_upgrades()
+            message     : message.remove_all_upgrades(projects:projects)
             error_event : true
             cb          : cb
 
@@ -1784,8 +1866,24 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
-        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
+    sync_table2: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_database: (query, options, throttle_changes=undefined) =>
+        s = this.sync_table2(query, options, throttle_changes)
+        await once(s, 'connected')
+        return s
+
+    synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_changefeed(query, options, @, throttle_changes)
+
+    synctable_no_database: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_database(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_project: (project_id, query, options, throttle_changes=undefined, id='') =>
+        return await synctable_project(project_id:project_id, query:query, options:options, client:@, throttle_changes:throttle_changes, id:id)
 
     # this is async
     symmetric_channel: (name, project_id) =>
@@ -1793,40 +1891,47 @@ class exports.Connection extends EventEmitter
             throw Error("project_id must be a valid uuid")
         return (await @project_websocket(project_id)).api.symmetric_channel(name)
 
-    sync_string: (opts) =>
+    sync_string2: (opts) =>
         opts = defaults opts,
-            id                 : undefined
-            project_id         : required
-            path               : required
-            file_use_interval  : 'default'
-            cursors            : false
-            patch_interval     : 1000
-            save_interval      : 2000
-            before_change_hook : undefined
-            after_change_hook  : undefined
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            persistent        : false
+            data_server       : undefined
         opts.client = @
-        return new syncstring.SyncString(opts)
+        return new SyncString2(opts)
 
-    sync_db: (opts) =>
+    sync_db2: (opts) =>
         opts = defaults opts,
-            project_id      : required
-            path            : required
-            primary_keys    : required
-            string_cols     : undefined
-            cursors         : false
-            change_throttle : 500     # amount to throttle change events (in ms)
-            patch_interval  : 1000
-            save_interval   : 2000    # amount to debounce saves (in ms)
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            change_throttle   : undefined
+            primary_keys      : required
+            string_cols       : []
+            persistent        : false
+            data_server       : undefined
         opts.client = @
-        return new db_doc.SyncDB(opts)
+        return new SyncDB2(opts)
 
+    # This now returns the new sync_db2 and sync_string2 objects.
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
+            data_server : undefined
+            persistent : false
             cb         : required  # cb(err, document)
         opts.client = @
-        db_doc.open_existing_sync_document(opts)
+        open_existing_sync_document(opts)
         return
 
     # If called on the fronted, will make the given file with the given action.
@@ -1838,7 +1943,7 @@ class exports.Connection extends EventEmitter
             action     : required
             ttl        : 120
         # Will only do something if @_redux has been set.
-        @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
+        @_redux?.getActions('file_use')?.mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     _post_query: (opts) =>
         opts = defaults opts,
@@ -1886,13 +1991,30 @@ class exports.Connection extends EventEmitter
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if not opts.changes and $?.post? and @_enable_post
+        if @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
+            # (NOTE: signed_in required because POST fails everything when
+            # user is not signed in.)
             @_post_query
                 query   : opts.query
                 options : opts.options
                 standby : opts.standby
-                cb      : opts.cb
+                cb      : (err, resp) =>
+                    if err == 'not signed in'
+                        @_set_signed_out()
+                        opts.cb?(err, resp)
+                        return
+                    if not err or not opts.standby
+                        opts.cb?(err, resp)
+                        return
+                    # Note, right when signing in this can fail, since
+                    # sign_in = got websocket sign in mesg, which is NOT
+                    # the same thing as setting up cookies. For security
+                    # reasons it is difficult to know exactly when the
+                    # remember-me cookie has been set.
+                    console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
+                    opts.standby = false
+                    @query(opts)
             return
 
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
@@ -1947,6 +2069,124 @@ class exports.Connection extends EventEmitter
         catch err
             opts.cb(err)
 
+    touch_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        if not @account_id?
+            # silently ignore if not signed in
+            opts.cb?()
+            return
+        # Throttle -- so if this function is called with the same project_id
+        # twice in 20s, it's ignored (to avoid unnecessary network traffic).
+        @_touch_project_throttle ?= {}
+        last = @_touch_project_throttle[opts.project_id]
+        if last? and new Date().valueOf() - last <= 20000
+            opts.cb?()
+            return
+        @_touch_project_throttle[opts.project_id] = new Date().valueOf()
+        @call
+            allow_post  : true
+            message     : message.touch_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
+
+    disconnect_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @call
+            allow_post  : true
+            message     : message.disconnect_from_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
+
+
+    get_user_auth_token: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+
+        @call
+            allow_post  : false
+            message     : message.user_auth(account_id:opts.account_id, password:'')
+            error_event : true
+            cb          : opts.cb
+
+    mention: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            target     : required # account_id (for now)
+            source     : required # account_id
+            priority   : undefined # optional integer; larger number is higher; 0 is default.
+            description: undefined # optional string context eg. part of the message
+            cb         : undefined
+        if not @is_signed_in()
+            # wait until signed in, otherwise query below just fails
+            # with an error and mention is lost
+            await once(@, "signed_in")
+        @query
+            query :
+                mentions : misc.copy_without(opts, 'cb')
+            cb : opts.cb
+
+    # This is async, so do "await smc_webapp.configuration(...project_id...)".
+    configuration: (project_id, aspect) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.configuration(aspect)
+
+    syncdoc_history: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            patches : false
+            cb      : required
+        @call
+            message : message.get_syncdoc_history(string_id:opts.string_id, patches:opts.patches)
+            error_event: true
+            allow_post : false
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.history)
+
+    user_tracking: (opts) =>
+        opts = defaults opts,
+            event : required
+            value : {}
+            cb    : undefined
+        @call
+            message    : message.user_tracking(evt:opts.event, value:opts.value)
+            allow_post : true
+            cb         : opts.cb
+
+    admin_reset_password: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb         : required
+        @call
+            message    : message.admin_reset_password(email_address:opts.email_address)
+            allow_post : true
+            error_event : true
+            cb         : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.link)
+
+    admin_ban_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            ban        : true     # if true, ban user  -- if false, unban them.
+            cb         : required
+        @call
+            message    : message.admin_ban_user(account_id:opts.account_id, ban:opts.ban)
+            allow_post : true
+            error_event : true
+            cb         : (err, resp) =>
+                opts.cb(err)
 
 #################################################
 # Other account Management functionality shared between client and server
@@ -1975,4 +2215,41 @@ exports.issues_with_create_account = (mesg) ->
     return issues
 
 
+# This is mainly used for TimeTravel view...
+open_existing_sync_document = (opts) ->
+    opts = defaults opts,
+        client     : required
+        project_id : required
+        path       : required
+        data_server : undefined
+        persistent : false
+        cb         : required
+    opts.client.query
+        query :
+            syncstrings:
+                project_id : opts.project_id
+                path       : opts.path
+                doctype    : null
+        cb: (err, resp) ->
+            if err
+                opts.cb(err)
+                return
+            if resp.event == 'error'
+                opts.cb(resp.error)
+                return
+            if not resp.query?.syncstrings?
+                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
+                return
+            doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
+            opts2 =
+                project_id : opts.project_id
+                path       : opts.path
+            if opts.data_server
+                opts2.data_server = opts.data_server
+            if opts.persistent
+                opts2.persistent = opts.persistent
+            if doctype.opts?
+                opts2 = misc.merge(opts2, doctype.opts)
+            doc = opts.client["sync_#{doctype.type}2"](opts2)
+            opts.cb(undefined, doc)
 

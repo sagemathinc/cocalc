@@ -14,7 +14,6 @@ misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
-compute_upgrades     = require('smc-util/upgrades')
 base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
@@ -24,14 +23,25 @@ password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
-{get_stripe}         = require('./stripe/connect')
+{StripeClient}       = require('./stripe/client')
 {get_support}        = require('./support')
-{send_email}         = require('./email')
+{send_email, create_email_body} = require('./email')
 {api_key_action}     = require('./api/manage')
-{create_account, delete_account} = require('./create-account')
+{create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
+{ escapeHtml }       = require("escape-html")
+{CopyPath}           = require('./copy-path')
 
 underscore = require('underscore')
+
+{callback} = require('awaiting')
+{callback2} = require('smc-util/async-utils')
+
+{record_user_tracking} = require('./postgres/user-tracking')
+{project_has_network_access} = require('./postgres/project-queries')
+{is_paying_customer} = require('./postgres/account-queries')
+
+{SENDGRID_ASM_INVITES} = require('smc-util/theme')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -65,7 +75,7 @@ CLIENT_MIN_ACTIVE_S = 45
 
 # How frequently we tell the browser clients to report metrics back to us.
 # Set to 0 to completely disable metrics collection from clients.
-CLIENT_METRICS_INTERVAL_S = 60*2
+CLIENT_METRICS_INTERVAL_S = if DEBUG2 then 15 else 60*2
 
 # recording metrics and statistics
 metrics_recorder = require('./metrics-recorder')
@@ -119,6 +129,8 @@ class exports.Client extends EventEmitter
             @init_conn()
         else
             @id = misc.uuid()
+
+        @copy_path = new CopyPath(@)
 
     init_conn: =>
         # initialize everything related to persistent connections
@@ -294,6 +306,8 @@ class exports.Client extends EventEmitter
 
         if mesg.event != 'pong'
             dbg("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+            #dbg("hub --> client (client=#{@id}): #{misc.trunc(JSON.stringify(mesg),1000)}")
+            #dbg("hub --> client (client=#{@id}): #{JSON.stringify(mesg)}")
 
         if mesg.id?
             start = @_messages.being_handled[mesg.id]
@@ -340,13 +354,13 @@ class exports.Client extends EventEmitter
             return
         @conn.write(channel + data)
 
-    error_to_client: (opts) ->
+    error_to_client: (opts) =>
         opts = defaults opts,
             id    : undefined
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
-    success_to_client: (opts) ->
+    success_to_client: (opts) =>
         opts = defaults opts,
             id    : required
         @push_to_client(message.success(id:opts.id))
@@ -361,14 +375,12 @@ class exports.Client extends EventEmitter
         @account_id = signed_in_mesg.account_id
 
         sign_in.record_sign_in
-            ip_address    : @ip_address
-            successful    : true
-            remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
-            email_address : signed_in_mesg.email_address
-            account_id    : signed_in_mesg.account_id
-            utm           : signed_in_mesg.utm
-            referrer      : signed_in_mesg.referrer
-            database      : @database
+            ip_address      : @ip_address
+            successful      : true
+            remember_me     : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
+            email_address   : signed_in_mesg.email_address
+            account_id      : signed_in_mesg.account_id
+            database        : @database
 
         # Get user's group from database.
         @get_groups()
@@ -377,17 +389,17 @@ class exports.Client extends EventEmitter
         @account_id = undefined
 
     # Setting and getting HTTP-only cookies via Primus + AJAX
-    get_cookie: (opts) ->
+    get_cookie: (opts) =>
         opts = defaults opts,
             name : required
-            cb   : required   # cb(value)
+            cb   : required   # cb(undefined, value)
         if not @conn?.id?
             # no connection or connection died
             return
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url_lib.base_url()+"/cookies"))
 
-    set_cookie: (opts) ->
+    set_cookie: (opts) =>
         opts = defaults opts,
             name  : required
             value : required
@@ -402,7 +414,7 @@ class exports.Client extends EventEmitter
         @cookies[opts.name] = {value:opts.value, options:options}
         @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url_lib.base_url()+"/cookies", value:opts.value))
 
-    remember_me: (opts) ->
+    remember_me: (opts) =>
         return if not @conn?
         ###
         Remember me.  There are many ways to implement
@@ -453,7 +465,7 @@ class exports.Client extends EventEmitter
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
-        @set_cookie
+        @set_cookie  # same name also hardcoded in the client!
             name  : base_url_lib.base_url() + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
@@ -465,7 +477,7 @@ class exports.Client extends EventEmitter
             ttl        : ttl
             cb         : opts.cb
 
-    invalidate_remember_me: (opts) ->
+    invalidate_remember_me: (opts) =>
         return if not @conn?
 
         opts = defaults opts,
@@ -697,7 +709,7 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger
+            logger   : @logger.debug
             host     : @_opts.host
             port     : @_opts.port
             sign_in  : @conn?  # browser clients have a websocket conn
@@ -707,7 +719,7 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger
+            logger   : @logger.debug
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
@@ -729,7 +741,7 @@ class exports.Client extends EventEmitter
 
     mesg_sign_out: (mesg) =>
         if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"Not signed in."))
+            @push_to_client(message.error(id:mesg.id, error:"not signed in"))
             return
 
         if mesg.everywhere
@@ -948,7 +960,6 @@ class exports.Client extends EventEmitter
 
         project_id = undefined
         project    = undefined
-        location   = undefined
 
         async.series([
             (cb) =>
@@ -957,6 +968,7 @@ class exports.Client extends EventEmitter
                     account_id  : @account_id
                     title       : mesg.title
                     description : mesg.description
+                    image       : mesg.image
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
@@ -1012,7 +1024,40 @@ class exports.Client extends EventEmitter
                     else
                         @push_to_client(message.file_written_to_project(id:mesg.id))
 
+    mesg_read_text_files_from_projects: (mesg) =>
+        if not misc.is_array(mesg.project_id)
+            @error_to_client(id:mesg.id, error:"project_id must be an array")
+            return
+        if not misc.is_array(mesg.path) or mesg.path.length != mesg.project_id.length
+            @error_to_client(id:mesg.id, error:"if project_id is an array, then path must be an array of the same length")
+            return
+        v = []
+        f = (mesg, cb) =>
+            @get_project mesg, 'read', (err, project) =>
+                if err
+                    cb(err)
+                    return
+                project.read_file
+                    path : mesg.path
+                    cb   : (err, content) =>
+                        if err
+                            v.push({path:mesg.path, project_id:mesg.project_id, error:err})
+                        else
+                            v.push({path:mesg.path, project_id:mesg.project_id, content:content.blob.toString()})
+                        cb()
+        paths = []
+        for i in [0...mesg.project_id.length]
+            paths.push({id:mesg.id, path:mesg.path[i], project_id:mesg.project_id[i]})
+        async.mapLimit paths, 20, f, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:v))
+
     mesg_read_text_file_from_project: (mesg) =>
+        if misc.is_array(mesg.project_id)
+            @mesg_read_text_files_from_projects(mesg)
+            return
         @get_project mesg, 'read', (err, project) =>
             if err
                 return
@@ -1043,74 +1088,13 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_copy_path_between_projects: (mesg) =>
-        @touch()
-        if not mesg.src_project_id?
-            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
-            return
-        if not mesg.target_project_id?
-            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
-            return
-        if not mesg.src_path?
-            @error_to_client(id:mesg.id, error:"src_path must be defined")
-            return
+        @copy_path.copy(mesg)
 
-        async.series([
-            (cb) =>
-                # Check permissions for the source and target projects (in parallel) --
-                # need read access to the source and write access to the target.
-                async.parallel([
-                    (cb) =>
-                        access.user_has_read_access_to_project
-                            project_id     : mesg.src_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            database       : @database
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have read access to source project #{mesg.src_project_id}")
-                                else
-                                    cb()
-                    (cb) =>
-                        access.user_has_write_access_to_project
-                            database       : @database
-                            project_id     : mesg.target_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have write access to target project #{mesg.target_project_id}")
-                                else
-                                    cb()
-                ], cb)
+    mesg_copy_path_status: (mesg) =>
+        @copy_path.status(mesg)
 
-            (cb) =>
-                # do the copy
-                @compute_server.project
-                    project_id : mesg.src_project_id
-                    cb         : (err, project) =>
-                        if err
-                            cb(err); return
-                        else
-                            project.copy_path
-                                path              : mesg.src_path
-                                target_project_id : mesg.target_project_id
-                                target_path       : mesg.target_path
-                                overwrite_newer   : mesg.overwrite_newer
-                                delete_missing    : mesg.delete_missing
-                                backup            : mesg.backup
-                                timeout           : mesg.timeout
-                                exclude_history   : mesg.exclude_history
-                                cb                : cb
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-        )
+    mesg_copy_path_delete: (mesg) =>
+        @copy_path.delete(mesg)
 
     mesg_local_hub: (mesg) =>
         ###
@@ -1153,6 +1137,10 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_user_search: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to search for users."))
+            return
+
         if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
             # hard cap at 50... (for non-admin)
             mesg.limit = 50
@@ -1179,6 +1167,13 @@ class exports.Client extends EventEmitter
             else
                 @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
         )
+
+
+    # this is an async function
+    allow_urls_in_emails: (project_id) =>
+        is_paying = await is_paying_customer(@database, @account_id)
+        has_network = await project_has_network_access(@database, project_id)
+        return is_paying or has_network
 
     mesg_invite_collaborator: (mesg) =>
         @touch()
@@ -1241,10 +1236,19 @@ class exports.Client extends EventEmitter
 
                 (cb) =>
                     if locals.done or (not locals.email_address)
+                        dbg("NOT send_email invite to #{locals.email_address}")
                         cb(); return
 
-                    cb()  # we return early, because there is no need to let someone wait for sending the email
+                    ## do not send email if project doesn't have network access (and user is not a paying customer)
+                    #if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+                    #    dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
+                    #    return
 
+                    # we always send invite emails. for non-upgraded projects, we sanitize the content of the body
+                    # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+                    # also see mesg_invite_noncloud_collaborators
+
+                    dbg("send_email invite to #{locals.email_address}")
                     # available message fields
                     # mesg.title            - title of project
                     # mesg.link2proj
@@ -1264,41 +1268,27 @@ class exports.Client extends EventEmitter
                     if mesg.subject?
                         subject  = mesg.subject
 
-                    if mesg.link2proj? # make sure invitees know where to go
-                        base_url = mesg.link2proj.split("/")
-                        base_url = "#{base_url[0]}//#{base_url[2]}"
-                        direct_link = "Open <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
-                    else # fallback for outdated clients
-                        base_url = 'https://cocalc.com/'
-                        direct_link = ''
+                    try
+                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
+                    catch err
+                        cb(err)
+                        return
 
-                    email_body = (mesg.email ? '') + """
-                        <br/><br/>
-                        <b>To accept the invitation, please open
-                        <a href='#{base_url}'>#{base_url}</a>
-                        and sign in using your email address '#{locals.email_address}'.
-                        #{direct_link}</b><br/>
-                        """
-
-                    # The following is only for backwards compatibility with outdated webapp clients during the transition period
-                    if not mesg.title?
-                        subject = "Invitation to CoCalc for collaborating on a project"
-
-                    # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
                         to           : locals.email_address
-                        bcc          : 'invites@sagemath.com'
+                        bcc          : 'invites@cocalc.com'
                         fromname     : 'CoCalc'
-                        from         : 'invites@sagemath.com'
-                        replyto      : mesg.replyto ? 'help@sagemath.com'
+                        from         : 'invites@cocalc.com'
+                        replyto      : mesg.replyto ? 'help@cocalc.com'
                         replyto_name : mesg.replyto_name
                         subject      : subject
                         category     : "invite"
-                        asm_group    : 699
+                        asm_group    : SENDGRID_ASM_INVITES
                         body         : email_body
                         cb           : (err) =>
                             if err
-                                dbg("FAILED to send email to #{locals.email_address}  -- err={misc.to_json(err)}")
+                                dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
                             @database.sent_project_invite
                                 project_id : mesg.project_id
                                 to         : locals.email_address
@@ -1315,6 +1305,20 @@ class exports.Client extends EventEmitter
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         dbg = @dbg('mesg_invite_noncloud_collaborators')
+
+        #
+        # Uncomment this in case of attack by evil forces:
+        #
+        ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
+        ## return
+
+        # Otherwise we always allow sending email invites
+        # The body is sanitized and not allowed to contain any URLs (anti-spam), unless
+        # (a) the sender is a paying customer or (b) the project has network access.
+        #
+        # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+        # also see mesg_invite_collaborator
+
         @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1326,9 +1330,6 @@ class exports.Client extends EventEmitter
 
             # users to invite
             to = (x for x in mesg.to.replace(/\s/g,",").replace(/;/g,",").split(',') when x)
-
-            # invitation template
-            email = mesg.email
 
             invite_user = (email_address, cb) =>
                 dbg("inviting #{email_address}")
@@ -1388,49 +1389,46 @@ class exports.Client extends EventEmitter
                                         cb()
                     (cb) =>
                         if done
+                            dbg("NOT send_email invite to #{email_address}")
                             cb()
-                        else
+                            return
+
+                        # send an email to the user -- async, not blocking user.
+                        # TODO: this can take a while -- we need to take some action
+                        # if it fails, e.g., change a setting in the projects table!
+                        subject  = "CoCalc Invitation"
+                        # override subject if explicitly given
+                        if mesg.subject?
+                            subject  = mesg.subject
+
+                        try
+                            email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
                             cb()
-                            # send an email to the user -- async, not blocking user.
-                            # TODO: this can take a while -- we need to take some action
-                            # if it fails, e.g., change a setting in the projects table!
-                            subject  = "CoCalc Invitation"
-                            # override subject if explicitly given
-                            if mesg.subject?
-                                subject  = mesg.subject
+                        catch err
+                            cb(err)
+                            return
 
-                            if mesg.link2proj? # make sure invitees know where to go
-                                base_url = mesg.link2proj.split("/")
-                                base_url = "#{base_url[0]}//#{base_url[2]}"
-                                direct_link = "Then go to <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
-                            else # fallback for outdated clients
-                                base_url = 'https://cocalc.com/'
-                                direct_link = ''
-
-                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                            opts =
-                                to           : email_address
-                                bcc          : 'invites@sagemath.com'
-                                fromname     : 'CoCalc'
-                                from         : 'invites@sagemath.com'
-                                replyto      : mesg.replyto ? 'help@sagemath.com'
-                                replyto_name : mesg.replyto_name
-                                subject      : subject
-                                category     : "invite"
-                                asm_group    : 699
-                                body         : email + """<br/><br/>
-                                               <b>To accept the invitation, please sign up at
-                                               <a href='#{base_url}'>#{base_url}</a>
-                                               using exactly the email address '#{email_address}'.
-                                               #{direct_link}</b><br/>"""
-                                cb           : (err) =>
-                                    if err
-                                        dbg("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
-                                    @database.sent_project_invite
-                                        project_id : mesg.project_id
-                                        to         : email_address
-                                        error      : err
-                            send_email(opts)
+                        # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                        opts =
+                            to           : email_address
+                            bcc          : 'invites@cocalc.com'
+                            fromname     : 'CoCalc'
+                            from         : 'invites@cocalc.com'
+                            replyto      : mesg.replyto ? 'help@cocalc.com'
+                            replyto_name : mesg.replyto_name
+                            subject      : subject
+                            category     : "invite"
+                            asm_group    : SENDGRID_ASM_INVITES
+                            body         : email_body
+                            cb           : (err) =>
+                                if err
+                                    dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
+                                @database.sent_project_invite
+                                    project_id : mesg.project_id
+                                    to         : email_address
+                                    error      : err
+                        dbg("send_email invite to #{email_address}")
+                        send_email(opts)
 
                 ], cb)
 
@@ -1455,6 +1453,23 @@ class exports.Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    # NOTE: this is different than invite_collab, in that it is
+    # much more similar to remove_collaborator.  It also supports
+    # adding multiple collabs to multiple projects in one
+    # transaction.
+    mesg_add_collaborator: (mesg) =>
+        @touch()
+        if not misc.is_array(mesg.project_id)
+            projects = [mesg.project_id]
+            accounts = [mesg.account_id]
+        else
+            projects = mesg.project_id
+            accounts = mesg.account_id
+        try
+            await @database.add_collaborators_to_projects(@account_id, accounts, projects)
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            @error_to_client(id:mesg.id, error:"#{err}")
 
     mesg_remove_blob_ttls: (mesg) =>
         if not @account_id?
@@ -1843,627 +1858,64 @@ class exports.Client extends EventEmitter
     ###
     Stripe-integration billing code
     ###
-    ensure_fields: (mesg, fields) =>
-        if not mesg.id?
-            return false
-        if typeof(fields) == 'string'
-            fields = fields.split(' ')
-        for f in fields
-            if not mesg[f.trim()]?
-                err = "invalid message; must have #{f} field"
-                @error_to_client(id:mesg.id, error:err)
-                return false
-        return true
-
-    stripe_get_customer_id: (id, cb) =>  # id = message id
-        # cb(err, customer_id)
-        #  - if err, then an error message with id the given id is sent to the
-        #    user, so client code doesn't have to
-        #  - if no customer info yet with stripe, then NOT an error; instead,
-        #    customer_id is undefined.
-        dbg = @dbg("stripe_get_customer_id")
-        dbg()
-        if not @account_id?
-            err = "You must be signed in to use billing related functions."
-            @error_to_client(id:id, error:err)
-            cb(err)
-            return
-        @_stripe = get_stripe()
-        if not @_stripe?
-            err = "stripe billing not configured"
-            dbg(err)
-            @error_to_client(id:id, error:err)
-            cb(err)
-        else
-            if @stripe_customer_id?
-                dbg("using cached @stripe_customer_id")
-                cb(undefined, @stripe_customer_id)
-            else
-                if @_stripe_customer_id_cbs?
-                    @_stripe_customer_id_cbs.push({id:id, cb:cb})
-                    return
-                @_stripe_customer_id_cbs = [{id:id, cb:cb}]
-                dbg('getting stripe_customer_id from db...')
-                @database.get_stripe_customer_id
-                    account_id : @account_id
-                    cb         : (err, customer_id) =>
-                        @stripe_customer_id = customer_id  # cache for later
-                        for x in @_stripe_customer_id_cbs
-                            {id, cb} = x
-                            if err
-                                dbg("fail -- #{err}")
-                                @error_to_client(id:id, error:err)
-                                cb(err)
-                            else
-                                dbg("got result #{customer_id}")
-                                cb(undefined, customer_id)
-                        delete @_stripe_customer_id_cbs
-
-                        # Log that the user is requesting this info, which means
-                        # they are billing the subscription page.  This is
-                        # potentially useful to record.
-                        @database.log
-                            event : 'billing'
-                            value : {account_id: @account_id}
-
-    stripe_need_customer_id: (id, cb) =>
-        # Like stripe_get_customer_id, except sends an error to the
-        # user if they aren't registered yet, instead of returning undefined.
-        @dbg("stripe_need_customer_id")()
-        @stripe_get_customer_id id, (err, customer_id) =>
-            if err
-                cb(err); return
-            if not customer_id?
-                err = "customer not defined"
-                @stripe_error_to_client(id:id, error:err)
-                cb(err); return
-            cb(undefined, customer_id)
-
-    # id : user's CoCalc account id
-    stripe_get_customer: (id, cb) =>
-        dbg = @dbg("stripe_get_customer")
-        dbg("getting id")
-        @stripe_get_customer_id id, (err, customer_id) =>
-            if err
-                dbg("failed -- #{err}")
-                cb(err)
-                return
-            if not customer_id?
-                dbg("no customer_id set yet")
-                cb(undefined, undefined)
-                return
-            dbg("now getting stripe customer object")
-            @_stripe.customers.retrieve customer_id, (err, customer) =>
-                if err
-                    dbg("failed -- #{err}")
-                    @error_to_client(id:id, error:err)
-                    cb(err)
-                else
-                    dbg("got it")
-                    cb(undefined, customer)
-
-    stripe_error_to_client: (opts) =>
-        opts = defaults opts,
-            id    : required
-            error : required
-        err = opts.error
-        if typeof(err) != 'string'
-            if err.stack?
-                err = err.stack.split('\n')[0]
-            else
-                err = misc.to_json(err)
-        @dbg("stripe_error_to_client")(err)
-        @error_to_client(id:opts.id, error:err)
+    handle_stripe_mesg: (mesg) =>
+        try
+            await @_stripe_client ?= new StripeClient(@)
+        catch err
+            @error_to_client(id:mesg.id, error:"${err}")
+        @_stripe_client.handle_mesg(mesg)
 
     mesg_stripe_get_customer: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_customer")
-        dbg("get information from stripe about this customer, e.g., subscriptions, payment methods, etc.")
-        @stripe_get_customer mesg.id, (err, customer) =>
-            if err
-                return
-            resp = message.stripe_customer
-                id                     : mesg.id
-                stripe_publishable_key : @_stripe?.publishable_key
-                customer               : customer
-            @push_to_client(resp)
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_create_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_customer")
-        dbg("create a payment method (credit card) in stripe for this user")
-        if not @ensure_fields(mesg, 'token')
-            dbg("missing token field -- bailing")
-            return
-        dbg("looking up customer")
-        @stripe_get_customer_id mesg.id, (err, customer_id) =>
-            if err  # database or other major error (e.g., no stripe conf)
-                    # @get_stripe_customer sends error message to user
-                dbg("failed -- #{err}")
-                return
-            if not customer_id?
-                dbg("create new stripe customer (from card token)")
-                description = undefined
-                email = undefined
-                async.series([
-                    (cb) =>
-                        dbg("get identifying info about user")
-                        @database.get_account
-                            columns    : ['email_address', 'first_name', 'last_name']
-                            account_id : @account_id
-                            cb         : (err, r) =>
-                                if err
-                                    cb(err)
-                                else
-                                    email = r.email_address
-                                    description = "#{r.first_name} #{r.last_name}"
-                                    dbg("they are #{description} with email #{email}")
-                                    cb()
-                    (cb) =>
-                        dbg("creating stripe customer")
-                        x =
-                            source      : mesg.token
-                            description : description
-                            email       : email
-                            metadata    :
-                                account_id : @account_id
-                        @_stripe.customers.create x, (err, customer) =>
-                            if err
-                                cb(err)
-                            else
-                                customer_id = customer.id
-                                cb()
-                    (cb) =>
-                        dbg("success; now save customer id token to database")
-                        @database.set_stripe_customer_id
-                            account_id  : @account_id
-                            customer_id : customer_id
-                            cb          : cb
-                    (cb) =>
-                        dbg("success; sync user account with stripe")
-                        @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
-                ], (err) =>
-                    if err
-                        dbg("failed -- #{err}")
-                        @stripe_error_to_client(id:mesg.id, error:err)
-                    else
-                        @success_to_client(id:mesg.id)
-                )
-            else
-                dbg("add card to existing stripe customer")
-                async.series([
-                    (cb) =>
-                        @_stripe.customers.createCard(customer_id, {card:mesg.token}, cb)
-                    (cb) =>
-                        dbg("success; sync user account with stripe")
-                        @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
-                ], (err) =>
-                    if err
-                        @stripe_error_to_client(id:mesg.id, error:err)
-                    else
-                        @success_to_client(id:mesg.id)
-                )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_delete_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_delete_source")
-        dbg("delete a payment method for this user")
-        if not @ensure_fields(mesg, 'card_id')
-            dbg("missing card_id field")
-            return
-        customer_id = undefined
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, (err, x) => customer_id = x; cb(err))
-            (cb) =>
-                if not customer_id?
-                    cb("no customer information so can't delete source")
-                else
-                    @_stripe.customers.deleteCard(customer_id, mesg.card_id, cb)
-            (cb) =>
-                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-        ], (err) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_set_default_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_set_default_source")
-        dbg("set a payment method for this user to be the default")
-        if not @ensure_fields(mesg, 'card_id')
-            dbg("missing field card_id")
-            return
-        customer_id = undefined
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, (err, x) => customer_id = x; cb(err))
-            (cb) =>
-                if not customer_id?
-                    cb("no customer information so can't update source")
-                else
-                    dbg("now setting the default source in stripe")
-                    @_stripe.customers.update(customer_id, {default_source:mesg.card_id}, cb)
-            (cb) =>
-                dbg("update database")
-                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id,  cb: cb)
-        ], (err) =>
-            if err
-                dbg("failed -- #{err}")
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                dbg("success")
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_update_source: (mesg) =>
-        dbg = @dbg("mesg_stripe_update_source")
-        dbg("modify a payment method")
-
-        if not @ensure_fields(mesg, 'card_id info')
-            return
-        if mesg.info.metadata?
-            @error_to_client(id:mesg.id, error:"you may not change card metadata")
-            return
-        customer_id = undefined
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, (err, x) => customer_id = x; cb(err))
-            (cb) =>
-                if not customer_id?
-                    cb("no customer information so can't update source")
-                else
-                    @_stripe.customers.updateCard(customer_id, mesg.card_id, mesg.info, cb)
-            (cb) =>
-                @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-        ], (err) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_plans: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_plans")
-        dbg("get descriptions of the available plans that the user might subscribe to")
-        async.series([
-            (cb) =>
-                @stripe_get_customer_id(mesg.id, cb)   # ensures @_stripe is defined below
-            (cb) =>
-                @_stripe.plans.list (err, plans) =>
-                    if err
-                        @stripe_error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
-        ])
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_create_subscription: (mesg) =>
-        dbg = @dbg("mesg_stripe_create_subscription")
-        dbg("create a subscription for this user, using some billing method")
-        if not @ensure_fields(mesg, 'plan')
-            @stripe_error_to_client(id:mesg.id, error:"missing field 'plan'")
-            return
-
-        schema = require('smc-util/schema').PROJECT_UPGRADES.subscription[mesg.plan.split('-')[0]]
-        if not schema?
-            @stripe_error_to_client(id:mesg.id, error:"unknown plan -- '#{mesg.plan}'")
-            return
-
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                dbg("fail -- #{err}")
-                return
-            projects = mesg.projects
-            if not mesg.quantity?
-                mesg.quantity = 1
-
-            options =
-                plan     : mesg.plan
-                quantity : mesg.quantity
-                coupon   : mesg.coupon_id
-
-            subscription = undefined
-            tax_rate = undefined
-            async.series([
-                (cb) =>
-                    dbg('determine applicable tax')
-                    require('./stripe/sales-tax').stripe_sales_tax
-                        customer_id : customer_id
-                        cb          : (err, rate) =>
-                            tax_rate = rate
-                            dbg("tax_rate = #{tax_rate}")
-                            if tax_rate
-                                # CRITICAL: if we don't just multiply by 100, since then sometimes
-                                # stripe comes back with an error like this
-                                #    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
-                                options.tax_percent = Math.round(tax_rate*100*100)/100
-                            cb(err)
-                (cb) =>
-                    dbg("add customer subscription to stripe")
-                    @_stripe.customers.createSubscription customer_id, options, (err, s) =>
-                        if err
-                            cb(err)
-                        else
-                            subscription = s
-                            cb()
-                (cb) =>
-                    if schema.cancel_at_period_end
-                        dbg("Setting subscription to cancel at period end")
-                        @_stripe.customers.cancelSubscription(customer_id, subscription.id, {at_period_end:true}, cb)
-                    else
-                        cb()
-                (cb) =>
-                    dbg("Successfully added subscription; now save info in our database about subscriptions....")
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-                (cb) =>
-                    if not options.coupon
-                        cb()
-                        return
-                    dbg("add coupon to customer history")
-                    @validate_coupon options.coupon, (err, coupon, coupon_history) =>
-                        if err
-                            cb(err)
-                            return
-                        coupon_history[coupon.id] += 1
-                        @database.update_coupon_history
-                            account_id     : @account_id
-                            coupon_history : coupon_history
-                            cb             : cb
-            ], (err) =>
-                if err
-                    dbg("fail -- #{err}")
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-            )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_cancel_subscription: (mesg) =>
-        dbg = @dbg("mesg_stripe_cancel_subscription")
-        dbg("cancel a subscription for this user")
-        if not @ensure_fields(mesg, 'subscription_id')
-            dbg("missing field subscription_id")
-            return
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            projects        = undefined
-            subscription_id = mesg.subscription_id
-            async.series([
-                (cb) =>
-                    dbg("cancel the subscription at stripe")
-                    # This also returns the subscription, which lets
-                    # us easily get the metadata of all projects associated to this subscription.
-                    @_stripe.customers.cancelSubscription(customer_id, subscription_id, {at_period_end:mesg.at_period_end}, cb)
-                (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-            ], (err) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-            )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_update_subscription: (mesg) =>
-        dbg = @dbg("mesg_stripe_update_subscription")
-        dbg("edit a subscription for this user")
-        if not @ensure_fields(mesg, 'subscription_id')
-            dbg("missing field subscription_id")
-            return
-        subscription_id = mesg.subscription_id
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            subscription = undefined
-            async.series([
-                (cb) =>
-                    dbg("Update the subscription.")
-                    changes =
-                        quantity : mesg.quantity
-                        plan     : mesg.plan
-                        coupon   : mesg.coupon_id
-                    @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
-                (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
-                (cb) =>
-                    if not mesg.coupon_id
-                        cb()
-
-                    if mesg.coupon_id
-                        @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
-                            if err
-                                cb(err)
-                                return
-                            coupon_history[coupon.id] += 1
-                            @database.update_coupon_history
-                                account_id     : @account_id
-                                coupon_history : coupon_history
-                                cb             : cb
-            ], (err) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @success_to_client(id:mesg.id)
-            )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_subscriptions: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_subscriptions")
-        dbg("get a list of all the subscriptions that this customer has")
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            options =
-                limit          : mesg.limit
-                ending_before  : mesg.ending_before
-                starting_after : mesg.starting_after
-            @_stripe.customers.listSubscriptions customer_id, options, (err, subscriptions) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_coupon: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_coupon")
-        dbg("get the coupon with id == #{mesg.coupon_id}")
-        if not @ensure_fields(mesg, 'coupon_id')
-            dbg("missing field coupon_id")
-            return
-        @validate_coupon mesg.coupon_id, (err, coupon) =>
-            if err
-                @stripe_error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
-
-    # Checks these coupon criteria:
-    # - Exists
-    # - Is valid
-    # - Used by this account less than the max per account (hard coded default is 1)
-    # Calls cb(err, coupon, coupon_history)
-    validate_coupon: (coupon_id, cb) =>
-        dbg = @dbg("validate_coupon")
-        @_stripe = get_stripe()
-        async.series([
-            (local_cb) =>
-                dbg("retrieve the coupon")
-                @_stripe.coupons.retrieve(coupon_id, local_cb)
-            (local_cb) =>
-                dbg("check account coupon_history")
-                @database.get_coupon_history
-                    account_id : @account_id
-                    cb         : local_cb
-        ], (err, [coupon, coupon_history]) =>
-            if err
-                cb(err)
-                return
-            if not coupon.valid
-                cb("Sorry! This coupon has expired.")
-                return
-            coupon_history ?= {}
-            times_used = coupon_history[coupon.id] ? 0
-            if times_used >= (coupon.metadata.max_per_account ? 1)
-                cb("You've already used this coupon.")
-                return
-
-            coupon_history[coupon.id] = times_used
-            cb(err, coupon, coupon_history)
-        )
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_charges: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_charges")
-        dbg("get a list of charges for this customer.")
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            options =
-                customer       : customer_id
-                limit          : mesg.limit
-                ending_before  : mesg.ending_before
-                starting_after : mesg.starting_after
-            @_stripe.charges.list options, (err, charges) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_charges(id:mesg.id, charges:charges))
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_get_invoices: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_invoices")
-        dbg("get a list of invoices for this customer.")
-        @stripe_need_customer_id mesg.id, (err, customer_id) =>
-            if err
-                return
-            options =
-                customer       : customer_id
-                limit          : mesg.limit
-                ending_before  : mesg.ending_before
-                starting_after : mesg.starting_after
-            @_stripe.invoices.list options, (err, invoices) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
+        @handle_stripe_mesg(mesg)
 
     mesg_stripe_admin_create_invoice_item: (mesg) =>
-        dbg = @dbg("mesg_stripe_admin_create_invoice_item")
-        @_stripe = get_stripe()
-        if not @_stripe?
-            err = "stripe billing not configured"
-            dbg(err)
-            @error_to_client(id:id, error:err)
-            return
-        customer_id = undefined
-        description = undefined
-        email       = undefined
-        new_customer = true
-        async.series([
-            (cb) =>
-                @assert_user_is_in_group('admin', cb)
-            (cb) =>
-                dbg("check for existing stripe customer_id")
-                @database.get_account
-                    columns       : ['stripe_customer_id', 'email_address', 'first_name', 'last_name', 'account_id']
-                    account_id    : mesg.account_id
-                    email_address : mesg.email_address
-                    cb            : (err, r) =>
-                        if err
-                            cb(err)
-                        else
-                            customer_id = r.stripe_customer_id
-                            email = r.email_address
-                            description = "#{r.first_name} #{r.last_name}"
-                            mesg.account_id = r.account_id
-                            cb()
-            (cb) =>
-                if customer_id?
-                    new_customer = false
-                    dbg("already signed up for stripe -- sync local user account with stripe")
-                    @database.stripe_update_customer
-                        account_id  : mesg.account_id
-                        stripe      : get_stripe()
-                        customer_id : customer_id
-                        cb          : cb
-                else
-                    dbg("create stripe entry for this customer")
-                    x =
-                        description : description
-                        email       : email
-                        metadata    :
-                            account_id : mesg.account_id
-                    @_stripe.customers.create x, (err, customer) =>
-                        if err
-                            cb(err)
-                        else
-                            customer_id = customer.id
-                            cb()
-            (cb) =>
-                if not new_customer
-                    cb()
-                else
-                    dbg("store customer id in our database")
-                    @database.set_stripe_customer_id
-                        account_id  : mesg.account_id
-                        customer_id : customer_id
-                        cb          : cb
-            (cb) =>
-                if not (mesg.amount? and mesg.description?)
-                    dbg("no amount or description -- not creating an invoice")
-                    cb()
-                else
-                    dbg("now create the invoice item")
-                    @_stripe.invoiceItems.create
-                        customer    : customer_id
-                        amount      : mesg.amount*100
-                        currency    : "usd"
-                        description : mesg.description
-                    ,
-                        (err, invoice_item) =>
-                            if err
-                                cb(err)
-                            else
-                                cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @success_to_client(id:mesg.id)
-        )
+        @handle_stripe_mesg(mesg)
 
+    mesg_get_available_upgrades: (mesg) =>
+        mesg.event = 'stripe_get_available_upgrades'  # for backward compat
+        @handle_stripe_mesg(mesg)
+
+    mesg_remove_all_upgrades: (mesg) =>
+        mesg.event = 'stripe_remove_all_upgrades'     # for backward compat
+        @handle_stripe_mesg(mesg)
+
+    #  END stripe-related functionality
 
     mesg_api_key: (mesg) =>
         api_key_action
@@ -2518,58 +1970,151 @@ class exports.Client extends EventEmitter
             if not misc.is_array(metric?.values)
                 # what?
                 return
+            if metric.values.length == 0
+                return
             for v in metric.values
                 if not misc.is_object(v?.labels)
                     # what?
                     return
-                v.labels.client_id  = @id
-                v.labels.account_id = @account_id
+            switch metric.type
+                when 'gauge'
+                    metric.aggregator = 'average'
+                else
+                    metric.aggregator = 'sum'
+
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
 
-    mesg_get_available_upgrades: (mesg) =>
-        dbg = @dbg("mesg_get_available_upgrades")
-        locals = {}
+    _check_project_access: (project_id, cb) =>
+        if not @account_id?
+            cb('you must be signed in to access project')
+            return
+        if not misc.is_valid_uuid_string(project_id)
+            cb('project_id must be specified and valid')
+            return
+        access.user_has_write_access_to_project
+            database       : @database
+            project_id     : project_id
+            account_groups : @groups
+            account_id     : @account_id
+            cb             : (err, result) =>
+                if err
+                    cb(err)
+                else if not result
+                    cb("must have write access")
+                else
+                    cb()
+
+    _check_syncdoc_access: (string_id, cb) =>
+        if not @account_id?
+            cb('you must be signed in to access syncdoc')
+            return
+        if not typeof string_id == 'string' and string_id.length == 40
+            cb('string_id must be specified and valid')
+            return
+        @database._query
+            query : "SELECT project_id FROM syncstrings"
+            where : {"string_id = $::CHAR(40)" : string_id}
+            cb    : (err, results) =>
+                if err
+                    cb(err)
+                else if results.rows.length != 1
+                    cb("no such syncdoc")
+                else
+                    project_id = results.rows[0].project_id
+                    @_check_project_access(project_id, cb)
+
+    mesg_disconnect_from_project: (mesg) =>
+        dbg = @dbg('mesg_disconnect_from_project')
+        @_check_project_access mesg.project_id, (err) =>
+            if err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"unable to disconnect from project #{mesg.project_id} -- #{err}")
+            else
+                local_hub_connection.disconnect_from_project(mesg.project_id)
+                @push_to_client(message.success(id:mesg.id))
+
+    mesg_touch_project: (mesg) =>
+        dbg = @dbg('mesg_touch_project')
         async.series([
             (cb) =>
-                dbg("get stripe id")
-                @stripe_get_customer_id @account_id, (err, id) =>
-                    locals.id = id
-                    cb(err)
+                dbg("checking conditions")
+                @_check_project_access(mesg.project_id, cb)
             (cb) =>
-                dbg("get stripe customer data")
-                @stripe_get_customer locals.id, (err, stripe_customer) =>
-                    locals.stripe_data = stripe_customer?.subscriptions?.data
-                    cb(err)
+                @touch
+                    project_id : mesg.project_id
+                    action     : 'touch'
+                    cb         : cb
             (cb) =>
-                dbg("get user project upgrades")
-                @database.get_user_project_upgrades
-                    account_id : @account_id
-                    cb         : (err, projects) =>
-                        locals.projects = projects
-                        cb(err)
+                f = @database.ensure_connection_to_project
+                if f?
+                    dbg("also create socket connection (so project can query db, etc.)")
+                    # We do NOT block on this -- it can take a while.
+                    f(mesg.project_id)
+                cb()
         ], (err) =>
             if err
-                @error_to_client(id:mesg.id, error:err)
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"unable to touch project #{mesg.project_id} -- #{err}")
             else
-                locals.x = compute_upgrades.available_upgrades(locals.stripe_data, locals.projects)
-                locals.resp = message.available_upgrades
-                    id        : mesg.id
-                    total     : compute_upgrades.get_total_upgrades(locals.stripe_data)
-                    excess    : locals.x.excess
-                    available : locals.x.available
-                @push_to_client(locals.resp)
+                @push_to_client(message.success(id:mesg.id))
         )
 
-    mesg_remove_all_upgrades: (mesg) =>
-        dbg = @dbg("mesg_remove_all_upgrades")
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:'you must be signed in')
-            return
-        @database.remove_all_user_project_upgrades
-            account_id : @account_id
-            cb         : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
+    mesg_get_syncdoc_history: (mesg) =>
+        dbg = @dbg('mesg_syncdoc_history')
+        try
+            dbg("checking conditions")
+            # this raises an error if user does not have access
+            await callback(@_check_syncdoc_access, mesg.string_id)
+            # get the history
+            history = await @database.syncdoc_history_async(mesg.string_id, mesg.patches)
+            dbg("success!")
+            @push_to_client(message.syncdoc_history(id:mesg.id, history:history))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}")
+
+    mesg_user_tracking: (mesg) =>
+        dbg = @dbg("mesg_user_tracking")
+        try
+            if not @account_id
+                throw Error("you must be signed in to record a tracking event")
+            await record_user_tracking(@database, @account_id, mesg.evt, mesg.value)
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"unable to record user_tracking event #{mesg.evt} -- #{err}")
+
+    mesg_admin_reset_password: (mesg) =>
+        dbg = @dbg("mesg_reset_password")
+        dbg(mesg.email_address)
+        try
+            if not misc.is_valid_email_address(mesg.email_address)
+                throw Error("invalid email address")
+            await callback(@assert_user_is_in_group, 'admin')
+            if not await callback2(@database.account_exists, {email_address : mesg.email_address})
+                throw Error("no such account with email #{mesg.email_address}")
+            # We now know that there is an account with this email address.
+            # put entry in the password_reset uuid:value table with ttl of 8 hours.
+            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:8*60*60});
+            mesg.link = "/app#forgot-#{id}"
+            @push_to_client(mesg)
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_admin_ban_user: (mesg) =>
+        dbg = @dbg("mesg_admin_ban_user")
+        dbg(mesg.account_id)
+        try
+            if mesg.ban
+                dbg("banning the user")
+                await callback2(@database.ban_user, {account_id:mesg.account_id})
+                await callback2(@database.invalidate_all_remember_me, {account_id:mesg.account_id})
+            else
+                dbg("unbanning the user")
+                await callback2(@database.unban_user, {account_id:mesg.account_id})
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")

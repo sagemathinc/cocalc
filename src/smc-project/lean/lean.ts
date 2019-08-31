@@ -2,9 +2,9 @@ import { isEqual } from "underscore";
 
 import * as lean_client from "lean-client-js-node";
 import { callback, delay } from "awaiting";
+import { once } from "../smc-util/async-utils";
+import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
-
-import { path_split } from "../smc-webapp/frame-editors/generic/misc";
 
 type SyncString = any;
 type Client = any;
@@ -34,6 +34,7 @@ export class Lean extends EventEmitter {
 
   constructor(client: Client) {
     super();
+    this.server = reuseInFlight(this.server);
     this.client = client;
     this.dbg = this.client.dbg("LEAN SERVER");
     this.running = {};
@@ -50,12 +51,23 @@ export class Lean extends EventEmitter {
     return !!this.running[path] && now() - this.running[path] < SYNC_INTERVAL;
   }
 
-  server(): LeanServer {
+  // nothing actually async in here... yet.
+  private async server(): Promise<LeanServer> {
     if (this._server != undefined) {
-      return this._server;
+      if (this._server.alive()) {
+        return this._server;
+      }
+      // Kill cleans up any assumptions about stuff
+      // being sync'd.
+      this.kill();
+      // New server will now be created... below.
     }
     this._server = new lean_client.Server(
-      new lean_client.ProcessTransport("lean", ".", [])
+      new lean_client.ProcessTransport(
+        "lean",
+        process.env.HOME ? process.env.HOME : ".", // satisfy typescript.
+        []
+      )
     );
     this._server.error.on(err => this.dbg("error:", err));
     this._server.allMessages.on(allMessages => {
@@ -73,7 +85,22 @@ export class Lean extends EventEmitter {
       }
 
       for (let path in this._state.paths) {
-        if (!isEqual(this._state.paths[path], new_messages[path])) {
+        this.dbg("messages for ", path, new_messages[path]);
+        if (new_messages[path] === undefined) {
+          new_messages[path] = [];
+        }
+        this.dbg(
+          "messages for ",
+          path,
+          new_messages[path],
+          this._state.paths[path]
+        );
+        // length 0 is a special case needed when going from pos number of messages to none.
+        if (
+          new_messages[path].length === 0 ||
+          !isEqual(this._state.paths[path], new_messages[path])
+        ) {
+          this.dbg("messages for ", path, "EMIT!");
           this.emit("messages", path, new_messages[path]);
           this._state.paths[path] = new_messages[path];
         }
@@ -97,7 +124,6 @@ export class Lean extends EventEmitter {
         }
         this.emit("tasks", path, v);
       }
-      const t = now();
       for (let path in this.running) {
         if (!running[path]) {
           this.dbg("server", path, " done; no longer running");
@@ -128,22 +154,15 @@ export class Lean extends EventEmitter {
       return;
     }
     // get the syncstring and start updating based on content
-    let s = undefined;
-    for (let i = 0; i < 60 && s === undefined; i++) {
-      s = this.client.sync_string({
-        path: path,
-        reference_only: true
-      });
-      if (s === undefined) {
-        this.dbg("register -- will try again", path);
+    let syncstring: any = undefined;
+    while (syncstring == null) { // todo change to be event driven!
+      syncstring = this.client.syncdoc({ path });
+      if (syncstring == null) {
         await delay(1000);
+      } else if (syncstring.get_state() != "ready") {
+        await once(syncstring, "ready");
       }
     }
-    if (s === undefined) {
-      this.dbg("register -- failed", path);
-      return; // failed to register
-    }
-    const syncstring = s as SyncString;
     const on_change = async () => {
       this.dbg("sync", path);
       if (syncstring._closed) {
@@ -176,7 +195,7 @@ export class Lean extends EventEmitter {
       this.running[path] = now();
       this.paths[path].changed = false;
       this.dbg("sync", path, "causing server sync now");
-      await this.server().sync(path, value);
+      await (await this.server()).sync(path, value);
       this.emit("sync", path, syncstring.hash_of_live_version());
     };
     this.paths[path] = {
@@ -187,7 +206,7 @@ export class Lean extends EventEmitter {
     if (!syncstring._closed) {
       on_change();
     }
-    syncstring.on("close", () => {
+    syncstring.on("closed", () => {
       this.unregister(path);
     });
   }
@@ -218,6 +237,16 @@ export class Lean extends EventEmitter {
     }
   }
 
+  async restart(): Promise<void> {
+    this.dbg("restart");
+    if (this._server != undefined) {
+      for (let path in this.paths) {
+        this.unregister(path);
+      }
+      await this._server.restart();
+    }
+  }
+
   async info(
     path: string,
     line: number,
@@ -228,7 +257,7 @@ export class Lean extends EventEmitter {
       this.register(path);
       await callback(cb => this.once(`sync-#{path}`, cb));
     }
-    return await this.server().info(path, line, column);
+    return await (await this.server()).info(path, line, column);
   }
 
   async complete(
@@ -242,7 +271,18 @@ export class Lean extends EventEmitter {
       this.register(path);
       await callback(cb => this.once(`sync-#{path}`, cb));
     }
-    return await this.server().complete(path, line, column, skipCompletions);
+    const resp = await (await this.server()).complete(
+      path,
+      line,
+      column,
+      skipCompletions
+    );
+    //this.dbg("complete response", path, line, column, resp);
+    return resp;
+  }
+
+  async version(): Promise<string> {
+    return (await this.server()).getVersion();
   }
 
   // Return state of parsing for everything that is currently registered.

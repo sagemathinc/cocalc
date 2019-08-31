@@ -87,13 +87,18 @@ class exports.ExamplesActions extends Actions
         code               = @get('code')
         setup_code         = @get('setup_code')
         prepend_setup_code = @get('prepend_setup_code')
+
+        # "code" is an immutable list
+        code = code.toArray()
         if (prepend_setup_code) and (setup_code?.length > 0)
-            code = "#{setup_code}\n#{code}"
+            code.unshift(setup_code)
+
         @store.log()
         ret =
             code  : code
             lang  : @get('lang')
             descr : if descr then @get('descr') else null
+            cell_id : @get('cell_id')
         @get('handler')?(ret)
 
     load_data: () ->
@@ -154,8 +159,9 @@ class exports.ExamplesActions extends Actions
     search_selected: (idx) ->
         # why is @get('hits') immutable ?
         [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
-        doc = @store.data_lang().getIn([lvl1, lvl2, 'entries', lvl3])
-        @show_doc(doc)
+        lang = @store.data_lang()
+        doc = lang.getIn([lvl1, lvl2, 'entries', lvl3])
+        @show_doc(lang, lvl1, lvl2, doc)
         @set(search_sel : idx)
 
     # keyboard handling for the search list
@@ -177,12 +183,54 @@ class exports.ExamplesActions extends Actions
         @set(search_sel : new_sel)
         @search_selected(new_sel)
 
+    generate_setup_code: (lang, lvl1, lvl2, doc) ->
+        setup = lang.getIn([lvl1, lvl2, 'setup'])
+        vars  = lang.getIn([lvl1, lvl2, 'variables'])
+        code  = doc.getIn([1, 0])
+
+        if typeof code != 'string'
+            code = code.toArray().join('\n')
+
+        # extra setup on top
+        extra = undefined
+        # given we have a "variables" dictionary, we check
+        if vars?
+            # ... each line for variables inside of function calls
+            # assuming function calls are after the first open ( bracket
+            re = /\b([a-zA-Z_0-9]+)/g
+            # all detected variable names are collected in that array
+            varincode = []
+            for line in code.split('\n')
+                if '(' in line
+                    line = line[line.indexOf('(')...]
+                line.replace(re, ((_, g) -> varincode.push(g)))
+            # then we add name = values lines to set only these
+            # TODO syntax needs to be language specific!
+            extra = vars
+                .filter(((v,k) -> varincode.includes(k)))
+                .entrySeq()
+                .map((([k,v]) -> "#{k} = #{v}"))
+                .toJS()
+            if extra.length > 0
+                extra = extra.join('\n')
+
+        ret = ''
+        if setup?
+            ret += "#{setup}"
+        if extra?
+            ret += "\n#{extra}"
+        return ret
+
     # for a specific document, set the code and description box values.
-    show_doc: (doc) ->
+    show_doc: (lang, lvl1, lvl2, doc) ->
+        code = doc.getIn([1, 0])
+        if typeof code == "string"
+            code = immutable.List([code])
         @set(
-            code        : doc.getIn([1, 0])
+            code        : code
             descr       : doc.getIn([1, 1])
             submittable : true
+            setup_code  : @generate_setup_code(lang, lvl1, lvl2, doc)
         )
 
     # key handling for the categories selection.
@@ -250,11 +298,12 @@ class exports.ExamplesActions extends Actions
         switch level
             when 0, 1
                 @set(
-                    code        : ''
-                    descr       : ''
+                    code        : null
+                    descr       : null
                     category2   : null
                     submittable : false
                     setup_code  : ''
+                    variables   : null
                 )
 
         switch level
@@ -286,7 +335,6 @@ class exports.ExamplesActions extends Actions
                 k1    = @get('category_list1').get(@get('category1'))
                 idx   = if idx == -1 then @get('category_list2').size - 1 else idx
                 doc   = lang.getIn([k0, k1, 'entries', idx])
-                setup = lang.getIn([k0, k1, 'setup'])
-                @set(category2:idx, setup_code:setup)
-                @show_doc(doc)
+                @set(category2:idx)
+                @show_doc(lang, k0, k1, doc)
 

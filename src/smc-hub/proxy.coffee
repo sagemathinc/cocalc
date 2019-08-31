@@ -24,6 +24,7 @@ HTTP Proxy Server, which passes requests directly onto http
 servers running on project vm's
 ###
 
+Cookies = require('cookies')            # https://github.com/jed/cookies
 async   = require('async')
 winston = require('./winston-metrics').get_logger('proxy')
 http_proxy = require('http-proxy')
@@ -41,7 +42,39 @@ hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
 
+{once} = require('smc-util/async-utils')
+
 DEBUG2 = false
+
+# async
+server_settings = undefined
+exports.init_smc_version = init_smc_version = (db) ->
+    winston.debug("init_smc_version: ")
+    if db.is_standby
+        return
+    server_settings = require('./server-settings')(db)
+    if server_settings.table._state == 'init'
+        winston.debug("init_smc_version: Waiting for init to finish")
+        await once(server_settings.table, 'init')
+    winston.debug("init_smc_version: Table now ready!", server_settings.version)
+
+exports.version_check = (req, res, base_url) ->
+    c = new Cookies(req)
+    # The arbitrary name of the cookie 'cocalc_version' is
+    # also used in the frontend code file
+    #     smc-webapp/set-version-cookie.js
+    # The encodeURIComponent below is because js-cookie does
+    # the same in order to *properly* deal with / characters.
+    version = parseInt(c.get(encodeURIComponent(base_url) + 'cocalc_version'))
+    min_version = server_settings.version.version_min_browser
+    winston.debug('client version_check', version, min_version)
+    if isNaN(version) or version < min_version
+        if res?
+            res.writeHead(500, {'Content-Type':'text/html'})
+            res.end("REFRESH YOUR BROWSER -- version=#{version} < required_version=#{min_version}")
+        return true
+    else
+        return false
 
 # In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
 # passing anything along via the proxy.
@@ -93,6 +126,13 @@ exports.init_http_proxy_server = (opts) ->
 
     winston.debug("init_http_proxy_server")
 
+    winston.debug("init_smc_version: start...")
+    await init_smc_version(opts.database)
+    winston.debug("init_smc_version: done")
+
+    # Checks for access to project, and in case of write access,
+    # also touch's project thus recording that user is interested
+    # in this project (which sets the last_active time).
     _remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -135,7 +175,10 @@ exports.init_http_proxy_server = (opts) ->
                                 cb("User does not have write access to project.")
                             else
                                 has_access = true
-                                cb()
+                                # Record that user is going to actively access
+                                # this project.  This is important since it resets
+                                # the idle timeout.
+                                database.touch(account_id:account_id, project_id:opts.project_id, cb:cb)
                 else
                     access.user_has_read_access_to_project
                         project_id : opts.project_id
@@ -300,18 +343,17 @@ exports.init_http_proxy_server = (opts) ->
                     t = {host:host, port:port}
                     _target_cache[key] = t
                     cb(false, t, internal_url)
-                    if type == 'raw'
-                        # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                        # but also if a new user is granted permission to the project they didn't have, or the project server
-                        # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
-                        # and any could cause a project restart at any time, we just timeout this.
-                        # This helps enormously when there is a burst of requests.
-                        # Also if project restarts the raw port will change and we don't want to have
-                        # fix this via getting an error.
+                    # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                    # but also if a new user is granted permission to the project they didn't have, or the project server
+                    # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
+                    # and any could cause a project restart at any time, we just timeout this.
+                    # This helps enormously when there is a burst of requests.
+                    # Also if project restarts the raw port will change and we don't want to have
+                    # fix this via getting an error.
 
-                        # Also, if the project stops and starts, the host=ip address could change, so
-                        # we need to timeout so we see that...
-                        setTimeout((->delete _target_cache[key]), 30*1000)
+                    # Also, if the project stops and starts, the host=ip address could change, so
+                    # we need to timeout so we see that...
+                    setTimeout((->delete _target_cache[key]), 30*1000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)
@@ -331,6 +373,10 @@ exports.init_http_proxy_server = (opts) ->
             if DEBUG2
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
+
+        if exports.version_check(req, res, base_url)
+            dbg("version check failed")
+            return
 
         # Before doing anything further with the request on to the proxy, we remove **all** cookies whose
         # name contains "remember_me", to prevent the project backend from getting at
@@ -408,6 +454,11 @@ exports.init_http_proxy_server = (opts) ->
 
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
+
+        if exports.version_check(req, undefined, base_url)
+            dbg("websocket upgrade -- version check failed")
+            return
+
         target undefined, req_url, (err, location, internal_url) ->
             if err
                 dbg("websocket upgrade error -- #{err}")

@@ -18,7 +18,7 @@ const websocket_proxy_cache = {};
 const hub_proxy = require("../proxy");
 
 import { createProxyServer } from "http-proxy";
-import { callback_opts } from "../../smc-webapp/frame-editors/generic/async-utils";
+import { callback_opts } from "smc-util/async-utils";
 
 function target_parse_req(
   url: string
@@ -45,11 +45,11 @@ async function raw_server_port(
 }
 
 async function get_port(
-  port_number:string,
+  port_number: string,
   type: string,
   project_id: string,
   compute_server: any,
-  database?: any,
+  database?: any
 ): Promise<string> {
   if (type === "raw") {
     return await raw_server_port(project_id, compute_server);
@@ -64,14 +64,20 @@ async function get_port(
   }
 }
 
-export function init_http_proxy(
+export async function init_http_proxy(
   express_app: any,
   database: any,
   base_url: string,
   compute_server: any,
   logger: any
-): void {
+): Promise<void> {
+  await hub_proxy.init_smc_version(database);
+
   async function handle_proxy_request(req, res): Promise<void> {
+    if (hub_proxy.version_check(req, res, base_url)) {
+      logger.debug("http_proxy: version check failed");
+      return;
+    }
     if (req.headers["cookie"] != null) {
       req.headers["cookie"] = hub_proxy.strip_remember_me_cookie(
         req.headers["cookie"]
@@ -91,7 +97,13 @@ export function init_http_proxy(
     logger.debug(`http_proxy: req_url='${req_url}', port='${port_number}'`);
     let port;
     try {
-      port = await get_port(port_number, type, project_id, compute_server, database);
+      port = await get_port(
+        port_number,
+        type,
+        project_id,
+        compute_server,
+        database
+      );
     } catch (err) {
       res.status(500).send(`internal error: ${err}`);
       return;
@@ -138,6 +150,10 @@ export function init_websocket_proxy(
   logger: any
 ): void {
   async function handle_upgrade(req, socket, head): Promise<void> {
+    if (hub_proxy.version_check(req, undefined, base_url)) {
+      logger.debug("http_proxy: websocket upgrade -- version check failed");
+      return;
+    }
     let proxy;
     const req_url = req.url.slice(base_url.length);
     logger.debug(`websocket_proxy.handle_upgrade: "${req_url}"`);
@@ -152,7 +168,13 @@ export function init_websocket_proxy(
     logger.debug("websocket", "upgrade -- creating proxy");
     let port;
     try {
-      port = await get_port(port_number, type, project_id, compute_server, database);
+      port = await get_port(
+        port_number,
+        type,
+        project_id,
+        compute_server,
+        database
+      );
     } catch (err) {
       // TODO: I don't know how to fail this...
       //res.status(500).send(`internal error: ${err}`);

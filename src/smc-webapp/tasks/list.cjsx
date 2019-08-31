@@ -14,11 +14,10 @@ misc = require('smc-util/misc')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
+{WindowedList} = require('../r_misc/windowed-list')
+
 {Task} = require('./task')
 SortableTask = SortableElement(Task)
-
-MIN_SHOW = 25
-SHOW_INC = 50
 
 exports.TaskList = SortableContainer rclass
     propTypes :
@@ -32,15 +31,16 @@ exports.TaskList = SortableContainer rclass
         full_desc         : rtypes.immutable.Set  # id's of tasks for which show full description
         scroll            : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
         scroll_into_view  : rtypes.bool
-        style             : rtypes.object
         font_size         : rtypes.number
         sortable          : rtypes.bool
         read_only         : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
         search_terms      : rtypes.immutable.Set
-        show_max          : rtypes.number         # max number of tasks to show
 
     shouldComponentUpdate: (next) ->
+        if @props.visible != next.visible
+            @windowed_list_ref.current.refresh()
+
         return @props.tasks             != next.tasks or \
                @props.visible           != next.visible or \
                @props.current_task_id   != next.current_task_id or \
@@ -50,12 +50,7 @@ exports.TaskList = SortableContainer rclass
                @props.sortable          != next.sortable or \
                @props.read_only         != next.read_only or \
                @props.selected_hashtags != next.selected_hashtags or \
-               @props.search_terms      != next.search_terms or \
-               @props.show_max          != next.show_max
-
-    componentDidMount: ->
-        if @props.scroll?
-            ReactDOM.findDOMNode(@refs.main_div)?.scrollTop = @props.scroll.get('scrollTop')
+               @props.search_terms      != next.search_terms
 
     componentWillUnmount: ->
         @save_scroll_position()
@@ -71,15 +66,18 @@ exports.TaskList = SortableContainer rclass
     _scroll_into_view: ->
         if not @props.current_task_id?
             return
-        elt = $(ReactDOM.findDOMNode(@refs.main_div))
-        cur = $(ReactDOM.findDOMNode(@refs[@props.current_task_id]))
-        if cur.length == 0
+        # Figure out the index of current_task_id.
+        index = @props.visible.indexOf(@props.current_task_id)
+        if index == -1
             return
-        if cur.length > 0
-            # use jquery because it works!?
-            cur.scrollintoview(direction:'vertical', viewPadding: { y: 50 })
+        @windowed_list_ref?.current?.scrollToRow(index)
 
     render_task: (index, task_id) ->
+        if index == @props.visible.size
+            # Empty div at the bottom makes it possible to scroll
+            # the calendar into view...
+            return <div style={height:'300px'} />
+
         task = @props.tasks.get(task_id)
         if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
             return
@@ -116,66 +114,33 @@ exports.TaskList = SortableContainer rclass
         />
 
     render_tasks: ->
-        x = []
-        index = 0
-        @props.visible.forEach (task_id) =>
-            x.push(@render_task(index, task_id))
-            index += 1
-            if @props.show_max? and index >= @props.show_max
-                return false
-            return
-        return x
+        @windowed_list_ref ?= React.createRef()
+
+        return <WindowedList
+          ref = {@windowed_list_ref}
+          overscan_row_count = {10}
+          estimated_row_size={44}
+          row_count={@props.visible.size+1}
+          row_renderer={(obj) => @render_task(obj.index, obj.key)}
+          row_key={(index) => @props.visible.get(index) ? 'filler'}
+          cache_id={@props.actions.name}
+          scroll_top={@props.scroll?.get('scrollTop')}
+          hide_resize={false}
+        />
+        # hide_resize is false so drag and drop works.
 
     save_scroll_position: ->
         if not @props.actions?
             return
-        node = ReactDOM.findDOMNode(@refs.main_div)
-        if node?
-            @props.actions.set_local_view_state(scroll: {scrollTop:node.scrollTop})
-
-    show_more: ->
-        @props.actions.set_show_max(@props.show_max + SHOW_INC)
-
-    show_less: ->
-        @props.actions.set_show_max(Math.max(MIN_SHOW, @props.show_max - SHOW_INC))
-
-    render_show_more: (num_hidden) ->
-        <div key={'more'} style={marginTop:'10px'}>
-            <Button style={minWidth:'150px'} onClick={@show_more}>
-                <Icon name={'plus'}/> Show {Math.min(num_hidden, SHOW_INC)} More
-            </Button>
-        </div>
-
-    render_show_less: ->
-        <div key={'less'} style={marginTop:'10px'}>
-            <Button style={minWidth:'150px'} onClick={@show_less}>
-                <Icon name={'minus'}/> Show {SHOW_INC} Less
-            </Button>
-        </div>
-
-    render_show_more_less: ->
-        if not @props.show_max?
-            return
-        num_hidden = @props.visible.size - @props.show_max
-        v = []
-        if num_hidden > 0
-            v.push(<div key={'missing'}>Not showing {num_hidden} matching tasks.</div>)
-            if @props.actions?
-                v.push(@render_show_more(num_hidden))
-        if @props.actions? and @props.show_max >= MIN_SHOW + SHOW_INC
-            v.push(@render_show_less())
-        if v.length == 0
-            return
-        <div style={margin: '15px', color: '#666'}>
-            {v}
-        </div>
+        scrollTop = @windowed_list_ref?.current?.get_scroll()?.scrollTop
+        if scrollTop?
+            @props.actions.set_local_view_state(scroll: {scrollTop})
 
     on_click: (e) ->
         if e.target == @refs.main_div
             @props.actions.enable_key_handler()
 
     render: ->
-        <div style={@props.style} ref='main_div' onClick={@on_click}>
+        return <div className="smc-vfill" ref='main_div' onClick={@on_click}>
             {@render_tasks()}
-            {@render_show_more_less()}
         </div>

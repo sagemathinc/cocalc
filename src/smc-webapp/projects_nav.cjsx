@@ -34,6 +34,8 @@ feature = require('./feature')
 {Loading, Icon, Tip} = require('./r_misc')
 {NavTab} = require('./app_shared')
 
+{WebsocketIndicator} = require('./project/websocket/websocket-indicator')
+
 NavWrapper = ({style, children, id, className}) ->
     React.createElement(Nav, {style:style, id:id, className:className}, children)
 
@@ -42,7 +44,7 @@ SortableNav = SortableContainer(NavWrapper)
 
 GhostTab = (props) ->
     <NavItem
-        style = {flexShrink:'1', width:'200px', height:'40px', overflow: 'hidden'}
+        style = {flexShrink:'1', width:'200px', height:'36px', overflow: 'hidden'}
     />
 
 # Future: Combine ProjectTab and OpenProjectMenuItem into a HOC which takes NavItem and MenuItem respectively...
@@ -50,6 +52,7 @@ ProjectTab = rclass
     reduxProps:
         projects:
             public_project_titles : rtypes.immutable.Map
+            project_websockets : rtypes.immutable.Map
 
     propTypes:
         project        : rtypes.immutable.Map
@@ -75,11 +78,15 @@ ProjectTab = rclass
     componentDidUpdate: () ->
         @strip_href()
 
-
     close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
+
+    # middle mouse click closes
+    onMouseDown: (e) ->
+        #if e.button == 1
+        #    @close_tab(e)
 
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
@@ -113,10 +120,14 @@ ProjectTab = rclass
             name           = {@props.project_id}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
-            style          = {flexShrink:'1', width:'200px', maxWidth:'200px', height:'40px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
+            style          = {flexShrink:'1', width:'200px', maxWidth:'200px', height:'36px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref            = 'tab'
+            is_project     = {true}
         >
-            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
+            <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
+                <span style={{paddingRight:'5px'}}>
+                    <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
+                </span>
                 <Icon
                     name        = 'times'
                     onClick     = {@close_tab}
@@ -126,8 +137,8 @@ ProjectTab = rclass
             </div>
             <div style={project_name_styles}>
                 <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
-                    <Icon name={icon} style={fontSize:'20px'} />
-                    <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
+                    <Icon name={icon} />
+                    <span style={marginLeft: 5, position:'relative'}>{misc.trunc(title,24)}</span>
                 </Tip>
             </div>
         </SortableNavTab>
@@ -179,7 +190,7 @@ FullProjectsNav = rclass
         # it, when you make the screen skinny, the tabs get mangled looking.  DO NOT
         # delete without being aware of this!
         <div
-            style = {display:'flex', flex:'1', overflow:'hidden', height:'40px', margin:'0'}
+            style = {display:'flex', flex:'1', overflow:'hidden', height:'36px', margin:'0'}
         >
             <SortableNav
                 className            = "smc-project-tab-sorter"

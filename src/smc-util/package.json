@@ -4,23 +4,28 @@
   "description": "CoCalc code shared between the frontend and the backend",
   "main": "index.js",
   "scripts": {
-    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
+    "testsync": "cd sync && npx jest",
+    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -c *.coffee"
   },
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
   "dependencies": {
+    "@types/json-stable-stringify": "^1.0.32",
     "async": "^1.4.2",
+    "async-await-utils": "^2.0.4",
+    "awaiting": "^3.0.0",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
-    "coffeescript": "^2.1.0",
     "coffeelint": "^1.13.0",
+    "coffeescript": "^2.1.0",
     "immutable": "^3.7.5",
     "json-stable-stringify": "^1.0.1",
     "prop-types": "^15.5.10",
     "sha1": "^1.1.1",
-    "underscore": "^1.8.3",
+    "underscore": "^1.9.1",
+    "url-regex": "^5.0.0",
     "uuid": "^3.0.1"
   },
   "repository": {
@@ -28,12 +33,15 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "coffee-coverage": "^0.6.3",
+    "@types/jest": "^23.3.10",
+    "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
-    "mocha": "^2.3.3",
+    "jest": "^24.7.1",
+    "mocha": "^5.2.0",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
-    "sinon": "^1.17.2"
+    "sinon": "^1.17.2",
+    "ts-jest": "^23.10.5"
   }
 }

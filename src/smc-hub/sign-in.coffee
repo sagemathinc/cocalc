@@ -67,16 +67,16 @@ sign_in_check = (opts) ->
     s = sign_in_fails
     if s.email_m[email] > 3
         # A given email address is allowed at most 3 failed login attempts per minute
-        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     if s.email_h[email] > 30
         # A given email address is allowed at most 30 failed login attempts per hour.
-        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     if s.ip_m[ip] > 10
         # A given ip address is allowed at most 10 failed login attempts per minute.
-        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     if s.ip_h[ip] > 50
         # A given ip address is allowed at most 50 failed login attempts per hour.
-        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     return false
 
 exports.sign_in = (opts) ->
@@ -127,7 +127,7 @@ exports.sign_in = (opts) ->
 
     signed_in_mesg = undefined
     account = undefined
-    {api_key_action} = require('./api/manage')   # here, rather than at beginnig of file, due to some circular references...
+    {api_key_action} = require('./api/manage')   # here, rather than at beginning of file, due to some circular references...
 
     async.series([
         (cb) ->
@@ -138,9 +138,18 @@ exports.sign_in = (opts) ->
             # can be determined via the invite collaborators feature.
             opts.database.get_account
                 email_address : mesg.email_address
-                columns       : ['password_hash', 'account_id', 'passports']
+                columns       : ['password_hash', 'account_id', 'passports', 'banned']
                 cb            : (err, _account) ->
-                    account = _account; cb(err)
+                    if err
+                        cb(err)
+                        return
+                    account = _account
+                    dbg("account = #{JSON.stringify(account)}")
+                    if account.banned
+                        dbg("banned account!")
+                        cb("This account is BANNED.  Contact help@cocalc.com if you believe this is a mistake.")
+                        return
+                    cb()
         (cb) ->
             dbg("got account; now checking if password is correct...")
             auth.is_password_correct
@@ -154,9 +163,9 @@ exports.sign_in = (opts) ->
                         return
                     if not is_correct
                         if not account.password_hash
-                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot Password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot Password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@cocalc.com and we will sort this out.")
                         else
-                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot Password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot Password?' link.   If that doesn't work, email help@cocalc.com and we will sort this out.")
                     else
                         cb()
         # remember me
@@ -166,13 +175,11 @@ exports.sign_in = (opts) ->
                 cb(); return
             dbg("remember_me -- setting the remember_me cookie")
             signed_in_mesg = message.signed_in
-                id            : mesg.id
-                account_id    : account.account_id
-                email_address : mesg.email_address
-                remember_me   : false
-                hub           : opts.host + ':' + opts.port
-                utm           : mesg.utm
-                referrer      : mesg.referrer
+                id                : mesg.id
+                account_id        : account.account_id
+                email_address     : mesg.email_address
+                remember_me       : false
+                hub               : opts.host + ':' + opts.port
             client.remember_me
                 account_id    : signed_in_mesg.account_id
                 email_address : signed_in_mesg.email_address
@@ -262,10 +269,6 @@ exports.sign_in_using_auth_token = (opts) ->
     async.series([
         (cb) ->
             dbg("get account and check credentials")
-            # NOTE: Despite people complaining, we do give away info about whether
-            # the e-mail address is for a valid user or not.
-            # There is no security in not doing this, since the same information
-            # can be determined via the invite collaborators feature.
             opts.database.get_auth_token_account_id
                 auth_token : mesg.auth_token
                 cb         : (err, _account_id) ->
@@ -309,14 +312,12 @@ exports.sign_in_using_auth_token = (opts) ->
 # Record to the database a failed and/or successful login attempt.
 exports.record_sign_in = (opts) ->
     opts = defaults opts,
-        ip_address    : required
-        successful    : required
-        database      : required
-        email_address : undefined
-        account_id    : undefined
-        utm           : undefined
-        referrer      : undefined
-        remember_me   : false
+        ip_address       : required
+        successful       : required
+        database         : required
+        email_address    : undefined
+        account_id       : undefined
+        remember_me      : false
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address
@@ -327,8 +328,7 @@ exports.record_sign_in = (opts) ->
             email_address : opts.email_address ? null
             remember_me   : opts.remember_me
             account_id    : opts.account_id
-        data.utm      = opts.utm      if opts.utm
-        data.referrer = opts.referrer if opts.referrer
+
         opts.database.log
             event : 'successful_sign_in'
             value : data

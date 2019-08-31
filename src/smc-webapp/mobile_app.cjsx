@@ -13,7 +13,7 @@ React Component for displaying the entire page on a mobile device.
 {ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
-{FileUsePage}  = require('./file_use')
+{FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
 
@@ -168,6 +168,7 @@ Page = rclass
             overflow      : 'auto'
             display       : 'flex'
             flexDirection : 'column'
+            background    : 'white'
 
         <div ref="page" style={style}>
             <style>{page_style}</style>

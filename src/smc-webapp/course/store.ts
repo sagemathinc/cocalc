@@ -56,6 +56,7 @@ export type StudentRecord = TypedMap<{
   project_id: string;
   deleted: boolean;
   note: string;
+  terminal_command: Map<string, any>;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
@@ -99,7 +100,7 @@ export type CourseSettingsRecord = TypedMap<{
   description: string;
   email_invite: string;
   institute_pay: boolean;
-  pay: string | number | Date;
+  pay: string | Date;
   shared_project_id: string;
   student_pay: boolean;
   title: string;
@@ -133,6 +134,7 @@ export interface CourseState {
   expanded_skip_gradings: Set<string>;
   active_feedback_edits: IsGradingMap;
   handouts: HandoutsMap;
+  loading: boolean; // initially loading the syncdoc from disk.
   saving: boolean;
   settings: CourseSettingsRecord;
   show_save_button: boolean;
@@ -239,23 +241,21 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    let left;
-    return (left = this.get("settings").get("pay")) != null ? left : "";
+    const pay = this.get("settings").get("pay");
+    if (!pay) return "";
+    return pay;
   }
 
   get_allow_collabs() {
-    let left;
-    return (left = this.get("settings").get("allow_collabs")) != null
-      ? left
-      : true;
+    return !!this.get("settings").get("allow_collabs");
   }
 
   get_email_invite() {
     let left;
-    const { SITE_NAME, DOMAIN_NAME } = require("smc-util/theme");
+    const { SITE_NAME } = require("smc-util/theme");
     return (left = this.get("settings").get("email_invite")) != null
       ? left
-      : `We will use [${SITE_NAME}](${DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}`;
+      : `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
   }
 
   get_activity() {
@@ -738,7 +738,9 @@ export class CourseStore extends Store<CourseState> {
     return x.get("time");
   }
 
-  get_handout_status(handout) {
+  public get_handout_status(
+    handout
+  ): undefined | { handout: number; not_handout: number } {
     //
     // Compute and return an object that has fields (deleted students are ignored)
     //
@@ -751,7 +753,7 @@ export class CourseStore extends Store<CourseState> {
       this._handout_status = {};
       this.on("change", () => {
         // clear cache on any change to the store
-        return (this._handout_status = {});
+        this._handout_status = {};
       });
     }
     handout = this.get_handout(handout);

@@ -9,11 +9,14 @@ fully unit test it via mocking of components.
 
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
-const async = require("async");
-const underscore = require("underscore");
-const misc = require("smc-util/misc");
-const json_stable = require("json-stable-stringify");
-const { OutputHandler } = require("./output-handler");
+
+import { callback2, once } from "../../smc-util/async-utils";
+
+import * as async from "async";
+import * as underscore from "underscore";
+import * as misc from "../../smc-util/misc";
+import * as json_stable from "json-stable-stringify";
+import { OutputHandler } from "./output-handler";
 
 export class JupyterActions extends JupyterActions0 {
   // TODO: type
@@ -22,7 +25,6 @@ export class JupyterActions extends JupyterActions0 {
   private _kernel_state: any;
   private _last_save_ipynb_file: any;
   private _manager_run_cell_queue: any;
-  private _run_again: any;
   private _run_nbconvert_lock: any;
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
@@ -50,10 +52,11 @@ export class JupyterActions extends JupyterActions0 {
       throw Error(`invalid backend state '${state}'`);
     }
     this._backend_state = state;
-    return this._set({
+    this._set({
       type: "settings",
       backend_state: state
     });
+    this.save_asap();
   };
 
   set_kernel_state = (state: any, save = false) => {
@@ -68,8 +71,7 @@ export class JupyterActions extends JupyterActions0 {
   // Called exactly once when the manager first starts up after the store is initialized.
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
-  initialize_manager = () => {
-    console.log("INITIALIZING MANAGER");
+  initialize_manager = async () => {
     if (this._initialize_manager_already_done) {
       console.log("DONE");
       return;
@@ -77,6 +79,7 @@ export class JupyterActions extends JupyterActions0 {
     this._initialize_manager_already_done = true;
 
     const dbg = this.dbg("initialize_manager");
+    dbg();
     let cells = this.store.get("cells");
     if (cells != null) {
       cells = cells.toJS();
@@ -89,53 +92,54 @@ export class JupyterActions extends JupyterActions0 {
       5000
     );
 
-    // WARNING: @_load_from_disk_if_newer must happen before anything that might touch
-    // the syncdb state.  Otherwise, the syncdb state will automatically be
-    // newer than what is on disk, and we'll never load anything from disk.
-
     //dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
 
     this.setState({
       // used by jupyter.ts
       start_time: this._client.server_time() - 0
     });
-    this.syncdb.delete({ type: "nbconvert" }); // clear on init, since can't be running yet
+    this.syncdb.delete({ type: "nbconvert" });
+    // clear on init, since can't be running yet
 
     // Initialize info about available kernels
     this.init_kernel_info();
 
-    // We try once to load from disk.  If it fails, then a record with type:'fatal'
+    // We try once to load from disk.  If it fails, then
+    // a record with type:'fatal'
     // is created in the database; if it succeeds, that record is deleted.
     // Try again only when the file changes.
-    this._first_load();
+    await this._first_load();
 
     // Listen for changes...
-    return this.syncdb.on("change", this._backend_syncdb_change);
+    this.syncdb.on("change", this._backend_syncdb_change);
+
+    // Listen for model state changes...
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
+    this.syncdb.ipywidgets_state.on(
+      "change",
+      this.handle_ipywidgets_state_change.bind(this)
+    );
   };
 
-  //@_sync_file_mode()
-
-  _first_load = () => {
+  _first_load = async () => {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
-    return this._load_from_disk_if_newer(err => {
-      if (!err) {
-        dbg("loading worked");
-        return this._init_after_first_load();
-      } else {
-        dbg(`load failed -- ${err}; wait for one change and try again`);
-        const watcher = this._client.watch_file({
-          path: this.store.get("path"),
-          interval: 3000,
-          debounce: 1500
-        });
-        return watcher.once("change", () => {
-          dbg("file changed");
-          watcher.close();
-          return this._first_load();
-        });
-      }
-    });
+    try {
+      await this._load_from_disk_if_newer();
+    } catch (err) {
+      dbg(`load failed -- ${err}; wait for file change and try again`);
+      const path = this.store.get("path");
+      const watcher = this._client.watch_file({ path });
+      await once(watcher, "change");
+      dbg("file changed");
+      watcher.close();
+      await this._first_load();
+      return;
+    }
+    dbg("loading worked");
+    this._init_after_first_load();
   };
 
   _init_after_first_load = () => {
@@ -148,15 +152,8 @@ export class JupyterActions extends JupyterActions0 {
 
     this.init_file_watcher();
 
-    this.syncdb.on("save_to_disk_project", err => {
-      if (!err) {
-        return this.save_ipynb_file();
-      }
-    });
-
     this._state = "ready";
     this.ensure_there_is_a_cell();
-    return this.set_backend_state("ready");
   };
 
   _backend_syncdb_change = (changes: any) => {
@@ -172,10 +169,16 @@ export class JupyterActions extends JupyterActions0 {
               this.ensure_backend_kernel_setup();
               // only the backend should change kernel and backend state;
               // however, our security model allows otherwise (e.g., via TimeTravel).
-              if (record.get("kernel_state") !== this._kernel_state) {
+              if (
+                record.get("kernel_state") !== this._kernel_state &&
+                this._kernel_state != null
+              ) {
                 this.set_kernel_state(this._kernel_state, true);
               }
-              if (record.get("backend_state") !== this._backend_state) {
+              if (
+                record.get("backend_state") !== this._backend_state &&
+                this._backend_state != null
+              ) {
                 this.set_backend_state(this._backend_state);
               }
             }
@@ -189,94 +192,104 @@ export class JupyterActions extends JupyterActions0 {
 
     this.ensure_there_is_a_cell();
     this._throttled_ensure_positions_are_unique();
-    return this.sync_exec_state();
+    this.sync_exec_state();
   };
 
   // ensure_backend_kernel_setup ensures that we have a connection
   // to the proper type of kernel.
+  // If running is true, starts the kernel and waits until running.
   ensure_backend_kernel_setup = () => {
+    const dbg = this.dbg("ensure_backend_kernel_setup");
     const kernel = this.store.get("kernel");
     if (kernel == null) {
+      dbg("no kernel set -- can't do anything");
       return;
     }
 
-    const current =
-      this._jupyter_kernel != null ? this._jupyter_kernel.name : undefined;
-    if (current === kernel) {
-      // everything is properly setup
-      return;
+    let current: string | undefined = undefined;
+    if (this.jupyter_kernel != null) {
+      current = this.jupyter_kernel.name;
+      if (current === kernel && this.jupyter_kernel.get_state() != "closed") {
+        dbg("everything is properly setup and working");
+        return;
+      }
     }
 
-    const dbg = this.dbg("ensure_backend_kernel_setup");
     dbg(`kernel='${kernel}', current='${current}'`);
 
-    if (current != null && current !== kernel) {
-      dbg("kernel changed");
-      // kernel changed -- close it; this will trigger 'close' event, which
-      // runs code below that deletes attribute and creates new kernel wrapper.
-      if (this._jupyter_kernel != null) {
-        this._jupyter_kernel.close();
+    if (
+      this.jupyter_kernel != null &&
+      this.jupyter_kernel.get_state() != "closed"
+    ) {
+      if (current != kernel) {
+        dbg("kernel changed -- kill running kernel to trigger switch");
+        this.jupyter_kernel.close();
+        return;
+      } else {
+        dbg("nothing to do");
+        return;
       }
-      return;
     }
 
-    if (this._jupyter_kernel != null) {
-      throw Error("this case should be impossible");
-    }
-
-    dbg("no kernel; make one");
+    dbg("make a new kernel");
 
     // No kernel wrapper object setup at all. Make one.
-    this._jupyter_kernel = this._client.jupyter_kernel({
+    this.jupyter_kernel = this._client.jupyter_kernel({
       name: kernel,
       path: this.store.get("path"),
       actions: this
     });
 
-    if (this._jupyter_kernel == null) {
-      // mainly to satisfy compiler.
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
+    this.syncdb.ipywidgets_state.clear();
+
+    if (this.jupyter_kernel == null) {
+      // to satisfy compiler.
       throw Error("Jupter kernel must be defined");
     }
 
-    // Since we just made a new kernel connection, clearly no cells are running on the backend.
-    delete this._running_cells;
+    // Since we just made a new kernel, clearly no cells are running on the backend.
+    this._running_cells = {};
+    this.clear_all_cell_run_state();
 
-    // When the kernel closes, we will forget about it, then
-    // make sure a new kernel gets setup.
-    this._jupyter_kernel.once("close", () => {
-      // kernel closed -- clean up then make new one.
-      delete this._jupyter_kernel;
-      return this.ensure_backend_kernel_setup();
+    // When the kernel closes, make sure a new kernel gets setup.
+    this.jupyter_kernel.once("closed", () => {
+      dbg("kernel closed -- make new one.");
+      this.ensure_backend_kernel_setup();
     });
 
-    // Track backend state changes.
-    this._jupyter_kernel.on("state", state => {
+    // Track backend state changes other than closing, so they
+    // are visible to user etc.
+    // TODO: all these need to move to ephemeral table!!
+    this.jupyter_kernel.on("state", state => {
       switch (state) {
         case "spawning":
         case "starting":
         case "running":
           return this.set_backend_state(state);
-        case "closed":
-          delete this._jupyter_kernel;
-          this.set_backend_state("init");
-          return this.ensure_backend_kernel_setup();
       }
     });
 
-    this._jupyter_kernel.on("execution_state", this.set_kernel_state);
+    this.jupyter_kernel.on("execution_state", this.set_kernel_state);
 
-    this._jupyter_kernel.on("spawn_error", err => {
+    this.jupyter_kernel.on("spawn_error", err => {
       // TODO: need to save so gets reported to frontend...
       dbg(`error: ${err}`);
     });
 
-    this._jupyter_kernel.on("usage", this.set_kernel_usage);
+    this.jupyter_kernel.on("usage", this.set_kernel_usage);
 
-    // Ready to run code, etc.
-    this.sync_exec_state();
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
-    return this.set_backend_kernel_info();
+    if (current == null || current !== kernel) {
+      // Only set backend info if first time or kernel changed,
+      // and only for non-read-only kernels.
+      // Otherwise, just stopping the kernel will start it running
+      // again just to get this info.
+      this.set_backend_kernel_info();
+    }
   };
 
   init_kernel_info = async () => {
@@ -299,8 +312,30 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  // _manage_cell_change is called after a cell change has been
-  // incorporated into the store by _syncdb_cell_change.
+  ensure_backend_kernel_is_running = async () => {
+    const dbg = this.dbg("ensure_backend_kernel_is_running");
+    if (this._backend_state == "ready") {
+      dbg("in state 'ready', so kick it into gear");
+      await this.set_backend_kernel_info();
+      dbg("done getting kernel info");
+    }
+    const is_running = (s): boolean => {
+      if (this._state === "closed") return true;
+      const t = s.get_one({ type: "settings" });
+      if (t == null) {
+        dbg("no settings");
+        return false;
+      } else {
+        const state = t.get("backend_state");
+        dbg(`state = ${state}`);
+        return state == "running";
+      }
+    };
+    await this.syncdb.wait(is_running, 60);
+  };
+
+  // manager_on_cell_change is called after a cell change has been
+  // incorporated into the store by syncdb_cell_change.
   // It ensures any cell with a compute request
   // gets computed,    Only one client -- the project itself -- will run this code.
   manager_on_cell_change = (id: any, new_cell: any, old_cell: any) => {
@@ -333,6 +368,7 @@ export class JupyterActions extends JupyterActions0 {
   // Ensure that the cells listed as running *are* exactly the
   // ones actually running or queued up to run.
   sync_exec_state = () => {
+    const dbg = this.dbg("sync_exec_state");
     let change = false;
     const cells = this.store.get("cells");
     // First verify that all actual cells that are said to be running
@@ -345,6 +381,7 @@ export class JupyterActions extends JupyterActions0 {
           state !== "done" &&
           !(this._running_cells != null ? this._running_cells[id] : undefined)
         ) {
+          dbg(`set cell ${id} to done`);
           this._set({ type: "cell", id, state: "done" }, false);
           change = true;
         }
@@ -359,6 +396,7 @@ export class JupyterActions extends JupyterActions0 {
         const state = cells.getIn([id, "state"]);
         if (state == null || state === "done") {
           // cell no longer exists or isn't in a running state
+          dbg(`tell kernel to not run ${id}`);
           this._cancel_run(id);
         }
       }
@@ -369,10 +407,17 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   _cancel_run = (id: any) => {
-    if (this._running_cells != null ? this._running_cells[id] : undefined) {
-      return this._jupyter_kernel != null
-        ? this._jupyter_kernel.cancel_execute(id)
-        : undefined;
+    const dbg = this.dbg(`_cancel_run ${id}`);
+    // All these checks are so we only cancel if it is actually running
+    // with the current kernel...
+    if (this._running_cells == null || this.jupyter_kernel == null) return;
+    const identity = this._running_cells[id];
+    if (identity == null) return;
+    if (this.jupyter_kernel.identity == identity) {
+      dbg("cancelling");
+      this.jupyter_kernel.cancel_execute(id);
+    } else {
+      dbg("not canceling since wrong identity");
     }
   };
 
@@ -385,7 +430,7 @@ export class JupyterActions extends JupyterActions0 {
     if (this._manager_run_cell_queue == null) {
       this._manager_run_cell_queue = {};
     }
-    return (this._manager_run_cell_queue[id] = true);
+    this._manager_run_cell_queue[id] = true;
   };
 
   // properly start running -- in order -- the cells that have been requested to run
@@ -414,42 +459,71 @@ export class JupyterActions extends JupyterActions0 {
         this.manager_run_cell(cell.get("id"));
       }
     }
-    return delete this._manager_run_cell_queue;
+    delete this._manager_run_cell_queue;
   };
 
+  // returns new output handler for this cell.
   _output_handler = (cell: any) => {
+    const dbg = this.dbg(`handler(id='${cell.id}')`);
+    if (
+      this.jupyter_kernel == null ||
+      this.jupyter_kernel.get_state() == "closed"
+    ) {
+      throw Error("jupyter kernel must exist and not be closed;");
+    }
     this.reset_more_output(cell.id);
 
     const handler = new OutputHandler({
       cell,
       max_output_length: this.store.get("max_output_length"),
       report_started_ms: 250,
-      dbg: this.dbg(`handler(id='${cell.id}')`)
+      dbg
+    });
+
+    this.jupyter_kernel.once("closed", () => {
+      dbg("closing due to jupyter kernel closed");
+      handler.close();
     });
 
     handler.on("more_output", (mesg, mesg_length) => {
-      return this.set_more_output(cell.id, mesg, mesg_length);
+      this.set_more_output(cell.id, mesg, mesg_length);
     });
 
-    return handler.on(
-      "process",
-      this._jupyter_kernel != null
-        ? this._jupyter_kernel.process_output
-        : undefined
-    );
+    handler.on("process", mesg => {
+      if (this.jupyter_kernel != null) {
+        this.jupyter_kernel.process_output(mesg);
+      }
+    });
+
+    return handler;
   };
 
-  manager_run_cell = (id: string) => {
-    let left;
+  manager_run_cell = async (id: string) => {
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
-    dbg();
+    dbg(JSON.stringify(misc.keys(this._running_cells)));
 
-    // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
-    if (this._run_again != null) {
-      delete this._run_again[id];
+    // INITIAL STATE THAT MUST BE DONE BEFORE ANYTHING ASYNC!
+
+    if (this._running_cells == null) {
+      this._running_cells = {};
     }
 
+    if (this._running_cells[id]) {
+      dbg("cell already queued to run in kernel");
+      return;
+    }
+
+    // END INITIAL STATE BEFORE ASYNC.
+
     this.ensure_backend_kernel_setup();
+
+    try {
+      await this.ensure_backend_kernel_is_running();
+      if (this._state == "closed") return;
+    } catch (err) {
+      // if this fails, give up on this evaluation.
+      return;
+    }
 
     const orig_cell = this.store.get("cells").get(id);
     if (orig_cell == null) {
@@ -457,25 +531,19 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
 
-    const input = ((left = orig_cell.get("input")) != null ? left : "").trim();
-
-    if (this._running_cells == null) {
-      this._running_cells = {};
+    let input: string | undefined = orig_cell.get("input", "");
+    if (input == null) {
+      input = "";
+    } else {
+      input = input.trim();
     }
 
-    if (this._running_cells[id]) {
-      // The cell is already running, so we must ensure cell is
-      // not already running; this would happen if your run cell,
-      // change input while it is still running, then re-run.
-      if (this._run_again == null) {
-        this._run_again = {};
-      }
-      this._run_again[id] = true;
-      this._cancel_run(id);
-      return;
-    }
+    let halt_on_error: boolean = !orig_cell.get("no_halt", false);
 
-    this._running_cells[id] = true;
+    if (this.jupyter_kernel == null) {
+      throw Error("bug -- this is guaranteed by the above");
+    }
+    this._running_cells[id] = this.jupyter_kernel.identity;
 
     const cell: any = {
       id,
@@ -495,31 +563,34 @@ export class JupyterActions extends JupyterActions0 {
         cell.input = orig_cell.get("input");
         cell.pos = orig_cell.get("pos");
       }
-      return this.syncdb.set(cell, save);
+      this.syncdb.set(cell);
+      if (save) {
+        this.syncdb.save();
+      }
     });
 
     handler.once("done", () => {
+      dbg("handler is done");
+      this.store.removeListener("cell_change", cell_change);
+      exec.close();
       if (this._running_cells != null) {
         delete this._running_cells[id];
       }
-      if (this._run_again != null ? this._run_again[id] : undefined) {
-        return this.run_code_cell(id);
-      }
     });
 
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       handler.error("Unable to start Jupyter");
       return;
     }
 
-    const get_password = () : string => {
-      if (this._jupyter_kernel == null) {
+    const get_password = (): string => {
+      if (this.jupyter_kernel == null) {
         dbg("get_password", id, "no kernel");
         return "";
       }
-      const password = this._jupyter_kernel.store.get(id);
-        dbg("get_password", id, password);
-      this._jupyter_kernel.store.delete(id);
+      const password = this.jupyter_kernel.store.get(id);
+      dbg("get_password", id, password);
+      this.jupyter_kernel.store.delete(id);
       return password;
     };
 
@@ -527,19 +598,21 @@ export class JupyterActions extends JupyterActions0 {
     const cell_change = (cell_id, new_cell) => {
       if (id === cell_id) {
         dbg("cell_change");
-        return handler.cell_changed(new_cell, get_password);
+        handler.cell_changed(new_cell, get_password);
       }
     };
     this.store.on("cell_change", cell_change);
 
-    const exec = this._jupyter_kernel.execute_code({
+    const exec = this.jupyter_kernel.execute_code({
       code: input,
       id,
-      stdin: handler.stdin
+      stdin: handler.stdin,
+      halt_on_error
     });
 
     exec.on("output", mesg => {
       dbg(`got mesg='${JSON.stringify(mesg)}'`);
+
       if (mesg == null) {
         // can't possibly happen, of course.
         let err = "empty mesg";
@@ -556,6 +629,12 @@ export class JupyterActions extends JupyterActions0 {
         handler.clear(mesg.content.wait);
         return;
       }
+
+      if (mesg.content.comm_id != null) {
+        // ignore any comm/widget related messages
+        return;
+      }
+
       if (mesg.content.execution_state === "idle") {
         this.store.removeListener("cell_change", cell_change);
         return;
@@ -564,23 +643,22 @@ export class JupyterActions extends JupyterActions0 {
         handler.start();
       }
       if (mesg.content.payload != null) {
-        if (
-          (mesg.content.payload != null
-            ? mesg.content.payload.length
-            : undefined) > 0
-        ) {
+        if (mesg.content.payload.length > 0) {
           // payload shell message:
           // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
           // ""Payloads are considered deprecated, though their replacement is not yet implemented."
           // we fully have to implement them, since they are used to implement (crazy, IMHO)
           // things like %load in the python2 kernel!
-          return mesg.content.payload.map(p => handler.payload(p));
+          mesg.content.payload.map(p => handler.payload(p));
+          return;
         }
       } else {
         // Normal iopub output message
-        return handler.message(mesg.content);
+        handler.message(mesg.content);
+        return;
       }
     });
+
     exec.on("error", err => {
       dbg(`got error='${err}'`);
       handler.error(err);
@@ -600,7 +678,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  set_more_output = (id: any, mesg: any, length: any) => {
+  set_more_output = (id: any, mesg: any, length: any): void => {
     if (this.store._more_output == null) {
       this.store._more_output = {};
     }
@@ -620,7 +698,6 @@ export class JupyterActions extends JupyterActions0 {
     output.messages.push(mesg);
 
     const goal_length = 10 * this.store.get("max_output_length");
-    const result: any[] = [];
     while (output.length > goal_length) {
       let need: any;
       let did_truncate = false;
@@ -646,8 +723,8 @@ export class JupyterActions extends JupyterActions0 {
       // check if there is a text/plain field, which we can thus also safely truncate
       if (!did_truncate && output.messages[0].data != null) {
         for (let field in output.messages[0].data) {
-          const val = output.messages[0].data[field];
           if (field === "text/plain") {
+            const val = output.messages[0].data[field];
             len = val.length;
             if (len != null) {
               need = output.length - goal_length + 50;
@@ -673,9 +750,8 @@ export class JupyterActions extends JupyterActions0 {
       const n = output.lengths.shift();
       output.messages.shift();
       output.length -= n;
-      result.push((output.discarded += 1));
+      output.discarded += 1;
     }
-    return result;
   };
 
   init_file_watcher = () => {
@@ -694,7 +770,7 @@ export class JupyterActions extends JupyterActions0 {
         // be inefficient and could lead to corruption.
         return;
       }
-      return this.load_ipynb_file();
+      this.load_ipynb_file();
     });
     //@_sync_file_mode()
 
@@ -750,118 +826,117 @@ export class JupyterActions extends JupyterActions0 {
         )
     */
 
-  _load_from_disk_if_newer = (cb: any) => {
-    let last_changed;
+  _load_from_disk_if_newer = async () => {
     const dbg = this.dbg("load_from_disk_if_newer");
-    if (this.syncdb.get({ type: "file" }).size === 0) {
-      // never ever loaded from disk before; we have to load at least once
-      last_changed = 0;
-    } else {
-      last_changed = this.syncdb.last_changed();
-    }
+    // Get ctime of last .ipynb file that we explicitly saved.
 
-    dbg(`syncdb last_changed=${last_changed}`);
-    return this._client.path_stat({
-      path: this.store.get("path"),
-      cb: (err, stats) => {
-        dbg(`stats.ctime = ${stats != null ? stats.ctime : undefined}`);
-        if (err) {
-          // This err just means the file doesn't exist.
-          // We set the 'last load' to now in this case, since
-          // the frontend clients need to know that we
-          // have already scanned the disk.
-          this.set_last_load();
-          return typeof cb === "function" ? cb() : undefined;
-        } else {
-          // we do include "equality", because rsync operations round down to full seconds.
-          // such rounding and strict inequality would make the file appear stale although it isn't.
-          const file_is_newer = stats.ctime >= last_changed;
-          if (file_is_newer) {
-            dbg("disk file changed more recently than edits, so loading");
-            return this.load_ipynb_file(cb);
-          } else {
-            return typeof cb === "function" ? cb() : undefined;
-          }
-        }
-      }
-    });
+    // TODO: breaking the syncdb typescript data hiding.  The
+    // right fix will be to move
+    // this info to a new ephemeral state table.
+    const last_ipynb_save = (this.syncdb as any).syncstring_table
+      .get_one()
+      .getIn(["save", "last_ipynb_save"], 0);
+
+    dbg(`syncdb last_ipynb_save=${last_ipynb_save}`);
+    const path = this.store.get("path");
+    let stats;
+    try {
+      stats = await callback2(this._client.path_stat, { path });
+      dbg(`stats.ctime = ${stats.ctime}`);
+    } catch (err) {
+      // This err just means the file doesn't exist.
+      // We set the 'last load' to now in this case, since
+      // the frontend clients need to know that we
+      // have already scanned the disk.
+      this.set_last_load();
+      return;
+    }
+    const file_changed = stats.ctime.getTime() !== last_ipynb_save;
+    if (file_changed) {
+      dbg(".ipynb disk file changed since last load, so loading");
+      await this.load_ipynb_file();
+    } else {
+      dbg(".ipynb disk file NOT changed since last load, so NOT loading");
+    }
   };
 
   set_last_load = () => {
-    return this.syncdb.set({
+    this.syncdb.set({
       type: "file",
       last_load: new Date().getTime()
     });
+    this.syncdb.commit();
   };
 
-  load_ipynb_file = (cb?: any, data_only = false) => {
-    /*
-Read the ipynb file from disk.
+  /* Determine timestamp of aux .ipynb file, and record it here,
+     so we know that we do not have to load exactly that file
+     back from disk. */
+  set_last_ipynb_save = async () => {
+    let stats;
+    try {
+      stats = await callback2(this._client.path_stat, {
+        path: this.store.get("path")
+      });
+    } catch (err) {
+      // no-op -- nothing to do.
+      this.dbg("set_last_ipynb_save")(`error ${err}`);
+      return;
+    }
 
-- If data_only is false (the default), fully use the ipynb file to
-  set the syncdb's state.  We do this when opening a new file, or when
-  the file changes on disk (e.g., a git checkout or something).
-- If data_only is true, we load the ipynb file *only* to get "more output"
-  and base64 encoded (etc.) images, and store them in our in-memory
-  key:value store or cache.   We do this, because the file is the only
-  place that has this data (it is NOT in the syncb).\
-*/
-    const dbg = this.dbg(`load_ipynb_file(data_only=${data_only})`);
+    // This is ugly (i.e., how we get access), but I need to get this done.
+    // This is the RIGHT place to save the info though.
+    // TODO: move this state info to new ephemeral table.
+    (this.syncdb as any).set_save({ last_ipynb_save: stats.ctime.getTime() });
+  };
+
+  load_ipynb_file = async () => {
+    /*
+    Read the ipynb file from disk.  Fully use the ipynb file to
+    set the syncdb's state.  We do this when opening a new file, or when
+    the file changes on disk (e.g., a git checkout or something).
+    */
+    const dbg = this.dbg(`load_ipynb_file`);
     dbg("reading file");
     const path = this.store.get("path");
-    return this._client.path_read({
-      path,
-      maxsize_MB: 50,
-      cb: (err, content) => {
-        let error;
-        if (err) {
-          error = `Error reading ipynb file '${path}': ${err}.  Fix this to continue.`;
-          this.syncdb.set({ type: "fatal", error });
-          if (typeof cb === "function") {
-            cb(error);
-          }
-          return;
-        }
+    let content: string;
+    try {
+      content = await callback2(this._client.path_read, {
+        path,
+        maxsize_MB: 50
+      });
+    } catch (err) {
+      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.`;
+      this.syncdb.set({ type: "fatal", error });
+      throw Error(error);
+    }
+    if (content.length === 0) {
+      // Blank file, e.g., when creating in CoCalc.
+      // This is good, works, etc. -- just clear state, including error.
+      this.syncdb.delete();
+      this.set_last_load();
+      return;
+    }
 
-        if (content.length === 0) {
-          // Blank file, e.g., when creating in CoCalc.
-          // This is good, works, etc. -- just clear state, including error.
-          this.syncdb.delete();
-          this.set_last_load();
-          if (typeof cb === "function") {
-            cb();
-          }
-          return;
-        }
-
-        // File is nontrivial -- parse and load.
-        try {
-          content = JSON.parse(content);
-        } catch (error1) {
-          err = error1;
-          error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
-          dbg(error);
-          if (!data_only) {
-            this.syncdb.set({ type: "fatal", error });
-          }
-          if (typeof cb === "function") {
-            cb(error);
-          }
-          return;
-        }
-        this.syncdb.delete({ type: "fatal" });
-        this.set_to_ipynb(content, data_only);
-        this.set_last_load();
-        return typeof cb === "function" ? cb() : undefined;
-      }
-    });
+    // File is nontrivial -- parse and load.
+    let parsed_content;
+    try {
+      parsed_content = JSON.parse(content);
+    } catch (err) {
+      const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
+      dbg(error);
+      this.syncdb.set({ type: "fatal", error });
+      throw Error(error);
+    }
+    this.syncdb.delete({ type: "fatal" });
+    await this.set_to_ipynb(parsed_content);
+    this.set_last_load();
   };
 
   save_ipynb_file = (cb?: any) => {
     let err;
     const dbg = this.dbg("save_ipynb_file");
     dbg("saving to file");
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       err = "no kernel so cannot save";
       dbg(err);
       if (typeof cb === "function") {
@@ -878,7 +953,7 @@ Read the ipynb file from disk.
       return;
     }
     dbg("going to try to save");
-    const ipynb = this.store.get_ipynb(this._jupyter_kernel.get_blob_store());
+    const ipynb = this.store.get_ipynb(this.jupyter_kernel.get_blob_store());
     // We use json_stable (and indent 1) to be more diff friendly to user, and more consistent
     // with official Jupyter.
     const data = json_stable(ipynb, { space: 1 });
@@ -891,7 +966,7 @@ Read the ipynb file from disk.
       return;
     }
     //dbg("got string version '#{data}'")
-    return this._client.write_file({
+    this._client.write_file({
       path: this.store.get("path"),
       data,
       cb: err => {
@@ -901,6 +976,7 @@ Read the ipynb file from disk.
         } else {
           dbg("succeeded at saving");
           this._last_save_ipynb_file = new Date();
+          this.set_last_ipynb_save();
         }
         return typeof cb === "function" ? cb(err) : undefined;
       }
@@ -915,7 +991,7 @@ Read the ipynb file from disk.
     if (cells == null || cells.size === 0) {
       this._set({
         type: "cell",
-        id: this._new_id(),
+        id: this.new_id(),
         pos: 0,
         input: ""
       });
@@ -991,14 +1067,14 @@ Read the ipynb file from disk.
         [
           cb => {
             dbg("saving file to disk first");
-            return this.save_ipynb_file(cb);
+            this.save_ipynb_file(cb);
           },
           cb => {
             dbg("now actually running nbconvert");
-            if (this._jupyter_kernel == null) {
+            if (this.jupyter_kernel == null) {
               cb("jupyter kernel not defined");
             } else {
-              this._jupyter_kernel
+              this.jupyter_kernel
                 .nbconvert(args)
                 .then(data => cb(undefined, data))
                 .catch(err => cb(err));
@@ -1018,8 +1094,8 @@ Read the ipynb file from disk.
             }
             if (err.length >= 50) {
               // save in key:value store.
-              if (this._jupyter_kernel && this._jupyter_kernel.store) {
-                this._jupyter_kernel.store.set("nbconvert_error", err);
+              if (this.jupyter_kernel && this.jupyter_kernel.store) {
+                this.jupyter_kernel.store.set("nbconvert_error", err);
               }
               err = { key: "nbconvert_error" };
             }
@@ -1046,7 +1122,7 @@ Read the ipynb file from disk.
   };
 
   handle_cell_attachments = (cell: any) => {
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       // can't do anything
       return;
     }
@@ -1054,32 +1130,88 @@ Read the ipynb file from disk.
     dbg();
 
     const attachments = cell.get("attachments");
-    if (attachments != null) {
-      attachments.forEach((x, name) => {
-        if ((x != null ? x.get("type") : undefined) === "load") {
-          // need to load from disk
+    if (attachments == null) return; // nothing to do
+    attachments.forEach(async (x, name) => {
+      if (x == null) return;
+      if (x.get("type") === "load") {
+        if (this.jupyter_kernel == null) return; // try later
+        // need to load from disk
+        this.set_cell_attachment(cell.get("id"), name, {
+          type: "loading",
+          value: null
+        });
+        let sha1: string;
+        try {
+          sha1 = await this.jupyter_kernel.load_attachment(x.get("value"));
+        } catch (err) {
           this.set_cell_attachment(cell.get("id"), name, {
-            type: "loading",
-            value: null
+            type: "error",
+            value: `${err}`
           });
-          if (this._jupyter_kernel != null) {
-            this._jupyter_kernel
-              .load_attachment(x.get("value"))
-              .then(sha1 => {
-                this.set_cell_attachment(cell.get("id"), name, {
-                  type: "sha1",
-                  value: sha1
-                });
-              })
-              .catch(err => {
-                this.set_cell_attachment(cell.get("id"), name, {
-                  type: "error",
-                  value: err
-                });
-              });
-          }
+          return;
         }
-      });
-    }
+        this.set_cell_attachment(cell.get("id"), name, {
+          type: "sha1",
+          value: sha1
+        });
+      }
+    });
   };
+
+  private handle_ipywidgets_state_change(keys): void {
+    const dbg = this.dbg("handle_ipywidgets_state_change");
+    dbg(keys);
+    if (this.jupyter_kernel == null) {
+      dbg("no kernel, so ignoring changes to ipywidgets");
+      return;
+    }
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
+    for (let key of keys) {
+      dbg("key = ", key);
+      const [, model_id, type] = JSON.parse(key);
+      let data: any;
+      if (type === "value") {
+        const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
+        data = { method: "update", state };
+        this.jupyter_kernel.send_comm_message_to_kernel(
+          misc.uuid(),
+          model_id,
+          data
+        );
+      } else if (type === "state") {
+        // TODO: currently ignoring this, since it seems chatty and pointless,
+        // and could lead to race conditions probably with multiple users, etc.
+        // It happens right when the widget is created.
+        /*
+        const state = this.syncdb.ipywidgets_state.get_model_state(model_id);
+        data = { method: "update", state };
+        this.jupyter_kernel.send_comm_message_to_kernel(
+          misc.uuid(),
+          model_id,
+          data
+        );
+        */
+      } else {
+        throw Error(`invalid synctable state -- unknown type '${type}'`);
+      }
+    }
+  }
+
+  public async process_comm_message_from_kernel(mesg: any): Promise<void> {
+    const dbg = this.dbg("process_comm_message_from_kernel");
+    dbg(mesg);
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
+    await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
+  }
+
+  public capture_output_message(mesg: any): boolean {
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
+    return this.syncdb.ipywidgets_state.capture_output_message(mesg);
+  }
 }

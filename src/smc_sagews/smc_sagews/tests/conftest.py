@@ -18,21 +18,25 @@ default_timeout = 20
 # and requires the script to be run from sage -sh
 ###
 
+
 def unicode8(s):
     try:
         return unicode(s, 'utf8')
     except:
         try:
-             return unicode(s)
+            return unicode(s)
         except:
-             return s
+            return s
+
 
 PID = os.getpid()
-from datetime import datetime
+
 
 def log(*args):
-    mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
+    mesg = "%s (%s): %s\n" % (PID, datetime.utcnow().strftime(
+        '%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
     print(mesg)
+
 
 def uuidsha1(data):
     sha1sum = hashlib.sha1()
@@ -43,15 +47,20 @@ def uuidsha1(data):
     j = 0
     for i in range(len(t)):
         if t[i] == 'x':
-            r[i] = s[j]; j += 1
+            r[i] = s[j]
+            j += 1
         elif t[i] == 'y':
             # take 8 + low order 3 bits of hex number.
-            r[i] = hex( (int(s[j],16)&0x3) |0x8)[-1]; j += 1
+            r[i] = hex((int(s[j], 16) & 0x3) | 0x8)[-1]
+            j += 1
     return ''.join(r)
+
 
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(conn, ConnectionJSON)  # avoid common mistake -- conn is supposed to be from socket.socket...
+        assert not isinstance(
+            conn, ConnectionJSON
+        )  # avoid common mistake -- conn is supposed to be from socket.socket...
         self._conn = conn
 
     def close(self):
@@ -80,7 +89,9 @@ class ConnectionJSON(object):
         return self.send_blob(data)
 
     def _recv(self, n):
-        for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        for i in range(
+                20
+        ):  # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
             try:
                 r = self._conn.recv(n)
                 return r
@@ -106,7 +117,7 @@ class ConnectionJSON(object):
                     break
             else:
                 raise EOFError
-        n = struct.unpack('>L', n)[0]   # big endian 32 bits
+        n = struct.unpack('>L', n)[0]  # big endian 32 bits
         #print("test got header, expect message of length %s"%n)
         s = self._recv(n)
         while len(s) < n:
@@ -120,15 +131,17 @@ class ConnectionJSON(object):
             try:
                 return 'json', json.loads(s[1:].decode())
             except Exception as msg:
-                log("Unable to parse JSON '%s'"%s[1:])
+                log("Unable to parse JSON '%s'" % s[1:])
                 raise
 
         elif mtyp == 'b':
             return 'blob', s[1:]
-        raise ValueError("unknown message type '%s'"%s[0])
+        raise ValueError("unknown message type '%s'" % s[0])
+
     def set_timeout(self, timeout):
         "set socket timeout in seconds"
         self._conn.settimeout(timeout)
+
 
 def truncate_text(s, max_size):
     if len(s) > max_size:
@@ -136,9 +149,10 @@ def truncate_text(s, max_size):
     else:
         return s, False
 
+
 class Message(object):
     def _new(self, event, props={}):
-        m = {'event':event}
+        m = {'event': event}
         for key, val in props.items():
             if key != 'self':
                 m[key] = val
@@ -148,7 +162,7 @@ class Message(object):
         return self._new('start_session')
 
     def session_description(self, pid):
-        return self._new('session_description', {'pid':pid})
+        return self._new('session_description', {'pid': pid})
 
     def send_signal(self, pid, signal=signal.SIGINT):
         return self._new('send_signal', locals())
@@ -162,53 +176,61 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id,
-               stdout       = None,
-               stderr       = None,
-               code         = None,
-               html         = None,
-               javascript   = None,
-               coffeescript = None,
-               interact     = None,
-               md           = None,
-               tex          = None,
-               d3           = None,
-               file         = None,
-               raw_input    = None,
-               obj          = None,
-               once         = None,
-               hide         = None,
-               show         = None,
-               events       = None,
-               clear        = None,
-               delete_last  = None,
-               done         = False   # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
-              ):
+    def output(
+            self,
+            id,
+            stdout=None,
+            stderr=None,
+            code=None,
+            html=None,
+            javascript=None,
+            coffeescript=None,
+            interact=None,
+            md=None,
+            tex=None,
+            d3=None,
+            file=None,
+            raw_input=None,
+            obj=None,
+            once=None,
+            hide=None,
+            show=None,
+            events=None,
+            clear=None,
+            delete_last=None,
+            done=False  # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
+    ):
         m = self._new('output')
         m['id'] = id
         t = truncate_text_warn
         did_truncate = False
         import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
-            code['source'], did_truncate, tmsg = t(code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
+            code['source'], did_truncate, tmsg = t(
+                code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
             m['code'] = code
         if stderr is not None and len(stderr) > 0:
-            m['stderr'], did_truncate, tmsg = t(stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
+            m['stderr'], did_truncate, tmsg = t(
+                stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
         if stdout is not None and len(stdout) > 0:
-            m['stdout'], did_truncate, tmsg  = t(stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
-        if html is not None  and len(html) > 0:
-            m['html'], did_truncate, tmsg  = t(html, sage_server.MAX_HTML_SIZE, 'MAX_HTML_SIZE')
-        if md is not None  and len(md) > 0:
-            m['md'], did_truncate, tmsg  = t(md, sage_server.MAX_MD_SIZE, 'MAX_MD_SIZE')
-        if tex is not None and len(tex)>0:
-            tex['tex'], did_truncate, tmsg  = t(tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
+            m['stdout'], did_truncate, tmsg = t(
+                stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
+        if html is not None and len(html) > 0:
+            m['html'], did_truncate, tmsg = t(html, sage_server.MAX_HTML_SIZE,
+                                              'MAX_HTML_SIZE')
+        if md is not None and len(md) > 0:
+            m['md'], did_truncate, tmsg = t(md, sage_server.MAX_MD_SIZE,
+                                            'MAX_MD_SIZE')
+        if tex is not None and len(tex) > 0:
+            tex['tex'], did_truncate, tmsg = t(
+                tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
             m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if interact is not None: m['interact'] = interact
         if d3 is not None: m['d3'] = d3
         if obj is not None: m['obj'] = json.dumps(obj)
-        if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
+        if file is not None: m['file'] = file  # = {'filename':..., 'uuid':...}
         if raw_input is not None: m['raw_input'] = raw_input
         if done is not None: m['done'] = done
         if once is not None: m['once'] = once
@@ -241,10 +263,11 @@ class Message(object):
 
     # NOTE: these functions are NOT in sage_server.py
     def save_blob(self, sha1):
-        return self._new('save_blob', {'sha1':sha1})
+        return self._new('save_blob', {'sha1': sha1})
 
     def introspect(self, id, line, top):
-        return self._new('introspect', {'id':id, 'line':line, 'top':top})
+        return self._new('introspect', {'id': id, 'line': line, 'top': top})
+
 
 message = Message()
 
@@ -252,18 +275,21 @@ message = Message()
 # end of copy region
 ###
 
+
 def set_salvus_path(self, id):
     r"""
     create json message to set path and file at start of virtual worksheet
     """
     m = self._new('execute_code', locals())
 
+
 # hard code SMC for now so we don't have to run with sage wrapper
 SMC = os.path.join(os.environ["HOME"], ".smc")
 default_log_file = os.path.join(SMC, "sage_server", "sage_server.log")
 default_pid_file = os.path.join(SMC, "sage_server", "sage_server.pid")
 
-def get_sage_server_info(log_file = default_log_file):
+
+def get_sage_server_info(log_file=default_log_file):
     for loop_count in range(3):
         # log file ~/.smc/sage_server/sage_server.log
         # sample sage_server startup line in first lines of log:
@@ -272,23 +298,28 @@ def get_sage_server_info(log_file = default_log_file):
             with open(log_file, "r") as inf:
                 for lno in range(5):
                     line = inf.readline().strip()
-                    m = re.search("Sage server (?P<host>[\w.]+):(?P<port>\d+)$", line)
+                    m = re.search(
+                        "Sage server (?P<host>[\w.]+):(?P<port>\d+)$", line)
                     if m:
                         host = m.group('host')
                         port = int(m.group('port'))
                         #return host, int(port)
                         break
                 else:
-                    raise ValueError('Server info not found in log_file',log_file)
+                    raise ValueError('Server info not found in log_file',
+                                     log_file)
                 break
         except IOError:
             print("starting new sage_server")
             os.system(start_cmd())
             time.sleep(5.0)
     else:
-        pytest.fail("Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"%log_file)
-    print("got host %s  port %s"%(host, port))
+        pytest.fail(
+            "Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"
+            % log_file)
+    print("got host %s  port %s" % (host, port))
     return host, int(port)
+
 
 secret_token = None
 secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
@@ -303,12 +334,14 @@ def client_unlock_connection(sock):
     secret_token = open(secret_token_path).read().strip()
     sock.sendall(secret_token.encode())
 
+
 def path_info():
     file = __file__
     full_path = os.path.abspath(file)
     head, tail = os.path.split(full_path)
     #file = head + "/testing.sagews"
     return head, file
+
 
 def recv_til_done(conn, test_id):
     r"""
@@ -323,7 +356,8 @@ def recv_til_done(conn, test_id):
         if mesg['done']:
             break
     else:
-        pytest.fail("too many responses for message id %s"%test_id)
+        pytest.fail("too many responses for message id %s" % test_id)
+
 
 def my_sage_startup():
     """
@@ -331,6 +365,7 @@ def my_sage_startup():
     used in other test files so we export it
     """
     return "a-init.sage"
+
 
 def start_cmd(action='start'):
     """
@@ -343,12 +378,14 @@ def start_cmd(action='start'):
     cmd = "export SAGE_STARTUP_FILE={};smc-sage-server {}".format(pssf, action)
     return cmd
 
+
 ###
 # Start of fixtures
 ###
 
-@pytest.fixture(autouse = True, scope = "session")
-def sage_server_setup(pid_file = default_pid_file, log_file = default_log_file):
+
+@pytest.fixture(autouse=True, scope="session")
+def sage_server_setup(pid_file=default_pid_file, log_file=default_log_file):
     r"""
     make sure sage_server pid file exists and process running at given pid
     """
@@ -364,6 +401,7 @@ def sage_server_setup(pid_file = default_pid_file, log_file = default_log_file):
         pytest.fail("Unable to start sage_server and setup log file")
     return
 
+
 @pytest.fixture()
 def test_id(request):
     r"""
@@ -373,7 +411,10 @@ def test_id(request):
     """
     test_id.id += 1
     return test_id.id
+
+
 test_id.id = 1
+
 
 # see http://doc.pytest.org/en/latest/tmpdir.html#the-tmpdir-factory-fixture
 @pytest.fixture(scope='session')
@@ -382,19 +423,22 @@ def image_file(tmpdir_factory):
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
-        my_circle=plt.Circle((0.5,0.5),0.2)
+        my_circle = plt.Circle((0.5, 0.5), 0.2)
         fig, ax = plt.subplots()
         ax.add_artist(my_circle)
         return fig
+
     fn = tmpdir_factory.mktemp('data').join('my_circle.png')
     make_img().savefig(str(fn))
     return fn
+
 
 @pytest.fixture(scope='session')
 def data_path(tmpdir_factory):
     path = tmpdir_factory.mktemp("data")
     path.ensure_dir()
     return path
+
 
 @pytest.fixture()
 def execdoc(request, sagews, test_id):
@@ -408,15 +452,17 @@ def execdoc(request, sagews, test_id):
         def test_assg(execdoc):
             execdoc("random?")
     """
+
     def execfn(code, pattern='Docstring'):
-        m = message.execute_code(code = code, id = test_id)
+        m = message.execute_code(code=code, id=test_id)
         sagews.send_json(m)
         typ, mesg = sagews.recv()
         assert typ == 'json'
         assert mesg['id'] == test_id
         assert 'code' in mesg
         assert 'source' in mesg['code']
-        assert re.sub('\s+','',pattern) in re.sub('\s+','',mesg['code']['source'])
+        assert re.sub('\s+', '', pattern) in re.sub('\s+', '',
+                                                    mesg['code']['source'])
 
     def fin():
         recv_til_done(sagews, test_id)
@@ -472,9 +518,14 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-    def execfn(code, output = None, pattern = None, html_pattern = None, timeout = default_timeout,
-              errout = None):
-        m = message.execute_code(code = code, id = test_id)
+
+    def execfn(code,
+               output=None,
+               pattern=None,
+               html_pattern=None,
+               timeout=default_timeout,
+               errout=None):
+        m = message.execute_code(code=code, id=test_id)
         m['preparse'] = True
 
         if timeout is not None:
@@ -518,11 +569,13 @@ def exec2(request, sagews, test_id):
                 mout += mesg['stderr']
                 if errout.strip() in mout:
                     break
+
     def fin():
         recv_til_done(sagews, test_id)
 
     request.addfinalizer(fin)
     return execfn
+
 
 @pytest.fixture()
 def execbuf(request, sagews, test_id):
@@ -536,8 +589,9 @@ def execbuf(request, sagews, test_id):
     Test fails if non-`stdout` message is received before
     match or receive times out.
     """
-    def execfn(code, output = None, pattern = None):
-        m = message.execute_code(code = code, id = test_id)
+
+    def execfn(code, output=None, pattern=None):
+        m = message.execute_code(code=code, id=test_id)
         m['preparse'] = True
         # send block of code to be executed
         sagews.send_json(m)
@@ -554,16 +608,18 @@ def execbuf(request, sagews, test_id):
             elif pattern is not None:
                 if re.search(pattern, outbuf) is not None:
                     break
+
     def fin():
         recv_til_done(sagews, test_id)
 
     request.addfinalizer(fin)
     return execfn
 
+
 @pytest.fixture()
 def execinteract(request, sagews, test_id):
     def execfn(code):
-        m = message.execute_code(code = code, id = test_id)
+        m = message.execute_code(code=code, id=test_id)
         m['preparse'] = True
         sagews.send_json(m)
         typ, mesg = sagews.recv()
@@ -580,13 +636,24 @@ def execinteract(request, sagews, test_id):
 
 @pytest.fixture()
 def execblob(request, sagews, test_id):
+    def execblobfn(code,
+                   want_html=True,
+                   want_javascript=False,
+                   file_type='png',
+                   ignore_stdout=False):
+        r"""
+        fixture when test generates an image
 
-    def execblobfn(code, want_html=True, want_javascript=False, file_type = 'png', ignore_stdout=False):
+        INPUT:
+
+        - ``file_type`` -- string or list of strings, e.g. ["svg", "png"]
+
+        """
 
         SHA_LEN = 36
 
         # format and send the plot command
-        m = message.execute_code(code = code, id = test_id)
+        m = message.execute_code(code=code, id=test_id)
         sagews.send_json(m)
 
         # expect several responses before "done", but order may vary
@@ -598,12 +665,12 @@ def execblob(request, sagews, test_id):
                 assert want_blob
                 want_blob = False
                 # when a blob is sent, the first 36 bytes are the sha1 uuid
-                print("blob len %s"%len(mesg))
+                print("blob len %s" % len(mesg))
                 file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == uuidsha1(mesg[SHA_LEN:])
 
                 # sage_server expects an ack with the right uuid
-                m = message.save_blob(sha1 = file_uuid)
+                m = message.save_blob(sha1=file_uuid)
                 sagews.send_json(m)
             else:
                 assert typ == 'json'
@@ -622,7 +689,14 @@ def execblob(request, sagews, test_id):
                     want_name = False
                     assert 'file' in mesg
                     print('got file name')
-                    assert file_type in mesg['file']['filename']
+                    if isinstance(file_type, str):
+                        assert file_type in mesg['file']['filename']
+                    elif isinstance(file_type, list):
+                        assert any([(f0 in mesg['file']['filename']) for f0 in file_type]), \
+                            "missing one of file types {} in response from sage_server".format(file_type)
+                    else:
+                        assert 0
+
 
         # final response is json "done" message
         typ, mesg = sagews.recv()
@@ -630,6 +704,7 @@ def execblob(request, sagews, test_id):
         assert mesg['done'] == True
 
     return execblobfn
+
 
 @pytest.fixture()
 def execintrospect(request, sagews, test_id):
@@ -648,7 +723,8 @@ def execintrospect(request, sagews, test_id):
 
     return execfn
 
-@pytest.fixture(scope = "class")
+
+@pytest.fixture(scope="class")
 def sagews(request):
     r"""
     Module-scoped fixture for tests that don't leave
@@ -656,7 +732,7 @@ def sagews(request):
     """
     # setup connection to sage_server TCP listener
     host, port = get_sage_server_info()
-    print("host %s  port %s"%(host, port))
+    print("host %s  port %s" % (host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     sock.settimeout(default_timeout)
@@ -667,7 +743,7 @@ def sagews(request):
     print("socket unlocked")
     conn = ConnectionJSON(sock)
     c_ack = conn._recv(1).decode()
-    assert c_ack == 'y',"expect ack for token, got %s"%c_ack
+    assert c_ack == 'y', "expect ack for token, got %s" % c_ack
 
     # open connection with sage_server and run tests
     msg = message.start_session()
@@ -693,34 +769,38 @@ def sagews(request):
                 break
             time.sleep(0.5)
         else:
-            print("sending sigterm to %s"%pid)
+            print("sending sigterm to %s" % pid)
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError:
                 pass
+
     request.addfinalizer(fin)
     return conn
 
-import time
 
-@pytest.fixture(scope = "class")
+@pytest.fixture(scope="class")
 def own_sage_server(request):
     assert os.geteuid() != 0, "Do not run as root, will kill all sage_servers."
     print("starting sage_server class fixture")
     os.system(start_cmd())
     time.sleep(0.5)
+
     def fin():
         print("killing all sage_server processes")
         os.system("pkill -f sage_server_command_line")
+
     request.addfinalizer(fin)
 
-@pytest.fixture(scope = "class")
+
+@pytest.fixture(scope="class")
 def test_ro_data_dir(request):
     """
     Return the directory containing the test file.
     Used for tests which have read-only data files in the test dir.
     """
     return os.path.dirname(request.module.__file__)
+
 
 #
 # Write machine-readable report files into the $HOME directory
@@ -732,21 +812,23 @@ report_prom = os.path.expanduser('~/sagews-test-report.prom')
 results = []
 start_time = None
 
+
 @pytest.hookimpl
 def pytest_configure(config):
     global start_time
     start_time = datetime.utcnow()
 
+
 @pytest.hookimpl
 def pytest_unconfigure(config):
     global start_time
     data = {
-        'name'     : 'smc_sagews.test',
-        'version'  : 1,
-        'start'    : str(start_time),
-        'end'      : str(datetime.utcnow()),
-        'fields'   : ['name', 'outcome', 'duration'],
-        'results'  : results,
+        'name': 'smc_sagews.test',
+        'version': 1,
+        'start': str(start_time),
+        'end': str(datetime.utcnow()),
+        'fields': ['name', 'outcome', 'duration'],
+        'results': results,
     }
     with open(report_json, 'w') as out:
         json.dump(data, out, indent=1)
@@ -763,6 +845,7 @@ def pytest_unconfigure(config):
             prom.write(line + '\n')
     # ... then atomically overwrite the real one
     os.rename(report_prom_tmp, report_prom)
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):

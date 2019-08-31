@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -30,7 +23,7 @@
 Describes how the client course editor syncs with the database
 */
 
-import * as immutable from "immutable";
+import { fromJS } from "immutable";
 
 // SMC libraries
 const misc = require("smc-util/misc");
@@ -41,32 +34,38 @@ export let create_sync_db = (redux, actions, store, filename) => {
     return;
   }
 
-  const syncdb = webapp_client.sync_db({
-    project_id: store.get("course_project_id"),
-    path: store.get("course_filename"),
+  const project_id = store.get("course_project_id");
+  const path = store.get("course_filename");
+  actions.setState({loading:true});
+
+  const syncdb = webapp_client.sync_db2({
+    project_id,
+    path,
     primary_keys: ["table", "handout_id", "student_id", "assignment_id"],
     string_cols: ["note", "description", "title", "email_invite"],
     change_throttle: 500, // helps when doing a lot of assign/collect, etc.
     save_interval: 3000
   }); // wait at least 3s between saving changes to backend
 
-  syncdb.once("init", err => {
-    if (err) {
-      if (actions != null) {
-        actions.set_error(err);
-      }
-      console.warn(`Error opening '${store.course_filename}' -- ${err}`);
-      return;
+  syncdb.once("error", err => {
+    if (actions != null) {
+      actions.set_error(err);
     }
+    console.warn(`Error using '${store.course_filename}' -- ${err}`);
+  });
+
+  syncdb.once("ready", () => {
     const i = store.get("course_filename").lastIndexOf(".");
     const t = {
       settings: {
         title: store.get("course_filename").slice(0, i),
-        description: "No description"
+        description: "No description",
+        allow_collabs: true
       },
       assignments: {},
       students: {},
-      handouts: {}
+      handouts: {},
+      loading : false
     };
     for (let x of syncdb.get().toJS()) {
       if (x.table === "settings") {
@@ -81,28 +80,29 @@ export let create_sync_db = (redux, actions, store, filename) => {
     }
     for (let k in t) {
       const v = t[k];
-      t[k] = immutable.fromJS(v);
+      t[k] = fromJS(v);
     }
     if (actions != null) {
       actions.setState(t);
     }
-    syncdb.on(
-      "change",
-      changes => (actions != null ? actions._syncdb_change(changes) : undefined)
-    );
-    syncdb.on("sync", () =>
-      redux.getProjectActions(store.project_id).flag_file_activity(filename)
+    syncdb.on("change", changes => {
+      if (actions != null) {
+        actions._syncdb_change(changes);
+      }
+    });
+
+    syncdb.on("after-change", () =>
+      redux.getProjectActions(project_id).flag_file_activity(filename)
     );
 
     // Wait until the projects store has data about users of our project before configuring anything.
     const projects_store = redux.getStore("projects");
     projects_store.wait({
       until(p_store) {
-        return p_store.get_users(store.get("course_project_id")) != null;
+        return p_store.get_users(project_id) != null;
       },
       timeout: 30,
       cb() {
-        actions = actions;
         if (actions == null) {
           return;
         }
@@ -112,20 +112,15 @@ export let create_sync_db = (redux, actions, store, filename) => {
 
         // Also
         projects_store.on("change", actions.handle_projects_store_update);
-        return actions.handle_projects_store_update(projects_store);
+        actions.handle_projects_store_update(projects_store);
       }
     }); // initialize
 
-    return __guard__(
-      redux.getProjectActions(store.get("course_project_id")),
-      x1 => x1.log_opened_time(store.get("course_filename"))
-    );
+    const p = redux.getProjectActions(store.get("course_project_id"));
+    if (p != null) {
+      p.log_opened_time(store.get("course_filename"));
+    }
   });
 
   return syncdb;
 };
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}

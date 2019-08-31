@@ -44,8 +44,8 @@ templates = $("#webapp-editor-templates")
 class exports.HistoryEditor extends FileEditor
     constructor: (project_id, filename, content, opts) ->
         super(project_id, filename)
-        #if window.smc?
-        #    window.h = @ # for debugging
+        if window.smc?
+            window.h = @ # for debugging
         @_use_timeago = not redux.getStore('account').getIn(['other_settings', 'time_ago_absolute'])
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
@@ -88,12 +88,13 @@ class exports.HistoryEditor extends FileEditor
         webapp_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
+            persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
             cb         : (err, syncstring) =>
                 if err
                     cb?(err)
                 else
                     @syncstring = syncstring
-                    @syncstring.once('connected', cb)
+                    @syncstring.once('ready', cb)
 
     init_ui: =>
         @render_slider()
@@ -110,9 +111,9 @@ class exports.HistoryEditor extends FileEditor
             @load_all.show()
 
         # only show button for reverting if not read only
-        @syncstring.wait_until_read_only_known (err) =>
-            if not @syncstring.get_read_only()
-                @element.find("a[href=\"#revert\"]").show()
+        await @syncstring.wait_until_read_only_known()
+        if not @syncstring.is_read_only()
+            @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @remove()
@@ -186,9 +187,8 @@ class exports.HistoryEditor extends FileEditor
         @slider.show()
 
         @load_all.click () =>
-            @load_full_history (err) =>
-                if not err
-                    @load_all.hide()
+            await @load_full_history()
+            @load_all.hide()
 
         @forward_button.click () =>
             if @forward_button.hasClass("disabled")
@@ -219,6 +219,10 @@ class exports.HistoryEditor extends FileEditor
         @element.find("a[href=\"#snapshots\"]").click () =>
             open_snapshots()
 
+        @element.find("a[href=\"#export\"]").click () =>
+            @export_to_json()
+            return false
+
         @element.find("a[href=\"#file\"]").click(open_file)
 
         @element.find("a[href=\"#revert\"]").click () =>
@@ -228,7 +232,7 @@ class exports.HistoryEditor extends FileEditor
             if not time?
                 return
             @syncstring.revert(time)
-            @syncstring.save()
+            @syncstring.commit()
             open_file()
             @syncstring.emit('change')
 
@@ -380,12 +384,8 @@ class exports.HistoryEditor extends FileEditor
 
         usernames = []
         for account_id,_ of account_ids
-            if account_id == @project_id
-                name = "Project: " + redux.getStore('projects')?.get_title(account_id)
-            else
-                name = redux.getStore('users')?.get_name(account_id)
-            if name?
-                usernames.push(misc.trunc_middle(name,25).trim())
+            name = @account_id_to_username(account_id)
+            usernames.push(misc.trunc_middle(name,25).trim())
         if usernames.length > 0
             usernames.sort((a,b)->misc.cmp(a.toLowerCase(), b.toLowerCase()))
             username = usernames.join(', ')
@@ -394,6 +394,13 @@ class exports.HistoryEditor extends FileEditor
         @element.find(".webapp-editor-history-revision-user").text(username)
 
         @process_view()
+
+    account_id_to_username: (account_id) =>
+        if account_id == @project_id
+            return "Project: " + redux.getStore('projects')?.get_title(account_id)
+        else
+            return redux.getStore('users')?.get_name(account_id) ? "Unknown"
+
 
     goto_revision: (num) =>
         if not num?
@@ -558,26 +565,48 @@ class exports.HistoryEditor extends FileEditor
     hide: =>
         @view_doc?.hide()
 
-    load_full_history: (cb) =>
+    load_full_history: () =>
         if not @syncstring?
             return
         n = @syncstring.all_versions().length
-        @syncstring.load_full_history (err) =>
-            if err
-                cb?(err)
-            else
-                if @_diff_mode
-                    @resize_diff_slider()
+        await @syncstring.load_full_history()
+        if @_diff_mode
+            @resize_diff_slider()
+        else
+            @resize_slider()
+        if @revision_num?
+            num_added = @syncstring.all_versions().length - n
+            @goto_revision(@revision_num + num_added)
+
+    export_to_json: () =>
+        if not @syncstring? or not @syncstring.get_state() == 'ready'
+            alert_message(type:'error', message:"History not yet available.  Try again later.", timeout:15)
+            return
+
+        x = @syncstring.export_history({patches:false, patch_lengths:true})
+        # Replace account_id's by user names:
+        account_ids = {}
+        for entry in x
+            entry.user = @account_id_to_username(entry.account_id)
+
+        path = @_path + '-timetravel.json'
+        webapp_client.write_text_file_to_project
+            project_id : @project_id
+            path       : path
+            content    : JSON.stringify(x, null, 2)
+            cb         : (err) =>
+                if err
+                    alert_message(type:'error', message:"Error exporting history to file -- #{err}", timeout:15)
                 else
-                    @resize_slider()
-                if @revision_num?
-                    num_added = @syncstring.all_versions().length - n
-                    @goto_revision(@revision_num + num_added)
-                cb?()
+                    alert_message(type:'info', message:"Exported history to #{path}.", timeout:5)
+                    redux.getProjectActions(@project_id).open_file
+                        path       : path
+                        foreground : true
+
 
 # Compute a line-level diff between two strings, which
 # is useful when showing a diff between two states.
-{dmp} = require('smc-util/syncstring')
+{dmp} = require('smc-util/sync/editor/generic/util')
 line_diff = (v0, v1) ->
     string_mapping = new misc.StringCharMapping()
     result =

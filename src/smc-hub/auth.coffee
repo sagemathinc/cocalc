@@ -44,8 +44,11 @@ Now, connect to the database, where the setup is in the passports_settings table
 
 1. there sould be a site_conf entry:
 ```
-insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME/auth"}'::JSONB );
+insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME]/auth"}'::JSONB );
 ```
+e.g., {"auth": "https://cocalc.com/auth"} is used on the live site
+and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain dev project.
+
 2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
 
 Then restart the hubs.
@@ -63,6 +66,8 @@ sign_in = require('./sign-in')
 Cookies = require('cookies')
 
 express_session = require('express-session')
+
+{ HELP_EMAIL } = require("smc-util/theme")
 
 {defaults, required} = misc
 
@@ -276,8 +281,6 @@ passport_login = (opts) ->
                         last_name     : opts.last_name
                         email_address : locals.email_address ? null
                         created_by    : opts.req.ip
-                    data.utm      = opts.res.locals.utm      if opts.res.locals.utm
-                    data.referrer = opts.res.locals.referrer if opts.res.locals.referrer
                     opts.database.log
                         event : 'create_account'
                         value : data
@@ -287,16 +290,14 @@ passport_login = (opts) ->
         (cb) ->
             if locals.new_account_created
                 cb(); return
-            dbg("record_sign_in: #{opts.req.url} -- res.locals.utm: #{misc.to_json(opts.res.locals.utm)}")
+            dbg("record_sign_in: #{opts.req.url}")
             sign_in.record_sign_in
-                ip_address    : opts.req.ip
-                successful    : true
-                remember_me   : locals.has_valid_remember_me
-                email_address : locals.email_address
-                account_id    : locals.account_id
-                utm           : opts.res.locals.utm
-                referrer      : opts.res.locals.referrer
-                database      : opts.database
+                ip_address      : opts.req.ip
+                successful      : true
+                remember_me     : locals.has_valid_remember_me
+                email_address   : locals.email_address
+                account_id      : locals.account_id
+                database        : opts.database
             cb() # don't make client wait for this -- it's just a log message for us.
 
         (cb) ->
@@ -339,6 +340,18 @@ passport_login = (opts) ->
                     cb()
             )
 
+        (cb) ->
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : locals.account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User (account_id=#{locals.account_id}, email_address=#{locals.email_address}) is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}.")
+                        return
+                    cb()
         (cb) ->
             if locals.has_valid_remember_me
                 cb()
@@ -473,13 +486,12 @@ exports.init_passport = (opts) ->
 
     init_google = (cb) ->
         dbg("init_google")
-        # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
-        #
-        # NOTE: The passport-recommend library passport-google uses openid2, which
-        # is deprecated in a few days!   So instead, I have to use oauth2, which
-        # is in https://github.com/jaredhanson/passport-google-oauth, which I found by luck!?!
-        #
-        PassportStrategy = require('passport-google-oauth').OAuth2Strategy
+        # Strategy: Google OAuth 2 -- should be https://github.com/jaredhanson/passport-google-oauth2
+        # but is https://github.com/passport-next/passport-google-oauth2
+        # ATTENTION:
+        # We have to use a fork of passport-google-oauth2, since jaredhanson is MIA.
+        # See https://github.com/jaredhanson/passport-google-oauth2/pull/51/files
+        PassportStrategy = require('@passport-next/passport-google-oauth2').Strategy
         strategy = 'google'
         get_conf strategy, (err, conf) ->
             if err or not conf?

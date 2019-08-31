@@ -35,7 +35,7 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import errno, hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid
 
 from subprocess import Popen, PIPE
 
@@ -53,7 +53,7 @@ def log(s, *args):
     if args:
         try:
             s = str(s % args)
-        except Exception, mesg:
+        except Exception as mesg:
             s = str(mesg) + str(s)
     sys.stderr.write(s + '\n')
     sys.stderr.flush()
@@ -118,7 +118,7 @@ def cmd(s,
 def check_uuid(u):
     try:
         assert uuid.UUID(u).get_version() == 4
-    except (AssertionError, ValueError), mesg:
+    except (AssertionError, ValueError):
         raise RuntimeError("invalid uuid (='%s')" % u)
 
 
@@ -156,7 +156,7 @@ def thread_map(callable, inputs):
             try:
                 self.result = callable(self._x)
                 self.fail = False
-            except Exception, msg:
+            except Exception as msg:
                 self.result = msg
                 self.fail = True
 
@@ -252,8 +252,8 @@ class Project(object):
     def pids(self):
         return [
             int(x)
-            for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True)
-            .replace('ERROR', '').split()
+            for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).
+            replace('ERROR', '').split()
         ]
 
     def num_procs(self):
@@ -265,7 +265,6 @@ class Project(object):
             self.dev_env()
             os.chdir(self.project_path)
             self.cmd("smc-local-hub stop")
-            self.cmd("smc-console-server stop")
             self.cmd("smc-sage-server stop")
             return
 
@@ -276,15 +275,14 @@ class Project(object):
             log("kill attempt left %s procs" % n)
             if n == 0:
                 return
-            self.cmd(
-                ['/usr/bin/killall', '-u', self.username], ignore_errors=True)
+            self.cmd(['/usr/bin/killall', '-u', self.username],
+                     ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-u', self.uid], ignore_errors=True)
             time.sleep(grace_s)
-            self.cmd(
-                ['/usr/bin/killall', '-9', '-u', self.username],
-                ignore_errors=True)
-            self.cmd(
-                ['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
+            self.cmd(['/usr/bin/killall', '-9', '-u', self.username],
+                     ignore_errors=True)
+            self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid],
+                     ignore_errors=True)
         log("WARNING: failed to kill all procs after %s tries" % max_tries)
 
     def chown(self, path, recursive=True):
@@ -341,7 +339,7 @@ class Project(object):
                 'setquota', '-u', self.username, quota * 1000, quota * 1200,
                 1000000, 1100000, '-a'
             ])
-        except Exception, mesg:
+        except Exception as mesg:
             log("WARNING -- quota failure %s", mesg)
 
     def compute_quota(self, cores, memory, cpu_shares):
@@ -450,13 +448,16 @@ class Project(object):
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
 
-        # for development, the raw server, jupyter, etc., have to listen on localhost since that is where
+        # for development, the raw server, jupyter, etc., have
+        # to listen on localhost since that is where
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
-    def start(self, cores, memory, cpu_shares, base_url):
-        self.remove_smc_path(
-        )  # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
+    def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+              ephemeral_disk):
+        # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
+        self.remove_smc_path()
+
         self.ensure_bashrc()
         self.remove_forever_path()  # probably not needed anymore
         self.remove_snapshots_path()
@@ -467,6 +468,16 @@ class Project(object):
         )  # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
 
         os.environ['SMC_BASE_URL'] = base_url
+
+        if ephemeral_state:
+            os.environ['COCALC_EPHEMERAL_STATE'] = 'yes'
+        elif 'COCALC_EPHEMERAL_STATE' in os.environ:
+            del os.environ['COCALC_EPHEMERAL_STATE']
+
+        if ephemeral_disk:
+            os.environ['COCALC_EPHEMERAL_DISK'] = 'yes'
+        elif 'COCALC_EPHEMERAL_DISK' in os.environ:
+            del os.environ['COCALC_EPHEMERAL_DISK']
 
         # When running CoCalc inside of CoCalc, this env variable
         # could cause trouble, e.g., confusing the sagews server.
@@ -504,8 +515,8 @@ class Project(object):
                     # causes the second child process to be orphaned, making the init
                     # process responsible for its cleanup.
                     pid = os.fork()
-                except OSError, e:
-                    raise Exception, "%s [%d]" % (e.strerror, e.errno)
+                except OSError as e:
+                    raise Exception("%s [%d]" % (e.strerror, e.errno))
 
                 if pid == 0:
                     os.environ['HOME'] = self.project_path
@@ -539,29 +550,27 @@ class Project(object):
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
 
-    def stop(self):
+    def stop(self, ephemeral_state, ephemeral_disk):
         self.killall()
         self.delete_user()
         self.remove_smc_path()
         self.remove_forever_path()
         self.remove_snapshots_path()
+        if ephemeral_disk:
+            # Also delete home directory of project
+            shutil.rmtree(self.project_path)
 
-    def restart(self, cores, memory, cpu_shares, base_url):
+    def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+                ephemeral_disk):
         log = self._log("restart")
         log("first stop")
-        self.stop()
+        self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
-        self.start(cores, memory, cpu_shares, base_url)
+        self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
+                   ephemeral_disk)
 
     def get_memory(self, s):
-        try:
-            t = self.cmd(
-                ["smem", "-nu"], verbose=0,
-                timeout=5).splitlines()[-1].split()[1:]
-            s['memory'] = dict(
-                zip('count swap uss pss rss'.split(), [int(x) for x in t]))
-        except:
-            log("error running memory command")
+        return 0  # no longer supported
 
     def status(self, timeout=60, base_url=''):
         log = self._log("status")
@@ -605,16 +614,15 @@ class Project(object):
 
         try:
             # ignore_errors since if over quota returns nonzero exit code
-            v = self.cmd(
-                ['quota', '-v', '-u', self.username],
-                verbose=0,
-                ignore_errors=True).splitlines()
+            v = self.cmd(['quota', '-v', '-u', self.username],
+                         verbose=0,
+                         ignore_errors=True).splitlines()
             quotas = v[-1]
             # when the user's quota is exceeded, the last column is "ERROR"
             if quotas == "ERROR":
                 quotas = v[-2]
             s['disk_MB'] = int(quotas.split()[-6].strip('*')) / 1000
-        except Exception, mesg:
+        except Exception as mesg:
             log("error computing quota -- %s", mesg)
 
         if os.path.exists(self.smc_path):
@@ -657,7 +665,7 @@ class Project(object):
                     s.update(t)
                     if bool(t.get('local_hub.pid', False)):
                         s['state'] = 'running'
-                except Exception, err:
+                except Exception as err:
                     log("error running status command -- %s", err)
                     s['state'] = 'broken'
             return s
@@ -681,7 +689,7 @@ class Project(object):
                 s.update(t)
                 if bool(t.get('local_hub.pid', False)):
                     s['state'] = 'running'
-            except Exception, err:
+            except Exception as err:
                 log("error running status command -- %s", err)
                 s['state'] = 'broken'
         return s
@@ -759,15 +767,10 @@ class Project(object):
 
         if time:
             # sort by time first with bigger times first, then by filename in normal order
-            def f(a, b):
-                if a[1] > b[1]:
-                    return -1
-                elif a[1] < b[1]:
-                    return 0
-                else:
-                    return cmp(a[0], b[0])
+            def sortkey(a):
+                return (-a[1], a[0])
 
-            all.sort(f)
+            all.sort(key=sortkey)
         else:
             all.sort()  # usual sort is fine
 
@@ -827,11 +830,8 @@ class Project(object):
                         "path (=%s) does not exist and neither does %s" %
                         (path, base))
 
-        filename = os.path.split(abspath)[-1]
         if os.path.isfile(abspath):
             # a regular file
-            # TODO: compress the file before base64 encoding (and corresponding decompress
-            # in hub before sending to client)
             size = os.lstat(abspath).st_size
             if size > maxsize:
                 raise RuntimeError(
@@ -897,15 +897,15 @@ class Project(object):
                 if head and tail and not os.path.exists(head):
                     try:
                         makedirs(head)
-                    except OSError, e:
+                    except OSError as e:
                         # be happy if someone already created the path
                         if e.errno != errno.EEXIST:
                             raise
                     if tail == os.curdir:  # xxx/newdir/. exists if xxx/newdir exists
                         return
                 try:
-                    os.mkdir(name, 0700)
-                except OSError, e:
+                    os.mkdir(name, 0o0700)
+                except OSError as e:
                     if e.errno != errno.EEXIST:
                         raise
                 if not self._dev:
@@ -1027,7 +1027,7 @@ class Project(object):
             ] + exclude + w)
             # do the rsync
             self.cmd(v, verbose=2)
-        except Exception, mesg:
+        except Exception as mesg:
             mesg = str(mesg)
             # get rid of scary (and pointless) part of message
             s = "avoid man-in-the-middle attacks"
@@ -1075,7 +1075,7 @@ def main():
                             projects=args.projects,
                             single=args.single,
                             kucalc=args.kucalc), function)(**kwds)
-                except Exception, mesg:
+                except Exception as mesg:
                     raise  #-- for debugging
                     errors = True
                     result = {'error': str(mesg), 'project_id': project_id}
@@ -1083,11 +1083,11 @@ def main():
             if len(out) == 1:
                 if not out[0]:
                     out[0] = {}
-                print json.dumps(out[0])
+                print(json.dumps(out[0]))
             else:
                 if not out:
                     out = {}
-                print json.dumps(out)
+                print(json.dumps(out))
             if errors:
                 sys.exit(1)
 
@@ -1152,6 +1152,20 @@ def main():
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
         type=str,
         default='')
+    parser_start.add_argument(
+        "--ephemeral_state",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
+        default=False,
+        action="store_const",
+        const=True)
+    parser_start.add_argument(
+        "--ephemeral_disk",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
+        default=False,
+        action="store_const",
+        const=True)
     f(parser_start)
 
     parser_status = subparsers.add_parser(
@@ -1216,7 +1230,21 @@ def main():
     f(parser_killall)
 
     # kill all processes and delete unix user.
-    f(subparsers.add_parser('stop', help='kill all processes and delete user'))
+    parser_stop = subparsers.add_parser(
+        'stop', help='kill all processes and delete user')
+    parser_stop.add_argument(
+        "--ephemeral_state",
+        help="mainly so options are the same as for start and restart",
+        default=False,
+        action="store_const",
+        const=True)
+    parser_stop.add_argument(
+        "--ephemeral_disk",
+        help="also be sure to delete any files left around by project",
+        default=False,
+        action="store_const",
+        const=True)
+    f(parser_stop)
 
     parser_restart = subparsers.add_parser(
         'restart', help='stop then start project')
@@ -1241,6 +1269,20 @@ def main():
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
         type=str,
         default='')
+    parser_restart.add_argument(
+        "--ephemeral_state",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
+        default=False,
+        action="store_const",
+        const=True)
+    parser_restart.add_argument(
+        "--ephemeral_disk",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
+        default=False,
+        action="store_const",
+        const=True)
     f(parser_restart)
 
     # directory listing

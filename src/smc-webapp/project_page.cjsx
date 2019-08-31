@@ -29,6 +29,7 @@ feature = require('./feature')
 # 3rd party Libraries
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
+{delay} = require('awaiting')
 
 Draggable = require('react-draggable')
 
@@ -40,12 +41,12 @@ Draggable = require('react-draggable')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project_settings')
 {ProjectStore}     = require('./project_store')
-{DiskSpaceWarning, RamWarning} = require('./project_warnings')
+{DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
 
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
@@ -53,6 +54,10 @@ project_file = require('./project_file')
 {ShareIndicator} = require('./share-indicator')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
+
+{editor_id} = require('./project/utils')
+
+file_editors = require('./file-editors')
 
 misc = require('misc')
 misc_page = require('./misc_page')
@@ -103,7 +108,6 @@ FreeProjectWarning = rclass ({name}) ->
             @props.project_map?.get(@props.project_id)    != next.project_map?.get(@props.project_id) or \
             @props.other_settings?.get('no_free_warnings') != next.other_settings?.get('no_free_warnings')
 
-
     extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
@@ -134,18 +138,21 @@ FreeProjectWarning = rclass ({name}) ->
         <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
     render_learn_more: (color) ->
-        <a
-            href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
-            target = "_blank"
-            style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
-            <Space/> &mdash; more info... <Space/>
-        </a>
+        <Fragment>
+            {' '}&mdash;{' '}
+            <a
+                href   = "https://doc.cocalc.com/trial.html"
+                target = "_blank"
+                style  = {fontWeight : 'bold', color:color, cursor:'pointer'}
+            >
+                more info
+            </a>
+            {'...'}
+        </Fragment>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
     render: ->
         if @props.other_settings?.get('no_free_warnings')
-            return null
-        if not @props.project_log?
             return null
         if not require('./customize').commercial
             return null
@@ -162,22 +169,22 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
 
-        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 30))
+        font_size = Math.min(18, 10 + (@props.project_log?.size ? 0) / 30)
         styles =
-            padding      : "5px 30px"
+            padding      : "5px 10px"
             marginBottom : 0
             fontSize     : "#{font_size}pt"
 
-        if host
+        if host and font_size > 11
             styles.color      = 'white'
             styles.background = 'red'
 
         if host and internet
-            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b> and has no network access.  Expect very bad performance.</span>
+            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b> and has no internet access.  Expect poor performance and no email notifications.</span>
         else if host
-            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b>. Expect very bad performance.</span>
+            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b>.   Expect poor performance and no email notifications.</span>
         else if internet
-            mesg = <span>This project does not have network access.</span>
+            mesg = <span>This project does not have access to the internet.  No installs, external resources or email notifications.</span>
 
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
@@ -221,6 +228,7 @@ ProjectContentViewer = rclass
     displayName: 'ProjectContentViewer'
 
     propTypes :
+        is_visible      : rtypes.bool.isRequired
         project_id      : rtypes.string.isRequired
         project_name    : rtypes.string.isRequired
         active_tab_name : rtypes.string
@@ -228,11 +236,17 @@ ProjectContentViewer = rclass
         file_path       : rtypes.string
         group           : rtypes.string
         save_scroll     : rtypes.func
+        show_new        : rtypes.bool
+
+    getInitialState: -> # just for forcing updates sometimes
+        counter : 0
 
     componentDidMount: ->
+        @mounted = true
         @restore_scroll_position()
 
     componentWillUnmount: ->
+        @mounted = false
         @save_scroll_position()
 
     componentDidUpdate: ->
@@ -244,23 +258,40 @@ ProjectContentViewer = rclass
     restore_scroll_position: ->
         saved_scroll = @props.opened_file?.get('component')?.scroll_position
         if saved_scroll?
-            $(@refs.editor_inner_container).children()[0].scrollTop = saved_scroll
+            $(@refs.editor_inner_container).children()[0]?.scrollTop = saved_scroll
 
     save_scroll_position: ->
         if @refs.editor_inner_container? and @props.save_scroll?
-            val = $(@refs.editor_inner_container).children()[0].scrollTop
-            @props.save_scroll(val)
+            val = $(@refs.editor_inner_container).children()[0]?.scrollTop
+            if val?
+                @props.save_scroll(val)
+
+    # TRULY HORRIBLE: force an update soon
+    update_soon: ->
+        await delay(500)
+        if @mounted
+            # -- sometimes the Editor getting
+            # defined doesn't result in this component updating,
+            # which is HORRIBLE for users, since they don't know
+            # what is going on and stare at the Loading spinner
+            # for a long time... For now, let's force that update to
+            # happen.   Revisit this when rewriting this file
+            # in typescript.
+            @setState(counter : @state.counter+1)
 
     render_editor: (path) ->
         {Editor, redux_name} = @props.opened_file.get('component') ? {}
         if redux_name?
             editor_actions = redux.getActions(redux_name)
         if not Editor?
-            <Loading />
+            if @props.is_visible
+                @update_soon()
+            <Loading theme={"medium"} />
         else
             <div
                 ref       = {'editor_inner_container'}
                 className = {'smc-vfill'}
+                id        = {editor_id(@props.project_id, path)}
                 style     = {height:'100%', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}
@@ -358,14 +389,23 @@ ProjectContentViewer = rclass
                 <ProjectSearch name={@props.project_name} />
             when 'settings'
                 <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
-            else
+            else  # @props.active_tab_name = "editor-<filename>"
                 if not @props.opened_file? or not @props.active_tab_name?
                     <Loading />
                 else
                     @render_editor_tab()
 
     render: ->
-        <div style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
+        style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
+        if !@props.is_visible
+            style.display = "none"
+        # always make div remaining height,
+        # except for on the files page when New is being displayed:
+        if @props.active_tab_name == 'files' and @props.show_new
+            className = undefined
+        else
+            className = 'smc-vfill'
+        <div style={style} className={className}>
             {@render_tab_content()}
         </div>
 
@@ -386,9 +426,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             free_warning_closed   : rtypes.bool     # Makes bottom height update
             num_ghost_file_tabs   : rtypes.number
             current_path          : rtypes.string
+            show_new              : rtypes.bool
 
     propTypes :
         project_id : rtypes.string
+        is_active : rtypes.bool
 
     on_sort_end : ({oldIndex, newIndex}) ->
         @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
@@ -398,7 +440,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             return
         tabs = []
         @props.open_files_order.map (path, index) =>
-            tabs.push(@file_tab(path, index))
+            if path?  # see https://github.com/sagemathinc/cocalc/issues/3450
+                tabs.push(@file_tab(path, index))
         if @props.num_ghost_file_tabs == 0
             return tabs
 
@@ -499,11 +542,57 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     </SortableNav>
                 </div>
                 <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
-                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
                     {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
                 </div>
             </div>
         </div>
+
+    render_editor_tabs: (active_path, group) ->
+        v = []
+
+        @props.open_files_order.map (path, index) =>
+            if not path
+                return
+            tab_name = 'editor-' + path
+            v.push <ProjectContentViewer
+                key             = {tab_name}
+                is_visible      = {@props.active_project_tab == tab_name}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {tab_name}
+                opened_file     = {@props.open_files.get(path)}
+                file_path       = {path}
+                group           = {group}
+                save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
+            />
+        return v
+
+
+    render_project_content: (active_path, group) ->
+        v = []
+        if @props.active_project_tab.slice(0, 7) != 'editor-'  # fixed tab
+            if !@props.is_active
+                # see https://github.com/sagemathinc/cocalc/issues/3799
+                # Some of the fixed project tabs (none editors) are hooked
+                # into redux and moronic about rendering everything on every
+                # tiny change... Until that is fixed, it is critical to NOT
+                # render these pages at all, unless the tab is active
+                # and they are visible.
+                return
+            v.push <ProjectContentViewer
+                key             = {@props.active_project_tab}
+                is_visible      = {true}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {@props.active_project_tab}
+                show_new        = {@props.show_new}
+                opened_file     = {@props.open_files.get(active_path)}
+                file_path       = {active_path}
+                group           = {group}
+                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                />
+        return v.concat(@render_editor_tabs(active_path, group))
 
     render : ->
         if not @props.open_files_order?
@@ -517,22 +606,15 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             flex          : 1
             overflow      : 'auto'
         if not @props.fullscreen
-            style.paddingTop = '5px'
+            style.paddingTop = '3px'
         <div className='container-content' style={style}>
             <DiskSpaceWarning project_id={@props.project_id} />
             <RamWarning project_id={@props.project_id} />
+            <OOMWarning project_id={@props.project_id} name={name} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             {<DeletedProjectWarning /> if project?.get('deleted')}
-            <ProjectContentViewer
-                project_id      = {@props.project_id}
-                project_name    = {@props.name}
-                active_tab_name = {@props.active_project_tab}
-                opened_file     = {@props.open_files.getIn([active_path])}
-                file_path       = {active_path}
-                group           = {group}
-                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
-            />
+            {@render_project_content(active_path, group)}
         </div>
 
 exports.MobileProjectPage = rclass ({name}) ->
@@ -660,6 +742,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             </div> if not @props.fullscreen}
             <ErrorBoundary>
                 <ProjectContentViewer
+                    is_visible      = {true}
                     project_id      = {@props.project_id}
                     project_name    = {@props.name}
                     active_tab_name = {@props.active_project_tab}

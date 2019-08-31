@@ -30,9 +30,12 @@ misc = require('smc-util/misc')
 {ProjectsPage} = require('./projects')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
-{FileUsePage} = require('./file_use')
-{AdminPage} = require('admin/page')
+{FileUsePage} = require('./file-use/page')
+{NotificationPage} = require('./notifications')
+{AdminPage} = require('./admin')
 {show_announce_end} = require('./redux_account')
+{analytics_event} = require('./tracker')
+{user_tracking} = require('./user-tracking')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -40,33 +43,54 @@ feature = require('./feature')
 # same as nav bar height?
 exports.announce_bar_offset = announce_bar_offset = 40
 
-exports.ActiveAppContent = ({active_top_tab, render_small}) ->
+exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
+    v = []
+    if open_projects?
+        open_projects.forEach (project_id) ->
+            is_active = project_id == active_top_tab
+            project_name = redux.getProjectStore(project_id).name
+            if render_small
+                x = <MobileProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
+            else
+                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
+            cls = 'smc-vfill'
+            if project_id != active_top_tab
+                cls += ' hide'
+            v.push(<div key={project_id} className={cls}>{x}</div>)
+    else  # open_projects not used (e.g., on mobile).
+        if active_top_tab?.length == 36
+            project_id = active_top_tab
+            project_name = redux.getProjectStore(project_id).name
+            if render_small
+                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
+            else
+                x = <ProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
+            v.push(x)
+
     switch active_top_tab
         when 'projects'
-            return <ProjectsPage />
+            v.push <ProjectsPage key={'projects'}/>
         when 'account'
-            return <AccountPage />
+            v.push <AccountPage key={'account'}/>
         when 'about'
-            return <HelpPage />
+            v.push <HelpPage key={'about'}/>
         when 'help'
-            return <div>To be implemented</div>
+            v.push <div key={'help'}>To be implemented</div>
         when 'file-use'
-            return <FileUsePage redux={redux} />
+            v.push <FileUsePage redux={redux} key={'file-use'}/>
+        when 'notifications'
+            v.push <NotificationPage key={'notifications'} />
         when 'admin'
-            return <AdminPage redux={redux} />
+            v.push <AdminPage redux={redux} key={'admin'}/>
         when undefined
-            return <div>Broken... active_top_tab is undefined</div>
-        else
-            project_name = redux.getProjectStore(active_top_tab).name
-            if render_small
-                <MobileProjectPage name={project_name} project_id={active_top_tab} />
-            else
-                <ProjectPage name={project_name} project_id={active_top_tab} />
+            v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+    return v
 
 exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
+        name            : rtypes.string
         label           : rtypes.string
         label_class     : rtypes.string
         icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
@@ -78,9 +102,11 @@ exports.NavTab = rclass
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
         show_label      : rtypes.bool
+        is_project      : rtypes.bool
 
     getDefaultProps: ->
         show_label : true
+        is_project : false
 
     shouldComponentUpdate: (next) ->
         if @props.children?
@@ -93,20 +119,32 @@ exports.NavTab = rclass
                 {@props.label}
             </span>
 
-    make_icon: ->
+    render_icon: ->
         if @props.icon?
             if typeof @props.icon == "string"
                 <Icon
                     name  = {@props.icon}
-                    style = {fontSize: 20, paddingRight: 2}
+                    style = {paddingRight: 2}
                 />
             else
                 @props.icon
 
     on_click: (e) ->
+        @props.on_click?()
+
+        if @props.is_project
+            user_tracking('top_nav', {name:'project', project_id:@props.name})
+        else
+            user_tracking('top_nav', {name:@props.name ? @props.label})
+
         if @props.name?
             @actions('page').set_active_tab(@props.name)
-        @props.on_click?()
+            if @props.is_project
+                analytics_event('top_nav', 'opened_a_project');
+            else
+                analytics_event('top_nav', @props.name)
+        else if @props.label?
+            analytics_event('top_nav', @props.label)
 
     render: ->
         is_active = @props.active_top_tab == @props.name
@@ -139,7 +177,7 @@ exports.NavTab = rclass
             style = {outer_style}
         >
             <div style={inner_style}>
-                {@make_icon()}
+                {@render_icon()}
                 {@render_label()}
                 {@props.children}
             </div>
@@ -163,6 +201,8 @@ exports.NotificationBell = rclass
         @actions('page').toggle_show_file_use()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
         @props.on_click?()
+        if !@props.active
+            user_tracking("top_nav", {name:"file_use"})
 
     notification_count: ->
         count_styles =
@@ -217,37 +257,21 @@ exports.ConnectionIndicator = rclass
 
     propTypes :
         actions       : rtypes.object
-        ping          : rtypes.number
         status        : rtypes.string
         on_click      : rtypes.func
-        show_pingtime : rtypes.bool
 
     reduxProps :
         page :
-            avgping           : rtypes.number
             connection_status : rtypes.string
         account :
             mesg_info         : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info', 'show_pingtime'])
-
-    getDefaultProps: ->
-        show_pingtime : true
-
-    render_ping: ->
-        if @props.avgping?
-            <Tip
-                title     = {'Most recently recorded roundtrip time to the server.'}
-                placement = {'left'}
-                stable    = {true}
-                >
-                {Math.floor(@props.avgping)}ms
-            </Tip>
+        return misc.is_different(@props, next, ['connection_status', 'status', 'mesg_info'])
 
     render_connection_status: ->
         if @props.connection_status == 'connected'
-            icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
+            icon_style = {marginRight: '16px', fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
             else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
@@ -256,35 +280,33 @@ exports.ConnectionIndicator = rclass
                 icon_style.color = '#00c'
             else
                 icon_style.color = 'grey'
-            <div>
+            <div style={padding:'9px'}>
                 <Icon name='wifi' style={icon_style}/>
-                {@render_ping() if @props.show_pingtime}
             </div>
         else if @props.connection_status == 'connecting'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
                 connecting...
-            </span>
+            </div>
         else if @props.connection_status == 'disconnected'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
                 disconnected
-            </span>
+            </div>
 
     connection_click: ->
         @props.actions.show_connection(true)
         @props.on_click?()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
+        user_tracking("top_nav", {name:"connection"})
 
     render: ->
-        width = if @props.show_pingtime then '8.5em' else '5em'
         outer_styles =
-            width      : width
             color      : '#666'
             fontSize   : '10pt'
             lineHeight : '10pt'
             cursor     : 'pointer'
             float      : 'left'
         inner_styles =
-            padding : '13.5px'
+            paddingTop : '3px'
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
@@ -319,7 +341,7 @@ MessageInfo = rclass
                 {@props.info.get('enqueued')} messages queued to send
             </pre>
             <div style={color:"#666"}>
-                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
+                Connection icon color changes as the number of messages in flight to a hub increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
             </div>
         </div>
 
@@ -404,14 +426,12 @@ exports.FullscreenButton = rclass
         return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
-        if ev.shiftKey
-            @actions('page').set_fullscreen('kiosk')
-        else
-            @actions('page').toggle_fullscreen()
+        user_tracking("top_nav",{name:'fullscreen', enabled:!@props.fullscreen})
+        @actions('page').toggle_fullscreen()
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
+        top_px = '-1px'
 
         tip_style =
             position     : 'fixed'
@@ -420,10 +440,9 @@ exports.FullscreenButton = rclass
             top          : top_px
             borderRadius : '3px'
 
-
         icon_style =
             fontSize   : '13pt'
-            padding    : 4
+            padding    : 2
             color      : COLORS.GRAY
             cursor     : 'pointer'
 
@@ -434,7 +453,7 @@ exports.FullscreenButton = rclass
 
         <Tip
             style     = {tip_style}
-            title     = {'Removes navigational chrome from the UI. Shift-click to enter "kiosk-mode".'}
+            title     = {'Fullscreen mode, focused on the current document or page.'}
             placement = {'left'}
         >
             <Icon
@@ -457,8 +476,8 @@ exports.AppLogo = rclass
             backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
             backgroundRepeat: 'no-repeat'
-            height          : 36
-            width           : 36
+            height          : "32px"
+            width           : "32px"
             position        : 'relative'
             margin          : '2px'
         <div style={styles}></div>
@@ -577,7 +596,7 @@ exports.GlobalInformationMessage = rclass
             zIndex          : '101'
             right           : 0
             left            : 0
-            height          : '40px'
+            height          : '36px'
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>

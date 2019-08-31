@@ -10,7 +10,7 @@ import * as React from "react";
 
 const { Icon, Tip } = require("smc-webapp/r_misc");
 
-import { RenderedMessage, message_color, message_icon } from "./lean-info";
+import { RenderedMessage, message_color, message_icon } from "./lean-messages";
 
 import { Message, Task } from "./types";
 

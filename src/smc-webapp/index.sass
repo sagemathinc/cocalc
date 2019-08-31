@@ -41,6 +41,8 @@
 @import profile
 @import jupyter/jupyter
 @import tasks/tasks
+@import frame-editors/style
+@import notifications/style
 
 .hide
   display : none
@@ -88,7 +90,19 @@ div#smc-react-container
   position   : absolute
   top        : 0px
 
-/* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
+
+div#cocalc-react-crash
+  z-index: -10
+  position: absolute
+  width: 80vw
+  top: 5vh
+  left: 10vw
+  border: 5px solid  $COL_BS_RED
+  padding: 10px 20px 20px 20px
+  border-radius: 5px
+  font-size: 12pt
+
+  /* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
 
 .btn-ms
   padding-bottom : 2px
@@ -141,14 +155,14 @@ div#smc-react-container
   .smc-small-only
     display : none
 
-.ui-pnotify-title
-  font-size: 16px;
+//.ui-pnotify-title
+//  font-size: 16px;
 
-.ui-pnotify-history-container
-  position : fixed
-  border-color: $COL_GRAY_D
-  .ui-pnotify-history-pulldown
-    background-color: $COL_GRAY_L0
+//.ui-pnotify-history-container
+//  position : fixed
+//  border-color: $COL_GRAY_D
+//  .ui-pnotify-history-pulldown
+//     background-color: $COL_GRAY_L0
 
 .CodeMirror, .CodeMirror-wrap
   line-height : normal
@@ -368,3 +382,22 @@ span.katex
 //  position: absolute
 //  font-size: 28px
 //  margin-top: -14px
+
+
+// issue https://github.com/sagemathinc/cocalc/issues/3389
+// fixing terminal scroll bar
+div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
+  background: transparent !important
+  z-index: 1
+
+.dropzone
+  min-height : 130px
+
+  .dz-default.dz-message
+    opacity  : .7
+
+.dropdown-splitbutton-left>div>ul.dropdown-menu
+  right: 0;
+  left: auto;
+  padding-left: 1px;
+  padding-right: 1px;

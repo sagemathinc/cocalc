@@ -1,11 +1,15 @@
 # 3rd Party Libraries
 immutable = require('immutable')
+sha1 = require("sha1");
 
 # Internal Libraries
+{user_tracking} = require('../user-tracking')
 {Actions} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
-# Sibling Libraries
+{delay} = require('awaiting')
+
+{ IS_MOBILE, isMobile } = require("../feature")
 
 class ChatActions extends Actions
     _process_syncdb_obj: (x) =>
@@ -82,8 +86,10 @@ class ChatActions extends Actions
             event     : "chat"
             history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
             date      : time_stamp
-        @syncdb.save()
         @setState(last_sent: mesg)
+        @save()
+        @set_input('')
+        user_tracking("send_chat", {project_id:@syncdb.project_id, path:@syncdb.path})
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
@@ -117,7 +123,18 @@ class ChatActions extends Actions
             history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
             editing : message.get('editing').set(author_id, null).toJS()
             date    : message.get('date').toISOString()
-        @syncdb.save()
+        @save()
+
+    # Make sure everything is sent to the project.
+    save: =>
+        @syncdb.commit()
+        await @syncdb.save()
+
+    # Make sure everything saved to DISK.
+    save_to_disk: =>
+        this.setState(is_saving:true)
+        await @syncdb.save_to_disk()
+        this.setState(is_saving:false)
 
     set_to_last_input: =>
         @setState(input:@store.get('last_sent'))
@@ -134,9 +151,48 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
+    set_unsent_user_mentions: (user_mentions = immutable.List(), message_plain_text = "") =>
+        @setState(unsent_user_mentions: user_mentions, message_plain_text: message_plain_text)
+
+    submit_user_mentions: (project_id, path) =>
+        CONTEXT_SIZE = 80
+        account_store = @redux.getStore('account')
+        if account_store == undefined
+            return
+        @store.get('unsent_user_mentions').map((mention) =>
+            end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
+            end_of_context_index = end_of_mention_index + CONTEXT_SIZE
+
+            # Add relevant ellpises depending on size of full message
+            description = ""
+            if mention.get('plainTextIndex') != 0
+                description = "... "
+            description += @store.get('message_plain_text').slice(end_of_mention_index, end_of_context_index).trim()
+            if end_of_context_index < @store.get('message_plain_text').length
+                description += " ..."
+
+            webapp_client.mention({
+                project_id: project_id
+                path: path
+                target: mention.get('id')
+                priority: 2
+                description: description
+                source: account_store.get_account_id()
+            })
+        )
+        @setState(unsent_user_mentions: immutable.List())
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
+
+    show: =>
+        if (not IS_MOBILE or isMobile.Android()) and @name
+            # TODO: The chat is shown, but it might already have been mounted,
+            # so we must manually autofocus the input box.
+            # We use sha1 for uniqueness of id and it being a simple string.
+            await delay(0)
+            $("#" + sha1(@name)).focus()
 
 exports.ChatActions = ChatActions

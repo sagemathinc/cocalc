@@ -19,7 +19,7 @@ const PDFJS = require("pdfjs-dist/webpack");
 
 import { delay } from "awaiting";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 export interface SyncHighlight {
   y: number;
@@ -78,7 +78,7 @@ export class AnnotationLayer extends Component<Props, State> {
         continue;
       }
       let [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
-      let page_height = this.props.page.pageInfo.view[3];
+      let page_height = this.props.page.view[3];
       let left = x1 - 1,
         top = page_height - y2 - 1,
         width = x2 - x1 + 2,
@@ -116,7 +116,7 @@ export class AnnotationLayer extends Component<Props, State> {
       v.push(
         this.render_sync_highlight(
           scale,
-          this.props.page.pageInfo.view[2],
+          this.props.page.view[2],
           this.state.sync_highlight.y
         )
       );

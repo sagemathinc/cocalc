@@ -8,6 +8,27 @@ async = require('async')
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 
+path       = require('path')
+{execSync} = require('child_process')
+{defaults} = misc = require('smc-util/misc')
+
+# global variable
+PROJECT_ID = undefined
+PREFIX = 'cocalc_project_'
+
+# Prometheus client setup -- https://github.com/siimon/prom-client
+prom_client = require('prom-client')
+
+# additionally, record GC statistics
+# https://www.npmjs.com/package/prometheus-gc-stats
+require('prometheus-gc-stats')()()
+
+# collect some recommended default metrics every 10 seconds
+prom_client.collectDefaultMetrics(timeout: 10 * 1000)
+
+# --- end prometheus setup
+
+
 # This gets **changed** to true in local_hub.coffee, if a certain
 # command line flag is passed in.
 exports.IN_KUCALC = false
@@ -49,6 +70,7 @@ update_project_status = (client, cb) ->
 
 exports.compute_status = compute_status = (cb) ->
     status =
+        time      : (new Date()).getTime()
         memory    : {rss: 0}
         disk_MB   : 0
         cpu       : {}
@@ -58,7 +80,6 @@ exports.compute_status = compute_status = (cb) ->
         (cb) ->
             compute_status_disk(status, cb)
         (cb) ->
-            #compute_status_memory(status, cb)
             cgroup_stats(status, cb)
         (cb) ->
             processes_info(status, cb)
@@ -98,17 +119,6 @@ compute_status_tmp = (status, cb) ->
     disk_usage "/tmp", (err, x) ->
         status.memory.rss += 1000*x
         cb(err)
-
-compute_status_memory = (status, cb) ->
-    misc_node.execute_code
-        command : "smem -nu | tail -1 | awk '{print $6}'"
-        bash    : true
-        cb      : (err, out) ->
-            if err
-                cb(err)
-            else
-                status.memory.rss += parseInt(out.stdout)
-                cb()
 
 # this grabs the memory stats directly from the sysfs cgroup files
 # the actual usage is the sum of the rss values plus cache, but we leave cache aside
@@ -151,8 +161,10 @@ cgroup_stats = (status, cb) ->
 
     }, (err, res) ->
         kib = 1024 # convert to kibibyte
-        status.memory.rss  += (res.memory.total_rss ? 0 + stats.total_rss_huge ? 0) / kib
-        status.memory.cache = (res.memory.cache ? 0) / kib
+        # total_rss includes total_rss_huge
+        # Ref: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
+        status.memory.rss  += (res.memory.total_rss ? 0) / kib
+        status.memory.cache = (res.memory.total_cache ? 0) / kib
         status.memory.limit = (res.memory.hierarchical_memory_limit ? 0) / kib
         status.cpu.usage    = res.cpu
         status.oom_kills    = res.oom
@@ -229,20 +241,25 @@ exports.prometheus_metrics = (project_id) ->
     # HELP cocalc_project_running_processes_total
     # TYPE cocalc_project_running_processes_total gauge
     cocalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
+    # HELP cocalc_project_oom_kills_total
+    # TYPE cocalc_project_oom_kills_total counter
+    cocalc_project_oom_kills_total{#{labels}} #{current_status.oom_kills ? 0}
     """ + '\n'  # makes sure the response ends with a newline!
 
 # called inside raw_server
 exports.init_health_metrics = (raw_server, project_id) ->
     return if not exports.IN_KUCALC
+    PROJECT_ID = project_id
 
     # Setup health and metrics (no url base prefix needed)
     raw_server.use '/health', (req, res) ->
         res.setHeader("Content-Type", "text/plain")
-        res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
+        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate')
         res.send('OK')
 
     # prometheus text format -- https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
     raw_server.use '/metrics', (req, res) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
-        res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
-        res.send(exports.prometheus_metrics(project_id))
+        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+        part1 = exports.prometheus_metrics(project_id)
+        res.send(part1 + '\n' + prom_client.register.metrics() + '\n')

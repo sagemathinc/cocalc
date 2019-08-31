@@ -29,18 +29,18 @@ immutable = require('immutable')
 {CodeMirrorStatic} = require('../jupyter/codemirror-static');
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
-# Assistant
+# Snippets
 {REPO_URL} = require('./common')
 
 
 exports.ExamplesBody = rclass
-    displayName : 'ExamplesBody'
+    displayName : 'SnippetsBody'
 
     propTypes:
         actions             : rtypes.object
         data                : rtypes.immutable
         lang                : rtypes.string
-        code                : rtypes.string
+        code                : rtypes.immutable.List
         descr               : rtypes.string
         setup_code          : rtypes.string
         prepend_setup_code  : rtypes.bool
@@ -191,10 +191,18 @@ exports.ExamplesBody = rclass
         }
         </Row>
 
-    render_bottom: ->
+    render_code: () ->
+        # TODO syntax highlighting
         code = @props.code
-        if @props.setup_code?.length > 0 and @props.prepend_setup_code
-            code = "#{@props.setup_code}\n#{code}"
+        if code?
+            code = code.toArray()
+
+            if @props.prepend_setup_code and @props.setup_code?.length > 0
+                code.unshift(@props.setup_code)
+
+            code_text = code.join('\n')
+        else
+            code_text = ''
 
         cm_style =
             height     : undefined
@@ -203,17 +211,23 @@ exports.ExamplesBody = rclass
             padding    : '15px'
             fontSize   : '12px'
 
+        options = {mode:{name:get_codemirror_mode(@props.lang)}}
+
+        <Col className={'webapp-examples-code'} sm={6}>
+            <CodeMirrorStatic
+                value={code_text}
+                style={cm_style}
+                options={immutable.fromJS(options)}
+            />
+        </Col>
+
+    render_bottom: ->
+
         <Row key={'bottom'}>
-            <Col className={'webapp-examples-code'} sm={6}>
-                <CodeMirrorStatic
-                    value={code}
-                    style={cm_style}
-                    options={immutable.fromJS({mode:{name:get_codemirror_mode(@props.lang)}})}
-                />
-            </Col>
+            {@render_code()}
             <Col sm={6}>
                 <Panel ref={'descr'} className={'webapp-examples-descr'}>
-                    <Markdown value={@props.descr} />
+                    <Markdown value={@props.descr ? ''} />
                 </Panel>
             </Col>
         </Row>
@@ -230,7 +244,7 @@ exports.ExamplesBody = rclass
             <Col sm={12}>
                 Selected language <code>{@props.lang}</code> has no data.
                 You can help by contributing more content at{' '}
-                <a href={REPO_URL} target={'_blank'}>
+                <a href={REPO_URL} target={'_blank'} rel={"noopener"}>
                     {REPO_URL.split('/')[-2...].join('/')}
                 </a>.
             </Col>

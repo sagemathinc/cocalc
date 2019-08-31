@@ -5,13 +5,9 @@ NOTE: We explicitly import inside the prom-client package, since the index.js
 in that package imports some things that make no sense in a browser.
 ###
 
-###
-console.log "not initializing prometheus"
-exports.enabled = false
-###
-
-console.log "initializing prometheus client"
-exports.enabled = true
+{COCALC_MINIMAL} = require('./fullscreen')
+exports.enabled = true and not COCALC_MINIMAL
+console.log("initializing prometheus client. enabled =", exports.enabled)
 
 exports.register           = require('prom-client/lib/registry').globalRegistry
 exports.Registry           = require('prom-client/lib/registry')

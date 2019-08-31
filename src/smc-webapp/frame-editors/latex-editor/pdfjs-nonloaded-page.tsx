@@ -4,7 +4,7 @@ import { PDFPageProxy } from "pdfjs-dist/webpack";
 
 import { Component, React } from "../../app-framework";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 interface Props {
   page: PDFPageProxy;
@@ -32,8 +32,7 @@ export class NonloadedPage extends Component<Props, {}> {
           display: "inline-block"
         }}
       >
-        <div style={{ width: width, height: height }}>
-        </div>
+        <div style={{ width: width, height: height }} />
       </div>
     );
   }

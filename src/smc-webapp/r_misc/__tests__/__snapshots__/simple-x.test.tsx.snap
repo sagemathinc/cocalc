@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke test 1`] = `
+<a
+  href=""
+  onClick={[Function]}
+>
+  <Icon
+    name="times"
+  />
+</a>
+`;

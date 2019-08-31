@@ -5,6 +5,7 @@ extends ../_base.pug
 block vars
   -
     navbar_active = 'software';
+    subnavbar_active = 'software-python';
     subtitle = NAME + " Python Environments";
 
 block header
@@ -16,9 +17,7 @@ block content
     div.row#top
       h1 Python Environments
       div.
-        This table lists available Python libraries with their respective versions.
-        The header at the top lists the available environments
-        and the left column describes the name and summary of the library.
+        This table lists available Python libraries for each supported environment.
       div.
         #[a(href="https://www.sagemath.org/") SageMath] is listed as a Python environment,
         because technically it is one.
@@ -27,5 +26,9 @@ block content
         and preloads useful objects into the namespace.
       div.
         Besides all the listed libraries you can install additional ones in your project.
+      br/
+      div.alert.alert-info.space.
+        Learn more about #[strong #[a(href="./python.html") Python functionality on #{NAME}]] and
+        #[strong #[a(href="./jupyter-notebook.html") Jupyter Notebook support]].
 
   +software-environment-table('python')

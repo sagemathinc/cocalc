@@ -34,6 +34,7 @@ _             = require('underscore')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
+# TODO: Upgrade to v3 and Stripe Elements
 load_stripe = (cb) ->
     if Stripe?
         cb()
@@ -215,7 +216,7 @@ validate =
 
 powered_by_stripe = ->
     <span>
-        Powered by <a href="https://stripe.com/" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
+        Powered by <a href="https://stripe.com/" rel="noopener" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
     </span>
 
 
@@ -224,7 +225,7 @@ AddPaymentMethod = rclass
 
     propTypes :
         redux    : rtypes.object.isRequired
-        on_close : rtypes.func.isRequired  # called when this should be closed
+        on_close : rtypes.func  # optional, called when this should be closed
 
     getInitialState: ->
         new_payment_info :
@@ -243,7 +244,7 @@ AddPaymentMethod = rclass
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
-                @props.on_close()
+                @props.on_close?()
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.address_country != "United States"
@@ -299,7 +300,7 @@ AddPaymentMethod = rclass
 
     render_input_cvc_help: ->
         if @state.cvc_help
-            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>security code</a> is
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank' rel="noopener">security code</a> is
             located on the back of credit or debit cards and is a separate group of 3 (or 4) digits to the right of
             the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
         else
@@ -476,7 +477,7 @@ AddPaymentMethod = rclass
                         >
                             Add Credit Card
                         </Button>
-                        <Button onClick={@props.on_close}>Cancel</Button>
+                        { <Button onClick={@props.on_close}>Cancel</Button> if @props.on_close? }
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -531,10 +532,10 @@ PaymentMethod = rclass
                 </Col>
                 <Col md={5}>
                     <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                         <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
                             <Icon name='trash'/> Set to Default
                         </Button>
+                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -548,10 +549,10 @@ PaymentMethod = rclass
                 </Col>
                 <Col md={5}>
                     <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                         <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
                             <Icon name='trash'/> Delete Payment Method
                         </Button>
+                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -611,7 +612,7 @@ PaymentMethods = rclass
 
     propTypes :
         redux   : rtypes.object.isRequired
-        sources : rtypes.object.isRequired
+        sources : rtypes.object # could be undefined, if it is a customer and all sources are removed
         default : rtypes.string
 
     getInitialState: ->
@@ -656,6 +657,8 @@ PaymentMethods = rclass
         />
 
     render_payment_methods: ->
+        # this happens, when it is a customer but all credit cards are deleted!
+        return null if not @props.sources?
         for source in @props.sources.data
             @render_payment_method(source)
 
@@ -978,13 +981,14 @@ AddSubscription = rclass
                     {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
+                        on_close = {@props.on_close}
                     /> if @props.selected_plan isnt ''}
-                    <Row>
+                    {@render_create_subscription_buttons()}
+                    <Row style={paddingTop:'15px'}>
                         <Col sm={5} smOffset={7}>
                             <CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />
                         </Col>
                     </Row>
-                    {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
             </Col>
@@ -997,6 +1001,7 @@ ConfirmPaymentMethod = rclass
 
     propTypes :
         is_recurring : rtypes.bool
+        on_close : rtypes.func
 
     render_single_payment_confirmation: ->
         <span>
@@ -1015,9 +1020,20 @@ ConfirmPaymentMethod = rclass
     render: ->
         if not @props.customer
             return <AddPaymentMethod redux={redux} />
+        default_card = undefined
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
+        if not default_card?
+            #  Should not happen (there should always be a default), but
+            # it did: https://github.com/sagemathinc/cocalc/issues/3468
+            # We try again with whatever the first card is.
+            for card_data in @props.customer.sources.data
+                default_card = card_data
+                break
+            # Still no card -- just ask them for one first.
+            if not default_card?
+                return <AddPaymentMethod redux={redux} />
 
         <Alert>
             <h4><Icon name='check' /> Confirm your payment card</h4>
@@ -1117,6 +1133,7 @@ CouponInfo = rclass
         coupon : rtypes.object
 
     render: ->
+        console.log("coupon = ", @props.coupon)
         <Row>
             <Col md={4}>
                 {@props.coupon.id}
@@ -1198,10 +1215,39 @@ exports.ExplainResources = ExplainResources = rclass
     getDefaultProps: ->
         is_static : false
 
+    render_toc: ->
+        return if not @props.is_static
+        <React.Fragment>
+            <h4>Table of content</h4>
+            <ul>
+                <li><b><a href="#subscriptions">Personal subscriptions</a></b>:{' '}
+                    upgrade your projects
+                </li>
+                <li><b><a href="#courses">Course packages</a></b>:{' '}
+                    upgrade student projects for teaching a course
+                </li>
+                <li><b><a href="#dedicated">Dedicated VMs</a></b>:{' '}
+                    a node in the cluster for large workloads
+                </li>
+                <li><b><a href="#faq">FAQ</a></b>: frequently asked questions</li>
+            </ul>
+            <Space/>
+        </React.Fragment>
+
     render_shared: ->
         <div>
             <Row>
                 <Col md={8} sm={12}>
+                    <h4>Questions</h4>
+                    <div style={fontSize:'12pt'}>
+                        Please immediately email us at <HelpEmailLink/>,{' '}
+                        {if not @props.is_static then <span> click the Help button above or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
+                        if anything is unclear to you, or you just have a quick question and do not want to wade through all the text below.
+                    </div>
+                    <Space/>
+
+                    {@render_toc()}
+
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
@@ -1247,12 +1293,6 @@ exports.ExplainResources = ExplainResources = rclass
                     </div>
                     <Space/>
 
-                    <div style={fontWeight:"bold"}>
-                        Please immediately email us at <HelpEmailLink/> {" "}
-                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq">pricing FAQ</a> </span>}
-                        if anything is unclear to you.
-                    </div>
-                    <Space/>
                 </Col>
                 <Col md={4} sm={12}>
                     <Row>
@@ -1292,6 +1332,7 @@ exports.ExplainPlan = ExplainPlan = rclass
 
     render_personal: ->
         <div style={marginBottom:"10px"}>
+            <a name="subscriptions"></a>
             <h3>Personal subscriptions</h3>
             <div>
                 We offer several subscriptions that let you upgrade the default free quotas on projects.
@@ -1301,16 +1342,22 @@ exports.ExplainPlan = ExplainPlan = rclass
                 You can also increase quotas for CPU and RAM, so that you can work on larger problems and
                 do more computations simultaneously.
             </div>
+            <br/>
+            <div>
+                For highly intensive workloads you can also get a <a href="#dedicated">Dedicated VM</a>.
+            </div>
+            <br/>
         </div>
 
     render_course: ->
         <div style={marginBottom:"10px"}>
+            <a name="courses"></a>
             <h3>Course packages</h3>
             <div>
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://tutorial.cocalc.com/" target="_blank">this guide</a>, create a course file.
+                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank" rel="noopener">instructor guide</a> to create a course file for your new course.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1322,7 +1369,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 Payment is required. This will ensure that your students have a better
                 experience, network access, and receive priority support.  The cost
                 is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
-                you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class
+                you or your students pay.  <b>Start right now:</b> <i>you can fully set up your class
                 and add students immediately before you pay us anything!</i>
 
                 </p>
@@ -1345,6 +1392,19 @@ exports.ExplainPlan = ExplainPlan = rclass
                 However, we find that many data science and computational science courses
                 run much smoother with the additional RAM and CPU found in the standard plan.
 
+                <h4>Custom Course Plans</h4>
+                In addition to the plans listed on this page, we can offer the following on a custom basis:
+                    <ul>
+                        <li>start on a specified date after payment</li>
+                        <li>customized duration</li>
+                        <li>customized number of students</li>
+                        <li>bundle several courses with different start dates</li>
+                        <li>transfer upgrades from purchasing account to course administrator account</li>
+                    </ul>
+                To learn more about these options, email us at <HelpEmailLink/> with a description
+                of your specific requirements.
+                <br/>
+
                 <br/>
 
             </div>
@@ -1359,201 +1419,73 @@ exports.ExplainPlan = ExplainPlan = rclass
             else
                 throw Error("unknown plan type #{@props.type}")
 
+
+exports.DedicatedVM = DedicatedVM = rclass
+    render_intro: ->
+        <div style={marginBottom:"10px"}>
+            <a name="dedicated"></a>
+            <h3>Dedicated VMs<sup><i>beta</i></sup></h3>
+            <div style={marginBottom:"10px"}>
+                A <b>Dedicated VM</b> is a specific node in the cluster,{' '}
+                which solely hosts one or more of your projects.
+                This allows you to run much larger workloads with a consistent performance,{' '}
+                because no resources are shared with other projects.
+                The usual quota limitations do not apply and
+                you also get additional disk space attached to individual projects.
+            </div>
+            <div>
+                To get started, please contact us at <HelpEmailLink/>.
+                We will work out the actual requirements with you and set everything up.
+                It is also possible to deviate from the given options,{' '}
+                in order to accommodate exactly for the expected resource usage.
+            </div>
+        </div>
+
+    render_dedicated_plans: ->
+        for i, plan of PROJECT_UPGRADES.dedicated_vms
+            <Col key={i} sm={4}>
+                <PlanInfo
+                    plan = {plan}
+                    period = {'month'}
+                />
+            </Col>
+
+    render_dedicated: ->
+        <div style={marginBottom:"10px"}>
+
+            <Row>
+                {@render_dedicated_plans()}
+            </Row>
+        </div>
+
+    render: ->
+        <React.Fragment>
+            {@render_intro()}
+            {@render_dedicated()}
+        </React.Fragment>
+
 # ~~~ FAQ START
 
-# some variables used in the text below
-faq_course_120 = 2 * PROJECT_UPGRADES.subscription.medium_course.benefits.member_host
-faq_academic_students =  PROJECT_UPGRADES.subscription.small_course.benefits.member_host
-faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.subscription.standard.benefits.member_host)
-faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.subscription.standard.price.month
-faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
-
-# the structured react.js FAQ text
-FAQS =
-    differences:
-        q: <span>What is the difference between <b>free and paid plans</b>?</span>
-        a: <span>The main differences are increased quotas and the quality of hosting; we also
-           prioritize supporting paying users.
-           We very strongly encourage you to make an account and explore our product for free!
-           There is no difference in functionality between the free and for-pay versions of
-           <SiteName/>; everything is still private by default for free users, and you can
-           make as many projects as you want.  You can even fully start teaching a course
-           in <SiteName/> completely for free, then upgrade at any point later so that your students
-           have a <b>much</b> better quality experience (for a small fraction of the cost of
-           their textbook).
-           </span>
-    member_hosting:
-        q: <span>What does <b>"member hosting"</b> mean?</span>
-        a: <span>
-            There are two types of projects: "free projects" and "member projects".
-            Free projects run on heavily loaded computers.
-            Quite often, these computers will house over 150 simultaneously running projects!
-            Member-hosted projects are moved to much less loaded machine,
-            which are reserved only for paying customers.<br/>
-            Working in member-hosted projects feels much smoother because commands execute
-            more quickly with lower latency,
-            and CPU, memory and I/O heavy operations run more quickly.
-            Additionally, members only projects are always "ready to start".
-            Free projects that are not used for a few weeks are moved to "cold storage",
-            and it can take a while to move them back onto a free machine when you
-            later start them.
-           </span>
-    network_access:
-        q: <span>What exactly does the quota <b>"internet access"</b> mean?</span>
-        a: <span>
-            Despite the fact that you are accessing <SiteName/> through the internet,
-            you are actually working in a highly restricted environment.
-            Processes running <em>inside</em> a free project are not allowed to directly
-            access the internet.  (We do not allow such access for free users, since when we did,
-            malicious users launched attacks on other computers from <SiteName/>.)
-            Enable internet access by adding the "internet access" quota.
-           </span>
-    idle_timeout:
-        q: <span>What exactly does the quota <b>"idle timeout"</b> mean?</span>
-        a: <span>
-            By default, free projects stop running after {faq_idle_time_free_h} hour of idle time.
-            This makes doing an overnight research computation &mdash;
-            e.g., searching for special prime numbers &mdash; impossible.
-            With an increased idle timeout, projects are allowed to run longer unattended.
-            Processes might still stop if they use too much memory, crash due to an exception, or if the server they are
-            running on is rebooted.
-            (NOTE: Projects do not normally stop if you are continuously using them, and there are no
-            daily or monthly caps on how much you may use a <SiteName/> project, even a free one.)
-           </span>
-    cpu_shares:
-        q: <span>What are <b>"CPU shares"</b> and <b>"CPU cores"</b>?</span>
-        a: <span>
-            All projects on a single server share the underlying resources.
-            These quotas determine how CPU resources are shared between projects.
-            Increasing them increases the priority of a project compared to others on the same host computer.<br/>
-            In particular, "shares" determines the amount of relative CPU time you get.
-           </span>
-    course120:
-        q: <span>
-            I have a <b>course of {faq_course_120 - 20} students</b>.
-            Which plan should I purchase?
-           </span>
-        a: <span>
-            You can combine and add up course subscriptions!
-            By ordering two times the 'medium course plan',
-            you will get {faq_course_120} upgrades covering all your students.
-            </span>
-    academic:
-        q: <span>Do you offer <b>academic discounts</b>?</span>
-        a: <span>
-            Our course subscriptions are for academic use, and are already significantly discounted from the standard plans.
-            Please compare our monthly plans with the 4 month course plans.
-            For example, giving {faq_academic_students} students better member hosting and internet access
-            would require subscribing to {faq_academic_nb_standard} "standard plans" for 4 months
-            amounting to ${faq_academic_full}.
-            </span>
-    academic_quotas:
-        q: <span>There are no CPU/RAM upgrades for courses. Is this enough?</span>
-        a: <span>
-            From our experience, we have found that for the type of computations used in most courses,
-            the free quotas for memory and disk space are plenty.
-            We do strongly suggest the classes upgrade all projects to "members-only" hosting,
-            since this provides much better computers with higher availability.
-           </span>
-    invoice:
-        q: <span>How do I get an <b>invoice</b> with a specific information?</span>
-        a: <span>
-            After purchasing, please email us at <HelpEmailLink />, reference what you bought,
-            and tell us the payer{"'"}s name, contact information and any other specific
-            instructions.   We will then respond with a custom invoice for your purchase that
-            satisfies your unique requirements.
-           </span>
-    course_required_plan:
-        q: <span>Am I <strong>required to pay</strong> for conducting a course?</span>
-        a: <span>
-            <strong>No.</strong> You can use all course related functionalities under a free plan.
-           </span>
-    student_files:
-        q: <span>What happens with the <strong>files of my students</strong> after the course finishes?</span>
-        a: <span>
-            Students will <strong>continue to have access</strong> to their files after the course,
-            regardless of running the course under a paid plan or for free.
-            Their projects remain accessible,
-            they can (optionally) upgrade their projects with their own subscriptions,
-            and they can also download all files to their local computer.
-           </span>
-    close_browser:
-        q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
-        a: <span>
-            <b>Yes!</b> When you close your web-browser, all your processes and running sessions continue running.
-            You can start a computation, shut down your computer, go somewhere else,  sign in
-            on another computer, and continue working where you left off.
-            (Note that output from Jupyter notebook computations will be lost, though Sage worksheet output is
-            properly captured.)
-            <br/>
-            The only reasons why a project or process stops are
-            that it hits its <em>idle timeout</em>, has used too much memory,
-            crashed due to an exception, or the server had to reboot.
-           </span>
-    private:
-        q: <span>Which plan offers <b>"private" file storage</b>?</span>
-        a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href={PolicyPrivacyPageUrl}>Privacy Policy</a> and {" "}
-            <a target="_blank" href={PolicyCopyrightPageUrl}>Copyright Notice</a>.
-           </span>
-    git:
-        q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
-        a: <span>
-            Git and various other source control tools are installed and ready to use via the "Terminal".
-            But, in order to also interoperate with sites hosting Git repositories,
-            you have to purchase a plan giving you "internet upgrades" and then applying this upgrade to your project.
-           </span>
-    backups:
-        q: <span>Are my files backed up?</span>
-        a: <span>
-            All files in every project are snapshotted every 5 minutes.  You can browse your snapshots by
-            clicking the <b>"Backups"</b> link to the right of the file listing.   Also, <SiteName/> records
-            the history of all edits you or your collaborators make to most files, and you can browse
-            that history with a slider by clicking on the "History" button (next to save) in files.
-            We care about your data, and also make offsite backups periodically to encrypted USB
-            drives that are not physically connected to the internet.
-           </span>
-    download_everything:
-        q: <span>How can I <strong>download my project files</strong>?</span>
-        a: <ol>
-             <li>
-                 You can download each file individually via the "Files" interface.
-                 Select the file and click the "Download" button.
-             </li>
-             <li>
-                 It is also possible to create an archive for a directory or all files.
-                 For that, create a "Terminal"-file and issue one of these commands:
-                 <ul>
-                  <li>
-                      ZIP archive (Windows): <code>zip -r9 "[filename].zip" [directory-name...]</code>
-                  </li>
-                  <li>
-                      Tarball (Unix-like): <code>tar cjvf "[filename].tar.bz2" [directory-name...]</code>
-                  </li>
-                 </ul>
-                 (Replace <code>[filename]</code> with the actual filename and <code>[directory-name]</code> by one or more filenames or directory names.)
-                 Afterwards, download the archive as explained above.
-             </li>
-           </ol>
 
 
 FAQ = exports.FAQ = rclass
     displayName : 'FAQ'
-
-    faq: ->
-        for qid, qa of FAQS
-            <li key={qid} style={marginBottom:"10px"}>
-                <em style={fontSize:"120%"}>{qa.q}</em>
-                <br/>
-                <span>{qa.a}</span>
-            </li>
 
     render: ->
         <div>
             <a name="faq"></a>
             <h2>Frequently asked questions</h2>
             <ul>
-                {@faq()}
+                <li>
+                    <a href="https://doc.cocalc.com/billing.html" rel="noopener" target="_blank">
+                        Billing, quotas, and upgrades
+                    </a>
+                </li>
+                <li>
+                    <a href="https://doc.cocalc.com/project-faq.html" rel="noopener" target="_blank">
+                        Projects
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -1633,7 +1565,7 @@ Subscriptions = rclass
 
     propTypes :
         subscriptions   : rtypes.object
-        sources         : rtypes.object.isRequired
+        sources         : rtypes.object # could be undefined, if it is a customer but all cards are removed
         selected_plan   : rtypes.string
         redux           : rtypes.object.isRequired
         applied_coupons : rtypes.immutable.Map
@@ -1650,7 +1582,7 @@ Subscriptions = rclass
     render_add_subscription_button: ->
         <Button
             bsStyle   = 'primary'
-            disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
+            disabled  = {@state.state isnt 'view' or (@props.sources?.total_count ? 0) is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
             <Icon name='plus-circle' /> Add Subscription or Course Package...
@@ -1667,7 +1599,7 @@ Subscriptions = rclass
     render_header: ->
         <Row>
             <Col sm={6}>
-                <Icon name='list-alt' /> Subscriptions and Course Packages
+                <Icon name='list-alt' /> Subscriptions and course packages
             </Col>
             <Col sm={6}>
                 {@render_add_subscription_button()}
@@ -1675,6 +1607,7 @@ Subscriptions = rclass
         </Row>
 
     render_subscriptions: ->
+        return null if not @props.subscriptions?
         for sub in @props.subscriptions.data
             <Subscription key={sub.id} subscription={sub} redux={@props.redux} />
 
@@ -1699,7 +1632,7 @@ Invoice = rclass
         invoice = @props.invoice
         username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("#{window.app_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+        misc_page.download_file("#{window.app_base_url}/invoice/cocalc-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status: ->
         if @props.invoice.paid
@@ -1963,13 +1896,28 @@ BillingPage = rclass
                 error   = {@props.error}
                 onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
+    # the space in "Contact us" below is a Unicode no-break space, UTF-8: C2 A0. "&nbsp;" didn't work there [hal]
     render_help_suggestion: ->
         <span>
-            <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
-            <i>
-                <Space/> Contact us if you are purchasing a course subscription, but need a short trial
-                to test things out first.<Space/>
-            </i>
+            <Space/> If you have any questions at all, read the{' '}
+            <a
+                href={"https://doc.cocalc.com/billing.html"}
+                target={"_blank"}
+                rel={"noopener"}
+            >Billing{"/"}Upgrades FAQ</a> or {' '}
+            email <HelpEmailLink /> immediately.
+            <b>
+                <Space/>
+                <HelpEmailLink text={"Contact us"} />{' '}
+                if you are considering purchasing a course subscription and need a short trial
+                to test things out first.
+                <Space/>
+            </b>
+            <b>
+                <Space/> Customized course plans are available.<Space/>
+            </b>
+            If you do not see a plan that fits your needs,
+            email <HelpEmailLink/> with a description of your specific requirements.
         </span>
 
     render_suggested_next_step: ->
@@ -1982,10 +1930,14 @@ BillingPage = rclass
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
                 <span>
-                    Click "Add Payment Method..." to add your credit card, then
-                    click "Add Subscription or Course Package..." and
-                    choose from either a monthly, yearly or semester-long plan.
-                    You will <b>not be charged</b> until you select a specific subscription then click
+                    If you are {' '}
+                    <a
+                      href={"https://doc.cocalc.com/teaching-instructors.html"}
+                      target={"_blank"}
+                      rel={"noopener"}
+                    >teaching a course</a>, choose one of the course packages.
+                    If you need to upgrade your personal projects, choose a recurring subscription.
+                    You will <b>not be charged</b> until you explicitly click
                     "Add Subscription or Course Package".
                     {help}
                 </span>
@@ -2003,9 +1955,14 @@ BillingPage = rclass
         else if subs == 0
             # have a payment source, but no subscriptions
             <span>
-                Click "Add Subscription or Course Package...", then
-                choose from either a monthly, yearly or semester-long plan (you may sign up for the
-                same subscription more than once to increase the number of upgrades).
+                Click "Add Subscription or Course Package...".
+                If you are{' '}
+                <a
+                  href={"https://doc.cocalc.com/teaching-instructors.html"}
+                  target={"_blank"}
+                  rel={"noopener"}
+                >teaching a course</a>, choose one of the course packages.
+                If you need to upgrade your personal projects, choose a recurring subscription.
                 You will be charged only after you select a specific subscription and click
                 "Add Subscription or Course Package".
                 {help}
@@ -2022,13 +1979,13 @@ BillingPage = rclass
             <span>
                 You may sign up for the same subscription package more than
                 once to increase the number of upgrades that you can use.
-                Past invoices and receipts are also available below.
+                Past invoices and receipts are available below.
                 {help}
             </span>
 
     render_info_link: ->
         <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
-            We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing and subscription options</a>.
+            We offer many <a href={PolicyPricingPageUrl} target='_blank' rel="noopener"> pricing and subscription options</a>.
             <Space/>
             {@render_suggested_next_step()}
         </div>
@@ -2150,6 +2107,8 @@ exports.render_static_pricing_page = () ->
         <hr/>
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='week month4 year1' is_static={true}/>
+        <hr/>
+        <DedicatedVM />
         <hr/>
         <FAQ/>
     </div>

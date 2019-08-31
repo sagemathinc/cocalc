@@ -29,7 +29,7 @@ many HUBs running.
 require('coffee2-cache')
 
 # Make loading typescript just work.
-require('ts-node').register()
+require('ts-node').register({ cacheDirectory: process.env.HOME + '/.ts-node-cache' })
 
 DEBUG = false
 
@@ -70,6 +70,8 @@ sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
 
+{handle_mentions_loop} = require('./mentions/handle')
+
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
 
@@ -90,7 +92,10 @@ init_smc_version = (db, cb) ->
         cb()
         return
     server_settings = require('./server-settings')(db)
-    server_settings.table.once('init', cb)
+    if server_settings.table._state == 'init'
+        server_settings.table.once('init', => cb())
+    else
+        cb()
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
     server_settings.table.on 'change', ->
         winston.debug("version changed -- sending updates to clients")
@@ -392,7 +397,11 @@ update_stats = (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             database.get_stats(cb:cb)
-    ], cb)
+    ], (err) -> cb?(err))
+
+init_update_stats = (cb) ->
+    setInterval(update_stats, 60000)
+    update_stats(cb)
 
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
@@ -431,7 +440,11 @@ exports.start_server = start_server = (cb) ->
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
 
-    fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
+    if program.port
+        # ONLY write the base_url file if we are serving the main hub.
+        # This file is used by webpack to know what base_url to use, and
+        # we don't want webpack using the base_url for the share server (say).
+        fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
@@ -475,6 +488,14 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            winston.debug("mentions=#{program.mentions}")
+            if program.mentions
+                winston.debug("enabling handling of mentions...")
+                handle_mentions_loop(database)
+            else
+                winston.debug("not handling mentions");
+            cb()
+        (cb) ->
             if not program.port
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
@@ -499,12 +520,43 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_compute_server(cb)
         (cb) ->
+            if not program.dev or process.env.USER.length == 32
+                # not in dev mode or in cocalc-docker, better not
+                # kill everything, or we kill ourself!
+                cb(); return
+            # Whenever we start the dev server, we just assume
+            # all projects are stopped, since assuming they are
+            # running when they are not is bad.  Something similar
+            # is done in cocalc-docker.
+            misc_node.execute_code  # in the scripts/ path...
+                command : "cocalc_kill_all_dev_projects.py"
+
+            async.series([
+                (cb) =>
+                    database._query
+                        safety_check : false
+                        query : """update projects set state='{"state":"opened"}'"""
+                        cb    : cb
+                (cb) =>
+                    # For purposes of developing custom software images,
+                    # we inject a couple of random entries into the table in the DB
+                    database.insert_random_compute_images
+                        cb     : cb
+            ], (err) =>
+                cb(err)
+            )
+
+        (cb) ->
+            if not program.dev
+                cb(); return
+            init_update_stats(cb)
+        (cb) ->
             if not program.port
                 cb(); return
             # proxy server and http server; Some of this working etc. *relies* on compute_server having been created.
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
-            x = hub_http_server.init_express_http_server
+            x = await hub_http_server.init_express_http_server
                 base_url       : BASE_URL
                 dev            : program.dev
                 compute_server : compute_server
@@ -519,7 +571,7 @@ exports.start_server = start_server = (cb) ->
             t0 = new Date()
             winston.debug("initializing the share server on port #{program.share_port}")
             winston.debug("...... (takes about 10 seconds) ......")
-            x = require('./share/server').init
+            x = await require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 share_path     : program.share_path
@@ -569,12 +621,25 @@ exports.start_server = start_server = (cb) ->
 
             if program.port or program.share_port or program.proxy_port
                 winston.debug("Starting registering periodically with the database and updating a health check...")
+
+                if program.test
+                    winston.debug("setting up hub_register_cb for testing")
+                    hub_register_cb = (err) ->
+                        if err
+                            winston.debug("hub_register_cb err:", err)
+                            process.exit(1)
+                        else
+                            process.exit(0)
+                else
+                    hub_register_cb = undefined
+
                 hub_register.start
                     database   : database
                     clients    : clients
                     host       : program.host
                     port       : program.port
                     interval_s : REGISTER_INTERVAL_S
+                    cb         : hub_register_cb
 
                 winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
@@ -635,9 +700,11 @@ command_line = () ->
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
-        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--mentions', 'if given, periodically handle mentions')
+        .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
@@ -656,6 +723,13 @@ command_line = () ->
             winston.debug(err.stack)
             winston.debug("BUG ****************************************************************************")
             database?.uncaught_exception(err)
+            uncaught_exception_total?.inc(1)
+
+        process.on 'unhandledRejection', (reason, p) ->
+            winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+            winston.debug('Unhandled Rejection at:', p, 'reason:', reason)
+            winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+            database?.uncaught_exception(p)
             uncaught_exception_total?.inc(1)
 
         if program.passwd

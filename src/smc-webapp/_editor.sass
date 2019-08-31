@@ -68,7 +68,6 @@
   color        : #555
 
 .webapp-editor-codemirror-message
-  margin-left  : 3em
   font-size    : 11pt
 
 .webapp-editor-codemirror-cursor
@@ -181,12 +180,6 @@
     background-color: #FFACAA
 
 .Codemirror-latex-errors
-  padding          : 0 2px 0 4px
-  min-width        : 15px
-  text-align       : right
-  white-space      : nowrap
-
-.Codemirror-lean-info
   padding          : 0 2px 0 4px
   min-width        : 15px
   text-align       : right
@@ -632,7 +625,7 @@ h6 { font-size: 110% }
 
 /* The overflow:hidden is needed for Firefox. */
 .smc-vfill
-  flex           : 1
+  flex           : 1 1 0
   display        : flex
   flex-direction : column
   overflow       : hidden
@@ -644,8 +637,13 @@ h6 { font-size: 110% }
 .webapp-editor-codemirror-button-container
   margin       : 3px
 
-.smc-message-from-viewer a:link, .smc-message-from-viewer a:visited
+.smc-message-from-viewer a:link,
+.smc-message-from-viewer a:visited,
+.smc-message-from-viewer .user-mention
    color : #FFEB3B
+
+.smc-message-from-other .user-mention
+  color: #428bca
 
 .smc-chat-message
   img

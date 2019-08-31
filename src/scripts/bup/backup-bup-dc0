@@ -8,13 +8,13 @@ if not os.path.exists(target):
     os.makedirs(target)
 
 def cmd(s):
-    print s
+    print(s)
     return os.popen(s).read()
 
 def cmd2(s):
-    print s
+    print(s)
     if os.system(s):
-        print "WARNING!!"
+        print("WARNING!!")
     return
 
 cmd("bup init")
@@ -27,6 +27,6 @@ for i in range(10,22):
     else:
         host = 'cloud%s'%i
         port = 2222
-    print host, port
+    print(host, port)
     cmd2("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no -p %s' --bwlimit=1000 --exclude='*/cache/' --delete root@%s:/bup/bups/ %s/%s/"%(port, host, target, target_dir))
     cmd2("cd %s && mkdir -p ls-lt && time ls -lt --time-style=full-iso %s |grep -v ^total > ls-lt/%s"%(target, target_dir, target_dir))

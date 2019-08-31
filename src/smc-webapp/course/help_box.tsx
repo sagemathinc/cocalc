@@ -35,14 +35,18 @@ export function HelpBox() {
       <span style={{ color: "#666", fontSize: "11pt" }}>
         <ul>
           <li>
-            <a href={LIVE_DEMO_REQUEST} target={"_blank"}>
+            <a href={LIVE_DEMO_REQUEST} target={"_blank"} rel={"noopener"}>
               Request a live demo <Icon name="external-link" />
             </a>{" "}
             (with a {SITE_NAME} specialist)
           </li>
           <li>
-            <a href="https://tutorial.cocalc.com/" target="_blank">
-              Tutorial for using CoCalc for teaching{" "}
+            <a
+              href={"https://doc.cocalc.com/teaching-instructors.html"}
+              target={"_blank"}
+              rel={"noopener"}
+            >
+              Instructor Guide for using CoCalc for teaching{" "}
               <Icon name="external-link" />
             </a>
           </li>
@@ -50,6 +54,7 @@ export function HelpBox() {
             <a
               href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/"
               target="_blank"
+              rel={"noopener"}
             >
               Grading courses <Icon name="external-link" />
             </a>
@@ -58,6 +63,7 @@ export function HelpBox() {
             <a
               href="http://www.beezers.org/blog/bb/2016/01/pennies-a-day-for-sagemathcloud/"
               target="_blank"
+              rel={"noopener"}
             >
               Course plans and teaching experiences{" "}
               <Icon name="external-link" />
@@ -67,6 +73,7 @@ export function HelpBox() {
             <a
               href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/"
               target="_blank"
+              rel={"noopener"}
             >
               Course management and collaborative Jupyter Notebooks{" "}
               <Icon name="external-link" />

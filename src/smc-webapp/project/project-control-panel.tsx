@@ -49,7 +49,7 @@ export const ProjectControlPanel = rclass<ReactProps>(
       };
     }
 
-    static reduxProps = ({name}) => {
+    static reduxProps = ({ name }) => {
       return {
         [name]: {
           compute_image_is_changing: rtypes.bool

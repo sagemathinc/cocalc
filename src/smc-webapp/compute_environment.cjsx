@@ -55,7 +55,7 @@ class ComputeEnvironmentStore extends Store
         inventory      : undefined
         components     : undefined
         langs          : undefined
-        selected_lang  : 'python'      # we assume there will always be a python language environment
+        selected_lang  : 'executables'  # default to 'executables' this since it is MUCH shorter than the others, is the first tab (so faster to render!), and makes no assumptions about if the user is a "Python person" or "R person" or whatever.
         loading        : false
 
 
@@ -171,7 +171,7 @@ LanguageTable = rclass
                 <div style={style}>
                 {
                     if component_info.url
-                        <a target='_blank' href={component_info.url}>{component_info.name}</a>
+                        <a target='_blank' rel="noopener" href={component_info.url}>{component_info.name}</a>
                     else
                         component_info.name
                 }
@@ -211,6 +211,35 @@ LanguageTable = rclass
             {@lang_table_body()}
         </Table>
 
+SoftwareTable = rclass
+    displayName : 'ComputeEnvironment-SoftwareTable'
+
+    shouldComponentUpdate: (props) ->
+        return @props.lang != props.lang
+
+    propTypes:
+        lang          : rtypes.string.isRequired
+        inventory     : rtypes.object.isRequired
+        components    : rtypes.object.isRequired
+        lang_exes     : rtypes.object.isRequired
+        version_click : rtypes.func.isRequired
+
+    render: ->
+        if @props.lang is 'executables'
+            <Executables
+                inventory    = {@props.inventory}
+                components   = {@props.components}/>
+        else
+            <LanguageTable
+                lang          = {@props.lang}
+                version_click = {@props.version_click}
+                inventory     = {@props.inventory}
+                components    = {@props.components}
+                lang_exes     = {@props.lang_exes}/>
+
+
+
+
 ComputeEnvironment = rclass
     displayName : 'ComputeEnvironment'
 
@@ -226,6 +255,14 @@ ComputeEnvironment = rclass
 
     componentDidMount: ->
         @props.actions.load()
+
+    shouldComponentUpdate: (props) ->
+        if props.selected_lang != @props.selected_lang  # tab change
+            return true
+        # Otherwise, only update if neither is defined -- if both defined, no further updates needed.
+        # Without this, if you wwitch to the "i CoCalc" page in prod, then
+        # click "Help" and try to type it's a total disaster.
+        return not @props.inventory? or not @props.components?
 
     getInitialState: ->
         show_version_popup : false
@@ -277,7 +314,7 @@ ComputeEnvironment = rclass
                     The library{' '}
                     {
                         if url
-                            <a target='_blank' href={url}>{name}</a>
+                            <a target='_blank'  rel="noopener" href={url}>{name}</a>
                         else
                             name
                     }{' '}
@@ -300,7 +337,7 @@ ComputeEnvironment = rclass
                 <ul>
                     <li style={li_style}>selecting the appropriate Kernel in a Jupyter Notebook,</li>
                     <li style={li_style}>load it from within a SageMath Worksheet via the{' '}
-                        <a target='_blank' href={jupyter_bridge_url}>Jupyter Bridge</a>.
+                        <a target='_blank' rel="noopener" href={jupyter_bridge_url}>Jupyter Bridge</a>.
                         E.g. for Anaconda:
                         <pre>
                             %auto
@@ -316,27 +353,23 @@ ComputeEnvironment = rclass
             </Modal.Footer>
         </Modal>
 
-    body: (lang) ->
+    render_tab_content: (lang) ->
+        if lang != @props.selected_lang
+            return <span/>
         <div style={height: '75vh', overflowY: 'scroll', overflowX: 'hidden'}>
-        {
-            if lang is 'executables'
-                <Executables
-                    inventory    = {@props.inventory[lang]}
-                    components   = {@props.components[lang]}/>
-            else
-                <LanguageTable
-                    lang          = {lang}
-                    version_click = {@version_click}
-                    inventory     = {@props.inventory[lang]}
-                    components    = {@props.components[lang]}
-                    lang_exes     = {@props.inventory['language_exes']}/>
-        }
+            <SoftwareTable
+                lang          = {lang}
+                version_click = {@version_click}
+                inventory     = {@props.inventory[lang]}
+                components    = {@props.components[lang]}
+                lang_exes     = {@props.inventory['language_exes']}
+            />
         </div>
 
-    control_tabs: ->
+    render_control_tabs: ->
         for lang in @props.langs
             <Tab key={lang} eventKey={lang} title={full_lang_name(lang)}>
-                {@body(lang)}
+                {@render_tab_content(lang)}
             </Tab>
 
     tabs: ->
@@ -347,7 +380,7 @@ ComputeEnvironment = rclass
             animation={false}
             id={"about-compute-environment-tabs"}
         >
-            {@control_tabs()}
+            {@render_control_tabs()}
         </Tabs>
 
     environment_information: ->
@@ -379,7 +412,7 @@ ComputeEnvironment = rclass
                     info = execs[k]
                     <li key={k} style={li_style}>
                         <b>
-                            <a href={info.url} target='_blank'>{info.name}</a>{':'}
+                            <a href={info.url} rel="noopener" target='_blank'>{info.name}</a>{':'}
                         </b>
                         {' '}
                         {info.doc}
@@ -417,11 +450,16 @@ ComputeEnvironment = rclass
 store    = redux.createStore(NAME, ComputeEnvironmentStore)
 actions  = redux.createActions(NAME, ComputeEnvironmentActions)
 
-exports.ComputeEnvironment = ->
+exports.ComputeEnvironment = rclass
     displayName : 'ComputeEnvironment-redux'
 
+    reduxProps :
+        customize :
+            kucalc : rtypes.string
+
     render: ->
-        return null if not KUCALC_COMP_ENV
+        if @props.kucalc != 'yes'
+            return <span />
         <Redux redux={redux}>
             <ComputeEnvironment actions={actions} />
         </Redux>

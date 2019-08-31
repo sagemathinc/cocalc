@@ -12,7 +12,7 @@ import { readFile } from "./async-utils-node";
 
 const winston = require("winston");
 
-import { months_ago, to_json } from "../smc-webapp/frame-editors/generic/misc";
+import { months_ago, to_json } from "../smc-util/misc2";
 
 const misc_node = require("smc-util-node/misc_node");
 
@@ -122,7 +122,7 @@ export class BlobStore implements BlobStoreInterface {
   // Read a file from disk and save it in the database.
   // Returns the sha1 hash of the file.
   async readFile(path: string, type: string): Promise<string> {
-    return await this.save(readFile(path), type);
+    return await this.save(await readFile(path), type);
   }
 
   /*
@@ -167,7 +167,7 @@ export class BlobStore implements BlobStoreInterface {
     const router = express.Router();
     base += "blobs/";
 
-    router.get(base, (req, res) => {
+    router.get(base, (_, res) => {
       res.send(to_json(this.keys()));
     });
 

@@ -34,16 +34,16 @@ immutable = require('immutable')
 {ExamplesBody}   = require('./body')
 {ExamplesFooter} = require('./footer')
 
-# The root element of the Assistant dialog.
-exports.ExamplesDialog = rclass ({name}) ->
-    displayName : 'Examples'
+# The root element of the Snippets dialog.
+exports.SnippetsDialog = rclass ({name}) ->
+    displayName : 'SnippetsDialog'
 
     reduxProps :
         "#{name}" :
             show                : rtypes.bool
             lang                : rtypes.string      # the currently selected language
             lang_select         : rtypes.bool        # show buttons to allow selecting the language
-            code                : rtypes.string      # displayed content of selected document
+            code                : rtypes.immutable.List    # displayed content of selected document
             descr               : rtypes.string      # markdown-formatted content of document description
             setup_code          : rtypes.string      # optional, common code in the sub-category
             prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code

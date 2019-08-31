@@ -4,15 +4,23 @@ extends ../_base.pug
 
 block vars
   -
-    navbar_active = 'pricing';
-    subtitle = 'Pricing';
+    var navbar_active = 'pricing';
+    var subtitle = 'Pricing';
+    var subnavbar_active = 'pricing';
+    var current_date = htmlWebpackPlugin.options.SCHEMA.UPGRADES_CURRENT_DATE;
 
 block content
 
+  style
+    :sass
+      a[name]
+        position: relative
+        top: -60px
+
   div.jumbotron
     div.container
-      h1 #[a(href=URL target="_blank") #{COMPANY_NAME}]
-      h2 #{NAME} Subscriptions and Pricing (March 2018)
+      h1 #[a(href=URL) #{COMPANY_NAME}]
+      h2 #{NAME} Subscriptions and Pricing (#{current_date})
       a.btn.btn-default(href="index.html" role="button") &laquo; Other Policies
 
   div.container.vertical-expand
@@ -23,7 +31,7 @@ block content
       Listed prices are in US dollars (when charging in local currency, the prices are converted into local currency using the
       conversion rates published by leading financial institutions).
     p.
-      When logged in, you may sign up for a subscription in #[a(target="_blank" href="/settings/billing") the billing tab]
-      and see a summary of upgrades in #[a(target="_blank" href="/settings/upgrades") the upgrades tab].
+      When logged in, you may sign up for a subscription in #[a(target="_blank" rel="noopener" href="/settings/billing") the billing tab]
+      and see a summary of upgrades in #[a(target="_blank" rel="noopener" href="/settings/upgrades") the upgrades tab].
 
     include _static_pricing_page.html

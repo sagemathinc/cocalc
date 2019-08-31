@@ -33,7 +33,7 @@ require('./redux_account')
 {UpgradesPage}                           = require('./r_upgrades')
 {SupportPage}                            = require('./support')
 {SSHKeysPage}                            = require('./account_ssh_keys')
-{Icon, Loading}                                   = require('./r_misc')
+{Icon, Loading}                          = require('./r_misc')
 {set_url}                                = require('./history')
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
@@ -160,7 +160,7 @@ exports.AccountPage = rclass
         if not require('./customize').commercial
             return null
         v = []
-        v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions/Course Packages'}</span>}>
+        v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions and Course Packages'}</span>}>
             {<BillingPageRedux /> if @props.active_page == 'billing'}
         </Tab>
         v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>

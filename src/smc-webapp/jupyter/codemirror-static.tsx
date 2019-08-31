@@ -1,21 +1,27 @@
 /*
 Rendering of static codemirror editor.
 
-Meant to be efficient to render hundreds
-of these on the page at once.
+Meant to be efficient to render many of these on the page at once.
+
+We use this for:
+
+  - the share server
+  - rendering cells that are offscreen or scrolling.
+
+In benchmarks, this seems to easily be 10x faster than creating an actual
+CodeMirror editor.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this
+import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-const misc_page = require("../misc_page");
-const misc = require("smc-util/misc");
+import { copy, merge } from "smc-util/misc";
 
 declare const CodeMirror: any; // TODO: find typings for this UMD
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
-  background: "#f7f7f7",
+  background: "#ffffff",
   lineHeight: "normal",
   height: "auto",
   fontSize: "inherit",
@@ -29,43 +35,17 @@ const BLURRED_STYLE: React.CSSProperties = {
 
 interface CodeMirrorStaticProps {
   value: string;
-  actions?: any;
   id?: string;
-  options?: ImmutableMap<any, any>;
+  options?: ImmutableMap<string, any>;
   font_size?: number;
-  complete?: ImmutableMap<any, any>;
+  complete?: ImmutableMap<string, any>;
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: any; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
 }
 
+// This is used heavily by the share server.
 export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
-  focus = (event: any) => {
-    if (this.props.actions == null || this.props.id == null) {
-      // read only
-      return;
-    }
-    if (event.shiftKey) {
-      misc_page.clear_selection();
-      this.props.actions.select_cell_range(this.props.id);
-      event.stopPropagation();
-      return;
-    }
-    if (window.getSelection().toString()) {
-      // User is selected some text in the cell; if we switch to edit mode
-      // then the selection would be cleared, which is annoying.  NOTE that
-      // this makes the behavior slightly different than official Jupyter.
-      event.stopPropagation();
-      return;
-    }
-    this.props.actions.unselect_all_cells();
-    this.props.actions.set_cur_id(this.props.id);
-    this.props.actions.set_mode("edit"); // important to set this *AFTER* setting the current id - see issue #2547
-    if (this.props.set_click_coords) {
-      this.props.set_click_coords({ left: event.clientX, top: event.clientY });
-    }
-  };
-
   line_number = (key: string | number, line: number, width: number) => {
     return (
       <div key={key} className="CodeMirror-gutter-wrapper">
@@ -80,11 +60,16 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
   };
 
   render_lines = (width: number) => {
-    let mode = "python";
-    if (this.props.options) {
-      mode = this.props.options.getIn(["mode", "name"], mode);
+    let mode: any = null;
+    if (this.props.options != null) {
+      mode = this.props.options.get("mode");
+      if (mode != null && typeof mode.toJS === "function") {
+        mode = mode.toJS();
+      }
+    } else {
+      mode = "python3"; // a likely fallback, given it's CoCalc.
     }
-    const v: any[] = [];
+    const v: Rendered[] = [];
     // TODO: write this line better
     let line_numbers: boolean = !!(this.props.options != null
       ? this.props.options.get("lineNumbers")
@@ -94,8 +79,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       v.push(this.line_number(v.length, line, width));
       line++;
     }
-    // TODO: this was unused code from coffeescript file
-    // let last_type = undefined;  // used for detecting introspection
+
     const append = (text: string, type?: string) => {
       if (type != null) {
         v.push(
@@ -103,10 +87,6 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
             {text}
           </span>
         );
-        // TODO: this was unused code from coffeescript file
-        // if (text.trim().length > 0) {
-        //   last_type = type;
-        // }
       } else {
         v.push(<span key={v.length}>{text}</span>);
       }
@@ -116,7 +96,17 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       }
     };
 
-    CodeMirror.runMode(this.props.value, mode, append);
+    try {
+      CodeMirror.runMode(this.props.value, mode, append);
+    } catch (err) {
+      /* This does happen --
+            https://github.com/sagemathinc/cocalc/issues/3626
+         However, basically silently ignoring it (with a console.log)
+         is probably the best option for now (rather than figuring
+         out every possible bad input that could cause this), since
+         it completely crashes cocalc. */
+      console.log(`WARNING: CodeMirror.runMode failed -- ${err}`);
+    }
     line_numbers = false;
     append("\n"); // TODO: should this have 2 parameters?
 
@@ -139,33 +129,31 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       if (num_lines < 100) {
         width = 30;
       } else if (num_lines < 1000) {
-        width = 39;
+        width = 35;
       } else if (num_lines < 10000) {
-        width = 49;
+        width = 45;
       } else {
-        // nobody better do this...
-        width = 59;
+        // nobody better do this...?
+        width = 69;
       }
-      style = misc.merge({ paddingLeft: `${width + 4}px` }, BLURRED_STYLE);
+      style = merge({ paddingLeft: `${width + 4}px` }, BLURRED_STYLE);
       if (this.props.style != null) {
-        style = misc.merge(style, this.props.style);
+        style = merge(style, this.props.style);
       }
     } else {
       width = 0;
       style = BLURRED_STYLE;
       if (this.props.style != null) {
-        style = misc.merge(misc.copy(style), this.props.style);
+        style = merge(copy(style), this.props.style);
       }
     }
 
     return (
-      <pre
-        className="CodeMirror cm-s-default CodeMirror-wrap"
-        style={style}
-        onMouseUp={this.focus}
-      >
-        {this.render_lines(width)}
-        {this.render_gutter(width)}
+      <pre className="CodeMirror cm-s-default CodeMirror-wrap" style={style}>
+        <div style={{ marginLeft: width }}>
+          {this.render_lines(width)}
+          {this.render_gutter(width)}
+        </div>
       </pre>
     );
   }

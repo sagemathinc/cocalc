@@ -42,12 +42,19 @@ import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
 import { Table, TableConstructor } from "./app-framework/Table";
 
-import { ProjectStore } from "./project_store";
-import { ProjectActions } from "./project_actions";
-
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
-import { keys, is_valid_uuid_string } from "./frame-editors/generic/misc";
+// Relative import is temporary, until I figure this out -- needed for *project*
+import { keys, is_valid_uuid_string } from "../smc-util/misc2";
+
+import { AdminStore, AdminActions } from "./admin";
+
+import { MentionsActions, MentionsStore } from "./notifications";
+import { FileUseStore } from "./file-use/store";
+
+// Only import the types
+declare type ProjectStore = import("./project_store").ProjectStore;
+declare type ProjectActions = import("./project_actions").ProjectActions;
 
 export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
@@ -195,6 +202,9 @@ export class AppRedux {
 
   getActions(name: "account"): any;
   getActions(name: "projects"): any;
+  getActions(name: "billing"): any;
+  getActions(name: "admin-page"): AdminActions;
+  getActions(name: "mentions"): MentionsActions;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -220,6 +230,7 @@ export class AppRedux {
     init?: {} | State
   ): C {
     let S: C = this._stores[name];
+    if (S != null) throw Error(`store ${name} already exists`);
     if (init === undefined && typeof store_class !== "function") {
       // so can do createStore(name, {default init})
       init = store_class;
@@ -253,6 +264,10 @@ export class AppRedux {
   getStore(name: "customize"): any;
   getStore(name: "projects"): any;
   getStore(name: "users"): any;
+  getStore(name: "mentions"): MentionsStore;
+  getStore(name: "admin-page"): AdminStore;
+  getStore(name: "file_use"): FileUseStore | undefined;
+  getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
@@ -320,9 +335,10 @@ export class AppRedux {
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("./project_store").init(project_id, this);
+      return require("./project_store").init(project_id, this);
+    } else {
+      return this.getStore(project_redux_name(project_id)) as any;
     }
-    return this.getStore(project_redux_name(project_id)) as any;
   };
 
   // TODO -- Typing: Type project Actions
@@ -411,12 +427,15 @@ const connect_component = spec => {
       return props;
     }
     for (let store_name in spec) {
-      const info = spec[store_name];
       if (store_name === "undefined") {
-        // gets turned into this string when making a common mistake
+        // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
-        throw Error("store_name of spec *must* be defined");
+        throw Error(
+          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " +
+            JSON.stringify(spec)
+        );
       }
+      const info = spec[store_name];
       const store: Store<any> | undefined = redux.getStore(store_name);
       for (let prop in info) {
         var val;

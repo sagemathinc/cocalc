@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import os, socket, sys, time
+import os, socket, time
 
 os.chdir(os.environ['SALVUS_ROOT'])
 
 
 def cmd(s):
-    print s
-    os.system(s)
+    print(s)
+    if os.WEXITSTATUS(os.system(s)):
+        raise RuntimeError
 
 
 def hub(command, server_id):
@@ -37,12 +38,13 @@ def hub_args(server_id):
         else:
             share_port = 0
 
-    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --share_port {share_port} --share_path {share_path}  --base_url={base_url}".format(
+    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --share_port {share_port} {mentions} --share_path {share_path}  --base_url={base_url}".format(
         hostname=args.hostname,
         server_id=server_id,
         port=port,
         proxy_port=proxy_port,
         share_port=share_port,
+        mentions="--mentions" if args.mentions else "",
         share_path=args.share_path,
         base_url=args.base_url)
 
@@ -61,6 +63,9 @@ def hub_args(server_id):
 
     if args.update:
         s += ' --update '
+
+    if args.test:
+        s += ' --test '
 
     if args.foreground:
         s += ' --foreground '
@@ -134,6 +139,7 @@ if __name__ == "__main__":
         dest="id",
         default="",
         type=str)
+
     parser.add_argument(
         '--base_url', help="base url", dest='base_url', default='')
 
@@ -155,6 +161,7 @@ if __name__ == "__main__":
         action="store_const",
         const=True,
         default=False)
+
     parser.add_argument(
         '--kucalc',
         help="kucalc",
@@ -162,6 +169,7 @@ if __name__ == "__main__":
         action="store_const",
         const=True,
         default=False)
+
     parser.add_argument(
         '--single',
         help="single",
@@ -178,10 +186,28 @@ if __name__ == "__main__":
         const=True,
         default=False)
 
+    parser.add_argument(
+        '--test',
+        help="test",
+        dest='test',
+        action="store_const",
+        const=True,
+        default=False)
+
     parser.add_argument('--port', dest='port', type=int, default=-1)
+
     parser.add_argument(
         '--proxy_port', dest='proxy_port', type=int, default=-1)
+
     parser.add_argument('--share_port', dest='share_port', type=int, default=0)
+
+    parser.add_argument(
+        '--mentions',
+        help="mentions",
+        dest='mentions',
+        action="store_const",
+        const=True,
+        default=False)
 
     parser.add_argument(
         '--share_path', dest='share_path', type=str, default='')
@@ -192,6 +218,7 @@ if __name__ == "__main__":
         dest="hostname",
         default=socket.gethostname(),
         type=str)
+
     parser.add_argument(
         "--gap",
         help=

@@ -7,15 +7,18 @@ TODO:
 
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 
-const { CodeMirrorEditor } = require("./codemirror-editor");
-const { CodeMirrorStatic } = require("./codemirror-static");
-const { IS_TOUCH } = require("../feature");
+import { CodeMirrorEditor } from "./codemirror-editor";
+import { CodeMirrorStatic } from "./codemirror-static";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CodeMirrorProps {
-  actions?: any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
   id: string;
   options: ImmutableMap<any, any>;
   value: string;
@@ -23,6 +26,7 @@ interface CodeMirrorProps {
   is_focused: boolean;
   cursors?: ImmutableMap<any, any>;
   complete?: ImmutableMap<any, any>;
+  is_scrolling?: boolean;
 }
 
 interface CodeMirrorState {
@@ -32,6 +36,8 @@ interface CodeMirrorState {
 
 export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
   private _is_mounted: boolean; // DONT DO THIS
+  private has_rendered_nonstatic: boolean = false;
+
   constructor(props: CodeMirrorProps, context: any) {
     super(props, context);
     this.state = {
@@ -68,6 +74,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
       next.value !== this.props.value ||
       next.font_size !== this.props.font_size ||
       next.is_focused !== this.props.is_focused ||
+      next.is_scrolling !== this.props.is_scrolling ||
       next.cursors !== this.props.cursors ||
       next.complete !== this.props.complete
     );
@@ -77,15 +84,20 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
     // Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
     // we can remove this use of the slower non-static fallback...
     if (
-      this.props.actions != null &&
-      (IS_TOUCH ||
-        this.props.is_focused ||
-        this.props.options.get("lineNumbers") ||
-        (this.props.cursors != null ? this.props.cursors.size > 0 : false))
+      (this.has_rendered_nonstatic || !this.props.is_scrolling) &&
+      (this.props.actions != null && this.props.frame_actions != null)
     ) {
+      // For some reason the static renderer has some REALLY bad performance, especially for
+      // larger documents.  This may be an issue with using react at all (i.e., we should just
+      // directly generate html).  For now, probably the best fix is not to use the static
+      // renderer, since it causes so much trouble...
+      // See https://github.com/sagemathinc/cocalc/issues/3652
+      // Instead, we should optimize how the normal render works, e.g., by caching it.
+      this.has_rendered_nonstatic = true;
       return (
         <CodeMirrorEditor
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           id={this.props.id}
           options={this.props.options}
           value={this.props.value}
@@ -96,13 +108,14 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
           set_last_cursor={this.set_last_cursor}
           last_cursor={this.state.last_cursor}
           is_focused={this.props.is_focused}
+          is_scrolling={this.props.is_scrolling}
           complete={this.props.complete}
         />
       );
     } else {
+      this.has_rendered_nonstatic = false;
       return (
         <CodeMirrorStatic
-          actions={this.props.actions}
           id={this.props.id}
           options={this.props.options}
           value={this.props.value}

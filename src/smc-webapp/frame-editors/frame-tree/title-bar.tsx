@@ -6,7 +6,8 @@ import { React, Rendered, Component, redux } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
-let close_style;
+import { SaveButton } from "./save-button";
+
 const { debounce } = require("underscore");
 const {
   ButtonGroup,
@@ -14,29 +15,35 @@ const {
   DropdownButton,
   MenuItem
 } = require("react-bootstrap");
+import { get_default_font_size } from "../generic/client";
+const { VisibleMDLG, EditorFileInfoDropdown } = require("smc-webapp/r_misc");
 
-const {
-  r_join,
-  Icon,
-  Space,
-  Tip,
-  VisibleMDLG,
-  EditorFileInfoDropdown
-} = require("smc-webapp/r_misc");
-
-const {
-  UncommittedChanges
-} = require("smc-webapp/jupyter/uncommitted-changes");
+import { r_join } from "smc-webapp/r_misc/r_join";
+import { Icon } from "smc-webapp/r_misc/icon";
+import { Space } from "smc-webapp/r_misc/space";
+import { Tip } from "smc-webapp/r_misc/tip";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
 
-const util = require("../frame-tree/util");
-const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
+
+import { trunc_middle } from "smc-util/misc2";
+
+import { ConnectionStatus, EditorSpec } from "./types";
+
+// TODO:
+// import { Actions } from "../code-editor/actions";
+
+import { Available as AvailableFeatures } from "../../project_configuration";
+
+const COL_BAR_BACKGROUND = "#f8f8f8";
+const COL_BAR_BACKGROUND_DARK = "#ddd";
+const COL_BAR_BORDER = "rgb(204,204,204)";
 
 const title_bar_style: CSS.Properties = {
-  background: "#ddd",
-  border: "1px solid rgb(204,204,204)",
+  background: COL_BAR_BACKGROUND_DARK,
+  border: `1px solid ${COL_BAR_BORDER}`,
   padding: "1px"
 };
 
@@ -53,25 +60,47 @@ const TITLE_STYLE: CSS.Properties = {
   color: "#333",
   fontSize: "10pt",
   display: "inline-block",
+  float: "right",
+  whiteSpace: "nowrap"
+};
+
+const CONNECTION_STATUS_STYLE: CSS.Properties = {
+  padding: "5px 5px 0 5px",
+  fontSize: "10pt",
   float: "right"
 };
+
+function connection_status_color(status: ConnectionStatus): string {
+  switch (status) {
+    case "disconnected":
+      return "rgb(255, 0, 0)";
+    case "connecting":
+      return "rgb(255, 165, 0)";
+    case "connected":
+      return "#666";
+    default:
+      return "rgb(255, 165, 0)";
+  }
+}
 
 const ICON_STYLE: CSS.Properties = {
   width: "20px",
   display: "inline-block"
 };
 
-if (IS_TOUCH) {
-  close_style = undefined;
-} else {
-  close_style = {
-    background: "transparent",
-    borderColor: "transparent"
-  };
-}
+const close_style: CSS.Properties | undefined = (function() {
+  if (IS_TOUCH) {
+    return undefined;
+  } else {
+    return {
+      background: "transparent",
+      borderColor: "transparent"
+    };
+  }
+})();
 
 interface Props {
-  actions: any;
+  actions: any; // TODO -- see above Actions;
   path: string; // assumed to not change for now
   project_id: string; // assumed to not change for now
   active_id: string;
@@ -84,29 +113,47 @@ interface Props {
   is_full: boolean;
   is_only: boolean; // is the only frame
   is_public: boolean; // public view of a file
+  is_paused: boolean;
   type: string;
-  editor_spec: any;
+  editor_spec: EditorSpec;
   status: string;
   title?: string;
+  connection_status?: ConnectionStatus;
+  font_size?: number;
+  available_features?: AvailableFeatures;
 }
 
-export class FrameTitleBar extends Component<Props, {}> {
-  shouldComponentUpdate(next): boolean {
-    return misc.is_different(this.props, next, [
-      "active_id",
-      "id",
-      "deletable",
-      "is_full",
-      "is_only",
-      "read_only",
-      "has_unsaved_changes",
-      "has_uncommitted_changes",
-      "is_public",
-      "is_saving",
-      "type",
-      "status",
-      "title"
-    ]);
+interface State {
+  close_and_halt_confirm?: boolean;
+}
+
+export class FrameTitleBar extends Component<Props, State> {
+  constructor(props) {
+    super(props);
+    this.state = { close_and_halt_confirm: false };
+  }
+  shouldComponentUpdate(next, state): boolean {
+    return (
+      misc.is_different(this.props, next, [
+        "active_id",
+        "id",
+        "deletable",
+        "is_full",
+        "is_only",
+        "read_only",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "is_public",
+        "is_saving",
+        "is_paused",
+        "type",
+        "status",
+        "title",
+        "connection_status",
+        "font_size",
+        "available_features"
+      ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+    );
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
@@ -173,12 +220,14 @@ export class FrameTitleBar extends Component<Props, {}> {
       }
       const item = (
         <MenuItem
+          cocalc-test={type}
           selected={selected_type === type}
           key={type}
           eventKey={type}
           onSelect={type => this.select_type(type)}
         >
-          <Icon name={spec.icon ? spec.icon : 'file'} style={ICON_STYLE} /> {spec.name}
+          <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
+          {spec.name}
         </MenuItem>
       );
       items.push(item);
@@ -194,6 +243,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <DropdownButton
+        cocalc-test={"latex-dropdown"}
         title={title}
         key={"types"}
         id={"types"}
@@ -206,8 +256,13 @@ export class FrameTitleBar extends Component<Props, {}> {
 
   render_control(): Rendered {
     const is_active = this.props.active_id === this.props.id;
+    const style: CSS.Properties = {
+      float: "right" as "right",
+      paddingLeft: "5px",
+      background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
+    };
     return (
-      <ButtonGroup style={{ float: "right" }} key={"close"}>
+      <ButtonGroup style={style} key={"close"}>
         {is_active ? this.render_types() : undefined}
         {is_active && !this.props.is_full ? this.render_split_row() : undefined}
         {is_active && !this.props.is_full ? this.render_split_col() : undefined}
@@ -314,6 +369,44 @@ export class FrameTitleBar extends Component<Props, {}> {
       >
         <Icon name={"search-plus"} />
       </Button>
+    );
+  }
+
+  render_set_zoom(): Rendered {
+    if (!this.is_visible("set_zoom")) {
+      return;
+    }
+
+    const zooms: Rendered[] = [100, 125, 150, 200].map(zoom => {
+      return (
+        <MenuItem
+          key={`zoom-${zoom}`}
+          eventKey={`zoom-${zoom}`}
+          onSelect={() =>
+            this.props.actions.set_zoom(zoom / 100, this.props.id)
+          }
+        >
+          {`${zoom}%`}
+        </MenuItem>
+      );
+    });
+
+    const title =
+      this.props.font_size == null
+        ? "Zoom"
+        : `${Math.round(
+            (100 * this.props.font_size) / get_default_font_size()
+          )}%`;
+
+    return (
+      <DropdownButton
+        title={title}
+        key={"zoom-levels"}
+        id={"zoom-levels"}
+        bsSize={this.button_size()}
+      >
+        {zooms}
+      </DropdownButton>
     );
   }
 
@@ -457,7 +550,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <Button
         key={"cut"}
-        title={"Cut selected text"}
+        title={"Cut selected"}
         onClick={() => this.props.actions.cut(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
@@ -476,7 +569,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
-          () => this.props.actions.paste(this.props.id),
+          () => this.props.actions.paste(this.props.id, true),
           200,
           true
         )}
@@ -495,7 +588,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <Button
         key={"copy"}
-        title={"Copy selected text"}
+        title={"Copy selected"}
         onClick={() => this.props.actions.copy(this.props.id)}
         bsSize={this.button_size()}
       >
@@ -535,6 +628,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       <ButtonGroup key={"zoom"}>
         {this.render_zoom_out()}
         {this.render_zoom_in()}
+        {this.render_set_zoom()}
       </ButtonGroup>
     );
   }
@@ -624,8 +718,37 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
-  show_labels(): boolean {
+  private show_labels(): boolean {
     return this.props.is_only || this.props.is_full;
+  }
+
+  private button_text(button_name: string, def?: string): string | undefined {
+    if (!this.show_labels()) return;
+    const custom = this.props.editor_spec[this.props.type].customize_buttons;
+    if (custom != null) {
+      const x = custom[button_name];
+      if (x != null && x.text != null) {
+        return x.text;
+      }
+    }
+    if (def != undefined) {
+      return def;
+    }
+    return misc.capitalize(button_name);
+  }
+
+  private button_title(button_name: string, def?: string): string | undefined {
+    const custom = this.props.editor_spec[this.props.type].customize_buttons;
+    if (custom != null) {
+      const x = custom[button_name];
+      if (x != null && x.title != null) {
+        return x.title;
+      }
+    }
+    if (def != undefined) {
+      return def;
+    }
+    return;
   }
 
   render_timetravel(labels): Rendered {
@@ -646,7 +769,6 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
-  // Button to reload the document
   render_reload(labels): Rendered {
     if (!this.is_visible("reload", true)) {
       return;
@@ -658,18 +780,16 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsSize={this.button_size()}
         onClick={() => this.props.actions.reload(this.props.id)}
       >
-        <Icon name="repeat" />{" "}
-        <VisibleMDLG>{labels ? "Reload" : undefined}</VisibleMDLG>
+        <Icon name="sync" />
+        <VisibleMDLG>{labels ? " Reload" : undefined}</VisibleMDLG>
       </Button>
     );
   }
 
-  // A "Help" info button
-  render_help(): Rendered {
+  render_help(labels: boolean): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
     }
-    let labels = this.show_labels();
     return (
       <Button
         key={"help"}
@@ -687,52 +807,43 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_restart(): Rendered {
+    if (!this.is_visible("restart", true)) {
+      return;
+    }
+    let labels = this.show_labels();
+    return (
+      <Button
+        key={"restart"}
+        title={"Restart service"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.restart()}
+      >
+        <Icon name="sync" />{" "}
+        {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
+      </Button>
+    );
+  }
+
   render_save(labels: boolean): Rendered {
-    let icon, label;
     if (!this.is_visible("save")) {
       return;
     }
-    const disabled =
-      !this.props.has_unsaved_changes ||
-      this.props.read_only ||
-      this.props.is_public;
-    if (labels) {
-      if (this.props.is_public) {
-        label = "Public";
-      } else if (this.props.read_only) {
-        label = "Readonly";
-      } else {
-        label = "Save";
-      }
-    } else {
-      label = "";
-    }
-    if (this.props.is_saving) {
-      icon = "arrow-circle-o-left";
-    } else {
-      icon = "save";
-    }
-
-    // The funny style in the icon below is because the width changes slightly depending
-    // on which icon we are showing.
     return (
-      <Button
-        key={"save"}
-        title={"Save file to disk"}
-        bsStyle={"success"}
-        bsSize={this.button_size()}
-        disabled={disabled}
+      <SaveButton
+        key="save"
+        has_unsaved_changes={this.props.has_unsaved_changes}
+        has_uncommitted_changes={this.props.has_uncommitted_changes}
+        read_only={this.props.read_only}
+        is_public={this.props.is_public}
+        is_saving={this.props.is_saving}
+        no_labels={!labels}
+        size={this.button_size()}
         onClick={() => {
           this.props.actions.save(true);
           this.props.actions.focus(this.props.id);
         }}
-      >
-        <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
-        <VisibleMDLG>{label}</VisibleMDLG>
-        <UncommittedChanges
-          has_uncommitted_changes={this.props.has_uncommitted_changes}
-        />
-      </Button>
+      />
     );
   }
 
@@ -751,23 +862,39 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_format(): Rendered {
-    if (
-      !this.is_visible("format") ||
-      !util.PRETTIER_SUPPORT[misc.filename_extension(this.props.path)]
-    ) {
-      return;
+    if (!this.is_visible("format")) return;
+    let desc: any = this.props.actions.has_format_support(
+      this.props.id,
+      this.props.available_features
+    );
+    if (!desc) return;
+    if (desc === true) {
+      desc = "Canonically format the entire document.";
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"format"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.format(this.props.id)}
-        title={
-          "Run Prettier (or some other AST-based service) to canonically format this entire document"
-        }
+        title={desc}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_table_of_contents(): Rendered {
+    if (!this.is_visible("show_table_of_contents")) return;
+    return (
+      <Button
+        key={"contents"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.show_table_of_contents(this.props.id)}
+        title={"Show the Table of Contents"}
+      >
+        <Icon name={"align-right"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Contents" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -778,9 +905,9 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <Button
+        key={"build"}
         disabled={!!this.props.status}
         bsSize={this.button_size()}
-        key={"build"}
         onClick={() => this.props.actions.build(this.props.id, false)}
         title={"Build project"}
       >
@@ -795,9 +922,9 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <Button
+        key={"force-build"}
         disabled={!!this.props.status}
         bsSize={this.button_size()}
-        key={"force-build"}
         onClick={() => this.props.actions.force_build(this.props.id)}
         title={"Force rebuild entire project"}
       >
@@ -812,13 +939,112 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"clean"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.clean(this.props.id)}
         title={"Clean auxiliary build files"}
       >
         <Icon name={"trash"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_count_words(): Rendered {
+    if (!this.is_visible("word_count", true)) {
+      return;
+    }
+    return (
+      <Button
+        key={"word_count"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.word_count(0, true)}
+        title={"Runs texcount"}
+      >
+        <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_kick_other_users_out(): Rendered {
+    if (!this.is_visible("kick_other_users_out")) {
+      return;
+    }
+    return (
+      <Button
+        key={"kick_other_users_out"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.kick_other_users_out(this.props.id)}
+        title={"Kick all other users out"}
+      >
+        <Icon name={"door-open"} />
+      </Button>
+    );
+  }
+
+  render_pause(labels): Rendered {
+    if (!this.is_visible("pause")) {
+      return;
+    }
+    let icon: string, title: string, style: string | undefined;
+    if (this.props.is_paused) {
+      icon = "play";
+      title = "Play";
+      style = "success";
+    } else {
+      icon = "pause";
+      title = "Pause";
+    }
+    return (
+      <Button
+        key={"pause"}
+        bsSize={this.button_size()}
+        bsStyle={style}
+        onClick={() => {
+          if (this.props.is_paused) {
+            this.props.actions.unpause(this.props.id);
+          } else {
+            this.props.actions.pause(this.props.id);
+          }
+        }}
+        title={title}
+      >
+        <Icon name={icon} />
+        <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_edit_init_script(): Rendered {
+    if (!this.is_visible("edit_init_script")) {
+      return;
+    }
+    return (
+      <Button
+        key={"edit_init_script"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.edit_init_script(this.props.id)}
+        title={"Edit initialization script"}
+      >
+        <Icon name={"rocket"} />{" "}
+      </Button>
+    );
+  }
+
+  render_close_and_halt(labels: boolean): Rendered {
+    if (!this.is_visible("close_and_halt")) {
+      return;
+    }
+    return (
+      <Button
+        key={"close_and_halt"}
+        disabled={this.state.close_and_halt_confirm}
+        bsSize={this.button_size()}
+        onClick={() => this.setState({ close_and_halt_confirm: true })}
+        title={"Close and halt server"}
+      >
+        <Icon name={"hand-stop-o"} />{" "}
+        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -829,13 +1055,30 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"print"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.print(this.props.id)}
-        title={"Print file to PDF"}
+        title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_shell(): Rendered {
+    if (!this.is_visible("shell")) {
+      return;
+    }
+    return (
+      <Button
+        key={"shell"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.shell(this.props.id)}
+        title={this.button_title("shell", "Open a shell for running this code")}
+      >
+        <Icon name={"terminal"} />{" "}
+        <VisibleMDLG>{this.button_text("shell")}</VisibleMDLG>
       </Button>
     );
   }
@@ -862,35 +1105,47 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (!(this.props.is_only || this.props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
-      style = { maxHeight: "30px", overflow: "hidden", flex: 1 };
+      style = {
+        maxHeight: "30px"
+      };
     } else {
       style = {
         maxHeight: "34px",
-        overflow: "hidden",
-        flex: 1,
         marginLeft: "2px"
       };
     }
+
+    const labels = this.show_labels();
+
     const v: Rendered[] = [];
     v.push(this.render_save_timetravel_group());
     v.push(this.render_build());
     v.push(this.render_force_build());
     v.push(this.render_sync());
     v.push(this.render_clean());
-    v.push(this.render_format());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());
     }
     v.push(this.render_zoom_group());
+    v.push(this.render_restart());
+    v.push(this.render_close_and_halt(labels));
+
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
+    v.push(this.render_pause(labels));
     v.push(this.render_copy_group());
     v.push(this.render_find_replace_group());
     if (!this.props.is_public) {
       v.push(this.render_format_group());
     }
-    v.push(this.render_help());
+    v.push(this.render_edit_init_script());
+    v.push(this.render_count_words());
+    v.push(this.render_kick_other_users_out());
+    v.push(this.render_format());
+    v.push(this.render_shell());
     v.push(this.render_print());
+    v.push(this.render_help(labels));
+    v.push(this.render_table_of_contents());
 
     const w: Rendered[] = [];
     for (let c of v) {
@@ -900,7 +1155,11 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
 
     return (
-      <div style={style} key={"buttons"}>
+      <div
+        style={style}
+        key={"buttons"}
+        className={"cc-frame-tree-title-bar-buttons"}
+      >
         {r_join(w, <Space />)}
       </div>
     );
@@ -927,6 +1186,34 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_connection_status(): Rendered {
+    if (
+      !this.props.connection_status ||
+      !this.is_visible("connection_status", true)
+    ) {
+      return;
+    }
+    if (this.props.connection_status == "connected") {
+      // To reduce clutter show nothing when connected.
+      // NOTE: Keep this consistent with
+      // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx
+      return;
+    }
+    return (
+      <span
+        style={CONNECTION_STATUS_STYLE}
+        title={this.props.connection_status}
+      >
+        <Icon
+          style={{
+            color: connection_status_color(this.props.connection_status)
+          }}
+          name={"wifi"}
+        />
+      </span>
+    );
+  }
+
   render_title(): Rendered {
     let title: string = "";
     let icon: string = "";
@@ -938,9 +1225,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       if (spec != null) {
         icon = spec.icon;
         if (!title) {
-          if (spec.title) {
-            title = spec.title;
-          } else if (spec.name) {
+          if (spec.name) {
             title = spec.name;
           } else if (spec.short) {
             title = spec.short;
@@ -952,8 +1237,53 @@ export class FrameTitleBar extends Component<Props, {}> {
       <span style={TITLE_STYLE}>
         {icon ? <Icon name={icon} /> : null}
         <Space />
-        {title}
+        {trunc_middle(title, 25)}
       </span>
+    );
+  }
+
+  render_close_and_halt_confirm(): Rendered {
+    if (!this.state.close_and_halt_confirm) return;
+    return (
+      <div
+        style={{
+          padding: "5px",
+          borderBottom: "1px solid lightgrey",
+          position: "absolute",
+          width: "100%",
+          zIndex: 100,
+          background: "white",
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px"
+        }}
+      >
+        Halt the server and close this?
+        <Button
+          onClick={() => {
+            this.setState({ close_and_halt_confirm: false });
+            this.props.actions.close_and_halt(this.props.id);
+          }}
+          style={{
+            marginLeft: "20px",
+            marginRight: "5px"
+          }}
+          bsStyle="danger"
+        >
+          <Icon name={"hand-stop-o"} /> Close and Halt
+        </Button>
+        <Button
+          onClick={() => this.setState({ close_and_halt_confirm: false })}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  render_confirm_bar(): Rendered {
+    return (
+      <div style={{ position: "relative" }}>
+        {this.render_close_and_halt_confirm()}
+      </div>
     );
   }
 
@@ -963,7 +1293,10 @@ export class FrameTitleBar extends Component<Props, {}> {
     const is_active = this.props.id === this.props.active_id;
     if (is_active) {
       style = misc.copy(title_bar_style);
-      style.background = "#f8f8f8";
+      style.background = COL_BAR_BACKGROUND;
+      if (!this.props.is_only && !this.props.is_full) {
+        style.maxHeight = "34px";
+      }
     } else {
       style = title_bar_style;
     }
@@ -983,12 +1316,22 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
 
     return (
-      <div style={style} id={`titlebar-${this.props.id}`}>
-        {this.render_control()}
-        {this.props.title ? this.render_title() : undefined}
-        {is_active ? this.render_main_buttons() : undefined}
-        {!is_active && !this.props.title ? this.render_title() : undefined}
-      </div>
+      <>
+        <div
+          style={style}
+          id={`titlebar-${this.props.id}`}
+          className={"cc-frame-tree-title-bar"}
+        >
+          {this.render_control()}
+          {this.props.connection_status
+            ? this.render_connection_status()
+            : undefined}
+          {this.props.title ? this.render_title() : undefined}
+          {is_active ? this.render_main_buttons() : undefined}
+          {!is_active && !this.props.title ? this.render_title() : undefined}
+        </div>
+        {this.render_confirm_bar()}
+      </>
     );
   }
 }

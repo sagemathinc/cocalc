@@ -28,7 +28,7 @@ import { raw_url } from "../frame-tree/util";
 
 import { pdf_path } from "./util";
 
-import { encode_path } from "../generic/misc";
+import { encode_path } from "smc-util/misc2";
 
 const options = {
   max: MAX_PAGES,
@@ -45,7 +45,7 @@ export function url_to_pdf(
   return `${raw_url(project_id, encode_path(pdf_path(path)))}?param=${reload}`;
 }
 
-const doc_cache = LRU(options);
+const doc_cache = new LRU(options);
 
 export const getDocument: (
   url: string

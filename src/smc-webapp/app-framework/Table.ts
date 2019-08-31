@@ -24,7 +24,7 @@ export abstract class Table {
       // hack for now -- not running in browser (instead in testing server)
       return;
     }
-    this._table = require("../webapp_client").webapp_client.sync_table(
+    this._table = require("../webapp_client").webapp_client.sync_table2(
       this.query(),
       this.options ? this.options() : []
     );
@@ -35,7 +35,28 @@ export abstract class Table {
     }
   }
 
-  set(changes: object, merge, cb): void {
-    this._table.set(changes, merge, cb);
+  async set(
+    changes: object,
+    merge?: "deep" | "shallow" | "none",
+    cb?: (error?: string) => void
+  ): Promise<void> {
+    if (cb == null) {
+      // No callback, so let async/await report errors.
+      // Do not let the error silently hide (like using the code below did)!!
+      // We were missing  lot of bugs because of this...
+      this._table.set(changes, merge);
+      await this._table.save();
+      return;
+    }
+
+    // callback is defined still.
+    let e: undefined | string = undefined;
+    try {
+      this._table.set(changes, merge);
+      await this._table.save();
+    } catch (err) {
+      e = err.toString();
+    }
+    cb(e);
   }
 }

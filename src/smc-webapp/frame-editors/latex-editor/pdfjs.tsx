@@ -12,14 +12,13 @@ const HIGHLIGHT_TIME_S: number = 3;
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
 import { delay } from "awaiting";
-import { Map } from "immutable";
+import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different, seconds_ago } from "../generic/misc";
+import { is_different, seconds_ago, list_alternatives } from "smc-util/misc2";
 import { dblclick } from "./mouse-click";
 import {
   Component,
-  Fragment,
   React,
   ReactDOM,
   rclass,
@@ -52,6 +51,8 @@ interface PDFJSProps {
   zoom_page_height?: string;
   sync?: string;
   scroll_pdf_into_view?: { page: number; y: number; id: string };
+  mode: undefined | "rmd";
+  derived_file_types: Set<string>;
 }
 
 interface PDFJSState {
@@ -101,29 +102,26 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     next_state: PDFJSState
   ): boolean {
     return (
-      is_different(
-        this.props,
-        next_props,
-        [
-          "reload",
-          "font_size",
-          "renderer",
-          "path",
-          "zoom_page_width",
-          "zoom_page_height",
-          "sync",
-          "scroll_pdf_into_view",
-          "is_current",
-          "status"
-        ]
-      ) ||
+      is_different(this.props, next_props, [
+        "reload",
+        "font_size",
+        "renderer",
+        "path",
+        "zoom_page_width",
+        "zoom_page_height",
+        "sync",
+        "scroll_pdf_into_view",
+        "is_current",
+        "status",
+        "derived_file_types"
+      ]) ||
       is_different(this.state, next_state, [
         "loaded",
         "scrollTop",
         "missing",
         "restored_scroll"
       ]) ||
-      this.state.doc.pdfInfo.fingerprint != next_state.doc.pdfInfo.fingerprint
+      this.state.doc.fingerprint != next_state.doc.fingerprint
     );
   }
 
@@ -132,9 +130,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       return <Loading text="Building..." />;
     } else {
       return (
-        <Fragment>
+        <>
           <Icon name="play-circle" /> Build or fix
-        </Fragment>
+        </>
       );
     }
   }
@@ -204,10 +202,15 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       });
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
+      console.log(`WARNING: error loading PDF -- ${err}`);
       if (this.mounted && err.toString().indexOf("Missing") != -1) {
         this.setState({ missing: true });
+        await delay(3000);
+        if (this.mounted && this.state.missing) {
+          // try again
+          this.props.actions.update_pdf(new Date().valueOf(), true);
+        }
       }
-      console.log(`WARNING: error loading PDF -- ${err}`);
       //this.props.actions.set_error();
     }
   }
@@ -264,7 +267,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     const scale = this.scale();
     let s: number = PAGE_GAP + y * scale;
     for (let page of pages.slice(0, pages.length - 1)) {
-      s += scale * page.pageInfo.view[3] + PAGE_GAP;
+      s += scale * page.view[3] + PAGE_GAP;
     }
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     let height = elt.height();
@@ -306,7 +309,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       next_props.is_current
     ) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
-      $(document.activeElement).blur();
+      ($ as any)(document.activeElement).blur();
       $(ReactDOM.findDOMNode(this.refs.scroll)).focus();
     }
   }
@@ -347,7 +350,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
     let width = $(ReactDOM.findDOMNode(this.refs.scroll)).width();
     if (width === undefined) return;
-    let scale = (width - 10) / page.pageInfo.view[2];
+    let scale = (width - 10) / page.view[2];
     this.props.actions.set_font_size(this.props.id, this.font_size(scale));
   }
 
@@ -362,7 +365,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
     let height = $(ReactDOM.findDOMNode(this.refs.scroll)).height();
     if (height === undefined) return;
-    let scale = (height - 10) / page.pageInfo.view[3];
+    let scale = (height - 10) / page.view[3];
     this.props.actions.set_font_size(this.props.id, this.font_size(scale));
   }
 
@@ -422,7 +425,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           sync_highlight={sync_highlight}
         />
       );
-      top += scale * page.pageInfo.view[3] + PAGE_GAP;
+      top += scale * page.view[3] + PAGE_GAP;
     }
     if (!this.state.restored_scroll) {
       // Restore the scroll position after the pages get
@@ -464,7 +467,34 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     return <div style={{ background: "yellow" }} id={"cc-highlight"} />;
   }
 
+  render_no_pdf(): Rendered {
+    return (
+      <div style={{ backgroundColor: "white" }}>
+        {" "}
+        <p>There is no rendered PDF file available.</p>
+        {this.props.derived_file_types.size > 0 ? (
+          <p>
+            Instead, you might want to switch to the{" "}
+            {list_alternatives(this.props.derived_file_types)} view by selecting
+            it via the dropdown selector in the button row above.
+          </p>
+        ) : (
+          ""
+        )}
+      </div>
+    );
+  }
+
   render() {
+    if (
+      this.props.mode == "rmd" &&
+      this.props.derived_file_types != undefined
+    ) {
+      if (!this.props.derived_file_types.contains("pdf")) {
+        return this.render_no_pdf();
+      }
+    }
+
     return (
       <div
         style={{

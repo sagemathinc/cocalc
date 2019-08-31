@@ -17,18 +17,19 @@ import { DropdownButton, MenuItem } from "react-bootstrap";
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 import { DICTS, dict_desc } from "./aspell-dicts";
 
 interface Props {
   value: string;
   set: Function;
+  available: boolean;
 }
 
 export class SpellCheck extends Component<Props, {}> {
   shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["value"]);
+    return is_different(this.props, props, ["value", "available"]);
   }
 
   render_other_items(): Rendered[] {
@@ -41,7 +42,7 @@ export class SpellCheck extends Component<Props, {}> {
         </MenuItem>
       );
       if (lang == "disabled") {
-        v.push(<MenuItem divider key={'div'} />);
+        v.push(<MenuItem divider key={"div"} />);
       }
     }
     return v;
@@ -56,13 +57,24 @@ export class SpellCheck extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    return (
-      <div>
-        <span style={{ fontSize: "11pt", paddingRight:'10px' }}>
-          <b>Spellcheck language</b> for this file (updates on save):
-        </span>
-        {this.render_dropdown()}
-      </div>
-    );
+    const style = { fontSize: "11pt", paddingRight: "10px" };
+    if (this.props.available) {
+      return (
+        <div>
+          <span style={style}>
+            <b>Spellcheck language</b> for this file (updates on save):
+          </span>
+          {this.render_dropdown()}
+        </div>
+      );
+    } else {
+      return (
+        <div>
+          <span style={style}>
+            <b>Spellcheck</b> is not available for this project.
+          </span>
+        </div>
+      );
+    }
   }
 }

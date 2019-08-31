@@ -1,8 +1,9 @@
 /*
 Importing from an ipynb object (in-memory version of .ipynb file)
 */
-const misc = require("smc-util/misc");
-const util = require("./util");
+
+import * as misc from "../../smc-util/misc";
+import { JUPYTER_MIMETYPES } from "./util";
 
 const DEFAULT_IPYNB = {
   cells: [
@@ -15,20 +16,8 @@ const DEFAULT_IPYNB = {
     }
   ],
   metadata: {
-    kernelspec: {
-      display_name: "Python 2",
-      language: "python",
-      name: "python2"
-    },
-    language_info: {
-      codemirror_mode: { name: "ipython", version: 2 },
-      file_extension: ".py",
-      mimetype: "text/x-python",
-      name: "python",
-      nbconvert_exporter: "python",
-      pygments_lexer: "ipython2",
-      version: "2.7.13"
-    }
+    kernelspec: undefined,
+    language_info: undefined
   },
   nbformat: 4,
   nbformat_minor: 0
@@ -136,7 +125,7 @@ export class IPynbImporter {
         if (cell.outputs) {
           for (let mesg of cell.outputs) {
             if (mesg.output_type === "pyout") {
-              for (let type of util.JUPYTER_MIMETYPES) {
+              for (let type of JUPYTER_MIMETYPES) {
                 const b = type.split("/")[1];
                 if (mesg[b] != null) {
                   const data = { [type]: mesg[b] };
@@ -214,7 +203,7 @@ export class IPynbImporter {
       }
       content.name = content.stream;
     } else {
-      for (let t of util.JUPYTER_MIMETYPES) {
+      for (let t of JUPYTER_MIMETYPES) {
         const b = t.split("/")[1];
         if (content[b] != null) {
           content = { data: { [t]: content[b] } };
@@ -244,7 +233,7 @@ export class IPynbImporter {
   };
 
   // Mutate content to be of the format we use internally
-  _import_cell_output_content = (content: any) => {
+  _import_cell_output_content = (content: any): void => {
     content = this._update_output_format(content); // old versions
     this._join_array_strings_obj(content.data); // arrays --> strings
     if (misc.is_array(content.text)) {
@@ -252,7 +241,6 @@ export class IPynbImporter {
     }
     remove_redundant_reps(content.data); // multiple output formats
     delete content.prompt_number; // redundant; in some files
-    return content;
   };
 
   _id_is_available = (id: any) => {
@@ -292,33 +280,31 @@ export class IPynbImporter {
   };
 
   _get_cell_output = (outputs: any, alt_outputs: any, id: any) => {
-    if ((outputs != null ? outputs.length : undefined) > 0) {
-      let handler: any;
-      const cell: any = { id, output: {} };
-      if (this._output_handler != null) {
-        handler = this._output_handler(cell);
-      }
-      for (let k in outputs) {
-        // it's fine/good that k is a string here.
-        let content = outputs[k];
-        const cocalc_alt = alt_outputs != null ? alt_outputs[k] : undefined;
-        if (cocalc_alt != null) {
-          content = cocalc_alt;
-        }
-        this._import_cell_output_content(content);
-        if (handler != null) {
-          handler.message(content);
-        } else {
-          cell.output[k] = content;
-        }
-      }
-      if (handler != null && typeof handler.done === "function") {
-        handler.done();
-      }
-      return cell.output;
-    } else {
+    if (outputs == null || outputs.length == 0) {
       return null;
     }
+    let handler: any;
+    const cell: any = { id, output: {} };
+    if (this._output_handler != null) {
+      handler = this._output_handler(cell);
+    }
+    let k: string; // it's perfectly fine that k is a string here.
+    for (k in outputs) {
+      let content = outputs[k];
+      if (alt_outputs != null && alt_outputs[k] != null) {
+        content = alt_outputs[k];
+      }
+      this._import_cell_output_content(content);
+      if (handler != null) {
+        handler.message(content);
+      } else {
+        cell.output[k] = content;
+      }
+    }
+    if (handler != null && typeof handler.done === "function") {
+      handler.done();
+    }
+    return cell.output;
   };
 
   _get_cell_input(source) {
@@ -361,24 +347,30 @@ export class IPynbImporter {
 
     if (cell.metadata != null) {
       for (let k of ["collapsed", "scrolled"]) {
-        if (cell.metadata != null ? cell.metadata[k] : undefined) {
+        if (cell.metadata[k]) {
           obj[k] = !!(cell.metadata != null ? cell.metadata[k] : undefined);
         }
       }
 
-      if ((cell.metadata != null ? cell.metadata.slideshow : undefined) != null) {
+      if (cell.metadata.slideshow != null) {
         obj.slide = cell.metadata.slideshow.slide_type;
       }
 
-      if ((cell.metadata != null ? cell.metadata.tags : undefined) != null) {
+      if (cell.metadata.tags != null) {
         obj.tags = misc.dict(cell.metadata.tags.map(tag => [tag, true]));
       }
       const other = misc.copy_without(cell.metadata, [
         "collapsed",
         "scrolled",
         "slideshow",
-        "tags"
+        "tags",
+        "_root",
+        "__ownerID",
+        "__hash",
+        "__altered"
       ]);
+      //  See https://github.com/sagemathinc/cocalc/issues/3191 for
+      // why the _'d ones above; this is to fix "corrupted" worksheets.
       if (misc.len(other) > 0) {
         obj.metadata = other;
       }
@@ -413,7 +405,7 @@ export function remove_redundant_reps(data?: any) {
   // This means opening and closing an ipynb file may lose information, which
   // no client currently cares about (?) -- maybe nbconvert does.
   let keep;
-  for (let type of util.JUPYTER_MIMETYPES) {
+  for (let type of JUPYTER_MIMETYPES) {
     if (data[type] != null) {
       keep = type;
       break;
@@ -421,7 +413,11 @@ export function remove_redundant_reps(data?: any) {
   }
   if (keep != null) {
     for (let type in data) {
-      if (type !== keep) {
+      // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
+      // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
+      // not removed, e.g., application/vnd.jupyter.widget-view+json and
+      // text/plain both are types of representation of a widget.
+      if (JUPYTER_MIMETYPES[type] !== undefined && type !== keep) {
         delete data[type];
       }
     }

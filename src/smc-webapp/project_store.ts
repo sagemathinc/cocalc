@@ -38,6 +38,10 @@ import * as immutable from "immutable";
 
 const misc = require("smc-util/misc");
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
+import {
+  Available as AvailableFeatures,
+  isMainConfiguration
+} from "./project_configuration";
 
 import {
   project_redux_name,
@@ -49,17 +53,20 @@ import {
 
 import { literal } from "./app-framework/literal";
 
+import { ProjectConfiguration } from "./project_configuration";
+
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
 const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
-  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME".split(
+  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME pgf-plot.gnuplot pgf-plot.table".split(
     " "
   ),
   rnw: ["tex", "NODOT-concordance.tex"],
-  rtex: ["tex", "NODOT-concordance.tex"]
+  rtex: ["tex", "NODOT-concordance.tex"],
+  rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"]
 };
 
 export interface ProjectStoreState {
@@ -73,6 +80,10 @@ export interface ProjectStoreState {
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
+  configuration?: ProjectConfiguration;
+  configuration_loading: boolean; // for UI feedback
+  available_features?: AvailableFeatures;
+  show_custom_software_reset: boolean;
 
   // Project Page
   active_project_tab: string;
@@ -87,14 +98,21 @@ export interface ProjectStoreState {
   file_action?: string; // undefineds is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
+  show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
   new_name?: string;
   most_recent_file_click?: string;
+  show_library: boolean;
+  show_new: boolean;
+  file_listing_scroll_top?: number;
+  new_filename?: string;
+  ext_selection?: string;
 
   // Project Log
   project_log?: any; // immutable,
+  project_log_all?: any; // immutable,
   search?: string;
   page?: number;
 
@@ -130,41 +148,76 @@ export interface ProjectStoreState {
 
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
+  private previous_runstate: string | undefined;
 
-  _init = () => {
+  // Function to call to initialize one of the tables in this store.
+  // This is purely an optimization, so project_log, project_log_all and public_paths
+  // do not have to be initialized unless necessary.  The code
+  // is a little awkward, since I didn't want to change things too
+  // much while making this optimization.
+  public init_table: (table_name: string) => void;
+
+  // TODO what's a and b ?
+  constructor(a, b) {
+    super(a, b);
+    this._projects_store_change = this._projects_store_change.bind(this);
+  }
+
+  _init = (): void => {
     // If we are explicitly listed as a collaborator on this project,
     // watch for this to change, and if it does, close the project.
     // This avoids leaving it open after we are removed, which is confusing,
     // given that all permissions have vanished.
     const projects: any = this.redux.getStore("projects"); // may not be available; for example when testing
+    // console.log("ProjectStore::_init project_map/project_id", this.project_id, projects.getIn(["project_map", this.project_id]));
     if (
       (projects != null
         ? projects.getIn(["project_map", this.project_id])
         : undefined) != null
     ) {
+      // console.log('ProjectStore::_init projects.on("change", ... )');
       // only do this if we are on project in the first place!
-      return projects.on("change", this._projects_store_collab_check);
+      projects.on("change", this._projects_store_change);
     }
   };
 
-  destroy = () => {
+  destroy = (): void => {
     let projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
-      projects_store.removeListener(
-        "change",
-        this._projects_store_collab_check
-      );
+      projects_store.removeListener("change", this._projects_store_change);
     }
   };
 
-  private _projects_store_collab_check(state): void {
-    if (state.getIn(["project_map", this.project_id]) == null) {
+  // constructor binds this callback, such that "this.project_id" works!
+  private _projects_store_change(state): void {
+    const change = state.getIn(["project_map", this.project_id]);
+    //const log = (...args) =>
+    //  console.log("project_store/_projects_store_change", ...args);
+    if (change == null) {
       // User has been removed from the project!
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
+    } else {
+      const new_state = change.getIn(["state", "state"]);
+      //log(this.previous_runstate, "=>", new_state);
+      // fire started or stopped when certain state transitions happen
+      if (this.previous_runstate != null) {
+        if (this.previous_runstate != "running" && new_state == "running") {
+          this.emit("started");
+        }
+        if (this.previous_runstate == "running" && new_state != "running") {
+          this.emit("stopped");
+        }
+      } else {
+        // null → "running"
+        if (new_state == "running") {
+          this.emit("started");
+        }
+      }
+      this.previous_runstate = new_state;
     }
   }
 
-  getInitialState = () => {
+  getInitialState = (): ProjectStoreState => {
     return {
       // Shared
       current_path: "",
@@ -175,6 +228,10 @@ export class ProjectStore extends Store<ProjectStoreState> {
       show_upload: false,
       create_file_alert: false,
       displayed_listing: undefined, // computed(object),
+      show_masked: true,
+      configuration: undefined,
+      configuration_loading: false, // for UI feedback
+      show_custom_software_reset: false,
 
       // Project Page
       active_project_tab: "files",
@@ -186,6 +243,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
       activity: undefined,
       page_number: 0,
       checked_files: immutable.Set(),
+      show_library: false,
+      show_new: false,
+      file_listing_scroll_top: undefined,
 
       // Project New
       library: immutable.Map({}),
@@ -249,7 +309,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "stripped_public_paths",
         "file_search",
         "other_settings",
-        "show_hidden"
+        "show_hidden",
+        "show_masked"
       ]),
       fn: () => {
         const search_escape_char = "/";
@@ -334,6 +395,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
             }
             return result;
           })();
+        }
+
+        if (!this.get("show_masked", true)) {
+          // if we do not gray out files (and hence haven't computed the file mask yet)
+          // we do it now!
+          if (!this.get("other_settings").get("mask_files")) {
+            _compute_file_masks(listing);
+          }
+
+          const filtered: string[] = [];
+          for (let f of listing) {
+            if (!f.mask) filtered.push(f);
+          }
+          listing = filtered;
         }
 
         const map = {};
@@ -444,6 +519,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
   };
+
+  // returns false, if this project isn't capable of opening a file with the given extension
+  async can_open_file_ext(
+    ext: string,
+    actions: ProjectActions
+  ): Promise<boolean> {
+    // to make sure we know about disabled file types
+    const conf = await actions.init_configuration("main");
+    // if we don't know anything, we're optimistic and skip this check
+    if (conf == null) return true;
+    if (!isMainConfiguration(conf)) return true;
+    const disabled_ext = conf.disabled_ext;
+    return !disabled_ext.includes(ext);
+  }
 }
 
 function _match(words, s, is_dir) {
@@ -488,12 +577,6 @@ function _compute_file_masks(listing) {
       // note: never skip already masked files, because of rnw/rtex->tex
       var filename = file.name;
 
-      // mask items beginning with '.'
-      if (misc.startswith(filename, ".")) {
-        file.mask = true;
-        continue;
-      }
-
       // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
       var ext = misc.filename_extension(filename).toLowerCase();
       var basename = filename.slice(0, filename.length - ext.length);
@@ -510,6 +593,15 @@ function _compute_file_masks(listing) {
               mask_ext = mask_ext.slice("NODOT".length);
             } else if (mask_ext.indexOf("FILENAME") >= 0) {
               bn = mask_ext.replace("FILENAME", filename);
+              mask_ext = "";
+            } else if (mask_ext.indexOf("BASENAME") >= 0) {
+              bn = mask_ext.replace("BASENAME", basename.slice(0, -1));
+              mask_ext = "";
+            } else if (mask_ext.indexOf("BASEDASHNAME") >= 0) {
+              // BASEDASHNAME is like BASENAME, but replaces spaces by dashes
+              // https://github.com/sagemathinc/cocalc/issues/3229
+              const fragment = basename.slice(0, -1).replace(/ /g, "-");
+              bn = mask_ext.replace("BASEDASHNAME", fragment);
               mask_ext = "";
             } else {
               bn = basename;
@@ -587,17 +679,26 @@ function _sort_on_numerical_field(field, factor = 1) {
     );
 }
 
-export function init(project_id: string, redux: AppRedux) {
+export function init(project_id: string, redux: AppRedux): ProjectStore {
   const name = project_redux_name(project_id);
   if (redux.hasStore(name)) {
-    return;
+    const store: ProjectStore | undefined = redux.getProjectStore(name);
+    // this makes TS happy. we already check that it exists due to "hasStore()"
+    if (store != null) return store;
   }
 
   // Initialize everything
-  const store = redux.createStore(name, ProjectStore);
-  const actions = redux.createActions(name, ProjectActions);
+  const store: ProjectStore = redux.createStore<
+    ProjectStoreState,
+    ProjectStore
+  >(name, ProjectStore);
+  const actions = redux.createActions<ProjectStoreState, ProjectActions>(
+    name,
+    ProjectActions
+  );
   store.project_id = project_id;
   actions.project_id = project_id; // so actions can assume this is available on the object
+  store._init();
 
   const queries = misc.deep_copy(QUERIES);
   const create_table = function(table_name, q) {
@@ -622,8 +723,10 @@ export function init(project_id: string, redux: AppRedux) {
     };
   };
 
-  for (let table_name in queries) {
+  function init_table(table_name: string): void {
     const q = queries[table_name];
+    if (q == null) return; // already done
+    delete queries[table_name]; // so we do not init again.
     for (let k in q) {
       const v = q[k];
       if (typeof v === "function") {
@@ -636,4 +739,13 @@ export function init(project_id: string, redux: AppRedux) {
       create_table(table_name, q)
     );
   }
+
+  // public_paths is needed to show file listing and show
+  // any individual file, so we just load it...
+  init_table("public_paths");
+  // project_log, on the other hand, is only loaded if needed.
+
+  store.init_table = init_table;
+
+  return store;
 }

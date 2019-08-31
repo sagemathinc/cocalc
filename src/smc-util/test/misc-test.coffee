@@ -6,9 +6,10 @@
 #
 ###############################################################################
 
-require('coffee-cache')
+require('ts-node').register()
 
 misc = require('../misc')
+misc2 = require('../misc2')
 underscore = require('underscore')
 immutable = require('immutable')
 
@@ -92,14 +93,21 @@ describe "sinon", ->
 describe 'seconds2hms', ->
     s2hms = misc.seconds2hms
     s2hm  = misc.seconds2hm
+    m = 60 # one minute
+    h = 60 * m # one hour
+    d = 24 * h # one day
     it 'converts to short form', ->
         expect(s2hms(0)).toEqual '0s'
+        expect(s2hms(1.138)).toEqual '1.14s'
+        expect(s2hms(15.559)).toEqual '15.6s'
         expect(s2hms(60)).toEqual '1m0s'
         expect(s2hms(61)).toEqual '1m1s'
         expect(s2hms(3601)).toEqual '1h0m1s'
         expect(s2hms(7300)).toEqual '2h1m40s'
     it 'converts to long form', ->
         expect(s2hms(0, true)).toEqual '0 seconds'
+        expect(s2hms(1.138, true)).toEqual '1 second'
+        expect(s2hms(15.559, true)).toEqual '16 seconds'
         expect(s2hms(61, true)).toEqual '1 minute 1 second'
         expect(s2hms(3601, true)).toEqual '1 hour'
         expect(s2hms(7300, true)).toEqual '2 hours 1 minute'
@@ -117,6 +125,16 @@ describe 'seconds2hms', ->
         expect(s2hm(3601, true)).toEqual '1 hour'
         expect(s2hm(7300, true)).toEqual '2 hours 1 minute'
         expect(s2hm(36000, true)).toEqual '10 hours'
+    it 'converts to short form in days resolution', ->
+        expect(s2hm(d + 2 * h + 1 * m)).toEqual '1d2h1m'
+        expect(s2hm(21 * d + 19 * h - 1)).toEqual '21d18h59m'
+        expect(s2hm(1 * d)).toEqual '1d'
+        expect(s2hm(1 * d + 3 * m)).toEqual '1d3m'
+    it 'converts to long form in hour days resolution', ->
+        expect(s2hm(1 * d + 2 * h + 1 * m, true)).toEqual '1 day 2 hours 1 minute'
+        expect(s2hm(21 * d + 19 * h - 1, true)).toEqual '21 days 18 hours 59 minutes'
+        expect(s2hm(1 * d, true)).toEqual '1 day'
+        expect(s2hm(1 * d + 3 * m, true)).toEqual '1 day 3 minutes'
 
 describe 'startswith', ->
     startswith = misc.startswith
@@ -229,13 +247,13 @@ describe "min_object of target and upper_bound", ->
     upper_bound = {a:5, b:20, xyz:-2}
     it "modifies target in place", ->
         target = {a:7, b:15, xyz:5.5}
-        # the return value are just the values
-        mo(target, upper_bound).should.eql [ 5, 15, -2 ]
+        exp = { a: 5, b: 15, xyz: -2 }
+        mo(target, upper_bound).should.eql exp
         target.should.eql {a:5, b:15, xyz:-2}
     it "works without a target", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
-        mo().should.be.eql []
+        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge
@@ -696,6 +714,18 @@ describe "parse_user_search", ->
     it "also handles mixed queries and spaces", ->
         exp = {email_queries: ["foo+bar@baz.com", "xyz@mail.com"], string_queries: [["john", "doe"]]}
         pus("   foo+bar@baz.com   , John   Doe  ; <xyz@mail.com>").should.eql exp
+    it "works with line breaks, too", ->
+        exp =
+            email_queries: ["foo@bar.com", "baz+123@cocalc.com", "jd@cocalc.com"]
+            string_queries: [ ["john", "doe"],  ["dr.", "foo", "bar", "baz"]]
+        query = """
+                foo@bar.com
+                baz+123@cocalc.com
+                John Doe
+                Dr. Foo Bar BAZ
+                Jane Dae <jd@cocalc.com>
+                """
+        pus(query).should.eql(exp)
 
 describe "delete_trailing_whitespace", ->
     dtw = misc.delete_trailing_whitespace
@@ -971,7 +1001,7 @@ describe "timestamp_cmp", ->
         tcmp(a, b).should.eql 1
         tcmp(b, a).should.eql -1
         # sometimes, that's -0 instead of 0
-        assert.strictEqual(tcmp(a, a), 0)
+        assert.strictEqual(Math.abs(tcmp(a, a)), 0)
 
     it "handles missing timestamps gracefully", ->
         tcmp(a, {}).should.eql -1
@@ -1225,7 +1255,9 @@ describe "ticket_id_to_ticket_url", ->
         y.should.match /^http/
         y.should.match /123/
 
-describe "map_limit limits the values of a by the values in b or by b if b is a number", ->
+describe "map_min limits the values of a by the values in b or by b if b is a number", ->
+    it "map_min == map_limit", ->
+        misc.map_limit.should.eql misc.map_min
     it "Limits by a map with similar keys", ->
         a = {'x': 8, 'y': -1, 'z': 5}
         b = {'x': 4.4, 'y': 2.2}
@@ -1236,6 +1268,18 @@ describe "map_limit limits the values of a by the values in b or by b if b is a 
         b = 0
         e = {'x': 0, 'y': -1, 'z': 0}
         misc.map_limit(a, b).should.eql e
+
+describe "map_max is similar to map_min", ->
+    it "Limits by a map with similar keys", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = {'x': 4.4, 'y': 2.2}
+        e = {'x': 8, 'y': 2.2, 'z': 5}
+        misc.map_max(a, b).should.eql e
+    it "Limits by a number", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = 0
+        e = {'x': 8, 'y': 0, 'z': 5}
+        misc.map_max(a, b).should.eql e
 
 describe 'is_valid_email_address is', ->
     valid = misc.is_valid_email_address
@@ -1424,7 +1468,7 @@ describe 'test converting to and from JSON for sending over a socket -- ', ->
         expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)
 
 describe 'misc.transform_get_url mangles some URLs or "understands" what action to take', ->
-    turl = misc.transform_get_url
+    turl = require('smc-webapp/project/transform-get-url').transform_get_url
     it 'preserves "normal" URLs', ->
         turl('http://example.com/file.tar.gz').should.eql  {command:'wget', args:["http://example.com/file.tar.gz"]}
         turl('https://example.com/file.tar.gz').should.eql {command:'wget', args:["https://example.com/file.tar.gz"]}
@@ -1468,7 +1512,10 @@ describe 'misc.transform_get_url mangles some URLs or "understands" what action 
         #turl('http://nbviewer.jupyter.org/gist/darribas/4121857').should.eql
         #    command: 'wget'
         #    args: ['https://gist.githubusercontent.com/darribas/4121857/raw/505e030811332c78e8e50a54aca5e8034605cb4c/guardian_gaza.ipynb']
-
+    it 'transforms the cocalc share server url', ->
+        turl('https://share.cocalc.com/share/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews?viewer=share').should.eql
+            command: 'wget'
+            args: ['https://share.cocalc.com/share/raw/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews']
 
 
 describe 'test closest kernel matching method', ->
@@ -1477,10 +1524,16 @@ describe 'test closest kernel matching method', ->
     python3  = immutable.fromJS {name:"python3", display_name:"Python 3", language:"python"}
     sage8_2  = immutable.fromJS {name:"sage8.2", display_name:"Sagemath 8.2", language:"python"}
     sage8_10 = immutable.fromJS {name:"sage8.10", display_name:"Sagemath 8.10", language:"python"}
-    kernels = immutable.fromJS([octave,python3,python3,sage8_2,sage8_10])
+    ir       = immutable.fromJS {name:"ir", display_name:"R (R-Project)", language:"r"}
+    ir_old   = immutable.fromJS {name:"ir-old", display_name: "R (old)", language: "r", metadata: {cocalc: {priority: -10}}}
+    kernels = immutable.fromJS([octave, python3, python3, sage8_2, sage8_10, ir, ir_old])
     it 'thinks python8 should be python3', ->
         expect(misc.closest_kernel_match("python8",kernels)).toEqual(python3)
     it 'replaces "matlab" with "octave"', ->
-        expect(misc.closest_kernel_match("matlabe",kernels)).toEqual(octave)
+        expect(misc.closest_kernel_match("matlab",kernels)).toEqual(octave)
     it 'suggests sage8.10 over sage8.2', ->
         expect(misc.closest_kernel_match("sage8",kernels)).toEqual(sage8_10)
+    it 'suggests R over ir35', ->
+        expect(misc.closest_kernel_match("ir35",kernels)).toEqual(ir)
+    it 'suggests R over ir-35', ->
+        expect(misc.closest_kernel_match("ir-35",kernels)).toEqual(ir)

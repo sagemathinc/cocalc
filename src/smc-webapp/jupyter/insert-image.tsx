@@ -2,41 +2,47 @@
 Modal for inserting an image
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 
 const { Icon } = require("../r_misc"); // TODO: import types
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 const { SMC_Dropzone } = require("../smc-dropzone"); // TODO: import types
+import { JupyterActions } from "./browser-actions";
 
 const TMP = ".smc/tmp"; // TODO: maybe .smc will change...
 
 interface InsertImageProps {
-  actions: any; // TODO: type
+  actions: JupyterActions;
   project_id: string;
-  cur_id: string;
-  insert_image?: boolean;
+  insert_image: string;
 }
 
 export class InsertImage extends Component<InsertImageProps> {
-  shouldComponentUpdate(nextProps) {
+  public shouldComponentUpdate(nextProps): boolean {
     return nextProps.insert_image !== this.props.insert_image;
   }
-  close = () => {
-    this.props.actions.setState({ insert_image: false });
-  };
-  add_file = (file: any) => {
-    // TODO: types
+
+  private close(): void {
+    this.props.actions.setState({ insert_image: undefined });
+  }
+
+  private add_file(file: { name: string }): void {
     this.props.actions.add_attachment_to_cell(
-      this.props.cur_id,
+      this.props.insert_image,
       TMP + "/" + file.name
     );
-  };
-  render() {
+  }
+
+  render(): Rendered {
     return (
-      <Modal show={this.props.insert_image} bsSize="large" onHide={this.close}>
+      <Modal
+        show={this.props.insert_image != null}
+        bsSize="large"
+        onHide={this.close.bind(this)}
+      >
         <Modal.Header closeButton>
           <Modal.Title>
-            <Icon name="file-image-o" /> Pick image files to attach to this
+            <Icon name="image" /> Pick image files to attach to this
             markdown cell
           </Modal.Title>
         </Modal.Header>
@@ -44,12 +50,12 @@ export class InsertImage extends Component<InsertImageProps> {
           <SMC_Dropzone
             project_id={this.props.project_id}
             current_path={TMP}
-            dropzone_handler={{ addedfile: this.add_file }}
+            dropzone_handler={{ addedfile: this.add_file.bind(this) }}
           />
         </Modal.Body>
 
         <Modal.Footer>
-          <Button onClick={this.close}>Done</Button>
+          <Button onClick={this.close.bind(this)}>Done</Button>
         </Modal.Footer>
       </Modal>
     );

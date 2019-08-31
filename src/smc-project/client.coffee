@@ -17,27 +17,14 @@ That said, this architecture could change, and very little code would change
 as a result.
 ###
 
-# close our copy of syncstring (so stop watching it for changes, etc) if
-# not active for this long (should be at least 5 minutes).  Longer is better since
-# it reduces how long a user might have to wait for save, etc.,
-# but it slightly increases database work (managing a changefeed).
-SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = 1 # TESTING
-
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
-
-# CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
-# syncstrings, since they also maintain the sage session, put output into the
-# syncstring, etc.  It's critical that those only close when the user explicitly
-# kills them, or the project is closed.
-NEVER_CLOSE_SYNCSTRING_EXTENSIONS =
-    sagews          : true
-    'sage-jupyter2' : true
 
 fs     = require('fs')
 {join} = require('path')
 
 {EventEmitter} = require('events')
+
+{callback2, once} = require("smc-util/async-utils");
 
 async   = require('async')
 winston = require('winston')
@@ -49,9 +36,8 @@ require('coffeescript/register')
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
 misc_node  = require('smc-util-node/misc_node')
-synctable  = require('smc-util/synctable')
-syncstring = require('smc-util/syncstring')
-db_doc     = require('smc-util/db-doc')
+synctable2 = require('smc-util/sync/table')
+syncdb2    = require('smc-util/sync/editor/db')
 schema     = require('smc-util/schema')
 
 sage_session = require('./sage_session')
@@ -66,6 +52,8 @@ kucalc = require('./kucalc')
 {Watcher} = require('./watcher')
 
 blobs = require('./blobs')
+
+{get_syncdoc} = require('./sync/sync-doc')
 
 {defaults, required} = misc
 
@@ -97,8 +85,9 @@ class exports.Client extends EventEmitter
         @_connected = false
 
         # Start listening for syncstrings that have been recently modified, so that we
-        # can open them and porivde filesystem and computational support.
-        @_init_recent_syncstrings_table()
+        # can open them and provide filesystem and computational support.
+        # TODO: delete this code.
+        ## @_init_recent_syncstrings_table()
 
         if kucalc.IN_KUCALC
             kucalc.init(@)
@@ -106,180 +95,8 @@ class exports.Client extends EventEmitter
             # logging infrastructure...
             DEBUG = true
 
-    ###
-    _test_ping: () =>
-        dbg = @dbg("_test_ping")
-        test = () =>
-            dbg("ping")
-            t0 = new Date()
-            @call
-                message : message.ping()
-                timeout : 3
-                cb      : (err, resp) =>
-                    dbg("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{json(resp)}")
-        setInterval(test, 7*1000)
-
-    _test_query_set: () =>
-        dbg = @dbg("_test_query_set")
-        test = () =>
-            dbg("query")
-            @query
-                query   :
-                    projects : {title:"the project takes over!", description:"description set too"}
-                cb      : (err, resp) =>
-                    dbg("got: err=#{err}, resp=#{json(resp)}")
-        setInterval(test, 6*1000)
-
-    _test_query_get: () =>
-        dbg = @dbg("_test_query_get")
-        test = () =>
-            dbg("query")
-            @query
-                query   :
-                    projects : [{project_id:null, title:null, description:null}]
-                timeout : 3
-                cb      : (err, resp) =>
-                    dbg("got: err=#{err}, resp=#{json(resp)}")
-        setInterval(test, 5*1000)
-
-    _test_sync_table: () =>
-        dbg = @dbg("_test_sync_table")
-        table = @sync_table(projects : [{project_id:null, title:null, description:null}])
-        table.on 'change', (x) =>
-            dbg("table=#{json(table.get().toJS())}")
-            #table.set({title:'foo'})
-
-    _test_sync_string: () =>
-        dbg = @dbg("_test_sync_string")
-        dbg()
-        s = @sync_string(id:'5039592f55e13b2d1b78c55ae4a4d3188f3e98a6')
-        s.on 'change', () =>
-            dbg("sync_string changed to='#{s.version()}'")
-        return s
-    ###
-
-    _init_recent_syncstrings_table: () =>
-        dbg = @dbg("_init_recent_syncstrings_table")
-        dbg()
-        obj =
-            project_id  : @project_id
-            max_age_m   : SYNCSTRING_MAX_AGE_M
-            path        : null
-            last_active : null
-            deleted     : null
-            doctype     : null
-
-        @_open_syncstrings = {}
-        @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
-        @_recent_syncstrings.on 'change', =>
-            @_update_recent_syncstrings()
-
-        @_recent_syncstrings.once 'change', =>
-            # We have to do this interval check since syncstrings no longer satisfying the max_age_m query
-            # do NOT automatically get removed from the table (that's just not implemented yet).
-            # This interval check is also important in order to detect files that were deleted then
-            # recreated.
-            @_recent_syncstrings_interval = setInterval(@_update_recent_syncstrings, 300)
-
-    _update_recent_syncstrings: () =>
-        dbg = @dbg("update_recent_syncstrings")
-        cutoff = misc.minutes_ago(SYNCSTRING_MAX_AGE_M)
-        @_wait_syncstrings ?= {}
-        keys = {}
-        x = @_recent_syncstrings.get()
-        if not x?
-            return
-        log_message = "open_syncstrings: #{misc.len(@_open_syncstrings)}; recent_syncstrings: #{x.size}"
-        if log_message != @_update_recent_syncstrings_last
-            winston.debug(log_message)
-            @_update_recent_syncstrings_last = log_message
-        x.map (val, key) =>
-            string_id = val.get('string_id')
-            path = val.get('path')
-            if path == '.smc/local_hub/local_hub.log'
-                # do NOT open this file, since opening it causes a feedback loop!  The act of opening
-                # it is logged in it, which results in further logging ...!
-                return
-            #winston.debug("LAST_ACTIVE: #{val.get('last_active')}, typeof=#{typeof(val.get('last_active'))}")
-            if val.get("last_active") > cutoff
-                keys[string_id] = true   # anything not set here gets closed below.
-                #dbg("considering '#{path}' with id '#{string_id}'")
-                if @_open_syncstrings[string_id]? or @_wait_syncstrings[string_id]
-                    # either already open or waiting a bit before opening
-                    return
-                if not @_open_syncstrings[string_id]?
-                    deleted = val.get('deleted')
-                    dbg("path='#{path}', deleted=#{deleted}, string_id='#{string_id}'")
-                    async.series([
-                        (cb) =>
-                            if not deleted
-                                # sync file (in database) is not deleted so we will open
-                                cb()
-                                return
-                            dbg("check if '#{path}' exists")  # if so, undelete, obviously.
-                            @path_exists
-                                path : path
-                                cb   : (err, exists) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        deleted = not exists
-                                        cb()
-                    ], (err) =>
-                        if err
-                            dbg("SERIOUS ERROR -- #{err}")
-                        else if deleted
-                            # do nothing -- don't open
-                            dbg("ignoring deleted path '#{path}'")
-                        else if not @_open_syncstrings[string_id]?
-                            dbg("open syncstring '#{path}' with id '#{string_id}'")
-
-                            ext = misc.separate_file_extension(path).ext
-
-                            doctype = val.get('doctype')
-                            if doctype?
-                                dbg("using doctype='#{doctype}'")
-                                doctype   = misc.from_json(doctype)
-                                opts      = doctype.opts ? {}
-                                opts.path = path
-                                type      = doctype.type
-                            else
-                                opts = {path:path}
-                                type = 'string'
-
-                            if ext == 'sage-ipython'
-                                opts.change_throttle = opts.patch_interval = 5
-                                opts.save_interval = 25
-
-                            ss = @_open_syncstrings[string_id] = @["sync_#{type}"](opts)
-
-                            ss.on 'error', (err) =>
-                                dbg("ERROR creating syncstring '#{path}' -- #{err}; will try again later")
-                                ss.close()
-
-                            ss.on 'close', () =>
-                                dbg("remove syncstring '#{path}' with id '#{string_id}' from cache due to close")
-                                delete @_open_syncstrings[string_id]
-                                # Wait at least 10s before re-opening this syncstring, in case deleted:true passed to db, etc.
-                                @_wait_syncstrings[string_id] = true
-                                setTimeout((()=>delete @_wait_syncstrings[string_id]), 10000)
-
-                            switch ext
-                                when 'sage-jupyter2'
-                                    jupyter.jupyter_backend(ss, @)
-
-                    )
-            return  # so map doesn't terminate due to funny return value
-
-        for string_id, val of @_open_syncstrings
-            path = val._path
-            if not keys[string_id] and not NEVER_CLOSE_SYNCSTRING_EXTENSIONS[misc.filename_extension(path)]
-                dbg("close syncstring '#{path}' with id '#{string_id}'")
-                val.close()
-                delete @_open_syncstrings[string_id]
-
     # use to define a logging function that is cleanly used internally
-    dbg: (f) =>
+    dbg: (f, trunc=1000) =>
         if DEBUG
             return (m...) ->
                 switch m.length
@@ -289,7 +106,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                winston.debug("Client.#{f}: #{misc.trunc_middle(s,1000)}")
+                winston.debug("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
         else
             return (m) ->
 
@@ -389,7 +206,10 @@ class exports.Client extends EventEmitter
             if not mesg.multi_response
                 delete @_hub_callbacks[mesg.id]
                 delete @_hub_client_sockets[socket.id].callbacks[mesg.id]
-            f(mesg)
+            try
+                f(mesg)
+            catch err
+                dbg("WARNING: error handling message from client. -- #{err}")
             return true
         else
             dbg("no callback")
@@ -450,6 +270,7 @@ class exports.Client extends EventEmitter
             query   : required      # a query (see schema.coffee)
             changes : undefined     # whether or not to create a changefeed
             options : undefined     # options to the query, e.g., [{limit:5}] )
+            standby : false         # **IGNORED**
             timeout : 30            # how long to wait for initial result
             cb      : required
         if opts.options? and not misc.is_array(opts.options)
@@ -504,54 +325,59 @@ class exports.Client extends EventEmitter
                 socket  : socket
                 cb      : opts.cb
 
-    # Get the synchronized table defined by the given query.
-    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
-        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
-        # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
-        #opts = defaults opts,
-        #    query             : required
-        #    options           : undefined
-        #    debounce_interval : 2000
-        #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
+    sync_table2: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable(query, options, @, throttle_changes)
+
+    # We leave in the project_id for consistency with the browser UI.
+    # And maybe someday we'll have tables managed across projects (?).
+    synctable_project: (project_id, query, options) =>
+        # TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
+        # Also, options are ignored -- since we use whatever was selected by the frontend.
+        the_synctable = await require('./sync/open-synctables').get_synctable(query, @)
+        # To provide same API, must also wait until done initializing.
+        if the_synctable.get_state() != 'connected'
+            await once(the_synctable, 'connected')
+        if the_synctable.get_state() != 'connected'
+            throw Error("Bug -- state of synctable must be connected " + JSON.stringify(query))
+        return the_synctable
 
     # WARNING: making two of the exact same sync_string or sync_db will definitely
-    # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
-    # right now, so we are OK.  Will need to improve this in the longrun!
+    # lead to corruption!
 
-    # Get the synchronized string with the given path.
-    sync_string: (opts) =>
+    # Get the synchronized doc with the given path.  Returns undefined
+    # if currently no such sync-doc.
+    syncdoc: (opts) =>
         opts = defaults opts,
-            path            : required
-            save_interval   : 500    # amount to debounce saves (in ms)
-            patch_interval  : 500    # debouncing of incoming patches
-            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
-        if opts.reference_only
-            string_id = schema.client_db.sha1(@project_id, opts.path)
-            @dbg("sync_string")("string_id='#{string_id}', keys=#{JSON.stringify(misc.keys(@_open_syncstrings))}")
-            return @_open_syncstrings[string_id]
-        delete opts.reference_only
+            path : required
+        return get_syncdoc(opts.path)
+    ###
+    sync_string2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            path              : required
+            file_use_interval : 'default'
+            patch_interval    : 1000
+            save_interval     : 2000
         opts.client = @
         opts.project_id = @project_id
-        @dbg("sync_string(path='#{opts.path}')")()
-        return new syncstring.SyncString(opts)
+        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
+        return new SyncString2(opts)
 
-    sync_db: (opts) =>
+    sync_db2: (opts) =>
         opts = defaults opts,
-            path            : required
-            primary_keys    : required
-            string_cols     : []
-            change_throttle : 0      # amount to throttle change events (in ms)
-            save_interval   : 500    # amount to debounce saves (in ms)
-            patch_interval  : 500    # debouncing of incoming patches
-            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
-        if opts.reference_only
-            string_id = schema.client_db.sha1(@project_id, opts.path)
-            return @_open_syncstrings[string_id]
-        delete opts.reference_only
+            id                : undefined
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            primary_keys      : required
+            string_cols       : []
         opts.client = @
         opts.project_id = @project_id
-        @dbg("sync_db(path='#{opts.path}')")()
-        return new db_doc.SyncDB(opts)
+        SyncDB2 = syncdb2.SyncDB;
+        return new SyncDB2(opts)
+    ###
 
     symmetric_channel: (name) =>
         return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
@@ -590,7 +416,9 @@ class exports.Client extends EventEmitter
         )
 
     # Read file as a string from disk.
-    # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
+    # If file is currently being written or read in this process,
+    # will retry until it isn't, so we do not get an error and we
+    # do NOT get silently corrupted data.
     path_read: (opts) =>
         opts = defaults opts,
             path       : required
@@ -623,7 +451,7 @@ class exports.Client extends EventEmitter
                                 cb(err)
                             else if size > opts.maxsize_MB * 1000000
                                 dbg("file is too big!")
-                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB); try opening it in a Terminal with vim instead or write to help@sagemath.com")
+                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB); try opening it in a Terminal with vim instead or write to help@cocalc.com")
                             else
                                 dbg("file is fine")
                                 cb()
@@ -653,6 +481,9 @@ class exports.Client extends EventEmitter
             access |= fs[s.toUpperCase() + '_OK']
         fs.access(opts.path, access, opts.cb)
 
+    # TODO: exists is deprecated.  "To check if a file exists
+    # without manipulating it afterwards, fs.access() is
+    # recommended."
     path_exists: (opts) =>
         opts = defaults opts,
             path : required
@@ -701,8 +532,8 @@ class exports.Client extends EventEmitter
     watch_file: (opts) =>
         opts = defaults opts,
             path     : required
-            interval : 3000     # polling interval in ms
-            debounce : 1000     # don't fire until at least this many ms after the file has REMAINED UNCHANGED
+            interval : 1500     # polling interval in ms
+            debounce : 500     # don't fire until at least this many ms after the file has REMAINED UNCHANGED
         path = require('path').join(process.env.HOME, opts.path)
         dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
@@ -749,3 +580,16 @@ class exports.Client extends EventEmitter
         dbg(opts.sha1)
         opts.cb?('get_blob: not implemented')
 
+
+    # no-op
+    touch_project: (opts) =>
+        opts.cb?()
+
+    # async
+    get_syncdoc_history: (string_id, patches=false) =>
+        dbg = @dbg("get_syncdoc_history")
+        dbg(string_id, patches)
+        mesg = message.get_syncdoc_history
+            string_id : string_id
+            patches   : patches
+        return await callback2(@call, {message:mesg})

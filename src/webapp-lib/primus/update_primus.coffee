@@ -15,6 +15,8 @@ update = (base_url) ->
 
     fs.writeFileSync('primus-engine.js', primus.library())
 
+    process.exit()
+
 
 
 program.usage('[options]').parse(process.argv)

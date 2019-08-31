@@ -25,7 +25,7 @@ misc           = require('smc-util/misc')
 misc_page      = require('./misc_page')
 os_path        = require('path')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
@@ -37,6 +37,7 @@ HEIGHT = '275px'
 # https://github.com/sagemathinc/cocalc-examples
 exports.examples_path = ROOT = '/ext/library/cocalc-examples'
 
+{LIBRARY_INDEX_FILE} = require('./project_configuration')
 
 # This is the main library component. It consists of a "selector" and a preview.
 # Later, we probably want to filter by tags, free-text search, ... but for now we just have the main categories
@@ -55,6 +56,7 @@ exports.Library = rclass ({name}) ->
 
     propTypes :
         actions  : rtypes.object.isRequired
+        close    : rtypes.func
 
     getInitialState: ->
         lang        : 'python'
@@ -93,7 +95,9 @@ exports.Library = rclass ({name}) ->
             title  : doc.get('title')
             docid  : doc.get('id')
             start  : doc?.get('start') ? '/'
-            cb     : => @props.actions.set_library_is_copying(false)
+            cb     : =>
+                @props.actions.set_library_is_copying(false)
+                @props.close?()
 
     selector_keyup: (evt) ->
         return if not @props.library_selected?
@@ -115,7 +119,10 @@ exports.Library = rclass ({name}) ->
 
 
     select_list_click: (doc) ->
-        @setState(show_thumb:false)  # we control the visibility of the thumbnail, because it would show to the old one until the new one is loaded
+        # ignore selection of the very same entry
+        return if doc.get('id') == @props.library_selected?.get('id')
+        # we control the visibility of the thumbnail, because it would show to the old one until the new one is loaded
+        @setState(show_thumb:false)
         @props.actions.setState(library_selected:doc)
 
 
@@ -185,6 +192,28 @@ exports.Library = rclass ({name}) ->
 
         return <img src={img_path} style={img_style} onLoad={=> @setState(show_thumb:true)} />
 
+    copy_button: ->
+        <Button
+            bsStyle  = "success"
+            onClick  = {=> @copy()}
+            disabled = {@props.library_is_copying}
+        >
+            {
+                if @props.library_is_copying
+                    <span><Loading text='Copying ...' /></span>
+                else
+                    <span><Icon name='files-o' /> Get a Copy</span>
+            }
+        </Button>
+
+    close_button: ->
+        return if not @props.close
+        <Button
+            className = {"pull-right"}
+            onClick   = {=> @props.close()}
+        >
+            Close
+        </Button>
 
     details: ->
         return null if (not @props.library_selected?) or (not @metadata()?)
@@ -218,7 +247,7 @@ exports.Library = rclass ({name}) ->
                         overflow      : 'hidden'
                         textOverflow  : 'ellipsis'
                     <p style={color: COLORS.GRAY_D}>
-                        Website: <a style={website_style} target='_blank' href={doc.get('website')}>{doc.get('website')}</a>
+                        Website: <a style={website_style} target='_blank' rel='noopener' href={doc.get('website')}>{doc.get('website')}</a>
                     </p>
             }
             {
@@ -242,18 +271,7 @@ exports.Library = rclass ({name}) ->
                         <Icon name='exclamation-triangle' style={color:COLORS.YELL_L} /> {info}
                     </p>
             }
-            <Button
-                bsStyle  = "success"
-                onClick  = {=> @copy()}
-                disabled = {@props.library_is_copying}
-            >
-                {
-                    if @props.library_is_copying
-                        <span><Loading text='Copying ...' /></span>
-                    else
-                        <span><Icon name='files-o' /> Get a Copy</span>
-                }
-            </Button>
+            {@copy_button()}
         </div>
 
     render: ->
@@ -262,14 +280,22 @@ exports.Library = rclass ({name}) ->
         state   = project?.get('state')?.get('state')
 
         if state and state != 'running'
-            return <span>Project not running</span>
+            content = <span>Project not running</span>
+        else if (not @props.library?.get('examples')?)
+            content = <Loading />
+        else
+            thumb   = @props.library_selected?.get('thumbnail')
+            content = <Row>
+                          <Col sm={4}>{@selector()}</Col>
+                          <Col sm={if thumb then 6 else 8}>{@details()}</Col>
+                          {<Col sm={2}>{@thumbnail()}</Col> if thumb}
+                      </Row>
 
-        if (not @props.library?.get('examples')?)
-            return <Loading />
-
-        thumb = @props.library_selected?.get('thumbnail')
-        <Row>
-            <Col sm={4}>{@selector()}</Col>
-            <Col sm={if thumb then 6 else 8}>{@details()}</Col>
-            {<Col sm={2}>{@thumbnail()}</Col> if thumb}
-        </Row>
+        <Fragment>
+            {content}
+            {if @props.close
+                <Row>
+                    <Col sm={12}>{@close_button()}</Col>
+                </Row>
+            }
+        </Fragment>

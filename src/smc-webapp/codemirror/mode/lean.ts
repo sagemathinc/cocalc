@@ -10,6 +10,13 @@ playgroud to see the alternative of negative look ahead in action: https://regex
 
 */
 
+// This is redundant with the regexp's below, but we need this to do completions
+// before the terms are ever used.
+export const completions: string[] = "import|prelude|theory|definition|def|abbreviation|instance|renaming|hiding|exposing|parameter|parameters|begin|constant|constants|lemma|variable|variables|theorem|example|open|axiom|inductive|coinductive|with|structure|universe|universes|alias|precedence|reserve|postfix|prefix|infix|infixl|infixr|notation|end|using|namespace|section|local|set_option|extends|include|omit|class|classes|instances|raw|run_cmd|print|eval|reduce|check|help|exit|calc|have|this|match|do|suffices|show|by|in|at|let|forall|fun|exists|assume|from|Prop|Type|Sort".split(
+  "|"
+);
+completions.sort();
+
 (CodeMirror as any).defineSimpleMode("lean", {
   start: [
     { regex: /"(?:[^\\]|\\.)*?(?:"|$)/, token: "string" },
