@@ -235,7 +235,8 @@ export const CourseEditor = rclass<CourseReactProps>(
         "settings",
         "unsaved",
         "user_map",
-        "project_map"
+        "project_map",
+        "configuring_projects"
       ]);
     }
 

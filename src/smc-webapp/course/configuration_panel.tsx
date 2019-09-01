@@ -382,7 +382,8 @@ export class ConfigurationPanel extends Component<
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "shared_project_id"
+        "shared_project_id",
+        "configuring_projects"
       ])
     );
   }
