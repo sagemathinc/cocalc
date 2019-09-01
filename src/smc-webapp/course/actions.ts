@@ -259,7 +259,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Set one object in the syncdb
-  _set(obj) {
+  _set(obj, commit: boolean = true) {
     if (
       !this._loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
@@ -267,7 +267,9 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     this.syncdb.set(obj);
-    this.syncdb.commit();
+    if (commit) {
+      this.syncdb.commit();
+    }
   }
 
   // Get one object from @syncdb as a Javascript object (or undefined)
@@ -944,7 +946,8 @@ export class CourseActions extends Actions<CourseState> {
   private async configure_project_users(
     student_project_id,
     student_id,
-    do_not_invite_student_by_email
+    do_not_invite_student_by_email,
+    force_send_invite_by_email
   ): Promise<void> {
     //console.log("configure_project_users", student_project_id, student_id)
     // Add student and all collaborators on this project to the project with given project_id.
@@ -999,8 +1002,9 @@ export class CourseActions extends Actions<CourseState> {
       // we only do this at most once every few days.
       const last_email_invite = student.get("last_email_invite");
       if (
-        !last_email_invite ||
-        new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS)
+        force_send_invite_by_email ||
+        (!last_email_invite ||
+          new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS))
       ) {
         await invite(student.get("email_address"));
         this._set({
@@ -1276,7 +1280,8 @@ export class CourseActions extends Actions<CourseState> {
   private async configure_project(
     student_id,
     do_not_invite_student_by_email,
-    student_project_id?
+    student_project_id?: string,
+    force_send_invite_by_email?: boolean
   ): Promise<void> {
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
@@ -1299,7 +1304,8 @@ export class CourseActions extends Actions<CourseState> {
       await this.configure_project_users(
         student_project_id,
         student_id,
-        do_not_invite_student_by_email
+        do_not_invite_student_by_email,
+        force_send_invite_by_email
       );
       await this.configure_project_visibility(student_project_id);
       await this.configure_project_title(student_project_id, student_id);
@@ -1338,34 +1344,43 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async configure_all_projects(): Promise<void> {
-    const id = this.set_activity({
-      desc: "Ensuring all projects are configured..."
-    });
-    this.setState({ configure_projects: "Configuring projects" });
+  async configure_all_projects(force: boolean = false): Promise<void> {
     const store = this.get_store();
     if (store == null) {
-      this.set_activity({ id });
       return;
     }
-    const ids = store.get_student_ids({ deleted: false });
-    if (ids == undefined) {
+    if (store.get("configuring_projects")) {
+      // currently running already.
       return;
     }
-    let i = 0;
-    for (let student_id of ids) {
-      if (this.is_closed()) return;
-      i += 1;
-      const id = this.set_activity({
-        desc: `Configuring student project ${i} of ${ids.length}`
+    let id:string='';
+    try {
+      this.setState({ configuring_projects: true });
+      id = this.set_activity({
+        desc: "Ensuring all projects are configured..."
       });
-      await this.configure_project(student_id, false);
+      const ids = store.get_student_ids({ deleted: false });
+      if (ids == undefined) {
+        return;
+      }
+      let i = 0;
+      for (let student_id of ids) {
+        if (this.is_closed()) return;
+        i += 1;
+        const id = this.set_activity({
+          desc: `Configuring student project ${i} of ${ids.length}`
+        });
+        await this.configure_project(student_id, false, undefined, force);
+        this.set_activity({ id });
+        await delay(0); // give UI, etc. a solid chance to render
+      } // always re-invite students on running this.
+      await this.configure_shared_project();
+      await this.set_all_student_project_course_info();
+    } finally {
+      if (this.is_closed()) return;
+      this.setState({ configuring_projects: false });
       this.set_activity({ id });
-      await delay(0); // give UI, etc. a solid chance to render
-    } // always re-invite students on running this.
-    await this.configure_shared_project();
-    await this.set_all_student_project_course_info();
-    this.set_activity({ id });
+    }
   }
 
   // Deletes student projects and removes students from those projects

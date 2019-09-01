@@ -190,6 +190,7 @@ interface CourseReduxProps {
   settings: CourseSettingsRecord;
   unsaved: boolean;
   loading: boolean;
+  configuring_projects?: boolean;
 
   user_map: UserMap;
 
@@ -211,7 +212,8 @@ export const CourseEditor = rclass<CourseReactProps>(
           assignments: rtypes.immutable.Map,
           handouts: rtypes.immutable.Map,
           settings: rtypes.immutable.Map,
-          unsaved: rtypes.bool
+          unsaved: rtypes.bool,
+          configuring_projects: rtypes.bool
         },
         users: {
           user_map: rtypes.immutable
@@ -465,6 +467,7 @@ export const CourseEditor = rclass<CourseReactProps>(
                 : undefined
             }
             project_map={this.props.project_map}
+            configuring_projects={this.props.configuring_projects}
           />
         );
       } else {
