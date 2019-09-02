@@ -1520,75 +1520,75 @@ exports.ProjectsPage = ProjectsPage = rclass
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
-        <div className='container-content smc-vfill'>
-            <Grid fluid className='constrained smc-vfill' style={{minWidth:'90%'}}>
-                <Well className="smc-vfill" style={marginTop:'15px'}>
-                    <Row>
-                        <Col sm={4}>
-                            {@render_projects_title()}
-                        </Col>
-                        <Col sm={4}>
-                            <ProjectsFilterButtons
-                                hidden  = {@props.hidden}
-                                deleted = {@props.deleted}
-                                show_hidden_button = {@has_hidden_projects() or @props.hidden}
-                                show_deleted_button = {@has_deleted_projects() or @props.deleted} />
-                        </Col>
-                        <Col sm={4}>
-                            <UsersViewing style={width:'100%'}/>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={4}>
-                            <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
-                        </Col>
-                        <Col sm={8}>
-                            <HashtagGroup
-                                hashtags          = {@hashtags()}
-                                selected_hashtags = {@props.selected_hashtags[@filter()]}
-                                toggle_hashtag    = {@toggle_hashtag} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12} style={marginTop:'1ex'}>
-                            <VisibleMDLG>
-                                <div style={maxWidth:'50%', float:'right'}>
-                                    <UpgradeStatus />
-                                </div>
-                            </VisibleMDLG>
-                            <NewProjectCreator
-                                start_in_edit_mode = {@project_list().length == 0}
-                                default_value={@props.search}
-                                images = {@props.images}
-                            />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12}>
-                            <ProjectsListingDescription
-                                nb_projects       = {@project_list().length}
-                                visible_projects  = {visible_projects}
-                                hidden            = {@props.hidden}
-                                deleted           = {@props.deleted}
-                                search            = {@props.search}
-                                selected_hashtags = {@props.selected_hashtags[@filter()]}
-                                on_cancel         = {@clear_filters_and_focus_search_input}
-                            />
-                        </Col>
-                    </Row>
-                    <Row className="smc-vfill">
-                        <Col sm={12} className="smc-vfill">
-                            <ProjectList
-                                projects    = {visible_projects}
-                                user_map    = {@props.user_map}
-                                images      = {@props.images}
-                                load_all_projects_done = {@props.load_all_projects_done}
-                                redux       = {redux} />
-                        </Col>
-                    </Row>
-                </Well>
-            </Grid>
-        </div>
+        <Col sm={12} md={12} lg={10} lgOffset={1}
+            className={'container-content smc-vfill'}
+            style={overflowY:'auto', paddingTop:'20px'}
+        >
+            <Row>
+                <Col sm={4}>
+                    {@render_projects_title()}
+                </Col>
+                <Col sm={4}>
+                    <ProjectsFilterButtons
+                        hidden  = {@props.hidden}
+                        deleted = {@props.deleted}
+                        show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                        show_deleted_button = {@has_deleted_projects() or @props.deleted}
+                    />
+                </Col>
+                <Col sm={4}>
+                    <UsersViewing style={width:'100%'}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={4}>
+                    <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
+                </Col>
+                <Col sm={8}>
+                    <HashtagGroup
+                        hashtags          = {@hashtags()}
+                        selected_hashtags = {@props.selected_hashtags[@filter()]}
+                        toggle_hashtag    = {@toggle_hashtag} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12} style={marginTop:'1ex'}>
+                    <VisibleMDLG>
+                        <div style={maxWidth:'50%', float:'right'}>
+                            <UpgradeStatus />
+                        </div>
+                    </VisibleMDLG>
+                    <NewProjectCreator
+                        start_in_edit_mode = {@project_list().length == 0}
+                        default_value={@props.search}
+                        images = {@props.images}
+                    />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
+                    <ProjectsListingDescription
+                        nb_projects       = {@project_list().length}
+                        visible_projects  = {visible_projects}
+                        hidden            = {@props.hidden}
+                        deleted           = {@props.deleted}
+                        search            = {@props.search}
+                        selected_hashtags = {@props.selected_hashtags[@filter()]}
+                        on_cancel         = {@clear_filters_and_focus_search_input}
+                    />
+                </Col>
+            </Row>
+            <Row className="smc-vfill">
+                <Col sm={12} className="smc-vfill">
+                    <ProjectList
+                        projects    = {visible_projects}
+                        user_map    = {@props.user_map}
+                        images      = {@props.images}
+                        load_all_projects_done = {@props.load_all_projects_done}
+                        redux       = {redux} />
+                </Col>
+            </Row>
+        </Col>
 
 LoadAllProjects = rclass
     displayName: "LoadAllProjects"
