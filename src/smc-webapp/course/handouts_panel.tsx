@@ -337,7 +337,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       );
 
       return (
-        <div className="smc-vfill" style={{ margin: "5px" }}>
+        <div className={"smc-vfill"}>
           {header}
           <div style={{ marginTop: "5px" }} />
           {this.render_handouts(shown_handouts)}
