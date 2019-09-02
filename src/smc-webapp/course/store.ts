@@ -124,7 +124,7 @@ export interface CourseState {
   assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
-  configure_projects: string;
+  configuring_projects?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
