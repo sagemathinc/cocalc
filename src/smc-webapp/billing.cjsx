@@ -48,6 +48,25 @@ BILLING_FAQ = "https://doc.cocalc.com/billing.html"
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
+DEDICATED_VM_TEXT =
+    <React.Fragment>
+        <h3>Dedicated VMs<sup><i>beta</i></sup></h3>
+        <div>
+            A <b>Dedicated VM</b> is a specific node in the cluster,{' '}
+            which solely hosts one or more of your projects.
+            This allows you to run much larger workloads with a consistent performance,{' '}
+            because no resources are shared with other projects.
+            The usual quota limitations do not apply and
+            you also get additional disk space attached to individual projects.
+        </div>
+        <Space/>
+        <div>
+            To get started, please contact us at <HelpEmailLink/>.
+            We will work out the actual requirements with you and set everything up.
+            It is also possible to deviate from the given options,{' '}
+            in order to accommodate exactly for the expected resource usage.
+        </div>
+    </React.Fragment>
 
 exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
     render_project_quota: (name, value) ->
@@ -510,7 +529,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
 
 exports.ExplainResources = ExplainResources = rclass
     propTypes :
-        type : rtypes.string.isRequired    # 'shared', 'dedicated'
+        type : rtypes.oneOf(['shared', 'dedicated']).isRequired
         is_static : rtypes.bool
 
     getDefaultProps: ->
@@ -520,7 +539,7 @@ exports.ExplainResources = ExplainResources = rclass
         return if not @props.is_static
         <React.Fragment>
             <h4>Table of content</h4>
-            <ul>
+            <ul  style={paddingLeft:"20px"}>
                 <li><b><a href="#subscriptions">Personal subscriptions</a></b>:{' '}
                     upgrade your projects
                 </li>
@@ -553,51 +572,69 @@ exports.ExplainResources = ExplainResources = rclass
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
-                    Your work on <SiteName/> happens inside one or more{' '}
-                    <A href="https://doc.cocalc.com/project.html">projects</A>.
-                    They form your personal workspaces,
-                    where you privately store your files, computational worksheets, and data.
-                    You typically run computations through a web browser,
-                    either via a <A href="https://doc.cocalc.com/sagews.html">Sage Worksheet</A>,{' '}
-                    <A href="https://doc.cocalc.com/jupyter.html">Jupyter Notebook</A>,{' '}
-                    or by executing a program in a <A href="https://doc.cocalc.com/terminal.html">terminal</A>.
-                    You can also{' '}
-                    <A href="https://doc.cocalc.com/project-settings.html#add-new-collaborators">invite collaborators</A>{' '}
-                    to work with you inside a project,
-                    and you can explicitly make files or directories{' '}
-                    <A href="https://doc.cocalc.com/share.html">publicly available to everybody</A>.
+                        Your work on <SiteName/> happens inside one or more{' '}
+                        <A href="https://doc.cocalc.com/project.html">projects</A>.
+                        They form your personal workspaces,
+                        where you privately store your files, computational worksheets, and data.
+                        You typically run computations through a web browser,
+                        either via a <A href="https://doc.cocalc.com/sagews.html">Sage Worksheet</A>,{' '}
+                        <A href="https://doc.cocalc.com/jupyter.html">Jupyter Notebook</A>,{' '}
+                        or by executing a program in a <A href="https://doc.cocalc.com/terminal.html">terminal</A>.
+                        You can also{' '}
+                        <A href="https://doc.cocalc.com/project-settings.html#add-new-collaborators">invite collaborators</A>{' '}
+                        to work with you inside a project,
+                        and you can explicitly make files or directories{' '}
+                        <A href="https://doc.cocalc.com/share.html">publicly available to everybody</A>.
                     </div>
-                    <Space/>
 
                     <h4>Shared Resources</h4>
                     <div>
-                    Each project runs on a server, where it shares disk space, CPU, and RAM with other projects.
-                    Initially, projects run with default quotas on heavily used machines that are rebooted frequently.
-                    You can upgrade any quota on any project on which you collaborate, and you can move projects
-                    to faster very stable <em>members-only computers</em>,
-                    where there is much less competition for resources.
+                        Each project runs on a server, where it shares disk space, CPU, and RAM with other projects.
+                        Initially, you work in a <A href="https://doc.cocalc.com/trial.html">trial project</A>, which
+                        runs with default quotas on heavily used machines that are rebooted frequently.
+                        Upgrading to "member hosting" moves your project to a machine with
+                        higher-quality hosting and less competition for resources.
                     </div>
-                    <Space/>
 
                     <h4>Quota upgrades</h4>
                     <div>
-                    By purchasing one or more of our subscriptions or plans,
-                    you receive a certain amount of{' '}
-                    <A href="https://doc.cocalc.com/billing.html#quota-upgrades">quota upgrades</A>.
+                        By purchasing one or more of our subscriptions or plans,
+                        you receive a certain amount of{' '}
+                        <A href="https://doc.cocalc.com/billing.html#quota-upgrades">quota upgrades</A>.
+                        Use these upgrades to improve hosting quality,
+                        enable internet access from within a project
+                        or increase quotas for CPU and RAM in order to work on larger problems
+                        and do more computations simultaneously.
+                        On top of that, your <HelpEmailLink text={"support questions"} />{' '}
+                        are prioritized.
+                    </div>
                     <ul style={paddingLeft:"20px"}>
-                    <li>You can upgrade the quotas on any of your projects
-                        up to the total amount given by your subscription(s)
+                    <li>
+                        These upgrades are applied on top of the project{"'"}s free quotas.
+                    </li>
+                    <li>
+                        You can upgrade the quotas up to the total amount given by your subscription(s)
                         and the upper limits per project.
                     </li>
-                    <li>Project collaborators can collectively contribute to the same project,
+                    <li>
+                        Project collaborators can <em>collectively contribute</em> to the same project,
                         in order to increase the quotas of their common project
-                        &mdash; these contributions add together to benefit all project collaborators equally.</li>
+                        &mdash; these contributions add together to benefit all project collaborators equally.
+                    </li>
                     <li>You can remove your contributions to any project at any time.</li>
-                    <li>You may also purchase any plans more than once,
-                        in order to increase the total amount of upgrades available to you.</li>
+                    <li>
+                        You may also purchase any plans <em>more than once</em>,
+                        in order to increase the total amount of upgrades available to you.
+                    </li>
+                    <li>
+                        Right after the purchase the subscription becomes active.
+                        It <em>automatically renews</em> after the indicated period (monthly, yearly).
+                    </li>
+                    <li>
+                        You can <em>cancel</em> a subscription at any time and
+                        it will continue to run until the end of the current period and <em>not</em> renew.
+                    </li>
                     </ul>
-                    </div>
-                    <Space/>
 
                     <h4>More information</h4>
                     <FAQ/>
@@ -619,12 +656,7 @@ exports.ExplainResources = ExplainResources = rclass
 
     render_dedicated: ->
         <div>
-            <h4>Dedicated resources</h4>
-            You may also rent dedicated computers.
-            Projects on such a machine of your choice get full use of the hard disk, CPU and RAM,
-            and do <em>not</em> have to compete with other users for resources.
-            We have not fully automated purchase of dedicated computers yet,
-            so please contact us at <HelpEmailLink/> if you need a dedicated machine.
+            {DEDICATED_VM_TEXT}
         </div>
 
     render: ->
@@ -644,19 +676,26 @@ exports.ExplainPlan = ExplainPlan = rclass
         <div style={marginBottom:"10px"}>
             <a name="subscriptions"></a>
             <h3>Personal subscriptions</h3>
-            <div>
-                We offer several subscriptions that let you upgrade the default free quotas on projects.
-                You can distribute these upgrades to your own projects or any projects where you are a collaborator &mdash;
-                everyone participating in such a collective project benefits and can easily change their allocations at any time!
-                You can get higher-quality hosting on members-only machines and enable access to the internet from projects.
-                You can also increase quotas for CPU and RAM, so that you can work on larger problems and
-                do more computations simultaneously.
-            </div>
-            <br/>
-            <div>
+            <p>
+                Personal subscriptions award you with {' '}
+                <A href="https://doc.cocalc.com/billing.html#quota-upgrades">quota upgrades</A>.
+                They automatically renew after each period and you can cancel at any time.
+            </p>
+            <p>
+                Distribute these upgrades to your own projects
+                or other projects where you are a collaborator &mdash;
+                everyone participating in such a collective project benefits.
+            </p>
+            <p>
+                Quota upgrades can be added or removed at any time:
+                move them between your projects as often as you like.
+            </p>
+            <Space/>
+
+            <p>
                 For highly intensive workloads you can also get a <a href="#dedicated">Dedicated VM</a>.
-            </div>
-            <br/>
+            </p>
+            <Space/>
         </div>
 
     render_course: ->
@@ -665,70 +704,65 @@ exports.ExplainPlan = ExplainPlan = rclass
             <h3>Course packages</h3>
             <div>
                 <p>
-                We offer upgrade packages for teaching a course using <SiteName/>.
+                    We offer upgrade packages for teaching a course using <SiteName/>.
                 </p>
 
                 <p>
-                In a course, each student works in his or her own project.
-                The upgrades are distributed across your student projects.
-                This will ensure that your students have a better experience,{' '}
-                network access, and receive priority support.
+                    In a <A href="https://doc.cocalc.com/teaching-instructors.html">course</A>,{' '}
+                    each student works in their own project.
+                    The quota upgrades are distributed across your student projects
+                    on top of the free quotas.
+                    This will ensure that your students have a better experience,{' '}
+                    network access, and receive priority support.
                 </p>
 
                 <p>
-                You can create and distribute assignments,
-                students work on assignments inside their project (where you can see their progress
-                in realtime and answer their questions),
-                and you later collect and grade their assignments, then return them.
+                    <b>Payment is required:</b>{' '}
+                    a <b>one-time fee between $4 and ${STUDENT_COURSE_PRICE} per student</b>,
+                    depending on class size, duraiton, and whether you or your students pay.
                 </p>
-                <Space/>
-
-                <p><b>Payment is required:</b>{' '}
-                The cost is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>,
-                depending on class size and whether you or your students pay.
-                </p>
-                <Space/>
 
                 <p>
-                <b>Start right now:</b> <i>you can fully set up your class
-                and add students immediately, before you pay anything!</i>{' '}
-                Right after the course package purchase, you the upgrades are added to your account
-                and last for the indicated period &mdash; packages do not <b>no auto-renew</b>.
+                    <b>Start right now:</b>{' '}
+                    <i>you can fully set up your class and add students immediately,{' '}
+                    before you pay anything!</i>{' '}
+                    Right after the course package purchase, the upgrades are added to your account
+                    and last for the indicated period &mdash; course packages <b>do not auto-renew</b>.
                 </p>
-                <Space/>
 
                 <h4>Payment options</h4>
-                <ul>
-                <li><b><A href={'https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgrades'}>You or your institution pays</A></b>{' '}
-                for one or more course plans.
-                You then distribute the quota upgrades to all projects in the course in the settings tab of the course file.
+                <ul style={paddingLeft:"20px"}>
+                <li>
+                    <b><A href={'https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgrades'}>You or your institution pays</A></b>{' '}
+                    for one or more course plans.
+                    You then distribute the quota upgrades to all projects
+                    in the course in the settings tab of the course file.
                 </li>
 
-                <li><b><A href="https://doc.cocalc.com/teaching-create-course.html#option-1-students-pay-for-upgrades">Students pay a one-time fee.</A></b>{' '}
-                In the settings tab of your course, you
-                require that all students pay a one-time ${STUDENT_COURSE_PRICE} fee
-                to move their projects to members only hosts and enable full internet access.
+                <li>
+                    <b><A href="https://doc.cocalc.com/teaching-create-course.html#option-1-students-pay-for-upgrades">Students pay a one-time fee.</A></b>{' '}
+                    In the settings tab of your course, you
+                    require that all students pay a one-time ${STUDENT_COURSE_PRICE} fee
+                    to move their projects to members only hosts and enable full internet access.
                 </li>
                 </ul>
-                <Space/>
 
                 <h4>Basic, Standard or Premium?</h4>
                 <p>
-                Our basic plans work well for cases where you are only doing
-                small computations in a single notebook/worksheet
-                or just need internet access and better hosting uptime.
+                    Our basic plan works well for cases where you are only doing
+                    small computations in a single notebook/worksheet
+                    or just need internet access and better hosting uptime.
                 </p>
                 <p>
-                However, we find that many data science and computational science courses
-                run much smoother with the additional RAM and CPU found in the standard or premium plan.
+                    However, we find that many data science and computational science courses
+                    run much smoother with the additional RAM and CPU found in the standard or premium plans.
                 </p>
-                <Space/>
 
                 <h4>Custom Course Plans</h4>
                 <p>
                 In addition to the plans listed on this page, we can offer the following on a custom basis:
                 </p>
-                <ul>
+                <ul style={paddingLeft:"20px"}>
                     <li>start on a specified date after payment</li>
                     <li>customized duration</li>
                     <li>customized number of students</li>
@@ -739,7 +773,6 @@ exports.ExplainPlan = ExplainPlan = rclass
                 To learn more about these options, email us at <HelpEmailLink/> with a description
                 of your specific requirements.
                 </p>
-                <Space/>
 
                 <h4>More information</h4>
                 <p>
@@ -765,21 +798,7 @@ exports.DedicatedVM = DedicatedVM = rclass
     render_intro: ->
         <div style={marginBottom:"10px"}>
             <a name="dedicated"></a>
-            <h3>Dedicated VMs<sup><i>beta</i></sup></h3>
-            <div style={marginBottom:"10px"}>
-                A <b>Dedicated VM</b> is a specific node in the cluster,{' '}
-                which solely hosts one or more of your projects.
-                This allows you to run much larger workloads with a consistent performance,{' '}
-                because no resources are shared with other projects.
-                The usual quota limitations do not apply and
-                you also get additional disk space attached to individual projects.
-            </div>
-            <div>
-                To get started, please contact us at <HelpEmailLink/>.
-                We will work out the actual requirements with you and set everything up.
-                It is also possible to deviate from the given options,{' '}
-                in order to accommodate exactly for the expected resource usage.
-            </div>
+            {DEDICATED_VM_TEXT}
         </div>
 
     render_dedicated_plans: ->
@@ -793,7 +812,6 @@ exports.DedicatedVM = DedicatedVM = rclass
 
     render_dedicated: ->
         <div style={marginBottom:"10px"}>
-
             <Row>
                 {@render_dedicated_plans()}
             </Row>
@@ -802,6 +820,7 @@ exports.DedicatedVM = DedicatedVM = rclass
     render: ->
         <React.Fragment>
             {@render_intro()}
+            <Space/>
             {@render_dedicated()}
         </React.Fragment>
 

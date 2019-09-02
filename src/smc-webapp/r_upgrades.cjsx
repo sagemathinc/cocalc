@@ -31,7 +31,7 @@ exports.UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
+        {SubscriptionGrid, ExplainResources, ExplainPlan, DedicatedVM} = require('./billing')
         <div>
             <h3>Sign up</h3>
             To sign up for a subscription, visit the "Subscriptions and Course Packages tab".
@@ -47,10 +47,7 @@ exports.UpgradesPage = rclass
             <SubscriptionGrid period='month4' is_static={true}/>
 
             <Space/>
-            <ExplainResources type='dedicated'/>
-
-            <hr/>
-            <FAQ/>
+            <DedicatedVM />
 
             <Footer/>
         </div>
