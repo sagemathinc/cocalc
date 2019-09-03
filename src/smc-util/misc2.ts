@@ -9,7 +9,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 
 import * as lodash from "lodash";
 export const keys = lodash.keys;
-const urlRegex = require("url-regex");
 
 interface SplittedPath {
   head: string;
@@ -504,8 +503,21 @@ export function human_readable_size(bytes: number | null | undefined): string {
   return `${b / 10} GB`;
 }
 
-// used to test for URLs in a string
-export const re_url = urlRegex({ exact: false, strict: false });
+// Regexp used to test for URLs in a string.
+export let re_url;
+try {
+  // used to test for URLs in a string
+  re_url = require("url-regex")({ exact: false, strict: false });
+} catch (err) {
+  // This is from https://gist.github.com/dperini/729294
+  // The npm package https://www.npmjs.com/package/url-regex doesn't work on MS Edge
+  // https://github.com/sagemathinc/cocalc/issues/4056
+  // so we use this less powerful one.  This will flag less content (e.g., it doesn't flag bar.com),
+  // but this is only used *client side* so the only impact is that in some cases users of
+  // Edge trying to send invite emails that contain URL's will get a server side error instead
+  // of a client side error.
+  re_url = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u00a1-\uffff][a-z0-9\u00a1-\uffff_-]{0,62})?[a-z0-9\u00a1-\uffff]\.)+(?:[a-z\u00a1-\uffff]{2,}\.?))(?::\d{2,5})?(?:[/?#]\S*)?/gi;
+}
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
