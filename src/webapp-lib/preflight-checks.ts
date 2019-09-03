@@ -70,7 +70,7 @@ function preflight_check(): void {
   // this is for checking a minimum age
   const oldFF = spec.name === "Firefox" && spec.version < 54;
   const oldIE = spec.name === "MSIE" || spec.name === "IE"; // all of them are a problem
-  const oldEdge = spec.name === "Edge"; // block all edge until #4056 is solved -- formerly: && spec.version < 14;
+  const oldEdge = spec.name === "Edge" && spec.version < 14;
   const oldSafari = spec.name === "Safari" && spec.version < 10;
   const oldOpera = spec.name === "Opera" && spec.version < 55;
   const oldChrome = spec.name === "Chrome" && spec.version < 62;
