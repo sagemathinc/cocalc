@@ -38,6 +38,7 @@ require('./billing/actions')
 {ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
 {ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
 {ConfirmPaymentMethod} = require("./billing/confirm-payment-method")
+{Subscription} = require("./billing/subscription")
 if window.location?
     # things that we won't use when doing backend rendering
     # (this will go away when billing.cjsx is totally typescript'd)
@@ -622,74 +623,6 @@ exports.DedicatedVM = DedicatedVM = rclass
             {@render_intro()}
             {@render_dedicated()}
         </React.Fragment>
-
-Subscription = rclass
-    displayName : 'Subscription'
-
-    propTypes :
-        redux        : rtypes.object.isRequired
-        subscription : rtypes.object.isRequired
-
-    getInitialState: ->
-        confirm_cancel : false
-
-    cancel_subscription: ->
-        @props.redux.getActions('billing').cancel_subscription(@props.subscription.id)
-
-    quantity: ->
-        q = @props.subscription.quantity
-        if q > 1
-            return "#{q} × "
-
-    render_cancel_at_end: ->
-        if @props.subscription.cancel_at_period_end
-            <span style={marginLeft:'15px'}>Will cancel at period end.</span>
-
-    render_info: ->
-        sub = @props.subscription
-        cancellable = not (sub.cancel_at_period_end or @state.cancelling or @state.confirm_cancel)
-        <Row style={paddingBottom: '5px', paddingTop:'5px'}>
-            <Col md={4}>
-                {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)} for {plan_interval(sub.plan)})
-            </Col>
-            <Col md={2}>
-                {misc.capitalize(sub.status)}
-            </Col>
-            <Col md={4} style={color:'#666'}>
-                {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
-                {@render_cancel_at_end()}
-            </Col>
-            <Col md={2}>
-                {<Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)}>Cancel...</Button> if cancellable}
-            </Col>
-        </Row>
-
-    render_confirm: ->
-        if not @state.confirm_cancel
-            return
-        ###
-        TODO: these buttons do not seem consistent with other button language, but makes sense because of the use of "Cancel" a subscription
-        ###
-        <Alert bsStyle='warning'>
-            <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
-                <Col md={6}>
-                    Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
-                </Col>
-                <Col md={6}>
-                    <Button onClick={=>@setState(confirm_cancel:false)}>Make No Change</Button>
-                    <div style={float:'right'}>
-                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, please cancel and do not auto-renew my subscription</Button>
-                    </div>
-                </Col>
-            </Row>
-        </Alert>
-
-
-    render: ->
-        <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
-            {@render_info()}
-            {@render_confirm() if @state.confirm_cancel}
-        </div>
 
 Subscriptions = rclass
     displayName : 'Subscriptions'

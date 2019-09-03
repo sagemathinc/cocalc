@@ -1,3 +1,8 @@
+/*
+These interfaces are exactly what we **actually use** in our code, not
+what stripe actually provides!
+*/
+
 export interface Source {
   id: string;
   brand: string;
@@ -12,6 +17,10 @@ export interface Source {
 
 export interface Plan {
   name: string;
+  amount: number;
+  currency: string;
+  interval_count: number;
+  interval: string;
 }
 
 export interface Period {
@@ -44,4 +53,15 @@ export interface Invoice {
 export interface Customer {
   sources: { data: Source[] };
   default_source: string;
+}
+
+export interface Subscription {
+  id: string;
+  quantity: number;
+  cancel_at_period_end: boolean;
+  current_period_start: number;
+  current_period_end: number;
+  plan: Plan;
+  status: string;
+  start: number;
 }
