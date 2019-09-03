@@ -10,6 +10,23 @@ export interface Source {
   address_zip: string;
 }
 
+export interface Plan {
+  name: string;
+}
+
+export interface Period {
+  start: number;
+}
+
+export interface InvoiceLine {
+  id: string;
+  amount: number;
+  description: string;
+  quantity: number;
+  plan: Plan;
+  period: Period;
+}
+
 export interface Invoice {
   date: number;
   id: string;
@@ -20,6 +37,6 @@ export interface Invoice {
   tax: number;
   tax_percent: number;
   lines?: {
-    data: { id: string; amount: number }[];
+    data: InvoiceLine[];
   };
 }

@@ -4,7 +4,8 @@ import { Icon } from "../r_misc/icon";
 const { download_file } = require("../misc_page");
 import { stripe_date } from "smc-util/misc";
 import { render_amount } from "./util";
-import { Invoice as StripeInvoice } from "./types";
+require("./types");
+import { Invoice as StripeInvoice, InvoiceLine } from "./types";
 
 interface Props {
   invoice: StripeInvoice;
@@ -42,12 +43,24 @@ export class Invoice extends Component<Props, State> {
   }
 
   private render_description(): Rendered {
+    if (
+      this.state.hide_line_items &&
+      this.props.invoice.lines != null &&
+      this.props.invoice.lines.data != null &&
+      this.props.invoice.lines.data.length == 1
+    ) {
+      // This is much more useful as a summary than the totally generic description we usually have...
+      return <span>{this.props.invoice.lines.data[0].description}</span>;
+    }
     if (this.props.invoice.description) {
       return <span>{this.props.invoice.description}</span>;
+    } else {
+      // This is what the description always is when it is non-empty, and it seems useful enough...
+      return <span>Thank you for using CoCalc by Sagemath, Inc.</span>;
     }
   }
 
-  private render_line_description(line): string[] {
+  private render_line_description(line: InvoiceLine): string[] {
     const v: string[] = [];
     if (line.quantity > 1) {
       v.push(`${line.quantity} × `);
@@ -131,7 +144,7 @@ export class Invoice extends Component<Props, State> {
       <Row
         style={{
           borderBottom: "1px solid #999",
-          paddingBottom: this.state.hide_line_items ? 0 : "15px"
+          padding: this.state.hide_line_items ? 0 : "15px 0"
         }}
       >
         <Col md={1}>

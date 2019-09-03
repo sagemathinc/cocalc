@@ -41,7 +41,7 @@ require('./billing/actions')
 if window.location?
     # things that we won't use when doing backend rendering
     # (this will go away when billing.cjsx is totally typescript'd)
-    {Invoice} = require('./billing/invoice')
+    {InvoiceHistory} = require('./billing/invoice-history')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -799,28 +799,6 @@ Subscriptions = rclass
         </Panel>
 
 
-InvoiceHistory = rclass
-    displayName : "InvoiceHistory"
-
-    propTypes :
-        redux    : rtypes.object.isRequired
-        invoices : rtypes.object
-
-    render_header: ->
-        <span>
-            <Icon name="list-alt" /> Invoices and receipts
-        </span>
-
-    render_invoices: ->
-        if not @props.invoices?
-            return
-        for invoice in @props.invoices.data
-            <Invoice key={invoice.id} invoice={invoice} redux={@props.redux} />
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@render_invoices()}
-        </Panel>
 
 exports.PayCourseFee = PayCourseFee = rclass
     reduxProps :
@@ -1135,7 +1113,7 @@ BillingPage = rclass
                 <div>
                     <PaymentMethods sources={@props.customer.sources} default={@props.customer.default_source} />
                     {@render_subscriptions() if not @props.for_course}
-                    <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
+                    <InvoiceHistory invoices={@props.invoices} />
                 </div>
 
     render: ->
