@@ -38,7 +38,10 @@ require('./billing/actions')
 {powered_by_stripe} = require("./billing/util")
 {ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
 {ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
-{Invoice} = require('./billing/invoice')
+if window.location?
+    # things that we won't use when doing backend rendering
+    # (this will go away when billing.cjsx is totally typescript'd)
+    {Invoice} = require('./billing/invoice')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
