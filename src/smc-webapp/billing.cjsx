@@ -19,7 +19,6 @@
 #
 ###############################################################################
 
-
 $             = window.$
 async         = require('async')
 misc          = require('smc-util/misc')
@@ -38,6 +37,7 @@ require('./billing/actions')
 {powered_by_stripe} = require("./billing/util")
 {ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
 {ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
+{ConfirmPaymentMethod} = require("./billing/confirm-payment-method")
 if window.location?
     # things that we won't use when doing backend rendering
     # (this will go away when billing.cjsx is totally typescript'd)
@@ -61,6 +61,7 @@ AddSubscription = rclass
         actions         : rtypes.object.isRequired
         applied_coupons : rtypes.immutable.Map
         coupon_error    : rtypes.string
+        customer        : rtypes.object
 
     getDefaultProps: ->
         selected_plan : ''
@@ -189,6 +190,7 @@ AddSubscription = rclass
                     {@render_create_subscription_options()}
                     {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
+                        customer = {@props.customer}
                         is_recurring = {@is_recurring()}
                         on_close = {@props.on_close}
                     /> if @props.selected_plan isnt ''}
@@ -202,58 +204,6 @@ AddSubscription = rclass
                 <ExplainResources type='shared'/>
             </Col>
         </Row>
-
-ConfirmPaymentMethod = rclass
-    reduxProps :
-        billing :
-            customer : rtypes.object
-
-    propTypes :
-        is_recurring : rtypes.bool
-        on_close : rtypes.func
-
-    render_single_payment_confirmation: ->
-        <span>
-            <p>Payment will be processed with the card below.</p>
-            <p>To change payment methods, please change your default card above.</p>
-        </span>
-
-
-    render_recurring_payment_confirmation: ->
-        <span>
-            <p>The initial payment will be processed with the card below.
-            Future payments will be made with whichever card you have set as your default<Space/>
-            <b>at the time of renewal</b>.</p>
-        </span>
-
-    render: ->
-        if not @props.customer
-            return <AddPaymentMethod redux={redux} />
-        default_card = undefined
-        for card_data in @props.customer.sources.data
-            if card_data.id == @props.customer.default_source
-                default_card = card_data
-        if not default_card?
-            #  Should not happen (there should always be a default), but
-            # it did: https://github.com/sagemathinc/cocalc/issues/3468
-            # We try again with whatever the first card is.
-            for card_data in @props.customer.sources.data
-                default_card = card_data
-                break
-            # Still no card -- just ask them for one first.
-            if not default_card?
-                return <AddPaymentMethod redux={redux} />
-
-        <Alert>
-            <h4><Icon name='check' /> Confirm your payment card</h4>
-            {@render_single_payment_confirmation() if not @props.is_recurring}
-            {@render_recurring_payment_confirmation() if @props.is_recurring}
-            <Well>
-                <PaymentMethod
-                    source = {default_card}
-                />
-            </Well>
-        </Alert>
 
 CouponAdder = rclass
     displayName : 'CouponAdder'
@@ -745,8 +695,7 @@ Subscriptions = rclass
     displayName : 'Subscriptions'
 
     propTypes :
-        subscriptions   : rtypes.object
-        sources         : rtypes.object # could be undefined, if it is a customer but all cards are removed
+        customer        : rtypes.object
         selected_plan   : rtypes.string
         redux           : rtypes.object.isRequired
         applied_coupons : rtypes.immutable.Map
@@ -763,7 +712,7 @@ Subscriptions = rclass
     render_add_subscription_button: ->
         <Button
             bsStyle   = 'primary'
-            disabled  = {@state.state isnt 'view' or (@props.sources?.total_count ? 0) is 0}
+            disabled  = {@state.state isnt 'view' or (@props.customer?.sources?.total_count ? 0) is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
             <Icon name='plus-circle' /> Add Subscription or Course Package...
@@ -775,7 +724,9 @@ Subscriptions = rclass
             selected_plan   = {@props.selected_plan}
             actions         = {@props.redux.getActions('billing')}
             applied_coupons = {@props.applied_coupons}
-            coupon_error    = {@props.coupon_error} />
+            coupon_error    = {@props.coupon_error}
+            customer        = {@props.customer}
+        />
 
     render_header: ->
         <Row>
@@ -788,8 +739,8 @@ Subscriptions = rclass
         </Row>
 
     render_subscriptions: ->
-        return null if not @props.subscriptions?
-        for sub in @props.subscriptions.data
+        return null if not @props.customer?.subscriptions?
+        for sub in @props.customer?.subscriptions.data
             <Subscription key={sub.id} subscription={sub} redux={@props.redux} />
 
     render: ->
@@ -925,7 +876,6 @@ MoveCourse = rclass
             {@render_move_button()}
             {@render_confirm_button()}
         </span>
-
 
 BillingPage = rclass
     displayName : 'BillingPage'
@@ -1063,10 +1013,9 @@ BillingPage = rclass
 
     render_subscriptions: ->
         <Subscriptions
-            subscriptions   = {@props.customer.subscriptions}
+            customer = {@props.customer}
             applied_coupons = {@props.applied_coupons}
             coupon_error    = {@props.coupon_error}
-            sources         = {@props.customer.sources}
             selected_plan   = {@props.selected_plan}
             redux           = {@props.redux} />
 
@@ -1093,7 +1042,8 @@ BillingPage = rclass
                     selected_plan   = {@props.selected_plan}
                     actions         = {@props.redux.getActions('billing')}
                     applied_coupons = {@props.applied_coupons}
-                    coupon_error    = {@props.coupon_error} />
+                    coupon_error    = {@props.coupon_error}
+                    customer        = {@props.customer} />
             </div>
         else
             # data loaded and customer exists

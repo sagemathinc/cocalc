@@ -40,3 +40,8 @@ export interface Invoice {
     data: InvoiceLine[];
   };
 }
+
+export interface Customer {
+  sources: { data: Source[] };
+  default_source: string;
+}
