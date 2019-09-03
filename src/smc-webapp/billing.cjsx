@@ -36,6 +36,7 @@ require('./billing/actions')
 {PaymentMethods} = require('./billing/payment-methods')
 {PlanInfo} = require('./billing/plan-info')
 {powered_by_stripe} = require("./billing/util")
+{ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -45,33 +46,6 @@ require('./billing/actions')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
-
-exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
-    render_project_quota: (name, value) ->
-        data = PROJECT_UPGRADES.params[name]
-        amount = value * data.pricing_factor
-        unit = data.pricing_unit
-        if unit == "day" and amount < 2
-            amount = 24 * amount
-            unit = "hour"
-        <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
-            <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#666'}>
-                    {misc.round1(amount)} {misc.plural(amount, unit)}
-                </span><Space/>
-                <span style={color:'#999'}>
-                    {data.display}
-                </span>
-            </Tip>
-        </div>
-
-    render: ->
-        max = PROJECT_UPGRADES.max_per_project
-        <Panel
-            header = {<span>Maximum possible quotas <strong>per project</strong></span>}
-        >
-            {@render_project_quota(name, max[name]) for name in PROJECT_UPGRADES.field_order when max[name]}
-        </Panel>
 
 exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
     render_project_quota: (name, value) ->
