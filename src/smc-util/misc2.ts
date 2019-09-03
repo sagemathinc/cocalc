@@ -504,20 +504,13 @@ export function human_readable_size(bytes: number | null | undefined): string {
 }
 
 // Regexp used to test for URLs in a string.
-export let re_url;
-try {
-  // used to test for URLs in a string
-  re_url = require("url-regex")({ exact: false, strict: false });
-} catch (err) {
-  // This is from https://gist.github.com/dperini/729294
-  // The npm package https://www.npmjs.com/package/url-regex doesn't work on MS Edge
-  // https://github.com/sagemathinc/cocalc/issues/4056
-  // so we use this less powerful one.  This will flag less content (e.g., it doesn't flag bar.com),
-  // but this is only used *client side* so the only impact is that in some cases users of
-  // Edge trying to send invite emails that contain URL's will get a server side error instead
-  // of a client side error.
-  re_url = /(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u00a1-\uffff][a-z0-9\u00a1-\uffff_-]{0,62})?[a-z0-9\u00a1-\uffff]\.)+(?:[a-z\u00a1-\uffff]{2,}\.?))(?::\d{2,5})?(?:[/?#]\S*)?/gi;
-}
+// We just use a simple one that was a top Google search when I searched: https://www.regextester.com/93652
+// We don't use a complicated one like https://www.npmjs.com/package/url-regex, since
+// (1) it is heavy and doesn't work on Edge -- https://github.com/sagemathinc/cocalc/issues/4056
+// (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
+//     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
+//     properly (not our use case).
+export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
