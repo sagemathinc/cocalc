@@ -9,7 +9,6 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 
 import * as lodash from "lodash";
 export const keys = lodash.keys;
-const urlRegex = require("url-regex");
 
 interface SplittedPath {
   head: string;
@@ -504,8 +503,14 @@ export function human_readable_size(bytes: number | null | undefined): string {
   return `${b / 10} GB`;
 }
 
-// used to test for URLs in a string
-export const re_url = urlRegex({ exact: false, strict: false });
+// Regexp used to test for URLs in a string.
+// We just use a simple one that was a top Google search when I searched: https://www.regextester.com/93652
+// We don't use a complicated one like https://www.npmjs.com/package/url-regex, since
+// (1) it is heavy and doesn't work on Edge -- https://github.com/sagemathinc/cocalc/issues/4056
+// (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
+//     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
+//     properly (not our use case).
+export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
