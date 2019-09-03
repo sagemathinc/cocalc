@@ -10,3 +10,16 @@ export interface Source {
   address_zip: string;
 }
 
+export interface Invoice {
+  date: number;
+  id: string;
+  paid: boolean;
+  description: string;
+  currency: string;
+  amount_due: number;
+  tax: number;
+  tax_percent: number;
+  lines?: {
+    data: { id: string; amount: number }[];
+  };
+}

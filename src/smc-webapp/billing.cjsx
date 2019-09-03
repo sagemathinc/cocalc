@@ -38,6 +38,7 @@ require('./billing/actions')
 {powered_by_stripe} = require("./billing/util")
 {ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
 {ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
+{Invoice} = require('./billing/invoice')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -794,103 +795,6 @@ Subscriptions = rclass
             {@render_subscriptions()}
         </Panel>
 
-Invoice = rclass
-    displayName : "Invoice"
-
-    propTypes :
-        invoice : rtypes.object.isRequired
-        redux   : rtypes.object.isRequired
-
-    getInitialState: ->
-        hide_line_items : true
-
-    download_invoice: (e) ->
-        e.preventDefault()
-        invoice = @props.invoice
-        username = @props.redux.getStore('account').get_username()
-        misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("#{window.app_base_url}/invoice/cocalc-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
-
-    render_paid_status: ->
-        if @props.invoice.paid
-            return <span>PAID</span>
-        else
-            return <span style={color:'red'}>UNPAID</span>
-
-    render_description: ->
-        if @props.invoice.description
-            return <span>{@props.invoice.description}</span>
-
-    render_line_description: (line) ->
-        v = []
-        if line.quantity > 1
-            v.push("#{line.quantity} × ")
-        if line.description?
-            v.push(line.description)
-        if line.plan?
-            v.push(line.plan.name)
-            v.push(" (start: #{misc.stripe_date(line.period.start)})")
-        return v
-
-    render_line_item: (line, n) ->
-        <Row key={line.id} style={borderBottom:'1px solid #aaa'}>
-            <Col sm={1}>
-                {n}.
-            </Col>
-            <Col sm={9}>
-                {@render_line_description(line)}
-            </Col>
-            <Col sm={2}>
-                {render_amount(line.amount, @props.invoice.currency)}
-            </Col>
-        </Row>
-
-    render_tax: ->
-        <Row key='tax' style={borderBottom:'1px solid #aaa'}>
-            <Col sm={1}>
-            </Col>
-            <Col sm={9}>
-                WA State Sales Tax ({@props.invoice.tax_percent}%)
-            </Col>
-            <Col sm={2}>
-                {render_amount(@props.invoice.tax, @props.invoice.currency)}
-            </Col>
-        </Row>
-
-    render_line_items: ->
-        if @props.invoice.lines
-            if @state.hide_line_items
-                <a href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:false)}>(details)</a>
-            else
-                v = []
-                v.push <a key='hide' href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:true)}>(hide details)</a>
-                n = 1
-                for line in @props.invoice.lines.data
-                    v.push @render_line_item(line, n)
-                    n += 1
-                if @props.invoice.tax
-                    v.push @render_tax()
-                return v
-
-    render: ->
-        <Row style={borderBottom:'1px solid #999'}>
-            <Col md={1}>
-                {render_amount(@props.invoice.amount_due, @props.invoice.currency)}
-            </Col>
-            <Col md={1}>
-                {@render_paid_status()}
-            </Col>
-            <Col md={3}>
-                {misc.stripe_date(@props.invoice.date)}
-            </Col>
-            <Col md={6}>
-                {@render_description()}
-                {@render_line_items()}
-            </Col>
-            <Col md={1}>
-                <a onClick={@download_invoice} href=""><Icon name="cloud-download" /></a>
-            </Col>
-        </Row>
 
 InvoiceHistory = rclass
     displayName : "InvoiceHistory"

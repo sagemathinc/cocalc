@@ -22,25 +22,33 @@ import { Tip } from "../r_misc/tip";
 import { Space } from "../r_misc/space";
 import { round1, plural } from "smc-util/misc";
 export function render_project_quota(name: string, value: number): Rendered {
-    const data = PROJECT_UPGRADES.params[name];
-    if (data == null) {
-      throw Error(`unknown quota ${name}`);
-    }
-    let amount: number = value * data.pricing_factor;
-    let unit: string = data.pricing_unit;
-    if (unit === "day" && amount < 2) {
-      amount = 24 * amount;
-      unit = "hour";
-    }
-    return (
-      <div key={name} style={{ marginBottom: "5px", marginLeft: "10px" }}>
-        <Tip title={data.display} tip={data.desc}>
-          <span style={{ fontWeight: "bold", color: "#666" }}>
-            {round1(amount)} {plural(amount, unit)}
-          </span>
-          <Space />
-          <span style={{ color: "#999" }}>{data.display}</span>
-        </Tip>
-      </div>
-    );
+  const data = PROJECT_UPGRADES.params[name];
+  if (data == null) {
+    throw Error(`unknown quota ${name}`);
   }
+  let amount: number = value * data.pricing_factor;
+  let unit: string = data.pricing_unit;
+  if (unit === "day" && amount < 2) {
+    amount = 24 * amount;
+    unit = "hour";
+  }
+  return (
+    <div key={name} style={{ marginBottom: "5px", marginLeft: "10px" }}>
+      <Tip title={data.display} tip={data.desc}>
+        <span style={{ fontWeight: "bold", color: "#666" }}>
+          {round1(amount)} {plural(amount, unit)}
+        </span>
+        <Space />
+        <span style={{ color: "#999" }}>{data.display}</span>
+      </Tip>
+    </div>
+  );
+}
+
+import { stripe_amount } from "smc-util/misc";
+
+export function render_amount(amount: number, currency: string) {
+  return (
+    <div style={{ float: "right" }}>{stripe_amount(amount, currency)}</div>
+  );
+}
