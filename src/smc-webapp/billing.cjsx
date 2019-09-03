@@ -39,6 +39,7 @@ require('./billing/actions')
 {ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
 {ConfirmPaymentMethod} = require("./billing/confirm-payment-method")
 {Subscription} = require("./billing/subscription")
+{SubscriptionList} = require("./billing/subscription-list")
 if window.location?
     # things that we won't use when doing backend rendering
     # (this will go away when billing.cjsx is totally typescript'd)
@@ -53,7 +54,7 @@ if window.location?
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 
-AddSubscription = rclass
+exports.AddSubscription = AddSubscription = rclass
     displayName : 'AddSubscription'
 
     propTypes :
@@ -624,64 +625,6 @@ exports.DedicatedVM = DedicatedVM = rclass
             {@render_dedicated()}
         </React.Fragment>
 
-Subscriptions = rclass
-    displayName : 'Subscriptions'
-
-    propTypes :
-        customer        : rtypes.object
-        selected_plan   : rtypes.string
-        redux           : rtypes.object.isRequired
-        applied_coupons : rtypes.immutable.Map
-        coupon_error    : rtypes.string
-
-    getInitialState: ->
-        state : 'view'    # view -> add_new ->         # FUTURE: ??
-
-    close_add_subscription: ->
-        @setState(state : 'view')
-        set_selected_plan('')
-        @actions('billing').remove_all_coupons()
-
-    render_add_subscription_button: ->
-        <Button
-            bsStyle   = 'primary'
-            disabled  = {@state.state isnt 'view' or (@props.customer?.sources?.total_count ? 0) is 0}
-            onClick   = {=>@setState(state : 'add_new')}
-            className = 'pull-right' >
-            <Icon name='plus-circle' /> Add Subscription or Course Package...
-        </Button>
-
-    render_add_subscription: ->
-        <AddSubscription
-            on_close        = {@close_add_subscription}
-            selected_plan   = {@props.selected_plan}
-            actions         = {@props.redux.getActions('billing')}
-            applied_coupons = {@props.applied_coupons}
-            coupon_error    = {@props.coupon_error}
-            customer        = {@props.customer}
-        />
-
-    render_header: ->
-        <Row>
-            <Col sm={6}>
-                <Icon name='list-alt' /> Subscriptions and course packages
-            </Col>
-            <Col sm={6}>
-                {@render_add_subscription_button()}
-            </Col>
-        </Row>
-
-    render_subscriptions: ->
-        return null if not @props.customer?.subscriptions?
-        for sub in @props.customer?.subscriptions.data
-            <Subscription key={sub.id} subscription={sub} redux={@props.redux} />
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@render_add_subscription() if @state.state is 'add_new'}
-            {@render_subscriptions()}
-        </Panel>
-
 
 
 exports.PayCourseFee = PayCourseFee = rclass
@@ -945,7 +888,7 @@ BillingPage = rclass
         </div>
 
     render_subscriptions: ->
-        <Subscriptions
+        <SubscriptionList
             customer = {@props.customer}
             applied_coupons = {@props.applied_coupons}
             coupon_error    = {@props.coupon_error}
@@ -1035,13 +978,8 @@ brand_to_icon = (brand) ->
     return if brand in ['discover', 'mastercard', 'visa'] then "fab fa-cc-#{brand}" else "fa-credit-card"
 
 
-# FUTURE: make this an action and a getter in the BILLING store
 set_selected_plan = (plan, period) ->
-    if period?.slice(0,4) == 'year'
-        plan = plan + "-year"
-    if period?.slice(0,4) == 'week'
-        plan = plan + "-week"
-    redux.getActions('billing').setState(selected_plan : plan)
+    redux.getActions('billing').set_selected_plan(plan, period)
 
 exports.render_static_pricing_page = () ->
     <div>

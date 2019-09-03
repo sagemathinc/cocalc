@@ -51,7 +51,8 @@ export interface Invoice {
 }
 
 export interface Customer {
-  sources: { data: Source[] };
+  sources: { data: Source[]; total_count: number };
+  subscriptions: { data: Subscription[] };
   default_source: string;
 }
 
