@@ -37,6 +37,7 @@ require('./billing/actions')
 {PlanInfo} = require('./billing/plan-info')
 {powered_by_stripe} = require("./billing/util")
 {ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
+{ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
@@ -45,62 +46,6 @@ require('./billing/actions')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
-
-
-exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
-    render_project_quota: (name, value) ->
-        # SMELL: is this a code dup from above?
-        data = PROJECT_UPGRADES.params[name]
-        amount = value * data.pricing_factor
-        unit = data.pricing_unit
-        if unit == "day" and amount < 2
-            amount = 24 * amount
-            unit = "hour"
-        <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
-            <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#666'}>
-                    {misc.round1(amount)} {misc.plural(amount, unit)}
-                </span> <Space/>
-                <span style={color:'#999'}>
-                    {data.display}
-                </span>
-            </Tip>
-        </div>
-
-    render_header: ->
-        <div style={paddingLeft:"10px"}>
-            <Icon name='battery-empty' />{' '}
-            <span style={fontWeight:'bold'}>Free plan</span>
-        </div>
-
-    render: ->
-        free = require('smc-util/schema').DEFAULT_QUOTAS
-        <Panel
-            header  = {@render_header()}
-            bsStyle = 'info'
-        >
-            <Space/>
-            <div style={marginBottom:'5px', marginLeft:'10px'}>
-                <Tip title="Free servers" tip="Many free projects are cramped together inside weaker compute machines, competing for CPU, RAM and I/O.">
-                    <span style={fontWeight:'bold',color:'#666'}>low-grade</span><Space/>
-                    <span style={color:'#999'}>Server hosting</span>
-                </Tip>
-            </div>
-            <div style={marginBottom:'5px', marginLeft:'10px'}>
-                <Tip title="Internet access" tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons.">
-                    <span style={fontWeight:'bold',color:'#666'}>no</span><Space/>
-                    <span style={color:'#999'}>Internet access</span>
-                </Tip>
-            </div>
-            {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
-            <Space/>
-            <div style={textAlign : 'center', marginTop:'10px'}>
-                <h3 style={textAlign:'left'}>
-                    <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/>
-                    <span style={fontSize:'30px'}>0</span>
-                </h3>
-            </div>
-        </Panel>
 
 
 AddSubscription = rclass
