@@ -34,7 +34,14 @@ import { contains_url } from "smc-util/misc2";
 import { debounce } from "lodash";
 
 // React libraries and Components
-import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";
+import {
+  React,
+  rclass,
+  rtypes,
+  Component,
+  AppRedux,
+  Rendered
+} from "../app-framework";
 const {
   Alert,
   Button,
@@ -113,7 +120,11 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     }
 
     get_actions(): CourseActions {
-      return redux.getActions(this.props.name);
+      const actions = redux.getActions(this.props.name);
+      if (actions == null) {
+        throw Error("actions must be defined");
+      }
+      return actions as CourseActions;
     }
 
     render_in_progress_action() {
@@ -206,7 +217,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
         <Panel
           header={
             <h4>
-              <Icon name="flash" /> Student projects control
+              <Icon name="flash" /> Start or stop all student projects
             </h4>
           }
         >
@@ -335,6 +346,7 @@ interface ConfigurationPanelProps {
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   shared_project_id?: string;
+  configuring_projects?: boolean;
 }
 
 interface ConfigurationPanelState {
@@ -370,7 +382,8 @@ export class ConfigurationPanel extends Component<
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "shared_project_id"
+        "shared_project_id",
+        "configuring_projects"
       ])
     );
   }
@@ -666,7 +679,7 @@ export class ConfigurationPanel extends Component<
       <Panel
         header={
           <h4>
-            <Icon name="envelope" /> Customize email invitation
+            <Icon name="envelope" /> Email invitation
           </h4>
         }
       >
@@ -693,9 +706,37 @@ export class ConfigurationPanel extends Component<
         <hr />
         <span style={{ color: "#666" }}>
           If you add a student to this course using their email address, and
-          they do not have a CoCalc account, then they will receive an email
+          they do not have a CoCalc account, then they will receive this email
           invitation. {template_instr}
         </span>
+      </Panel>
+    );
+  }
+
+  render_configure_all_projects(): Rendered {
+    return (
+      <Panel
+        header={
+          <h4>
+            <Icon name="envelope" /> Reconfigure all projects
+          </h4>
+        }
+      >
+        Ensure all projects have the correct students and TA's, titles and
+        descriptions set, etc. This will also resend any outstanding email
+        invitations.
+        <hr />
+        <Button
+          disabled={this.props.configuring_projects}
+          onClick={() => this.get_actions().configure_all_projects(true)}
+        >
+          {this.props.configuring_projects ? (
+            <Icon name="cc-icon-cocalc-ring" spin />
+          ) : (
+            undefined
+          )}{" "}
+          Reconfigure all projects
+        </Button>
       </Panel>
     );
   }
@@ -1030,6 +1071,7 @@ export class ConfigurationPanel extends Component<
             {this.render_title_description()}
             {this.render_email_invite_body()}
             {this.render_disable_students()}
+            {this.render_configure_all_projects()}
           </Col>
         </Row>
       </Grid>
