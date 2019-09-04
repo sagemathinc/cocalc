@@ -27,6 +27,12 @@ interface Fields {
         desc: string;
         pg_type?: string;
         unique?: boolean;
+      }
+    | {
+        type: "array";
+        desc: string;
+        pg_type: string; // array type requires pg_type specification
+        unique?: boolean;
       };
 }
 

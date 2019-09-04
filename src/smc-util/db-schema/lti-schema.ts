@@ -46,8 +46,12 @@ lti_schema.lti_platforms = create({
     primary_key: "guid",
     user_query: {
       get: {
-        fields: {},
-        pg_where: ["some string"]
+        fields: {
+          guid: true,
+          token_url: true,
+          auth_url: true,
+          jwk_url: true
+        }
       }
     }
   }
@@ -70,10 +74,58 @@ lti_schema.lti_users = create({
   },
   rules: {
     desc: "",
-    primary_key: ["lms_guid", "lms_user_id"]
+    primary_key: ["lms_guid", "lms_user_id", "cocalc_user_id"]
   }
 });
 
+lti_schema.lti_assignments = create({
+  fields: {
+    id: {
+      type: "uuid",
+      desc: "unique identifier"
+    },
+    creator: {
+      type: "uuid",
+      desc: "a cocalc account id"
+    },
+    source_project: {
+      type: "uuid",
+      desc: "project id the files are from"
+    },
+    paths: {
+      type: "array",
+      desc: "list of paths that make up the assignment",
+      pg_type: "TEXT[]"
+    }
+  },
+  rules: {
+    desc: "assignments created for lti use",
+    primary_key: "id"
+  }
+});
+
+lti_schema.lti_contexts = create({
+  fields: {
+    id: {
+      type: "uuid",
+      desc: "cocalc course id"
+    },
+    platform_guid: {
+      type: "string",
+      desc: "platform id"
+    },
+    lms_context_id: {
+      type: "string",
+      desc: "context id in the platform"
+    }
+  },
+  rules: {
+    desc: "contexts created for lti use",
+    primary_key: ["id", "platform_guid"]
+  }
+})
+
+// Copied to student project
 lti_schema.assigned_assignments = create({
   fields: {
     assignment_id: {
@@ -91,27 +143,28 @@ lti_schema.assigned_assignments = create({
   }
 });
 
-lti_schema.lti_assignments = create({
+// Project is created for the person in this context
+lti_schema.lti_context_participation = create({
   fields: {
-    id: {
+    lti_context_id: {
       type: "uuid",
-      desc: "unique identifier"
+      desc: "cocalc course id"
     },
-    account_id: {
+    cocalc_user_id: { // Need lms info? look up in lti_users
       type: "uuid",
-      desc: "cocalc account id"
+      desc: "cocalc user id"
     },
-    project_id: {
+    cocalc_project_id: {
       type: "uuid",
-      desc: "project id the files are from"
+      desc: "user's project created for this context"
     },
-    paths: {
-      type: "array",
-      desc: "list of paths that make up the assignment"
+    role: {
+      type: "string",
+      desc: "User's role in this context"
     }
   },
   rules: {
-    desc: "assignments created for lti use",
+    desc: "Users in contexts",
     primary_key: "id"
   }
-});
+})
