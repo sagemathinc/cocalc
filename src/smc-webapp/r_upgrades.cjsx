@@ -16,6 +16,11 @@ misc = require('smc-util/misc')
 
 {webapp_client} = require('./webapp_client')
 
+{ExplainResources} = require('./billing/explain-resources')
+{ExplainPlan} = require('./billing/explain-plan')
+{FAQ} = require('./billing/faq')
+{SubscriptionGrid} = require('./billing')
+
 round1 = misc.round1
 
 exports.UpgradesPage = rclass
@@ -31,7 +36,6 @@ exports.UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
         <div>
             <h3>Sign up</h3>
             To sign up for a subscription, visit the "Subscriptions and Course Packages tab".

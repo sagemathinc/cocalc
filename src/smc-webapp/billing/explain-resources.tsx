@@ -155,6 +155,7 @@ export class ExplainResources extends Component<Props> {
   private render_dedicated(): Rendered {
     return (
       <div>
+        <a id="dedicated" />
         <h4>Dedicated resources</h4>
         You may also rent dedicated computers. Projects on such a machine of
         your choice get full use of the hard disk, CPU and RAM, and do{" "}
