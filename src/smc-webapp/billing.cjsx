@@ -40,6 +40,7 @@ require('./billing/actions')
 {ConfirmPaymentMethod} = require("./billing/confirm-payment-method")
 {Subscription} = require("./billing/subscription")
 {SubscriptionList} = require("./billing/subscription-list")
+{AddSubscription} = require('./billing/add-subscription')
 if window.location?
     # things that we won't use when doing backend rendering
     # (this will go away when billing.cjsx is totally typescript'd)
@@ -53,161 +54,7 @@ if window.location?
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
-
-exports.AddSubscription = AddSubscription = rclass
-    displayName : 'AddSubscription'
-
-    propTypes :
-        on_close        : rtypes.func.isRequired
-        selected_plan   : rtypes.string
-        actions         : rtypes.object.isRequired
-        applied_coupons : rtypes.immutable.Map
-        coupon_error    : rtypes.string
-        customer        : rtypes.object
-
-    getDefaultProps: ->
-        selected_plan : ''
-
-    getInitialState: ->
-        selected_button : 'month'
-
-    is_recurring: ->
-        not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
-
-    submit_create_subscription: ->
-        plan = @props.selected_plan
-        @props.actions.create_subscription(plan)
-
-    set_button_and_deselect_plans: (button) ->
-        if @state.selected_button isnt button
-            set_selected_plan('')
-            @setState(selected_button : button)
-
-    render_period_selection_buttons: ->
-        <div>
-            <ButtonGroup bsSize='large' style={marginBottom:'20px', display:'flex'}>
-                <Button
-                    bsStyle = {if @state.selected_button is 'month' then 'primary'}
-                    onClick = {=>@set_button_and_deselect_plans('month')}
-                >
-                    Monthly Subscriptions
-                </Button>
-                <Button
-                    bsStyle = {if @state.selected_button is 'year' then 'primary'}
-                    onClick = {=>@set_button_and_deselect_plans('year')}
-                >
-                    Yearly Subscriptions
-                </Button>
-                <Button
-                    bsStyle = {if @state.selected_button is 'week' then 'primary'}
-                    onClick = {=>@set_button_and_deselect_plans('week')}
-                >
-                    1-Week Workshops
-                </Button>
-                <Button
-                    bsStyle = {if @state.selected_button is 'month4' then 'primary'}
-                    onClick = {=>@set_button_and_deselect_plans('month4')}
-                >
-                    4-Month Courses
-                </Button>
-                <Button
-                    bsStyle = {if @state.selected_button is 'year1' then 'primary'}
-                    onClick = {=>@set_button_and_deselect_plans('year1')}
-                >
-                    Yearly Courses
-                </Button>
-            </ButtonGroup>
-        </div>
-
-    render_renewal_info: ->
-        if @props.selected_plan
-            renews = not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
-            length = PROJECT_UPGRADES.period_names[@state.selected_button]
-            <p style={marginBottom:'1ex', marginTop:'1ex'}>
-                {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged only once</b> for the course package, which lasts {if length == 'year' then 'a '}{length}.  It does <b>not automatically renew</b>.</span> if not renews}
-            </p>
-
-    render_subscription_grid: ->
-        <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
-
-    render_dedicated_resources: ->
-        <div style={marginBottom:'15px'}>
-            <ExplainResources type='dedicated'/>
-        </div>
-
-    render_create_subscription_options: ->
-        # <h3><Icon name='list-alt'/> Sign up for a Subscription</h3>
-        <div>
-            <div style={textAlign:'center'}>
-                {@render_period_selection_buttons()}
-            </div>
-            {@render_subscription_grid()}
-        </div>
-        ###
-            if @state.selected_button is 'month' or @state.selected_button is 'year'}
-            {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
-        ###
-
-    render_create_subscription_confirm: (plan_data) ->
-        if @is_recurring()
-            subscription = " and you will be signed up for a recurring subscription"
-        name = plan_data.desc ? misc.capitalize(@props.selected_plan).replace(/_/g,' ') + ' plan'
-        <Alert>
-            <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected a <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
-            {@render_renewal_info()}
-            <p>By clicking 'Add Subscription or Course Package' below, your payment card will be immediately charged{subscription}.</p>
-        </Alert>
-
-    render_create_subscription_buttons: ->
-        <Row>
-            <Col sm={4}>
-                {powered_by_stripe()}
-            </Col>
-            <Col sm={8}>
-                <ButtonToolbar className='pull-right'>
-                    <Button
-                        bsStyle  = 'primary'
-                        bsSize   = 'large'
-                        onClick  = {=>(@submit_create_subscription();@props.on_close())}
-                        disabled = {@props.selected_plan is ''} >
-                        <Icon name='check' /> Add Subscription or Course Package
-                    </Button>
-                    <Button
-                        onClick  = {@props.on_close}
-                        bsSize   = 'large'
-                        >
-                        Cancel
-                    </Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
-
-    render: ->
-        plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
-        <Row>
-            <Col sm={10} smOffset={1}>
-                <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
-                    {@render_create_subscription_options()}
-                    {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
-                    {<ConfirmPaymentMethod
-                        customer = {@props.customer}
-                        is_recurring = {@is_recurring()}
-                        on_close = {@props.on_close}
-                    /> if @props.selected_plan isnt ''}
-                    {@render_create_subscription_buttons()}
-                    <Row style={paddingTop:'15px'}>
-                        <Col sm={5} smOffset={7}>
-                            <CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />
-                        </Col>
-                    </Row>
-                </Well>
-                <ExplainResources type='shared'/>
-            </Col>
-        </Row>
-
-CouponAdder = rclass
+exports.CouponAdder = CouponAdder = rclass
     displayName : 'CouponAdder'
 
     propTypes:
@@ -916,7 +763,6 @@ BillingPage = rclass
                 <AddSubscription
                     on_close        = {@finish_first_subscription}
                     selected_plan   = {@props.selected_plan}
-                    actions         = {@props.redux.getActions('billing')}
                     applied_coupons = {@props.applied_coupons}
                     coupon_error    = {@props.coupon_error}
                     customer        = {@props.customer} />

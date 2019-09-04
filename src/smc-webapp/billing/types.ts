@@ -3,6 +3,12 @@ These interfaces are exactly what we **actually use** in our code, not
 what stripe actually provides!
 */
 
+import { Map, Set } from "immutable";
+
+export type AppliedCoupons = Map<string, any>;
+
+export type CoursePay = Set<string>;
+
 export interface Source {
   id: string;
   brand: string;

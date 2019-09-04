@@ -3,14 +3,13 @@ import { Button, Col, Row } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
 const { Panel } = require("react-bootstrap");
 import { Subscription } from "./subscription";
-import { Map } from "immutable";
-import { Customer } from "./types";
-//import { AddSubscription } from "./add-subscription";
+import { AppliedCoupons, Customer } from "./types";
+import { AddSubscription } from "./add-subscription";
 
 interface Props {
   customer?: Customer;
   selected_plan?: string;
-  applied_coupons: Map<string, any>;
+  applied_coupons: AppliedCoupons;
   coupon_error?: string;
 }
 
@@ -49,12 +48,10 @@ export class SubscriptionList extends Component<Props, State> {
 
   private render_add_subscription(): Rendered {
     if (this.state.state !== "add_new") return;
-    const { AddSubscription } = require("../billing");
     return (
       <AddSubscription
         on_close={this.close_add_subscription.bind(this)}
         selected_plan={this.props.selected_plan}
-        actions={redux.getActions("billing")}
         applied_coupons={this.props.applied_coupons}
         coupon_error={this.props.coupon_error}
         customer={this.props.customer}
