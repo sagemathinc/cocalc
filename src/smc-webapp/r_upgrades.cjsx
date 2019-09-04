@@ -18,6 +18,7 @@ misc = require('smc-util/misc')
 
 {ExplainResources} = require('./billing/explain-resources')
 {ExplainPlan} = require('./billing/explain-plan')
+{DedicatedVM} = require('./billing/dedicated-vm')
 {FAQ} = require('./billing/faq')
 {SubscriptionGrid} = require('./billing')
 
@@ -52,6 +53,9 @@ exports.UpgradesPage = rclass
 
             <Space/>
             <ExplainResources type='dedicated'/>
+
+            <Space/>
+            <DedicatedVM/>
 
             <hr/>
             <FAQ/>

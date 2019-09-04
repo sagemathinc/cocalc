@@ -219,51 +219,7 @@ ExplainResources = require('./billing/explain-resources')
 
 ExplainPlan = require('./billing/explain-plan')
 
-exports.DedicatedVM = DedicatedVM = rclass
-    render_intro: ->
-        <div style={marginBottom:"10px"}>
-            <a name="dedicated"></a>
-            <h3>Dedicated VMs<sup><i>beta</i></sup></h3>
-            <div style={marginBottom:"10px"}>
-                A <b>Dedicated VM</b> is a specific node in the cluster,{' '}
-                which solely hosts one or more of your projects.
-                This allows you to run much larger workloads with a consistent performance,{' '}
-                because no resources are shared with other projects.
-                The usual quota limitations do not apply and
-                you also get additional disk space attached to individual projects.
-            </div>
-            <div>
-                To get started, please contact us at <HelpEmailLink/>.
-                We will work out the actual requirements with you and set everything up.
-                It is also possible to deviate from the given options,{' '}
-                in order to accommodate exactly for the expected resource usage.
-            </div>
-        </div>
-
-    render_dedicated_plans: ->
-        for i, plan of PROJECT_UPGRADES.dedicated_vms
-            <Col key={i} sm={4}>
-                <PlanInfo
-                    plan = {plan}
-                    period = {'month'}
-                />
-            </Col>
-
-    render_dedicated: ->
-        <div style={marginBottom:"10px"}>
-
-            <Row>
-                {@render_dedicated_plans()}
-            </Row>
-        </div>
-
-    render: ->
-        <React.Fragment>
-            {@render_intro()}
-            {@render_dedicated()}
-        </React.Fragment>
-
-
+DedicatedVM = require('./billing/dedicated-vm')
 
 exports.PayCourseFee = PayCourseFee = rclass
     reduxProps :
