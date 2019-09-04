@@ -165,6 +165,6 @@ lti_schema.lti_context_participation = create({
   },
   rules: {
     desc: "Users in contexts",
-    primary_key: "id"
+    primary_key: ["lti_context_id", "cocalc_user_id"]
   }
 })
