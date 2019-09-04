@@ -14,6 +14,7 @@ import { Component, React, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer } from "./types";
 import { ConfirmPaymentMethod } from "./confirm-payment-method";
 import { powered_by_stripe } from "./util";
+import { ExplainResources} from "./explain-resources";
 
 interface Props {
   on_close: Function;
@@ -152,7 +153,6 @@ export class AddSubscription extends Component<Props, State> {
   }
 
   /*private render_dedicated_resources(): Rendered {
-    const { ExplainResources } = require("../billing");
     return (
       <div style={{ marginBottom: "15px" }}>
         <ExplainResources type="dedicated" />
@@ -227,7 +227,7 @@ export class AddSubscription extends Component<Props, State> {
   render() {
     const plan_data =
       PROJECT_UPGRADES.subscription[this.props.selected_plan.split("-")[0]];
-    const { CouponAdder, ExplainResources } = require("../billing");
+    const { CouponAdder } = require("../billing");
 
     return (
       <Row>
