@@ -8,7 +8,7 @@ import { is_valid_uuid_string } from "../smc-util/misc2";
 
 var initialized = false;
 
-const ALLOWED: ReadonlyArray<string> = Object.freeze<string>([
+const ALLOWED: readonly string[] = Object.freeze<string>([
   ".minervaproject.com",
   ".kgi.com",
   "dev.harald.schil.ly"
@@ -23,13 +23,13 @@ function process_message(mesg) {
   );
 
   // check origin
-  let blocked = true;
-  for (const allowed of ALLOWED) {
-    if (mesg.origin.endsWith(allowed)) {
-      blocked = false;
-      break;
+  let blocked = (function(): boolean {
+    for (const allowed of ALLOWED) {
+      if (mesg.origin.endsWith(allowed)) return false;
     }
-  }
+    return true;
+  })();
+
   if (blocked) {
     console.log(`Origin '${mesg.origin}' is blocked.`);
     return;
@@ -63,7 +63,9 @@ function process_message(mesg) {
       break;
 
     default:
-      console.warn(`Unknown action '${action}'`);
+      const err = { error: `Unknown action '${action}'` };
+      console.warn(err);
+      mesg.source.postMessage(err, mesg.origin);
   }
 }
 
