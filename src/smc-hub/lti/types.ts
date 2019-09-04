@@ -1,3 +1,9 @@
+import { UUID } from "./generic-types";
+
+export type LTIGlobalUserID = string & {
+  readonly _type: "LTIGlobalUserID";
+};
+
 export interface IssuerData {
   client_id: string;
   token_url: string;
@@ -22,20 +28,20 @@ export interface AuthRequestTokenData {
   client_id: string;
   redirect_uri: string;
   login_hint: string;
-  state: string;
-  nonce: string;
+  state: UUID;
+  nonce: UUID;
   lti_message_hint: string;
   id_token_hint: string;
 }
 
 export interface AuthResponseTokenData {
-  id_token: string; // JWT decodes into PlatformResponse
-  state: string; // Same state as provided to the platform in AuthRequestTokenData
+  id_token: UUID; // JWT decodes into PlatformResponse
+  state: UUID; // Same state as provided to the platform in AuthRequestTokenData
 }
 
 // https://www.imsglobal.org/spec/security/v1p0/#id-token
 export interface PlatformResponse {
-  nonce: string; // Should be the same nonce sent in AuthRequestTokenData
+  nonce: UUID; // Should be the same nonce sent in AuthRequestTokenData
   iat: number; // SECONDS since epoch
   exp: number; // SECONDS since epoch
   iss: string; // Platform Issuer Identifier

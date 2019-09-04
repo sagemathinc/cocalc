@@ -1,7 +1,4 @@
-import { PostgreSQL } from "../postgres/types";
-import * as uuid from "uuid";
-
-import { IssuerData, PlatformResponse } from "./types";
+import { IssuerData } from "./types";
 
 const pKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAmzcy01Samt/ehVukUhzVbIh4CAHo7njMjuIOnc9b+dajAKHj
@@ -31,53 +28,22 @@ EtYgVDOMTrbh4AO7PTtLFyd9bm53lYy5CbVJ5xb0wyUs9dC5rodRoJXuT8blz2CS
 aooSWdkvWOP6M2B2QN7RMr0EGPwHnrFQaMcM3gHqvU6K7jg9AakEfA==
 -----END RSA PRIVATE KEY-----`;
 
-export function get_private_key(db: PostgreSQL): string {
+export function get_private_key(): string {
   return pKey;
 }
 
-export function get_user(
-  database: PostgreSQL,
-  LMS_Message: PlatformResponse
-): string {
-  const LMS_guid =
-    LMS_Message["https://purl.imsglobal.org/spec/lti/claim/tool_platform"].guid;
-  const LMS_user_id = LMS_Message["sub"];
-  const g_user_id = compute_g_user_id(LMS_Message);
-
-  if (!database.users[g_user_id]) {
-    return create_user(database, g_user_id, LMS_guid, LMS_user_id);
-  } else {
-    return;
-  }
-}
-
-function has_user(db: PostgreSQL, id: string): boolean {
-  
-}
-
-function create_user(
-  database: PostgreSQL,
-  g_user_id: string,
-  LMS_guid: string,
-  LMS_user_id: string
-): string {}
-
-export function get_iss_data(iss: string): IssuerData {}
+const current_auth_flows = {};
 
 export function begin_auth_flow(
   id: string,
   payload: { auth_params: any; iss_data: IssuerData }
-) {}
+) {
+  current_auth_flows[id] = payload;
+}
 
 export function get_auth_flow(
   id: string
-): { auth_params: any; iss_data: IssuerData } {}
-
-function compute_g_user_id(LMS_Message: PlatformResponse): string {
-  return (
-    LMS_Message["https://purl.imsglobal.org/spec/lti/claim/tool_platform"]
-      .guid +
-    " - " +
-    LMS_Message["sub"]
-  );
+): { auth_params: any; iss_data: IssuerData } {
+  return current_auth_flows[id] || "Nothing here";
 }
+

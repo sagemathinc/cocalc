@@ -4,6 +4,8 @@ import * as querystring from "querystring";
 import * as jwt from "jsonwebtoken";
 import * as jwksClient from "jwks-rsa";
 import * as path from "path";
+import { compute_global_user_id } from "./helpers";
+import { get_iss_data, get_user } from "./db-operations";
 
 import { inspect } from "util";
 
@@ -15,7 +17,7 @@ import {
   PlatformResponse
 } from "./types";
 
-import * as dev_db from "./non-db-api";
+import * as auth_manager from "./auth-manager";
 
 const SMC_ROOT: string = process.env.SMC_ROOT as any;
 const STATIC_PATH = path.join(SMC_ROOT, "static");
@@ -33,31 +35,11 @@ export function init_LTI_router(opts: {
     res.sendFile(path.join(STATIC_PATH, "lti.html"), { maxAge: 0 });
   });
 
-  let db = dev_db.create({
-    platforms: {
-      "moodletest.cocalc.com": {
-        family_code: "bs string",
-        version: "bs string",
-        guid: "moodletest.cocalc.com",
-        name: "bs string",
-        description: "bs string"
-      }
-    },
-    users: {
-      "moodletest.cocalc.com - 3": {
-        LMS_id: "moodletest.cocalc.com",
-        LMS_user_id: "3",
-        cocalc_user_id: "8788a1b9-c8f7-4a61-be2b-bd5306737b39"
-      }
-    },
-    assignments: {}
-  });
-
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
   router.route("/login").all((req, res) => {
     const token: LoginInitiationFromPlatform = req.body;
-    const iss_data = dev_db.get_iss_data(token.iss);
+    const iss_data = get_iss_data(opts.database, token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
 
@@ -74,7 +56,7 @@ export function init_LTI_router(opts: {
       lti_message_hint: token.lti_message_hint,
       id_token_hint: token.lti_message_hint
     };
-    dev_db.begin_auth_flow(state, { auth_params, iss_data });
+    auth_manager.begin_auth_flow(state, { auth_params, iss_data });
     const query_string = querystring.stringify(auth_params);
     res.redirect(iss_data.auth_url + "?" + query_string);
   });
@@ -85,7 +67,7 @@ export function init_LTI_router(opts: {
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-    const details = dev_db.get_auth_flow(req.body.state);
+    const details = auth_manager.get_auth_flow(req.body.state);
 
     jwt.verify(
       req.body.id_token,
@@ -95,11 +77,11 @@ export function init_LTI_router(opts: {
         if (err) {
           res.send("Error parsing jwt:" + err);
         }
-        const user_id = dev_db.get_user(db, token);
+        const user_id = get_user(opts.database, compute_global_user_id(token));
         res.send(
           `Our id of this user: ${user_id} ------- ${inspect(
             details
-          )} ------- ${JSON.stringify(db)}`
+          )} ------- `
         );
       }
     );
@@ -110,7 +92,7 @@ export function init_LTI_router(opts: {
       res.send(`Recieved error ${req.body.error}`);
     }
     const token = jwt.decode(req.body.token_id, JWT_OPTIONS);
-    const user_id = dev_db.get_user(db, token);
+    const user_id = get_user(opts.database, token);
     const query_string = querystring.stringify({
       id_token: req.body.id_token,
       nonce: req.body.state,
@@ -125,7 +107,7 @@ export function init_LTI_router(opts: {
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-    const details = dev_db.get_auth_flow(req.body.nonce);
+    const details = auth_manager.get_auth_flow(req.body.nonce);
     jwt.verify(
       req.body.id_token,
       getKey(details.iss_data.jwk_url),
@@ -147,7 +129,7 @@ export function init_LTI_router(opts: {
           token[
             "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
           ].deep_link_return_url;
-        const iss_data = dev_db.get_iss_data(token.iss);
+        const iss_data = get_iss_data(opts.database, token.iss);
 
         // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
         const jwt_data = {
@@ -180,7 +162,7 @@ export function init_LTI_router(opts: {
 
         const deep_link_response_token = jwt.sign(
           jwt_data,
-          dev_db.get_private_key(db),
+          auth_manager.get_private_key(),
           JWT_OPTIONS
         );
 
