@@ -11,10 +11,11 @@ import { Icon } from "../r_misc/icon";
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { capitalize } from "smc-util/misc2";
 import { Component, React, Rendered, redux } from "../app-framework";
-import { AppliedCoupons, Customer } from "./types";
+import { AppliedCoupons, Customer, PeriodName } from "./types";
 import { ConfirmPaymentMethod } from "./confirm-payment-method";
 import { powered_by_stripe } from "./util";
-import { ExplainResources} from "./explain-resources";
+import { ExplainResources } from "./explain-resources";
+import { SubscriptionGrid } from "./subscription-grid";
 
 interface Props {
   on_close: Function;
@@ -22,10 +23,11 @@ interface Props {
   applied_coupons: AppliedCoupons;
   coupon_error?: string;
   customer?: Customer;
+  hide_cancel_button?: boolean;
 }
 
 interface State {
-  selected_button: "month" | "week" | "year" | "year1" | "month4";
+  selected_button: PeriodName;
 }
 
 export class AddSubscription extends Component<Props, State> {
@@ -143,10 +145,9 @@ export class AddSubscription extends Component<Props, State> {
   }
 
   private render_subscription_grid(): Rendered {
-    const { SubscriptionGrid } = require("../billing");
     return (
       <SubscriptionGrid
-        period={this.state.selected_button}
+        periods={[this.state.selected_button]}
         selected_plan={this.props.selected_plan}
       />
     );
@@ -199,25 +200,39 @@ export class AddSubscription extends Component<Props, State> {
     );
   }
 
+  private render_add_button(): Rendered {
+    return (
+      <Button
+        bsStyle="primary"
+        bsSize="large"
+        onClick={() => {
+          this.submit_create_subscription();
+          this.props.on_close();
+        }}
+        disabled={this.props.selected_plan === ""}
+      >
+        <Icon name="check" /> Add Subscription or Course Package
+      </Button>
+    );
+  }
+
+  private render_cancel_button(): Rendered {
+    if (this.props.hide_cancel_button) return;
+    return (
+      <Button onClick={() => this.props.on_close()} bsSize="large">
+        Cancel
+      </Button>
+    );
+  }
+
   private render_create_subscription_buttons(): Rendered {
     return (
       <Row>
         <Col sm={4}>{powered_by_stripe()}</Col>
         <Col sm={8}>
           <ButtonToolbar className="pull-right">
-            <Button
-              bsStyle="primary"
-              bsSize="large"
-              onClick={() => (
-                this.submit_create_subscription(), this.props.on_close()
-              )}
-              disabled={this.props.selected_plan === ""}
-            >
-              <Icon name="check" /> Add Subscription or Course Package
-            </Button>
-            <Button onClick={() => this.props.on_close()} bsSize="large">
-              Cancel
-            </Button>
+            {this.render_add_button()}
+            {this.render_cancel_button()}
           </ButtonToolbar>
         </Col>
       </Row>

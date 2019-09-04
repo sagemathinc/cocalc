@@ -39,7 +39,7 @@ export class DedicatedVM extends Component {
       const plan = PROJECT_UPGRADES.dedicated_vms[i];
       v.push(
         <Col key={i} sm={4}>
-          <PlanInfo plan={plan} period={"month"} />
+          <PlanInfo plan={plan} periods={["month"]} />
         </Col>
       );
     }

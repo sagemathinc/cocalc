@@ -20,7 +20,9 @@ misc = require('smc-util/misc')
 {ExplainPlan} = require('./billing/explain-plan')
 {DedicatedVM} = require('./billing/dedicated-vm')
 {FAQ} = require('./billing/faq')
-{SubscriptionGrid} = require('./billing')
+{SubscriptionGrid} = require('./billing/subscription-grid')
+
+console.log({SubscriptionGrid})
 
 round1 = misc.round1
 
@@ -45,11 +47,11 @@ exports.UpgradesPage = rclass
 
             <Space/>
             <ExplainPlan type='personal' />
-            <SubscriptionGrid period='month year' is_static={true}/>
+            <SubscriptionGrid periods={['month', 'year']} is_static={true}/>
 
             <Space/>
             <ExplainPlan type='course' />
-            <SubscriptionGrid period='month4' is_static={true}/>
+            <SubscriptionGrid periods={['week','month4','year1']} is_static={true}/>
 
             <Space/>
             <ExplainResources type='dedicated'/>

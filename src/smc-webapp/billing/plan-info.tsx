@@ -1,5 +1,5 @@
 import { PROJECT_UPGRADES } from "smc-util/schema";
-import { plural, capitalize, split } from "smc-util/misc";
+import { plural, capitalize } from "smc-util/misc";
 
 import { Component, React, Rendered } from "../app-framework";
 import { Tip } from "../r_misc/tip";
@@ -9,9 +9,11 @@ import { r_join } from "../r_misc/r_join";
 import { Button } from "react-bootstrap";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
 
+import { PeriodName } from "./types";
+
 interface Props {
   plan: string;
-  period: "week" | "month" | "year" | "month year";
+  periods: PeriodName[];
   selected?: boolean;
   on_click?: Function;
 }
@@ -32,7 +34,7 @@ export class PlanInfo extends Component<Props> {
     );
   }
 
-  private render_cost(price, period): Rendered {
+  private render_cost(price: string, period: string): Rendered {
     period =
       PROJECT_UPGRADES.period_names[period] != null
         ? PROJECT_UPGRADES.period_names[period]
@@ -47,14 +49,15 @@ export class PlanInfo extends Component<Props> {
     );
   }
 
-  private render_price(prices, periods): Rendered[] | Rendered {
+  private render_price(prices: string[]): Rendered[] | Rendered {
     if (this.props.on_click != null) {
-      // note: in non-static, there is always just *one* price (several only on "static" pages)
+      // note: in non-static, there is always just *one* price
+      // (several only on "static" pages)
       const result: Rendered[] = [];
       for (let i = 0; i < prices.length; i++) {
         result.push(
           <Button key={i} bsStyle={this.props.selected ? "primary" : undefined}>
-            {this.render_cost(prices[i], periods[i])}
+            {this.render_cost(prices[i], this.props.periods[i])}
           </Button>
         );
       }
@@ -62,7 +65,7 @@ export class PlanInfo extends Component<Props> {
     } else {
       const result: Rendered[] = [];
       for (let i = 0; i < prices.length; i++) {
-        result.push(this.render_cost(prices[i], periods[i]));
+        result.push(this.render_cost(prices[i], this.props.periods[i]));
       }
       return <h3 style={{ textAlign: "left" }}>{r_join(result, <br />)}</h3>;
     }
@@ -94,16 +97,14 @@ export class PlanInfo extends Component<Props> {
   }
 
   public render(): Rendered {
-    let period;
     const plan_data = PROJECT_UPGRADES.subscription[this.props.plan];
     if (plan_data == null) {
       return <div>Unknown plan type: {this.props.plan}</div>;
     }
 
     const { params } = PROJECT_UPGRADES;
-    const periods = split(this.props.period);
-    const prices: Rendered[] = [];
-    for (period of periods) {
+    const prices: string[] = [];
+    for (let period of this.props.periods) {
       prices.push(plan_data.price[period]);
     }
     const { benefits } = plan_data;
@@ -118,9 +119,7 @@ export class PlanInfo extends Component<Props> {
         header={this.render_plan_name(plan_data)}
         bsStyle={this.props.selected ? "primary" : "info"}
         onClick={() =>
-          typeof this.props.on_click === "function"
-            ? this.props.on_click()
-            : undefined
+          this.props.on_click != null ? this.props.on_click() : undefined
         }
       >
         <Space />
@@ -136,7 +135,7 @@ export class PlanInfo extends Component<Props> {
         <Space />
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
-          {this.render_price(prices, periods)}
+          {this.render_price(prices)}
         </div>
       </Panel>
     );

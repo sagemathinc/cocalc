@@ -72,3 +72,5 @@ export interface Subscription {
   status: string;
   start: number;
 }
+
+export type PeriodName  = "month" | "week" | "year" | "year1" | "month4";

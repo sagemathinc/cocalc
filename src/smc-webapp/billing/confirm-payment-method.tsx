@@ -65,7 +65,7 @@ export class ConfirmPaymentMethod extends Component<Props> {
   public render(): Rendered {
     const default_card: Source | undefined = this.default_card();
     if (default_card == null) {
-      return <AddPaymentMethod />;
+      return <AddPaymentMethod hide_cancel_button={true}/>;
     }
     return (
       <Alert>

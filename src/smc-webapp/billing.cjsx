@@ -153,67 +153,7 @@ CouponInfo = rclass
         </Row>
 
 
-exports.SubscriptionGrid = SubscriptionGrid = rclass
-    displayName : 'SubscriptionGrid'
-
-    propTypes :
-        period        : rtypes.string.isRequired  # see docs for PlanInfo
-        selected_plan : rtypes.string
-        is_static     : rtypes.bool    # used for display mode
-
-    getDefaultProps: ->
-        is_static : false
-
-    is_selected: (plan, period) ->
-        if @props.period?.slice(0, 4) is 'year'
-            return @props.selected_plan is "#{plan}-year"
-        else if @props.period?.slice(0, 4) is 'week'
-            return @props.selected_plan is "#{plan}-week"
-        else
-            return @props.selected_plan is plan
-
-    render_plan_info: (plan, period) ->
-        <PlanInfo
-            plan     = {plan}
-            period   = {period}
-            selected = {@is_selected(plan, period)}
-            on_click = {if not @props.is_static then ->set_selected_plan(plan, period)} />
-
-    render_cols: (row, ncols) ->
-        width = 12/ncols
-        for plan in row
-            <Col sm={width} key={plan}>
-                {@render_plan_info(plan, @props.period)}
-            </Col>
-
-    render_rows: (live_subscriptions, ncols) ->
-        for i, row of live_subscriptions
-            <Row key={i}>
-                {@render_cols(row, ncols)}
-            </Row>
-
-    render: ->
-        live_subscriptions = []
-        periods = misc.split(@props.period)
-        for row in PROJECT_UPGRADES.live_subscriptions
-            v = []
-            for x in row
-                price_keys = _.keys(PROJECT_UPGRADES.subscription[x].price)
-                if _.intersection(periods, price_keys).length > 0
-                    v.push(x)
-            if v.length > 0
-                live_subscriptions.push(v)
-        # Compute the maximum number of columns in any row
-        ncols = Math.max((row.length for row in live_subscriptions)...)
-        # Round up to nearest divisor of 12
-        if ncols == 5
-            ncols = 6
-        else if ncols >= 7
-            ncols = 12
-        <div>
-            {@render_rows(live_subscriptions, ncols)}
-        </div>
-
+SubscriptionGrid = require("./billing/subscription-grid")
 
 ExplainResources = require('./billing/explain-resources')
 
@@ -464,7 +404,9 @@ BillingPage = rclass
             </div>
         else if not @props.for_course and (not @props.customer? or @props.continue_first_purchase)
             <div>
+                <PaymentMethods sources={@props.customer?.sources} default={@props.customer?.default_source}  />
                 <AddSubscription
+                    hide_cancel_button = {true}
                     on_close        = {@finish_first_subscription}
                     selected_plan   = {@props.selected_plan}
                     applied_coupons = {@props.applied_coupons}
@@ -536,10 +478,10 @@ exports.render_static_pricing_page = () ->
         <ExplainResources type='shared' is_static={true}/>
         <hr/>
         <ExplainPlan type='personal'/>
-        <SubscriptionGrid period='month year' is_static={true}/>
+        <SubscriptionGrid periods={['month', 'year']} is_static={true}/>
         <hr/>
         <ExplainPlan type='course'/>
-        <SubscriptionGrid period='week month4 year1' is_static={true}/>
+        <SubscriptionGrid periods={['week','month4','year1']} is_static={true}/>
         <hr/>
         <DedicatedVM />
         <hr/>
