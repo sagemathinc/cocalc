@@ -1378,7 +1378,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes all files and removes all references
   close_all_files() {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }

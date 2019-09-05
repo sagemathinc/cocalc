@@ -6,6 +6,7 @@
 
 import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
+import { Map, List } from "immutable";
 
 var initialized = false;
 
@@ -14,6 +15,48 @@ const ALLOWED: readonly string[] = Object.freeze<string>([
   ".kgi.com",
   "dev.harald.schil.ly"
 ]);
+
+interface Reply {
+  status: "ok" | "error";
+  connection?: "good" | "flaky";
+  mesg?: string;
+  path?: string;
+  project_id?: string;
+  open_files?: object;
+}
+
+function open_projects(): List<string> | undefined {
+  const projects_store = redux.getStore("projects");
+  if (projects_store == null) return;
+  return projects_store.get("open_projects");
+}
+
+function close_all_files() {
+  const op = open_projects();
+  const page_actions = redux.getActions("page") as any;
+  if (op == null || page_actions == null) return;
+  op.map(project_id => {
+    const pa = redux.getProjectActions(project_id);
+    pa.close_all_files();
+    page_actions.close_project_tab(project_id);
+  });
+}
+
+function all_opened_files(): undefined | object {
+  const op = open_projects();
+  if (op == null) return;
+  const all_files = Map(
+    op.map(project_id => {
+      const ps = redux.getProjectStore(project_id);
+      const files = ps
+        .get("open_files")
+        .keySeq()
+        .toArray();
+      return [project_id, files];
+    })
+  );
+  return all_files.filter(files => files.length > 0).toJS();
+}
 
 async function process_message(mesg) {
   // TODO whitelist mesg.origin domains
@@ -42,6 +85,10 @@ async function process_message(mesg) {
 
   const { action, project_id, path } = data;
 
+  const reply = (data: Reply) => {
+    mesg.source.postMessage(data, mesg.origin);
+  };
+
   switch (action) {
     case "open":
       if (
@@ -57,32 +104,33 @@ async function process_message(mesg) {
           change_history: false
         };
         await actions.open_file(opts);
-        mesg.source.postMessage(
-          { open: "done", path, project_id },
-          mesg.origin
-        );
+        reply({ status: "ok", path, project_id });
       }
       break;
 
     case "status":
       // TODO reply with an "elaborate" status message, e.g. list each project ID, did it load (true/false), ...
-      const status = {
-        ready: true,
-        connection: "ok",
-        projects: { "9282d61d-8d27-4b9f-ae0f-2fc9bac64203": { ready: true } }
-      };
-      mesg.source.postMessage(status, mesg.origin);
+      reply({
+        status: "ok",
+        connection: "good",
+        open_files: all_opened_files() || {}
+      });
       break;
 
     case "closeall":
       // this closes all open editors and projects. the "kiosk mode" banner should appear again.
-      mesg.source.postMessage({ info: "got closeall message" }, mesg.origin);
+      try {
+        close_all_files();
+        reply({ status: "ok", mesg: "all files are closed" });
+      } catch (err) {
+        reply({ status: "error", mesg: err.toString() });
+      }
       break;
 
     default:
-      const msg = `Unknown action '${action}'`;
-      console.warn(msg);
-      mesg.source.postMessage({ error: msg }, mesg.origin);
+      const err = `Unknown action '${action}'`;
+      console.warn(err);
+      reply({ status: "error", mesg: err });
   }
 }
 
