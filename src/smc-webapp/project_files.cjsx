@@ -1581,9 +1581,9 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_course_payment_required: () ->
         cards = @props.customer?.sources?.total_count ? 0
-        <Alert bsStyle='danger'>
+        <Alert bsStyle='warning'>
             <h4 style={padding: '2em'}>
-                <Icon name='exclamation-triangle'/> Error: Your instructor requires that you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this project.
+                <Icon name='exclamation-triangle'/> Your instructor requires that you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this project.
                 {<CourseProjectExtraHelp/> if cards}
             </h4>
             {@render_upgrade_in_place()}
@@ -1595,7 +1595,7 @@ exports.ProjectFiles = rclass ({name}) ->
         else
             link = <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the one-time ${STUDENT_COURSE_PRICE} course fee</a>
         <Alert bsStyle={'warning'} style={fontSize:'12pt'}>
-            <Icon name='exclamation-triangle'/> Warning: Your instructor requires that you {link} for this project
+            <Icon name='exclamation-triangle'/> Your instructor requires that you {link} for this project
             within <TimeAgo date={pay}/>.
             {@render_upgrade_in_place() if @state.show_pay}
         </Alert>
