@@ -56,9 +56,14 @@ export interface Invoice {
   };
 }
 
+export interface Invoices {
+  data: Invoice[];
+  total_count: number;
+}
+
 export interface Customer {
   sources: { data: Source[]; total_count: number };
-  subscriptions: { data: Subscription[] };
+  subscriptions: { data: Subscription[]; total_count: number };
   default_source: string;
 }
 
@@ -73,4 +78,4 @@ export interface Subscription {
   start: number;
 }
 
-export type PeriodName  = "month" | "week" | "year" | "year1" | "month4";
+export type PeriodName = "month" | "week" | "year" | "year1" | "month4";

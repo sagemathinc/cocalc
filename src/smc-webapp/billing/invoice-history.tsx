@@ -2,10 +2,10 @@ const { Panel } = require("react-bootstrap");
 import { Component, React, Rendered } from "../app-framework";
 import { Icon } from "../r_misc/icon";
 import { Invoice } from "./invoice";
-import { Invoice as StripeInvoice } from "./types";
+import { Invoices } from "./types";
 
 interface Props {
-  invoices?: { data: StripeInvoice[] };
+  invoices?: Invoices;
 }
 
 export class InvoiceHistory extends Component<Props> {
