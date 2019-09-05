@@ -358,6 +358,11 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             id    : undefined
             error : required
+        if opts.error instanceof Error
+            # Javascript Errors as come up with exceptions don't JSON.
+            # Since the point is just to show an error to the client,
+            # it is better to send back the string!
+            opts.error = opts.error.toString()
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
     success_to_client: (opts) =>
@@ -1237,7 +1242,8 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     if locals.done or (not locals.email_address)
                         dbg("NOT send_email invite to #{locals.email_address}")
-                        cb(); return
+                        cb()
+                        return
 
                     ## do not send email if project doesn't have network access (and user is not a paying customer)
                     #if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
@@ -1293,6 +1299,7 @@ class exports.Client extends EventEmitter
                                 project_id : mesg.project_id
                                 to         : locals.email_address
                                 error      : err
+                            cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
                     send_email(opts)
 
                 ], (err) =>
