@@ -11,6 +11,7 @@ import { Button, ButtonToolbar, Col, Row, Well } from "react-bootstrap";
 import { AppliedCoupons, CoursePay } from "./types";
 import { STUDENT_COURSE_PRICE } from "./data";
 const { alert_message } = require("../alerts");
+import { CouponAdder } from "./coupon-adder";
 
 interface Props {
   project_id: string;
@@ -155,7 +156,6 @@ class PayCourseFee extends Component<Props, State> {
   }
 
   render() {
-    const { CouponAdder } = require("../billing");
     return (
       <span>
         <Row>

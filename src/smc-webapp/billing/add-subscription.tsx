@@ -16,6 +16,7 @@ import { ConfirmPaymentMethod } from "./confirm-payment-method";
 import { powered_by_stripe } from "./util";
 import { ExplainResources } from "./explain-resources";
 import { SubscriptionGrid } from "./subscription-grid";
+import { CouponAdder } from "./coupon-adder";
 
 interface Props {
   on_close: Function;
@@ -242,7 +243,6 @@ export class AddSubscription extends Component<Props, State> {
   render() {
     const plan_data =
       PROJECT_UPGRADES.subscription[this.props.selected_plan.split("-")[0]];
-    const { CouponAdder } = require("../billing");
 
     return (
       <Row>

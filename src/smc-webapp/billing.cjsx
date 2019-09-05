@@ -35,9 +35,6 @@ require('./billing/actions')
 {PaymentMethods} = require('./billing/payment-methods')
 {PlanInfo} = require('./billing/plan-info')
 {powered_by_stripe} = require("./billing/util")
-{ProjectQuotaBoundsTable} = require("./billing/project-quota-bounds-table")
-{ProjectQuotaFreeTable} = require("./billing/project-quota-free-table")
-{ConfirmPaymentMethod} = require("./billing/confirm-payment-method")
 {Subscription} = require("./billing/subscription")
 {SubscriptionList} = require("./billing/subscription-list")
 {AddSubscription} = require('./billing/add-subscription')
@@ -50,116 +47,15 @@ if window.location?
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
-{PROJECT_UPGRADES} = require('smc-util/schema')
+exports.CouponAdder = CouponAdder = require('./billing/coupon-adder').CouponAdder
 
-STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
+SubscriptionGrid = require("./billing/subscription-grid").SubscriptionGrid
 
-exports.CouponAdder = CouponAdder = rclass
-    displayName : 'CouponAdder'
+ExplainResources = require('./billing/explain-resources').ExplainResources
 
-    propTypes:
-        applied_coupons : rtypes.immutable.Map
-        coupon_error    : rtypes.string
+ExplainPlan = require('./billing/explain-plan').ExplainPlan
 
-    getInitialState: ->
-        coupon_id : ''
-
-    # Remove typed coupon if it got successfully added to the list
-    componentWillReceiveProps: (next_props) ->
-        if next_props.applied_coupons.has(@state.coupon_id)
-            @setState(coupon_id : '')
-
-    key_down: (e) ->
-        if e.keyCode == 13
-            @submit()
-
-    submit: (e) ->
-        e?.preventDefault()
-        @actions('billing').apply_coupon(@state.coupon_id) if @state.coupon_id
-
-    render_well_header: ->
-        if @props.applied_coupons?.size > 0
-            <h5 style={color:'green'}><Icon name='check' /> Coupon added!</h5>
-        else
-            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
-
-    render: ->
-
-        # TODO: (Here or elsewhere) Your final cost is:
-        #       $2 for the first month
-        #       $7/mo after the first
-        if @props.applied_coupons?.size > 0
-            placeholder_text = 'Enter another code?'
-        else
-            placeholder_text = 'Enter your code here...'
-
-        if @state.coupon_id == ''
-            bsStyle = undefined
-        else
-            bsStyle = 'primary'
-
-        <Well>
-            {@render_well_header()}
-            {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
-            {<FormGroup style={marginTop:'5px'}>
-                <InputGroup>
-                    <FormControl
-                        value       = {@state.coupon_id}
-                        ref         = 'coupon_adder'
-                        type        = 'text'
-                        size        = '7'
-                        placeholder = {placeholder_text}
-                        onChange    = {(e) => @setState(coupon_id : e.target.value)}
-                        onKeyDown   = {@key_down}
-                        onBlur      = {@submit}
-                    />
-                    <InputGroup.Button>
-                        <Button onClick={@submit} disabled={@state.coupon_id == ''} bsStyle={bsStyle} >
-                            Apply
-                        </Button>
-                    </InputGroup.Button>
-                </InputGroup>
-            </FormGroup> if @props.applied_coupons?.size == 0}
-            {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
-        </Well>
-
-CouponList = rclass
-    displayName : 'CouponList'
-
-    propTypes:
-        applied_coupons : rtypes.immutable.Map
-
-    render: ->
-        # TODO: Support multiple coupons
-        coupon = @props.applied_coupons.first()
-        <CouponInfo coupon={coupon}/>
-
-CouponInfo = rclass
-    displayName : 'CouponInfo'
-
-    propTypes:
-        coupon : rtypes.object
-
-    render: ->
-        console.log("coupon = ", @props.coupon)
-        <Row>
-            <Col md={4}>
-                {@props.coupon.id}
-            </Col>
-            <Col md={8}>
-                {@props.coupon.metadata.description}
-                <CloseX on_close={=>@actions('billing').remove_coupon(@props.coupon.id)} />
-            </Col>
-        </Row>
-
-
-SubscriptionGrid = require("./billing/subscription-grid")
-
-ExplainResources = require('./billing/explain-resources')
-
-ExplainPlan = require('./billing/explain-plan')
-
-DedicatedVM = require('./billing/dedicated-vm')
+DedicatedVM = require('./billing/dedicated-vm').DedicatedVM
 
 exports.PayCourseFee = require('./billing/pay-course-fee').PayCourseFee
 
@@ -182,16 +78,6 @@ exports.BillingPageForCourseRedux = rclass
 
     render: ->
         <BillingPage is_simplified={true} for_course={true} redux={redux} />
-
-render_amount = (amount, currency) ->
-    <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>
-
-brand_to_icon = (brand) ->
-    return if brand in ['discover', 'mastercard', 'visa'] then "fab fa-cc-#{brand}" else "fa-credit-card"
-
-
-set_selected_plan = (plan, period) ->
-    redux.getActions('billing').set_selected_plan(plan, period)
 
 exports.render_static_pricing_page = () ->
     <div>
