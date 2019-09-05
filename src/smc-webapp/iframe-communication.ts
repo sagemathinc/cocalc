@@ -4,6 +4,7 @@
 // TODO:
 // * some aspects of webapp are configured via a configuration endpoint. Use it to set the allowed origins
 
+import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 
 var initialized = false;
@@ -14,7 +15,7 @@ const ALLOWED: readonly string[] = Object.freeze<string>([
   "dev.harald.schil.ly"
 ]);
 
-function process_message(mesg) {
+async function process_message(mesg) {
   // TODO whitelist mesg.origin domains
 
   console.log(
@@ -48,7 +49,18 @@ function process_message(mesg) {
         path != null &&
         typeof path === "string"
       ) {
-        window.alert(`OPEN PATH: ${project_id}/${path}`);
+        const actions = redux.getProjectActions(project_id);
+        const opts = {
+          path: path,
+          foreground: true,
+          ignore_kiosk: true,
+          change_history: false
+        };
+        await actions.open_file(opts);
+        mesg.source.postMessage(
+          { open: "done", path, project_id },
+          mesg.origin
+        );
       }
       break;
 
@@ -62,10 +74,15 @@ function process_message(mesg) {
       mesg.source.postMessage(status, mesg.origin);
       break;
 
+    case "closeall":
+      // this closes all open editors and projects. the "kiosk mode" banner should appear again.
+      mesg.source.postMessage({ info: "got closeall message" }, mesg.origin);
+      break;
+
     default:
-      const err = { error: `Unknown action '${action}'` };
-      console.warn(err);
-      mesg.source.postMessage(err, mesg.origin);
+      const msg = `Unknown action '${action}'`;
+      console.warn(msg);
+      mesg.source.postMessage({ error: msg }, mesg.origin);
   }
 }
 
