@@ -1,7 +1,11 @@
 import { UUID } from "./generic-types";
 
-export type LTIGlobalUserID = string & {
-  readonly _type: "LTIGlobalUserID";
+export type LTIGlobalUserId = string & {
+  readonly _type: "LTIGlobalUserId";
+};
+
+export type LTIGlobalContextId = string & {
+  readonly _type: "LTIGlobalContextId";
 };
 
 export interface IssuerData {
@@ -39,6 +43,13 @@ export interface AuthResponseTokenData {
   state: UUID; // Same state as provided to the platform in AuthRequestTokenData
 }
 
+export interface LTIContext {
+  id: string;
+  label: string;
+  title: string;
+  type: string[];
+}
+
 // https://www.imsglobal.org/spec/security/v1p0/#id-token
 export interface PlatformResponse {
   nonce: UUID; // Should be the same nonce sent in AuthRequestTokenData
@@ -55,12 +66,7 @@ export interface PlatformResponse {
     course_section_sourcedid: string;
   };
   "https://purl.imsglobal.org/spec/lti/claim/roles": Role[];
-  "https://purl.imsglobal.org/spec/lti/claim/context": {
-    id: string;
-    label: string;
-    title: string;
-    type: string[];
-  };
+  "https://purl.imsglobal.org/spec/lti/claim/context": LTIContext;
   "https://purl.imsglobal.org/spec/lti/claim/resource_link": {
     title: string;
     id: string;

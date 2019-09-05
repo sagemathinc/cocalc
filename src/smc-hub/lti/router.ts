@@ -4,13 +4,15 @@ import * as querystring from "querystring";
 import * as jwt from "jsonwebtoken";
 import * as jwksClient from "jwks-rsa";
 import * as path from "path";
-import { compute_global_user_id } from "./helpers";
-import { get_iss_data, get_user } from "./db-operations";
+import {
+  compute_global_user_id,
+  compute_global_context_id,
+  parse_launch_url
+} from "./helpers";
+import * as OP from "./db-operations";
 
-import { inspect } from "util";
-
+import { UUID } from "./generic-types";
 import { PostgreSQL } from "../postgres/types";
-
 import {
   LoginInitiationFromPlatform,
   AuthRequestTokenData,
@@ -39,7 +41,7 @@ export function init_LTI_router(opts: {
   // 5.1.1
   router.route("/login").all((req, res) => {
     const token: LoginInitiationFromPlatform = req.body;
-    const iss_data = get_iss_data(opts.database, token.iss);
+    const iss_data = OP.get_iss_data(opts.database, token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
 
@@ -77,11 +79,38 @@ export function init_LTI_router(opts: {
         if (err) {
           res.send("Error parsing jwt:" + err);
         }
-        const user_id = get_user(opts.database, compute_global_user_id(token));
+        const params = parse_launch_url(token);
+        const user = OP.get_user(
+          opts.database,
+          compute_global_user_id(token)
+        );
+        const context = OP.get_context(
+          opts.database,
+          compute_global_context_id(token)
+        ); // Creates context
+        const has_assignment = OP.has_assignment({
+          _db: opts.database,
+          assignment: params.id as UUID,
+          student: user.id,
+          context: context.id
+        });
+        /*
+        If we have no record of them,
+          - make a new account
+
+        If we have no record of them **in** this class,
+          - make a new project for them
+          - do *not* copy all known assignments over
+
+        If we have no record of **this assignment** for them,
+          - copy those files over to over to the their project
+        */
         res.send(
-          `Our id of this user: ${user_id} ------- ${inspect(
-            details
-          )} ------- `
+          `Our id of this user: ${user_id} ------- ${{
+            user_id,
+            context_id,
+            has_assignment
+          }} ------- `
         );
       }
     );
@@ -92,12 +121,17 @@ export function init_LTI_router(opts: {
       res.send(`Recieved error ${req.body.error}`);
     }
     const token = jwt.decode(req.body.token_id, JWT_OPTIONS);
-    const user_id = get_user(opts.database, token);
+    const user_id = OP.get_user(opts.database, token);
+    const context_id = OP.get_context(
+      opts.database,
+      compute_global_context_id(token)
+    );
     const query_string = querystring.stringify({
       id_token: req.body.id_token,
       nonce: req.body.state,
       return_path: "lti/return-deep-link/",
-      user_id
+      user_id,
+      context_id
     });
     res.redirect("../lti?" + query_string);
   });
@@ -116,12 +150,26 @@ export function init_LTI_router(opts: {
         if (err) {
           res.send("Error parsing jwt:" + err);
         }
-        const { assignment_name } = req.body;
+        const {
+          assignment_name,
+          project_id,
+          paths,
+          user_id,
+          context_id
+        } = req.body;
 
+        const identifier = OP.create_assignment({
+          _db: opts.database,
+          context: context_id,
+          source_project: project_id,
+          author: user_id,
+          paths,
+          name: assignment_name
+        });
         // `/launch` receives this url as target
         let url = `https://cocalc.com/${
           opts.base_url
-        }/api/lti/launch/${uuid.v4()}`;
+        }/api/lti/launch/?${querystring.stringify({ id: identifier })}`;
 
         // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
         const nonce = uuid.v4();
@@ -129,7 +177,7 @@ export function init_LTI_router(opts: {
           token[
             "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
           ].deep_link_return_url;
-        const iss_data = get_iss_data(opts.database, token.iss);
+        const iss_data = OP.get_iss_data(opts.database, token.iss);
 
         // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
         const jwt_data = {
