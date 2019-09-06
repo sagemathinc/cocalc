@@ -24,7 +24,7 @@
 # connection to back-end hub
 ############################################
 
-if window?
+if window? and window.location?
     # running in a web browser
     if not window.app_base_url?
         window.app_base_url = ""
