@@ -16,14 +16,32 @@ const ALLOWED: readonly string[] = Object.freeze<string>([
   "dev.harald.schil.ly"
 ]);
 
+interface ConnectionStatus {
+  quality?: "good" | "flaky" | "bad";
+  status?: string;
+  status_time?: number;
+  ping?: number;
+}
+
 interface Reply {
   status: "done" | "ack" | "error";
-  connection?: "good" | "flaky";
+  connection?: ConnectionStatus;
   mesg?: string;
   action?: string;
   path?: string;
   project_id?: string;
   open_files?: object;
+}
+
+function connection_status(): ConnectionStatus | undefined {
+  const page_store = redux.getStore("page") as any;
+  if (page_store == null) return;
+  return {
+    quality: page_store.get("connection_quality") || "good",
+    status: page_store.get("connection_status"),
+    status_time: page_store.get("last_status_time"),
+    ping: page_store.get("avgping")
+  };
 }
 
 function open_projects(): List<string> | undefined {
@@ -112,6 +130,7 @@ async function process_message(mesg) {
         const opts = {
           path: path,
           foreground: true,
+          foreground_project: true,
           ignore_kiosk: true,
           change_history: false
         };
@@ -135,7 +154,7 @@ async function process_message(mesg) {
       // TODO reply with an "elaborate" status message, e.g. list each project ID, did it load (true/false), ...
       reply({
         status: "done",
-        connection: "good",
+        connection: connection_status(),
         open_files: all_opened_files() || {}
       });
       break;
