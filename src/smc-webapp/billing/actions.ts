@@ -243,12 +243,14 @@ class BillingActions extends Actions<BillingStoreState> {
     is_paying: boolean
   ): void {
     let course_pay = this.store.get("course_pay");
+    let continue_first_purchase = this.store.get("continue_first_purchase");
     if (is_paying) {
       course_pay = course_pay.add(project_id);
     } else {
       course_pay = course_pay.remove(project_id);
+      continue_first_purchase = false;
     }
-    this.setState({ course_pay });
+    this.setState({ course_pay, continue_first_purchase });
   }
 
   public set_selected_plan(plan: string, period?: string): void {
