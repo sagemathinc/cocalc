@@ -100,9 +100,17 @@ function create_email_body(
   link2proj,
   allow_urls_in_emails
 ): string {
-  const base_url_tokens = link2proj.split("/");
-  const base_url = `${base_url_tokens[0]}//${base_url_tokens[2]}`;
-  const direct_link = `Open <a href='${link2proj}'>the project '${project_title}'</a>.`;
+  let direct_link: string;
+  let base_url: string;
+  if (link2proj != null) {
+    const base_url_tokens = link2proj.split("/");
+    base_url = `${base_url_tokens[0]}//${base_url_tokens[2]}`;
+    direct_link = `Open <a href='${link2proj}'>the project '${project_title}'</a>.`;
+  } else {
+    // no link2proj provided -- at show something useful:
+    direct_link = "";
+    base_url = "https://cocalc.com";
+  }
 
   let email_body = "";
   if (body) {

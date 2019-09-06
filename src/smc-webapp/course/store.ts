@@ -124,7 +124,7 @@ export interface CourseState {
   assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
-  configure_projects: string;
+  configuring_projects?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
@@ -240,7 +240,9 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    const pay = this.get("settings").get("pay");
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return "";
+    const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
   }
