@@ -17,9 +17,10 @@ const ALLOWED: readonly string[] = Object.freeze<string>([
 ]);
 
 interface Reply {
-  status: "ok" | "error";
+  status: "done" | "ack" | "error";
   connection?: "good" | "flaky";
   mesg?: string;
+  action?: string;
   path?: string;
   project_id?: string;
   open_files?: object;
@@ -58,44 +59,55 @@ function all_opened_files(): undefined | object {
   return all_files.filter(files => files.length > 0).toJS();
 }
 
-async function process_message(mesg) {
-  // TODO whitelist mesg.origin domains
+function block_origin(mesg): boolean {
+  for (const allowed of ALLOWED) {
+    if (mesg.origin.endsWith(allowed)) return false;
+  }
+  return true;
+}
 
-  console.log(
-    `comm::process_message from '${mesg.origin}' with data=`,
-    mesg.data
-  );
+async function process_message(mesg) {
+  // NOTE: all kinds of messages might come in. e.g. there is the react
+  // debugger in chrome's dev console. it has cocalc.com as origin.
+  // it's ignored, because we only allow certain external domains here.
+
+  //console.log(
+  //  `comm::process_message from '${mesg.origin}' with data=`,
+  //  mesg.data
+  //);
 
   // check origin
-  let blocked = (function(): boolean {
-    for (const allowed of ALLOWED) {
-      if (mesg.origin.endsWith(allowed)) return false;
-    }
-    return true;
-  })();
-
-  if (blocked) {
-    console.log(`Origin '${mesg.origin}' is blocked.`);
+  if (block_origin(mesg)) {
+    // console.log(`Origin '${mesg.origin}' is blocked.`);
     return;
   }
 
-  // check data
+  // only allow objects as data payloads
   const data = mesg.data;
-  if (typeof data !== "object") return;
 
-  const { action, project_id, path } = data;
-
+  // use this little helper to send a reply.
+  // at minimum, acknowledge the incoming message.
   const reply = (data: Reply) => {
     mesg.source.postMessage(data, mesg.origin);
   };
 
+  if (typeof data !== "object") {
+    reply({ status: "error", mesg: `The payload "data" must be an object` });
+    return;
+  }
+
+  const { action } = data;
   switch (action) {
     case "open":
-      if (
-        is_valid_uuid_string(project_id) &&
-        path != null &&
-        typeof path === "string"
-      ) {
+      const { project_id, path } = data;
+      if (!is_valid_uuid_string(project_id)) {
+        reply({ status: "error", mesg: `invalid project_id='${project_id}'` });
+      } else if (path == null || typeof path !== "string") {
+        reply({
+          status: "error",
+          mesg: `invalid path, it must be a string`
+        });
+      } else {
         const actions = redux.getProjectActions(project_id);
         const opts = {
           path: path,
@@ -103,25 +115,37 @@ async function process_message(mesg) {
           ignore_kiosk: true,
           change_history: false
         };
-        await actions.open_file(opts);
-        reply({ status: "ok", path, project_id });
+        try {
+          reply({ status: "ack", action, path, project_id });
+          await actions.open_file(opts);
+          reply({ status: "done", action, path, project_id });
+        } catch (err) {
+          reply({
+            status: "error",
+            action,
+            path,
+            project_id,
+            mesg: err.toString()
+          });
+        }
       }
       break;
 
     case "status":
       // TODO reply with an "elaborate" status message, e.g. list each project ID, did it load (true/false), ...
       reply({
-        status: "ok",
+        status: "done",
         connection: "good",
         open_files: all_opened_files() || {}
       });
       break;
 
     case "closeall":
-      // this closes all open editors and projects. the "kiosk mode" banner should appear again.
+      // this closes all open editors and projects.
+      // the "kiosk mode" banner should appear again.
       try {
         close_all_files();
-        reply({ status: "ok", mesg: "all files are closed" });
+        reply({ status: "done", mesg: "all files are closed" });
       } catch (err) {
         reply({ status: "error", mesg: err.toString() });
       }
