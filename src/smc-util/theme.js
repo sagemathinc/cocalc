@@ -76,7 +76,10 @@ const COLORS = {
     BS_GREEN      : '#5CB85C',
     BS_GREEN_D    : '#449d44',
     BS_GREEN_DD   : '#398439',
-    BS_RED        : '#dc3545'
+    BS_RED        : '#dc3545',
+    BS_BG_INFO    : '#d9edf7',
+    BS_BG_DANGER  : '#f2dede',
+    BS_BG_WARNING : '#fcf8e3'
 };
 
 // The definitions below add semantic meaning by using the colors

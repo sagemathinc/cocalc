@@ -22,6 +22,9 @@
 // window? is so this can be imported in the backend for testing...
 const $ = window !== null ? (window as any).$ : undefined;
 
+import { redux } from "./app-framework";
+import { NAME_SYSTEM, NotificationsActions } from "./system_notifications";
+
 import {
   defaults,
   hash_string,
@@ -32,7 +35,19 @@ import {
 const { webapp_client } = require("./webapp_client");
 
 const types = ["error", "default", "success", "info"];
-const default_timeout = {
+type Severity = typeof types[number];
+
+// used for system notifications
+export interface Alert {
+  time: any; // type time object ?
+  title: string;
+  text: string;
+  delay: number; // seconds
+  severity: Severity;
+}
+
+// seconds
+const default_timeout: { [type in Severity]: number } = {
   error: 8,
   default: 4,
   success: 4,
@@ -45,12 +60,13 @@ if (typeof $ === "function") {
 
 const last_shown = {};
 
+// old api, used throughout cocalc, based on $.pnotify
 interface AlertMessageOptions {
-  type?: string;
+  type?: Severity;
   title?: string;
-  message?: any;
+  message?: string;
   block?: boolean;
-  timeout?: number;
+  timeout?: number; // seconds
 }
 
 export function alert_message(opts: AlertMessageOptions = {}) {
@@ -96,8 +112,10 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     return;
   }
 
+  const title = opts.title != null ? opts.title : "";
+
   $.pnotify({
-    title: opts.title != null ? opts.title : "",
+    title,
     type: opts.type,
     text: opts.message,
     nonblock: false,
@@ -114,6 +132,23 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     // get error alert messages.
     webapp_client.log_error(opts.message);
   }
+
+  const system_notification_actions = redux.getActions<
+    {},
+    NotificationsActions
+  >(NAME_SYSTEM);
+  if (system_notification_actions == null) {
+    console.error("system_notification_actions is not available");
+    return;
+  }
+
+  system_notification_actions.create_alert({
+    time: server_time(),
+    title,
+    text: opts.message,
+    delay: opts.timeout * 1000,
+    severity: opts.type
+  });
 }
 
 // c = $("#alert-templates .alert-#{opts.type}").clone()
@@ -144,10 +179,10 @@ function check_for_clock_skew() {
 setTimeout(check_for_clock_skew, 60000);
 
 // for testing/development
-// alert_message(type:'error',   message:"This is an error")
-// alert_message(type:'default', message:"This is a default alert")
-// alert_message(type:'success', message:"This is a success alert")
-// alert_message(type:'info',    message:"This is an info alert")
+// alert_message({type:'error',   message:"This is an error"})
+// alert_message({type:'default', message:"This is a default alert"})
+// alert_message({type:'success', message:"This is a success alert"})
+// alert_message({type:'info',    message:"This is an info alert"})
 
 // Make it so alert_message can be used by user code, e.g., in sage worksheets.
 if (window !== null) {

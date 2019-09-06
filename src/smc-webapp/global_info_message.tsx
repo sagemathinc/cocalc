@@ -1,14 +1,15 @@
 import { React, rtypes, Rendered, rclass, redux } from "./app-framework";
 import { Button, ButtonGroup, NavItem } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
-import { is_different } from "smc-util/misc2";
+import { is_different, unreachable } from "smc-util/misc2";
 const { Markdown, Icon, VisibleMDLG, Tip, TimeAgo } = require("./r_misc");
 //import { Map as iMap } from "immutable";
 import {
   Messages,
   Message,
   NotificationsActions,
-  NAME_SYSTEM as NotificationsName
+  NAME_SYSTEM as NotificationsName,
+  Priority
 } from "./system_notifications";
 
 interface GlobalInformationToggleProps {
@@ -161,21 +162,28 @@ class GlobalInformationMessageComponent extends React.Component<
     );
   }
 
+  private color_and_icon(priority: Priority): [string, string] {
+    switch (priority) {
+      case "high":
+        return [COLORS.BS_BG_DANGER, "info-circle"];
+      case "info":
+        return [COLORS.BS_BG_INFO, "far fa-lightbulb"];
+      case "alert":
+        return [COLORS.BS_BG_WARNING, "exclamation-triangle"];
+      default:
+        unreachable(priority);
+        return ["", ""];
+    }
+  }
+
   render(): Rendered | null {
     if (this.props.current_message == null) {
       return null;
     }
     const message = this.props.current_message;
 
-    const priority = message.get("priority");
-    const [bgcol, info_icon] = (function() {
-      switch (priority) {
-        case "high":
-          return [COLORS.YELL_L, "exclamation-triangle"];
-        case "info":
-          return [COLORS.BLUE_LL, "info-circle"];
-      }
-    })();
+    const priority: Priority = message.get("priority") as Priority;
+    const [bgcol, info_icon] = this.color_and_icon(priority);
 
     const style: React.CSSProperties = {
       backgroundColor: bgcol

@@ -1,16 +1,30 @@
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
+import { uuid } from "smc-util/misc2";
 import { OrderedMap, Map } from "immutable";
 import { Actions, Table, Store, redux } from "./app-framework";
+import { createTypedMap, TypedMap } from "./app-framework/TypedMap";
 const { alert_message } = require("./alerts");
 import { debug } from "./feature";
 import { once } from "smc-util/async-utils";
 import * as LS from "misc/local-storage";
+import { Alert } from "./alerts";
 
 export const NAME_SYSTEM = "system_notifications";
 
-export type Priority = "high" | "info";
-export type Message = Map<string, any>;
+export type Priority = "high" | "info" | "alert";
+
+// TODO somehow figure out how to use a TypedMap for actual typing
+export type Message = TypedMap<{
+  id: string;
+  priority: Priority;
+  time: any; // time type ?
+  text: string;
+  done?: boolean;
+}>;
+export const MessageObject = createTypedMap<Message>();
+
+// TODO mapping string to Message breaks somehow
 export type Messages = OrderedMap<string, any>;
 
 function sort_messages(messages: Messages): Messages {
@@ -22,6 +36,7 @@ interface NotificationsState {
   loading: boolean;
   notifications?: Messages;
   announcements?: Messages;
+  alerts?: Messages;
   messages?: Messages; // synthesized ordered map of notifications+announcements
   current_message?: Message; // which message to display
   have_next: boolean;
@@ -33,7 +48,8 @@ interface NotificationsState {
 const INIT_STATE: NotificationsState = {
   loading: true,
   have_next: false,
-  have_previous: false
+  have_previous: false,
+  alerts: Map<string, any>()
 };
 
 export class NotificationsStore extends Store<NotificationsState> {}
@@ -53,10 +69,10 @@ export class NotificationsActions extends Actions<NotificationsState> {
 
   process_all_messages(): void {
     // messages ordered by newest first
-    const messages = sort_messages(
-      (store.get("announcements") || Map<string, any>()).merge(
-        store.get("notifications") || Map<string, any>()
-      )
+    const messages: Messages = sort_messages(
+      (store.get("announcements") || Map<string, any>())
+        .merge(store.get("notifications") || Map<string, any>())
+        .merge(store.get("alerts") || Map<string, any>())
     );
     this.setState({ messages });
 
@@ -108,7 +124,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
     let next_mesg: undefined | Message = undefined;
     let first = true;
     announcements.forEach((mesg, _id) => {
-      const time = mesg.get("time", new Date(0));
+      const time = mesg.get("time") || new Date(0);
       if (forward ? time > current_time : time < current_time || first) {
         next_mesg = mesg;
       } else {
@@ -124,10 +140,23 @@ export class NotificationsActions extends Actions<NotificationsState> {
 
   previous = (): void => this.skip(false);
 
+  create_alert = (alert: Alert): void => {
+    const id = uuid();
+    const alert_msg = new MessageObject(
+      Object.assign(alert, {
+        id: id,
+        priority: "alert" as Priority
+      })
+    );
+    const alerts = store.get("alerts") || Map<string, any>();
+    this.setState({ alerts: alerts.set(id, alert_msg) });
+    this.process_all_messages();
+  };
+
   // ADMIN ONLY
   send_message = (opts): void => {
     opts = defaults(opts, {
-      id: misc.uuid(),
+      id: uuid(),
       time: new Date(),
       text: required,
       priority: "high" as Priority
