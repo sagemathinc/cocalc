@@ -8,11 +8,12 @@ export function BillingPageLink(opts: { text?: string }): Rendered {
     text = "billing page";
   }
   return (
-    <a
-      onClick={() => load_target("settings/billing")}
-      style={{ cursor: "pointer" }}
-    >
+    <a onClick={visit_billing_page} style={{ cursor: "pointer" }}>
       {text}
     </a>
   );
+}
+
+export function visit_billing_page(): void {
+  load_target("settings/billing");
 }

@@ -972,6 +972,7 @@ exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
        If you have already paid, you can go to the settings in your project and click the "Adjust  your quotas..." button, then click the checkboxes next to network and member hosting.  If it says you do not have enough quota, visit the Upgrades tab in account settings, see where the upgrades are, remove them from another project, then try again.
     </div>
 
+{BillingPageLink} = require('../billing/billing-page-link')
 exports.CourseProjectWarning = (opts) ->
     {total, used, avail, course_info, course_warning, account_id, email_address} = project_warning_opts(opts)
     if not course_warning
@@ -979,11 +980,10 @@ exports.CourseProjectWarning = (opts) ->
         return <span></span>
     # We may now assume course_info.get is defined, since course_warning is only true if it is.
     pay = course_info.get('pay')
-    billing = require('../billing')
     if avail > 0
-        action = <billing.BillingPageLink text="move this project to a members only server" />
+        action = <BillingPageLink text="move this project to a members only server" />
     else
-        action = <billing.BillingPageLink text="buy a course subscription" />
+        action = <BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
     {webapp_client} = require('../webapp_client')
     if pay > webapp_client.server_time()  # in the future
@@ -1181,6 +1181,7 @@ exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
     fontWeight   : 'bold'
     marginBottom : '1em'
 
+{visit_billing_page} = require("../billing/billing-page-link")
 exports.NoUpgrades = NoUpgrades = rclass
     displayName : 'NoUpgrades'
 
@@ -1189,12 +1190,12 @@ exports.NoUpgrades = NoUpgrades = rclass
 
     billing: (e) ->
         e.preventDefault()
-        require('../billing').visit_billing_page()
+        visit_billing_page()
 
     render: ->
         <Alert bsStyle='info'>
             <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
-            <p>You can purchase upgrades starting at $7 / month.</p>
+            <p>You can purchase upgrades starting at $14 / month.</p>
             <p><a href='' onClick={@billing}>Visit the billing page...</a></p>
             <Button onClick={@props.cancel}>Cancel</Button>
         </Alert>

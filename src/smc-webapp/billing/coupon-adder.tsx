@@ -91,7 +91,7 @@ export class CouponAdder extends Component<Props, State> {
   public render(): Rendered {
     // TODO: (Here or elsewhere) Your final cost is:
     //       $2 for the first month
-    //       $7/mo after the first
+    //       $14/mo after the first
     const placeholder_text =
       this.props.applied_coupons.size > 0
         ? "Enter another code?"

@@ -17,7 +17,7 @@ import {
 
 import { len } from "smc-util/misc2";
 
-const { visit_billing_page } = require("../billing");
+import { visit_billing_page } from "../billing/billing-page-link";
 
 interface Props {
   // reduxProps:
@@ -40,8 +40,8 @@ class UpgradeStatus extends Component<Props, {}> {
   }
 
   open_account_upgrades_panel(): void {
-    (redux.getActions('page') as any).set_active_tab('account');
-    (redux.getActions('account') as any).set_active_tab('upgrades');
+    (redux.getActions("page") as any).set_active_tab("account");
+    (redux.getActions("account") as any).set_active_tab("upgrades");
   }
 
   open_account_subscriptions_panel(): void {
