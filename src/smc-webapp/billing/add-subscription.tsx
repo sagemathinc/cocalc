@@ -65,7 +65,7 @@ export class AddSubscription extends Component<Props, State> {
 
   private render_period_selection_buttons(): Rendered {
     return (
-      <div>
+      <div style={{ display: "inline-block" }}>
         <ButtonGroup
           bsSize="large"
           style={{ marginBottom: "20px", display: "flex" }}
@@ -256,35 +256,33 @@ export class AddSubscription extends Component<Props, State> {
       PROJECT_UPGRADES.subscription[this.props.selected_plan.split("-")[0]];
 
     return (
-      <Row>
-        <Col sm={12}>
-          <Well style={{ boxShadow: "5px 5px 5px lightgray", zIndex: 1 }}>
-            {this.render_create_subscription_options()}
-            {this.props.selected_plan !== ""
-              ? this.render_create_subscription_confirm(plan_data)
-              : undefined}
-            {this.props.selected_plan !== "" ? (
-              <ConfirmPaymentMethod
-                customer={this.props.customer}
-                is_recurring={this.is_recurring()}
-                on_close={this.props.on_close}
+      <>
+        <Well style={{ boxShadow: "5px 5px 5px lightgray", zIndex: 1 }}>
+          {this.render_create_subscription_options()}
+          {this.props.selected_plan !== ""
+            ? this.render_create_subscription_confirm(plan_data)
+            : undefined}
+          {this.props.selected_plan !== "" ? (
+            <ConfirmPaymentMethod
+              customer={this.props.customer}
+              is_recurring={this.is_recurring()}
+              on_close={this.props.on_close}
+            />
+          ) : (
+            undefined
+          )}
+          {this.render_create_subscription_buttons()}
+          <Row style={{ paddingTop: "15px" }}>
+            <Col sm={5} smOffset={7}>
+              <CouponAdder
+                applied_coupons={this.props.applied_coupons}
+                coupon_error={this.props.coupon_error}
               />
-            ) : (
-              undefined
-            )}
-            {this.render_create_subscription_buttons()}
-            <Row style={{ paddingTop: "15px" }}>
-              <Col sm={5} smOffset={7}>
-                <CouponAdder
-                  applied_coupons={this.props.applied_coupons}
-                  coupon_error={this.props.coupon_error}
-                />
-              </Col>
-            </Row>
-          </Well>
-          <ExplainResources type="shared" />
-        </Col>
-      </Row>
+            </Col>
+          </Row>
+        </Well>
+        <ExplainResources type="shared" />
+      </>
     );
   }
 }
