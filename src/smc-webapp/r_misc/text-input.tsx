@@ -7,6 +7,7 @@ interface Props {
   on_change: (value: string) => void;
   type?: string;
   rows?: number;
+  autoFocus?: boolean;
 }
 
 interface State {
@@ -55,6 +56,7 @@ export class TextInput extends React.Component<Props, State> {
           componentClass={this.props.type === "textarea" ? "textarea" : "input"}
           value={this.state.text != undefined ? this.state.text : this.props.text}
           onChange={e => this.setState({ text: e.target.value })}
+          autoFocus={this.props.autoFocus}
         />
       </FormGroup>
     );

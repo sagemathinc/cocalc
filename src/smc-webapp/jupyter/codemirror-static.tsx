@@ -1,11 +1,18 @@
 /*
 Rendering of static codemirror editor.
 
-Meant to be efficient to render hundreds
-of these on the page at once.
+Meant to be efficient to render many of these on the page at once.
+
+We use this for:
+
+  - the share server
+  - rendering cells that are offscreen or scrolling.
+
+In benchmarks, this seems to easily be 10x faster than creating an actual
+CodeMirror editor.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this
+import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { copy, merge } from "smc-util/misc";
 
@@ -14,7 +21,7 @@ declare const CodeMirror: any; // TODO: find typings for this UMD
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
-  background: "#f7f7f7",
+  background: "#ffffff",
   lineHeight: "normal",
   height: "auto",
   fontSize: "inherit",
@@ -29,9 +36,9 @@ const BLURRED_STYLE: React.CSSProperties = {
 interface CodeMirrorStaticProps {
   value: string;
   id?: string;
-  options?: ImmutableMap<any, any>;
+  options?: ImmutableMap<string, any>;
   font_size?: number;
-  complete?: ImmutableMap<any, any>;
+  complete?: ImmutableMap<string, any>;
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: any; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
@@ -43,7 +50,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     return (
       <div key={key} className="CodeMirror-gutter-wrapper">
         <div
-          style={{ left: `-${width + 10}px`, width: `${width - 9}px` }}
+          style={{ left: `-${width + 4}px`, width: `${width - 9}px` }}
           className="CodeMirror-linenumber CodeMirror-gutter-elt"
         >
           {line}
@@ -53,11 +60,16 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
   };
 
   render_lines = (width: number) => {
-    let mode = "python";
-    if (this.props.options) {
-      mode = this.props.options.getIn(["mode", "name"], mode);
+    let mode: any = null;
+    if (this.props.options != null) {
+      mode = this.props.options.get("mode");
+      if (mode != null && typeof mode.toJS === "function") {
+        mode = mode.toJS();
+      }
+    } else {
+      mode = "python3"; // a likely fallback, given it's CoCalc.
     }
-    const v: any[] = [];
+    const v: Rendered[] = [];
     // TODO: write this line better
     let line_numbers: boolean = !!(this.props.options != null
       ? this.props.options.get("lineNumbers")
@@ -115,11 +127,11 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     ) {
       const num_lines = this.props.value.split("\n").length;
       if (num_lines < 100) {
-        width = 40;
+        width = 30;
       } else if (num_lines < 1000) {
-        width = 49;
+        width = 35;
       } else if (num_lines < 10000) {
-        width = 59;
+        width = 45;
       } else {
         // nobody better do this...?
         width = 69;

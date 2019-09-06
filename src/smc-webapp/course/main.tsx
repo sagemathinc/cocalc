@@ -46,7 +46,7 @@ import {
   redux
 } from "../app-framework";
 
-import { Button, ButtonGroup, Tabs, Tab } from "react-bootstrap";
+import { Button, ButtonGroup, Nav, NavItem, Tab } from "react-bootstrap";
 
 let {
   ActivityDisplay,
@@ -60,6 +60,7 @@ let {
 // Course components
 import {
   CourseStore,
+  CourseState,
   StudentsMap,
   AssignmentsMap,
   HandoutsMap,
@@ -166,9 +167,8 @@ const remove_redux = function(course_filename, redux, course_project_id) {
 
 const COURSE_EDITOR_STYLE: CSSProperties = {
   height: "100%",
-  overflowY: "scroll",
-  overflowX: "hidden",
-  padding: "7px"
+  overflowY: "auto",
+  overflowX: "hidden"
 };
 
 interface CourseReactProps {
@@ -190,6 +190,7 @@ interface CourseReduxProps {
   settings: CourseSettingsRecord;
   unsaved: boolean;
   loading: boolean;
+  configuring_projects?: boolean;
 
   user_map: UserMap;
 
@@ -211,7 +212,8 @@ export const CourseEditor = rclass<CourseReactProps>(
           assignments: rtypes.immutable.Map,
           handouts: rtypes.immutable.Map,
           settings: rtypes.immutable.Map,
-          unsaved: rtypes.bool
+          unsaved: rtypes.bool,
+          configuring_projects: rtypes.bool
         },
         users: {
           user_map: rtypes.immutable
@@ -233,7 +235,8 @@ export const CourseEditor = rclass<CourseReactProps>(
         "settings",
         "unsaved",
         "user_map",
-        "project_map"
+        "project_map",
+        "configuring_projects"
       ]);
     }
 
@@ -321,7 +324,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 
     render_save_timetravel() {
       return (
-        <div style={{ float: "right", marginRight: "15px" }}>
+        <div style={{ position: "absolute", right: "15px" }}>
           <ButtonGroup>
             <Button
               onClick={this.save_to_disk}
@@ -387,7 +390,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -411,7 +414,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -430,7 +433,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
-            store_object={this.props.redux.getStore(this.props.name)}
+            store_object={this.props.redux.getStore<CourseState, CourseStore>(this.props.name)}
             project_actions={this.props.redux.getProjectActions(
               this.props.project_id
             )}
@@ -438,7 +441,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -448,12 +451,16 @@ export const CourseEditor = rclass<CourseReactProps>(
         this.props.redux != null &&
         this.props.settings != null
       ) {
+        const allow_urls = redux
+          .getStore("projects")
+          .allow_urls_in_emails(this.props.project_id);
         return (
           <ConfigurationPanel
             redux={this.props.redux}
             settings={this.props.settings}
             name={this.props.name}
             project_id={this.props.project_id}
+            allow_urls={allow_urls}
             path={this.props.path}
             shared_project_id={
               this.props.settings != null
@@ -461,10 +468,11 @@ export const CourseEditor = rclass<CourseReactProps>(
                 : undefined
             }
             project_map={this.props.project_map}
+            configuring_projects={this.props.configuring_projects}
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
     }
 
@@ -486,8 +494,73 @@ export const CourseEditor = rclass<CourseReactProps>(
           />
         );
       } else {
-        return <Loading />;
+        return <Loading theme={"medium"} />;
       }
+    }
+
+    render_students_tab() {
+      if (this.props.tab != "students") return;
+      return (
+        <Tab.Pane
+          eventKey={"students"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_students()}
+        </Tab.Pane>
+      );
+    }
+
+    render_assignments_tab() {
+      if (this.props.tab != "assignments") return;
+      return (
+        <Tab.Pane
+          eventKey={"assignments"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_assignments()}
+        </Tab.Pane>
+      );
+    }
+
+    render_handouts_tab() {
+      if (this.props.tab != "handouts") return;
+      return (
+        <Tab.Pane
+          eventKey={"handouts"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_handouts()}
+        </Tab.Pane>
+      );
+    }
+
+    render_configuration_tab() {
+      if (this.props.tab != "configuration") return;
+      return (
+        <Tab.Pane
+          eventKey={"configuration"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_configuration()}
+        </Tab.Pane>
+      );
+    }
+
+    render_shared_project_tab() {
+      if (this.props.tab != "shared_project") return;
+      return (
+        <Tab.Pane
+          eventKey={"shared_project"}
+          className={"smc-vfill"}
+          style={{ display: "flex" }}
+        >
+          {this.render_shared_project()}
+        </Tab.Pane>
+      );
     }
 
     render_tabs() {
@@ -495,56 +568,54 @@ export const CourseEditor = rclass<CourseReactProps>(
         return;
       }
       return (
-        <Tabs
+        <Tab.Container
           id={"course-tabs"}
-          animation={false}
           activeKey={this.props.tab}
           onSelect={key => this.get_actions().set_tab(key)}
+          className={"smc-vfill"}
+          style={{ padding: "5px 0 0 5px" }}
         >
-          <Tab
-            eventKey={"students"}
-            title={<StudentsPanelHeader n={this.num_students()} />}
-          >
-            {this.render_students()}
-          </Tab>
-          <Tab
-            eventKey={"assignments"}
-            title={<AssignmentsPanelHeader n={this.num_assignments()} />}
-          >
-            {this.render_assignments()}
-          </Tab>
-          <Tab
-            eventKey={"handouts"}
-            title={<HandoutsPanelHeader n={this.num_handouts()} />}
-          >
-            {this.render_handouts()}
-          </Tab>
-          <Tab eventKey={"configuration"} title={<ConfigurationPanelHeader />}>
-            <div style={{ marginTop: "1em" }} />
-            {this.render_configuration()}
-          </Tab>
-          <Tab
-            eventKey={"shared_project"}
-            title={
-              <SharedProjectPanelHeader
-                project_exists={
-                  !!(this.props.settings != null
-                    ? this.props.settings.get("shared_project_id")
-                    : undefined)
-                }
-              />
-            }
-          >
-            <div style={{ marginTop: "1em" }} />
-            {this.render_shared_project()}
-          </Tab>
-        </Tabs>
+          <div className={"smc-vfill"}>
+            <Nav bsStyle="pills">
+              <NavItem eventKey="students">
+                <StudentsPanelHeader n={this.num_students()} />
+              </NavItem>
+              <NavItem eventKey="assignments">
+                <AssignmentsPanelHeader n={this.num_assignments()} />
+              </NavItem>
+              <NavItem eventKey="handouts">
+                <HandoutsPanelHeader n={this.num_handouts()} />
+              </NavItem>
+              <NavItem eventKey="configuration">
+                <ConfigurationPanelHeader />
+              </NavItem>
+              <NavItem eventKey="shared_project">
+                <SharedProjectPanelHeader
+                  project_exists={
+                    !!(
+                      this.props.settings &&
+                      this.props.settings.get("shared_project_id")
+                    )
+                  }
+                />
+              </NavItem>
+            </Nav>
+
+            <Tab.Content className={"smc-vfill"} style={{ marginTop: "5px" }}>
+              {this.render_students_tab()}
+              {this.render_assignments_tab()}
+              {this.render_handouts_tab()}
+              {this.render_configuration_tab()}
+              {this.render_shared_project_tab()}
+            </Tab.Content>
+          </div>
+        </Tab.Container>
       );
     }
 
     render() {
       return (
-        <div style={COURSE_EDITOR_STYLE}>
+        <div style={COURSE_EDITOR_STYLE} className={"smc-vfill"}>
           {this.render_pay_banner()}
           {this.props.show_save_button ? this.render_save_button() : undefined}
           {this.props.error ? this.render_error() : undefined}

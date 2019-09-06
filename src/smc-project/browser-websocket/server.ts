@@ -58,8 +58,12 @@ export function init_websocket_server(
   const library: string = primus.library();
 
   router.get("/.smc/primus.js", (_, res) => {
-    logger.debug("primus", "serving up primus.js");
+    logger.debug("primus", "serving up primus.js to a specific client");
     res.send(library);
   });
+  logger.debug(
+    "primus",
+    `waiting for clients to request primus.js (length=${library.length})...`
+  );
   return router;
 }

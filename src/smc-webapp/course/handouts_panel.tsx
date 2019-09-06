@@ -26,12 +26,14 @@
 //
 //##############################################################################
 
+import { WindowedList } from "../r_misc/windowed-list";
+
 // CoCalc libraries
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 
 // React Libraries
-import { React, rtypes, Component, rclass } from "../app-framework";
-const {
+import { React, rtypes, Component, rclass, Rendered } from "../app-framework";
+import {
   Alert,
   Button,
   ButtonToolbar,
@@ -40,8 +42,10 @@ const {
   FormControl,
   Row,
   Col,
-  Panel
-} = require("react-bootstrap");
+  Grid
+} from "react-bootstrap";
+
+const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
 
 // CoCalc and course components
 import * as util from "./util";
@@ -58,13 +62,10 @@ import { UserMap } from "../todo-types";
 import { ProjectActions } from "../project_store";
 import { Set } from "immutable";
 import { CourseActions } from "./actions";
-const {
-  ErrorDisplay,
-  Icon,
-  Tip,
-  MarkdownInput,
-  Loading
-} = require("../r_misc");
+import { ErrorDisplay } from "../r_misc/error-display";
+import { Icon } from "../r_misc/icon";
+import { Tip } from "../r_misc/tip";
+const { MarkdownInput } = require("../r_misc");
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -150,7 +151,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     // Update on different students, handouts, or filter parameters
     // TODO: this is BS -- do this right.  Get rid of store_object above and
     // put the actual data it uses; make everything immutable!
-    shouldComponentUpdate(nextProps, nextState) {
+    public shouldComponentUpdate(nextProps, nextState): boolean {
       if (
         nextProps.all_handouts !== this.props.all_handouts ||
         nextProps.students !== this.props.students ||
@@ -164,7 +165,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       return false;
     }
 
-    get_handout(id: string): HandoutRecord {
+    private get_handout(id: string): HandoutRecord {
       let handout = this.props.all_handouts.get(id);
       if (handout == undefined) {
         console.warn(`Tried to access undefined handout ${id}`);
@@ -172,7 +173,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       return handout as any;
     }
 
-    compute_handouts_list() {
+    private compute_handouts_list() {
       let deleted, num_deleted, num_omitted;
       let list = util.immutable_to_list(this.props.all_handouts, "handout_id");
 
@@ -201,7 +202,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       };
     }
 
-    render_show_deleted_button(num_deleted, num_shown) {
+    private render_show_deleted_button(num_deleted, num_shown): Rendered {
       if (this.state.show_deleted) {
         return (
           <Button
@@ -235,7 +236,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       }
     }
 
-    yield_adder(deleted_handouts) {
+    private yield_adder(deleted_handouts) {
       const deleted_paths = {};
       deleted_handouts.map(obj => {
         if (obj.path) {
@@ -252,7 +253,67 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       };
     }
 
-    render() {
+    private render_handout(handout_id: string, index: number): Rendered {
+      if (this.props.store_object == null) return;
+      return (
+        <Handout
+          backgroundColor={index % 2 === 0 ? "#eee" : undefined}
+          key={handout_id}
+          handout={this.get_handout(handout_id)}
+          project_id={this.props.project_id}
+          students={this.props.students}
+          user_map={this.props.user_map}
+          actions={this.props.actions}
+          store_object={this.props.store_object}
+          open_directory={this.props.project_actions.open_directory}
+          is_expanded={this.props.expanded_handouts.has(handout_id)}
+          name={this.props.name}
+        />
+      );
+    }
+
+    private render_handouts(handouts): Rendered {
+      if (!this.props.store_object) return;
+      if (handouts.length == 0) {
+        return this.render_no_handouts();
+      }
+      return (
+        <WindowedList
+          overscan_row_count={3}
+          estimated_row_size={50}
+          row_count={handouts.length}
+          row_renderer={({ key, index }) => this.render_handout(key, index)}
+          row_key={index =>
+            handouts[index] != null ? handouts[index].handout_id : undefined
+          }
+          cache_id={"course-handouts-" + this.props.name}
+        />
+      );
+    }
+
+    private render_no_handouts(): Rendered {
+      return (
+        <Alert
+          bsStyle="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
+        >
+          <h3>Add a Handout to your Course</h3>
+          <p>
+            A handout is a <i>directory</i> of files somewhere in your CoCalc
+            project, which you send to all of your students. They can then do
+            anything they want with that handout.
+          </p>
+
+          <p>
+            Add a handout to your course by creating a directory using the Files
+            tab, then type the name of the directory in the box in the upper
+            right and click to search.
+          </p>
+        </Alert>
+      );
+    }
+
+    public render(): Rendered {
       // Computed data from state changes have to go in render
       const {
         shown_handouts,
@@ -276,36 +337,17 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
       );
 
       return (
-        <Panel header={header}>
-          {shown_handouts.map(
-            (handout, i) =>
-              this.props.store_object ? (
-                <Handout
-                  backgroundColor={i % 2 === 0 ? "#eee" : undefined}
-                  key={handout.handout_id}
-                  handout={this.get_handout(handout.handout_id)}
-                  project_id={this.props.project_id}
-                  students={this.props.students}
-                  user_map={this.props.user_map}
-                  actions={this.props.actions}
-                  store_object={this.props.store_object}
-                  open_directory={this.props.project_actions.open_directory}
-                  is_expanded={this.props.expanded_handouts.has(
-                    handout.handout_id
-                  )}
-                  name={this.props.name}
-                />
-              ) : (
-                <Loading />
-              )
-          )}
+        <div className={"smc-vfill"}>
+          {header}
+          <div style={{ marginTop: "5px" }} />
+          {this.render_handouts(shown_handouts)}
           {num_deleted > 0
             ? this.render_show_deleted_button(
                 num_deleted,
                 shown_handouts.length != null ? shown_handouts.length : 0
               )
             : undefined}
-        </Panel>
+        </div>
       );
     }
   }
@@ -359,12 +401,12 @@ class Handout extends Component<HandoutProps, HandoutState> {
     };
   }
 
-  open_handout_path = e => {
+  private open_handout_path = e => {
     e.preventDefault();
     return this.props.open_directory(this.props.handout.get("path"));
   };
 
-  render_more_header() {
+  private render_more_header() {
     return (
       <div>
         <div style={{ fontSize: "15pt", marginBottom: "5px" }}>
@@ -377,7 +419,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
-  render_handout_notes() {
+  private render_handout_notes(): Rendered {
     return (
       <Row key="note" style={styles.note}>
         <Col xs={2}>
@@ -385,7 +427,8 @@ class Handout extends Component<HandoutProps, HandoutState> {
             title="Notes about this handout"
             tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout."
           >
-            Private Handout Notes<br />
+            Private Handout Notes
+            <br />
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
@@ -409,22 +452,20 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
-  render_copy_all(status) {
+  private render_copy_all(status): Rendered[] {
     const steps = STEPS();
-    return (() => {
-      const result: any[] = [];
-      for (let step of steps) {
-        if (this.state[`copy_confirm_${step}`]) {
-          result.push(this.render_copy_confirm(step, status));
-        } else {
-          result.push(undefined);
-        }
+    const result: any[] = [];
+    for (let step of steps) {
+      if (this.state[`copy_confirm_${step}`]) {
+        result.push(this.render_copy_confirm(step, status));
+      } else {
+        result.push(undefined);
       }
-      return result;
-    })();
+    }
+    return result;
   }
 
-  render_copy_confirm(step, status) {
+  private render_copy_confirm(step: string, status): Rendered {
     return (
       <span key={`copy_confirm_${step}`}>
         {status[step] === 0
@@ -437,9 +478,9 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
-  render_copy_cancel(step) {
-    const cancel = () => {
-      return this.setState({
+  private render_copy_cancel(step: string): Rendered {
+    const cancel = (): void => {
+      this.setState({
         [`copy_confirm_${step}`]: false,
         [`copy_confirm_all_${step}`]: false,
         copy_confirm: false,
@@ -453,13 +494,13 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
-  render_copy_handout_confirm_overwrite(step) {
+  private render_copy_handout_confirm_overwrite(step: string): Rendered {
     if (!this.state.copy_handout_confirm_overwrite) {
       return;
     }
-    const do_it = () => {
+    const do_it = (): void => {
       this.copy_handout(step, false);
-      return this.setState({
+      this.setState({
         copy_handout_confirm_overwrite: false,
         copy_handout_confirm_overwrite_text: ""
       });
@@ -475,7 +516,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             ref="copy_handout_confirm_overwrite_field"
             onChange={e =>
               this.setState({
-                copy_handout_confirm_overwrite_text: e.target.value
+                copy_handout_confirm_overwrite_text: (e.target as any).value
               })
             }
             style={{ marginTop: "1ex" }}
@@ -497,7 +538,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
-  copy_handout(step, new_only, overwrite?) {
+  private copy_handout(step, new_only, overwrite?): void {
     // handout to all (non-deleted) students
     switch (step) {
       case "handout":
@@ -510,14 +551,14 @@ class Handout extends Component<HandoutProps, HandoutState> {
       default:
         console.log(`BUG -- unknown step: ${step}`);
     }
-    return this.setState({
+    this.setState({
       [`copy_confirm_${step}`]: false,
       [`copy_confirm_all_${step}`]: false,
       copy_confirm: false
     } as any);
   }
 
-  render_copy_confirm_to_all(step, status) {
+  private render_copy_confirm_to_all(step, status): Rendered {
     const n = status[`not_${step}`];
     return (
       <Alert
@@ -544,7 +585,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
-  copy_confirm_all_caution(step) {
+  private copy_confirm_all_caution(step): string | undefined {
     switch (step) {
       case "handout":
         return `\
@@ -555,7 +596,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     }
   }
 
-  render_copy_confirm_overwrite_all(step) {
+  private render_copy_confirm_overwrite_all(step): Rendered {
     return (
       <div key="copy_confirm_overwrite_all" style={{ marginTop: "15px" }}>
         <div style={{ marginBottom: "15px" }}>
@@ -585,7 +626,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
-  render_copy_confirm_to_all_or_new(step, status) {
+  private render_copy_confirm_to_all_or_new(step, status): Rendered {
     const n = status[`not_${step}`];
     const m = n + status[step];
     return (
@@ -595,7 +636,8 @@ Select "Replace student files!" in case you do not want to create any backups an
         style={{ marginTop: "15px" }}
       >
         <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this handout {step_direction(step)}...
+          {misc.capitalize(step_verb(step))} this handout {step_direction(step)}
+          ...
         </div>
         <ButtonToolbar>
           <Button
@@ -609,7 +651,8 @@ Select "Replace student files!" in case you do not want to create any backups an
             }
             disabled={this.state[`copy_confirm_all_${step}`]}
           >
-            {step === "handout" ? "All" : "The"} {m} students{step_ready(step)}...
+            {step === "handout" ? "All" : "The"} {m} students{step_ready(step)}
+            ...
           </Button>
           {n ? (
             <Button
@@ -632,7 +675,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
-  render_handout_button(status) {
+  private render_handout_button(status): Rendered {
     let bsStyle;
     const handout_count = status.handout;
     const { not_handout } = status;
@@ -670,16 +713,16 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
-  delete_handout = () => {
+  private delete_handout = (): void => {
     this.props.actions.delete_handout(this.props.handout);
     this.setState({ confirm_delete: false });
   };
 
-  undelete_handout = () => {
+  private undelete_handout = (): void => {
     this.props.actions.undelete_handout(this.props.handout);
   };
 
-  render_confirm_delete() {
+  private render_confirm_delete(): Rendered {
     return (
       <Alert bsStyle="warning" key="confirm_delete">
         Are you sure you want to delete this handout (you can undelete it
@@ -700,7 +743,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
-  render_delete_button() {
+  private render_delete_button(): Rendered {
     if (this.props.handout.get("deleted")) {
       return (
         <Tip
@@ -737,7 +780,8 @@ Select "Replace student files!" in case you do not want to create any backups an
     }
   }
 
-  render_more() {
+  private render_more(): Rendered {
+    if (!this.props.is_expanded) return;
     return (
       <Row key="more">
         <Col sm={12}>
@@ -756,15 +800,41 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
-  outside_button_style: {
+  private outside_button_style: {
     margin: "4px";
     paddingTop: "6px";
     paddingBottom: "4px";
   };
 
-  render() {
+  private render_handout_name(): Rendered {
+    return (
+      <h5>
+        <a
+          href=""
+          onClick={e => {
+            e.preventDefault();
+            return this.props.actions.toggle_item_expansion(
+              "handout",
+              this.props.handout.get("handout_id")
+            );
+          }}
+        >
+          <Icon
+            style={{ marginRight: "10px", float: "left" }}
+            name={this.props.is_expanded ? "caret-down" : "caret-right"}
+          />
+          <div>
+            {misc.trunc_middle(this.props.handout.get("path"), 24)}
+            {this.props.handout.get("deleted") ? <b> (deleted)</b> : undefined}
+          </div>
+        </a>
+      </h5>
+    );
+  }
+
+  private render_handout_heading(): Rendered {
     let status = this.props.store_object.get_handout_status(this.props.handout);
-    if (status == undefined) {
+    if (status == null) {
       status = {
         handout: 0,
         not_handout: 0
@@ -772,70 +842,52 @@ Select "Replace student files!" in case you do not want to create any backups an
     }
     return (
       <Row
-        style={
-          this.props.is_expanded ? styles.selected_entry : styles.entry_style
-        }
+        key="summary"
+        style={{ backgroundColor: this.props.backgroundColor }}
       >
-        <Col xs={12}>
-          <Row
-            key="summary"
-            style={{ backgroundColor: this.props.backgroundColor }}
-          >
-            <Col md={2} style={{ paddingRight: "0px" }}>
-              <h5>
-                <a
-                  href=""
-                  onClick={e => {
-                    e.preventDefault();
-                    return this.props.actions.toggle_item_expansion(
-                      "handout",
-                      this.props.handout.get("handout_id")
-                    );
-                  }}
-                >
-                  <Icon
-                    style={{ marginRight: "10px", float: "left" }}
-                    name={this.props.is_expanded ? "caret-down" : "caret-right"}
-                  />
-                  <div>
-                    {misc.trunc_middle(this.props.handout.get("path"), 24)}
-                    {this.props.handout.get("deleted") ? (
-                      <b> (deleted)</b>
-                    ) : (
-                      undefined
-                    )}
-                  </div>
-                </a>
-              </h5>
-            </Col>
-            <Col md={6}>
-              <Row style={{ marginLeft: "8px" }}>
-                {this.render_handout_button(status)}
-                <span style={{ color: "#666", marginLeft: "5px" }}>
-                  ({status.handout}/{status.handout + status.not_handout}{" "}
-                  received)
-                </span>
-              </Row>
-              <Row style={{ marginLeft: "8px" }}>
-                {this.render_copy_all(status)}
-              </Row>
-            </Col>
-            <Col md={4}>
-              <Row>
-                <span className="pull-right">
-                  {this.render_delete_button()}
-                </span>
-              </Row>
-              <Row>
-                {this.state.confirm_delete
-                  ? this.render_confirm_delete()
-                  : undefined}
-              </Row>
-            </Col>
+        <Col md={2} style={{ paddingRight: "0px" }}>
+          {this.render_handout_name()}
+        </Col>
+        <Col md={6}>
+          <Row style={{ marginLeft: "8px" }}>
+            {this.render_handout_button(status)}
+            <span style={{ color: "#666", marginLeft: "5px" }}>
+              ({status.handout}/{status.handout + status.not_handout}{" "}
+              transferred)
+            </span>
           </Row>
-          {this.props.is_expanded ? this.render_more() : undefined}
+          <Row style={{ marginLeft: "8px" }}>
+            {this.render_copy_all(status)}
+          </Row>
+        </Col>
+        <Col md={4}>
+          <Row>
+            <span className="pull-right">{this.render_delete_button()}</span>
+          </Row>
+          <Row>
+            {this.state.confirm_delete
+              ? this.render_confirm_delete()
+              : undefined}
+          </Row>
         </Col>
       </Row>
+    );
+  }
+
+  public render(): Rendered {
+    return (
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={
+            this.props.is_expanded ? styles.selected_entry : styles.entry_style
+          }
+        >
+          <Col xs={12}>
+            {this.render_handout_heading()}
+            {this.render_more()}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
@@ -849,41 +901,70 @@ interface StudentListForHandoutProps {
 }
 
 class StudentListForHandout extends Component<StudentListForHandoutProps> {
-  render_students() {
-    let x;
-    let v = util.immutable_to_list(this.props.students, "student_id");
-    // fill in names, for use in sorting and searching (TODO: caching)
-    v = (() => {
-      const result: any[] = [];
-      for (x of v) {
-        if (!x.deleted) {
-          result.push(x);
-        }
-      }
-      return result;
-    })();
-    for (x of v) {
-      const user = this.props.user_map.get(x.account_id);
-      if (user != null) {
-        x.first_name = user.get("first_name");
-        x.last_name = user.get("last_name");
-        x.name = x.first_name + " " + x.last_name;
-        x.sort = (x.last_name + " " + x.first_name).toLowerCase();
-      } else if (x.email_address != null) {
-        x.name = x.sort = x.email_address.toLowerCase();
-      }
-    }
+  private student_list: string[] | undefined = undefined;
 
-    v.sort((a, b) => misc.cmp((a as any).sort, (b as any).sort));
-
-    const result1: any[] = [];
-    for (x of v) {
-      result1.push(this.render_student_info(x.student_id));
+  public shouldComponentUpdate(props): boolean {
+    const x: boolean = misc.is_different(this.props, props, [
+      "handout",
+      "students",
+      "user_map"
+    ]);
+    if (x) {
+      delete this.student_list;
     }
-    return result1;
+    return x;
   }
 
-  render_student_info(id) {
+  private render_students(): Rendered {
+    const info = this.get_student_list();
+    return (
+      <WindowedList
+        overscan_row_count={3}
+        estimated_row_size={65}
+        row_count={info.length}
+        row_renderer={({ key }) => this.render_student_info(key)}
+        row_key={index => this.get_student_list()[index]}
+        cache_id={
+          "course-handout-" +
+          this.props.handout.get("handout_id") +
+          this.props.actions.name
+        }
+      />
+    );
+  }
+
+  private get_student_list(): string[] {
+    if (this.student_list != null) {
+      return this.student_list;
+    }
+
+    const v0: any[] = util.immutable_to_list(this.props.students, "student_id");
+
+    // Remove deleted students
+    const v1: any[] = [];
+    for (let x of v0) {
+      if (!x.deleted) v1.push(x);
+      const user = this.props.user_map.get(x.account_id);
+      if (user != null) {
+        const first_name = user.get("first_name", "");
+        const last_name = user.get("last_name", "");
+        x.sort = (last_name + " " + first_name).toLowerCase();
+      } else if (x.email_address != null) {
+        x.sort = x.email_address.toLowerCase();
+      }
+    }
+
+    v1.sort((a, b) => misc.cmp(a.sort, b.sort));
+
+    this.student_list = [];
+    for (let x of v1) {
+      this.student_list.push(x.student_id);
+    }
+
+    return this.student_list;
+  }
+
+  private render_student_info(id: string): Rendered {
     return (
       <StudentHandoutInfo
         key={id}
@@ -902,9 +983,9 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
     );
   }
 
-  render() {
+  public render(): Rendered {
     return (
-      <div>
+      <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
         <StudentHandoutInfoHeader key="header" title="Student" />
         {this.render_students()}
       </div>
@@ -948,23 +1029,25 @@ class StudentHandoutInfoHeader extends Component<
 
   render() {
     return (
-      <Row style={{ borderBottom: "2px solid #aaa" }}>
-        <Col md={2} key="title">
-          <Tip
-            title={this.props.title}
-            tip={
-              this.props.title === "Handout"
-                ? "This column gives the directory name of the handout."
-                : "This column gives the name of the student."
-            }
-          >
-            <b>{this.props.title}</b>
-          </Tip>
-        </Col>
-        <Col md={10} key="rest">
-          {this.render_headers()}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row style={{ borderBottom: "2px solid #aaa" }}>
+          <Col md={2} key="title">
+            <Tip
+              title={this.props.title}
+              tip={
+                this.props.title === "Handout"
+                  ? "This column gives the directory name of the handout."
+                  : "This column gives the name of the student."
+              }
+            >
+              <b>{this.props.title}</b>
+            </Tip>
+          </Col>
+          <Col md={10} key="rest">
+            {this.render_headers()}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
@@ -1131,31 +1214,33 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   render() {
     const width = 12;
     return (
-      <Row
-        style={{
-          borderTop: "1px solid #aaa",
-          paddingTop: "5px",
-          paddingBottom: "5px"
-        }}
-      >
-        <Col md={2} key="title">
-          {this.props.title}
-        </Col>
-        <Col md={10} key="rest">
-          <Row>
-            <Col md={width} key="last_handout">
-              {this.render_last(
-                "Distribute",
-                this.props.info.status,
-                this.props.info,
-                true,
-                "Copy the handout from your project to this student's project.",
-                "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc."
-              )}
-            </Col>
-          </Row>
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={{
+            borderTop: "1px solid #aaa",
+            paddingTop: "5px",
+            paddingBottom: "5px"
+          }}
+        >
+          <Col md={2} key="title">
+            {this.props.title}
+          </Col>
+          <Col md={10} key="rest">
+            <Row>
+              <Col md={width} key="last_handout">
+                {this.render_last(
+                  "Distribute",
+                  this.props.info.status,
+                  this.props.info,
+                  true,
+                  "Copy the handout from your project to this student's project.",
+                  "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc."
+                )}
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }

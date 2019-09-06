@@ -199,6 +199,7 @@ export class StripeClient {
     const x = {
       source: token,
       description,
+      name: description,
       email,
       metadata: {
         account_id: this.client.account_id

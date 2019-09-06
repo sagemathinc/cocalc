@@ -19,6 +19,10 @@
 #
 ###############################################################################
 
+## NOTE: this whole file needs to
+#   (1) be in typescript (as multiple files)
+#   (2) and should be in smc-webapp, since it didn't end up getting used anywhere else...
+
 DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
@@ -1444,23 +1448,18 @@ class exports.Connection extends EventEmitter
             cb           : (err) =>
 
         @call
+            error_event : true
             message : message.invite_collaborator(
                 project_id   : opts.project_id
                 account_id   : opts.account_id
                 title        : opts.title
-                link2proj    : opts.link2pr
+                link2proj    : opts.link2proj
                 replyto      : opts.replyto
                 replyto_name : opts.replyto_name
                 email        : opts.email
                 subject      : opts.subject
             )
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else if result.event == 'error'
-                    opts.cb(result.error)
-                else
-                    opts.cb(undefined, result)
+            cb      : opts.cb
 
     project_remove_collaborator: (opts) =>
         opts = defaults opts,

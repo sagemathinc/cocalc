@@ -50,6 +50,7 @@ import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 import { AdminStore, AdminActions } from "./admin";
 
 import { MentionsActions, MentionsStore } from "./notifications";
+import { FileUseStore } from "./file-use/store";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
@@ -229,6 +230,7 @@ export class AppRedux {
     init?: {} | State
   ): C {
     let S: C = this._stores[name];
+    if (S != null) throw Error(`store ${name} already exists`);
     if (init === undefined && typeof store_class !== "function") {
       // so can do createStore(name, {default init})
       init = store_class;
@@ -264,6 +266,8 @@ export class AppRedux {
   getStore(name: "users"): any;
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "admin-page"): AdminStore;
+  getStore(name: "file_use"): FileUseStore | undefined;
+  getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
@@ -427,7 +431,8 @@ const connect_component = spec => {
         // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
         throw Error(
-          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " + JSON.stringify(spec)
+          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " +
+            JSON.stringify(spec)
         );
       }
       const info = spec[store_name];

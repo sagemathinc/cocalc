@@ -860,6 +860,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_exec_warning         : 'warn that certain files are not directly executable'
     ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
     jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
+    disable_jupyter_windowing         : 'do NOT use windowing with Jupyter notebooks (windowing makes it possible to work with very large notebooks)'
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
@@ -921,8 +922,8 @@ EditorSettingsIndentSize = rclass
         <LabeledRow label='Indent size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('tab_size',n)}
-                min       = {1}
-                max       = {10}
+                min       = {2}
+                max       = {32}
                 number    = {@props.tab_size} />
         </LabeledRow>
 
@@ -939,7 +940,7 @@ EditorSettingsFontSize = rclass
         <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = {6}
+                min       = {5}
                 max       = {32}
                 number    = {@props.font_size}
                 unit      = "px" />

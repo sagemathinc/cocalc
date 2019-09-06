@@ -124,7 +124,7 @@ export interface CourseState {
   assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
-  configure_projects: string;
+  configuring_projects?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
@@ -133,7 +133,7 @@ export interface CourseState {
   expanded_skip_gradings: Set<string>;
   active_feedback_edits: IsGradingMap;
   handouts: HandoutsMap;
-  loading: boolean;  // initially loading the syncdoc from disk.
+  loading: boolean; // initially loading the syncdoc from disk.
   saving: boolean;
   settings: CourseSettingsRecord;
   show_save_button: boolean;
@@ -240,8 +240,10 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    const pay = this.get("settings").get("pay");
-    if(!pay) return "";
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return "";
+    const pay = settings.get("pay");
+    if (!pay) return "";
     return pay;
   }
 
@@ -251,10 +253,10 @@ export class CourseStore extends Store<CourseState> {
 
   get_email_invite() {
     let left;
-    const { SITE_NAME, DOMAIN_NAME } = require("smc-util/theme");
+    const { SITE_NAME } = require("smc-util/theme");
     return (left = this.get("settings").get("email_invite")) != null
       ? left
-      : `We will use [${SITE_NAME}](${DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}`;
+      : `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
   }
 
   get_activity() {
@@ -737,7 +739,9 @@ export class CourseStore extends Store<CourseState> {
     return x.get("time");
   }
 
-  get_handout_status(handout) {
+  public get_handout_status(
+    handout
+  ): undefined | { handout: number; not_handout: number } {
     //
     // Compute and return an object that has fields (deleted students are ignored)
     //
@@ -750,7 +754,7 @@ export class CourseStore extends Store<CourseState> {
       this._handout_status = {};
       this.on("change", () => {
         // clear cache on any change to the store
-        return (this._handout_status = {});
+        this._handout_status = {};
       });
     }
     handout = this.get_handout(handout);

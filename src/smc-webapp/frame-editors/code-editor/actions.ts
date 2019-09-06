@@ -86,7 +86,7 @@ export interface CodeEditorState {
   project_id: string;
   path: string;
   is_public: boolean;
-  local_view_state: any;
+  local_view_state: any; // TypedMap({frame_tree?: ImmutableFrameTree, active_id: string, full_id: string, editor_state?: unknown, version?: number, font_size?: number})
   reload: Map<string, any>;
   resize: number;
   misspelled_words: Set<string>;
@@ -108,7 +108,7 @@ export interface CodeEditorState {
   visible: boolean;
 }
 
-export class Actions<T = CodeEditorState> extends BaseActions<
+export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseActions<
   T | CodeEditorState
 > {
   protected _state: "closed" | undefined;
@@ -119,7 +119,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager;
+  protected terminals: TerminalManager<T>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -127,7 +127,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   public project_id: string;
   public path: string;
-  public store: Store<CodeEditorState>;
+  public store: Store<T>;
   public is_public: boolean;
 
   private _save_local_view_state: () => void;
@@ -151,7 +151,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager(this);
+    this.terminals = new TerminalManager<T>(this);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -562,21 +562,22 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Set which frame is active (unless setting is blocked).
   // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.s
-  set_active_id(active_id: string, ignore_if_missing?: boolean): void {
+  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.
+  // If a different frame is maximized, switch out of maximized mode.
+  public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
     }
-    this._cm[active_id];
+
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
 
-    // record which id was just made active.
+    // record which id is being made active.
     this._active_id_history.push(active_id);
     if (this._active_id_history.length > 100) {
       this._active_id_history = this._active_id_history.slice(
@@ -584,11 +585,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       );
     }
 
+    // We delete full_id to de-maximize if in full screen mode,
+    // so the active_id frame is visible.
     this.setState({
-      local_view_state: local.set("active_id", active_id)
+      local_view_state: local.set("active_id", active_id).delete("full_id")
     });
     this._save_local_view_state();
-
     this.focus(active_id);
   }
 
@@ -623,19 +625,23 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _get_tree(): ImmutableFrameTree {
-    let tree = this.store.getIn(["local_view_state", "frame_tree"]);
+    let tree: ImmutableFrameTree | undefined = this.store.getIn(["local_view_state", "frame_tree"]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
       // See https://github.com/sagemathinc/cocalc/issues/3756
       const local_view_state = this._load_local_view_state();
       this.setState({ local_view_state });
-      tree = local_view_state.get("frame_tree");
+      tree = local_view_state.get("frame_tree") as ImmutableFrameTree;
     }
     return tree;
   }
 
   _get_leaf_ids(): SetMap {
     return tree_ops.get_leaf_ids(this._get_tree());
+  }
+
+  private get_parent_id(id): string | undefined {
+    return tree_ops.get_parent_id(this._get_tree(), id);
   }
 
   _tree_op(op, ...args): void {
@@ -830,14 +836,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     direction: FrameDirection,
     id?: string, // id of frame being split (uses active_id by default)
     type?: string, // type of new frame
-    extra?: object // set this data in the new frame immediately.
+    extra?: object, // set this data in the new frame immediately.
+    first?: boolean // if true, new frame is left or top instead of right or bottom.
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
     const before = this._get_leaf_ids();
-    this._tree_op("split_leaf", id, direction, type, extra);
+    this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
     for (let new_id in after) {
       if (!before[new_id]) {
@@ -1194,7 +1201,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._cm[this._active_id()];
   }
 
-  _get_terminal(id: string, parent: HTMLElement): Terminal {
+  _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1238,7 +1245,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  focus(id?: string): void {
+  public focus(id?: string): void {
     if (id === undefined) {
       id = this._get_active_id();
     }
@@ -1990,7 +1997,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   public refresh_visible(): void {
     // Right now either there is one that is "fullscreen", and
     // only that one is visible, or all are visible.
-    const full_id = this.store.getIn(["local_view_state", "full_id"]);
+    const full_id: string | undefined = this.store.getIn(["local_view_state", "full_id"]);
     if (full_id != null) {
       this.refresh(full_id);
     } else {
@@ -2081,5 +2088,33 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     (this.redux.getActions("page") as any).erase_active_key_handler(
       key_handler
     );
+  }
+
+  public show_focused_frame_of_type(
+    type: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      type
+    );
+    if (id == null) {
+      // no such frame, so make one
+      const active_id = this._get_active_id();
+      this.split_frame(dir, active_id, type, undefined, first);
+      id = this._get_most_recent_active_frame_id_of_type(type);
+      if (pos != null && id != null) {
+        const parent_id = this.get_parent_id(id);
+        if (parent_id != null) {
+          this.set_frame_tree({ id: parent_id, pos });
+        }
+      }
+    }
+    if (id == null) {
+      throw Error("bug creating frame");
+    }
+    this.set_active_id(id);
+    return id;
   }
 }

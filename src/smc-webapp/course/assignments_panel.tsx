@@ -39,9 +39,11 @@ import {
   rclass,
   rtypes,
   redux,
-  AppRedux
+  AppRedux,
+  Rendered
 } from "../app-framework";
-const {
+
+import {
   Alert,
   Button,
   ButtonToolbar,
@@ -50,8 +52,11 @@ const {
   Checkbox,
   Row,
   Col,
-  Panel
-} = require("react-bootstrap");
+  Grid
+} from "react-bootstrap";
+
+const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
+
 import { Set, Map } from "immutable";
 
 // CoCalc and course components
@@ -76,6 +81,9 @@ const {
   Tip,
   NumberInput
 } = require("../r_misc");
+
+import { WindowedList } from "../r_misc/windowed-list";
+
 const { STEPS, step_direction, step_verb, step_ready } = util;
 import {
   BigTime,
@@ -140,11 +148,11 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     };
 
-    get_actions(): CourseActions {
+    private get_actions(): CourseActions {
       return redux.getActions(this.props.name);
     }
 
-    get_assignment(id: string): AssignmentRecord {
+    private get_assignment(id: string): AssignmentRecord {
       let assignment = this.props.all_assignments.get(id);
       if (assignment == undefined) {
         console.warn(`Tried to access undefined assignment ${id}`);
@@ -152,7 +160,12 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       return assignment as any;
     }
 
-    compute_assignment_list() {
+    private compute_assignment_list(): {
+      shown_assignments: any[];
+      deleted_assignments: any[];
+      num_omitted: number;
+      num_deleted: number;
+    } {
       let deleted, f, num_deleted, num_omitted;
       let list = util.immutable_to_list(
         this.props.all_assignments,
@@ -194,7 +207,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     }
 
-    render_sort_link(column_name, display_name) {
+    private render_sort_link(column_name, display_name): Rendered {
       return (
         <a
           href=""
@@ -222,40 +235,87 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
     }
 
-    render_assignment_table_header() {
-      // HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
+    private render_assignment_table_header(): Rendered {
       return (
-        <Row style={{ marginTop: "-10px", marginBottom: "3px" }}>
-          <Col md={6}>
-            {this.render_sort_link("dir_name", "Assignment Name")}
-          </Col>
-          <Col md={6}>{this.render_sort_link("due_date", "Due Date")}</Col>
-        </Row>
+        <Grid
+          fluid={true}
+          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
+        >
+          <Row style={{ marginRight: "0px" }}>
+            <Col md={6}>
+              {this.render_sort_link("dir_name", "Assignment Name")}
+            </Col>
+            <Col md={6}>{this.render_sort_link("due_date", "Due Date")}</Col>
+          </Row>
+        </Grid>
       );
     }
 
-    render_assignments(assignments) {
-      return assignments.map((x, i) => (
+    private render_assignment(assignment_id: string, index: number): Rendered {
+      return (
         <Assignment
-          key={x.assignment_id}
+          key={assignment_id}
           project_id={this.props.project_id}
           name={this.props.name}
           redux={this.props.redux}
-          assignment={this.get_assignment(x.assignment_id)}
-          background={i % 2 === 0 ? "#eee" : undefined}
+          assignment={this.get_assignment(assignment_id)}
+          background={index % 2 === 0 ? "#eee" : undefined}
           students={this.props.students}
           user_map={this.props.user_map}
-          is_expanded={this.props.expanded_assignments.has(x.assignment_id)}
+          is_expanded={this.props.expanded_assignments.has(assignment_id)}
           active_student_sort={this.props.active_student_sort}
           expand_peer_config={this.props.expanded_peer_configs.has(
-            x.assignment_id
+            assignment_id
           )}
           active_feedback_edits={this.props.active_feedback_edits}
         />
-      ));
+      );
     }
 
-    render_show_deleted(num_deleted, num_shown) {
+    private render_assignments(assignments): Rendered {
+      if (assignments.length == 0) {
+        return this.render_no_assignments();
+      }
+      return (
+        <WindowedList
+          overscan_row_count={3}
+          estimated_row_size={50}
+          row_count={assignments.length}
+          row_renderer={({ key, index }) => this.render_assignment(key, index)}
+          row_key={index =>
+            assignments[index] != null
+              ? assignments[index].assignment_id
+              : undefined
+          }
+          cache_id={"course-assignments-" + this.props.name}
+        />
+      );
+    }
+
+    private render_no_assignments(): Rendered {
+      return (
+        <Alert
+          bsStyle="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
+        >
+          <h3>Add an Assignment to your Course</h3>
+          <p>
+            An assignment is a <i>directory</i> of files somewhere in your
+            CoCalc project. You copy the assignment to your students and they
+            work on it; later, you collect it, grade it, and return the graded
+            version to them.
+          </p>
+
+          <p>
+            Add an assignment to your course by creating a directory using the
+            Files tab, then type the name of the directory in the box in the
+            upper right and click to search.
+          </p>
+        </Alert>
+      );
+    }
+
+    private render_show_deleted(num_deleted, num_shown): Rendered {
       if (this.state.show_deleted) {
         return (
           <Button
@@ -289,7 +349,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       }
     }
 
-    yield_adder(deleted_assignments) {
+    private yield_adder(deleted_assignments) {
       const deleted_paths = {};
       deleted_assignments.map(obj => {
         if (obj.path) {
@@ -306,7 +366,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     }
 
-    render() {
+    public render(): Rendered {
       const {
         shown_assignments,
         deleted_assignments,
@@ -316,28 +376,33 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       const add_assignment = this.yield_adder(deleted_assignments);
 
       const header = (
-        <FoldersToolbar
-          search={this.state.search}
-          search_change={value => this.setState({ search: value })}
-          num_omitted={num_omitted}
-          project_id={this.props.project_id}
-          items={this.props.all_assignments}
-          add_folders={paths => paths.map(add_assignment)}
-          item_name={"assignment"}
-          plural_item_name={"assignments"}
-        />
+        <div style={{ marginBottom: "15px" }}>
+          <FoldersToolbar
+            search={this.state.search}
+            search_change={value => this.setState({ search: value })}
+            num_omitted={num_omitted}
+            project_id={this.props.project_id}
+            items={this.props.all_assignments}
+            add_folders={paths => paths.map(add_assignment)}
+            item_name={"assignment"}
+            plural_item_name={"assignments"}
+          />
+        </div>
       );
 
       return (
-        <Panel header={header}>
+        <div className={"smc-vfill"}>
+          {header}
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()
             : undefined}
-          {this.render_assignments(shown_assignments)}
-          {num_deleted
-            ? this.render_show_deleted(num_deleted, shown_assignments.length)
-            : undefined}
-        </Panel>
+          <div className="smc-vfill">
+            {this.render_assignments(shown_assignments)}{" "}
+            {num_deleted
+              ? this.render_show_deleted(num_deleted, shown_assignments.length)
+              : undefined}
+          </div>
+        </div>
       );
     }
   }
@@ -483,7 +548,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             title="Notes about this assignment"
             tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment."
           >
-            Private Assignment Notes<br />
+            Private Assignment Notes
+            <br />
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
@@ -669,7 +735,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     let bsStyle;
     const last_assignment = this.props.assignment.get("last_assignment");
     // Primary if it hasn't been assigned before or if it hasn't started assigning.
-    if (!last_assignment || !(last_assignment.get("time") || last_assignment.get("start"))) {
+    if (
+      !last_assignment ||
+      !(last_assignment.get("time") || last_assignment.get("start"))
+    ) {
       bsStyle = "primary";
     } else {
       bsStyle = "warning";
@@ -773,7 +842,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             ref="copy_assignment_confirm_overwrite_field"
             onChange={e =>
               this.setState({
-                copy_assignment_confirm_overwrite_text: e.target.value
+                copy_assignment_confirm_overwrite_text: (e.target as any).value
               })
             }
             style={{ marginTop: "1ex" }}
@@ -893,7 +962,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"
             >
               (more details)
-            </a>.
+            </a>
+            .
           </span>
         );
       case "collect":
@@ -969,10 +1039,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             }
             disabled={this.state[`copy_confirm_all_${step}`]}
           >
-            {step === "assignment" ? "All" : "The"} {m} students{step_ready(
-              step,
-              m
-            )}...
+            {step === "assignment" ? "All" : "The"} {m} students
+            {step_ready(step, m)}...
           </Button>
           {n ? (
             <Button
@@ -1354,7 +1422,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           checked={config.enabled != null ? config.enabled : false}
           key="peer_grade_checkbox"
           ref="peer_grade_checkbox"
-          onChange={e => this.set_peer_grade({ enabled: e.target.checked })}
+          onChange={e =>
+            this.set_peer_grade({ enabled: (e.target as any).checked })
+          }
           style={{ display: "inline-block", verticalAlign: "middle" }}
         />
         Enable Peer Grading
@@ -1575,16 +1645,18 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render() {
     return (
-      <Row
-        style={
-          this.props.is_expanded ? styles.selected_entry : styles.entry_style
-        }
-      >
-        <Col xs={12}>
-          {this.render_summary_line()}
-          {this.props.is_expanded ? this.render_more() : undefined}
-        </Col>
-      </Row>
+      <Grid fluid={true} style={{ width: "100%" }}>
+        <Row
+          style={
+            this.props.is_expanded ? styles.selected_entry : styles.entry_style
+          }
+        >
+          <Col xs={12}>
+            {this.render_summary_line()}
+            {this.props.is_expanded ? this.render_more() : undefined}
+          </Col>
+        </Row>
+      </Grid>
     );
   }
 }
@@ -1600,16 +1672,13 @@ interface StudentListForAssignmentProps {
   active_feedback_edits: IsGradingMap;
 }
 
-interface StudentListForAssignmentState {}
-
 class StudentListForAssignment extends Component<
-  StudentListForAssignmentProps,
-  StudentListForAssignmentState
+  StudentListForAssignmentProps
 > {
-  displayName: "CourseEditor-StudentListForAssignment";
+  private student_list: string[] | undefined = undefined;
 
-  shouldComponentUpdate(props) {
-    return misc.is_different(this.props, props, [
+  public shouldComponentUpdate(props): boolean {
+    const x: boolean = misc.is_different(this.props, props, [
       "assignment",
       "students",
       "user_map",
@@ -1617,18 +1686,22 @@ class StudentListForAssignment extends Component<
       "active_student_sort",
       "active_feedback_edits"
     ]);
+    if (x) {
+      delete this.student_list;
+    }
+    return x;
   }
 
-  get_store(): CourseStore {
+  private get_store(): CourseStore {
     return redux.getStore(this.props.name) as any;
   }
 
-  is_peer_graded() {
+  private is_peer_graded(): boolean {
     const peer_info = this.props.assignment.get("peer_grade");
     return peer_info ? peer_info.get("enabled") : false;
   }
 
-  render_student_info(student_id) {
+  private render_student_info(student_id: string): Rendered {
     const store = this.get_store();
     const student = store.get_student(student_id);
     const key = util.assignment_identifier(this.props.assignment, student);
@@ -1656,40 +1729,58 @@ class StudentListForAssignment extends Component<
     );
   }
 
-  render_students() {
-    let x;
-    let v = util.parse_students(
+  private get_student_list(): string[] {
+    if (this.student_list != null) {
+      return this.student_list;
+    }
+
+    const v0 = util.parse_students(
       this.props.students,
       this.props.user_map,
       this.props.redux
     );
-    // fill in names, for use in sorting and searching (TODO: caching)
-    v = (() => {
-      const result: any[] = [];
-      for (x of v) {
-        if (!x.deleted) {
-          result.push(x);
-        }
-      }
-      return result;
-    })();
-    v.sort(util.pick_student_sorter(this.props.active_student_sort.toJS()));
-    if (this.props.active_student_sort.get("is_descending")) {
-      v.reverse();
+
+    // Remove deleted students
+    const v1: any[] = [];
+    for (let x of v0) {
+      if (!x.deleted) v1.push(x);
     }
 
-    return (() => {
-      const result1: any[] = [];
-      for (x of v) {
-        result1.push(this.render_student_info(x.student_id));
-      }
-      return result1;
-    })();
+    v1.sort(util.pick_student_sorter(this.props.active_student_sort.toJS()));
+
+    if (this.props.active_student_sort.get("is_descending")) {
+      v1.reverse();
+    }
+
+    this.student_list = [];
+    for (let x of v1) {
+      this.student_list.push(x.student_id);
+    }
+
+    return this.student_list;
   }
 
-  render() {
+  private render_students(): Rendered {
+    const info = this.get_student_list();
     return (
-      <div>
+      <WindowedList
+        overscan_row_count={3}
+        estimated_row_size={65}
+        row_count={info.length}
+        row_renderer={({ key }) => this.render_student_info(key)}
+        row_key={index => this.get_student_list()[index]}
+        cache_id={
+          "course-assignment-" +
+          this.props.assignment.get("assignment_id") +
+          this.props.name
+        }
+      />
+    );
+  }
+
+  public render(): Rendered {
+    return (
+      <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
         <StudentAssignmentInfoHeader
           key="header"
           title="Student"

@@ -1881,6 +1881,8 @@ class ProjectClient extends EventEmitter
             exclude_history   : false
             timeout           : 5*60
             bwlimit           : undefined
+            wait_until_done   : undefined # not used, only relevant for the kucalc variant
+            scheduled         : undefined # --*--
             cb                : required
         dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
         dbg("copy a path using rsync from one project to another")

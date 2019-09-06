@@ -28,7 +28,7 @@ register_file_editor({
       return name; // already initialized
     }
 
-    const store: Store<StopwatchEditorState> = redux.createStore(name);
+    const store: Store<StopwatchEditorState> = redux.createStore<StopwatchEditorState>(name);
     const actions = redux.createActions(name, TimeActions);
 
     actions._init(project_id, path);
@@ -49,13 +49,13 @@ register_file_editor({
     return name;
   },
 
-  remove(path: string, redux: AppRedux, project_id: string) {
+  remove(path: string, redux: AppRedux, project_id: string) : string {
     const name = redux_name(project_id, path, this.is_public);
     const actions: InstanceType<typeof TimeActions> = redux.getActions(name);
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();
     }
-    const store: Store<StopwatchEditorState> | undefined = redux.getStore(name);
+    const store: Store<StopwatchEditorState> | undefined = redux.getStore<StopwatchEditorState>(name);
     if (store == undefined) {
       return name;
     }

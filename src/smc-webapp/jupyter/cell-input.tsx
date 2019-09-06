@@ -6,7 +6,7 @@ declare const $: any;
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
-import { Button } from "react-bootstrap";
+import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";
 const { Markdown } = require("../r_misc");
 import { Icon } from "../r_misc/icon";
@@ -82,7 +82,9 @@ export interface CellInputProps {
   cell_toolbar?: string;
   trust?: boolean;
   is_readonly: boolean;
-  id: any; // TODO: what is this
+  is_scrolling?: boolean;
+  id: string;
+  index: number;
 }
 
 export class CellInput extends Component<CellInputProps> {
@@ -108,7 +110,9 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.font_size !== this.props.font_size ||
       nextProps.complete !== this.props.complete ||
       nextProps.is_readonly !== this.props.is_readonly ||
+      nextProps.is_scrolling !== this.props.is_scrolling ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
+      nextProps.index !== this.props.index ||
       (nextProps.cell_toolbar === "slideshow" &&
         nextProps.cell.get("slide") !== this.props.cell.get("slide"))
     );
@@ -125,6 +129,13 @@ export class CellInput extends Component<CellInputProps> {
         end={this.props.cell.get("end")}
       />
     );
+  }
+
+  private handle_upload_click(): void {
+    if (this.props.actions == null) {
+      return;
+    }
+    this.props.actions.insert_image(this.props.id);
   }
 
   private handle_md_double_click(): void {
@@ -177,6 +188,7 @@ export class CellInput extends Component<CellInputProps> {
         is_focused={this.props.is_focused}
         font_size={this.props.font_size}
         cursors={this.props.cell.get("cursors")}
+        is_scrolling={this.props.is_scrolling}
       />
     );
   }
@@ -190,12 +202,14 @@ export class CellInput extends Component<CellInputProps> {
       return;
     }
     return (
-      <Button
-        onClick={this.handle_md_double_click.bind(this)}
-        style={{ float: "right" }}
-      >
-        <Icon name="edit" /> Edit
-      </Button>
+      <ButtonGroup style={{ float: "right" }}>
+        <Button onClick={this.handle_md_double_click.bind(this)}>
+          <Icon name="edit" /> Edit
+        </Button>
+        <Button onClick={this.handle_upload_click.bind(this)}>
+          <Icon name="image" />
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -275,7 +289,6 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private render_time(): Rendered {
-    if (this.props.cell.get("start") == null) return;
     return (
       <div
         style={{
@@ -298,13 +311,36 @@ export class CellInput extends Component<CellInputProps> {
             textAlign: "right"
           }}
         >
-          <CellTiming
-            start={this.props.cell.get("start")}
-            end={this.props.cell.get("end")}
-            state={this.props.cell.get("state")}
-          />
+          {this.render_cell_timing()}
+          {this.render_cell_number()}
         </div>
       </div>
+    );
+  }
+
+  private render_cell_timing(): Rendered {
+    if (this.props.cell.get("start") == null) return;
+    return (
+      <CellTiming
+        start={this.props.cell.get("start")}
+        end={this.props.cell.get("end")}
+        state={this.props.cell.get("state")}
+      />
+    );
+  }
+
+  private render_cell_number(): Rendered {
+    return (
+      <span
+        style={{
+          marginLeft: "3px",
+          paddingLeft: "3px",
+          borderLeft: "1px solid #ccc",
+          borderBottom: "1px solid #ccc"
+        }}
+      >
+        {this.props.index + 1}
+      </span>
     );
   }
 
