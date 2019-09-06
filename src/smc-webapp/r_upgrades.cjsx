@@ -22,8 +22,6 @@ misc = require('smc-util/misc')
 {FAQ} = require('./billing/faq')
 {SubscriptionGrid} = require('./billing/subscription-grid')
 
-console.log({SubscriptionGrid})
-
 round1 = misc.round1
 
 exports.UpgradesPage = rclass

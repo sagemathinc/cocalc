@@ -47,8 +47,6 @@ if window.location?
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
-exports.CouponAdder = CouponAdder = require('./billing/coupon-adder').CouponAdder
-
 SubscriptionGrid = require("./billing/subscription-grid").SubscriptionGrid
 
 ExplainResources = require('./billing/explain-resources').ExplainResources
@@ -56,28 +54,6 @@ ExplainResources = require('./billing/explain-resources').ExplainResources
 ExplainPlan = require('./billing/explain-plan').ExplainPlan
 
 DedicatedVM = require('./billing/dedicated-vm').DedicatedVM
-
-exports.PayCourseFee = require('./billing/pay-course-fee').PayCourseFee
-
-exports.BillingPage = BillingPage = require('./billing/billing-page').BillingPage
-
-exports.BillingPageRedux = rclass
-    displayName : 'BillingPage-redux'
-
-    render: ->
-        <BillingPage is_simplified={false} redux={redux} />
-
-exports.BillingPageSimplifiedRedux = rclass
-    displayName : 'BillingPage-redux'
-
-    render: ->
-        <BillingPage is_simplified={true} redux={redux} />
-
-exports.BillingPageForCourseRedux = rclass
-    displayName : 'BillingPage-redux'
-
-    render: ->
-        <BillingPage is_simplified={true} for_course={true} redux={redux} />
 
 exports.render_static_pricing_page = () ->
     <div>
@@ -94,15 +70,3 @@ exports.render_static_pricing_page = () ->
         <FAQ/>
     </div>
 
-exports.visit_billing_page = ->
-    require('./history').load_target('settings/billing')
-
-exports.BillingPageLink = (opts) ->
-    {text} = opts
-    if not text
-        text = "billing page"
-    return <a onClick={exports.visit_billing_page} style={cursor:'pointer'}>{text}</a>
-
-plan_interval = (plan) ->
-    n = plan.interval_count
-    return "#{plan.interval_count} #{misc.plural(n, plan.interval)}"

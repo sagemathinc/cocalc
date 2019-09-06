@@ -40,7 +40,11 @@ ALL_FILE_BUTTON_TYPES = EXTs
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
-{BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
+{BillingPageLink}     = require('./billing/billing-page-link')
+{BillingPage}         = require('./billing/billing-page')
+
+{PayCourseFee} = require('./billing/pay-course-fee')
+
 {MiniTerminal, output_style_searchbox}  = require('./project_miniterm')
 {file_associations}   = require('./file-associations')
 account               = require('./account')
@@ -1575,7 +1579,7 @@ exports.ProjectFiles = rclass ({name}) ->
     render_upgrade_in_place: ->
         cards = @props.customer?.sources?.total_count ? 0
         <div style={marginTop: '10px'}>
-            <BillingPageForCourseRedux redux={redux} />
+            <BillingPage is_simplified={true} for_course={true}/>
             {@render_pay() if cards}
         </div>
 

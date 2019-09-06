@@ -57,7 +57,7 @@ export class CouponAdder extends Component<Props, State> {
     }
   }
 
-  private key_down(e: any): void {
+  private key_down(e: React.KeyboardEvent): void {
     if (e.keyCode === 13) {
       this.submit();
     }
