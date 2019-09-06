@@ -1,7 +1,7 @@
 import { React, Rendered } from "../app-framework";
 
 import { ExplainResources } from "./explain-resources";
-import { ExplainPlain } from "./explain-plan";
+import { ExplainPlan } from "./explain-plan";
 import { SubscriptionGrid } from "./subscription-grid";
 import { DedicatedVM } from "./dedicated-vm";
 import { FAQ } from "./faq";

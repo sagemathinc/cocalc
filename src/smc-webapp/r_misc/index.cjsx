@@ -183,6 +183,13 @@ exports.Footer = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
+        # Have to re-import them here to deal with some sort of circular
+        # reference or something when doing the backend static
+        # rendering.  To see this run
+        #   ~/cocalc/src$ scripts/update_react_static
+        # This problem should just go away when all this code is
+        # refactored in typescript.
+        {HelpEmailLink, SiteName, CompanyName} = require('../customize')
         <footer style={fontSize:"small",color:"gray",textAlign:"center",padding: "#{2*UNIT}px 0" }>
             <hr/>
             <Space/>
