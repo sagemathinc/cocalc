@@ -38,13 +38,16 @@
     width: 350px;
     background-color: #4474c0;
     border-radius: 5px;
-    padding: 15px 0;
+    padding: 5px;
     margin-bottom: 5px;
 }
 #smc-startup-banner .banner-error {
     opacity: 0;
     animation: banner-error ease-in 60s forwards;
     float: left;
+}
+#smc-startup-banner .banner-error .message {
+    background-color: #bf1919;
 }
 #smc-startup-banner .banner-blink {
     background-color: #4474c0;
