@@ -250,6 +250,17 @@ class BillingActions extends Actions<BillingStoreState> {
     }
     this.setState({ course_pay });
   }
+
+  public set_selected_plan(plan: string, period?: string): void {
+    if (period != null) {
+      if (period.slice(0, 4) == "year") {
+        plan += "-year";
+      } else if (period.slice(0, 4) == "week") {
+        plan += "-week";
+      }
+    }
+    this.setState({ selected_plan: plan });
+  }
 }
 
 export const actions = redux.createActions("billing", BillingActions);

@@ -32,6 +32,7 @@ declare var $;
 
 interface Props {
   on_close?: Function; // optionally called when this should be closed
+  hide_cancel_button?: boolean;
 }
 
 const VALIDATE = {
@@ -446,6 +447,31 @@ export class AddPaymentMethod extends Component<Props, State> {
     return result;
   }
 
+  private render_cancel_button(): Rendered {
+    if (this.props.hide_cancel_button) return;
+    return (
+      <Button
+        onClick={() =>
+          this.props.on_close != null ? this.props.on_close() : undefined
+        }
+      >
+        Cancel
+      </Button>
+    );
+  }
+
+  private render_add_button(): Rendered {
+    return (
+      <Button
+        onClick={() => this.submit_payment_method()}
+        bsStyle="primary"
+        disabled={!this.valid() || this.state.submitting}
+      >
+        Add Credit Card
+      </Button>
+    );
+  }
+
   private render_payment_method_buttons(): Rendered {
     return (
       <div>
@@ -453,22 +479,8 @@ export class AddPaymentMethod extends Component<Props, State> {
           <Col sm={4}>{powered_by_stripe()}</Col>
           <Col sm={8}>
             <ButtonToolbar className="pull-right">
-              <Button
-                onClick={() => this.submit_payment_method()}
-                bsStyle="primary"
-                disabled={!this.valid() || this.state.submitting}
-              >
-                Add Credit Card
-              </Button>
-              <Button
-                onClick={() =>
-                  this.props.on_close != null
-                    ? this.props.on_close()
-                    : undefined
-                }
-              >
-                Cancel
-              </Button>
+              {this.render_add_button()}
+              {this.render_cancel_button()}
             </ButtonToolbar>
           </Col>
         </Row>
