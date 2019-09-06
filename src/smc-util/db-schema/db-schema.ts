@@ -891,7 +891,8 @@ schema.projects = {
           return db._user_set_query_project_users(obj, account_id);
         },
         action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
-        compute_image: true
+        compute_image: true,
+        course: true
       },
 
       before_change(database, old_val, new_val, account_id, cb) {
@@ -945,6 +946,11 @@ schema.projects_all.user_query.get.pg_where = ["projects"];
 // project owners are allowed to use this table.  The point is that this makes
 // it possible for the owner of the project to set things, but not for the
 // collaborators to set those things.
+// **wARNING:** right now we're not using this since when multiple people add
+// students to a course and the 'course' field doesn't get properly set,
+// much confusion and misery arises.... and it is very hard to fix.
+// In theory a malicous student could not pay via this.  But if they could
+// mess with their client, they could easily not pay anyways.
 schema.projects_owner = {
   virtual: "projects",
   fields: {
