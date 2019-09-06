@@ -1,4 +1,4 @@
-import { Alert, Button, Col, Row } from "react-bootstrap";
+import { Alert, Button, ButtonToolbar, Col, Row } from "react-bootstrap";
 import { stripe_amount, stripe_date, capitalize } from "smc-util/misc";
 import { Component, React, Rendered, redux } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
@@ -101,10 +101,10 @@ export class Subscription extends Component<Props, State> {
             email <HelpEmailLink />.
           </Col>
           <Col md={6}>
-            <Button onClick={() => this.setState({ confirm_cancel: false })}>
-              Make No Change
-            </Button>
-            <div style={{ float: "right" }}>
+            <ButtonToolbar>
+              <Button onClick={() => this.setState({ confirm_cancel: false })}>
+                Make No Change
+              </Button>
               <Button
                 bsStyle="danger"
                 onClick={() => {
@@ -112,9 +112,9 @@ export class Subscription extends Component<Props, State> {
                   this.cancel_subscription();
                 }}
               >
-                Yes, please cancel and do not auto-renew my subscription
+                Yes, cancel at period end (do not auto-renew)
               </Button>
-            </div>
+            </ButtonToolbar>
           </Col>
         </Row>
       </Alert>
