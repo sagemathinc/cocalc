@@ -213,6 +213,9 @@ export class AddSubscription extends Component<Props, State> {
   }
 
   private render_add_button(): Rendered {
+    const no_card =
+      this.props.customer == null ||
+      this.props.customer.sources.data.length == 0;
     return (
       <Button
         bsStyle="primary"
@@ -221,7 +224,7 @@ export class AddSubscription extends Component<Props, State> {
           this.submit_create_subscription();
           this.props.on_close();
         }}
-        disabled={this.props.selected_plan === ""}
+        disabled={this.props.selected_plan === "" || no_card}
       >
         <Icon name="check" /> Buy {this.what_is_selected()}
       </Button>
