@@ -62,8 +62,8 @@ export const STATES: { [code: string]: string } = {
   VI: "United States Virgin Islands"
 };
 
-export function brand_to_icon_name(brand: string): string {
-  if (["discover", "mastercard", "visa"].includes(brand)) {
+export function brand_to_icon_name(brand: undefined | string): string {
+  if (brand == null || ["discover", "mastercard", "visa"].includes(brand)) {
     return `fab fa-cc-${brand}`;
   } else {
     return "fa-credit-card";

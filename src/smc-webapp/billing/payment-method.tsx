@@ -28,7 +28,7 @@ export class PaymentMethod extends Component<Props, State> {
   }
 
   private icon_name(): string {
-    return brand_to_icon_name(this.props.source.brand.toLowerCase());
+    return brand_to_icon_name(this.props.source.brand != null ? this.props.source.brand.toLowerCase() : undefined);
   }
 
   private render_confirm_default(): Rendered {
