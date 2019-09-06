@@ -1821,12 +1821,7 @@ exports.cmp_Date = function(a, b) {
   if (b == null) {
     return 1;
   }
-  if (a < b) {
-    return -1;
-  } else if (a > b) {
-    return 1;
-  }
-  return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
+  return exports.cmp(a.valueOf(), b.valueOf());
 };
 
 exports.timestamp_cmp = function(a, b, field) {
