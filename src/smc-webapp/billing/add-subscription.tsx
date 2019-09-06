@@ -174,6 +174,17 @@ export class AddSubscription extends Component<Props, State> {
     );
   }
 
+  private what_is_selected(): string {
+    // very simple code for now since there are only two options.
+    if (!this.props.selected_plan) {
+      return "Subscription or Course Package";
+    } else if (this.props.selected_plan.indexOf("course") != -1) {
+      return "Course Package";
+    } else {
+      return "Subscription";
+    }
+  }
+
   private render_create_subscription_confirm(plan_data): Rendered {
     let subscription;
     if (this.is_recurring()) {
@@ -194,7 +205,7 @@ export class AddSubscription extends Component<Props, State> {
         </p>
         {this.render_renewal_info()}
         <p>
-          By clicking 'Add Subscription or Course Package' below, your payment
+          By clicking 'Buy {this.what_is_selected()}' below, your payment
           card will be immediately charged{subscription}.
         </p>
       </Alert>
@@ -212,7 +223,7 @@ export class AddSubscription extends Component<Props, State> {
         }}
         disabled={this.props.selected_plan === ""}
       >
-        <Icon name="check" /> Add Subscription or Course Package
+        <Icon name="check" /> Buy {this.what_is_selected()}
       </Button>
     );
   }
