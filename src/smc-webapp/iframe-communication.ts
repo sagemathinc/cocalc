@@ -4,6 +4,7 @@
 // TODO:
 // * some aspects of webapp are configured via a configuration endpoint. Use it to set the allowed origins
 
+import { delay } from "awaiting";
 import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 import { Map, List } from "immutable";
@@ -120,33 +121,47 @@ async function process_message(mesg) {
       const { project_id, path } = data;
       if (!is_valid_uuid_string(project_id)) {
         reply({ status: "error", mesg: `invalid project_id='${project_id}'` });
-      } else if (path == null || typeof path !== "string") {
+        break;
+      }
+
+      if (path == null || typeof path !== "string") {
         reply({
           status: "error",
           mesg: `invalid path, it must be a string`
         });
-      } else {
-        const actions = redux.getProjectActions(project_id);
-        const opts = {
-          path: path,
-          foreground: true,
-          foreground_project: true,
-          ignore_kiosk: true,
-          change_history: false
-        };
-        try {
-          reply({ status: "ack", action, path, project_id });
-          await actions.open_file(opts);
-          reply({ status: "done", action, path, project_id });
-        } catch (err) {
-          reply({
-            status: "error",
-            action,
-            path,
-            project_id,
-            mesg: err.toString()
-          });
-        }
+        break;
+      }
+
+      // copied from cocalc/src/smc-webapp/file-use/util.ts
+      await redux.getActions("projects").open_project({ project_id });
+      await delay(0);
+      const actions = redux.getProjectActions(project_id);
+      if (actions == null) {
+        reply({
+          status: "error",
+          mesg: `problem opening project ${project_id}`
+        });
+        break;
+      }
+      const opts = {
+        path: path,
+        foreground: true,
+        foreground_project: true,
+        ignore_kiosk: true,
+        change_history: false
+      };
+      try {
+        reply({ status: "ack", action, path, project_id });
+        await actions.open_file(opts);
+        reply({ status: "done", action, path, project_id });
+      } catch (err) {
+        reply({
+          status: "error",
+          action,
+          path,
+          project_id,
+          mesg: err.toString()
+        });
       }
       break;
 
