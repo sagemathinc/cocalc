@@ -124,7 +124,7 @@ export interface CourseState {
   assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
-  configure_projects: string;
+  configuring_projects?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
@@ -240,7 +240,9 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    const pay = this.get("settings").get("pay");
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return "";
+    const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
   }
@@ -251,10 +253,10 @@ export class CourseStore extends Store<CourseState> {
 
   get_email_invite() {
     let left;
-    const { SITE_NAME, DOMAIN_NAME } = require("smc-util/theme");
+    const { SITE_NAME } = require("smc-util/theme");
     return (left = this.get("settings").get("email_invite")) != null
       ? left
-      : `We will use [${SITE_NAME}](${DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}`;
+      : `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
   }
 
   get_activity() {

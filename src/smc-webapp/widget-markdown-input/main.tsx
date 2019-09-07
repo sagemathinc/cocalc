@@ -14,8 +14,8 @@ export function init(): void {
   if (redux.hasActions(info.name)) {
     return;
   }
-  redux.createStore(info.name, MarkdownWidgetStore);
-  redux.createActions(info.name, MarkdownWidgetActions);
+  redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(info.name, MarkdownWidgetStore);
+  redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(info.name, MarkdownWidgetActions);
 };
 
 interface ReactProps {

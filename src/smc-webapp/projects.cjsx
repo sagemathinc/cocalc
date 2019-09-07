@@ -22,6 +22,7 @@
 $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
+json_stable = require("json-stable-stringify")
 
 {COCALC_MINIMAL} = require('./fullscreen')
 
@@ -42,7 +43,6 @@ markdown = require('./markdown')
 {VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
-{BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {fromPairs} = require('lodash')
@@ -209,11 +209,13 @@ class ProjectsActions extends Actions
         if misc.len(to_upgrade) > 0
             @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
+    ###
+    # See comment in db-schema.ts about projects_owner table.
     # only owner can set course description.
     # **THIS IS AN ASYNC FUNCTION!**
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not await @have_project(project_id)
-            msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
+            msg = "Can't set course info -- you are not a collaborator on project '#{project_id}'."
             console.warn(msg)
             return
         course_info = store.get_course_info(project_id)?.toJS()
@@ -232,6 +234,27 @@ class ProjectsActions extends Actions
                         pay           : pay
                         account_id    : account_id
                         email_address : email_address)
+    ###
+
+    set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
+        if not await @have_project(project_id)
+            msg = "Can't set course info -- you are not a collaborator on project '#{project_id}'."
+            console.warn(msg)
+            return
+        course_info = store.get_course_info(project_id)?.toJS()
+        # pay is either a Date or the string "".
+        course =
+            project_id    : course_project_id
+            path          : path
+            pay           : pay
+            account_id    : account_id
+            email_address : email_address
+        # json_stable -- I'm tired and this needs to just work for comparing.
+        if json_stable(course_info) == json_stable(course)
+            # already set as required; do nothing
+            return
+        await @projects_table_set({project_id, course})
+
 
     # Create a new project
     # **THIS IS AN ASYNC FUNCTION!**
@@ -246,9 +269,13 @@ class ProjectsActions extends Actions
             delete opts.token
         else
             token = false
-        project_id = await callback2(webapp_client.create_project, opts)
-        if token
-            _create_project_tokens[token] = {err:err, project_id:project_id}
+        try
+            project_id = await callback2(webapp_client.create_project, opts)
+            if token
+                _create_project_tokens[token] = {project_id:project_id}
+        catch err
+            if token
+                _create_project_tokens[token] = {err:err}
 
         # At this point we know the project_id and that the project exists.
         # However, various code (e.g., setting the title) depends on the
@@ -442,7 +469,7 @@ class ProjectsActions extends Actions
                 cb         : (err) =>
                     if not silent
                         if err # TODO: -- set error in store for this project...
-                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{JSON.stringify(err)}"
                             alert_message(type:'error', message:err)
                     cb(err)
         await callback(f)
@@ -844,6 +871,16 @@ class ProjectsStore extends Store
         misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
         return misc.map_sum(base_values, upgrades)
+
+    # we allow URLs in projects, which have member hosting or internet access
+    # this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators
+    allow_urls_in_emails: (project_id) =>
+        quotas = @get_total_project_quotas(project_id)
+        if not quotas?
+            return false
+        else
+            return !!(quotas.network or quotas.member_host)
+
 
     # Return javascript mapping from project_id's to the upgrades for the given projects.
     # Only includes projects with at least one upgrade
@@ -1506,75 +1543,75 @@ exports.ProjectsPage = ProjectsPage = rclass
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
-        <div className='container-content smc-vfill'>
-            <Grid fluid className='constrained smc-vfill' style={{minWidth:'90%'}}>
-                <Well className="smc-vfill" style={marginTop:'15px'}>
-                    <Row>
-                        <Col sm={4}>
-                            {@render_projects_title()}
-                        </Col>
-                        <Col sm={4}>
-                            <ProjectsFilterButtons
-                                hidden  = {@props.hidden}
-                                deleted = {@props.deleted}
-                                show_hidden_button = {@has_hidden_projects() or @props.hidden}
-                                show_deleted_button = {@has_deleted_projects() or @props.deleted} />
-                        </Col>
-                        <Col sm={4}>
-                            <UsersViewing style={width:'100%'}/>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={4}>
-                            <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
-                        </Col>
-                        <Col sm={8}>
-                            <HashtagGroup
-                                hashtags          = {@hashtags()}
-                                selected_hashtags = {@props.selected_hashtags[@filter()]}
-                                toggle_hashtag    = {@toggle_hashtag} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12} style={marginTop:'1ex'}>
-                            <VisibleMDLG>
-                                <div style={maxWidth:'50%', float:'right'}>
-                                    <UpgradeStatus />
-                                </div>
-                            </VisibleMDLG>
-                            <NewProjectCreator
-                                start_in_edit_mode = {@project_list().length == 0}
-                                default_value={@props.search}
-                                images = {@props.images}
-                            />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12}>
-                            <ProjectsListingDescription
-                                nb_projects       = {@project_list().length}
-                                visible_projects  = {visible_projects}
-                                hidden            = {@props.hidden}
-                                deleted           = {@props.deleted}
-                                search            = {@props.search}
-                                selected_hashtags = {@props.selected_hashtags[@filter()]}
-                                on_cancel         = {@clear_filters_and_focus_search_input}
-                            />
-                        </Col>
-                    </Row>
-                    <Row className="smc-vfill">
-                        <Col sm={12} className="smc-vfill">
-                            <ProjectList
-                                projects    = {visible_projects}
-                                user_map    = {@props.user_map}
-                                images      = {@props.images}
-                                load_all_projects_done = {@props.load_all_projects_done}
-                                redux       = {redux} />
-                        </Col>
-                    </Row>
-                </Well>
-            </Grid>
-        </div>
+        <Col sm={12} md={12} lg={10} lgOffset={1}
+            className={'container-content smc-vfill'}
+            style={overflowY:'auto', paddingTop:'20px'}
+        >
+            <Row>
+                <Col sm={4}>
+                    {@render_projects_title()}
+                </Col>
+                <Col sm={4}>
+                    <ProjectsFilterButtons
+                        hidden  = {@props.hidden}
+                        deleted = {@props.deleted}
+                        show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                        show_deleted_button = {@has_deleted_projects() or @props.deleted}
+                    />
+                </Col>
+                <Col sm={4}>
+                    <UsersViewing style={width:'100%'}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={4}>
+                    <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
+                </Col>
+                <Col sm={8}>
+                    <HashtagGroup
+                        hashtags          = {@hashtags()}
+                        selected_hashtags = {@props.selected_hashtags[@filter()]}
+                        toggle_hashtag    = {@toggle_hashtag} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12} style={marginTop:'1ex'}>
+                    <VisibleMDLG>
+                        <div style={maxWidth:'50%', float:'right'}>
+                            <UpgradeStatus />
+                        </div>
+                    </VisibleMDLG>
+                    <NewProjectCreator
+                        start_in_edit_mode = {@project_list().length == 0}
+                        default_value={@props.search}
+                        images = {@props.images}
+                    />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
+                    <ProjectsListingDescription
+                        nb_projects       = {@project_list().length}
+                        visible_projects  = {visible_projects}
+                        hidden            = {@props.hidden}
+                        deleted           = {@props.deleted}
+                        search            = {@props.search}
+                        selected_hashtags = {@props.selected_hashtags[@filter()]}
+                        on_cancel         = {@clear_filters_and_focus_search_input}
+                    />
+                </Col>
+            </Row>
+            <Row className="smc-vfill">
+                <Col sm={12} className="smc-vfill">
+                    <ProjectList
+                        projects    = {visible_projects}
+                        user_map    = {@props.user_map}
+                        images      = {@props.images}
+                        load_all_projects_done = {@props.load_all_projects_done}
+                        redux       = {redux} />
+                </Col>
+            </Row>
+        </Col>
 
 LoadAllProjects = rclass
     displayName: "LoadAllProjects"

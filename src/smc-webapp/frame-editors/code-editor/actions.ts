@@ -83,7 +83,7 @@ export interface CodeEditorState {
   project_id: string;
   path: string;
   is_public: boolean;
-  local_view_state: any;
+  local_view_state: any; // TypedMap({frame_tree?: ImmutableFrameTree, active_id: string, full_id: string, editor_state?: unknown, version?: number, font_size?: number})
   reload: Map<string, any>;
   resize: number;
   misspelled_words: Set<string>;
@@ -105,7 +105,7 @@ export interface CodeEditorState {
   visible: boolean;
 }
 
-export class Actions<T = CodeEditorState> extends BaseActions<
+export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseActions<
   T | CodeEditorState
 > {
   protected _state: "closed" | undefined;
@@ -116,7 +116,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager;
+  protected terminals: TerminalManager<T>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -124,7 +124,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   public project_id: string;
   public path: string;
-  public store: Store<CodeEditorState>;
+  public store: Store<T>;
   public is_public: boolean;
 
   private _save_local_view_state: () => void;
@@ -148,7 +148,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager(this);
+    this.terminals = new TerminalManager<T>(this);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -622,13 +622,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _get_tree(): ImmutableFrameTree {
-    let tree = this.store.getIn(["local_view_state", "frame_tree"]);
+    let tree: ImmutableFrameTree | undefined = this.store.getIn(["local_view_state", "frame_tree"]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
       // See https://github.com/sagemathinc/cocalc/issues/3756
       const local_view_state = this._load_local_view_state();
       this.setState({ local_view_state });
-      tree = local_view_state.get("frame_tree");
+      tree = local_view_state.get("frame_tree") as ImmutableFrameTree;
     }
     return tree;
   }
@@ -1198,7 +1198,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._cm[this._active_id()];
   }
 
-  _get_terminal(id: string, parent: HTMLElement): Terminal {
+  _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1995,7 +1995,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   public refresh_visible(): void {
     // Right now either there is one that is "fullscreen", and
     // only that one is visible, or all are visible.
-    const full_id = this.store.getIn(["local_view_state", "full_id"]);
+    const full_id: string | undefined = this.store.getIn(["local_view_state", "full_id"]);
     if (full_id != null) {
       this.refresh(full_id);
     } else {
