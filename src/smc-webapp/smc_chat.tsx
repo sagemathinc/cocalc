@@ -39,11 +39,8 @@ import { MentionList } from "./chat/store";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-const { SearchInput, TimeAgo } = require("./r_misc");
 
-import { Icon } from "./r_misc/icon";
-import { Loading } from "./r_misc/loading";
-import { Tip } from "./r_misc/tip";
+import { Icon, Loading, Tip, SearchInput, TimeAgo } from "./r_misc";
 
 import {
   Button,

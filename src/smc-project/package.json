@@ -35,7 +35,7 @@
     "node-pty": "^0.8.1",
     "pidusage": "^1.2.0",
     "posix": "^4.0.0",
-    "prettier": "^1.17.0",
+    "prettier": "^1.18.2",
     "primus": "^7.3.2",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",
