@@ -158,7 +158,9 @@ class PayCourseFee extends Component<Props, State> {
   render() {
     return (
       <span>
-        <Row>
+        {this.render_buy_button()}
+        {this.render_confirm_button()}
+        <Row style={{ marginTop: "1em" }}>
           <Col sm={5}>
             <CouponAdder
               applied_coupons={this.props.applied_coupons}
@@ -166,8 +168,6 @@ class PayCourseFee extends Component<Props, State> {
             />
           </Col>
         </Row>
-        {this.render_buy_button()}
-        {this.render_confirm_button()}
       </span>
     );
   }

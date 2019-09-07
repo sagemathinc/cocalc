@@ -18,7 +18,7 @@ export interface BillingStoreState {
   course_pay: CoursePay;
 }
 
-class BillingStore extends Store<BillingStoreState> {}
+export class BillingStore extends Store<BillingStoreState> {}
 
 export const store = redux.createStore("billing", BillingStore, {
   applied_coupons: Map<string, any>(),
