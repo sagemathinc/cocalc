@@ -11,12 +11,12 @@ export type CoursePay = Set<string>;
 
 export interface Source {
   id: string;
-  brand: string;
+  brand?: string;
   last4: string;
   exp_year: number;
   exp_month: number;
   name: string;
-  country: string;
+  address_country: string;
   address_state: string;
   address_zip: string;
 }

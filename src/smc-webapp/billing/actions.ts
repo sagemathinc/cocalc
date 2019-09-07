@@ -10,7 +10,6 @@ import { redux, Actions, Store } from "../app-framework";
 import { callback2, reuse_in_flight_methods } from "smc-util/async-utils";
 import { server_minutes_ago, server_time } from "smc-util/misc";
 const { webapp_client } = require("../webapp_client");
-import { callback_stripe, load_stripe } from "./stripe";
 
 type StripeAction =
   | "delete_source"
@@ -117,35 +116,12 @@ class BillingActions extends Actions<BillingStoreState> {
     );
   }
 
-  public async submit_payment_method(info): Promise<void> {
-    let stripe_publishable_key: string | undefined = this.store.get(
-      "stripe_publishable_key"
+  public async submit_payment_method(token: string): Promise<void> {
+    await this.stripe_action(
+      "create_source",
+      "Creating a new payment method (sending token)",
+      { token }
     );
-    if (stripe_publishable_key == null) {
-      // this defines stripe_publishable_key, or throws an exception (e.g.,
-      // if stripe not configured)
-      await this.update_customer();
-      stripe_publishable_key = this.store.get("stripe_publishable_key");
-      if (stripe_publishable_key == null)
-        throw Error("BUG -- this can't happen");
-    }
-    const Stripe = await load_stripe();
-
-    // see https://stripe.com/docs/stripe.js#createToken
-    this.setState({
-      action: "Creating a new payment method -- get token from Stripe"
-    });
-    Stripe.setPublishableKey(stripe_publishable_key);
-    try {
-      const response = await callback_stripe(Stripe.card.createToken, info);
-      await this.stripe_action(
-        "create_source",
-        "Creating a new payment method (sending token)",
-        { token: response.id }
-      );
-    } finally {
-      this.setState({ action: "" });
-    }
   }
 
   public async cancel_subscription(subscription_id: string): Promise<void> {
@@ -243,12 +219,14 @@ class BillingActions extends Actions<BillingStoreState> {
     is_paying: boolean
   ): void {
     let course_pay = this.store.get("course_pay");
+    let continue_first_purchase = this.store.get("continue_first_purchase");
     if (is_paying) {
       course_pay = course_pay.add(project_id);
     } else {
       course_pay = course_pay.remove(project_id);
+      continue_first_purchase = false;
     }
-    this.setState({ course_pay });
+    this.setState({ course_pay, continue_first_purchase });
   }
 
   public set_selected_plan(plan: string, period?: string): void {

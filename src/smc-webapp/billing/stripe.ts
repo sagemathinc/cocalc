@@ -1,39 +1,36 @@
-// TODO: @j3, I bet you could do a way, way better version of this file!
-
 import { callback } from "awaiting";
+import { redux } from "../app-framework";
+import { BillingStore } from "./store";
 
-export interface StripeAPI {
-  setPublishableKey: (string) => void;
-  card: any;
+export interface Stripe {
+  elements: Function;
+  createToken: Function;
 }
 
-export async function load_stripe(): Promise<StripeAPI> {
-  let { Stripe } = window as any;
-  if (Stripe != null) return Stripe;
+export interface StripeCard {
+  mount: Function;
+}
+
+let stripe: Stripe | undefined = undefined;
+export async function load_stripe(): Promise<Stripe> {
+  if (stripe != null) return stripe;
   function f(cb: Function) {
-    (window as any).$.getScript("https://js.stripe.com/v2/") // TODO: ugh; old and terrible.
+    (window as any).$.getScript("https://js.stripe.com/v3/")
       .done(cb)
       .fail(() =>
         cb(
-          "Unable to load Stripe support; make sure your browser is not blocking stripe.com."
+          "Unable to load Stripe payment support; make sure your browser is not blocking https://js.stripe.com/v3/"
         )
       );
   }
   await callback(f);
-  Stripe = (window as any).Stripe;
-  if (Stripe == null) throw Error("Error loading Stripe API.");
-  return Stripe;
-}
-
-export async function callback_stripe(f: Function, ...args): Promise<any> {
-  function wrapper(cb: Function) {
-    f(...args, (status, response) => {
-      if (status !== 200) {
-        cb(response.error.message);
-      } else {
-        cb(undefined, response);
-      }
-    });
+  const store : BillingStore = redux.getStore("billing");
+  if (store == null) {
+    throw Error("billing store not initialized");
   }
-  return callback(wrapper);
+  const key: string | undefined = store.get("stripe_publishable_key");
+  if (!key) {
+    throw Error("stripe not configured -- publishable key not known");
+  }
+  return (stripe = (window as any).Stripe(key));
 }

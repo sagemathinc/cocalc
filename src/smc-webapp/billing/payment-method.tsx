@@ -28,7 +28,7 @@ export class PaymentMethod extends Component<Props, State> {
   }
 
   private icon_name(): string {
-    return brand_to_icon_name(this.props.source.brand.toLowerCase());
+    return brand_to_icon_name(this.props.source.brand != null ? this.props.source.brand.toLowerCase() : undefined);
   }
 
   private render_confirm_default(): Rendered {
@@ -111,7 +111,7 @@ export class PaymentMethod extends Component<Props, State> {
           {this.props.source.exp_month}/{this.props.source.exp_year}
         </Col>
         <Col md={2}>{this.props.source.name}</Col>
-        <Col md={1}>{this.props.source.country}</Col>
+        <Col md={1}>{this.props.source.address_country}</Col>
         <Col md={2}>
           {this.props.source.address_state}
           <Space />

@@ -9,7 +9,7 @@ import {
 } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
 import { PROJECT_UPGRADES } from "smc-util/schema";
-import { capitalize } from "smc-util/misc2";
+import { capitalize, endswith } from "smc-util/misc2";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer, PeriodName } from "./types";
 import { ConfirmPaymentMethod } from "./confirm-payment-method";
@@ -65,7 +65,7 @@ export class AddSubscription extends Component<Props, State> {
 
   private render_period_selection_buttons(): Rendered {
     return (
-      <div>
+      <div style={{ display: "inline-block" }}>
         <ButtonGroup
           bsSize="large"
           style={{ marginBottom: "20px", display: "flex" }}
@@ -134,7 +134,7 @@ export class AddSubscription extends Component<Props, State> {
           {!renews ? (
             <span>
               You will be <b>charged only once</b> for the course package, which
-              lasts {length === "year" ? "a " : undefined}
+              lasts {endswith(length, "s") ? "" : "a "}
               {length}. It does <b>not automatically renew</b>.
             </span>
           ) : (
@@ -174,6 +174,17 @@ export class AddSubscription extends Component<Props, State> {
     );
   }
 
+  private what_is_selected(): string {
+    // very simple code for now since there are only two options.
+    if (!this.props.selected_plan) {
+      return "Subscription or Course Package";
+    } else if (this.props.selected_plan.indexOf("course") != -1) {
+      return "Course Package";
+    } else {
+      return "Subscription";
+    }
+  }
+
   private render_create_subscription_confirm(plan_data): Rendered {
     let subscription;
     if (this.is_recurring()) {
@@ -194,14 +205,17 @@ export class AddSubscription extends Component<Props, State> {
         </p>
         {this.render_renewal_info()}
         <p>
-          By clicking 'Add Subscription or Course Package' below, your payment
-          card will be immediately charged{subscription}.
+          By clicking 'Buy {this.what_is_selected()}' below, your payment card
+          will be immediately charged{subscription}.
         </p>
       </Alert>
     );
   }
 
   private render_add_button(): Rendered {
+    const no_card =
+      this.props.customer == null ||
+      this.props.customer.sources.data.length == 0;
     return (
       <Button
         bsStyle="primary"
@@ -210,9 +224,9 @@ export class AddSubscription extends Component<Props, State> {
           this.submit_create_subscription();
           this.props.on_close();
         }}
-        disabled={this.props.selected_plan === ""}
+        disabled={this.props.selected_plan === "" || no_card}
       >
-        <Icon name="check" /> Add Subscription or Course Package
+        <Icon name="check" /> Buy {this.what_is_selected()}
       </Button>
     );
   }
@@ -245,35 +259,33 @@ export class AddSubscription extends Component<Props, State> {
       PROJECT_UPGRADES.subscription[this.props.selected_plan.split("-")[0]];
 
     return (
-      <Row>
-        <Col sm={10} smOffset={1}>
-          <Well style={{ boxShadow: "5px 5px 5px lightgray", zIndex: 1 }}>
-            {this.render_create_subscription_options()}
-            {this.props.selected_plan !== ""
-              ? this.render_create_subscription_confirm(plan_data)
-              : undefined}
-            {this.props.selected_plan !== "" ? (
-              <ConfirmPaymentMethod
-                customer={this.props.customer}
-                is_recurring={this.is_recurring()}
-                on_close={this.props.on_close}
+      <>
+        <Well style={{ boxShadow: "5px 5px 5px lightgray", zIndex: 1 }}>
+          {this.render_create_subscription_options()}
+          {this.props.selected_plan !== ""
+            ? this.render_create_subscription_confirm(plan_data)
+            : undefined}
+          {this.props.selected_plan !== "" ? (
+            <ConfirmPaymentMethod
+              customer={this.props.customer}
+              is_recurring={this.is_recurring()}
+              on_close={this.props.on_close}
+            />
+          ) : (
+            undefined
+          )}
+          {this.render_create_subscription_buttons()}
+          <Row style={{ paddingTop: "15px" }}>
+            <Col sm={5} smOffset={7}>
+              <CouponAdder
+                applied_coupons={this.props.applied_coupons}
+                coupon_error={this.props.coupon_error}
               />
-            ) : (
-              undefined
-            )}
-            {this.render_create_subscription_buttons()}
-            <Row style={{ paddingTop: "15px" }}>
-              <Col sm={5} smOffset={7}>
-                <CouponAdder
-                  applied_coupons={this.props.applied_coupons}
-                  coupon_error={this.props.coupon_error}
-                />
-              </Col>
-            </Row>
-          </Well>
-          <ExplainResources type="shared" />
-        </Col>
-      </Row>
+            </Col>
+          </Row>
+        </Well>
+        <ExplainResources type="shared" />
+      </>
     );
   }
 }
