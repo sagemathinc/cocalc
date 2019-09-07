@@ -104,8 +104,11 @@ class AccountActions extends Actions
         async.series([
             (cb) =>
                 # cancel any subscriptions
-                redux.getActions('billing').cancel_everything (err) =>
-                    if err and redux.getStore('billing').get('no_stripe')
+                try
+                    await redux.getActions('billing').cancel_everything()
+                    cb()
+                catch err
+                    if redux.getStore('billing').get('no_stripe')
                         # stripe not configured on backend, so no this err is expected
                         cb()
                     else

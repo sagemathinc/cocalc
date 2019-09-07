@@ -44,7 +44,7 @@ HelpEmailLink = rclass
         customize :
             help_email : rtypes.string
     propTypes :
-        text : rtypes.string
+        text : rtypes.oneOfType([rtypes.string, rtypes.object])  # string or a *rendered* jsx
         color : rtypes.string
     render: ->
         style = {}
@@ -61,7 +61,7 @@ HelpEmailLink = rclass
 exports.HelpEmailLink = rclass
     displayName : 'HelpEmailLink-redux'
     propTypes :
-        text : rtypes.string
+        text : rtypes.oneOfType([rtypes.string, rtypes.object])
         color: rtypes.string
     render: ->
         <Redux>

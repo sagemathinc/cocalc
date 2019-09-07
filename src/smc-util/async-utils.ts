@@ -157,7 +157,7 @@ async function once_with_timeout(
 
 // Alternative to callback_opts that behaves like the
 // callback defined in awaiting.
-export async function callback2(f: Function, opts: any): Promise<any> {
+export async function callback2(f: Function, opts: any = {}): Promise<any> {
   function g(cb): void {
     opts.cb = cb;
     f(opts);
