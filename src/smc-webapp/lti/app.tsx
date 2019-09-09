@@ -124,7 +124,7 @@ function App() {
       case Route.Configure:
         content = (
           <ConfigurationPage
-            project_id={state.opened_project_id}
+            selected_project={state.opened_project_id}
             selected_entries={state.selected_entries[state.opened_project_id]}
             excluded_entries={state.excluded_entries[state.opened_project_id]}
             context={state.context}
