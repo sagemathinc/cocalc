@@ -1,4 +1,4 @@
-import { UUID, Path } from "./generic-types";
+import { UUID } from "./generic-types";
 import { PostgreSQL as DB } from "../postgres/types";
 import {
   IssuerData,
@@ -7,12 +7,21 @@ import {
   LTIGlobalContextId
 } from "./types";
 
-interface Task<T> {
-  result: T;
-  cancel?: () => void;
+interface User {
+  id: UUID;
+  first_name: string;
+  last_name: string;
 }
 
-export async function get_iss_data(_db: DB, iss: string): IssuerData {
+interface Context {
+  id: UUID;
+}
+
+interface Assignment {
+  id: UUID;
+}
+
+export async function get_iss_data(_db: DB, iss: string): Promise<IssuerData> {
   // TODO #V0 Remove when you write a way to save it to the database
   const known_iss = {
     "https://moodletest.cocalc.com": {
@@ -36,11 +45,14 @@ export async function create_context(
   _db: DB,
   _id: LTIGlobalContextId,
   _context: LTIContext
-): UUID {
+): Promise<UUID> {
   return "dummy LTI context id" as UUID;
 }
 
-export async function get_context(_db: DB, _id: LTIGlobalContextId): { id: UUID } {
+export async function get_context(
+  _db: DB,
+  _id: LTIGlobalContextId
+): Promise<Context | undefined>{
   return { id: "dummy LTI context id" as UUID };
 }
 
@@ -58,7 +70,7 @@ export async function create_assignment({
   author: UUID;
   paths: string[];
   name: string;
-}): UUID {
+}): Promise<UUID> {
   console.log(`
     Creating an assignment for the "class": '${context}' and returning a UUID 
     which should be embedded in the url returned to the LMS
@@ -72,7 +84,7 @@ export async function create_assignment({
   return "dummy assignment id" as UUID;
 }
 
-export async function has_assignment({
+export async function get_copy_status({
   _db,
   assignment,
   student,
@@ -82,32 +94,44 @@ export async function has_assignment({
   assignment: UUID;
   student: UUID;
   context: UUID;
-}): boolean {
+}): Promise<Assignment | undefined> {
   console.log(`
     Checking if student: ${student} has assignment: ${assignment}
     which should have been generated on creation ${{ context, _db }}
   `);
   console.log("Returning true");
-  return true;
+  return {id: "fooo" as UUID};
 }
 
-export async function get_user(_db: DB, _user: LTIGlobalUserId): { id: UUID } {
-  return { id: "dummy user id" as UUID };
+export async function create_user(
+  _db: DB,
+  _user: LTIGlobalUserId
+): Promise<User> {
+  return {
+    id: "account id" as UUID,
+    first_name: "Alisa",
+    last_name: "frederick"
+  };
 }
 
-export async function create_student(_db: DB, account: UUID): UUID {
-  return account;
+export async function get_user(_db: DB, _user: LTIGlobalUserId): Promise<User | undefined>{
+  return {
+    id: "dummy user id" as UUID,
+    first_name: "steve",
+    last_name: "Friendly"
+  };
 }
 
-export async function create_student_project(_db: DB, _account: UUID): UUID {
+export async function create_student_project(
+  _db: DB,
+  _account: UUID
+): Promise<UUID> {
   return "dummy project uuid?" as UUID;
 }
 
 // Move assignments to the student's project
 export async function clone_assignment(
-  _name: string,
-  _project_id: UUID,
-  _items: Path[]
-): Task<"success" | "error"> {
-  return { result: "success" };
+  assignment_id: UUID
+): Promise<"success" | "error"> {
+  return "success";
 }

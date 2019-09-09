@@ -4,6 +4,7 @@ import * as querystring from "querystring";
 import * as jwt from "jsonwebtoken";
 import * as jwksClient from "jwks-rsa";
 import * as path from "path";
+import * as hof from "awaiting";
 import {
   compute_global_user_id,
   compute_global_context_id,
@@ -39,9 +40,9 @@ export function init_LTI_router(opts: {
 
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
-  router.route("/login").all((req, res) => {
+  router.route("/login").all(async (req, res) => {
     const token: LoginInitiationFromPlatform = req.body;
-    const iss_data = OP.get_iss_data(opts.database, token.iss);
+    const iss_data = await OP.get_iss_data(opts.database, token.iss);
     const nonce = uuid.v4();
     const state = uuid.v4();
 
@@ -64,7 +65,7 @@ export function init_LTI_router(opts: {
   });
 
   // Tool Launch URL
-  router.route("/launch*").all((req, res) => {
+  router.route("/launch*").all(async (req, res) => {
     console.log("\nLTI: Launch\n");
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
@@ -75,25 +76,42 @@ export function init_LTI_router(opts: {
       req.body.id_token,
       getKey(details.iss_data.jwk_url),
       JWT_OPTIONS,
-      function(err, token: PlatformResponse) {
+      async function(err, token: PlatformResponse) {
         if (err) {
           res.send("Error parsing jwt:" + err);
         }
+        const global_user_id = compute_global_user_id(token);
+        const global_context_id = compute_global_context_id(token);
         const params = parse_launch_url(token);
-        const user = OP.get_user(
-          opts.database,
-          compute_global_user_id(token)
-        );
-        const context = OP.get_context(
+        const assignment_id = params.id as UUID;
+
+        let user = await OP.get_user(opts.database, global_user_id);
+        if (user == undefined) {
+          user = await OP.create_user(opts.database, global_user_id);
+        }
+        const context = await OP.get_context(
           opts.database,
           compute_global_context_id(token)
-        ); // Creates context
-        const has_assignment = OP.has_assignment({
+        );
+
+        if (context == undefined) {
+          OP.create_context(
+            opts.database,
+            global_context_id,
+            token["https://purl.imsglobal.org/spec/lti/claim/context"]
+          );
+        }
+
+        const has_assignment = await OP.get_copy_status({
           _db: opts.database,
-          assignment: params.id as UUID,
+          assignment: assignment_id,
           student: user.id,
           context: context.id
         });
+
+        if (!has_assignment) {
+          await OP.clone_assignment(assignment_id);
+        }
         /*
         If we have no record of them,
           - make a new account
@@ -106,9 +124,9 @@ export function init_LTI_router(opts: {
           - copy those files over to over to the their project
         */
         res.send(
-          `Our id of this user: ${user_id} ------- ${{
-            user_id,
-            context_id,
+          `Our id of this user: ${user} ------- ${{
+            user,
+            context,
             has_assignment
           }} ------- `
         );
@@ -146,7 +164,7 @@ export function init_LTI_router(opts: {
       req.body.id_token,
       getKey(details.iss_data.jwk_url),
       JWT_OPTIONS,
-      function(err, token: PlatformResponse) {
+      async function(err: string, token: PlatformResponse) {
         if (err) {
           res.send("Error parsing jwt:" + err);
         }
@@ -158,7 +176,7 @@ export function init_LTI_router(opts: {
           context_id
         } = req.body;
 
-        const identifier = OP.create_assignment({
+        const identifier = await OP.create_assignment({
           _db: opts.database,
           context: context_id,
           source_project: project_id,
@@ -177,7 +195,7 @@ export function init_LTI_router(opts: {
           token[
             "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings"
           ].deep_link_return_url;
-        const iss_data = OP.get_iss_data(opts.database, token.iss);
+        const iss_data = await OP.get_iss_data(opts.database, token.iss);
 
         // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
         const jwt_data = {
