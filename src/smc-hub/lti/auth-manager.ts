@@ -38,12 +38,14 @@ export function begin_auth_flow(
   id: string,
   payload: { iss_data: IssuerData }
 ) {
+  console.log("Starting auth flow:", id)
   current_auth_flows[id] = payload;
 }
 
 export function get_auth_flow(
   id: string
 ): { iss_data: IssuerData } {
+  console.log("Returning auth flow:", id)
   return current_auth_flows[id] || "Nothing here";
 }
 

@@ -7,7 +7,7 @@ import {
   LoginInitiationFromPlatform
 } from "./types";
 import { UUID } from "./generic-types";
-import { LaunchParams } from './types/misc';
+import { LaunchParams } from "./types/misc";
 
 // If a function takes LTIGlobalUserID as a parameter type, it HAS to have originated from this function
 export function compute_global_user_id(
@@ -33,12 +33,27 @@ export function compute_global_context_id(
 
 // Assumes the query will be correctly formated
 // TODO: Do a runtime check
-export function unchecked_parse_launch_url(LMS_Message: PlatformResponse): LaunchParams {
-  return querystring.parse(
-    LMS_Message[
-      "https://purl.imsglobal.org/spec/lti/claim/target_link_uri"
-    ].split("?")[1]
-  ) as unknown as LaunchParams;
+export function unchecked_parse_launch_url(
+  LMS_Message: PlatformResponse,
+  head: string
+): LaunchParams {
+  console.log(
+    "Parsing launch params from",
+    LMS_Message["https://purl.imsglobal.org/spec/lti/claim/target_link_uri"]
+  );
+
+  const url =
+    LMS_Message["https://purl.imsglobal.org/spec/lti/claim/target_link_uri"];
+
+  console.log("URL Parse: ", url.replace(head, "").split("/"));
+  return {
+    item_type: "assignment",
+    id: "dummy-LTI-assignment-id"
+  } as LaunchParams;
+}
+
+export function assignment_url(url: string, id: string): string {
+  return url + "/assignment/" + id;
 }
 
 export function login_redirect_url({
@@ -69,13 +84,4 @@ export function login_redirect_url({
   };
   const query_string = querystring.stringify(auth_params);
   return base_url + "?" + query_string;
-}
-
-export function assignment_url(url: string, id: string): string {
-  const launch_params: LaunchParams = {
-    item_type: "assignment",
-    id
-  };
-  const query_string = querystring.stringify(launch_params);
-  return url + "?" + query_string;
 }

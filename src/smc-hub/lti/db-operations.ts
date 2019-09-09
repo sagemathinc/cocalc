@@ -29,13 +29,13 @@ const DUMMY_USER: User = {
 
 const DUMMY_ACCOUNT_ID = "dumb-user-id" as UUID;
 
-const DUMMY_CONTEXT: Context = { id: "dummy LTI context id" as UUID };
+const DUMMY_CONTEXT: Context = { id: "dummy-LTI-context-id" as UUID };
 
 const DUMMY_ASSIGNMENT: Assignment = {
-  id: "dummy LTI assignment id" as UUID
+  id: "dummy-LTI-assignment-id" as UUID
 };
 
-export async function get_iss_data(_db: DB, iss: string): Promise<IssuerData> {
+export function get_iss_data(_db: DB, iss: string): IssuerData {
   // TODO #V0 Remove when you write a way to save it to the database
   const known_iss = {
     "https://moodletest.cocalc.com": {
@@ -55,22 +55,22 @@ export async function get_iss_data(_db: DB, iss: string): Promise<IssuerData> {
   return known_iss[iss];
 }
 
-export async function create_context(
+export function create_context(
   _db: DB,
   _id: LTIGlobalContextId,
   _context: LTIContext
-): Promise<Context> {
+): Context {
   return DUMMY_CONTEXT;
 }
 
-export async function get_context(
+export function get_context(
   _db: DB,
   _id: LTIGlobalContextId
-): Promise<Context | undefined> {
+): Context | undefined {
   return DUMMY_CONTEXT;
 }
 
-export async function create_assignment({
+export function create_assignment({
   _db,
   context,
   source_project,
@@ -86,7 +86,7 @@ export async function create_assignment({
   selected_paths: string[];
   excluded_paths: string[];
   name: string;
-}): Promise<Assignment> {
+}): Assignment {
   console.log(`
     Creating an assignment for the "class": '${context}' and returning a UUID 
     which should be embedded in the url returned to the LMS
@@ -101,7 +101,7 @@ export async function create_assignment({
   return DUMMY_ASSIGNMENT;
 }
 
-export async function get_copy_status({
+export function get_copy_status({
   _db,
   assignment,
   student,
@@ -111,7 +111,7 @@ export async function get_copy_status({
   assignment: UUID;
   student: UUID;
   context: UUID;
-}): Promise<Assignment | undefined> {
+}): Assignment | undefined {
   console.log(`
     Checking if student: ${student} has assignment: ${assignment}
     which should have been generated on creation ${{ context, _db }}
@@ -120,30 +120,19 @@ export async function get_copy_status({
   return DUMMY_ASSIGNMENT;
 }
 
-export async function create_user(
-  _db: DB,
-  _user: LTIGlobalUserId
-): Promise<User> {
+export function create_user(_db: DB, _user: LTIGlobalUserId): User {
   return DUMMY_USER;
 }
 
-export async function get_user(
-  _db: DB,
-  _user: LTIGlobalUserId
-): Promise<User | undefined> {
+export function get_user(_db: DB, _user: LTIGlobalUserId): User | undefined {
   return DUMMY_USER;
 }
 
-export async function create_student_project(
-  _db: DB,
-  _account: UUID
-): Promise<UUID> {
+export function create_student_project(_db: DB, _account: UUID): UUID {
   return DUMMY_ACCOUNT_ID;
 }
 
 // Move assignments to the student's project
-export async function clone_assignment(
-  assignment_id: UUID
-): Promise<"success" | "error"> {
+export function clone_assignment(_assignment_id: UUID): "success" | "error" {
   return "success";
 }

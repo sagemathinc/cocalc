@@ -23,17 +23,17 @@ import {
 } from "./types";
 
 import * as auth_manager from "./auth-manager";
-import { LaunchParams } from "./types/misc";
 
 const SMC_ROOT: string = process.env.SMC_ROOT as any;
 const STATIC_PATH = path.join(SMC_ROOT, "static");
-const JWT_OPTIONS = { algorithms: ["RS256"] };
+const JWT_OPTIONS = { algorithm: "RS256" };
 
 export function init_LTI_router(opts: {
   base_url: string;
   database: PostgreSQL;
 }): express.Router {
   const router = express.Router();
+  const launch_head = `https://cocalc.com/${opts.base_url}/api/lti/launch`
   router.use(express.json());
   router.use(express.urlencoded({ extended: true }));
 
@@ -43,11 +43,11 @@ export function init_LTI_router(opts: {
 
   // https://www.imsglobal.org/spec/security/v1p0/#openid_connect_launch_flow
   // 5.1.1
-  router.route("/login").all(async (req, res) => {
+  router.route("/login").all((req, res) => {
     const state = uuid.v4();
     const nonce = uuid.v4();
     const token: LoginInitiationFromPlatform = req.body;
-    const issuer = await OP.get_iss_data(opts.database, token.iss);
+    const issuer = OP.get_iss_data(opts.database, token.iss);
 
     auth_manager.begin_auth_flow(state, { iss_data: issuer });
     res.redirect(
@@ -75,36 +75,37 @@ export function init_LTI_router(opts: {
       id_token,
       getKey(flow_details.iss_data.jwk_url),
       JWT_OPTIONS,
-      async function(err: string, token: PlatformResponse) {
+      function(err: string, token: PlatformResponse) {
         if (err) {
           res.send("Error parsing jwt:" + err);
+        }
+        if (token == undefined) {
+          res.send("Token was undefined in /launch");
         }
         // TODO: Add loading step
 
         const global_user_id = compute_global_user_id(token);
         const global_context_id = compute_global_context_id(token);
-        const params = unchecked_parse_launch_url(token);
-        if (params.item_type === "assignment") {
+        const params = unchecked_parse_launch_url(token, launch_head);
+        console.log("LAUNCH GOT PARAMS:", params);
+        if (params.item_type == "assignment") {
           const assignment_id = params.id as UUID;
 
-          let user = await OP.get_user(opts.database, global_user_id);
+          let user = OP.get_user(opts.database, global_user_id);
           if (user == undefined) {
-            user = await OP.create_user(opts.database, global_user_id);
+            user = OP.create_user(opts.database, global_user_id);
           }
 
-          let context = await OP.get_context(
-            opts.database,
-            global_context_id
-          );
+          let context = OP.get_context(opts.database, global_context_id);
           if (context == undefined) {
-            context = await OP.create_context(
+            context = OP.create_context(
               opts.database,
               global_context_id,
               token["https://purl.imsglobal.org/spec/lti/claim/context"]
             );
           }
 
-          const has_assignment = await OP.get_copy_status({
+          const has_assignment = OP.get_copy_status({
             _db: opts.database,
             assignment: assignment_id,
             student: user.id,
@@ -112,7 +113,7 @@ export function init_LTI_router(opts: {
           });
 
           if (!has_assignment) {
-            await OP.clone_assignment(assignment_id);
+            OP.clone_assignment(assignment_id);
           }
 
           res.send(
@@ -129,24 +130,36 @@ export function init_LTI_router(opts: {
     );
   });
 
-  router.route("/deep-link-select").all(async (req, res) => {
+  router.route("/deep-link-select").all((req, res) => {
+    console.log(`\n
+      Deep link Select:
+      ${JSON.stringify(req.body)}
+    `);
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-    const token = jwt.decode(req.body.token_id, JWT_OPTIONS);
-    const user_id = await OP.get_user(opts.database, token);
-    const context_id = await OP.get_context(
-      opts.database,
-      compute_global_context_id(token)
-    );
-    const query_string = querystring.stringify({
-      id_token: req.body.id_token,
-      nonce: req.body.state,
-      return_path: "lti/return-deep-link/",
-      user_id,
-      context_id
-    });
-    res.redirect("../lti?" + query_string);
+
+    const token = jwt.decode(req.body.id_token, JWT_OPTIONS);
+    if (token == undefined) {
+      res.send("Token was undefined in /deep-link-select");
+    }
+    try {
+      const user_id = OP.get_user(opts.database, token);
+      const context_id = OP.get_context(
+        opts.database,
+        compute_global_context_id(token)
+      );
+      const query_string = querystring.stringify({
+        id_token: req.body.id_token,
+        nonce: req.body.state,
+        return_path: "lti/return-deep-link/",
+        user_id,
+        context_id
+      });
+      res.redirect("../lti?" + query_string);
+    } catch (err) {
+      console.log(err);
+    }
   });
 
   router.post("/return-deep-link", (req, res) => {
@@ -154,13 +167,13 @@ export function init_LTI_router(opts: {
     if (req.body.error) {
       res.send(`Recieved error ${req.body.error}`);
     }
-    const details = auth_manager.get_auth_flow(req.body.nonce);
+    const details = auth_manager.get_auth_flow(req.body.state);
 
     jwt.verify(
       req.body.id_token,
       getKey(details.iss_data.jwk_url),
       JWT_OPTIONS,
-      async function(err: string, token: PlatformResponse) {
+      function(err: string, token: PlatformResponse) {
         if (err) {
           res.send("Error parsing jwt:" + err);
         }
@@ -177,17 +190,14 @@ export function init_LTI_router(opts: {
         const global_user_id = compute_global_user_id(token);
         const global_context_id = compute_global_context_id(token);
 
-        let user = await OP.get_user(opts.database, global_user_id);
+        let user = OP.get_user(opts.database, global_user_id);
         if (user == undefined) {
-          user = await OP.create_user(opts.database, global_user_id);
+          user = OP.create_user(opts.database, global_user_id);
         }
 
-        let context = await OP.get_context(
-          opts.database,
-          global_context_id
-        );
+        let context = OP.get_context(opts.database, global_context_id);
         if (context == undefined) {
-          context = await OP.create_context(
+          context = OP.create_context(
             opts.database,
             global_context_id,
             token["https://purl.imsglobal.org/spec/lti/claim/context"]
@@ -195,7 +205,7 @@ export function init_LTI_router(opts: {
         }
         // End COPY *******************************
 
-        const assignment = await OP.create_assignment({
+        const assignment = OP.create_assignment({
           _db: opts.database,
           context: context.id,
           source_project: project_id,
@@ -206,13 +216,13 @@ export function init_LTI_router(opts: {
         });
         // `/launch` receives this url as target
         let url = assignment_url(
-          `https://cocalc.com/${opts.base_url}/api/lti/launch/`,
+          launch_head,
           assignment.id
         );
 
         // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
         const nonce = uuid.v4();
-        const iss_data = await OP.get_iss_data(opts.database, token.iss);
+        const iss_data = OP.get_iss_data(opts.database, token.iss);
         const iss = iss_data.client_id;
 
         // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request

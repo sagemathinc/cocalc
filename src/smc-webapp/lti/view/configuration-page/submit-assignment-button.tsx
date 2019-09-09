@@ -21,7 +21,7 @@ export function SubmitAssignmentButton({
       <input type="hidden" name="project_id" value={project_id} />
       <input type="hidden" name="selected_paths" value={selected_paths} />
       <input type="hidden" name="excluded_paths" value={excluded_paths} />
-      <input type="hidden" name="token_id" value={id_token} />
+      <input type="hidden" name="id_token" value={id_token} />
       <Button type="submit" name="state" value={nonce}>
         Finish
       </Button>
