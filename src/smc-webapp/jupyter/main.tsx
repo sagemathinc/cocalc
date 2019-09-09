@@ -312,7 +312,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         project_id={this.props.project_id}
         directory={this.props.directory}
         scrollTop={this.props.scrollTop}
-        complete={this.props.complete}
+        complete={this.props.is_focused ? this.props.complete : undefined}
         is_focused={this.props.is_focused}
         more_output={this.props.more_output}
         scroll={this.props.scroll}
