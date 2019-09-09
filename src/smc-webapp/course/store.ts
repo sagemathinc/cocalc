@@ -240,7 +240,9 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    const pay = this.get("settings").get("pay");
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return "";
+    const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
   }
