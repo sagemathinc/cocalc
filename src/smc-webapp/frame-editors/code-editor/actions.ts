@@ -108,9 +108,9 @@ export interface CodeEditorState {
   visible: boolean;
 }
 
-export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseActions<
-  T | CodeEditorState
-> {
+export class Actions<
+  T extends CodeEditorState = CodeEditorState
+> extends BaseActions<T | CodeEditorState> {
   protected _state: "closed" | undefined;
   protected _syncstring: SyncString;
   protected _syncdb?: SyncDB; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
@@ -625,7 +625,10 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
   }
 
   _get_tree(): ImmutableFrameTree {
-    let tree: ImmutableFrameTree | undefined = this.store.getIn(["local_view_state", "frame_tree"]);
+    let tree: ImmutableFrameTree | undefined = this.store.getIn([
+      "local_view_state",
+      "frame_tree"
+    ]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
       // See https://github.com/sagemathinc/cocalc/issues/3756
@@ -837,7 +840,8 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     id?: string, // id of frame being split (uses active_id by default)
     type?: string, // type of new frame
     extra?: object, // set this data in the new frame immediately.
-    first?: boolean // if true, new frame is left or top instead of right or bottom.
+    first?: boolean, // if true, new frame is left or top instead of right or bottom.
+    no_focus?: boolean // do not change active frame
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
@@ -849,8 +853,9 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     for (let new_id in after) {
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
-        this.set_active_id(new_id);
-
+        if (!no_focus) {
+          this.set_active_id(new_id);
+        }
         // Emit new-frame event so other code can handle or initialize
         // creation of a new frame further.
         if (type === undefined) {
@@ -1997,7 +2002,10 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
   public refresh_visible(): void {
     // Right now either there is one that is "fullscreen", and
     // only that one is visible, or all are visible.
-    const full_id: string | undefined = this.store.getIn(["local_view_state", "full_id"]);
+    const full_id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "full_id"
+    ]);
     if (full_id != null) {
       this.refresh(full_id);
     } else {
@@ -2090,7 +2098,9 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     );
   }
 
-  public show_focused_frame_of_type(
+  // Show the most recently focused frame of the given type, or create
+  // one of that type.  Does NOT focus that frame.
+  public show_recently_focused_frame_of_type(
     type: string,
     dir: FrameDirection = "col",
     first: boolean = false,
@@ -2102,7 +2112,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     if (id == null) {
       // no such frame, so make one
       const active_id = this._get_active_id();
-      this.split_frame(dir, active_id, type, undefined, first);
+      this.split_frame(dir, active_id, type, undefined, first, true);
       id = this._get_most_recent_active_frame_id_of_type(type);
       if (pos != null && id != null) {
         const parent_id = this.get_parent_id(id);
@@ -2110,11 +2120,41 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
           this.set_frame_tree({ id: parent_id, pos });
         }
       }
+      this.set_active_id(active_id); // above could change it.
     }
     if (id == null) {
       throw Error("bug creating frame");
     }
+    let local_view_state = this.store.get("local_view_state");
+    if (local_view_state != null && local_view_state.get("full_id") != id) {
+      this.unset_frame_full();
+    }
+    return id;
+  }
+
+  // Shows most recent frame of the given type, or creates it.
+  // Also focuses that frame.
+  public show_focused_frame_of_type(
+    type: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    let id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
+  }
+
+  // Closes the most recently focused frame of the given type.
+  public close_recently_focused_frame_of_type(
+    type: string
+  ): string | undefined {
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      type
+    );
+    if (id != null) {
+      this.close_frame(id);
+      return id;
+    }
   }
 }

@@ -12,7 +12,6 @@ import { Loading } from "../r_misc/loading";
 import { TopMenubar } from "./top-menubar";
 import { TopButtonbar } from "./top-buttonbar";
 import { CellList } from "./cell-list";
-import { Introspect } from "./introspect";
 import { Kernel, Mode } from "./status";
 import { About } from "./about";
 import { NBConvert } from "./nbconvert";
@@ -73,7 +72,6 @@ interface JupyterEditorProps {
 
   // TODO
   complete?: immutable.Map<any, any>; // status of tab completion
-  introspect?: immutable.Map<any, any>; // status of introspection
   more_output?: immutable.Map<any, any>;
   find_and_replace?: boolean;
   show_kernel_selector?: boolean;
@@ -133,7 +131,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         directory: rtypes.string,
         version: rtypes.object,
         complete: rtypes.immutable.Map, // status of tab completion
-        introspect: rtypes.immutable.Map, // status of introspection
         more_output: rtypes.immutable.Map,
         about: rtypes.bool,
         backend_kernel_info: rtypes.immutable.Map,
@@ -330,19 +327,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
-  render_introspect() {
-    if (this.props.introspect == null) {
-      return;
-    }
-    return (
-      <Introspect
-        actions={this.props.actions}
-        introspect={this.props.introspect}
-        font_size={this.props.font_size}
-      />
-    );
-  }
-
   render_about() {
     return (
       <About
@@ -530,12 +514,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     } else if (this.props.show_kernel_selector) {
       return this.render_select_kernel();
     } else {
-      return (
-        <>
-          {this.render_main_view()}
-          {this.render_introspect()}
-        </>
-      );
+      return this.render_main_view();
     }
   }
 
