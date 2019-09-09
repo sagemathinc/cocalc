@@ -21,6 +21,20 @@ interface Assignment {
   id: UUID;
 }
 
+const DUMMY_USER: User = {
+  id: "account id" as UUID,
+  first_name: "Alisa",
+  last_name: "frederick"
+};
+
+const DUMMY_ACCOUNT_ID = "dumb-user-id" as UUID;
+
+const DUMMY_CONTEXT: Context = { id: "dummy LTI context id" as UUID };
+
+const DUMMY_ASSIGNMENT: Assignment = {
+  id: "dummy LTI assignment id" as UUID
+};
+
 export async function get_iss_data(_db: DB, iss: string): Promise<IssuerData> {
   // TODO #V0 Remove when you write a way to save it to the database
   const known_iss = {
@@ -45,15 +59,15 @@ export async function create_context(
   _db: DB,
   _id: LTIGlobalContextId,
   _context: LTIContext
-): Promise<UUID> {
-  return "dummy LTI context id" as UUID;
+): Promise<Context> {
+  return DUMMY_CONTEXT;
 }
 
 export async function get_context(
   _db: DB,
   _id: LTIGlobalContextId
-): Promise<Context | undefined>{
-  return { id: "dummy LTI context id" as UUID };
+): Promise<Context | undefined> {
+  return DUMMY_CONTEXT;
 }
 
 export async function create_assignment({
@@ -61,16 +75,18 @@ export async function create_assignment({
   context,
   source_project,
   author,
-  paths,
+  selected_paths,
+  excluded_paths,
   name
 }: {
   _db: DB;
   context: UUID;
   source_project: UUID;
   author: UUID;
-  paths: string[];
+  selected_paths: string[];
+  excluded_paths: string[];
   name: string;
-}): Promise<UUID> {
+}): Promise<Assignment> {
   console.log(`
     Creating an assignment for the "class": '${context}' and returning a UUID 
     which should be embedded in the url returned to the LMS
@@ -78,10 +94,11 @@ export async function create_assignment({
   console.log(`
     project: ${source_project}
     author: ${author}
-    paths: ${paths}
+    paths: ${selected_paths}
+      ex: ${excluded_paths}
     name: ${{ name, _db }}
   `);
-  return "dummy assignment id" as UUID;
+  return DUMMY_ASSIGNMENT;
 }
 
 export async function get_copy_status({
@@ -100,33 +117,28 @@ export async function get_copy_status({
     which should have been generated on creation ${{ context, _db }}
   `);
   console.log("Returning true");
-  return {id: "fooo" as UUID};
+  return DUMMY_ASSIGNMENT;
 }
 
 export async function create_user(
   _db: DB,
   _user: LTIGlobalUserId
 ): Promise<User> {
-  return {
-    id: "account id" as UUID,
-    first_name: "Alisa",
-    last_name: "frederick"
-  };
+  return DUMMY_USER;
 }
 
-export async function get_user(_db: DB, _user: LTIGlobalUserId): Promise<User | undefined>{
-  return {
-    id: "dummy user id" as UUID,
-    first_name: "steve",
-    last_name: "Friendly"
-  };
+export async function get_user(
+  _db: DB,
+  _user: LTIGlobalUserId
+): Promise<User | undefined> {
+  return DUMMY_USER;
 }
 
 export async function create_student_project(
   _db: DB,
   _account: UUID
 ): Promise<UUID> {
-  return "dummy project uuid?" as UUID;
+  return DUMMY_ACCOUNT_ID;
 }
 
 // Move assignments to the student's project

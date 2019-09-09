@@ -36,14 +36,14 @@ const current_auth_flows = {};
 
 export function begin_auth_flow(
   id: string,
-  payload: { auth_params: any; iss_data: IssuerData }
+  payload: { iss_data: IssuerData }
 ) {
   current_auth_flows[id] = payload;
 }
 
 export function get_auth_flow(
   id: string
-): { auth_params: any; iss_data: IssuerData } {
+): { iss_data: IssuerData } {
   return current_auth_flows[id] || "Nothing here";
 }
 

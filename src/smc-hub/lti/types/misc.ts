@@ -12,3 +12,8 @@ export interface IssuerData {
   auth_url: string;
   jwk_url: string;
 }
+
+export interface LaunchParams {
+  item_type: "assignment"
+  id: string // UUID of target entity
+}

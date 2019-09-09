@@ -23,10 +23,11 @@ export interface AuthRequestTokenData {
   id_token_hint: string;
 }
 
-export interface AuthResponseTokenData {
-  id_token: UUID; // JWT decodes into PlatformResponse
+export type AuthResponseBody = {
+  id_token: string; // JWT decodes into PlatformResponse
   state: UUID; // Same state as provided to the platform in AuthRequestTokenData
-}
+  error?: string;
+};
 
 export interface LTIContext {
   id: string;

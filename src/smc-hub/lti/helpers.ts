@@ -1,5 +1,13 @@
 import * as querystring from "querystring";
-import { LTIGlobalContextId, LTIGlobalUserId, PlatformResponse } from "./types";
+import {
+  AuthRequestTokenData,
+  LTIGlobalContextId,
+  LTIGlobalUserId,
+  PlatformResponse,
+  LoginInitiationFromPlatform
+} from "./types";
+import { UUID } from "./generic-types";
+import { LaunchParams } from './types/misc';
 
 // If a function takes LTIGlobalUserID as a parameter type, it HAS to have originated from this function
 export function compute_global_user_id(
@@ -23,12 +31,51 @@ export function compute_global_context_id(
     ]) as LTIGlobalContextId;
 }
 
-export function parse_launch_url(
-  LMS_Message: PlatformResponse
-) {
+// Assumes the query will be correctly formated
+// TODO: Do a runtime check
+export function unchecked_parse_launch_url(LMS_Message: PlatformResponse): LaunchParams {
   return querystring.parse(
     LMS_Message[
       "https://purl.imsglobal.org/spec/lti/claim/target_link_uri"
     ].split("?")[1]
-  );
+  ) as unknown as LaunchParams;
+}
+
+export function login_redirect_url({
+  base_url,
+  our_id,
+  token,
+  state,
+  nonce
+}: {
+  base_url: string;
+  our_id: string;
+  token: LoginInitiationFromPlatform;
+  state: UUID;
+  nonce: UUID;
+}): string {
+  const auth_params: AuthRequestTokenData = {
+    scope: "openid",
+    response_type: "id_token",
+    response_mode: "form_post",
+    prompt: "none",
+    client_id: our_id,
+    redirect_uri: token.target_link_uri,
+    login_hint: token.login_hint,
+    state: state,
+    nonce: nonce,
+    lti_message_hint: token.lti_message_hint,
+    id_token_hint: token.lti_message_hint
+  };
+  const query_string = querystring.stringify(auth_params);
+  return base_url + "?" + query_string;
+}
+
+export function assignment_url(url: string, id: string): string {
+  const launch_params: LaunchParams = {
+    item_type: "assignment",
+    id
+  };
+  const query_string = querystring.stringify(launch_params);
+  return url + "?" + query_string;
 }
