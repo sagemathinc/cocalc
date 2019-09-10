@@ -76,51 +76,11 @@ pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
 
-
-# One segment of the directory links at the top of the files listing.
-PathSegmentLink = rclass
-    displayName : 'ProjectFiles-PathSegmentLink'
-
-    propTypes :
-        path       : rtypes.string
-        display    : rtypes.oneOfType([rtypes.string, rtypes.object])
-        actions    : rtypes.object.isRequired
-        full_name  : rtypes.string
-        history    : rtypes.bool
-        active     : rtypes.bool
-
-    getDefaultProps: ->
-        active     : false
-
-    handle_click: ->
-        @props.actions.open_directory(@props.path)
-
-    render_content: ->
-        if @props.full_name and @props.full_name isnt @props.display
-            <Tip tip={@props.full_name} placement='bottom' title='Full name'>
-                {@props.display}
-            </Tip>
-        else
-            return @props.display
-
-    style: ->
-        if @props.history
-            return {color: '#c0c0c0'}
-        else if @props.active
-            return {color: COLORS.BS_BLUE_BGRND}
-        {}
-
-    render: ->
-        <Breadcrumb.Item
-            onClick    = {@handle_click}
-            active     = {@props.active}
-            style      = {@style()} >
-                {@render_content()}
-        </Breadcrumb.Item>
+PathSegmentLink = require("./project/explorer/path-segment-link")
 
 # This path consists of several PathSegmentLinks
 ProjectFilesPath = rclass
-    displayName : 'ProjectFiles-ProjectFilesPath'
+    displayName : 'Explorer-ProjectFilesPath'
 
     propTypes :
         current_path : rtypes.string
@@ -159,7 +119,7 @@ ProjectFilesPath = rclass
         </Breadcrumb>
 
 ProjectFilesButtons = rclass
-    displayName : 'ProjectFiles-ProjectFilesButtons'
+    displayName : 'Explorer-ProjectFilesButtons'
 
     propTypes :
         kucalc             : rtypes.string
@@ -252,7 +212,7 @@ ProjectFilesButtons = rclass
         </ButtonToolbar>
 
 ProjectFilesActions = rclass
-    displayName : 'ProjectFiles-ProjectFilesActions'
+    displayName : 'Explorer-ProjectFilesActions'
 
     propTypes :
         project_id    : rtypes.string
@@ -448,7 +408,7 @@ ProjectFilesActions = rclass
         </div>
 
 ProjectFilesActionBox = rclass
-    displayName : 'ProjectFiles-ProjectFilesActionBox'
+    displayName : 'Explorer-ProjectFilesActionBox'
 
     propTypes :
         checked_files     : rtypes.object
@@ -1083,7 +1043,7 @@ ProjectFilesActionBox = rclass
 # Commands such as CD throw a setState error.
 # Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
-    displayName : 'ProjectFiles-ProjectFilesSearch'
+    displayName : 'Explorer-ProjectFilesSearch'
 
     propTypes :
         project_id         : rtypes.string.isRequired  # Added by miniterm functionality
@@ -1261,7 +1221,7 @@ ProjectFilesSearch = rclass
         </span>
 
 ProjectFilesNew = rclass
-    displayName : 'ProjectFiles-ProjectFilesNew'
+    displayName : 'Explorer-ProjectFilesNew'
 
     propTypes :
         file_search   : rtypes.string.isRequired
@@ -1341,10 +1301,10 @@ error_style =
     right       : '5px'
     boxShadow   : '5px 5px 5px grey'
 
-# TODO: change/rewrite ProjectFiles to not have any rtypes.objects and
+# TODO: change/rewrite Explorer to not have any rtypes.objects and
 # add a shouldComponentUpdate!!
-exports.ProjectFiles = rclass ({name}) ->
-    displayName : 'ProjectFiles'
+exports.Explorer = rclass ({name}) ->
+    displayName : 'Explorer'
 
     reduxProps :
         projects :
