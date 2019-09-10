@@ -24,6 +24,7 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 // a lot. TODO: This **should** be an LRU cache to avoid a memory leak.
 interface CachedInfo {
   sel?: any[]; // only cache the selections right now...
+  last_introspect_pos?: { line: number; ch: number };
 }
 
 const cache: { [key: string]: CachedInfo } = {};
@@ -78,7 +79,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
 
   componentDidMount() {
     if (this.props.frame_actions != null) {
-      this.key = `${this.props.frame_actions}${this.props.id}`;
+      this.key = `${this.props.frame_actions.frame_id}${this.props.id}`;
     }
     this.init_codemirror(this.props.options, this.props.value);
   }
@@ -246,18 +247,36 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   shift_tab_key = (): void => {
     if (this.cm == null) return;
     if (this.cm.somethingSelected() || this.whitespace_before_cursor()) {
-      this.props.actions.introspect_close(); // make sure introspect page closes
       // Something is selected or there is whitespace before
       // the cursor: unindent.
-      this.cm.unindent_selection();
+      if (this.cm != null) this.cm.unindent_selection();
       return;
     }
     // Otherwise, Shift+tab in Jupyter is introspect.
-    this.props.actions.introspect_at_pos(
-      this.cm.getValue(),
-      0,
-      this.cm.getCursor()
-    );
+    const pos = this.cm.getCursor();
+    let last_introspect_pos:
+      | undefined
+      | { line: number; ch: number } = undefined;
+    if (this.key != null && cache[this.key]) {
+      last_introspect_pos = cache[this.key].last_introspect_pos;
+    }
+    if (
+      this.props.actions.store.get("introspect") != null &&
+      last_introspect_pos != null &&
+      last_introspect_pos.line === pos.line &&
+      last_introspect_pos.ch === pos.ch
+    ) {
+      // make sure introspect pager closes (if visible)
+      this.props.actions.introspect_close();
+      last_introspect_pos = undefined;
+    } else {
+      this.props.actions.introspect_at_pos(this.cm.getValue(), 0, pos);
+      last_introspect_pos = pos;
+    }
+    if (this.key != null) {
+      if (cache[this.key] == null) cache[this.key] = {};
+      cache[this.key].last_introspect_pos = last_introspect_pos;
+    }
   };
 
   tab_key = (): void => {
