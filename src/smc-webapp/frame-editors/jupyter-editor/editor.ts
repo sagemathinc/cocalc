@@ -25,6 +25,7 @@ import { ClassicalNotebook } from "./classical-notebook";
 */
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents/contents";
+import { Introspect } from "./introspect/introspect";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -69,6 +70,13 @@ export const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  },
+  introspect: {
+    short: "Introspect",
+    name: "Introspection",
+    icon: "info",
+    component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size"])
   }
 };
