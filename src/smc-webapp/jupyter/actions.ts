@@ -1654,13 +1654,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     level: 0 | 1 = 0,
     pos: { ch: number; line: number }
   ): Promise<void> => {
-    // If the introspection window is currently open, close it.
-    if (this.store.get("introspect") != null) {
-      this.setState({ introspect: undefined });
-      return;
-    }
-
-    // Introspection is not opened, try to introspect...
     if (code === "") return; // no-op if there is no code (should never happen)
     await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
   };
@@ -1672,8 +1665,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   ): Promise<void> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
-
-    this.setState({ introspect: undefined });
 
     if (cursor_pos == null) {
       cursor_pos = code.length;

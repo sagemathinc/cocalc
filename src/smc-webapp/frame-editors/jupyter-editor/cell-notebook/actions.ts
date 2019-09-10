@@ -54,7 +54,11 @@ export class NotebookFrameActions {
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(this.jupyter_actions, this, this.frame_tree_actions);
+    this.commands = commands(
+      this.jupyter_actions,
+      this,
+      this.frame_tree_actions
+    );
   }
 
   public set_windowed_list_ref(windowed_list_ref) {
@@ -221,7 +225,11 @@ export class NotebookFrameActions {
 
   public enable_key_handler(): void {
     if (this.key_handler == null) {
-      this.key_handler = create_key_handler(this.jupyter_actions, this, this.frame_tree_actions);
+      this.key_handler = create_key_handler(
+        this.jupyter_actions,
+        this,
+        this.frame_tree_actions
+      );
     }
     this.frame_tree_actions.set_active_key_handler(this.key_handler);
   }
@@ -293,7 +301,7 @@ export class NotebookFrameActions {
   }
 
   /***
-   * TODO: organize this stuff:
+   * TODO: better organize this code below:
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
@@ -306,6 +314,7 @@ export class NotebookFrameActions {
         this.set_md_cell_editing(cur_id);
       }
     }
+    this.enable_key_handler();
     this.setState({ mode });
   }
 
@@ -737,16 +746,6 @@ export class NotebookFrameActions {
   }
 
   public toggle_write_protection_on_selected_cells(): void {
-    // also make sure to switch to escape mode and eval markdown cells
-    /*
-    this.set_mode("escape");
-    const f = id => {
-      const type = this.store.getIn(["cells", id, "cell_type"]);
-      if (type === "markdown") {
-        return this.set_md_cell_not_editing(id);
-      }
-    };
-*/
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
   }
