@@ -1,6 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 import argparse, os, sys, time, urllib
+from concurrent.futures import ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=3)
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
@@ -28,7 +30,9 @@ def cmd(s, error=True):
     print(s)
     if os.system(s) and error:
         sys.exit(1)
-    print("TOTAL TIME: %.1f seconds" % (time.time() - t0))
+    elapsed = time.time() - t0
+    print("TOTAL TIME: %.1f seconds" % elapsed)
+    return elapsed
 
 
 def pull():
@@ -48,22 +52,25 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
+
     # global install, hence no "npm ci" (!)
     for pkg in ['coffeescript', 'forever']:
-        cmd(SUDO +
-            "npm --loglevel=warn --unsafe-perm=true install %s -g" % pkg)
+        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install --upgrade {pkg} -g"
+        cmd(SUDO + c)
 
     # npm ci for using pkg lock file
-    for path in [
-            './smc-util',
-            './smc-util-node',
-            './smc-project',
-            './smc-webapp',
-    ]:
-        cmd(SUDO + "npm --loglevel=warn --unsafe-perm=true ci %s -g" % pkg)
+    pkgs = ['./smc-util ./smc-util-node ./smc-project ./smc-webapp']
+
+    def build_op(pkg):
+        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false ci {pkg} -g"
+        return cmd(SUDO + c)
+
+    with executor:
+        total = sum(_ for _ in executor.map(build_op, pkgs))
+        print(f"TOTAL PROJECT PKG TIME: {total:.1f}s")
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --upgrade"
+    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
         % SUDO)
 
     # At least run typescript...
@@ -79,8 +86,14 @@ def install_project():
 
 
 def install_hub():
-    for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
-        cmd("cd %s; npm --loglevel=warn ci" % path)
+    paths = ['.', 'smc-util', 'smc-util-node', 'smc-hub']
+
+    def build_op(path):
+        return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
+
+    with executor:
+        total = sum(_ for _ in executor.map(build_op, paths))
+        print(f"TOTAL HUB BUILD TIME: {total:.1f}s")
 
 
 def install_webapp(*args):
@@ -91,17 +104,21 @@ def install_webapp(*args):
     if 'build' in action:
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
-        # clean up all package-lock files in cocalc's codebase (before running npm ci again)
-        # DISABLED -- causes troubles building
-        #cmd("git ls-files '../*/package-lock.json' | xargs rm -f")
-        for path in [
-                '.',
-                'smc-util',
-                'smc-util-node',
-                'smc-webapp',
-                'smc-webapp/jupyter',
-        ]:
-            cmd("cd %s; npm --loglevel=warn ci" % path)
+
+        paths = [
+            '.',
+            'smc-util',
+            'smc-util-node',
+            'smc-webapp',
+            'smc-webapp/jupyter',
+        ]
+
+        def build_op(path):
+            return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
+
+        with executor:
+            total = sum(_ for _ in executor.map(build_op, paths))
+            print(f"TOTAL WEBAPP BUILD TIME: {total:.1f}s")
 
         # react static step must come *before* webpack step
         cmd("update_react_static")
@@ -139,7 +156,7 @@ def install_webapp(*args):
         print(
             "Building {wtype} webpack -- this should take up to {est} minutes".
             format(wtype=wtype, est=est))
-        cmd("npm --loglevel=warn run webpack-{wtype}".format(wtype=wtype))
+        cmd("npm --loglevel=warn --progress=false run webpack-{wtype}".format(wtype=wtype))
         nothing = False
 
     if 'pull' == action:
@@ -161,7 +178,7 @@ def install_webapp(*args):
 
 def install_primus():
     # The rm works around a bug in npm...
-    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm --loglevel=warn install primus engine.io && cd .. && webapp-lib/primus/update_primus"
+    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm --loglevel=warn --progress=false install primus engine.io && cd .. && webapp-lib/primus/update_primus"
         )
 
 
@@ -219,11 +236,10 @@ def main():
 
     parser_sagews = subparsers.add_parser(
         'sagews', help='install sagews server into sage install')
-    parser_sagews.add_argument(
-        "--sage",
-        help="/path/to/sage (default: 'sage')",
-        default='sage',
-        type=str)
+    parser_sagews.add_argument("--sage",
+                               help="/path/to/sage (default: 'sage')",
+                               default='sage',
+                               type=str)
     parser_sagews.set_defaults(func=lambda *args: install_sagews())
 
     parser_project = subparsers.add_parser(
@@ -235,10 +251,14 @@ def main():
         help=
         'install all code that makes sense for the selected classes of servers; use "./install.py all --compute" for compute node and "./install.py all --web" for a web node'
     )
-    parser_all.add_argument(
-        "--compute", default=False, action="store_const", const=True)
-    parser_all.add_argument(
-        "--web", default=False, action="store_const", const=True)
+    parser_all.add_argument("--compute",
+                            default=False,
+                            action="store_const",
+                            const=True)
+    parser_all.add_argument("--web",
+                            default=False,
+                            action="store_const",
+                            const=True)
     parser_all.set_defaults(
         func=lambda args: install_all(compute=args.compute, web=args.web))
 

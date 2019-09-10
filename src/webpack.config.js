@@ -462,9 +462,6 @@ if (COMP_ENV) {
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  /*minimize: true,*/
-  /*discardComments: { removeAll: true },*/
-  /*mergeLonghand: true,*/
   sourceMap: false
 });
 
