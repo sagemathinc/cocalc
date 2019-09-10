@@ -6,7 +6,9 @@ export async function revealjs_slideshow_html(
   path: string
 ): Promise<string> {
   const split = path_split(path);
-  const base = "." + separate_file_extension(split.tail).name;
+  // The _ bewlo is because of https://github.com/sagemathinc/cocalc/issues/4066, i.e., otherwise
+  // things don't work if path is a number.
+  const base = "._" + separate_file_extension(split.tail).name;
   const command = "/usr/local/bin/jupyter";
   const args = ["nbconvert", "--to", "slides", path, "--output", base];
   const opts = {
