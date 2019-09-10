@@ -20,7 +20,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   private docpath: string;
   private docext: string;
-  private syncdoc: SyncDoc;
+  private syncdoc?: SyncDoc;
 
   public _init2(): void {
     this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
@@ -40,11 +40,27 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       path: this.docpath,
       persistent
     });
+    if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
     await once(this.syncdoc, "ready");
   }
 
   private syncdoc_changed(): void {
+    if (this.syncdoc == null) return;
     this.setState({ versions: List<Date>(this.syncdoc.versions()) });
+  }
+
+  // Get the given version of the document.
+  public get_doc(version: Date): any {
+    if (this.syncdoc == null) return;
+    return this.syncdoc.version(version);
+  }
+
+  set_version(id: string, version: Date): void {
+    if (this._get_frame_node(id) == null) {
+      throw Error(`no frame with id ${id}`);
+    }
+    // valueOf --- store the number so JSON's fine.
+    this.set_frame_tree({ id, version: version.valueOf() });
   }
 }
