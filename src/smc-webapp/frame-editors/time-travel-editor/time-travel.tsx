@@ -9,9 +9,11 @@ import {
 
 import { TimeTravelActions } from "./actions";
 import { Document } from "./document";
+import { NavigationButtons } from "./navigation-buttons";
 
 interface Props {
   actions: TimeTravelActions;
+  id: string;
   path: string;
   desc: Map<string, any>;
   // reduxProps
@@ -60,9 +62,16 @@ class TimeTravel extends Component<Props> {
     return <Document doc={doc} path={this.props.path} />;
   }
 
+  private render_navigation_buttons(): Rendered {
+    return (
+      <NavigationButtons id={this.props.id} actions={this.props.actions} />
+    );
+  }
+
   public render(): Rendered {
     return (
       <div>
+        {this.render_navigation_buttons()}
         TimeTravel {JSON.stringify(this.props.versions.toJS())} <br /> Version:{" "}
         {this.render_version()}
         {this.render_document()}

@@ -63,4 +63,36 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     // valueOf --- store the number so JSON's fine.
     this.set_frame_tree({ id, version: version.valueOf() });
   }
+
+  step(id: string, delta: number): void {
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error(`no frame with id ${id}`);
+    }
+    const versions = this.store.get("versions");
+    let version = node.get("version");
+    if (version == null) {
+      // no current version, so just init it.
+      if (versions != null) {
+        version = versions.get(-1);
+        if (version != null) this.set_version(id, version);
+      }
+      return;
+    }
+    // TODO: store an index so don't have to do indexOf here... update index in syncdoc_changed; or store Date and position
+    // or store the version as the index and in syncdoc_changed fix it in case something gets inserted.
+    let n = versions.indexOf(version);
+    if (n == -1) {
+      // just initialize
+      n = versions.size - 1;
+    }
+    n += delta;
+    if (n >= versions.size) {
+      n = versions.size - 1;
+    } else if (n < 0) {
+      n = 0;
+    }
+    version = versions.get(n);
+    if (version != null) this.set_version(id, version);
+  }
 }
