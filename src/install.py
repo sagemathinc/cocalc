@@ -48,7 +48,7 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-
+    # global install, hence no "npm ci" (!)
     for pkg in ['coffeescript', 'forever']:
         cmd(SUDO +
             "npm --loglevel=warn --unsafe-perm=true install %s -g" % pkg)

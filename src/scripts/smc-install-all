@@ -14,14 +14,11 @@ run_install() {
     #npm audit fix
 }
 
-run_install $SMC_ROOT
-run_install $SMC_ROOT/smc-util
-run_install $SMC_ROOT/smc-util-node
-run_install $SMC_ROOT/smc-project
-run_install $SMC_ROOT/smc-project/jupyter
-run_install $SMC_ROOT/smc-webapp
-run_install $SMC_ROOT/smc-webapp/jupyter
-run_install $SMC_ROOT/smc-hub
+. cocalc-dirs.sh
+
+for dir in "${CODE_DIRS[@]}"; do
+    run_install "$dir"
+done
 
 # assistant example code snippets
 cd $SMC_ROOT
