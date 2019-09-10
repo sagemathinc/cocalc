@@ -23,6 +23,9 @@ node_modules
 err
 log
 
+# When we use CI we'll want this
+*package-lock.json
+
 src/cocalc-testcafe/package-lock.json
 
 src/static/

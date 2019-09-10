@@ -39,11 +39,8 @@ import { MentionList } from "./chat/store";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-const { SearchInput, TimeAgo } = require("./r_misc");
 
-import { Icon } from "./r_misc/icon";
-import { Loading } from "./r_misc/loading";
-import { Tip } from "./r_misc/tip";
+import { Icon, Loading, Tip, SearchInput, TimeAgo } from "./r_misc";
 
 import {
   Button,
@@ -944,7 +941,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     if (file.type.indexOf("image") !== -1) {
       final_insertion_text = `<img src=\".chat-images/${
         file.name
-      }\" width='100%'>`;
+      }\" style="max-width:100%">`;
     } else {
       final_insertion_text = `[${file.name}](${file.name})`;
     }
@@ -1000,7 +997,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.path
     );
     this.props.actions.send_chat(input);
-    if (this.input_ref.current != null) {
+    if (
+      this.input_ref.current != null &&
+      this.input_ref.current.focus != null
+    ) {
       this.input_ref.current.focus();
     }
   };
@@ -1022,9 +1022,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       overflowX: "hidden",
       margin: "0",
       padding: "0",
-      paddingRight: "10px",
       background: "white",
-      flex: 1
+      flex: "1 0 auto"
     };
 
     // the immutable.Map() default is because of admins:

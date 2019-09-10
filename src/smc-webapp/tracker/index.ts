@@ -8,7 +8,7 @@ function analytics(type: "event" | "pageview", ...args): void {
   if ((window as any).GoogleAnalyticsObject == null) {
     return; // GA not available
   }
-  const ga = window[(window as any).GoogleAnalyticsObject];
+  const ga: any = window[(window as any).GoogleAnalyticsObject];
   if (ga == null) {
     return; // GA still not available again?
   }

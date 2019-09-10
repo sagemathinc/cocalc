@@ -7,6 +7,7 @@ block vars
     var navbar_active = 'pricing';
     var subtitle = 'Pricing';
     var subnavbar_active = 'pricing';
+    var current_date = htmlWebpackPlugin.options.SCHEMA.UPGRADES_CURRENT_DATE;
 
 block content
 
@@ -19,7 +20,7 @@ block content
   div.jumbotron
     div.container
       h1 #[a(href=URL) #{COMPANY_NAME}]
-      h2 #{NAME} Subscriptions and Pricing (March 2018)
+      h2 #{NAME} Subscriptions and Pricing (#{current_date})
       a.btn.btn-default(href="index.html" role="button") &laquo; Other Policies
 
   div.container.vertical-expand

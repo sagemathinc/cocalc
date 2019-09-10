@@ -42,7 +42,7 @@ class LandingActionsStore extends Store<LaunchData> {}
 
 class LandingActions<LaunchData> extends Actions<LaunchData> {}
 
-redux.createStore(NAME, LandingActionsStore, {});
+redux.createStore<LaunchData, LandingActionsStore>(NAME, LandingActionsStore, {});
 const actions = redux.createActions(NAME, LandingActions);
 
 function launch_share(launch: string): void {

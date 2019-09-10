@@ -1654,13 +1654,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     level: 0 | 1 = 0,
     pos: { ch: number; line: number }
   ): Promise<void> => {
-    // If the introspection window is currently open, close it.
-    if (this.store.get("introspect") != null) {
-      this.setState({ introspect: undefined });
-      return;
-    }
-
-    // Introspection is not opened, try to introspect...
     if (code === "") return; // no-op if there is no code (should never happen)
     await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
   };
@@ -1672,8 +1665,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   ): Promise<void> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
-
-    this.setState({ introspect: undefined });
 
     if (cursor_pos == null) {
       cursor_pos = code.length;
@@ -1924,6 +1915,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public insert_image(id: string): void {
+    if (this.check_edit_protection(id)) {
+      return;
+    }
     if (this.store.get_cell_type(id) != "markdown") {
       throw Error("must be a markdown cell -- id " + id);
     }
@@ -2146,17 +2140,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _attachment_markdown = (name: any) => {
-    return `![${name}](attachment:${name})`;
+    // This is officially what it should probably be, but
+    // it looks so bad with (typical) big images, due to
+    // know maxwidth.
+    // return `![${name}](attachment:${name})`;
+    return `<img src="attachment:${name}" style="max-width:100%">`;
   };
 
-  insert_input_at_cursor = (id: any, s: any, save: any) => {
+  insert_input_at_cursor = (id: any, s: string, save: boolean = true) => {
+    // TODO: this maybe doesn't make sense anymore...
+    // TODO: redo this -- note that the input below is wrong, since it is
+    // from the store, not necessarily from what is live in the cell.
+
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
     if (this.check_edit_protection(id)) {
       return;
     }
-    let input = this._get_cell_input(id);
+    let input = this.store.getIn(["cells", id, "input"], "");
+    console.log("insert_input_at_cursor", id, input);
     const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
     if ((cursor != null ? cursor.id : undefined) === id) {
       const v = input.split("\n");
@@ -2166,6 +2169,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       input += s;
     }
+    console.log("insert_input_at_cursor - new input:", id, input);
     return this._set({ type: "cell", id, input }, save);
   };
 

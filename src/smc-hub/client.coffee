@@ -25,10 +25,12 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('./stripe/client')
 {get_support}        = require('./support')
-{send_email}         = require('./email')
+{send_email, create_email_body} = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
+{ escapeHtml }       = require("escape-html")
+{CopyPath}           = require('./copy-path')
 
 underscore = require('underscore')
 
@@ -127,6 +129,8 @@ class exports.Client extends EventEmitter
             @init_conn()
         else
             @id = misc.uuid()
+
+        @copy_path = new CopyPath(@)
 
     init_conn: =>
         # initialize everything related to persistent connections
@@ -354,6 +358,11 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             id    : undefined
             error : required
+        if opts.error instanceof Error
+            # Javascript Errors as come up with exceptions don't JSON.
+            # Since the point is just to show an error to the client,
+            # it is better to send back the string!
+            opts.error = opts.error.toString()
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
     success_to_client: (opts) =>
@@ -1084,165 +1093,13 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_copy_path_between_projects: (mesg) =>
-        @touch()
-        if not mesg.src_project_id?
-            @error_to_client(id:mesg.id, error:"src_project_id must be defined")
-            return
-        if not mesg.target_project_id?
-            @error_to_client(id:mesg.id, error:"target_project_id must be defined")
-            return
-        if not mesg.src_path?
-            @error_to_client(id:mesg.id, error:"src_path must be defined")
-            return
-
-        locals =
-            copy_id : undefined
-
-        async.series([
-            (cb) =>
-                # Check permissions for the source and target projects (in parallel) --
-                # need read access to the source and write access to the target.
-                async.parallel([
-                    (cb) =>
-                        access.user_has_read_access_to_project
-                            project_id     : mesg.src_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            database       : @database
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have read access to source project #{mesg.src_project_id}")
-                                else
-                                    cb()
-                    (cb) =>
-                        access.user_has_write_access_to_project
-                            database       : @database
-                            project_id     : mesg.target_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("user must have write access to target project #{mesg.target_project_id}")
-                                else
-                                    cb()
-                ], cb)
-
-            (cb) =>
-                # do the copy
-                @compute_server.project
-                    project_id : mesg.src_project_id
-                    cb         : (err, project) =>
-                        if err
-                            cb(err); return
-                        else
-                            project.copy_path
-                                path              : mesg.src_path
-                                target_project_id : mesg.target_project_id
-                                target_path       : mesg.target_path
-                                overwrite_newer   : mesg.overwrite_newer
-                                delete_missing    : mesg.delete_missing
-                                backup            : mesg.backup
-                                timeout           : mesg.timeout
-                                exclude_history   : mesg.exclude_history
-                                wait_until_done   : mesg.wait_until_done
-                                cb                : (err, copy_id) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        locals.copy_id = copy_id
-                                        cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # we only expect a copy_id in kucalc mode
-                if locals.copy_id?
-                    resp = message.copy_path_between_projects_response
-                                                        id           : mesg.id
-                                                        copy_path_id : locals.copy_id
-                    @push_to_client(resp)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-        )
+        @copy_path.copy(mesg)
 
     mesg_copy_path_status: (mesg) =>
-        dbg = @dbg('mesg_copy_path_status')
-        if not mesg.copy_path_id?
-            @error_to_client(id:mesg.id, error:"'copy_path_id' (UUID) of a copy operation must be defined")
-            return
-        locals =
-            copy_op : undefined
-        async.series([
-            # get the info
-            (cb) =>
-                {one_result} = require('./postgres')
-                @database._query
-                    query : "SELECT * FROM copy_paths"
-                    where : "id = $::UUID" : mesg.copy_path_id
-                    cb    : one_result (err, x) =>
-                        if err?
-                            cb(err)
-                        else
-                            locals.copy_op = x
-                            dbg("copy_op=#{misc.to_json(locals.copy_op)}")
-                            cb()
+        @copy_path.status(mesg)
 
-            (cb) =>
-                # now we prevent someone who was kicked out of a project to check the copy status
-                target_project_id = locals.copy_op.target_project_id
-                source_project_id = locals.copy_op.source_project_id
-                async.parallel([
-                    (cb) =>
-                        access.user_has_read_access_to_project
-                            project_id     : source_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            database       : @database
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("ACCESS BLOCKED -- No read access to source project of this copy operation")
-                                else
-                                    cb()
-                    (cb) =>
-                        access.user_has_write_access_to_project
-                            database       : @database
-                            project_id     : target_project_id
-                            account_id     : @account_id
-                            account_groups : @groups
-                            cb             : (err, result) =>
-                                if err
-                                    cb(err)
-                                else if not result
-                                    cb("ACCESS BLOCKED -- No write access to target project of this copy operation")
-                                else
-                                    cb()
-                ], cb)
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # be explicit about what we return
-                data =
-                    time               : locals.copy_op.time
-                    source_project_id  : locals.copy_op.source_project_id
-                    source_path        : locals.copy_op.source_path
-                    target_project_id  : locals.copy_op.target_project_id
-                    target_path        : locals.copy_op.target_path
-                    overwrite_newer    : locals.copy_op.overwrite_newer
-                    delete_missing     : locals.copy_op.delete_missing
-                    backup             : locals.copy_op.backup
-                    started            : locals.copy_op.started
-                    finished           : locals.copy_op.finished
-                    error              : locals.copy_op.error
-
-                @push_to_client(message.copy_path_status_response(id:mesg.id, data:data))
-        )
+    mesg_copy_path_delete: (mesg) =>
+        @copy_path.delete(mesg)
 
     mesg_local_hub: (mesg) =>
         ###
@@ -1316,6 +1173,13 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
         )
 
+
+    # this is an async function
+    allow_urls_in_emails: (project_id) =>
+        is_paying = await is_paying_customer(@database, @account_id)
+        has_network = await project_has_network_access(@database, project_id)
+        return is_paying or has_network
+
     mesg_invite_collaborator: (mesg) =>
         @touch()
         dbg = @dbg('mesg_invite_collaborator')
@@ -1378,14 +1242,17 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     if locals.done or (not locals.email_address)
                         dbg("NOT send_email invite to #{locals.email_address}")
-                        cb(); return
-
-                    cb()  # we return early, because there is no need to let someone wait for sending the email
-
-                    # do not send email if project doesn't have network access (and user is not a paying customer)
-                    if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
-                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
+                        cb()
                         return
+
+                    ## do not send email if project doesn't have network access (and user is not a paying customer)
+                    #if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+                    #    dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
+                    #    return
+
+                    # we always send invite emails. for non-upgraded projects, we sanitize the content of the body
+                    # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+                    # also see mesg_invite_noncloud_collaborators
 
                     dbg("send_email invite to #{locals.email_address}")
                     # available message fields
@@ -1407,25 +1274,11 @@ class exports.Client extends EventEmitter
                     if mesg.subject?
                         subject  = mesg.subject
 
-                    if mesg.link2proj? # make sure invitees know where to go
-                        base_url = mesg.link2proj.split("/")
-                        base_url = "#{base_url[0]}//#{base_url[2]}"
-                        direct_link = "Open <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
-                    else # fallback for outdated clients
-                        base_url = 'https://cocalc.com/'
-                        direct_link = ''
-
-                    email_body = (mesg.email ? '') + """
-                        <br/><br/>
-                        <b>To accept the invitation, please open
-                        <a href='#{base_url}'>#{base_url}</a>
-                        and sign in using your email address '#{locals.email_address}'.
-                        #{direct_link}</b><br/>
-                        """
-
-                    # The following is only for backwards compatibility with outdated webapp clients during the transition period
-                    if not mesg.title?
-                        subject = "Invitation to CoCalc for collaborating on a project"
+                    try
+                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
+                    catch err
+                        cb(err)
+                        return
 
                     # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
@@ -1446,6 +1299,7 @@ class exports.Client extends EventEmitter
                                 project_id : mesg.project_id
                                 to         : locals.email_address
                                 error      : err
+                            cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
                     send_email(opts)
 
                 ], (err) =>
@@ -1465,16 +1319,12 @@ class exports.Client extends EventEmitter
         ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
         ## return
 
-
-        # We only allow sending email invites if: (a) the sender is a
-        # paying customer, or (b) the project has network access.
-        if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
-            # In practice, the frontend client should always prevent ever having to do this
-            # check.  However, a malicious user controls the frontend, so we must still make
-            # this check anyways.
-            dbg("NOT send_email invites due to no network access (and user not a customer); in fact don't even make the invite!")
-            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. First upgrade this project to have the 'Internet Access' quota.");
-            return
+        # Otherwise we always allow sending email invites
+        # The body is sanitized and not allowed to contain any URLs (anti-spam), unless
+        # (a) the sender is a paying customer or (b) the project has network access.
+        #
+        # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+        # also see mesg_invite_collaborator
 
         @touch()
         @get_project mesg, 'write', (err, project) =>
@@ -1487,9 +1337,6 @@ class exports.Client extends EventEmitter
 
             # users to invite
             to = (x for x in mesg.to.replace(/\s/g,",").replace(/;/g,",").split(',') when x)
-
-            # invitation template
-            email = mesg.email
 
             invite_user = (email_address, cb) =>
                 dbg("inviting #{email_address}")
@@ -1551,49 +1398,44 @@ class exports.Client extends EventEmitter
                         if done
                             dbg("NOT send_email invite to #{email_address}")
                             cb()
-                        else
+                            return
+
+                        # send an email to the user -- async, not blocking user.
+                        # TODO: this can take a while -- we need to take some action
+                        # if it fails, e.g., change a setting in the projects table!
+                        subject  = "CoCalc Invitation"
+                        # override subject if explicitly given
+                        if mesg.subject?
+                            subject  = mesg.subject
+
+                        try
+                            email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
                             cb()
-                            # send an email to the user -- async, not blocking user.
-                            # TODO: this can take a while -- we need to take some action
-                            # if it fails, e.g., change a setting in the projects table!
-                            subject  = "CoCalc Invitation"
-                            # override subject if explicitly given
-                            if mesg.subject?
-                                subject  = mesg.subject
+                        catch err
+                            cb(err)
+                            return
 
-                            if mesg.link2proj? # make sure invitees know where to go
-                                base_url = mesg.link2proj.split("/")
-                                base_url = "#{base_url[0]}//#{base_url[2]}"
-                                direct_link = "Then go to <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
-                            else # fallback for outdated clients
-                                base_url = 'https://cocalc.com/'
-                                direct_link = ''
-
-                            # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                            opts =
-                                to           : email_address
-                                bcc          : 'invites@cocalc.com'
-                                fromname     : 'CoCalc'
-                                from         : 'invites@cocalc.com'
-                                replyto      : mesg.replyto ? 'help@cocalc.com'
-                                replyto_name : mesg.replyto_name
-                                subject      : subject
-                                category     : "invite"
-                                asm_group    : SENDGRID_ASM_INVITES
-                                body         : email + """<br/><br/>
-                                               <b>To accept the invitation, please sign up at
-                                               <a href='#{base_url}'>#{base_url}</a>
-                                               using exactly the email address '#{email_address}'.
-                                               #{direct_link}</b><br/>"""
-                                cb           : (err) =>
-                                    if err
-                                        dbg("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
-                                    @database.sent_project_invite
-                                        project_id : mesg.project_id
-                                        to         : email_address
-                                        error      : err
-                            dbg("send_email invite to #{email_address}")
-                            send_email(opts)
+                        # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                        opts =
+                            to           : email_address
+                            bcc          : 'invites@cocalc.com'
+                            fromname     : 'CoCalc'
+                            from         : 'invites@cocalc.com'
+                            replyto      : mesg.replyto ? 'help@cocalc.com'
+                            replyto_name : mesg.replyto_name
+                            subject      : subject
+                            category     : "invite"
+                            asm_group    : SENDGRID_ASM_INVITES
+                            body         : email_body
+                            cb           : (err) =>
+                                if err
+                                    dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
+                                @database.sent_project_invite
+                                    project_id : mesg.project_id
+                                    to         : email_address
+                                    error      : err
+                        dbg("send_email invite to #{email_address}")
+                        send_email(opts)
 
                 ], cb)
 

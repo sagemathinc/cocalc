@@ -75,13 +75,6 @@ export class NewProjectCreator extends Component<Props, State> {
       state: "edit",
       title_text: this.props.default_value ? this.props.default_value : ""
     });
-    // We also update the customer billing information; this is important since
-    // we will call apply_default_upgrades in a moment, and it will be more
-    // accurate with the latest billing information recently loaded.
-    const billing_actions = redux.getActions("billing");
-    if (billing_actions != undefined) {
-      billing_actions.update_customer();
-    }
   }
 
   cancel_editing = () => {
@@ -111,13 +104,22 @@ export class NewProjectCreator extends Component<Props, State> {
     });
     redux
       .getStore("projects")
-      .wait_until_project_created(token, 30, (err, project_id) => {
+      .wait_until_project_created(token, 30, async (err, project_id) => {
         if (err != undefined) {
           this.setState({
             state: "edit",
             error: `Error creating project -- ${err}`
           });
         } else {
+          // We also update the customer billing information so apply_default_upgrades works.
+          const billing_actions = redux.getActions("billing");
+          if (billing_actions != null) {
+            try {
+              await billing_actions.update_customer();
+            } catch (err) {
+              // ignore error coming from this -- really doesn't matter.
+            }
+          }
           actions.apply_default_upgrades({ project_id });
           actions.set_add_collab(project_id, true);
           actions.open_project({ project_id, switch_to: false });

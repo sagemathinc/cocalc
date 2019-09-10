@@ -84,6 +84,8 @@ That way, the hub can send down the URL to the jupyter server (there is no webap
 
 // So we can require coffeescript code.
 require("coffeescript/register");
+// So we can require Typescript code.
+require("ts-node").register();
 
 let cleanWebpackPlugin,
   entries,
@@ -334,7 +336,7 @@ for (let [fn_in, fn_out] of [[index_page, "index.html"]]) {
       template: path.join(INPUT, fn_in),
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       PREFIX: fn_in === index_page ? "" : "../"
     })
   );
@@ -364,7 +366,7 @@ for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"
@@ -402,6 +404,33 @@ if (KUCALC_MODE) {
       })
     );
   }
+<<<<<<< HEAD
+=======
+  output_fn = `policies/${misc.change_filename_extension(
+    path.basename(pp),
+    "html"
+  )}`;
+  staticPages.push(
+    new HtmlWebpackPlugin({
+      filename: output_fn,
+      date: BUILD_DATE,
+      title: TITLE,
+      theme,
+      COMP_ENV,
+      components: {}, // no data needed, empty is fine
+      inventory: {}, // no data needed, empty is fine
+      template: pp,
+      chunks: ["css"],
+      inject: "head",
+      minify: htmlMinifyOpts,
+      GOOGLE_ANALYTICS,
+      SCHEMA: require("smc-util/schema"),
+      hash: PRODMODE,
+      BASE_URL: base_url_html,
+      PREFIX: "../"
+    })
+  );
+>>>>>>> origin/master
 }
 
 // build pages for compute environment

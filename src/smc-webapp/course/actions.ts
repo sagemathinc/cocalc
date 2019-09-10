@@ -30,6 +30,8 @@
 //##############################################################################
 
 // Number of days to wait until re-inviting students via email.
+// The user can always just click the "Reconfigure all projects" button in
+// the Configuration page, and that always resends email invites.
 const EMAIL_REINVITE_DAYS = 6;
 
 // 3rd party libs
@@ -89,7 +91,6 @@ export class CourseActions extends Actions<CourseState> {
     this.handle_projects_store_update = this.handle_projects_store_update.bind(
       this
     );
-    this._init_who_pay = this._init_who_pay.bind(this);
     this.set_error = this.set_error.bind(this);
     this.set_activity = this.set_activity.bind(this);
     this.clear_activity = this.clear_activity.bind(this);
@@ -259,7 +260,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Set one object in the syncdb
-  _set(obj) {
+  _set(obj, commit: boolean = true) {
     if (
       !this._loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
@@ -267,7 +268,9 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     this.syncdb.set(obj);
-    this.syncdb.commit();
+    if (commit) {
+      this.syncdb.commit();
+    }
   }
 
   // Get one object from @syncdb as a Javascript object (or undefined)
@@ -380,51 +383,6 @@ export class CourseActions extends Actions<CourseState> {
     this._last_collaborator_state = users;
   }
 
-  _init_who_pay() {
-    // pre-set either student_pay or institute_pay based on what the user has already done...?
-    // This is only here for transition, and can be deleted in say May 2018.
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const settings = store.get("settings");
-    if (settings.get("institute_pay") || settings.get("student_pay")) {
-      // already done
-      return;
-    }
-    this.set_pay_choice("institute", false);
-    this.set_pay_choice("student", false);
-    if (settings.get("pay")) {
-      // evidence of student pay choice
-      this.set_pay_choice("student", true);
-      return;
-    }
-    // is any student project upgraded
-    const projects_store = this.redux.getStore("projects");
-    let institute_pay = true;
-    let num = 0;
-    store.get("students").forEach(student => {
-      if (student.get("deleted")) {
-        return;
-      }
-      const p = student.get("project_id");
-      if (
-        p == null ||
-        !__guard__(
-          projects_store.get_total_project_quotas(p),
-          x => x.member_host
-        )
-      ) {
-        institute_pay = false;
-        return false;
-      }
-      num += 1;
-    });
-    if (institute_pay && num > 0) {
-      return this.set_pay_choice("institute", true);
-    }
-  }
-
   // PUBLIC API
   set_error(error) {
     if (error === "") {
@@ -498,7 +456,14 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   set_pay_choice(type, value) {
-    return this._set({ [`${type}_pay`]: value, table: "settings" });
+    this._set({ [`${type}_pay`]: value, table: "settings" });
+    if (type == "student") {
+      if (value) {
+        this.set_all_student_project_course_info();
+      } else {
+        this.set_all_student_project_course_info("");
+      }
+    }
   }
 
   set_upgrade_goal(upgrade_goal) {
@@ -938,13 +903,14 @@ export class CourseActions extends Actions<CourseState> {
       table: "students",
       student_id
     });
-    await this.configure_project(student_id, undefined, project_id);
+    await this.configure_project(student_id, false, project_id);
   }
 
   private async configure_project_users(
     student_project_id,
     student_id,
-    do_not_invite_student_by_email
+    do_not_invite_student_by_email,
+    force_send_invite_by_email
   ): Promise<void> {
     //console.log("configure_project_users", student_project_id, student_id)
     // Add student and all collaborators on this project to the project with given project_id.
@@ -999,8 +965,9 @@ export class CourseActions extends Actions<CourseState> {
       // we only do this at most once every few days.
       const last_email_invite = student.get("last_email_invite");
       if (
-        !last_email_invite ||
-        new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS)
+        force_send_invite_by_email ||
+        (!last_email_invite ||
+          new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS))
       ) {
         await invite(student.get("email_address"));
         this._set({
@@ -1233,18 +1200,25 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async set_all_student_project_course_info(pay?): Promise<void> {
+  async set_all_student_project_course_info(pay?: any): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
     }
     if (pay == null) {
       pay = store.get_pay();
+      if (pay == null) {
+        pay = "";
+      }
     } else {
       this._set({
         pay,
         table: "settings"
       });
+    }
+    if (pay != "" && !(pay instanceof Date)) {
+      // pay *must* be a Date, not just a string timestamp... or "" for not paying.
+      pay = new Date(pay);
     }
     const actions = this.redux.getActions("projects");
     const id = this.set_activity({ desc: "Updating project course info..." });
@@ -1256,7 +1230,7 @@ export class CourseActions extends Actions<CourseState> {
         const student_project_id = student.get("project_id");
         if (student_project_id == null) continue;
         // account_id: might not be known when student first added, or if student
-        // hasn't joined smc yet so there is no id.
+        // hasn't joined smc yet, so there is no account_id for them.
         const student_account_id = student.get("account_id");
         const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
         await actions.set_project_course_info(
@@ -1276,7 +1250,8 @@ export class CourseActions extends Actions<CourseState> {
   private async configure_project(
     student_id,
     do_not_invite_student_by_email,
-    student_project_id?
+    student_project_id?: string,
+    force_send_invite_by_email?: boolean
   ): Promise<void> {
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
@@ -1299,7 +1274,8 @@ export class CourseActions extends Actions<CourseState> {
       await this.configure_project_users(
         student_project_id,
         student_id,
-        do_not_invite_student_by_email
+        do_not_invite_student_by_email,
+        force_send_invite_by_email
       );
       await this.configure_project_visibility(student_project_id);
       await this.configure_project_title(student_project_id, student_id);
@@ -1338,34 +1314,43 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async configure_all_projects(): Promise<void> {
-    const id = this.set_activity({
-      desc: "Ensuring all projects are configured..."
-    });
-    this.setState({ configure_projects: "Configuring projects" });
+  async configure_all_projects(force: boolean = false): Promise<void> {
     const store = this.get_store();
     if (store == null) {
-      this.set_activity({ id });
       return;
     }
-    const ids = store.get_student_ids({ deleted: false });
-    if (ids == undefined) {
+    if (store.get("configuring_projects")) {
+      // currently running already.
       return;
     }
-    let i = 0;
-    for (let student_id of ids) {
-      if (this.is_closed()) return;
-      i += 1;
-      const id = this.set_activity({
-        desc: `Configuring student project ${i} of ${ids.length}`
+    let id: string = "";
+    try {
+      this.setState({ configuring_projects: true });
+      id = this.set_activity({
+        desc: "Ensuring all projects are configured..."
       });
-      await this.configure_project(student_id, false);
+      const ids = store.get_student_ids({ deleted: false });
+      if (ids == undefined) {
+        return;
+      }
+      let i = 0;
+      for (let student_id of ids) {
+        if (this.is_closed()) return;
+        i += 1;
+        const id = this.set_activity({
+          desc: `Configuring student project ${i} of ${ids.length}`
+        });
+        await this.configure_project(student_id, false, undefined, force);
+        this.set_activity({ id });
+        await delay(0); // give UI, etc. a solid chance to render
+      } // always re-invite students on running this.
+      await this.configure_shared_project();
+      await this.set_all_student_project_course_info();
+    } finally {
+      if (this.is_closed()) return;
+      this.setState({ configuring_projects: false });
       this.set_activity({ id });
-      await delay(0); // give UI, etc. a solid chance to render
-    } // always re-invite students on running this.
-    await this.configure_shared_project();
-    await this.set_all_student_project_course_info();
-    this.set_activity({ id });
+    }
   }
 
   // Deletes student projects and removes students from those projects

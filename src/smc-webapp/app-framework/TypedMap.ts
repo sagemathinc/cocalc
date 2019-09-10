@@ -17,7 +17,7 @@ For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
 
-export interface TypedMap<TProps> {
+export interface TypedMap<TProps extends Object> {
   size: number;
 
   // Reading values
@@ -122,7 +122,7 @@ interface TypedMapFactory<TProps extends Object> {
   new (values: TProps): TypedMap<TProps>;
 }
 
-export function createTypedMap<OuterProps>(
+export function createTypedMap<OuterProps extends Object>(
   defaults?: Partial<
     OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps
   >

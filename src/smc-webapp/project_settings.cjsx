@@ -1182,6 +1182,7 @@ ProjectSettingsBody = rclass ({name}) ->
         upgrades_you_applied_to_this_project = @props.get_upgrades_you_applied_to_project(id)
         total_project_quotas                 = @props.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = @props.get_upgrades_to_project(id)
+        allow_urls                           = redux.getStore("projects").allow_urls_in_emails(@props.project_id)
 
         {commercial} = require('./customize')
 
@@ -1225,7 +1226,7 @@ ProjectSettingsBody = rclass ({name}) ->
                 </Col>
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
-                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} allow_urls = {allow_urls}/>
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     {
