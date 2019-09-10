@@ -39,11 +39,9 @@ class TimeTravel extends Component<Props> {
   private get_version(): Date | undefined {
     if (this.props.desc == null || this.props.versions == null) return;
     const version = this.props.desc.get("version");
-    if (version != null) {
-      return new Date(version);
-    } else {
-      return this.props.versions.get(-1);
-    }
+    const d: Date | undefined = this.props.versions.get(version);
+    if (d != null) return d;
+    return this.props.versions.get(-1);
   }
 
   private render_version(): Rendered {
@@ -63,8 +61,14 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_navigation_buttons(): Rendered {
+    if (this.props.desc == null || this.props.versions == null) return;
     return (
-      <NavigationButtons id={this.props.id} actions={this.props.actions} />
+      <NavigationButtons
+        id={this.props.id}
+        actions={this.props.actions}
+        version={this.props.desc.get("version")}
+        max={this.props.versions.size - 1}
+      />
     );
   }
 

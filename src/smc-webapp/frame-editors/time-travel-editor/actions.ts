@@ -47,7 +47,20 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
 
   private syncdoc_changed(): void {
     if (this.syncdoc == null) return;
-    this.setState({ versions: List<Date>(this.syncdoc.versions()) });
+    const versions = List<Date>(this.syncdoc.versions());
+    this.ensure_versions_are_stable(versions);
+    this.setState({ versions });
+  }
+
+  // For each store version in a frame node, check to see
+  // if the Date changes from the current versions to the new
+  // ones and if so, fix it. We do this because if you're looking
+  // at time t at position p, and somebody inserts a new version
+  // before position p ... then suddenly position p is no longer
+  // time t, which would be confusing.
+  private ensure_versions_are_stable(new_versions): void {
+    // TODO
+    new_versions = new_versions;
   }
 
   // Get the given version of the document.
@@ -56,12 +69,18 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     return this.syncdoc.version(version);
   }
 
-  set_version(id: string, version: Date): void {
+  set_version(id: string, version: number): void {
     if (this._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
-    // valueOf --- store the number so JSON's fine.
-    this.set_frame_tree({ id, version: version.valueOf() });
+    const versions = this.store.get("versions");
+    if (versions == null || versions.size == 0) return;
+    if (version == -1 || version >= versions.size) {
+      version = versions.size - 1;
+    } else if (version < 0) {
+      version = 0;
+    }
+    this.set_frame_tree({ id, version });
   }
 
   step(id: string, delta: number): void {
@@ -70,29 +89,17 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       throw Error(`no frame with id ${id}`);
     }
     const versions = this.store.get("versions");
+    if (versions == null || versions.size == 0) return;
     let version = node.get("version");
     if (version == null) {
       // no current version, so just init it.
-      if (versions != null) {
-        version = versions.get(-1);
-        if (version != null) this.set_version(id, version);
-      }
+      this.set_version(id, -1);
       return;
     }
-    // TODO: store an index so don't have to do indexOf here... update index in syncdoc_changed; or store Date and position
-    // or store the version as the index and in syncdoc_changed fix it in case something gets inserted.
-    let n = versions.indexOf(version);
-    if (n == -1) {
-      // just initialize
-      n = versions.size - 1;
+    version = (version + delta) % versions.size;
+    if (version < 0) {
+      version += versions.size;
     }
-    n += delta;
-    if (n >= versions.size) {
-      n = versions.size - 1;
-    } else if (n < 0) {
-      n = 0;
-    }
-    version = versions.get(n);
-    if (version != null) this.set_version(id, version);
+    this.set_version(id, version);
   }
 }
