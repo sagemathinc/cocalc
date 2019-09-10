@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import print_function
-import argparse, os, sys, time, urllib
+import argparse, os, sys, time
 from concurrent.futures import ThreadPoolExecutor
 executor = ThreadPoolExecutor(max_workers=3)
 
@@ -124,23 +124,23 @@ def install_webapp(*args):
         cmd("update_react_static")
 
         # download compute environment information
-        # TOOD python 3: https://docs.python.org/3.5/library/urllib.request.html#urllib.request.urlretrieve
         if os.environ.get('CC_COMP_ENV') == 'true':
             print(
                 "Downloading compute environment information, because 'CC_COMP_ENV' is true"
             )
+            # this is python3-only
+            from urllib.request import urlretrieve
             try:
                 host = 'https://storage.googleapis.com/cocalc-compute-environment/'
-                for fn in [
-                        'compute-inventory.json', 'compute-components.json'
-                ]:
+                files = ['compute-inventory.json', 'compute-components.json']
+                for fn in files:
                     out = os.path.join(SRC, 'webapp-lib', fn)
-                    urllib.urlretrieve(host + fn, out)
+                    urlretrieve(host + fn, out)
             except Exception as ex:
                 print(
                     "WARNING: problem while downloading the compute environment information"
                 )
-                print(ex)
+                raise ex
 
         # update primus - so client has it.
         install_primus()
@@ -149,14 +149,14 @@ def install_webapp(*args):
         wtype = 'debug' if (len(args) > 0 and args[0].debug) else 'production'
         if len(args) > 0 and args[0].debug:
             wtype = 'debug'
-            est = 1
+            est = 3
         else:
             wtype = 'production'
-            est = 5
+            est = 10
         print(
-            "Building {wtype} webpack -- this should take up to {est} minutes".
-            format(wtype=wtype, est=est))
-        cmd("npm --loglevel=warn --progress=false run webpack-{wtype}".format(wtype=wtype))
+            f"Building {wtype} webpack -- this should take up to {est} minutes"
+        )
+        cmd(f"npm --loglevel=warn --progress=false run webpack-{wtype}")
         nothing = False
 
     if 'pull' == action:
