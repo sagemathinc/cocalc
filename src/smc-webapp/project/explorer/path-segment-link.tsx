@@ -1,61 +1,59 @@
 import * as React from "react";
-import { COLORS, Tip } from "../../r_misc"
+import { COLORS, Tip } from "../../r_misc";
 
-const Breadcrumb = require("react-bootstrap")
+const Breadcrumb = require("react-bootstrap");
 
 interface Props {
-  path?: string,
-  display?: string | JSX.Element,
-  actions: any,
-  full_name?: string,
-  history?: boolean,
-  active?: boolean
- }
+  path?: string;
+  display?: string | JSX.Element;
+  actions: any;
+  full_name?: string;
+  history?: boolean;
+  active?: boolean;
+}
 
 // One segment of the directory links at the top of the files listing.
-export class PathSegmentLink extends React.Component<Props> {
-  constructor(props) {
-    super(props);
+export function PathSegmentLink({
+  path,
+  display,
+  actions,
+  full_name,
+  history,
+  active = false
+}: Props) {
+
+  function handle_click() {
+    return actions.open_directory(path);
   }
 
-  getDefaultProps() {
-    return { active: false };
-  }
-
-  handle_click() {
-    return this.props.actions.open_directory(this.props.path);
-  }
-
-  render_content() {
-    if (this.props.full_name && this.props.full_name !== this.props.display) {
+  function render_content() {
+    if (full_name && full_name !== display) {
       return (
-        <Tip tip={this.props.full_name} placement="bottom" title="Full name">
-          {this.props.display}
+        <Tip tip={full_name} placement="bottom" title="Full name">
+          {display}
         </Tip>
       );
     } else {
-      return this.props.display;
+      return display;
     }
   }
 
-  style() {
-    if (this.props.history) {
+  function style() {
+    if (history) {
       return { color: "#c0c0c0" };
-    } else if (this.props.active) {
+    } else if (active) {
       return { color: COLORS.BS_BLUE_BGRND };
     }
     return {};
   }
 
-  render() {
-    return (
-      <Breadcrumb.Item
-        onClick={this.handle_click}
-        active={this.props.active}
-        style={this.style()}
-      >
-        {this.render_content()}
-      </Breadcrumb.Item>
-    );
-  }
+  return (
+    <Breadcrumb.Item
+      onClick={handle_click}
+      active={active}
+      style={style()}
+    >
+      {render_content()}
+    </Breadcrumb.Item>
+  );
 }
