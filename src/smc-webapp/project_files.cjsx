@@ -76,47 +76,7 @@ pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
 
-PathSegmentLink = require("./project/explorer/path-segment-link")
-
-# This path consists of several PathSegmentLinks
-ProjectFilesPath = rclass
-    displayName : 'Explorer-ProjectFilesPath'
-
-    propTypes :
-        current_path : rtypes.string
-        history_path : rtypes.string
-        actions      : rtypes.object.isRequired
-
-    make_path: ->
-        v = []
-        v.push <PathSegmentLink path='' display={<Icon name='home' />} key={0} actions={@props.actions} />
-        path = @props.current_path
-        history_path = @props.history_path
-        root = path[0] == '/'
-        if @props.current_path == ''
-            path_segments = []
-        else
-            path_segments = path.split('/')
-        history_segments = history_path.split('/')
-        for segment, i in history_segments
-            if root and i == 0
-                continue
-            is_current = i == path_segments.length - 1
-            is_history = i >= path_segments.length
-            v.push <PathSegmentLink
-                    path      = {history_segments[..i].join('/')}
-                    display   = {misc.trunc_middle(segment, 15)}
-                    full_name = {segment}
-                    key       = {i+1}
-                    actions   = {@props.actions}
-                    active    = {is_current}
-                    history   = {is_history} />
-        return v
-
-    render: ->
-        <Breadcrumb bsSize='small' style={marginBottom: '0'}>
-            {@make_path()}
-        </Breadcrumb>
+ProjectFilesPath = require("./project/explorer/project-files-path")
 
 ProjectFilesButtons = rclass
     displayName : 'Explorer-ProjectFilesButtons'

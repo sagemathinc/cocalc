@@ -4,9 +4,9 @@ import { COLORS, Tip } from "../../r_misc";
 const Breadcrumb = require("react-bootstrap");
 
 interface Props {
-  path?: string;
+  path: string;
   display?: string | JSX.Element;
-  actions: any;
+  on_click: (path: string) => void;
   full_name?: string;
   history?: boolean;
   active?: boolean;
@@ -14,18 +14,13 @@ interface Props {
 
 // One segment of the directory links at the top of the files listing.
 export function PathSegmentLink({
-  path,
+  path = "",
   display,
-  actions,
+  on_click,
   full_name,
   history,
   active = false
 }: Props) {
-
-  function handle_click() {
-    return actions.open_directory(path);
-  }
-
   function render_content() {
     if (full_name && full_name !== display) {
       return (
@@ -49,7 +44,7 @@ export function PathSegmentLink({
 
   return (
     <Breadcrumb.Item
-      onClick={handle_click}
+      onClick={() => on_click(path)}
       active={active}
       style={style()}
     >
