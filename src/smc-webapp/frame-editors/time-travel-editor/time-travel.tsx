@@ -10,25 +10,30 @@ import {
 import { Loading } from "../../r_misc";
 
 import { TimeTravelActions } from "./actions";
+
 import { Document } from "./document";
 import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
 import { Version } from "./version";
 import { Author } from "./author";
+import { LoadFullHistory } from "./load-full-history";
 
 interface Props {
   actions: TimeTravelActions;
   id: string;
   path: string;
   desc: Map<string, any>;
-  
+
   // reduxProps
   versions: List<Date>;
   loading: boolean;
+  has_full_history: boolean;
 }
 
 class TimeTravel extends Component<Props> {
+  /*
+  // TODO:
   public shouldComponentUpdate(next_props): boolean {
     if (this.props.versions != next_props.versions) return true;
     if (this.props.desc != next_props.desc) {
@@ -36,12 +41,14 @@ class TimeTravel extends Component<Props> {
     }
     return false;
   }
+  */
 
   public static reduxProps({ name }) {
     return {
       [name]: {
         versions: rtypes.immutable.List,
-        loading: rtypes.bool
+        loading: rtypes.bool,
+        has_full_history: rtypes.bool
       }
     };
   }
@@ -107,10 +114,19 @@ class TimeTravel extends Component<Props> {
     );
   }
 
-  public render_author(): Rendered {
+  private render_author(): Rendered {
     const version = this.get_version();
     if (version == null) return;
     return <Author actions={this.props.actions} version={version} />;
+  }
+
+  private render_load_full_history(): Rendered {
+    if (this.props.has_full_history) return;
+    return (
+      <div>
+        <LoadFullHistory actions={this.props.actions} />
+      </div>
+    );
   }
 
   public render(): Rendered {
@@ -123,6 +139,7 @@ class TimeTravel extends Component<Props> {
         {this.render_navigation_slider()}
         {this.render_version()}
         {this.render_author()}
+        {this.render_load_full_history()}
         {this.render_document()}
         {this.render_diff()}
       </div>

@@ -15,6 +15,7 @@ const EXTENSION = ".time-travel";
 interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
   loading: boolean;
+  has_full_history: boolean;
 }
 
 export class TimeTravelActions extends Actions<TimeTravelState> {
@@ -26,7 +27,11 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   public _init2(): void {
     this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
     this.docext = filename_extension(this.docpath);
-    this.setState({ versions: List([]), loading: true });
+    this.setState({
+      versions: List([]),
+      loading: true,
+      has_full_history: false
+    });
     this.init_syncdoc();
   }
 
@@ -44,7 +49,16 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
     await once(this.syncdoc, "ready");
-    this.setState({ loading: false });
+    this.setState({
+      loading: false,
+      has_full_history: this.syncdoc.has_full_history()
+    });
+  }
+
+  public async load_full_history(): Promise<void> {
+    if (this.store.get("has_full_history") || this.syncdoc == null) return;
+    await this.syncdoc.load_full_history(); // todo -- error reporting ...?
+    this.setState({ has_full_history: true });
   }
 
   private syncdoc_changed(): void {
@@ -73,7 +87,12 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
 
   public get_account_id(version: Date): string | undefined {
     if (this.syncdoc == null) return;
-    return this.syncdoc.account_id(version);
+    try {
+      return this.syncdoc.account_id(version);
+    } catch (err) {
+      // fails if version is not actually known.
+      return;
+    }
   }
 
   set_version(id: string, version: number): void {
