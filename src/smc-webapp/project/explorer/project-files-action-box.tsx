@@ -419,7 +419,7 @@ export class ProjectFilesActionBox extends React.Component<Props, State> {
   submit_action_rename() {
     const single_item = this.props.checked_files.first();
     if (this.valid_rename_input(single_item)) {
-      return this.rename_or_duplicate_click();
+      this.rename_or_duplicate_click();
     }
   }
 
