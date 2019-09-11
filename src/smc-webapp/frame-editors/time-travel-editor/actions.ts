@@ -14,6 +14,7 @@ const EXTENSION = ".time-travel";
 
 interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
+  loading: boolean;
 }
 
 export class TimeTravelActions extends Actions<TimeTravelState> {
@@ -25,7 +26,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   public _init2(): void {
     this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
     this.docext = filename_extension(this.docpath);
-    this.setState({ versions: List([]) });
+    this.setState({ versions: List([]), loading: true });
     this.init_syncdoc();
   }
 
@@ -43,6 +44,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
     await once(this.syncdoc, "ready");
+    this.setState({ loading: false });
   }
 
   private syncdoc_changed(): void {

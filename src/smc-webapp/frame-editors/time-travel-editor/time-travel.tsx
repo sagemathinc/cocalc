@@ -7,6 +7,8 @@ import {
   rtypes
 } from "../../app-framework";
 
+import { Loading } from "../../r_misc";
+
 import { TimeTravelActions } from "./actions";
 import { Document } from "./document";
 import { Diff } from "./diff";
@@ -20,8 +22,10 @@ interface Props {
   id: string;
   path: string;
   desc: Map<string, any>;
+  
   // reduxProps
   versions: List<Date>;
+  loading: boolean;
 }
 
 class TimeTravel extends Component<Props> {
@@ -36,7 +40,8 @@ class TimeTravel extends Component<Props> {
   public static reduxProps({ name }) {
     return {
       [name]: {
-        versions: rtypes.immutable.List
+        versions: rtypes.immutable.List,
+        loading: rtypes.bool
       }
     };
   }
@@ -109,6 +114,9 @@ class TimeTravel extends Component<Props> {
   }
 
   public render(): Rendered {
+    if (this.props.loading) {
+      return <Loading theme={"medium"} />;
+    }
     return (
       <div className="smc-vfill">
         {this.render_navigation_buttons()}
