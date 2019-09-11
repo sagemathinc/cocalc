@@ -27,7 +27,7 @@ interface Props {
   num_files_displayed: number;
   public_view: boolean;
   disabled?: boolean;
-  ext_selection: string;
+  ext_selection?: string;
 }
 
 interface State {

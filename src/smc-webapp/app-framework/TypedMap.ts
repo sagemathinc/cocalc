@@ -31,11 +31,11 @@ export interface TypedMap<TProps extends Object> {
    * notSetValue will be returned if provided. Note that this scenario would
    * produce an error when using Flow or TypeScript.
    */
-  get<K extends keyof TProps>(key: K): TProps[K];
+  get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
 
   // Reading deep values
   hasIn(keyPath: Iterable<any>): boolean;
-  getIn(keyPath: Iterable<any>): any;
+  getIn<NSV>(keyPath: Iterable<any>, notSetValue?: NSV): any;
 
   // Value equality
   equals(other: any): boolean;
@@ -134,7 +134,9 @@ export function createTypedMap<OuterProps extends Object>(
     default_map = Map(defaults as any);
   }
 
-  type TProps = OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps;
+  type TProps = OuterProps extends TypedMap<infer InnerProps>
+    ? InnerProps
+    : OuterProps;
 
   class _TypedMap {
     private data: any;
@@ -162,16 +164,16 @@ export function createTypedMap<OuterProps extends Object>(
      * notSetValue will be returned if provided. Note that this scenario would
      * produce an error when using Flow or TypeScript.
      */
-    get<K extends keyof TProps>(key: K): TProps[K] {
-      return this.data.get(key);
+    get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV {
+      return this.data.get(key, notSetValue);
     }
 
     // Reading deep values
     hasIn(keyPath: Iterable<any>): boolean {
       return this.data.hasIn(keyPath);
     }
-    getIn(keyPath: Iterable<any>): any {
-      return this.data.getIn(keyPath);
+    getIn(keyPath: Iterable<any>, notSetValue?: any): any {
+      return this.data.getIn(keyPath, notSetValue);
     }
 
     // Value equality

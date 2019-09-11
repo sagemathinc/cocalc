@@ -2,6 +2,7 @@ import * as React from "react";
 import * as immutable from "immutable";
 import { COLORS, HiddenSM, Icon, Space } from "../../r_misc";
 import { analytics_event } from "../../tracker";
+import { ComputeImages } from "smc-webapp/custom-software/init";
 
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 const { CustomSoftwareInfo } = require("../../custom-software/info-bar");
@@ -16,14 +17,14 @@ const ROW_INFO_STYLE = {
 
 interface Props {
   project_id?: string;
-  checked_files: immutable.List<string>;
+  checked_files: immutable.Set<string>;
   listing: { name: string; isdir: boolean }[];
   page_number: number;
   page_size: number;
   public_view: boolean;
   current_path?: string;
   project_map?: immutable.Map<string, string>;
-  images?: immutable.Map<string, string>;
+  images?: ComputeImages;
   actions: any;
   available_features?: object;
   show_custom_software_reset?: boolean;

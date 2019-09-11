@@ -14,7 +14,7 @@ interface Props {
 // This path consists of several PathSegmentLinks
 export function ProjectFilesPath({
   current_path,
-  history_path,
+  history_path = "",
   actions
 }: Props) {
   function make_path(): JSX.Element[] {

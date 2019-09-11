@@ -1,3 +1,1 @@
-const { Explorer } = require("../../project_files");
-
-export { Explorer };
+export { Explorer } from "./Explorer";

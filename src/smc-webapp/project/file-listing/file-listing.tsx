@@ -39,15 +39,15 @@ interface Props {
   checked_files: immutable.Set<string>;
   current_path: string;
   public_view: boolean;
-  create_folder: () => void; // TODO: should be action!
-  create_file: () => void; // TODO: should be action!
-  selected_file_index: number;
+  create_folder: (switch_over?: boolean) => void; // TODO: should be action!
+  create_file: (ext?: string, switch_over?: boolean) => void; // TODO: should be action!
+  selected_file_index?: number;
   project_id: string;
   shift_is_down: boolean;
   sort_by: (heading: string) => void; // TODO: should be data
-  library: object;
+  library?: object;
   other_settings?: immutable.Map<any, any>;
-  show_new: boolean;
+  show_new?: boolean;
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
 }

@@ -6,7 +6,7 @@
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 import * as React from "react";
-import * as immutable from "immutable";
+import { Configuration } from "./Explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "../file-listing/utils";
 import { Icon } from "../../r_misc";
 import { analytics_event } from "../../tracker";
@@ -17,16 +17,16 @@ interface Props {
   file_search: string;
   current_path: string;
   actions: any;
-  create_folder: () => void;
-  create_file: (name?: string) => void;
-  configuration: immutable.Map<string, { disabled_ext?: string[] }>;
+  create_folder: (switch_over?: boolean) => void;
+  create_file: (ext?: string, switch_over?: boolean) => void;
+  configuration?: Configuration;
   disabled: boolean;
 }
 
 export class ProjectFilesNew extends React.Component<Props> {
-  getDefaultProps() {
-    return { file_search: "" };
-  }
+  static defaultProps = {
+    file_search: ""
+  };
 
   new_file_button_types() {
     if (this.props.configuration != null) {
