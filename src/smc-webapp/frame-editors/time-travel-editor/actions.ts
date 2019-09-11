@@ -73,6 +73,9 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
+    if (typeof version != "number") { // be extra careful
+      throw Error("version must be a number");
+    }
     const versions = this.store.get("versions");
     if (versions == null || versions.size == 0) return;
     if (version == -1 || version >= versions.size) {

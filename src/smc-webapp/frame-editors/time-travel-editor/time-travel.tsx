@@ -10,6 +10,7 @@ import {
 import { TimeTravelActions } from "./actions";
 import { Document } from "./document";
 import { NavigationButtons } from "./navigation-buttons";
+import { NavigationSlider } from "./navigation-slider";
 
 interface Props {
   actions: TimeTravelActions;
@@ -23,8 +24,9 @@ interface Props {
 class TimeTravel extends Component<Props> {
   public shouldComponentUpdate(next_props): boolean {
     if (this.props.versions != next_props.versions) return true;
-    if (this.props.desc.get("version") != next_props.desc.get("version"))
+    if (this.props.desc != next_props.desc) {
       return true;
+    }
     return false;
   }
 
@@ -72,10 +74,23 @@ class TimeTravel extends Component<Props> {
     );
   }
 
+  private render_navigation_slider(): Rendered {
+    if (this.props.desc == null || this.props.versions == null) return;
+    return (
+      <NavigationSlider
+        id={this.props.id}
+        actions={this.props.actions}
+        version={this.props.desc.get("version")}
+        max={this.props.versions.size - 1}
+      />
+    );
+  }
+
   public render(): Rendered {
     return (
       <div>
         {this.render_navigation_buttons()}
+        {this.render_navigation_slider()}
         TimeTravel {JSON.stringify(this.props.versions.toJS())} <br /> Version:{" "}
         {this.render_version()}
         {this.render_document()}

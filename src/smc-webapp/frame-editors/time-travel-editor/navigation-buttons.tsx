@@ -1,8 +1,10 @@
 /*
 Navigation Buttons to:
 
+ - first
  - move a step forward
  - move a step back
+ - last
 */
 
 import { Button, ButtonGroup } from "react-bootstrap";
@@ -41,14 +43,14 @@ export class NavigationButtons extends Component<Props> {
         <Button
           title={"Next version"}
           onClick={() => this.props.actions.step(this.props.id, 1)}
-          disabled={version != null && version >= max - 1}
+          disabled={version != null && version >= max}
         >
           <Icon name="step-forward" />
         </Button>
         <Button
           title={"Most recent version"}
-          onClick={() => this.props.actions.set_version(this.props.id, max - 1)}
-          disabled={version != null && version >= max - 1}
+          onClick={() => this.props.actions.set_version(this.props.id, max)}
+          disabled={version != null && version >= max}
         >
           <Icon name="forward" />
         </Button>
