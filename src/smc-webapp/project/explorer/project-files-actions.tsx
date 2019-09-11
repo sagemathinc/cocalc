@@ -3,6 +3,7 @@ import * as immutable from "immutable";
 import { COLORS, HiddenSM, Icon, Space } from "../../r_misc";
 import { analytics_event } from "../../tracker";
 import { ComputeImages } from "smc-webapp/custom-software/init";
+import { ProjectActions } from "smc-webapp/project_store";
 
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 const { CustomSoftwareInfo } = require("../../custom-software/info-bar");
@@ -25,7 +26,7 @@ interface Props {
   current_path?: string;
   project_map?: immutable.Map<string, string>;
   images?: ComputeImages;
-  actions: any;
+  actions: ProjectActions;
   available_features?: object;
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
@@ -56,14 +57,14 @@ export class ProjectFilesActions extends React.Component<Props, State> {
     }
   }
 
-  clear_selection(): void {
+  clear_selection = (): void => {
     this.props.actions.set_all_files_unchecked();
     if (this.state.select_entire_directory !== "hidden") {
       this.setState({ select_entire_directory: "hidden" });
     }
   }
 
-  check_all_click_handler(): void {
+  check_all_click_handler = (): void => {
     if (this.props.checked_files.size === 0) {
       const files_on_page = this.props.listing.slice(
         this.props.page_size * this.props.page_number,
@@ -112,7 +113,7 @@ export class ProjectFilesActions extends React.Component<Props, State> {
     );
   }
 
-  select_entire_directory(): void {
+  select_entire_directory = (): void => {
     this.props.actions.set_file_list_checked(
       this.props.listing.map(file =>
         misc.path_to_file(this.props.current_path, file.name)

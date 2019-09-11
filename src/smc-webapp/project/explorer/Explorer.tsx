@@ -23,11 +23,12 @@ import { PathNavigator } from "./path-navigator";
 import { MiscSideButtonBar } from "./misc-side-button-bar";
 import { ProjectFilesActions } from "./project-files-actions";
 import { ProjectFilesActionBox } from "./project-files-action-box";
-import { ProjectFilesSearch } from "./search-bar";
+import { SearchBar } from "./search-bar";
 import { ProjectFilesNew } from "./project-files-new";
 import { TypedMap } from "../../app-framework/TypedMap";
 import { ComputeImages } from "../../custom-software/init";
 import { ProjectMap, ProjectStatus } from "smc-webapp/todo-types";
+import { ProjectActions } from "smc-webapp/project_store";
 
 const { Col, Row, ButtonGroup, Button, Alert } = require("react-bootstrap");
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
@@ -60,7 +61,7 @@ const error_style: React.CSSProperties = {
 
 interface ReactProps {
   project_id: string;
-  actions: any;
+  actions: ProjectActions;
   redux: any;
 }
 
@@ -219,33 +220,33 @@ export const Explorer = rclass<ReactProps>(
       $(window).off("keyup", this.handle_files_key_up);
     }
 
-    handle_files_key_down(e) {
+    handle_files_key_down = e => {
       if (e.key === "Shift") {
         this.setState({ shift_is_down: true });
       }
-    }
+    };
 
-    handle_files_key_up(e) {
+    handle_files_key_up = e => {
       if (e.key === "Shift") {
         this.setState({ shift_is_down: false });
       }
-    }
+    };
 
-    previous_page() {
+    previous_page = () => {
       if (this.props.page_number > 0) {
         this.actions(name).setState({
           page_number: this.props.page_number - 1
         });
       }
-    }
+    };
 
-    next_page() {
+    next_page = () => {
       this.actions(name).setState({
         page_number: this.props.page_number + 1
       });
-    }
+    };
 
-    create_file(ext, switch_over) {
+    create_file = (ext, switch_over) => {
       if (switch_over == undefined) {
         switch_over = true;
       }
@@ -272,16 +273,16 @@ export const Explorer = rclass<ReactProps>(
         switch_over
       });
       this.props.actions.setState({ file_search: "", page_number: 0 });
-    }
+    };
 
-    create_folder(switch_over = true): void {
+    create_folder = (switch_over = true): void => {
       this.props.actions.create_folder({
         name: this.props.file_search,
         current_path: this.props.current_path,
         switch_over
       });
       this.props.actions.setState({ file_search: "", page_number: 0 });
-    }
+    };
 
     render_paging_buttons(num_pages: number): JSX.Element | undefined {
       if (num_pages > 1) {
@@ -558,8 +559,14 @@ export const Explorer = rclass<ReactProps>(
       }
     }
 
-    render_file_listing(listing, file_map, error, project_state, public_view) {
-      const needle = project_state && project_state.get("state");
+    render_file_listing(
+      listing,
+      file_map,
+      error,
+      project_state?: ProjectStatus,
+      public_view?
+    ) {
+      const needle = (project_state && project_state.get("state")) || "";
       const running_or_saving = ["running", "saving"].includes(needle);
       if (running_or_saving) {
         return this.render_project_state(project_state);
@@ -693,9 +700,9 @@ export const Explorer = rclass<ReactProps>(
       }
     }
 
-    start_project() {
+    start_project = () => {
       this.actions("projects").start_project(this.props.project_id);
-    }
+    };
 
     render_start_project_button(project_state?: ProjectStatus) {
       const needle = (project_state && project_state.get("state")) || "";
@@ -744,7 +751,7 @@ export const Explorer = rclass<ReactProps>(
           <div
             style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
           >
-            <ProjectFilesSearch
+            <SearchBar
               project_id={this.props.project_id}
               key={this.props.current_path}
               file_search={this.props.file_search}
@@ -758,7 +765,9 @@ export const Explorer = rclass<ReactProps>(
               selected_file_index={this.props.selected_file_index}
               file_creation_error={this.props.file_creation_error}
               num_files_displayed={
-                visible_listing != undefined ? visible_listing.length : undefined
+                visible_listing != undefined
+                  ? visible_listing.length
+                  : undefined
               }
               create_file={this.create_file}
               create_folder={this.create_folder}
@@ -826,10 +835,14 @@ export const Explorer = rclass<ReactProps>(
           {!public_view ? (
             <MiscSideButtonBar
               show_hidden={
-                this.props.show_hidden != undefined ? this.props.show_hidden : false
+                this.props.show_hidden != undefined
+                  ? this.props.show_hidden
+                  : false
               }
               show_masked={
-                this.props.show_masked != undefined ? this.props.show_masked : true
+                this.props.show_masked != undefined
+                  ? this.props.show_masked
+                  : true
               }
               public_view={public_view}
               actions={this.props.actions}
@@ -934,7 +947,9 @@ export const Explorer = rclass<ReactProps>(
               padding: "5px 5px 0 5px"
             }}
           >
-            {pay != undefined ? this.render_course_payment_warning(pay) : undefined}
+            {pay != undefined
+              ? this.render_course_payment_warning(pay)
+              : undefined}
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(public_view, visible_listing)}

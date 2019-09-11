@@ -10,13 +10,14 @@ import { Configuration } from "./Explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 import { Icon } from "../../r_misc";
 import { analytics_event } from "../../tracker";
+import { ProjectActions } from "smc-webapp/project_store";
 
 const { MenuItem, SplitButton } = require("react-bootstrap");
 
 interface Props {
   file_search: string;
   current_path: string;
-  actions: any;
+  actions: ProjectActions;
   create_folder: (switch_over?: boolean) => void;
   create_file: (ext?: string, switch_over?: boolean) => void;
   configuration?: Configuration;
@@ -60,7 +61,7 @@ export class ProjectFilesNew extends React.Component<Props> {
       <MenuItem
         eventKey={i}
         key={i}
-        onClick={() => this.on_menu_item_clicked(ext)}
+        onClick={() => this.choose_extension(ext)}
       >
         <Icon name={data.icon} />{" "}
         <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
@@ -69,7 +70,7 @@ export class ProjectFilesNew extends React.Component<Props> {
     );
   }
 
-  on_menu_item_clicked(ext) {
+  choose_extension(ext: string) {
     if (this.props.file_search.length === 0) {
       // Tell state to render an error in file search
       return this.props.actions.ask_filename(ext);
@@ -79,7 +80,7 @@ export class ProjectFilesNew extends React.Component<Props> {
   }
 
   // Go to new file tab if no file is specified
-  on_create_button_clicked() {
+  on_create_button_clicked = () => {
     if (this.props.file_search.length === 0) {
       this.props.actions.toggle_new();
       analytics_event("project_file_listing", "search_create_button", "empty");

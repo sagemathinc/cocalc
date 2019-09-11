@@ -15,7 +15,7 @@ import { rtypes, rclass } from "../../app-framework";
 import * as immutable from "immutable";
 import { DirectoryInput, Icon, Loading, LoginLink } from "../../r_misc";
 import { analytics_event } from "../../tracker";
-import { file_actions } from "../../project_store";
+import { file_actions, ProjectActions } from "../../project_store";
 const misc = require("smc-util/misc");
 const {
   Button,
@@ -51,7 +51,7 @@ interface ReactProps {
   project_id: string;
   public_view?: boolean;
   file_map: object;
-  actions: any;
+  actions: ProjectActions;
   displayed_listing?: object;
   new_name?: string;
 }
@@ -120,11 +120,11 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       } as const;
     }
 
-    cancel_action() {
-      return this.props.actions.set_file_action();
+    cancel_action = () => {
+      this.props.actions.set_file_action();
     }
 
-    action_key(e: React.KeyboardEvent) {
+    action_key = (e: React.KeyboardEvent) => {
       switch (e.keyCode) {
         case 27:
           return this.cancel_action();
@@ -159,7 +159,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       );
     }
 
-    compress_click() {
+    compress_click = () => {
       const destination = (ReactDOM.findDOMNode(
         this.refs.result_archive
       ) as any).value;
@@ -172,7 +172,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       analytics_event("project_file_listing", "compress item");
     }
 
-    render_compress() {
+    render_compress = () => {
       const { size } = this.props.checked_files;
       return (
         <div>
@@ -215,11 +215,11 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       );
     }
 
-    submit_action_compress() {
-      return this.compress_click();
+    submit_action_compress = () => {
+      this.compress_click();
     }
 
-    delete_click() {
+    delete_click = () => {
       this.props.actions.delete_files({
         paths: this.props.checked_files.toArray()
       });
@@ -347,7 +347,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       }
     }
 
-    valid_rename_input(single_item): boolean {
+    valid_rename_input = (single_item): boolean => {
       if (
         (this.state.new_name as any).length > 250 ||
         misc.contains(this.state.new_name, "/")
@@ -429,7 +429,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       return this.render_rename_or_duplicate();
     }
 
-    submit_action_rename() {
+    submit_action_rename = () => {
       const single_item = this.props.checked_files.first();
       if (this.valid_rename_input(single_item)) {
         this.rename_or_duplicate_click();
@@ -438,11 +438,11 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
 
     // Make submit_action_duplicate an alias for submit_action_rename, due to how our
     // dynamically generated function calls work.
-    submit_action_duplicate() {
+    submit_action_duplicate = () => {
       return this.submit_action_rename();
     }
 
-    move_click() {
+    move_click = () => {
       this.props.actions.move_files({
         src: this.props.checked_files.toArray(),
         dest: this.state.move_destination,
@@ -451,10 +451,10 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       });
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
-      return analytics_event("project_file_listing", "move item");
+      analytics_event("project_file_listing", "move item");
     }
 
-    valid_move_input() {
+    valid_move_input = () => {
       const src_path = misc.path_split(this.props.checked_files.first()).head;
       let dest = this.state.move_destination.trim();
       if (dest === src_path) {
@@ -512,7 +512,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
 
     submit_action_move() {
       if (this.valid_move_input()) {
-        return this.move_click();
+        this.move_click();
       }
     }
 
@@ -582,7 +582,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       );
     }
 
-    copy_click() {
+    copy_click = () => {
       const destination_directory = this.state.copy_destination_directory;
       const destination_project_id = this.state.copy_destination_project_id;
       const { overwrite_newer } = this.state;
@@ -753,7 +753,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       );
     }
 
-    download_single_click(): void {
+    download_single_click = (): void => {
       this.props.actions.download_file({
         path: this.props.checked_files.first(),
         log: true
@@ -762,7 +762,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       analytics_event("project_file_listing", "download item");
     }
 
-    download_multiple_click(): void {
+    download_multiple_click = (): void => {
       const destination = (ReactDOM.findDOMNode(
         this.refs.download_archive
       ) as any).value;
@@ -788,7 +788,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
     }
 
     render_download_single(single_item) {
-      const target = this.props.actions.get_store().get_raw_link(single_item);
+      const target = (this.props.actions.get_store() as any).get_raw_link(single_item);
       return (
         <div>
           <h4>Download link</h4>

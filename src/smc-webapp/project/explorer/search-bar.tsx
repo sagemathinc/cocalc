@@ -2,6 +2,7 @@ import * as React from "react";
 import { analytics_event } from "../../tracker";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
+import { ProjectActions } from "smc-webapp/project_store";
 const { webapp_client } = require("../../webapp_client");
 const feature = require("../../feature");
 const { Alert } = require("react-bootstrap");
@@ -18,7 +19,7 @@ interface Props {
   project_id: string; // Added by miniterm functionality
   file_search: string;
   current_path?: string;
-  actions: any;
+  actions: ProjectActions;
   create_file: (a, b) => void;
   create_folder: (a) => void;
   selected_file?: { name: string; isdir: boolean }; // if given, file selected by cursor, which we open on pressing enter
@@ -39,7 +40,7 @@ interface State {
 
 // Commands such as CD throw a setState error.
 // Search WARNING to find the line in this class.
-export class ProjectFilesSearch extends React.Component<Props, State> {
+export class SearchBar extends React.Component<Props, State> {
   private _id: any;
 
   static defaultProps = {
@@ -196,11 +197,11 @@ export class ProjectFilesSearch extends React.Component<Props, State> {
     }
   }
 
-  dismiss_alert() {
-    return this.props.actions.setState({ file_creation_error: "" });
+  dismiss_alert = () => {
+    this.props.actions.setState({ file_creation_error: "" });
   }
 
-  search_submit(value, opts) {
+  search_submit = (value, opts): void => {
     if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
       const command = value.slice(1, value.length);
       return this.execute_command(command);
@@ -229,30 +230,30 @@ export class ProjectFilesSearch extends React.Component<Props, State> {
       } else {
         this.props.create_file(null, !opts.ctrl_down);
       }
-      return this.props.actions.clear_selected_file_index();
+      this.props.actions.clear_selected_file_index();
     }
   }
 
-  on_up_press() {
+  on_up_press = (): void => {
     if (this.props.selected_file_index > 0) {
-      return this.props.actions.decrement_selected_file_index();
+      this.props.actions.decrement_selected_file_index();
     }
   }
 
-  on_down_press() {
+  on_down_press = (): void => {
     if (this.props.selected_file_index < this.props.num_files_displayed - 1) {
-      return this.props.actions.increment_selected_file_index();
+      this.props.actions.increment_selected_file_index();
     }
   }
 
-  on_change(search, opts) {
+  on_change = (search, _opts): void => {
     this.props.actions.zero_selected_file_index();
-    return this.props.actions.set_file_search(search);
+    this.props.actions.set_file_search(search);
   }
 
-  on_clear() {
+  on_clear = (): void => {
     this.props.actions.clear_selected_file_index();
-    return this.setState({ input: "", stdout: "", error: "" });
+    this.setState({ input: "", stdout: "", error: "" });
   }
 
   render() {

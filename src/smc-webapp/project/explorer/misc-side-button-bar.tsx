@@ -1,6 +1,7 @@
 import * as React from "react";
 import { HiddenSM, Icon, Tip } from "../../r_misc";
 import { analytics_event } from "../../tracker";
+import { ProjectActions } from "smc-webapp/project_store";
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 
 interface Props {
@@ -11,30 +12,30 @@ interface Props {
   show_new?: boolean;
   show_library?: boolean;
   available_features?: { library: boolean };
-  actions: any;
+  actions: ProjectActions;
 }
 
 export class MiscSideButtonBar extends React.Component<Props> {
-  handle_refresh(e: React.MouseEvent): void {
+  handle_refresh = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.fetch_directory_listing();
   }
 
-  handle_hidden_toggle(e: React.MouseEvent): void {
+  handle_hidden_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     return this.props.actions.setState({
       show_hidden: !this.props.show_hidden
     });
   }
 
-  handle_masked_toggle(e: React.MouseEvent): void {
+  handle_masked_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.setState({
       show_masked: !this.props.show_masked
     });
   }
 
-  handle_backup(e: React.MouseEvent): void {
+  handle_backup = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.open_directory(".snapshots");
   }
@@ -92,7 +93,7 @@ export class MiscSideButtonBar extends React.Component<Props> {
     );
   }
 
-  handle_library_click(_e: React.MouseEvent): void {
+  handle_library_click = (_e: React.MouseEvent): void => {
     this.props.actions.toggle_library();
     analytics_event("project_file_listing", "toggle library");
   }
@@ -109,7 +110,7 @@ export class MiscSideButtonBar extends React.Component<Props> {
     );
   }
 
-  handle_upload_click(_e: React.MouseEvent): void {
+  handle_upload_click = (_e: React.MouseEvent): void => {
     analytics_event("project_file_listing", "clicked upload");
   }
 

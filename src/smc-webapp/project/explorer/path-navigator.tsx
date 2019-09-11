@@ -1,6 +1,7 @@
 import * as React from "react";
 import { PathSegmentLink } from "./path-segment-link";
 import { Icon } from "../../r_misc";
+import { ProjectActions } from "smc-webapp/project_store";
 
 const misc = require("smc-util/misc");
 const Breadcrumb = require("react-bootstrap");
@@ -8,7 +9,7 @@ const Breadcrumb = require("react-bootstrap");
 interface Props {
   current_path: string;
   history_path: string;
-  actions: any;
+  actions: ProjectActions;
 }
 
 // This path consists of several PathSegmentLinks
