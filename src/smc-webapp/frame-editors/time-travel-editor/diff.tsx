@@ -2,6 +2,8 @@
 Render a static version of a diff of two versions of a document for use in TimeTravel.
 */
 
+import { Component, React, Rendered } from "../../app-framework";
+
 interface Props {
   doc1: any; // first value of the document (string or db object).
   doc2: any; // second value of the document (string or db object).

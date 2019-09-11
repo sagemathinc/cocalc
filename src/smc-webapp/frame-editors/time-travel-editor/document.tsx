@@ -24,11 +24,20 @@ export class Document extends Component<Props> {
       </pre>
     );
   }
-  public render(): Rendered {
+
+  private render_body(): Rendered {
     if (this.props.doc != null && typeof this.props.doc.value == "string") {
       return this.render_string();
     } else {
       return this.render_other();
     }
+  }
+
+  public render(): Rendered {
+    return (
+      <div className="smc-vfill" style={{ overflowY: "auto" }}>
+        {this.render_body()}
+      </div>
+    );
   }
 }

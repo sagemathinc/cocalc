@@ -9,8 +9,10 @@ import {
 
 import { TimeTravelActions } from "./actions";
 import { Document } from "./document";
+import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
+import { Version } from "./version";
 
 interface Props {
   actions: TimeTravelActions;
@@ -47,7 +49,16 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_version(): Rendered {
-    return <div>{JSON.stringify(this.get_version())}</div>;
+    const date = this.get_version();
+    const version = this.props.desc.get("version");
+    if (date == null || version == null) return;
+    return (
+      <Version
+        date={date}
+        number={version + 1}
+        max={this.props.versions.size}
+      />
+    );
   }
 
   private get_doc(): any {
@@ -60,6 +71,10 @@ class TimeTravel extends Component<Props> {
     const doc = this.get_doc();
     if (doc == null) return;
     return <Document doc={doc} path={this.props.path} />;
+  }
+
+  private render_diff(): Rendered {
+    return <Diff doc1={0} doc2={1} path={this.props.path} />;
   }
 
   private render_navigation_buttons(): Rendered {
@@ -88,12 +103,12 @@ class TimeTravel extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <div>
+      <div className="smc-vfill">
         {this.render_navigation_buttons()}
         {this.render_navigation_slider()}
-        TimeTravel {JSON.stringify(this.props.versions.toJS())} <br /> Version:{" "}
         {this.render_version()}
         {this.render_document()}
+        {this.render_diff()}
       </div>
     );
   }
