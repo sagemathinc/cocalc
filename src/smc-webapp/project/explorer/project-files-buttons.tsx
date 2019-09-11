@@ -1,6 +1,6 @@
 import * as React from "react";
 import { HiddenSM, Icon, Tip } from "../../r_misc";
-const { analytics_event } = require("../../tracker");
+import { analytics_event } from "../../tracker";
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 
 interface Props {

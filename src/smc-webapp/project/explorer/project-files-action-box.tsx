@@ -14,7 +14,7 @@ import * as ReactDOM from "react-dom";
 import { rtypes } from "../../app-framework";
 import * as immutable from "immutable";
 import { DirectoryInput, Icon, Loading, LoginLink } from "../../r_misc";
-const { analytics_event } = require("./tracker");
+import { analytics_event } from "../../tracker";
 const { file_actions } = require("../../project_store");
 const misc = require("smc-util/misc");
 const {

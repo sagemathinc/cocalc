@@ -1,11 +1,11 @@
 import * as React from "react";
 import * as immutable from "immutable";
 import { COLORS, HiddenSM, Icon, Space } from "../../r_misc";
+import { analytics_event } from "../../tracker";
 
 const { Button, ButtonGroup, ButtonToolbar } = require("react-bootstrap");
 const { CustomSoftwareInfo } = require("../../custom-software/info-bar");
 const misc = require("smc-util/misc");
-const { analytics_event } = require("./tracker");
 const { file_actions } = require("../../project_store");
 
 const ROW_INFO_STYLE = {
