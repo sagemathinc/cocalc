@@ -1,6 +1,5 @@
-import { ProjectActions } from "../../project_actions";
-
-const { file_actions } = require("../../project_store");
+import { ProjectActions } from "../../../project_actions";
+import { file_actions } from "../../../project_store";
 
 export const TERM_MODE_CHAR = "/";
 

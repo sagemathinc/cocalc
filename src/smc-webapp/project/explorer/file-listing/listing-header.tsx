@@ -1,6 +1,6 @@
 import * as React from "react";
 
-const { Icon, Space } = require("../../r_misc");
+import { Icon, Space } from "../../../r_misc";
 const { Row, Col } = require("react-bootstrap");
 
 // TODO: Flatten active_file_sort for easy PureComponent use

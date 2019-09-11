@@ -1,6 +1,6 @@
 import * as React from "react";
 import { analytics_event } from "../../tracker";
-import { TERM_MODE_CHAR } from "../file-listing";
+import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
 const { webapp_client } = require("../../webapp_client");
 const feature = require("../../feature");

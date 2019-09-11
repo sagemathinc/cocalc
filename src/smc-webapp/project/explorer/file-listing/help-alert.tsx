@@ -1,6 +1,5 @@
 import * as React from "react";
 
-
 const { Alert } = require("react-bootstrap");
 
 const help_alert_error_syle: React.CSSProperties = {

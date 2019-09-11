@@ -42,12 +42,12 @@ import {
   Loading,
   CourseProjectExtraHelp
 } from "../../r_misc";
-import { default_ext } from "../file-listing/utils";
+import { default_ext } from "./file-listing/utils";
 import { BillingPage } from "../../billing/billing-page";
 import { PayCourseFee } from "../../billing/pay-course-fee";
 import { MiniTerminal } from "../../project_miniterm";
 import { CustomSoftwareReset } from "../../custom-software/reset-bar";
-import { FileListing } from "../../project/file-listing";
+import { FileListing } from "./file-listing";
 import { AskNewFilename } from "../../project/ask-filename";
 import { MainConfiguration, Available } from "../../project_configuration";
 import { ProjectFilesPath } from "./project-files-path";
