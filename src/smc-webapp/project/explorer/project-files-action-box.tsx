@@ -155,7 +155,7 @@ export class ProjectFilesActionBox extends React.Component<Props, State> {
   }
 
   compress_click() {
-    const destination = ReactDOM.findDOMNode(this.refs.result_archive).value;
+    const destination = (ReactDOM.findDOMNode(this.refs.result_archive) as any).value;
     this.props.actions.zip_files({
       src: this.props.checked_files.toArray(),
       dest: misc.path_to_file(this.props.current_path, destination)
@@ -288,7 +288,7 @@ export class ProjectFilesActionBox extends React.Component<Props, State> {
         ? this.props.checked_files.first()
         : undefined
     ).head;
-    const destination = ReactDOM.findDOMNode(this.refs.new_name).value;
+    const destination = (ReactDOM.findDOMNode(this.refs.new_name) as any).value;
     switch (this.props.file_action) {
       case "rename":
         this.props.actions.move_files({
@@ -341,12 +341,12 @@ export class ProjectFilesActionBox extends React.Component<Props, State> {
 
   valid_rename_input(single_item): boolean {
     if (
-      this.state.new_name.length > 250 ||
+      (this.state.new_name as any).length > 250 ||
       misc.contains(this.state.new_name, "/")
     ) {
       return false;
     }
-    return this.state.new_name.trim() !== misc.path_split(single_item).tail;
+    return (this.state.new_name as any).trim() !== misc.path_split(single_item).tail;
   }
 
   render_rename_or_duplicate() {
@@ -381,7 +381,7 @@ export class ProjectFilesActionBox extends React.Component<Props, State> {
                 placeholder="New file name..."
                 onChange={() =>
                   this.setState({
-                    new_name: ReactDOM.findDOMNode(this.refs.new_name).value
+                    new_name: (ReactDOM.findDOMNode(this.refs.new_name) as any).value
                   })
                 }
                 onKeyDown={this.action_key}
@@ -746,7 +746,7 @@ export class ProjectFilesActionBox extends React.Component<Props, State> {
   }
 
   download_multiple_click(): void {
-    const destination = ReactDOM.findDOMNode(this.refs.download_archive).value;
+    const destination = (ReactDOM.findDOMNode(this.refs.download_archive) as any).value;
     const dest = misc.path_to_file(this.props.current_path, destination);
     this.props.actions.zip_files({
       src: this.props.checked_files.toArray(),
