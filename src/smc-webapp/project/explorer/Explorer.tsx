@@ -1,34 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS204: Change includes calls to have a more natural evaluation order
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-//#############################################################################
-//
-//    CoCalc: Collaborative Calculation in the Cloud
-//
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//##############################################################################
-
 import * as React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
@@ -58,7 +27,7 @@ import { ProjectFilesSearch } from "./search-bar";
 import { ProjectFilesNew } from "./project-files-new";
 import { TypedMap } from "../../app-framework/TypedMap";
 import { ComputeImages } from "../../custom-software/init";
-import { ProjectMap } from "smc-webapp/todo-types";
+import { ProjectMap, ProjectStatus } from "smc-webapp/todo-types";
 
 const { Col, Row, ButtonGroup, Button, Alert } = require("react-bootstrap");
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
@@ -235,59 +204,58 @@ export const Explorer = rclass<ReactProps>(
       // Should probably be moved elsewhere
       // Prevents cascading changes which impact responsiveness
       // https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
-      setTimeout(
-        () =>
-          __guard__(this.props.redux.getActions("billing"), x =>
-            x.update_customer()
-          ),
-        200
-      );
+      setTimeout(() => {
+        const billing = this.props.redux.getActions("billing");
+        if (billing != undefined) {
+          billing.update_customer();
+        }
+      }, 200);
       $(window).on("keydown", this.handle_files_key_down);
-      return $(window).on("keyup", this.handle_files_key_up);
+      $(window).on("keyup", this.handle_files_key_up);
     }
 
     componentWillUnmount() {
       $(window).off("keydown", this.handle_files_key_down);
-      return $(window).off("keyup", this.handle_files_key_up);
+      $(window).off("keyup", this.handle_files_key_up);
     }
 
     handle_files_key_down(e) {
       if (e.key === "Shift") {
-        return this.setState({ shift_is_down: true });
+        this.setState({ shift_is_down: true });
       }
     }
 
     handle_files_key_up(e) {
       if (e.key === "Shift") {
-        return this.setState({ shift_is_down: false });
+        this.setState({ shift_is_down: false });
       }
     }
 
     previous_page() {
       if (this.props.page_number > 0) {
-        return this.actions(name).setState({
+        this.actions(name).setState({
           page_number: this.props.page_number - 1
         });
       }
     }
 
     next_page() {
-      return this.actions(name).setState({
+      this.actions(name).setState({
         page_number: this.props.page_number + 1
       });
     }
 
     create_file(ext, switch_over) {
-      if (switch_over == null) {
+      if (switch_over == undefined) {
         switch_over = true;
       }
       const { file_search } = this.props;
       if (
-        ext == null &&
+        ext == undefined &&
         file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
       ) {
         let disabled_ext;
-        if (this.props.configuration != null) {
+        if (this.props.configuration != undefined) {
           ({ disabled_ext } = this.props.configuration.get("main", {
             disabled_ext: [] as string[]
           }));
@@ -303,22 +271,19 @@ export const Explorer = rclass<ReactProps>(
         current_path: this.props.current_path,
         switch_over
       });
-      return this.props.actions.setState({ file_search: "", page_number: 0 });
+      this.props.actions.setState({ file_search: "", page_number: 0 });
     }
 
-    create_folder(switch_over) {
-      if (switch_over == null) {
-        switch_over = true;
-      }
+    create_folder(switch_over = true): void {
       this.props.actions.create_folder({
         name: this.props.file_search,
         current_path: this.props.current_path,
         switch_over
       });
-      return this.props.actions.setState({ file_search: "", page_number: 0 });
+      this.props.actions.setState({ file_search: "", page_number: 0 });
     }
 
-    render_paging_buttons(num_pages) {
+    render_paging_buttons(num_pages: number): JSX.Element | undefined {
       if (num_pages > 1) {
         return (
           <Row>
@@ -346,8 +311,8 @@ export const Explorer = rclass<ReactProps>(
       }
     }
 
-    render_files_action_box(file_map, public_view) {
-      if (file_map == null) {
+    render_files_action_box(file_map?, public_view?) {
+      if (file_map == undefined) {
         return;
       }
       return (
@@ -463,56 +428,40 @@ export const Explorer = rclass<ReactProps>(
       );
     }
 
-    render_pay() {
-      return (
-        <PayCourseFee
-          project_id={this.props.project_id}
-          redux={this.props.redux}
-        />
-      );
-    }
-
     render_upgrade_in_place() {
       const cards =
-        __guard__(
-          this.props.customer != null ? this.props.customer.sources : undefined,
-          x => x.total_count
-        ) != null
-          ? __guard__(
-              this.props.customer != null
-                ? this.props.customer.sources
-                : undefined,
-              x => x.total_count
-            )
-          : 0;
+        (this.props.customer &&
+          this.props.customer.sources &&
+          this.props.customer.sources.total_count) ||
+        0;
+
       return (
         <div style={{ marginTop: "10px" }}>
           <BillingPage is_simplified={true} for_course={true} />
-          {cards ? this.render_pay() : undefined}
+          {cards && (
+            <PayCourseFee
+              project_id={this.props.project_id}
+              redux={this.props.redux}
+            />
+          )}
         </div>
       );
     }
 
     render_course_payment_required() {
       const cards =
-        __guard__(
-          this.props.customer != null ? this.props.customer.sources : undefined,
-          x => x.total_count
-        ) != null
-          ? __guard__(
-              this.props.customer != null
-                ? this.props.customer.sources
-                : undefined,
-              x => x.total_count
-            )
-          : 0;
+        (this.props.customer &&
+          this.props.customer.sources &&
+          this.props.customer.sources.total_count) ||
+        0;
+
       return (
         <Alert bsStyle="warning">
           <h4 style={{ padding: "2em" }}>
             <Icon name="exclamation-triangle" /> Your instructor requires that
             you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this
             project.
-            {cards ? <CourseProjectExtraHelp /> : undefined}
+            {cards && <CourseProjectExtraHelp />}
           </h4>
           {this.render_upgrade_in_place()}
         </Alert>
@@ -610,12 +559,9 @@ export const Explorer = rclass<ReactProps>(
     }
 
     render_file_listing(listing, file_map, error, project_state, public_view) {
-      let needle;
-      if (
-        (project_state != null ? project_state.get("state") : undefined) &&
-        ((needle = project_state.get("state")),
-        !["running", "saving"].includes(needle))
-      ) {
+      const needle = project_state && project_state.get("state");
+      const running_or_saving = ["running", "saving"].includes(needle);
+      if (running_or_saving) {
         return this.render_project_state(project_state);
       }
 
@@ -659,15 +605,15 @@ export const Explorer = rclass<ReactProps>(
             if (
               error === "no_instance" ||
               (require("./customize").commercial &&
-                quotas != null &&
-                !(quotas != null ? quotas.member_host : undefined))
+                quotas &&
+                !quotas.member_host)
             ) {
               // the second part of the or is to blame it on the free servers...
               e = (
                 <ErrorDisplay
                   title="Project unavailable"
                   error={`This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n${
-                    !(quotas != null ? quotas.member_host : undefined)
+                    !(quotas != undefined ? quotas.member_host : undefined)
                       ? error
                       : undefined
                   }`}
@@ -691,7 +637,7 @@ export const Explorer = rclass<ReactProps>(
             </Button>
           </div>
         );
-      } else if (listing != null) {
+      } else if (listing != undefined) {
         return (
           <SMC_Dropwrapper
             project_id={this.props.project_id}
@@ -729,7 +675,7 @@ export const Explorer = rclass<ReactProps>(
               show_new={this.props.show_new}
               last_scroll_top={this.props.file_listing_scroll_top}
               configuration_main={
-                this.props.configuration != null
+                this.props.configuration != undefined
                   ? this.props.configuration.get("main")
                   : undefined
               }
@@ -748,18 +694,15 @@ export const Explorer = rclass<ReactProps>(
     }
 
     start_project() {
-      return this.actions("projects").start_project(this.props.project_id);
+      this.actions("projects").start_project(this.props.project_id);
     }
 
-    render_start_project_button(project_state) {
-      let needle;
+    render_start_project_button(project_state?: ProjectStatus) {
+      const needle = (project_state && project_state.get("state")) || "";
+      const enabled = ["opened", "closed", "archived"].includes(needle);
       return (
         <Button
-          disabled={
-            ((needle =
-              project_state != null ? project_state.get("state") : undefined),
-            !["opened", "closed", "archived"].includes(needle))
-          }
+          disabled={!enabled}
           bsStyle="primary"
           bsSize="large"
           onClick={this.start_project}
@@ -769,7 +712,7 @@ export const Explorer = rclass<ReactProps>(
       );
     }
 
-    render_project_state(project_state) {
+    render_project_state(project_state?: ProjectStatus) {
       return (
         <div
           style={{ fontSize: "40px", textAlign: "center", color: "#666666" }}
@@ -782,13 +725,10 @@ export const Explorer = rclass<ReactProps>(
     }
 
     file_listing_page_size() {
-      let left;
-      return (left =
-        this.props.other_settings != null
-          ? this.props.other_settings.get("page_size")
-          : undefined) != null
-        ? left
-        : 50;
+      return (
+        this.props.other_settings &&
+        this.props.other_settings.get("page_size", 50)
+      );
     }
 
     render_control_row(public_view, visible_listing) {
@@ -811,18 +751,14 @@ export const Explorer = rclass<ReactProps>(
               actions={this.props.actions}
               current_path={this.props.current_path}
               selected_file={
-                visible_listing != null
-                  ? visible_listing[
-                      this.props.selected_file_index != null
-                        ? this.props.selected_file_index
-                        : 0
-                    ]
+                visible_listing != undefined
+                  ? visible_listing[this.props.selected_file_index || 0]
                   : undefined
               }
               selected_file_index={this.props.selected_file_index}
               file_creation_error={this.props.file_creation_error}
               num_files_displayed={
-                visible_listing != null ? visible_listing.length : undefined
+                visible_listing != undefined ? visible_listing.length : undefined
               }
               create_file={this.create_file}
               create_folder={this.create_folder}
@@ -890,10 +826,10 @@ export const Explorer = rclass<ReactProps>(
           {!public_view ? (
             <MiscSideButtonBar
               show_hidden={
-                this.props.show_hidden != null ? this.props.show_hidden : false
+                this.props.show_hidden != undefined ? this.props.show_hidden : false
               }
               show_masked={
-                this.props.show_masked != null ? this.props.show_masked : true
+                this.props.show_masked != undefined ? this.props.show_masked : true
               }
               public_view={public_view}
               actions={this.props.actions}
@@ -911,11 +847,11 @@ export const Explorer = rclass<ReactProps>(
 
     render_custom_software_reset() {
       if (!this.props.show_custom_software_reset) {
-        return null;
+        return undefined;
       }
       // also don't show this box, if any files are selected
       if (this.props.checked_files.size > 0) {
-        return null;
+        return undefined;
       }
       return (
         <CustomSoftwareReset
@@ -930,8 +866,10 @@ export const Explorer = rclass<ReactProps>(
     }
 
     render() {
-      let project_is_running, project_state, visible_listing;
-      if (this.props.checked_files == null) {
+      let project_is_running,
+        project_state: ProjectStatus | undefined,
+        visible_listing;
+      if (this.props.checked_files == undefined) {
         // hasn't loaded/initialized at all
         return <Loading />;
       }
@@ -939,7 +877,7 @@ export const Explorer = rclass<ReactProps>(
       const pay = this.props.date_when_course_payment_required(
         this.props.project_id
       );
-      if (pay != null && pay <= webapp_client.server_time()) {
+      if (pay != undefined && pay <= webapp_client.server_time()) {
         return this.render_course_payment_required();
       }
 
@@ -948,19 +886,18 @@ export const Explorer = rclass<ReactProps>(
       // regardless of consequences, for admins a project is always running
       // see https://github.com/sagemathinc/cocalc/issues/3863
       if (my_group === "admin") {
-        project_state = immutable.Map({ state: "running" });
+        project_state = new ProjectStatus({ state: "running" });
         project_is_running = true;
         // next, we check if this is a common user (not public)
       } else if (my_group !== "public") {
-        let needle;
-        project_state =
-          this.props.project_map != null
-            ? this.props.project_map.getIn([this.props.project_id, "state"])
-            : undefined;
-        project_is_running =
-          (project_state != null ? project_state.get("state") : undefined) &&
-          ((needle = project_state.get("state")),
-          ["running", "saving"].includes(needle));
+        if (this.props.project_map != undefined) {
+          project_state = this.props.project_map.getIn([
+            this.props.project_id,
+            "state"
+          ]);
+        }
+        const needle = (project_state && project_state.get("state")) || "";
+        project_is_running = ["running", "saving"].includes(needle);
       } else {
         project_is_running = false;
       }
@@ -971,7 +908,7 @@ export const Explorer = rclass<ReactProps>(
       const { listing, error, file_map } = this.props.displayed_listing;
 
       const file_listing_page_size = this.file_listing_page_size();
-      if (listing != null) {
+      if (listing != undefined) {
         const { start_index, end_index } = pager_range(
           file_listing_page_size,
           this.props.page_number
@@ -997,7 +934,7 @@ export const Explorer = rclass<ReactProps>(
               padding: "5px 5px 0 5px"
             }}
           >
-            {pay != null ? this.render_course_payment_warning(pay) : undefined}
+            {pay != undefined ? this.render_course_payment_warning(pay) : undefined}
             {this.render_error()}
             {this.render_activity()}
             {this.render_control_row(public_view, visible_listing)}
@@ -1022,7 +959,7 @@ export const Explorer = rclass<ReactProps>(
                   minWidth: "20em"
                 }}
               >
-                {listing != null
+                {listing != undefined
                   ? this.render_files_actions(
                       listing,
                       public_view,
@@ -1040,7 +977,7 @@ export const Explorer = rclass<ReactProps>(
             {this.props.show_library ? this.render_library() : undefined}
 
             {this.props.checked_files.size > 0 &&
-            this.props.file_action != null ? (
+            this.props.file_action != undefined ? (
               <Row>{this.render_files_action_box(file_map, public_view)}</Row>
             ) : (
               undefined
@@ -1063,7 +1000,7 @@ export const Explorer = rclass<ReactProps>(
               project_state,
               public_view
             )}
-            {listing != null
+            {listing != undefined
               ? this.render_paging_buttons(
                   Math.ceil(listing.length / file_listing_page_size)
                 )
@@ -1074,9 +1011,3 @@ export const Explorer = rclass<ReactProps>(
     }
   }
 );
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}

@@ -31,6 +31,8 @@ export interface TypedMap<TProps extends Object> {
    * notSetValue will be returned if provided. Note that this scenario would
    * produce an error when using Flow or TypeScript.
    */
+  get<K extends keyof TProps>(key: K): TProps[K];
+  get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
   get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
 
   // Reading deep values
@@ -164,7 +166,12 @@ export function createTypedMap<OuterProps extends Object>(
      * notSetValue will be returned if provided. Note that this scenario would
      * produce an error when using Flow or TypeScript.
      */
-    get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV {
+    get<K extends keyof TProps>(key: K): TProps[K];
+    get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
+    get<K extends keyof TProps, NSV>(
+      key: K,
+      notSetValue?: NSV
+    ): TProps[K] | NSV {
       return this.data.get(key, notSetValue);
     }
 
