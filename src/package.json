@@ -16,6 +16,7 @@
     "@types/jquery": "^3.3.31",
     "@types/katex": "^0.10.1",
     "@types/node": "^10.14.17",
+    "@types/react": "^16.9.2",
     "assets-webpack-plugin": "^3.5",
     "autoprefixer": "^9.6.1",
     "babel-loader": "^8.0.0-beta.2",
