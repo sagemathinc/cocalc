@@ -48,7 +48,7 @@ import { PayCourseFee } from "../../billing/pay-course-fee";
 import { MiniTerminal } from "./mini-terminal";
 import { CustomSoftwareReset } from "../../custom-software/reset-bar";
 import { FileListing } from "./file-listing";
-import { AskNewFilename } from "../../project/ask-filename";
+import { AskNewFilename } from "../ask-filename";
 import { MainConfiguration, Available } from "../../project_configuration";
 import { PathNavigator } from "./path-navigator";
 import { MiscSideButtonBar } from "./misc-side-button-bar";
