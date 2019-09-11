@@ -13,6 +13,7 @@ import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
 import { Version } from "./version";
+import { Author } from "./author";
 
 interface Props {
   actions: TimeTravelActions;
@@ -101,12 +102,19 @@ class TimeTravel extends Component<Props> {
     );
   }
 
+  public render_author(): Rendered {
+    const version = this.get_version();
+    if (version == null) return;
+    return <Author actions={this.props.actions} version={version} />;
+  }
+
   public render(): Rendered {
     return (
       <div className="smc-vfill">
         {this.render_navigation_buttons()}
         {this.render_navigation_slider()}
         {this.render_version()}
+        {this.render_author()}
         {this.render_document()}
         {this.render_diff()}
       </div>

@@ -69,11 +69,17 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     return this.syncdoc.version(version);
   }
 
+  public get_account_id(version: Date): string | undefined {
+    if (this.syncdoc == null) return;
+    return this.syncdoc.account_id(version);
+  }
+
   set_version(id: string, version: number): void {
     if (this._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
-    if (typeof version != "number") { // be extra careful
+    if (typeof version != "number") {
+      // be extra careful
       throw Error("version must be a number");
     }
     const versions = this.store.get("versions");
