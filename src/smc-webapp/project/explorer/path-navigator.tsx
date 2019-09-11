@@ -12,7 +12,7 @@ interface Props {
 }
 
 // This path consists of several PathSegmentLinks
-export function ProjectFilesPath({
+export function PathNavigator({
   current_path,
   history_path = "",
   actions

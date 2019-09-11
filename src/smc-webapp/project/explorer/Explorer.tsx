@@ -45,13 +45,13 @@ import {
 import { default_ext } from "./file-listing/utils";
 import { BillingPage } from "../../billing/billing-page";
 import { PayCourseFee } from "../../billing/pay-course-fee";
-import { MiniTerminal } from "../../project_miniterm";
+import { MiniTerminal } from "./mini-terminal";
 import { CustomSoftwareReset } from "../../custom-software/reset-bar";
 import { FileListing } from "./file-listing";
 import { AskNewFilename } from "../../project/ask-filename";
 import { MainConfiguration, Available } from "../../project_configuration";
-import { ProjectFilesPath } from "./project-files-path";
-import { ProjectFilesButtons } from "./project-files-buttons";
+import { PathNavigator } from "./path-navigator";
+import { MiscSideButtonBar } from "./misc-side-button-bar";
 import { ProjectFilesActions } from "./project-files-actions";
 import { ProjectFilesActionBox } from "./project-files-action-box";
 import { ProjectFilesSearch } from "./search-bar";
@@ -852,7 +852,7 @@ export const Explorer = rclass<ReactProps>(
               marginBottom: "15px"
             }}
           >
-            <ProjectFilesPath
+            <PathNavigator
               current_path={this.props.current_path}
               history_path={this.props.history_path}
               actions={this.props.actions}
@@ -888,7 +888,7 @@ export const Explorer = rclass<ReactProps>(
           style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
         >
           {!public_view ? (
-            <ProjectFilesButtons
+            <MiscSideButtonBar
               show_hidden={
                 this.props.show_hidden != null ? this.props.show_hidden : false
               }

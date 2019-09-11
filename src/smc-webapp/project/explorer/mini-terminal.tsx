@@ -31,8 +31,8 @@ IDEAS FOR LATER:
 
 */
 
-import { analytics_event } from "./tracker";
-import { ProjectActions } from "./project_actions";
+import { analytics_event } from "../../tracker";
+import { ProjectActions } from "../../project_actions";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -42,9 +42,9 @@ const {
   InputGroup,
   FormGroup
 } = require("react-bootstrap");
-const { Icon } = require("./r_misc");
+import { Icon } from "smc-webapp/r_misc";
 
-const { webapp_client } = require("./webapp_client"); // used to run the command -- could change to use an action and the store.
+const { webapp_client } = require("../../webapp_client"); // used to run the command -- could change to use an action and the store.
 
 export const output_style_searchbox: React.CSSProperties = {
   position: "absolute",
