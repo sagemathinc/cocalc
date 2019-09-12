@@ -9,12 +9,6 @@ const feature = require("../../feature");
 const { Alert } = require("react-bootstrap");
 const misc = require("smc-util/misc");
 const { output_style_searchbox } = require("./project_miniterm");
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 
 interface Props {
   project_id: string; // Added by miniterm functionality
@@ -74,7 +68,7 @@ export class SearchBar extends React.Component<Props, State> {
     const input0 = input + '\necho $HOME "`pwd`"';
     this.setState({ state: "run" });
 
-    this._id = (this._id != null ? this._id : 0) + 1;
+    this._id = (this._id != undefined ? this._id : 0) + 1;
     const id = this._id;
     analytics_event("project_file_listing", "exec file search miniterm", input);
     webapp_client.exec({
@@ -91,7 +85,7 @@ export class SearchBar extends React.Component<Props, State> {
           return;
         }
         if (err) {
-          return this.setState({ error: JSON.stringify(err), state: "edit" });
+          this.setState({ error: JSON.stringify(err), state: "edit" });
         } else {
           if (output.stdout) {
             // Find the current path
@@ -124,7 +118,7 @@ export class SearchBar extends React.Component<Props, State> {
             stdout: output.stdout
           });
           if (!output.stderr) {
-            return this.props.actions.set_file_search("");
+            this.props.actions.set_file_search("");
           }
         }
       }
@@ -179,7 +173,7 @@ export class SearchBar extends React.Component<Props, State> {
           <a
             onClick={e => {
               e.preventDefault();
-              return this.setState({ stdout: "", error: "" });
+              this.setState({ stdout: "", error: "" });
             }}
             href=""
             style={{
@@ -205,7 +199,7 @@ export class SearchBar extends React.Component<Props, State> {
   search_submit = (value, opts): void => {
     if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
       const command = value.slice(1, value.length);
-      return this.execute_command(command);
+      this.execute_command(command);
     } else if (this.props.selected_file) {
       const new_path = misc.path_to_file(
         this.props.current_path,
@@ -223,13 +217,13 @@ export class SearchBar extends React.Component<Props, State> {
       }
       if (opening_a_dir || !opts.ctrl_down) {
         this.props.actions.set_file_search("");
-        return this.props.actions.clear_selected_file_index();
+        this.props.actions.clear_selected_file_index();
       }
     } else if (this.props.file_search.length > 0) {
       if (this.props.file_search[this.props.file_search.length - 1] === "/") {
         this.props.create_folder(!opts.ctrl_down);
       } else {
-        this.props.create_file(null, !opts.ctrl_down);
+        this.props.create_file(undefined, !opts.ctrl_down);
       }
       this.props.actions.clear_selected_file_index();
     }
