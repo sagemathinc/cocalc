@@ -13,17 +13,17 @@ for making the data structure trivial.
 ###
 
 async                = require('async')
-
 message              = require('smc-util/message')
 misc                 = require('smc-util/misc')
 {required, defaults} = misc
-
 auth                 = require('./auth')
-
+{process_env_int}    = require("smc-util-node/misc2_node")
 Bottleneck           = require("bottleneck")
+
+# these parameters are per group and per hub!
 bottleneck_opts      =
-    minTime        : 100
-    maxConcurrent  : 2    # per group and per hub!
+    minTime        : process_env_int('THROTTLE_SIGN_IN_MINTIME', 100)
+    maxConcurrent  : process_env_int('THROTTLE_SIGN_IN_CONCURRENT', 2)
 limit_group          = new Bottleneck.Group(bottleneck_opts)
 
 sign_in_fails =
