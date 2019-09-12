@@ -1,7 +1,7 @@
 import { Map, Set } from "immutable";
 
 import { redux, Store } from "../app-framework";
-import { AppliedCoupons, CoursePay } from "./types";
+import { AppliedCoupons, CoursePay, Customer } from "./types";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;
@@ -10,7 +10,7 @@ export interface BillingStoreState {
   error?: string;
   action?: string;
   no_stripe?: boolean;
-  customer?: any;   // I tried and failed to declare these... It's Customer in types, but as immutable, so what do I do?
+  customer?: Customer;
   invoices?: any;
   loaded?: boolean;
   continue_first_purchase?: boolean;

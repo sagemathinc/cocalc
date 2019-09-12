@@ -3,7 +3,7 @@ These interfaces are exactly what we **actually use** in our code, not
 what stripe actually provides!
 */
 
-import { Map, Set } from "immutable";
+import { Map, Set, List } from "immutable";
 
 export type AppliedCoupons = Map<string, any>;
 
@@ -62,8 +62,8 @@ export interface Invoices {
 }
 
 export interface Customer {
-  sources: { data: Source[]; total_count: number };
-  subscriptions: { data: Subscription[]; total_count: number };
+  sources: { data: List<Source>; total_count: number };
+  subscriptions: { data: List<Subscription>; total_count: number };
   default_source: string;
 }
 
