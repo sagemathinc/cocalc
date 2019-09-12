@@ -59,11 +59,12 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this.store.get("has_full_history") || this.syncdoc == null) return;
     await this.syncdoc.load_full_history(); // todo -- error reporting ...?
     this.setState({ has_full_history: true });
+    this.syncdoc_changed();  // load new versions list.
   }
 
   private syncdoc_changed(): void {
     if (this.syncdoc == null) return;
-    const versions = List<Date>(this.syncdoc.versions());
+    const versions = List<Date>(this.syncdoc.all_versions());
     this.ensure_versions_are_stable(versions);
     this.setState({ versions });
   }
