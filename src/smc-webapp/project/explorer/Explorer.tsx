@@ -20,7 +20,7 @@ import { FileListing } from "./file-listing";
 import { AskNewFilename } from "../ask-filename";
 import { MainConfiguration, Available } from "../../project_configuration";
 import { PathNavigator } from "./path-navigator";
-import { MiscSideButtonBar } from "./misc-side-button-bar";
+import { MiscSideButtons } from "./misc-side-button-bar";
 import { ProjectFilesActions } from "./project-files-actions";
 import { ProjectFilesActionBox } from "./project-files-action-box";
 import { SearchBar } from "./search-bar";
@@ -29,6 +29,9 @@ import { TypedMap } from "../../app-framework/TypedMap";
 import { ComputeImages } from "../../custom-software/init";
 import { ProjectMap, ProjectStatus } from "smc-webapp/todo-types";
 import { ProjectActions } from "smc-webapp/project_store";
+import { FetchDirectoryErrors } from "./fetch-directory-errors";
+import { AccessErrors } from "./access-errors";
+import { ListingItem } from "./types";
 
 const { Col, Row, ButtonGroup, Button, Alert } = require("react-bootstrap");
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
@@ -40,7 +43,6 @@ const {
   ProjectSettingsPanel
 } = require("../../project/project-settings-support");
 const { webapp_client } = require("../../webapp_client");
-const { AccountPage } = require("../../account_page");
 const { UsersViewing } = require("../../other-users");
 
 const pager_range = function(page_size, page_number) {
@@ -69,7 +71,7 @@ interface ReduxProps {
   name: string;
   project_map?: ProjectMap;
   date_when_course_payment_required: (project_id: string) => number;
-  get_my_group: (project_id: string) => string;
+  get_my_group: (project_id: string) => "admin" | "public";
   get_total_project_quotas: (project_id: string) => { member_host: boolean };
   other_settings?: immutable.Map<string, any>;
   is_logged_in?: boolean;
@@ -102,8 +104,8 @@ interface ReduxProps {
   ext_selection?: string;
   new_filename?: string;
   displayed_listing: {
-    listing: string[];
-    error: string;
+    listing: ListingItem[];
+    error: any;
     file_map: Map<string, any>;
   };
   new_name?: string;
@@ -393,17 +395,6 @@ export const Explorer = rclass<ReactProps>(
       );
     }
 
-    render_miniterm() {
-      return (
-        <MiniTerminal
-          current_path={this.props.current_path}
-          project_id={this.props.project_id}
-          actions={this.props.actions}
-          show_close_x={false}
-        />
-      );
-    }
-
     render_new_file() {
       return (
         <ProjectFilesNew
@@ -504,67 +495,21 @@ export const Explorer = rclass<ReactProps>(
       }
     }
 
-    render_access_error() {
-      const public_view =
-        this.props.get_my_group(this.props.project_id) === "public";
-      if (public_view) {
-        if (this.props.is_logged_in) {
-          return (
-            <ErrorDisplay
-              style={{ maxWidth: "100%" }}
-              bsStyle="warning"
-              title="Showing only public files"
-              error={
-                "You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."
-              }
-            />
-          );
-        } else {
-          return (
-            <div>
-              <ErrorDisplay
-                style={{ maxWidth: "100%" }}
-                bsStyle="warning"
-                title="Showing only public files"
-                error={
-                  "You are not logged in. To view non-public files or edit files in this project you will need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."
-                }
-              />
-            </div>
-          );
-        }
-      } else {
-        if (this.props.is_logged_in) {
-          return (
-            <ErrorDisplay
-              title="Directory is not public"
-              error={
-                "You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."
-              }
-            />
-          );
-        } else {
-          return (
-            <div>
-              <ErrorDisplay
-                title="Directory is not public"
-                error={
-                  "You are not signed in. If you are collaborator on this project you need to sign in first. This project is not public."
-                }
-              />
-              <AccountPage />
-            </div>
-          );
-        }
-      }
+    render_access_error(public_view: boolean) {
+      return (
+        <AccessErrors
+          public_view={public_view}
+          is_logged_in={!!this.props.is_logged_in}
+        />
+      );
     }
 
     render_file_listing(
-      listing,
+      listing: ListingItem[] | undefined,
       file_map,
-      error,
-      project_state?: ProjectStatus,
-      public_view?
+      fetch_directory_error: any,
+      project_state: ProjectStatus | undefined,
+      public_view: boolean
     ) {
       const needle = (project_state && project_state.get("state")) || "";
       const running_or_saving = ["running", "saving"].includes(needle);
@@ -572,70 +517,20 @@ export const Explorer = rclass<ReactProps>(
         return this.render_project_state(project_state);
       }
 
-      if (error) {
-        let e;
-        const quotas = this.props.get_total_project_quotas(
-          this.props.project_id
-        );
-        switch (error) {
-          case "not_public":
-            e = this.render_access_error();
-            break;
-          case "no_dir":
-            e = (
-              <ErrorDisplay
-                title="No such directory"
-                error={`The path ${this.props.current_path} does not exist.`}
-              />
-            );
-            break;
-          case "not_a_dir":
-            e = (
-              <ErrorDisplay
-                title="Not a directory"
-                error={`${this.props.current_path} is not a directory.`}
-              />
-            );
-            break;
-          case "not_running":
-            // This shouldn't happen, but due to maybe a slight race condition in the backend it can.
-            e = (
-              <ErrorDisplay
-                title="Project still not running"
-                error={
-                  "The project was not running when this directory listing was requested.  Please try again in a moment."
-                }
-              />
-            );
-            break;
-          default:
-            if (
-              error === "no_instance" ||
-              (require("./customize").commercial &&
-                quotas &&
-                !quotas.member_host)
-            ) {
-              // the second part of the or is to blame it on the free servers...
-              e = (
-                <ErrorDisplay
-                  title="Project unavailable"
-                  error={`This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n${
-                    !(quotas != undefined ? quotas.member_host : undefined)
-                      ? error
-                      : undefined
-                  }`}
-                />
-              );
-            } else {
-              e = (
-                <ErrorDisplay title="Directory listing error" error={error} />
-              );
-            }
-        }
+      if (fetch_directory_error) {
         // TODO: the refresh button text is inconsistant
         return (
           <div>
-            {e}
+            <FetchDirectoryErrors
+              error={fetch_directory_error}
+              path={this.props.current_path}
+              quotas={this.props.get_total_project_quotas(
+                this.props.project_id
+              )}
+              is_commercial={require("smc-webapp/customize").commercial}
+              public_view={public_view}
+              is_logged_in={!!this.props.is_logged_in}
+            />
             <br />
             <Button
               onClick={() => this.props.actions.fetch_directory_listing()}
@@ -738,7 +633,10 @@ export const Explorer = rclass<ReactProps>(
       );
     }
 
-    render_control_row(public_view, visible_listing) {
+    render_control_row(
+      public_view: boolean,
+      visible_listing: ListingItem[] | undefined
+    ): JSX.Element {
       return (
         <div
           style={{
@@ -775,7 +673,7 @@ export const Explorer = rclass<ReactProps>(
               disabled={this.props.show_new}
             />
           </div>
-          {!public_view ? (
+          {!public_view && (
             <div
               style={{
                 flex: "0 1 auto",
@@ -786,8 +684,6 @@ export const Explorer = rclass<ReactProps>(
             >
               {this.render_new_file()}
             </div>
-          ) : (
-            undefined
           )}
           <div
             className="cc-project-files-path"
@@ -803,37 +699,38 @@ export const Explorer = rclass<ReactProps>(
               actions={this.props.actions}
             />
           </div>
-          {!public_view ? (
-            <div
-              style={{
-                flex: "0 1 auto",
-                marginRight: "10px",
-                marginBottom: "15px"
-              }}
-            >
-              <UsersViewing project_id={this.props.project_id} />
-            </div>
-          ) : (
-            undefined
-          )}
-          {!public_view ? (
-            <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
-              {this.render_miniterm()}
-            </div>
-          ) : (
-            undefined
+          {!public_view && (
+            <>
+              <div
+                style={{
+                  flex: "0 1 auto",
+                  marginRight: "10px",
+                  marginBottom: "15px"
+                }}
+              >
+                <UsersViewing project_id={this.props.project_id} />
+              </div>
+              <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
+                <MiniTerminal
+                  current_path={this.props.current_path}
+                  project_id={this.props.project_id}
+                  actions={this.props.actions}
+                  show_close_x={false}
+                />
+              </div>
+            </>
           )}
         </div>
       );
     }
 
-    render_project_files_buttons(public_view) {
+    render_project_files_buttons(public_view: boolean): JSX.Element {
       return (
         <div
           style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
         >
-          {!public_view ? (
-            <MiscSideButtonBar
+          {!public_view && (
+            <MiscSideButtons
               show_hidden={
                 this.props.show_hidden != undefined
                   ? this.props.show_hidden
@@ -851,8 +748,6 @@ export const Explorer = rclass<ReactProps>(
               kucalc={this.props.kucalc}
               available_features={this.props.available_features}
             />
-          ) : (
-            undefined
           )}
         </div>
       );
@@ -879,9 +774,10 @@ export const Explorer = rclass<ReactProps>(
     }
 
     render() {
-      let project_is_running,
+      let project_is_running: boolean,
         project_state: ProjectStatus | undefined,
-        visible_listing;
+        visible_listing: ListingItem[] | undefined;
+
       if (this.props.checked_files == undefined) {
         // hasn't loaded/initialized at all
         return <Loading />;
@@ -918,7 +814,9 @@ export const Explorer = rclass<ReactProps>(
       // enables/disables certain aspects if project is viewed publicly by a non-collaborator
       const public_view = my_group === "public";
 
-      const { listing, error, file_map } = this.props.displayed_listing;
+      const displayed_listing = this.props.displayed_listing;
+      const { listing, file_map } = displayed_listing;
+      const directory_error = displayed_listing.error;
 
       const file_listing_page_size = this.file_listing_page_size();
       if (listing != undefined) {
@@ -1007,11 +905,13 @@ export const Explorer = rclass<ReactProps>(
               minHeight: "400px"
             }}
           >
-            {public_view && !error ? this.render_access_error() : undefined}
+            {public_view && !directory_error
+              ? this.render_access_error(public_view)
+              : undefined}
             {this.render_file_listing(
               visible_listing,
               file_map,
-              error,
+              directory_error,
               project_state,
               public_view
             )}

@@ -3,6 +3,7 @@ import { analytics_event } from "../../tracker";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
+import { ListingItem } from "./types";
 const { webapp_client } = require("../../webapp_client");
 const feature = require("../../feature");
 const { Alert } = require("react-bootstrap");
@@ -22,7 +23,7 @@ interface Props {
   actions: ProjectActions;
   create_file: (a, b) => void;
   create_folder: (a) => void;
-  selected_file?: { name: string; isdir: boolean }; // if given, file selected by cursor, which we open on pressing enter
+  selected_file?: ListingItem; // if given, file selected by cursor, which we open on pressing enter
   selected_file_index: number;
   file_creation_error?: string;
   num_files_displayed: number;

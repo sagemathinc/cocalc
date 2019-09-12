@@ -15,7 +15,7 @@ interface Props {
   actions: ProjectActions;
 }
 
-export class MiscSideButtonBar extends React.Component<Props> {
+export class MiscSideButtons extends React.Component<Props> {
   handle_refresh = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.fetch_directory_listing();
