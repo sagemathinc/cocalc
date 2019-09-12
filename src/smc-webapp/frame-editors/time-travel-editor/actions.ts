@@ -59,7 +59,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this.store.get("has_full_history") || this.syncdoc == null) return;
     await this.syncdoc.load_full_history(); // todo -- error reporting ...?
     this.setState({ has_full_history: true });
-    this.syncdoc_changed();  // load new versions list.
+    this.syncdoc_changed(); // load new versions list.
   }
 
   private syncdoc_changed(): void {
@@ -137,5 +137,15 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   public async open_file(): Promise<void> {
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path: this.docpath, foreground: true });
+  }
+
+  // Revert the live version of the document to a specific version */
+  public async revert(version: Date): Promise<void> {
+    if (this.syncdoc == null) return;
+    this.syncdoc.revert(version);
+    this.syncdoc.commit();
+    await this.open_file();
+    if (this.syncdoc == null) return;
+    this.syncdoc.emit("change");
   }
 }
