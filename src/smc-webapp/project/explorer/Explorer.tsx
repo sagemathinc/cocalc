@@ -222,13 +222,13 @@ export const Explorer = rclass<ReactProps>(
       $(window).off("keyup", this.handle_files_key_up);
     }
 
-    handle_files_key_down = e => {
+    handle_files_key_down = (e): void => {
       if (e.key === "Shift") {
         this.setState({ shift_is_down: true });
       }
     };
 
-    handle_files_key_up = e => {
+    handle_files_key_up = (e): void => {
       if (e.key === "Shift") {
         this.setState({ shift_is_down: false });
       }

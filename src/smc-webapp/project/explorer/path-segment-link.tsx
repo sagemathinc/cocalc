@@ -20,8 +20,8 @@ export function PathSegmentLink({
   full_name,
   history,
   active = false
-}: Props) {
-  function render_content() {
+}: Props): JSX.Element {
+  function render_content(): JSX.Element | string | undefined {
     if (full_name && full_name !== display) {
       return (
         <Tip tip={full_name} placement="bottom" title="Full name">
@@ -33,7 +33,7 @@ export function PathSegmentLink({
     }
   }
 
-  function style() {
+  function style(): React.CSSProperties{
     if (history) {
       return { color: "#c0c0c0" };
     } else if (active) {

@@ -171,7 +171,7 @@ export class ActionBar extends React.Component<Props, State> {
     }
   }
 
-  render_action_button(name): JSX.Element {
+  render_action_button(name: string): JSX.Element {
     const disabled =
       ["move", "compress", "rename", "delete", "share", "duplicate"].includes(
         name
@@ -195,7 +195,7 @@ export class ActionBar extends React.Component<Props, State> {
     );
   }
 
-  render_action_buttons() {
+  render_action_buttons(): JSX.Element | undefined {
     let action_buttons: (
       | "download"
       | "compress"

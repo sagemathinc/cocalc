@@ -39,7 +39,7 @@ export class NewButton extends React.Component<Props> {
     return false;
   }
 
-  file_dropdown_icon() {
+  file_dropdown_icon(): JSX.Element {
     return (
       <span style={{ whiteSpace: "nowrap" }}>
         <Icon name="plus-circle" /> New
@@ -47,7 +47,7 @@ export class NewButton extends React.Component<Props> {
     );
   }
 
-  file_dropdown_item(i: number, ext: string) {
+  file_dropdown_item(i: number, ext: string): JSX.Element {
     const { file_options } = require("./editor");
     const data = file_options("x." + ext);
     return (
@@ -59,7 +59,7 @@ export class NewButton extends React.Component<Props> {
     );
   }
 
-  choose_extension(ext: string) {
+  choose_extension(ext: string): void {
     if (this.props.file_search.length === 0) {
       // Tell state to render an error in file search
       this.props.actions.ask_filename(ext);
@@ -69,7 +69,7 @@ export class NewButton extends React.Component<Props> {
   }
 
   // Go to new file tab if no file is specified
-  on_create_button_clicked = () => {
+  on_create_button_clicked = (): void => {
     if (this.props.file_search.length === 0) {
       this.props.actions.toggle_new();
       analytics_event("project_file_listing", "search_create_button", "empty");
@@ -84,7 +84,7 @@ export class NewButton extends React.Component<Props> {
     }
   };
 
-  render() {
+  render(): JSX.Element {
     // console.log("ProjectFilesNew configuration", @props.configuration?.toJS())
     return (
       <SplitButton

@@ -56,7 +56,7 @@ export class SearchBar extends React.Component<Props, State> {
   }
 
   // Miniterm functionality
-  execute_command(command) {
+  execute_command(command: string): void {
     this.setState({
       stdout: "",
       error: ""
@@ -125,7 +125,7 @@ export class SearchBar extends React.Component<Props, State> {
     });
   }
 
-  render_help_info() {
+  render_help_info(): JSX.Element | undefined {
     if (
       this.props.file_search.length > 0 &&
       this.props.num_files_displayed > 0 &&
@@ -151,7 +151,7 @@ export class SearchBar extends React.Component<Props, State> {
     }
   }
 
-  render_file_creation_error() {
+  render_file_creation_error(): JSX.Element | undefined {
     if (this.props.file_creation_error) {
       return (
         <Alert
@@ -166,7 +166,7 @@ export class SearchBar extends React.Component<Props, State> {
   }
 
   // Miniterm functionality
-  render_output(x, style) {
+  render_output(x, style): JSX.Element | undefined {
     if (x) {
       return (
         <pre style={style}>
@@ -192,11 +192,11 @@ export class SearchBar extends React.Component<Props, State> {
     }
   }
 
-  dismiss_alert = () => {
+  dismiss_alert = (): void => {
     this.props.actions.setState({ file_creation_error: "" });
   }
 
-  search_submit = (value, opts): void => {
+  search_submit = (value: string, opts: {ctrl_down: boolean}): void => {
     if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
       const command = value.slice(1, value.length);
       this.execute_command(command);
@@ -241,7 +241,7 @@ export class SearchBar extends React.Component<Props, State> {
     }
   }
 
-  on_change = (search, _opts): void => {
+  on_change = (search: string): void => {
     this.props.actions.zero_selected_file_index();
     this.props.actions.set_file_search(search);
   }
@@ -251,7 +251,7 @@ export class SearchBar extends React.Component<Props, State> {
     this.setState({ input: "", stdout: "", error: "" });
   }
 
-  render() {
+  render(): JSX.Element {
     return (
       <span>
         <SearchInput
