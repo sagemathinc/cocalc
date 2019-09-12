@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Configuration } from "./Explorer";
+import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 import { Icon } from "../../r_misc";
 import { analytics_event } from "../../tracker";

@@ -1,1 +1,1 @@
-export { Explorer } from "./Explorer";
+export { Explorer } from "./explorer";
