@@ -36,7 +36,7 @@ interface State {
   select_entire_directory: "hidden" | "check" | "clear"; // hidden -> check -> clear
 }
 
-export class ProjectFilesActions extends React.Component<Props, State> {
+export class ActionBar extends React.Component<Props, State> {
   constructor(props) {
     super(props);
     this.state = { select_entire_directory: "hidden" };

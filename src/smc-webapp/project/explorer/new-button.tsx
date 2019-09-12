@@ -24,7 +24,7 @@ interface Props {
   disabled: boolean;
 }
 
-export class ProjectFilesNew extends React.Component<Props> {
+export class NewButton extends React.Component<Props> {
   static defaultProps = {
     file_search: ""
   };

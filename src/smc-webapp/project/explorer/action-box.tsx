@@ -1,18 +1,8 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import * as immutable from "immutable";
 
 import { rtypes, rclass } from "../../app-framework";
-import * as immutable from "immutable";
 import { DirectoryInput, Icon, Loading, LoginLink } from "../../r_misc";
 import { analytics_event } from "../../tracker";
 import { file_actions, ProjectActions } from "../../project_store";
@@ -28,25 +18,18 @@ const {
   Alert,
   Checkbox
 } = require("react-bootstrap");
-const account = require("../..account");
+const account = require("../../account");
 
 const ConfigureShare = require("../../share/config/config").Configure;
 
 // TODO: delete this when the combobox is in r_misc
 const Combobox = require("react-widgets/lib/Combobox");
 
+type FileAction = undefined | keyof typeof file_actions;
+
 interface ReactProps {
   checked_files: immutable.Set<string>;
-  file_action?:
-    | "compress"
-    | "delete"
-    | "rename"
-    | "duplicate"
-    | "move"
-    | "copy"
-    | "share"
-    | "download"
-    | "upload";
+  file_action: FileAction;
   current_path: string;
   project_id: string;
   public_view?: boolean;
@@ -59,7 +42,9 @@ interface ReactProps {
 interface ReduxProps {
   site_name?: string;
   get_user_type: () => string;
-  get_total_project_quotas: (project_id: string) => { network: boolean };
+  get_total_project_quotas: (
+    project_id: string
+  ) => { network: boolean } | undefined;
   get_project_select_list: (project_id: string) => any;
 }
 
@@ -74,27 +59,29 @@ interface State {
   delete_extra_files?: boolean;
 }
 
-export const ProjectFilesActionBox = rclass<ReactProps>(
-  class ProjectFilesActionBox extends React.Component<
+export const ActionBox = rclass<ReactProps>(
+  class ActionBox extends React.Component<
     ReactProps & ReduxProps,
     State
   > {
     private pre_styles: React.CSSProperties;
 
-    static reduxProps = {
-      projects: {
-        get_project_select_list: rtypes.func,
-        // get_total_project_quotas relys on this data
-        // Will be removed by #1084
-        project_map: rtypes.immutable.Map,
-        get_total_project_quotas: rtypes.func
-      },
-      account: {
-        get_user_type: rtypes.func
-      },
-      customize: {
-        site_name: rtypes.string
-      }
+    static reduxProps = () => {
+      return {
+        projects: {
+          get_project_select_list: rtypes.func,
+          // get_total_project_quotas relys on this data
+          // Will be removed by #1084
+          project_map: rtypes.immutable.Map,
+          get_total_project_quotas: rtypes.func
+        },
+        account: {
+          get_user_type: rtypes.func
+        },
+        customize: {
+          site_name: rtypes.string
+        }
+      };
     };
 
     constructor(props) {
@@ -122,32 +109,31 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
 
     cancel_action = () => {
       this.props.actions.set_file_action();
-    }
+    };
 
     action_key = (e: React.KeyboardEvent) => {
       switch (e.keyCode) {
         case 27:
-          return this.cancel_action();
+          this.cancel_action();
+          break;
         case 13:
           switch (this.props.file_action) {
             case "compress":
-              this.submit_action_compress();
-              return;
+              this.compress_click();
+              break;
             case "rename":
-              this.submit_action_rename();
-              return;
             case "duplicate":
-              this.submit_action_duplicate();
-              return;
+              this.submit_action_rename();
+              break;
             case "move":
               this.submit_action_move();
-              return;
+              break;
             case "copy":
               this.submit_action_copy();
-              return;
+              break;
           }
       }
-    }
+    };
 
     render_selected_files_list() {
       return (
@@ -170,7 +156,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       this.props.actions.set_all_files_unchecked();
       this.props.actions.set_file_action();
       analytics_event("project_file_listing", "compress item");
-    }
+    };
 
     render_compress = () => {
       const { size } = this.props.checked_files;
@@ -213,11 +199,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
           </Row>
         </div>
       );
-    }
-
-    submit_action_compress = () => {
-      this.compress_click();
-    }
+    };
 
     delete_click = () => {
       this.props.actions.delete_files({
@@ -226,8 +208,8 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
       this.props.actions.fetch_directory_listing();
-      return analytics_event("project_file_listing", "delete item");
-    }
+      analytics_event("project_file_listing", "delete item");
+    };
 
     render_delete_warning() {
       if (this.props.current_path === ".trash") {
@@ -262,7 +244,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
                 href=""
                 onClick={e => {
                   e.preventDefault();
-                  return this.props.actions.open_directory(".snapshots");
+                  this.props.actions.open_directory(".snapshots");
                 }}
               >
                 ~/.snapshots
@@ -317,7 +299,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
           break;
       }
       this.props.actions.set_file_action();
-      return this.props.actions.set_all_files_unchecked();
+      this.props.actions.set_all_files_unchecked();
     }
 
     render_rename_warning() {
@@ -358,7 +340,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
         (this.state.new_name as any).trim() !==
         misc.path_split(single_item).tail
       );
-    }
+    };
 
     render_rename_or_duplicate() {
       let action_title, first_heading;
@@ -421,26 +403,12 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       );
     }
 
-    render_rename() {
-      return this.render_rename_or_duplicate();
-    }
-
-    render_duplicate() {
-      return this.render_rename_or_duplicate();
-    }
-
     submit_action_rename = () => {
       const single_item = this.props.checked_files.first();
       if (this.valid_rename_input(single_item)) {
         this.rename_or_duplicate_click();
       }
-    }
-
-    // Make submit_action_duplicate an alias for submit_action_rename, due to how our
-    // dynamically generated function calls work.
-    submit_action_duplicate = () => {
-      return this.submit_action_rename();
-    }
+    };
 
     move_click = () => {
       this.props.actions.move_files({
@@ -452,7 +420,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
       analytics_event("project_file_listing", "move item");
-    }
+    };
 
     valid_move_input = () => {
       const src_path = misc.path_split(this.props.checked_files.first()).head;
@@ -467,7 +435,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
         dest = dest.slice(0, dest.length - 1);
       }
       return dest !== this.props.current_path;
-    }
+    };
 
     render_move() {
       const { size } = this.props.checked_files;
@@ -519,7 +487,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
     render_different_project_dialog() {
       if (this.state.show_different_project) {
         const data = this.props.get_project_select_list(this.props.project_id);
-        if (data == null) {
+        if (data == undefined) {
           return <Loading />;
         }
         return (
@@ -589,7 +557,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       const { delete_extra_files } = this.state;
       const paths = this.props.checked_files.toArray();
       if (
-        destination_project_id != null &&
+        destination_project_id != undefined &&
         this.props.project_id !== destination_project_id
       ) {
         this.props.actions.copy_paths_between_projects({
@@ -610,8 +578,8 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
         analytics_event("project_file_listing", "copy within a project");
       }
 
-      return this.props.actions.set_file_action();
-    }
+      this.props.actions.set_file_action();
+    };
 
     valid_copy_input() {
       const src_path = misc.path_split(this.props.checked_files.first()).head;
@@ -727,10 +695,13 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       // currently only works for a single selected file
       const path = this.props.checked_files.first();
       const public_data = this.props.file_map[misc.path_split(path).tail];
-      if (public_data == null) {
+      if (public_data == undefined) {
         // directory listing not loaded yet... (will get re-rendered when loaded)
         return <Loading />;
       }
+      const total_quotas = this.props.get_total_project_quotas(
+        this.props.project_id
+      ) || { network: undefined };
       return (
         <ConfigureShare
           project_id={this.props.project_id}
@@ -745,10 +716,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
           set_public_path={opts =>
             this.props.actions.set_public_path(path, opts)
           }
-          has_network_access={__guard__(
-            this.props.get_total_project_quotas(this.props.project_id),
-            x => x.network
-          )}
+          has_network_access={total_quotas.network}
         />
       );
     }
@@ -760,7 +728,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       });
       this.props.actions.set_file_action();
       analytics_event("project_file_listing", "download item");
-    }
+    };
 
     download_multiple_click = (): void => {
       const destination = (ReactDOM.findDOMNode(
@@ -779,16 +747,18 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
             path: dest,
             log: true
           });
-          return this.props.actions.fetch_directory_listing();
+          this.props.actions.fetch_directory_listing();
         }
       });
       this.props.actions.set_all_files_unchecked();
       this.props.actions.set_file_action();
       analytics_event("project_file_listing", "download item");
-    }
+    };
 
     render_download_single(single_item) {
-      const target = (this.props.actions.get_store() as any).get_raw_link(single_item);
+      const target = (this.props.actions.get_store() as any).get_raw_link(
+        single_item
+      );
       return (
         <div>
           <h4>Download link</h4>
@@ -826,13 +796,10 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
     render_download() {
       let download_multiple_files;
       const single_item = this.props.checked_files.first();
-      if (
-        this.props.checked_files.size !== 1 ||
-        __guard__(
-          this.props.file_map[misc.path_split(single_item).tail],
-          x => x.isdir
-        )
-      ) {
+      const listing_item = this.props.file_map[
+        misc.path_split(single_item).tail
+      ] || { isdir: undefined };
+      if (this.props.checked_files.size !== 1 || listing_item.isdir) {
         download_multiple_files = true;
       }
       return (
@@ -869,19 +836,35 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       );
     }
 
-    render_action_box(action) {
-      return typeof this[`render_${action}`] === "function"
-        ? this[`render_${action}`]()
-        : undefined; // calls the render_(action) function above for the given action
+    render_action_box(action: FileAction): JSX.Element | undefined {
+      switch(action) {
+        case "compress":
+          return this.render_compress();
+        case "copy":
+          return this.render_copy();
+        case "delete":
+          return this.render_delete();
+        case "download":
+          return this.render_download();
+        case "rename":
+        case "duplicate":
+          return this.render_rename_or_duplicate();
+        case "move":
+          return this.render_move();
+        case "share":
+          return this.render_share();
+        default:
+          return undefined
+      }
     }
 
     render() {
-      const action = this.props.file_action || "undefined";
-      const action_button = file_actions[action];
-      if (action_button == null) {
+      const action = this.props.file_action;
+      const action_button = file_actions[action || "undefined"];
+      if (action_button == undefined) {
         return <div>Undefined action</div>;
       }
-      if (this.props.file_map == null) {
+      if (this.props.file_map == undefined) {
         return <Loading />;
       } else {
         return (
@@ -893,7 +876,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
               >
                 <Icon
                   name={
-                    action_button.icon != null
+                    action_button.icon != undefined
                       ? action_button.icon
                       : "exclamation-circle"
                   }
@@ -908,9 +891,3 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
     }
   }
 );
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}

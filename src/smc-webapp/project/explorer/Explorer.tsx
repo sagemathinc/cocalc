@@ -20,11 +20,11 @@ import { FileListing } from "./file-listing";
 import { AskNewFilename } from "../ask-filename";
 import { MainConfiguration, Available } from "../../project_configuration";
 import { PathNavigator } from "./path-navigator";
-import { MiscSideButtons } from "./misc-side-button-bar";
-import { ProjectFilesActions } from "./project-files-actions";
-import { ProjectFilesActionBox } from "./project-files-action-box";
+import { MiscSideButtons } from "./misc-side-buttons";
+import { ActionBar } from "./action-bar";
+import { ActionBox } from "./action-box";
 import { SearchBar } from "./search-bar";
-import { ProjectFilesNew } from "./project-files-new";
+import { NewButton } from "./new-button";
 import { TypedMap } from "../../app-framework/TypedMap";
 import { ComputeImages } from "../../custom-software/init";
 import { ProjectMap, ProjectStatus } from "smc-webapp/todo-types";
@@ -320,7 +320,7 @@ export const Explorer = rclass<ReactProps>(
       }
       return (
         <Col sm={12}>
-          <ProjectFilesActionBox
+          <ActionBox
             file_action={this.props.file_action}
             checked_files={this.props.checked_files}
             current_path={this.props.current_path}
@@ -377,7 +377,7 @@ export const Explorer = rclass<ReactProps>(
 
     render_files_actions(listing, public_view, project_is_running) {
       return (
-        <ProjectFilesActions
+        <ActionBar
           project_id={this.props.project_id}
           checked_files={this.props.checked_files}
           page_number={this.props.page_number}
@@ -397,7 +397,7 @@ export const Explorer = rclass<ReactProps>(
 
     render_new_file() {
       return (
-        <ProjectFilesNew
+        <NewButton
           file_search={this.props.file_search}
           current_path={this.props.current_path}
           actions={this.props.actions}
