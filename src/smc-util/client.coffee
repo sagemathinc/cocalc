@@ -1983,6 +1983,7 @@ class exports.Connection extends EventEmitter
             standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
             cb      : undefined
+        console.log("QUERY ", JSON.stringify(opts.query))
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
