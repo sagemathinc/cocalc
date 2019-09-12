@@ -78,7 +78,7 @@ export class MiscSideButtons extends React.Component<Props> {
   }
 
   render_backup(): JSX.Element | undefined {
-    if (this.props.public_view || !require("./customize").commercial) {
+    if (this.props.public_view || !require("../../customize").commercial) {
       return;
     }
     // NOTE -- snapshots aren't available except in commercial version

@@ -1,5 +1,4 @@
-import { Component, React } from "../app-framework";
-import { Map } from "immutable";
+import * as React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
 //const misc = require("smc-util/misc");
@@ -52,7 +51,7 @@ interface Props {
   site_name?: string;
 }
 
-export class CustomSoftwareReset extends Component<Props, {}> {
+export class CustomSoftwareReset extends React.Component<Props, {}> {
   private props2img;
 
   constructor(props) {

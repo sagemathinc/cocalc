@@ -48,7 +48,7 @@ export class NewButton extends React.Component<Props> {
   }
 
   file_dropdown_item(i: number, ext: string): JSX.Element {
-    const { file_options } = require("./editor");
+    const { file_options } = require("../../editor");
     const data = file_options("x." + ext);
     return (
       <MenuItem eventKey={i} key={i} onClick={() => this.choose_extension(ext)}>

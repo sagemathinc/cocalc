@@ -4,11 +4,11 @@ import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
 import { ListingItem } from "./types";
+import { output_style_searchbox } from "./mini-terminal";
 const { webapp_client } = require("../../webapp_client");
 const feature = require("../../feature");
 const { Alert } = require("react-bootstrap");
 const misc = require("smc-util/misc");
-const { output_style_searchbox } = require("./project_miniterm");
 
 interface Props {
   project_id: string; // Added by miniterm functionality

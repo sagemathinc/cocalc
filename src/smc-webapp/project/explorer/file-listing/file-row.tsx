@@ -58,7 +58,7 @@ export class FileRow extends React.Component<Props, State> {
   render_icon() {
     // get the file_associations[ext] just like it is defined in the editor
     let name: string;
-    const { file_options } = require("../../editor");
+    const { file_options } = require("../../../editor");
     const info = file_options(this.props.name);
     if (info != undefined) {
       name = info.icon;
