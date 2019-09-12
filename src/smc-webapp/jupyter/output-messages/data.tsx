@@ -4,6 +4,7 @@ const { Markdown, HTML } = require("../../r_misc");
 import { JupyterActions } from "../browser-actions";
 import { Ansi, is_ansi } from "./ansi";
 import { Image } from "./image";
+import { Audio } from "./audio";
 import { IFrame } from "./iframe";
 import { Javascript } from "./javascript";
 import { UntrustedJavascript } from "./untrusted-javascript";

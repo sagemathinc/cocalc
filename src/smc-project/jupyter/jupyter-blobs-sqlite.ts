@@ -30,7 +30,14 @@ if (process.env.JUPYTER_BLOBS_DB_FILE) {
 }
 
 // TODO: are these the only base64 encoded types that jupyter kernels return?
-const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
+const BASE64_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "application/pdf",
+  "base64",
+  "audio/wav",
+  "audio/x-wav"
+];
 
 export class BlobStore implements BlobStoreInterface {
   private _db: Database;
