@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 import { Configuration } from "./Explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
@@ -30,11 +23,11 @@ export class NewButton extends React.Component<Props> {
   };
 
   new_file_button_types() {
-    if (this.props.configuration != null) {
+    if (this.props.configuration != undefined) {
       const { disabled_ext } = this.props.configuration.get("main", {
         disabled_ext: undefined
       });
-      if (disabled_ext != null) {
+      if (disabled_ext != undefined) {
         return ALL_FILE_BUTTON_TYPES.filter(ext => !disabled_ext.includes(ext));
       }
     }
@@ -54,15 +47,11 @@ export class NewButton extends React.Component<Props> {
     );
   }
 
-  file_dropdown_item(i, ext) {
+  file_dropdown_item(i: number, ext: string) {
     const { file_options } = require("./editor");
     const data = file_options("x." + ext);
     return (
-      <MenuItem
-        eventKey={i}
-        key={i}
-        onClick={() => this.choose_extension(ext)}
-      >
+      <MenuItem eventKey={i} key={i} onClick={() => this.choose_extension(ext)}>
         <Icon name={data.icon} />{" "}
         <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
         <span style={{ color: "#666" }}>(.{ext})</span>
@@ -73,9 +62,9 @@ export class NewButton extends React.Component<Props> {
   choose_extension(ext: string) {
     if (this.props.file_search.length === 0) {
       // Tell state to render an error in file search
-      return this.props.actions.ask_filename(ext);
+      this.props.actions.ask_filename(ext);
     } else {
-      return this.props.create_file(ext);
+      this.props.create_file(ext);
     }
   }
 
@@ -88,16 +77,12 @@ export class NewButton extends React.Component<Props> {
       this.props.file_search[this.props.file_search.length - 1] === "/"
     ) {
       this.props.create_folder();
-      return analytics_event(
-        "project_file_listing",
-        "search_create_button",
-        "folder"
-      );
+      analytics_event("project_file_listing", "search_create_button", "folder");
     } else {
       this.props.create_file();
       analytics_event("project_file_listing", "search_create_button", "file");
     }
-  }
+  };
 
   render() {
     // console.log("ProjectFilesNew configuration", @props.configuration?.toJS())
@@ -108,15 +93,9 @@ export class NewButton extends React.Component<Props> {
         onClick={this.on_create_button_clicked}
         disabled={this.props.disabled}
       >
-        {(() => {
-          const result: JSX.Element[] = [];
-          const object = this.new_file_button_types();
-          for (let i in object) {
-            const ext = object[i];
-            result.push(this.file_dropdown_item(i, ext));
-          }
-          return result;
-        })()}
+        {this.new_file_button_types().map((ext, index) => {
+          return this.file_dropdown_item(index, ext);
+        })}
         <MenuItem divider />
         <MenuItem
           eventKey="folder"
