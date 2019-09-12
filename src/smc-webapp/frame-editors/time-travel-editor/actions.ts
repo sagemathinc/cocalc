@@ -132,4 +132,9 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     }
     this.set_version(id, version);
   }
+
+  public async open_file(): Promise<void> {
+    const actions = this.redux.getProjectActions(this.project_id);
+    await actions.open_file({ path: this.docpath, foreground: true });
+  }
 }

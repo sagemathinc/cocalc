@@ -18,6 +18,7 @@ import { NavigationSlider } from "./navigation-slider";
 import { Version } from "./version";
 import { Author } from "./author";
 import { LoadFullHistory } from "./load-full-history";
+import { OpenFile } from "./open-file";
 
 interface Props {
   actions: TimeTravelActions;
@@ -129,6 +130,14 @@ class TimeTravel extends Component<Props> {
     );
   }
 
+  private render_open_file(): Rendered {
+    return (
+      <div>
+        <OpenFile actions={this.props.actions} />
+      </div>
+    );
+  }
+
   public render(): Rendered {
     if (this.props.loading) {
       return <Loading theme={"medium"} />;
@@ -140,6 +149,7 @@ class TimeTravel extends Component<Props> {
         {this.render_version()}
         {this.render_author()}
         {this.render_load_full_history()}
+        {this.render_open_file()}
         {this.render_document()}
         {this.render_diff()}
       </div>
