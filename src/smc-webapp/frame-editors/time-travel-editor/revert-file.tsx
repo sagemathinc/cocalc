@@ -3,6 +3,7 @@
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";
 import { TimeTravelActions } from "./actions";
+import { Icon } from "../../r_misc";
 
 interface Props {
   actions: TimeTravelActions;
@@ -20,7 +21,7 @@ export class RevertFile extends Component<Props> {
         }}
         disabled={this.props.version == null}
       >
-        Revert file to this
+        <Icon name="undo" /> Revert file to this
       </Button>
     );
   }

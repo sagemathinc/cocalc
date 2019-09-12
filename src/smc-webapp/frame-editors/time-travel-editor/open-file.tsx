@@ -3,6 +3,7 @@
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";
 import { TimeTravelActions } from "./actions";
+import { Icon } from "../../r_misc";
 
 interface Props {
   actions: TimeTravelActions;
@@ -10,9 +11,10 @@ interface Props {
 
 export class OpenFile extends Component<Props> {
   public render(): Rendered {
+    // TODO: make the icon be the way for the given type of file
     return (
       <Button onClick={() => this.props.actions.open_file()}>
-        Open File
+        <Icon name="file-code"/> Open File
       </Button>
     );
   }

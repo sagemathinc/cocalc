@@ -9,6 +9,7 @@ import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
+import { export_to_json } from "./export-to-json";
 
 const EXTENSION = ".time-travel";
 
@@ -147,5 +148,20 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     await this.open_file();
     if (this.syncdoc == null) return;
     this.syncdoc.emit("change");
+  }
+
+  public open_snapshots(): void {
+    this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
+  }
+
+  public async export(): Promise<string> {
+    const path = await export_to_json(
+      this.syncdoc,
+      this.docpath,
+      this.project_id
+    );
+    const actions = this.redux.getProjectActions(this.project_id);
+    await actions.open_file({ path, foreground: true });
+    return path;
   }
 }
