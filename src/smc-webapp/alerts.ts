@@ -24,7 +24,7 @@ const $ = window !== null ? (window as any).$ : undefined;
 
 import { redux } from "./app-framework";
 import { NAME_SYSTEM, NotificationsActions } from "./system_notifications";
-
+import { tuple } from "smc-util/misc2";
 import {
   defaults,
   hash_string,
@@ -34,7 +34,7 @@ import {
 
 const { webapp_client } = require("./webapp_client");
 
-const types = ["error", "default", "success", "info"];
+const types = tuple("error", "default", "success", "info");
 type Severity = typeof types[number];
 
 // used for system notifications
