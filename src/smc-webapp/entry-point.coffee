@@ -20,7 +20,7 @@ init_buttonbars()
 # Initialize server stats redux store
 require('./redux_server_stats')
 
-# Systemwide notifications that are broadcast to all users (or set by admins)
+# Systemwide notifications that are broadcast to all users (and set by admins)
 require('./system_notifications')
 
 require('./landing-actions')
@@ -34,8 +34,8 @@ require('./init_app')
 # Initialize the account store.
 require('./account')
 
-notifications = require('./notifications')
 if not fullscreen.COCALC_MINIMAL
+    notifications = require('./notifications')
     notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
@@ -58,7 +58,7 @@ else
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 
-# Should be loaded last -- this checks the url and opens up the relevant page, etc.
+# Should be loaded last
 require('./last')
 
 # adding a banner in case react crashes (it will be revealed)
