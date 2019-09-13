@@ -1,4 +1,7 @@
-// Default settings to customize a given site, typically a private install of SMC.
+// Default settings to customize a given site, typically a private install of CoCalc.
+
+import { DNS } from "smc-util/theme";
+
 export const site_settings_conf = {
   site_name: {
     name: "Site name",
@@ -56,5 +59,11 @@ export const site_settings_conf = {
     name: "Recommended version",
     desc: "Older clients receive an upgrade warning.",
     default: "0"
+  },
+  iframe_comm_hosts: {
+    name: "IFrame communication hosts",
+    desc:
+      "List of space-separated DNS names or suffixes (when starting with a dot), which are allowed to communicate back and forth with an embedded CoCalc instance",
+    default: `${DNS}`
   }
 };
