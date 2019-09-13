@@ -127,8 +127,6 @@ interface State {
 // add a shouldComponentUpdate!!
 export const Explorer = rclass<ReactProps>(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
-    private actions: any; // TODO: Don't do this
-
     static reduxProps = ({ name }) => {
       return {
         projects: {
@@ -190,7 +188,6 @@ export const Explorer = rclass<ReactProps>(
       page_number: 0,
       file_search: "",
       new_name: "",
-      actions: redux.getActions(name), // TODO: Do best practices way
       redux
     };
 
@@ -236,14 +233,14 @@ export const Explorer = rclass<ReactProps>(
 
     previous_page = () => {
       if (this.props.page_number > 0) {
-        this.actions(name).setState({
+        this.props.actions.setState({
           page_number: this.props.page_number - 1
         });
       }
     };
 
     next_page = () => {
-      this.actions(name).setState({
+      this.props.actions.setState({
         page_number: this.props.page_number + 1
       });
     };
@@ -268,7 +265,7 @@ export const Explorer = rclass<ReactProps>(
         ext = default_ext(disabled_ext);
       }
 
-      this.actions(name).create_file({
+      this.props.actions.create_file({
         name: file_search,
         ext,
         current_path: this.props.current_path,
@@ -347,7 +344,7 @@ export const Explorer = rclass<ReactProps>(
               <Library
                 project_id={this.props.project_id}
                 name={this.props.name}
-                actions={this.actions(name)}
+                actions={this.props.actions}
                 close={() => this.props.actions.toggle_library(false)}
               />
             </ProjectSettingsPanel>
@@ -366,7 +363,7 @@ export const Explorer = rclass<ReactProps>(
             <ProjectNewForm
               project_id={this.props.project_id}
               name={this.props.name}
-              actions={this.actions(name)}
+              actions={this.props.actions}
               close={() => this.props.actions.toggle_new(false)}
               show_header={true}
             />
@@ -595,8 +592,8 @@ export const Explorer = rclass<ReactProps>(
       }
     }
 
-    start_project = () => {
-      this.actions("projects").start_project(this.props.project_id);
+    on_click_start_project = () => {
+      this.props.start_project(this.props.project_id);
     };
 
     render_start_project_button(project_state?: ProjectStatus) {
@@ -607,7 +604,7 @@ export const Explorer = rclass<ReactProps>(
           disabled={!enabled}
           bsStyle="primary"
           bsSize="large"
-          onClick={this.start_project}
+          onClick={this.on_click_start_project}
         >
           <Icon name="flash" /> Start Project
         </Button>
