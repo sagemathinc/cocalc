@@ -12,6 +12,12 @@ interface Props {
 }
 
 export class ChangesMode extends Component<Props> {
+  private toggle(): void {
+    this.props.actions.set_changes_mode(
+      this.props.id,
+      !this.props.changes_mode
+    );
+  }
   public render(): Rendered {
     return (
       <Checkbox
@@ -19,12 +25,7 @@ export class ChangesMode extends Component<Props> {
         title={
           "Toggle whether or not to show the changes from one point in time to another"
         }
-        onClick={() =>
-          this.props.actions.set_changes_mode(
-            this.props.id,
-            !this.props.changes_mode
-          )
-        }
+        onChange={this.toggle.bind(this)}
         checked={this.props.disabled ? false : this.props.changes_mode}
       >
         Changes

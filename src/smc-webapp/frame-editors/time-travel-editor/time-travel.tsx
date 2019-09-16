@@ -102,10 +102,12 @@ class TimeTravel extends Component<Props> {
   private render_document(): Rendered {
     const doc = this.get_doc();
     if (doc == null) return;
+    if (this.props.desc == null || this.props.desc.get("changes_mode")) return;
     return <Document doc={doc} path={this.props.path} />;
   }
 
   private render_diff(): Rendered {
+    if (this.props.desc == null || !this.props.desc.get("changes_mode")) return;
     const version0 = this.props.desc.get("version0");
     const version1 = this.props.desc.get("version1");
     return <Diff doc0={version0} doc1={version1} path={this.props.path} />;
