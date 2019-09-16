@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "target": "es5",
+    "sourceMap": true,
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "downlevelIteration": true,
+    "outDir": "build"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "./data",
+    "node_modules",
+    "build"
+  ],
+  "typeRoots": [
+    "node_modules/@types",
+    "node_modules/types" //it's for chalk
+  ]
+}
