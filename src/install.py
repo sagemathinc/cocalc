@@ -59,7 +59,7 @@ def install_project():
         cmd(SUDO + c)
 
     # npm ci for using pkg lock file
-    pkgs = ['./smc-util ./smc-util-node ./smc-project ./smc-webapp']
+    pkgs = ['./smc-util', './smc-util-node', './smc-project', './smc-webapp']
 
     def build_op(pkg):
         c = f"npm --loglevel=warn --unsafe-perm=true --progress=false ci {pkg} -g"
