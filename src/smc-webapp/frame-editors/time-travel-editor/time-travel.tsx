@@ -20,6 +20,7 @@ import { Author } from "./author";
 import { LoadFullHistory } from "./load-full-history";
 import { OpenFile } from "./open-file";
 import { RevertFile } from "./revert-file";
+import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
 
@@ -157,6 +158,20 @@ class TimeTravel extends Component<Props> {
     );
   }
 
+  private render_changes_mode(): Rendered {
+    return (
+      <div>
+        <ChangesMode
+          id={this.props.id}
+          actions={this.props.actions}
+          changes_mode={
+            this.props.desc != null &&
+            this.props.desc.get("changes_mode", false)
+          }
+        />
+      </div>
+    );
+  }
   private render_export(): Rendered {
     return (
       <div>
@@ -180,6 +195,7 @@ class TimeTravel extends Component<Props> {
         {this.render_open_snapshots()}
         {this.render_revert_file()}
         {this.render_export()}
+        {this.render_changes_mode()}
         {this.render_document()}
         {this.render_diff()}
       </div>

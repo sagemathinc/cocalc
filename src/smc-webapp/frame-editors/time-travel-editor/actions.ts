@@ -135,6 +135,14 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     this.set_version(id, version);
   }
 
+  set_changes_mode(id: string, changes_mode: boolean): void {
+    if (this._get_frame_node(id) == null) {
+      throw Error(`no frame with id ${id}`);
+    }
+    changes_mode = !!changes_mode;
+    this.set_frame_tree({ id, changes_mode });
+  }
+
   public async open_file(): Promise<void> {
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path: this.docpath, foreground: true });
