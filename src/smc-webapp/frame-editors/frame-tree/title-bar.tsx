@@ -1096,7 +1096,7 @@ export class FrameTitleBar extends Component<Props, State> {
     return (
       <EditorFileInfoDropdown
         key={"info"}
-        title={"File` related actions"}
+        title={"File related actions"}
         filename={this.props.path}
         actions={redux.getProjectActions(this.props.project_id)}
         is_public={false}
