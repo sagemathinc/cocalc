@@ -7,6 +7,7 @@ import { TimeTravelActions } from "./actions";
 interface Props {
   id: string;
   actions: TimeTravelActions;
+  disabled: boolean;
   changes_mode: boolean; // whether or not in changes mode.
 }
 
@@ -14,6 +15,7 @@ export class ChangesMode extends Component<Props> {
   public render(): Rendered {
     return (
       <Checkbox
+        disabled={this.props.disabled}
         title={
           "Toggle whether or not to show the changes from one point in time to another"
         }
@@ -23,7 +25,7 @@ export class ChangesMode extends Component<Props> {
             !this.props.changes_mode
           )
         }
-        checked={this.props.changes_mode}
+        checked={this.props.disabled ? false : this.props.changes_mode}
       >
         Changes
       </Checkbox>

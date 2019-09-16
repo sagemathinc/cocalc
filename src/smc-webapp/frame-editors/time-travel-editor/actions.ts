@@ -34,6 +34,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       has_full_history: false
     });
     this.init_syncdoc();
+    this.init_frame_tree();
   }
 
   public _raw_default_frame_tree(): FrameTree {
@@ -54,6 +55,10 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       loading: false,
       has_full_history: this.syncdoc.has_full_history()
     });
+  }
+
+  private init_frame_tree(): void {
+    console.log("init_frame_tree"); // make sure all the version and version ranges are valid...
   }
 
   public async load_full_history(): Promise<void> {
@@ -97,7 +102,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     }
   }
 
-  set_version(id: string, version: number): void {
+  public set_version(id: string, version: number): void {
     if (this._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
@@ -115,7 +120,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     this.set_frame_tree({ id, version });
   }
 
-  step(id: string, delta: number): void {
+  public step(id: string, delta: number): void {
     const node = this._get_frame_node(id);
     if (node == null) {
       throw Error(`no frame with id ${id}`);
@@ -135,12 +140,39 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     this.set_version(id, version);
   }
 
-  set_changes_mode(id: string, changes_mode: boolean): void {
-    if (this._get_frame_node(id) == null) {
+  public set_changes_mode(id: string, changes_mode: boolean): void {
+    const node = this._get_frame_node(id);
+    if (node == null) {
       throw Error(`no frame with id ${id}`);
     }
     changes_mode = !!changes_mode;
     this.set_frame_tree({ id, changes_mode });
+    if (
+      changes_mode &&
+      (node.get("version0") == null || node.get("version1") == null)
+    ) {
+      let version1 = node.get("version");
+      if (version1 == null) {
+        const versions = this.store.get("versions");
+        version1 = versions.size - 1;
+      }
+      let version0 = version1 - 1;
+      if (version0 < 0) {
+        version0 += 1;
+        version1 += 1;
+      }
+      this.set_frame_tree({ id, version0, version1 });
+    }
+  }
+
+  public set_versions(id: string, version0: number, version1: number): void {
+    if (this._get_frame_node(id) == null) {
+      throw Error(`no frame with id ${id}`);
+    }
+    if (version0 == version1) {
+      return;
+    }
+    this.set_frame_tree({ id, version0, version1 });
   }
 
   public async open_file(): Promise<void> {

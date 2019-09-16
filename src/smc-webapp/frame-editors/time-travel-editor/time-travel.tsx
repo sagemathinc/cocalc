@@ -15,7 +15,8 @@ import { Document } from "./document";
 import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
-import { Version } from "./version";
+import { RangeSlider } from "./range-slider";
+import { Version, VersionRange } from "./version";
 import { Author } from "./author";
 import { LoadFullHistory } from "./load-full-history";
 import { OpenFile } from "./open-file";
@@ -67,16 +68,29 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_version(): Rendered {
-    const date = this.get_version();
-    const version = this.props.desc.get("version");
-    if (date == null || version == null) return;
-    return (
-      <Version
-        date={date}
-        number={version + 1}
-        max={this.props.versions.size}
-      />
-    );
+    if (this.props.desc == null || this.props.versions == null) return;
+    if (this.props.desc.get("changes_mode")) {
+      const version0 = this.props.desc.get("version0");
+      const version1 = this.props.desc.get("version1");
+      return (
+        <VersionRange
+          version0={version0}
+          version1={version1}
+          max={this.props.versions.size}
+        />
+      );
+    } else {
+      const date = this.get_version();
+      const version = this.props.desc.get("version");
+      if (date == null || version == null) return;
+      return (
+        <Version
+          date={date}
+          number={version + 1}
+          max={this.props.versions.size}
+        />
+      );
+    }
   }
 
   private get_doc(): any {
@@ -92,7 +106,9 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_diff(): Rendered {
-    return <Diff doc1={0} doc2={1} path={this.props.path} />;
+    const version0 = this.props.desc.get("version0");
+    const version1 = this.props.desc.get("version1");
+    return <Diff doc0={version0} doc1={version1} path={this.props.path} />;
   }
 
   private render_navigation_buttons(): Rendered {
@@ -108,13 +124,37 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_navigation_slider(): Rendered {
-    if (this.props.desc == null || this.props.versions == null) return;
+    if (
+      this.props.desc == null ||
+      this.props.versions == null ||
+      this.props.desc.get("changes_mode")
+    )
+      return;
     return (
       <NavigationSlider
         id={this.props.id}
         actions={this.props.actions}
         version={this.props.desc.get("version")}
         max={this.props.versions.size - 1}
+      />
+    );
+  }
+
+  private render_range_slider(): Rendered {
+    if (
+      this.props.desc == null ||
+      this.props.versions == null ||
+      !this.props.desc.get("changes_mode")
+    )
+      return;
+    return (
+      <RangeSlider
+        id={this.props.id}
+        actions={this.props.actions}
+        max={this.props.versions.size - 1}
+        versions={this.props.versions}
+        version0={this.props.desc.get("version0")}
+        version1={this.props.desc.get("version1")}
       />
     );
   }
@@ -164,6 +204,7 @@ class TimeTravel extends Component<Props> {
         <ChangesMode
           id={this.props.id}
           actions={this.props.actions}
+          disabled={this.props.versions.size <= 1}
           changes_mode={
             this.props.desc != null &&
             this.props.desc.get("changes_mode", false)
@@ -188,6 +229,7 @@ class TimeTravel extends Component<Props> {
       <div className="smc-vfill">
         {this.render_navigation_buttons()}
         {this.render_navigation_slider()}
+        {this.render_range_slider()}
         {this.render_version()}
         {this.render_author()}
         {this.render_load_full_history()}

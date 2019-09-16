@@ -12,7 +12,7 @@ interface Props {
 export class Version extends Component<Props> {
   private render_time(): Rendered {
     return (
-      <span style={{ fontWeight: "bold", fontSize: "12pt", color:'#666'}}>
+      <span style={{ fontWeight: "bold", fontSize: "12pt", color: "#666" }}>
         <TimeAgo date={this.props.date} />
       </span>
     );
@@ -29,6 +29,23 @@ export class Version extends Component<Props> {
     return (
       <span>
         {this.render_time()}, {this.render_number()}
+      </span>
+    );
+  }
+}
+
+interface RangeProps {
+  version0: number;
+  version1: number;
+  max: number;
+}
+
+export class VersionRange extends Component<RangeProps> {
+  public render(): Rendered {
+    return (
+      <span>
+        Versions {this.props.version0+1} to {this.props.version1+1} (of{" "}
+        {this.props.max})
       </span>
     );
   }
