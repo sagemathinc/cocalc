@@ -9,6 +9,7 @@ import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
+import { export_to_json } from "./export-to-json";
 
 const EXTENSION = ".time-travel";
 
@@ -59,11 +60,12 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this.store.get("has_full_history") || this.syncdoc == null) return;
     await this.syncdoc.load_full_history(); // todo -- error reporting ...?
     this.setState({ has_full_history: true });
+    this.syncdoc_changed(); // load new versions list.
   }
 
   private syncdoc_changed(): void {
     if (this.syncdoc == null) return;
-    const versions = List<Date>(this.syncdoc.versions());
+    const versions = List<Date>(this.syncdoc.all_versions());
     this.ensure_versions_are_stable(versions);
     this.setState({ versions });
   }
@@ -131,5 +133,35 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       version += versions.size;
     }
     this.set_version(id, version);
+  }
+
+  public async open_file(): Promise<void> {
+    const actions = this.redux.getProjectActions(this.project_id);
+    await actions.open_file({ path: this.docpath, foreground: true });
+  }
+
+  // Revert the live version of the document to a specific version */
+  public async revert(version: Date): Promise<void> {
+    if (this.syncdoc == null) return;
+    this.syncdoc.revert(version);
+    this.syncdoc.commit();
+    await this.open_file();
+    if (this.syncdoc == null) return;
+    this.syncdoc.emit("change");
+  }
+
+  public open_snapshots(): void {
+    this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
+  }
+
+  public async export(): Promise<string> {
+    const path = await export_to_json(
+      this.syncdoc,
+      this.docpath,
+      this.project_id
+    );
+    const actions = this.redux.getProjectActions(this.project_id);
+    await actions.open_file({ path, foreground: true });
+    return path;
   }
 }

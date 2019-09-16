@@ -1,4 +1,4 @@
-/* Show a revision version, both with a number and the time. */
+/* Open file that we are viewing the history of. */
 
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";
@@ -9,11 +9,12 @@ interface Props {
   actions: TimeTravelActions;
 }
 
-export class LoadFullHistory extends Component<Props> {
+export class OpenFile extends Component<Props> {
   public render(): Rendered {
+    // TODO: make the icon be the way for the given type of file
     return (
-      <Button onClick={() => this.props.actions.load_full_history()}>
-        <Icon name="floppy-o"/> Load Full History
+      <Button onClick={() => this.props.actions.open_file()}>
+        <Icon name="file-code"/> Open File
       </Button>
     );
   }

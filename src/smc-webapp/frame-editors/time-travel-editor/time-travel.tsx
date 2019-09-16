@@ -18,6 +18,10 @@ import { NavigationSlider } from "./navigation-slider";
 import { Version } from "./version";
 import { Author } from "./author";
 import { LoadFullHistory } from "./load-full-history";
+import { OpenFile } from "./open-file";
+import { RevertFile } from "./revert-file";
+import { OpenSnapshots } from "./open-snapshots";
+import { Export } from "./export";
 
 interface Props {
   actions: TimeTravelActions;
@@ -129,6 +133,38 @@ class TimeTravel extends Component<Props> {
     );
   }
 
+  private render_open_file(): Rendered {
+    return (
+      <div>
+        <OpenFile actions={this.props.actions} />
+      </div>
+    );
+  }
+
+  private render_open_snapshots(): Rendered {
+    return (
+      <div>
+        <OpenSnapshots actions={this.props.actions} />
+      </div>
+    );
+  }
+
+  private render_revert_file(): Rendered {
+    return (
+      <div>
+        <RevertFile actions={this.props.actions} version={this.get_version()} />
+      </div>
+    );
+  }
+
+  private render_export(): Rendered {
+    return (
+      <div>
+        <Export actions={this.props.actions} />
+      </div>
+    );
+  }
+
   public render(): Rendered {
     if (this.props.loading) {
       return <Loading theme={"medium"} />;
@@ -140,6 +176,10 @@ class TimeTravel extends Component<Props> {
         {this.render_version()}
         {this.render_author()}
         {this.render_load_full_history()}
+        {this.render_open_file()}
+        {this.render_open_snapshots()}
+        {this.render_revert_file()}
+        {this.render_export()}
         {this.render_document()}
         {this.render_diff()}
       </div>

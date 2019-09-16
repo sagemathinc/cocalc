@@ -1,4 +1,7 @@
-/* Show a revision version, both with a number and the time. */
+/* Export history to json.
+
+- This is really just some minimal data *about* the history for now.
+*/
 
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";
@@ -9,11 +12,11 @@ interface Props {
   actions: TimeTravelActions;
 }
 
-export class LoadFullHistory extends Component<Props> {
+export class Export extends Component<Props> {
   public render(): Rendered {
     return (
-      <Button onClick={() => this.props.actions.load_full_history()}>
-        <Icon name="floppy-o"/> Load Full History
+      <Button onClick={() => this.props.actions.export()}>
+        <Icon name={"file-export"} /> Export
       </Button>
     );
   }
