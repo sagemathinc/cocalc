@@ -937,7 +937,14 @@ require('./process-links')
 # synchronized with the server.
 class ProjectsTable extends Table
     query: ->
-        return 'projects'
+        project_id = redux.getStore('page').get('kiosk_project_id')
+        if project_id?
+            # In kiosk mode we load only the relevant project.
+            query = require('smc-util/sync/table/util').parse_query('projects_all')
+            query.projects_all[0].project_id = project_id
+            return query
+        else
+            return 'projects'
 
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
@@ -945,8 +952,11 @@ class ProjectsTable extends Table
 class ProjectsAllTable extends Table
     query: ->
         return 'projects_all'
+
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
+
+
 
 # We define functions below that load all projects or just the recent
 # ones.  First we try loading the recent ones.  If this is *empty*,

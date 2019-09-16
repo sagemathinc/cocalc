@@ -513,6 +513,7 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
+                @_signed_in_time = new Date().valueOf()
                 misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
                 #console.log("signed_in", mesg)
@@ -1997,7 +1998,21 @@ class exports.Connection extends EventEmitter
                 standby : opts.standby
                 cb      : (err, resp) =>
                     if err == 'not signed in'
-                        @_set_signed_out()
+                        if new Date().valueOf() - @_signed_in_time >= 60000
+                            # If you did NOT recently sign in, and you're
+                            # getting this error, we sign you out.  Right
+                            # when you first sign in, you might get this
+                            # error because the cookie hasn't been set
+                            # in your browser yet and you're doing a POST
+                            # request to do a query thinking you are fully
+                            # signed in.  The root cause
+                            # of this is that it's tricky for both the frontend
+                            # and the backend
+                            # to know when the REMEMBER_ME cookie has finished
+                            # being set in the browser since it is not
+                            # visible to Javascript.
+                            # See https://github.com/sagemathinc/cocalc/issues/2204
+                            @_set_signed_out()
                         opts.cb?(err, resp)
                         return
                     if not err or not opts.standby
