@@ -6,7 +6,7 @@ writes changes as usual, but does not use a changefeed
 at all.   Instead changes are injected by calling
 a function.
 
-This is used by a backend project for implementing a version
+This is used, e.g., by a backend project for implementing a version
 of SyncTable, where the project itself handles all changes,
 not the database or hubs.   However, data is still persisted
 to the central database.
