@@ -71,6 +71,7 @@ export async function handle_path_request(opts: {
   let { token } = req.query;
 
   if (
+    viewer != null &&
     viewer != "share" &&
     viewer != "embed" &&
     viewer != "raw" &&
