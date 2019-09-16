@@ -67,7 +67,8 @@ const TITLE_STYLE: CSS.Properties = {
   /*  float: "right", */
   whiteSpace: "nowrap",
   flex: "1 1 auto",
-  textAlign: "right"
+  textAlign: "right",
+  display: "inline-block"
 };
 
 const CONNECTION_STATUS_STYLE: CSS.Properties = {
@@ -1254,11 +1255,11 @@ export class FrameTitleBar extends Component<Props, State> {
       : TITLE_STYLE;
 
     return (
-      <span style={style}>
+      <div style={style}>
         {icon ? <Icon name={icon} /> : null}
         <Space />
         {trunc_middle(title, 25)}
-      </span>
+      </div>
     );
   }
 
