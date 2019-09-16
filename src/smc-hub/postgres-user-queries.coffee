@@ -275,8 +275,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return k
         return false
 
-    _user_get_query_columns: (query) =>
-        return misc.keys(query)
+    _user_get_query_columns: (query, remove_from_query) =>
+        v = misc.keys(query)
+        if remove_from_query?
+            # If remove_from_query is specified it should be an array of strings
+            # and we do not includes these in what is returned.
+            v = underscore.difference(v, remove_from_query)
+        return v
 
     _require_is_admin: (account_id, cb) =>
         if not account_id?
@@ -1111,6 +1116,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         where = {}
         for field, val of user_query
             if val?
+                if client_query.get.remove_from_query? and client_query.get.remove_from_query.includes(field)
+                    # do not include any field that explicitly excluded from the query
+                    continue
                 if @_query_is_cmp(val)
                     # A comparison, e.g.,
                     # field :
@@ -1169,11 +1177,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 cb(undefined, x)
         @_query(query_opts)
 
-    _user_get_query_query: (delete_option, table, user_query) =>
+    _user_get_query_query: (delete_option, table, user_query, remove_from_query) =>
         if delete_option
             return "DELETE FROM #{table}"
         else
-            return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query)).join(',')} FROM #{table}"
+            return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query, remove_from_query)).join(',')} FROM #{table}"
 
     _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
         #dbg = @_dbg("_user_get_query_satisfied_by_obj)
@@ -1463,7 +1471,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     _query_opts.where = where
                     cb(err)
             (cb) =>
-                _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
+                _query_opts.query = @_user_get_query_query(delete_option, table, opts.query, client_query.get.remove_from_query)
                 x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.options)
                 if x.err
                     dbg("error in get_query_options, #{x.err}")

@@ -138,11 +138,6 @@ export class FileUseActions<T = FileUseState> extends Actions<
       setTimeout(() => delete this._mark_file_lock[key], ttl);
     }
 
-    const table = this.redux.getTable("file_use");
-    if (table == null) {
-      throw Error("table must be defined");
-    }
-
     if (timestamp == null) {
       timestamp = webapp_client.server_time();
     } else {
