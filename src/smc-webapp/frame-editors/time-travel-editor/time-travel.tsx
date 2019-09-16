@@ -115,11 +115,20 @@ class TimeTravel extends Component<Props> {
 
   private render_navigation_buttons(): Rendered {
     if (this.props.desc == null || this.props.versions == null) return;
+    let version0: number, version1: number;
+    if (this.props.desc.get("changes_mode")) {
+      version0 = this.props.desc.get("version0");
+      version1 = this.props.desc.get("version1");
+    } else {
+      version0 = version1 = this.props.desc.get("version");
+    }
+    if (version0 == null || version1 == null) return;
     return (
       <NavigationButtons
         id={this.props.id}
         actions={this.props.actions}
-        version={this.props.desc.get("version")}
+        version0={version0}
+        version1={version1}
         max={this.props.versions.size - 1}
       />
     );

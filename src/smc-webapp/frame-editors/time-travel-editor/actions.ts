@@ -125,6 +125,14 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (node == null) {
       throw Error(`no frame with id ${id}`);
     }
+    if (node.get("changes_mode")) {
+      this.set_versions(
+        id,
+        node.get("version0") + delta,
+        node.get("version1") + delta
+      );
+      return;
+    }
     const versions = this.store.get("versions");
     if (versions == null || versions.size == 0) return;
     let version = node.get("version");
@@ -169,9 +177,14 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (this._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
-    if (version0 == version1) {
-      return;
+    const versions = this.store.get("versions");
+    if (version0 >= version1) {
+      version0 = version1 - 1;
     }
+    if (version0 >= versions.size) version0 = versions.size - 1;
+    if (version0 < 0) version0 = 0;
+    if (version1 >= versions.size) version1 = versions.size - 1;
+    if (version1 < 0) version1 = 0;
     this.set_frame_tree({ id, version0, version1 });
   }
 
