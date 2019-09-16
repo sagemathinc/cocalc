@@ -21,23 +21,9 @@
 // }
 
 // to do:
-// ✓ command line options for test creds, non-headless operation
-// ✓ run in more environments
-//   ✓ client laptop as well as cc project
-//   ✓ target UW and pixelbook as well as cocalc.com & test.cocalc.com
-// - add test for jupyter widgets
-// - wrap in jest
-// - add test to get api key
-// - write in typescript
+// - write in typescript?
 // - host on gce
 // - deal gracefully with test project that is stopped/archived
-
-// what it does:
-// - sign into instance with email and password
-// - open test project
-// - open test .tex file
-// - check that word count button in upper left frame works
-// - logs each step that passes to js console
 
 // works with:
 // - cocalc.com
@@ -45,9 +31,8 @@
 // - docker containers
 //   - UW regular cocalc
 //   - UW no-agpl cocalc
-//   - pixelbook cocalc†
-//   - pixelbook no-agpl cocalc†
-// † - TO DO
+//   - pixelbook cocalc
+//   - pixelbook no-agpl cocalc
 
 const HEADLESS = true;
 
@@ -96,12 +81,13 @@ async function run() {
       })
     }
 
-
     const CREDS = require(creds);
 
     //const context = await browser.createIncognitoBrowserContext();
     //const page = await context.newPage();
     const page = (await browser.pages())[0];
+    const version = await page.browser().version();
+    console.log('version', version);
     await page.setDefaultTimeout(60000);
     // await page.setViewport({ width: 1024, height: 768});
 
@@ -148,10 +134,6 @@ async function run() {
     await page.click(sel);
     console.log('clicked test project line');
 
-    const spath = 'cocalc.png';
-    await page.screenshot({ path: spath});
-    console.log(`screenshot saved to ${spath}`);
-
     xpt = '//button[text()="Check All"]';
     await page.waitForXPath(xpt);
     console.log('got check all');
@@ -183,6 +165,10 @@ async function run() {
     await page.waitForSelector(sel);
     await page.click(sel);
     console.log('clicked latex dropdown');
+
+    const spath = 'cocalc.png';
+    await page.screenshot({ path: spath});
+    console.log(`screenshot saved to ${spath}`);
 
     sel = '*[cocalc-test="word_count"]';
     await page.click(sel);

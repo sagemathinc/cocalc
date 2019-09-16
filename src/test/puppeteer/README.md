@@ -7,7 +7,7 @@
 Typical test run. Can be used with cc-in-cc as well as independent instances cocalc.com, test.cocalc.com, and Docker images.
 
 ```
-### start cc-in-cc instance in this project
+### start cc-in-cc instance in this project before the following
 cd ~/cocalc/src/test/puppeteer
 node index.js -c ~/CCTEST/creds-staging-dev.js
 node widget.js -c ~/CCTEST/creds-staging-dev.js
