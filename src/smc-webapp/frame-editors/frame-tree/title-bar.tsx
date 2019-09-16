@@ -45,10 +45,10 @@ const title_bar_style: CSS.Properties = {
   background: COL_BAR_BACKGROUND_DARK,
   border: `1px solid ${COL_BAR_BORDER}`,
   padding: "1px",
-  display: "flex",
   flexDirection: "row",
   flexWrap: "nowrap",
-  flex: "0 0 auto"
+  flex: "0 0 auto",
+  display: "flex"
 };
 
 const path_style: CSS.Properties = {
@@ -1183,10 +1183,11 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_main_buttons(): Rendered {
     // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
-    // and *ALSO* have buttons that vanish when there are many of them (via scrolling around).
+    // and *ALSO* have buttons that vanish when there are many of them.
     const style: CSS.Properties = {
       flex: "1 1 auto" /* controls shrink to the right due to 0 0 auto*/,
-      flexFlow: "row wrap"
+      flexFlow: "row nowrap",
+      display: "flex"
     };
     return (
       <div style={style}>
@@ -1196,8 +1197,7 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  render_connection_status(is_active: boolean): Rendered {
-    if (!this.props.connection_status) return null;
+  render_connection_status(is_active: boolean): Rendered | undefined {
     if (
       !this.props.connection_status ||
       !this.is_visible("connection_status", true)
@@ -1344,7 +1344,9 @@ export class FrameTitleBar extends Component<Props, State> {
         >
           {is_active ? this.render_main_buttons() : undefined}
           {this.props.title ? this.render_title(is_active) : undefined}
-          {!is_active && !this.props.title ? this.render_title() : undefined}
+          {!is_active && !this.props.title
+            ? this.render_title(is_active)
+            : undefined}
           {this.render_connection_status(is_active)}
           {this.render_control()}
         </div>
