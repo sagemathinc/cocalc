@@ -4,7 +4,7 @@ TimeTravel Frame Editor Actions
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { callback2, once } from "smc-util/async-utils";
-import { filename_extension } from "smc-util/misc2";
+import { filename_extension, keys } from "smc-util/misc2";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
 import { Actions, CodeEditorState } from "../code-editor/actions";
@@ -92,14 +92,23 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     return this.syncdoc.version(version);
   }
 
-  public get_account_id(version: Date): string | undefined {
-    if (this.syncdoc == null) return;
-    try {
-      return this.syncdoc.account_id(version);
-    } catch (err) {
-      // fails if version is not actually known.
-      return;
+  public get_account_ids(version0: number, version1: number): string[] {
+    if (this.syncdoc == null) return [];
+    const versions = this.store.get("versions");
+    if (versions == null || versions.size == 0) return [];
+    const account_ids: { [account_id: string]: boolean } = {};
+    for (let version = version0; version <= version1; version++) {
+      const date = versions.get(version);
+      if (date == null) continue;
+      try {
+        account_ids[this.syncdoc.account_id(date)] = true;
+      } catch (err) {
+        // fails if version is not actually known.
+        continue;
+      }
     }
+    console.log("get_account_ids", version0, version1, account_ids);
+    return keys(account_ids);
   }
 
   public set_version(id: string, version: number): void {

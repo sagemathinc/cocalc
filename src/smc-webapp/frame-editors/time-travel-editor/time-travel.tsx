@@ -17,7 +17,7 @@ import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
 import { RangeSlider } from "./range-slider";
 import { Version, VersionRange } from "./version";
-import { Author } from "./author";
+import { Authors } from "./authors";
 import { LoadFullHistory } from "./load-full-history";
 import { OpenFile } from "./open-file";
 import { RevertFile } from "./revert-file";
@@ -173,7 +173,22 @@ class TimeTravel extends Component<Props> {
   private render_author(): Rendered {
     const version = this.get_version();
     if (version == null) return;
-    return <Author actions={this.props.actions} version={version} />;
+    if (this.props.desc == null) return;
+    let version0: number, version1: number;
+    if (this.props.desc.get("changes_mode")) {
+      version0 = this.props.desc.get("version0");
+      version1 = this.props.desc.get("version1");
+    } else {
+      version0 = version1 = this.props.desc.get("version");
+    }
+    if (version0 == null || version1 == null) return;
+    return (
+      <Authors
+        actions={this.props.actions}
+        version0={version0}
+        version1={version1}
+      />
+    );
   }
 
   private render_load_full_history(): Rendered {
