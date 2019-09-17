@@ -228,7 +228,7 @@ SagePreview = rclass
             </Well>
         </div>
 
-Connecting = () ->
+exports.Connecting = Connecting = () ->
     <React.Fragment>
         <div style={fontSize : "25px", marginTop: "75px", textAlign: "center", color: COLORS.GRAY}>
             <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
