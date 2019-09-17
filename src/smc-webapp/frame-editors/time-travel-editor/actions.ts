@@ -24,6 +24,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   private docpath: string;
   private docext: string;
   private syncdoc?: SyncDoc;
+  private first_load: boolean = true;
 
   public _init2(): void {
     this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
@@ -34,7 +35,6 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       has_full_history: false
     });
     this.init_syncdoc();
-    this.init_frame_tree();
   }
 
   public _raw_default_frame_tree(): FrameTree {
@@ -58,7 +58,23 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   }
 
   private init_frame_tree(): void {
-    console.log("init_frame_tree"); // make sure all the version and version ranges are valid...
+    // make sure all the version and version ranges are valid...
+    const versions = this.store.get("versions");
+    const max = versions.size - 1;
+    for (let id in this._get_leaf_ids()) {
+      const node = this._get_frame_node(id);
+      if (node == null) continue;
+      for (let x of ["version", "version0", "version1"]) {
+        let n = node.get(x);
+        if (n > max) {
+          // make it max except in the case of "version0"
+          // when we want it to be one less than version1, which
+          // will be max.
+          n = x == "version0" ? Math.max(0, max - 1) : max;
+          this.set_frame_tree({ id, [x]: n });
+        }
+      }
+    }
   }
 
   public async load_full_history(): Promise<void> {
@@ -73,6 +89,10 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     const versions = List<Date>(this.syncdoc.all_versions());
     this.ensure_versions_are_stable(versions);
     this.setState({ versions });
+    if (this.first_load) {
+      this.first_load = false;
+      this.init_frame_tree();
+    }
   }
 
   // For each store version in a frame node, check to see
@@ -107,7 +127,6 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
         continue;
       }
     }
-    console.log("get_account_ids", version0, version1, account_ids);
     return keys(account_ids);
   }
 
