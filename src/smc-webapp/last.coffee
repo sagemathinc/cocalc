@@ -30,6 +30,8 @@ $               = window.$
 {webapp_client} = require('./webapp_client')
 {redux}         = require('./app-framework')
 misc            = require('smc-util/misc')
+websocket_watchdog = require('./websocket_watchdog')
+websocket_watchdog.watch()
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
