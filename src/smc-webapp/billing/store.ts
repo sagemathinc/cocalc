@@ -1,7 +1,7 @@
 import { Map, Set } from "immutable";
 
 import { redux, Store } from "../app-framework";
-import { AppliedCoupons, CoursePay, Customer } from "./types";
+import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;
@@ -11,7 +11,7 @@ export interface BillingStoreState {
   action?: string;
   no_stripe?: boolean;
   customer?: Customer;
-  invoices?: any;
+  invoices?: Invoices;
   loaded?: boolean;
   continue_first_purchase?: boolean;
   selected_plan?: string;

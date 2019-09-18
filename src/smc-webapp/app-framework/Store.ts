@@ -20,6 +20,9 @@ export interface selector<State, K extends keyof State> {
   fn: () => State[K];
 }
 
+/**
+ *  
+ */
 export class Store<State> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
