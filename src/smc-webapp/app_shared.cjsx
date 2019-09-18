@@ -37,6 +37,7 @@ misc = require('smc-util/misc')
 {analytics_event} = require('./tracker')
 {user_tracking} = require('./user-tracking')
 {KioskModeBanner} = require('./app_shared2')
+{Connecting} = require('./landing_page')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -68,7 +69,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
                 x = <ProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true} />
             v.push(x)
 
-    # in kiosk mode, only show the banner if nothing is opened
+    # in kiosk mode: if no file is opened show a banner
     if kiosk_mode and v.length == 0
         v.push <KioskModeBanner key={'kiosk'} />
     else
@@ -89,6 +90,11 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
                 v.push <AdminPage redux={redux} key={'admin'}/>
             when undefined
                 v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+
+    if v.length == 0
+        # this happens upon loading a URL for a project, but the project isn't open yet.
+        # implicitly, this waits for a websocket connection, hence show the same banner as for the landing page
+        v.push <Connecting />
     return v
 
 exports.NavTab = rclass
