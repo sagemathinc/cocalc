@@ -48,7 +48,8 @@ const title_bar_style: CSS.Properties = {
   flexDirection: "row",
   flexWrap: "nowrap",
   flex: "0 0 auto",
-  display: "flex"
+  display: "flex",
+  minHeight: "34px"
 };
 
 const path_style: CSS.Properties = {
@@ -264,10 +265,15 @@ export class FrameTitleBar extends Component<Props, State> {
   render_control(): Rendered {
     const is_active = this.props.active_id === this.props.id;
     const style: CSS.Properties = {
-      flex: "0 0 auto", // main buttons expand due to 1 1 auto
-      paddingLeft: "5px",
+      padding: 0,
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
     };
+    if (is_active) {
+      style.position = "absolute";
+      style.boxShadow = "#ccc -3px 0";
+      style.right = 0;
+      style.zIndex = 10; // so can click see buttons when flow around
+    }
     return (
       <ButtonGroup style={style} key={"close"}>
         {is_active ? this.render_types() : undefined}
@@ -1318,6 +1324,9 @@ export class FrameTitleBar extends Component<Props, State> {
       if (!this.props.is_only && !this.props.is_full) {
         style.maxHeight = "34px";
       }
+      // position relative, so we can absolute position the
+      // frame controls to the right
+      style.position = "relative";
     } else {
       style = title_bar_style;
     }
