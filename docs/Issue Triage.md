@@ -2,12 +2,15 @@
 Contributors with sufficient permissions on the CoCalc repo can help by adding
 labels to triage issues:
 
-* Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to. It answers the question: "Where should I be looking?"
+* Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to.   
+  Answers the question: "Where should I be looking?"
 
 * Green, **E**-prefixed labels explain the type of **experience** necessary
-  to fix the issue. It answers the question "What kind of effort is necessary?"
+  to fix the issue.  
+  Answers the question "What kind of effort is necessary?"
 
-* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue. It answers the question: "Why is this important?"
+* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue.  
+  Answers the question: "Why is this important?"
 
 * **M** is market segment priority. 
 
