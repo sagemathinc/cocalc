@@ -15,6 +15,8 @@ export type DeepImmutable<T> = T extends Collection<any, any>
   ? T // Any immutable.js data structure
   : T extends (infer U)[]
   ? List<U>
+  : T extends TypedMap<infer U>
+  ? TypedMap<U>
   : T extends object // Filter out desired objects above this line
   ? MapToRecurse<T>
   : T; // Base case primatives

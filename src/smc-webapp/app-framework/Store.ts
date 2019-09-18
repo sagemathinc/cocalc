@@ -93,11 +93,11 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State>(field: K): State[K];
-  get<K extends keyof State, NSV = State[K]>(
+  get<K extends keyof State>(field: K): DeepImmutable<State[K]>;
+  get<K extends keyof State, NSV>(
     field: K,
-    notSetValue?: NSV
-  ): State[K] | NSV;
+    notSetValue: NSV
+  ): DeepImmutable<State[K]> | NSV;
   get<K extends keyof State, NSV = State[K]>(
     field: K,
     notSetValue?: NSV
