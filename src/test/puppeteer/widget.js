@@ -169,8 +169,8 @@ try {
     // Both selectors work for "sr". The second one has height of 4 pixels.
     //const sr = document.querySelector('div[class="slider-container"]').getBoundingClientRect().toJSON();
     const sr = document.querySelector('.ui-slider').getBoundingClientRect().toJSON();
-      return sr;
-    });
+    return sr;
+  });
   console.log(`08 slider at (${box.left},${box.top}) to (${box.right},${box.bottom})`);
 
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

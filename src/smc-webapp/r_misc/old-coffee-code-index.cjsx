@@ -1116,8 +1116,9 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         return next.filename != @props.filename or next.is_public != next.is_public
 
     getDefaultProps: ->
+        # nowrap fixes https://github.com/sagemathinc/cocalc/issues/4064
         is_public : false
-        style     : {marginRight:'2px'}
+        style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
         @props.actions.show_file_action_panel
@@ -1157,7 +1158,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
             id      = 'file_info_button'
             title   = {@render_title()}
             bsSize  = {@props.bsSize}
-            >
+        >
             {@render_menu_items()}
         </DropdownButton>
 
