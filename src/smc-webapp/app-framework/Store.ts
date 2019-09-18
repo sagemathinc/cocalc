@@ -96,6 +96,13 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
+  get<K extends keyof State>(
+    field: K
+  ): State[K];
+  get<K extends keyof State, NSV = State[K]>(
+    field: K,
+    notSetValue?: NSV
+  ): State[K] | NSV
   get<K extends keyof State, NSV = State[K]>(
     field: K,
     notSetValue?: NSV
@@ -131,18 +138,25 @@ export class Store<State> extends EventEmitter {
   >;
   getIn<K1 extends keyof State, NSV>(
     path: [K1],
-    notSetValue?: NSV
+    notSetValue: NSV
   ): State[K1] | NSV;
-  getIn<K1 extends keyof State, K2 extends keyof State[K1], NSV>(
+  getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>, NSV>(
     path: [K1, K2],
-    notSetValue?: NSV
-  ): State[K1][K2] | NSV;
+    notSetValue: NSV
+  ): CopyMaybe<State[K1], NonNullable<State[K1]>[K2]> | NSV;
   getIn<
     K1 extends keyof State,
-    K2 extends keyof State[K1],
-    K3 extends keyof State[K1][K2],
+    K2 extends keyof NonNullable<State[K1]>,
+    K3 extends keyof NonNullable<NonNullable<State[K1]>[K2]>,
     NSV
-  >(path: [K1, K2, K3], notSetValue?: NSV): State[K1][K2][K3] | NSV;
+  >(
+    path: [K1, K2, K3],
+    notSetValue: NSV
+  ): CopyAnyMaybe<
+    State[K1],
+    NonNullable<State[K1]>[K2],
+    NonNullable<NonNullable<State[K1]>[K2]>[K3] | NSV
+  >;
   getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store
       .getState()
