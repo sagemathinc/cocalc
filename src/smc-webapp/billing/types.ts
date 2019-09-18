@@ -62,8 +62,8 @@ export interface Invoices {
 }
 
 export interface Customer {
-  sources: { data: List<Source>; total_count: number };
-  subscriptions: { data: List<Subscription>; total_count: number };
+  sources: { data: Source[]; total_count: number };
+  subscriptions: { data: Subscription[]; total_count: number };
   default_source: string;
 }
 

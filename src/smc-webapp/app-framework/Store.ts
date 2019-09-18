@@ -4,10 +4,7 @@ import * as underscore from "underscore";
 import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
-type Maybe<T> = T | undefined;
-// Return Maybe<U> iff T is a Maybe<?>
-type CopyMaybe<T, U> = Maybe<T> extends T ? Maybe<U> : U;
-type CopyAnyMaybe<T, U, V> = CopyMaybe<T, V> | CopyMaybe<U, V>;
+import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -96,13 +93,11 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State>(
-    field: K
-  ): State[K];
+  get<K extends keyof State>(field: K): State[K];
   get<K extends keyof State, NSV = State[K]>(
     field: K,
     notSetValue?: NSV
-  ): State[K] | NSV
+  ): State[K] | NSV;
   get<K extends keyof State, NSV = State[K]>(
     field: K,
     notSetValue?: NSV
@@ -121,29 +116,31 @@ export class Store<State> extends EventEmitter {
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
   // Does not work with selectors.
-  getIn<K1 extends keyof State>(path: [K1]): State[K1];
+  getIn<K1 extends keyof State>(path: [K1]): DeepImmutable<State[K1]>;
   getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>>(
     path: [K1, K2]
-  ): CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>;
+  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>>;
   getIn<
     K1 extends keyof State,
     K2 extends keyof NonNullable<State[K1]>,
     K3 extends keyof NonNullable<NonNullable<State[K1]>[K2]>
   >(
     path: [K1, K2, K3]
-  ): CopyAnyMaybe<
-    State[K1],
-    NonNullable<State[K1]>[K2],
-    NonNullable<NonNullable<State[K1]>[K2]>[K3]
+  ): DeepImmutable<
+    CopyAnyMaybe<
+      State[K1],
+      NonNullable<State[K1]>[K2],
+      NonNullable<NonNullable<State[K1]>[K2]>[K3]
+    >
   >;
   getIn<K1 extends keyof State, NSV>(
     path: [K1],
     notSetValue: NSV
-  ): State[K1] | NSV;
+  ): DeepImmutable<State[K1]> | NSV;
   getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>, NSV>(
     path: [K1, K2],
     notSetValue: NSV
-  ): CopyMaybe<State[K1], NonNullable<State[K1]>[K2]> | NSV;
+  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>> | NSV;
   getIn<
     K1 extends keyof State,
     K2 extends keyof NonNullable<State[K1]>,
@@ -152,11 +149,15 @@ export class Store<State> extends EventEmitter {
   >(
     path: [K1, K2, K3],
     notSetValue: NSV
-  ): CopyAnyMaybe<
-    State[K1],
-    NonNullable<State[K1]>[K2],
-    NonNullable<NonNullable<State[K1]>[K2]>[K3] | NSV
-  >;
+  ):
+    | DeepImmutable<
+        CopyAnyMaybe<
+          State[K1],
+          NonNullable<State[K1]>[K2],
+          NonNullable<NonNullable<State[K1]>[K2]>[K3]
+        >
+      >
+    | NSV;
   getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store
       .getState()
