@@ -130,7 +130,7 @@
     "react-addons-perf": "^15.4.2"
   },
   "scripts": {
-    "test": "cd .. && jest",
+    "test": "cd .. && npx jest",
     "testwapp": "echo 'TEST WEBAPP'; SMC_TEST=true node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
     "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
