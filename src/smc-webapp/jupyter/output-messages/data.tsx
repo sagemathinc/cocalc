@@ -73,8 +73,26 @@ export class Data extends Component<DataProps> {
     );
   }
 
+  private data_sha1_and_val(value) {
+    let sha1: string | undefined = undefined;
+    let val: string | undefined = undefined;
+
+    if (typeof value === "string") {
+      if (is_sha1(value)) {
+        // use a heuristic to see if it sha1.  TODO: maybe we shouldn't.
+        sha1 = value;
+      } else {
+        val = value;
+      }
+    } else if (typeof value === "object") {
+      val = value.get("value");
+    }
+    return { sha1, val };
+  }
+
   render_data(type: string, value: any, data: Map<string, any>): Rendered {
     if (type != "") {
+      let data_val: { sha1: string | undefined; val: string | undefined };
       const [a, b] = type.split("/");
       switch (a) {
         case "text":
@@ -107,6 +125,18 @@ export class Data extends Component<DataProps> {
           }
           break;
 
+        case "audio":
+          data_val = this.data_sha1_and_val(value);
+
+          return (
+            <Audio
+              project_id={this.props.project_id}
+              type={type}
+              sha1={data_val.sha1}
+              value={data_val.val}
+            />
+          );
+
         case "image":
           let height: any;
           let width: any;
@@ -131,25 +161,14 @@ export class Data extends Component<DataProps> {
               }
             });
 
-          let sha1: string | undefined = undefined;
-          let val: string | undefined = undefined;
+          data_val = this.data_sha1_and_val(value);
 
-          if (typeof value === "string") {
-            if (is_sha1(value)) {
-              // use a heuristic to see if it sha1.  TODO: maybe we shouldn't.
-              sha1 = value;
-            } else {
-              val = value;
-            }
-          } else if (typeof value === "object") {
-            val = value.get("value");
-          }
           return (
             <Image
               project_id={this.props.project_id}
               type={type}
-              sha1={sha1}
-              value={val}
+              sha1={data_val.sha1}
+              value={data_val.val}
               width={width}
               height={height}
             />

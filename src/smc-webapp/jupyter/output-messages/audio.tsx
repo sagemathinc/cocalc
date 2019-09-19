@@ -13,10 +13,10 @@ interface AudioState {
   attempts: number;
 }
 
-export class Audio extends Component<ImageProps, ImageState> {
+export class Audio extends Component<AudioProps, AudioState> {
   private is_mounted: any;
 
-  constructor(props: ImageProps, context: any) {
+  constructor(props: AudioProps, context: any) {
     super(props, context);
     this.state = { attempts: 0 };
   }
@@ -42,16 +42,12 @@ export class Audio extends Component<ImageProps, ImageState> {
   };
 
   render_using_server(project_id: string, sha1: string): Rendered {
-    const src =
-      get_blob_url(project_id, this.extension(), sha1) +
-      `&attempts=${this.state.attempts}`;
+    const blob_url = get_blob_url(project_id, this.extension(), sha1);
+    const src = `${blob_url}&attempt=${this.state.attempts}`;
     return (
-      <img
-        src={src}
-        onError={this.load_error}
-        width={this.props.width}
-        height={this.props.height}
-      />
+      <audio controls={true} onError={this.load_error}>
+        <source src={src} />
+      </audio>
     );
   }
 
@@ -68,7 +64,7 @@ export class Audio extends Component<ImageProps, ImageState> {
     src += encodeURIComponent(value);
     return (
       <audio controls={true}>
-        <source src={arc} />
+        <source src={src} />
       </audio>
     );
   }

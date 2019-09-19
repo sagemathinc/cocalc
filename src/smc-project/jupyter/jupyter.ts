@@ -638,7 +638,11 @@ export class JupyterKernel extends EventEmitter
     let type: string;
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
-        if (type.split("/")[0] === "image" || type === "application/pdf") {
+        if (
+          type.split("/")[0] === "image" ||
+          type.split("/")[0] === "audio" ||
+          type === "application/pdf"
+        ) {
           content.data[type] = blob_store.save(content.data[type], type);
         } else if (
           type === "text/html" &&
@@ -718,9 +722,7 @@ export class JupyterKernel extends EventEmitter
   }): Promise<any> {
     const dbg = this.dbg("introspect");
     dbg(
-      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${
-        opts.detail_level
-      }`
+      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`
     );
     return await this.call("inspect_request", opts);
   }

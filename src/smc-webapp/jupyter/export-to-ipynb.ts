@@ -202,6 +202,7 @@ function process_output_n(output_n: any, exec_count: any, blob_store: any) {
       }
       if (
         misc.startswith(k, "image/") ||
+        misc.startswith(k, "audio/") ||
         k === "application/pdf" ||
         k === "iframe"
       ) {
