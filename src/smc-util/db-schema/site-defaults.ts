@@ -1,7 +1,5 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
-import { DNS } from "smc-util/theme";
-
 export const site_settings_conf = {
   site_name: {
     name: "Site name",
@@ -63,7 +61,7 @@ export const site_settings_conf = {
   iframe_comm_hosts: {
     name: "IFrame communication hosts",
     desc:
-      "List of space-separated DNS names or suffixes (when starting with a dot), which are allowed to communicate back and forth with an embedded CoCalc instance",
-    default: `${DNS}`
+      "List of DNS names or suffixes (when starting with a dot), which are allowed to communicate back and forth with an embedded CoCalc instance. (it picks all matching '[a-zA-Z0-9.-]+')",
+    default: ""
   }
 };

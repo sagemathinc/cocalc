@@ -966,7 +966,9 @@ class ProjectsAllTable extends Table
 
 all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
-    if all_projects_have_been_loaded # or COCALC_MINIMAL
+    if DEBUG and COCALC_MINIMAL
+        console.warn("projects/load_all_projects was called in kiosk/minimal mode")
+    if all_projects_have_been_loaded
         return
     all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
@@ -980,7 +982,6 @@ load_recent_projects = =>
     if redux.getTable('projects')._table.get().size == 0
         await load_all_projects()
 
-#if not COCALC_MINIMAL
 load_recent_projects()
 
 

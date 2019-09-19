@@ -4,18 +4,13 @@
 // TODO:
 // * some aspects of webapp are configured via a configuration endpoint. Use it to set the allowed origins
 
-import { delay } from "awaiting";
+import { delay, callback } from "awaiting";
+import memoizeOne from "memoize-one";
 import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 import { Map, List } from "immutable";
 
 var initialized = false;
-
-const ALLOWED: readonly string[] = Object.freeze<string>([
-  ".minervaproject.com",
-  ".kgi.com",
-  "dev.harald.schil.ly"
-]);
 
 interface ConnectionStatus {
   quality?: "good" | "flaky" | "bad";
@@ -78,8 +73,17 @@ function all_opened_files(): undefined | object {
   return all_files.filter(files => files.length > 0).toJS();
 }
 
-function block_origin(mesg): boolean {
-  for (const allowed of ALLOWED) {
+const get_allowed_hosts = memoizeOne(
+  async (): Promise<string[]> => {
+    const customize_store = redux.getStore("customize");
+    await callback(customize_store.is_configured);
+    const hosts = customize_store.get_iframe_comm_hosts();
+    return hosts;
+  }
+);
+
+async function block_origin(mesg): Promise<boolean> {
+  for (const allowed of await get_allowed_hosts()) {
     if (mesg.origin.endsWith(allowed)) return false;
   }
   return true;
@@ -95,8 +99,13 @@ async function process_message(mesg) {
   //  mesg.data
   //);
 
+  // ignore messages to myself (otherwise, sending a reply causes an infinite loop)
+  if (window == mesg.source) {
+    return;
+  }
+
   // check origin
-  if (block_origin(mesg)) {
+  if (await block_origin(mesg)) {
     // console.log(`Origin '${mesg.origin}' is blocked.`);
     return;
   }
@@ -109,6 +118,11 @@ async function process_message(mesg) {
   const reply = (data: Reply) => {
     mesg.source.postMessage(data, mesg.origin);
   };
+
+  if (data == null) {
+    reply({ status: "error", mesg: `There is no payload "data"` });
+    return;
+  }
 
   if (typeof data !== "object") {
     reply({ status: "error", mesg: `The payload "data" must be an object` });
@@ -132,6 +146,9 @@ async function process_message(mesg) {
         break;
       }
 
+      // we're in kiosk mode and only want to open a single project (see init_app)
+      redux.getActions("page").setState({ kiosk_project_id: project_id });
+
       // copied from cocalc/src/smc-webapp/file-use/util.ts
       await redux.getActions("projects").open_project({ project_id });
       await delay(0);
@@ -143,6 +160,7 @@ async function process_message(mesg) {
         });
         break;
       }
+
       const opts = {
         path: path,
         foreground: true,
@@ -150,6 +168,7 @@ async function process_message(mesg) {
         ignore_kiosk: true,
         change_history: false
       };
+
       try {
         reply({ status: "ack", action, path, project_id });
         await actions.open_file(opts);

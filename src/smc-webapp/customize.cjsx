@@ -3,11 +3,11 @@ CoCalc: Collaborative Calculation in the Cloud
 Copyright (C) 2016, Sagemath Inc.
 ---
 
-Site Customize -- dynamically customize the look of SMC for the client.
+Site Customize -- dynamically customize the look of CoCalc for the client.
 ###
 
 
-{redux, Redux, rclass, rtypes, React} = require('./app-framework')
+{redux, Redux, rclass, rtypes, React, Store} = require('./app-framework')
 
 # Caused by some circular importing. Will get fixed with typescript `import` syntax
 r_misc = require('./r_misc')
@@ -25,8 +25,23 @@ test_commercial = (c) ->
 
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
 defaults.is_commercial = test_commercial(defaults.commercial)
+defaults._is_configured = false # will be true after set via call to server
 
-store    = redux.createStore('customize', defaults)
+
+class CustomizeStore extends Store
+    is_configured: (cb) =>
+        if @get("_is_configured")
+            cb()
+        else
+            @wait
+                until : => @get('_is_configured')
+                cb    : cb
+
+    get_iframe_comm_hosts: =>
+        hosts = @get("iframe_comm_hosts")
+        return hosts.match(/[a-zA-Z0-9.-]+/g)
+
+store    = redux.createStore('customize', CustomizeStore, defaults)
 actions  = redux.createActions('customize')
 actions.setState(is_commercial: true)  # really simple way to have a default value -- gets changed below once the $?.get returns.
 
@@ -36,6 +51,7 @@ $?.get (window.app_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         obj.commercial = obj.commercial ? defaults.commercial
         obj.is_commercial = exports.commercial = test_commercial(obj.commercial)
+        obj._is_configured = true
         actions.setState(obj)
 
 HelpEmailLink = rclass
