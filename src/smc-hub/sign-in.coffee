@@ -23,7 +23,7 @@ Bottleneck           = require("bottleneck")
 # these parameters are per group and per hub!
 bottleneck_opts      =
     minTime        : process_env_int('THROTTLE_SIGN_IN_MINTIME', 100)
-    maxConcurrent  : process_env_int('THROTTLE_SIGN_IN_CONCURRENT', 2)
+    maxConcurrent  : process_env_int('THROTTLE_SIGN_IN_CONCURRENT', 10)
 limit_group          = new Bottleneck.Group(bottleneck_opts)
 
 sign_in_fails =
@@ -98,7 +98,7 @@ exports.sign_in = (opts) ->
     key = opts.client.ip_address
 
     done_cb = () ->
-        opts.logger?.info("sign_in group '#{key}' done")
+        opts.logger?.debug("sign_in(group='#{key}'): done")
 
     limit_group.key(key).submit(_sign_in, opts, done_cb)
 
@@ -252,7 +252,7 @@ exports.sign_in_using_auth_token = (opts) ->
     key = opts.client.ip_address
 
     done_cb = () ->
-        opts.logger?.info("sign_in_using_auth_token group '#{key}' done")
+        opts.logger?.debug("sign_in_using_auth_token(group='#{key}'): done")
 
     limit_group.key(key).submit(_sign_in_using_auth_token, opts, done_cb)
 
