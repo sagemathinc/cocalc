@@ -298,10 +298,14 @@ class ProjectsActions extends Actions
             ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
             change_history  : true      # bool    Whether or not to alter browser history
             restore_session : true      # bool    Opens up previously closed editor tabs
+
         if not store.get_project(opts.project_id)?
-            # trying to open a not-known project -- maybe
-            # we have not yet loaded the full project list?
-            await @load_all_projects()
+            if COCALC_MINIMAL
+                await load_single_project(opts.project_id)
+            else
+                # trying to open a not-known project -- maybe
+                # we have not yet loaded the full project list?
+                await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -967,7 +971,7 @@ class ProjectsAllTable extends Table
 all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
     if DEBUG and COCALC_MINIMAL
-        console.warn("projects/load_all_projects was called in kiosk/minimal mode")
+        console.error("projects/load_all_projects was called in kiosk/minimal mode")
     if all_projects_have_been_loaded
         return
     all_projects_have_been_loaded = true  # used internally in this file only
@@ -982,7 +986,16 @@ load_recent_projects = =>
     if redux.getTable('projects')._table.get().size == 0
         await load_all_projects()
 
-load_recent_projects()
+
+if not COCALC_MINIMAL
+    load_recent_projects()
+
+
+load_single_project = (project_id) =>
+    redux.getActions('page').setState({kiosk_project_id:project_id})
+    redux.removeTable('projects')
+    redux.createTable('projects', ProjectsTable)
+    await once(redux.getTable('projects')._table, "connected")
 
 
 ProjectsSearch = rclass

@@ -9,10 +9,14 @@ const { webapp_client } = require("./webapp_client");
 const misc_page = require("./misc_page");
 import { AppRedux } from "./app-framework";
 import * as LS from "misc/local-storage";
+import { COCALC_MINIMAL } from "./fullscreen";
 
 const async = require("async");
 
-exports.session_manager = (name, redux) => new SessionManager(name, redux);
+exports.session_manager = (name, redux) => {
+  if (COCALC_MINIMAL) return null;
+  return new SessionManager(name, redux);
+};
 
 interface State {
   // project_id <=> filenames
