@@ -991,11 +991,18 @@ if not COCALC_MINIMAL
     load_recent_projects()
 
 
+_project_tables = {}
+
 load_single_project = (project_id) =>
     redux.getActions('page').setState({kiosk_project_id:project_id})
-    redux.removeTable('projects')
-    redux.createTable('projects', ProjectsTable)
-    await once(redux.getTable('projects')._table, "connected")
+    pt_cached = _project_tables[project_id]
+    if pt_cached
+        redux._tables[project_id] = pt_cached
+    else
+        redux.removeTable('projects')
+        pt = redux.createTable('projects', ProjectsTable)
+        _project_tables[project_id] = pt
+        await once(redux.getTable('projects')._table, "connected")
 
 
 ProjectsSearch = rclass
