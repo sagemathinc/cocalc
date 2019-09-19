@@ -3,7 +3,7 @@ These interfaces are exactly what we **actually use** in our code, not
 what stripe actually provides!
 */
 
-import { Map, Set, List } from "immutable";
+import { Map, Set } from "immutable";
 
 export type AppliedCoupons = Map<string, any>;
 
