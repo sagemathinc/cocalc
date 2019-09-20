@@ -8,7 +8,6 @@ export default interface TestCreds {
   readonly widgetfile: string;
   readonly sageipynbfile: string;
   readonly sagewsfile: string;
-  readonly apikey: string;
   headless?: string;
   screenshot?: string;
   path?: string|boolean;

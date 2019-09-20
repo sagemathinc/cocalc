@@ -18,7 +18,7 @@ const {api_session} = require('./api_session');
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
 
-const cli_parse = function() {
+const cli_parse = function(): Creds|undefined {
   try {
     // command line processing
     // -p option without arg uses the following path
@@ -44,11 +44,11 @@ const cli_parse = function() {
     debuglog('site:', creds.sitename);
     debuglog('headless:',creds.headless);
     if (creds.path) debuglog('chrome path:',creds.path);
-
     return creds;
   } catch (e) {
     console.log(chalk.red(`ERROR: ${e.message}`));
-    process.exit()
+    process.exit();
+    return undefined;
   }
 }
 
@@ -56,10 +56,12 @@ const cli_parse = function() {
 //cocalc: /usr/bin/chromium-browser
 
 const run_tests = async function() {
-  const creds = cli_parse();
+  const creds: Creds|undefined = cli_parse();
+  if (creds){
   // edit 'true' to 'false' to skip tests
-  if (true) await login_tests(creds);
+  if (false) await login_tests(creds);
   if (true) await api_session(creds);
+  }
 }
 
 run_tests();
