@@ -15,7 +15,10 @@ interface Props {
 export class Export extends Component<Props> {
   public render(): Rendered {
     return (
-      <Button onClick={() => this.props.actions.export()}>
+      <Button
+        onClick={() => this.props.actions.export()}
+        title="Export information about edit history to a JSON file"
+      >
         <Icon name={"file-export"} /> Export
       </Button>
     );

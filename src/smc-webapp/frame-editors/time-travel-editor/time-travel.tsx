@@ -7,6 +7,8 @@ import {
   rtypes
 } from "../../app-framework";
 
+import { ButtonGroup } from "react-bootstrap";
+
 import { Loading } from "../../r_misc";
 
 import { TimeTravelActions } from "./actions";
@@ -193,57 +195,74 @@ class TimeTravel extends Component<Props> {
 
   private render_load_full_history(): Rendered {
     if (this.props.has_full_history) return;
-    return (
-      <div>
-        <LoadFullHistory actions={this.props.actions} />
-      </div>
-    );
+    return <LoadFullHistory actions={this.props.actions} />;
   }
 
   private render_open_file(): Rendered {
-    return (
-      <div>
-        <OpenFile actions={this.props.actions} />
-      </div>
-    );
+    return <OpenFile actions={this.props.actions} />;
   }
 
   private render_open_snapshots(): Rendered {
-    return (
-      <div>
-        <OpenSnapshots actions={this.props.actions} />
-      </div>
-    );
+    return <OpenSnapshots actions={this.props.actions} />;
   }
 
   private render_revert_file(): Rendered {
+    if (this.props.desc == null || this.props.desc.get("changes_mode")) return;
     return (
-      <div>
-        <RevertFile actions={this.props.actions} version={this.get_version()} />
-      </div>
+      <RevertFile actions={this.props.actions} version={this.get_version()} />
     );
   }
 
   private render_changes_mode(): Rendered {
     return (
-      <div>
-        <ChangesMode
-          id={this.props.id}
-          actions={this.props.actions}
-          disabled={this.props.versions.size <= 1}
-          changes_mode={
-            this.props.desc != null &&
-            this.props.desc.get("changes_mode", false)
-          }
-        />
-      </div>
+      <ChangesMode
+        id={this.props.id}
+        actions={this.props.actions}
+        disabled={this.props.versions.size <= 1}
+        changes_mode={
+          this.props.desc != null && this.props.desc.get("changes_mode", false)
+        }
+      />
     );
   }
   private render_export(): Rendered {
+    return <Export actions={this.props.actions} />;
+  }
+
+  private render_controls(): Rendered {
     return (
       <div>
-        <Export actions={this.props.actions} />
+        {this.render_changes_mode()}
+        {this.render_navigation_buttons()}
+        <ButtonGroup style={{ margin: "0 10px" }}>
+          {this.render_load_full_history()}
+          {this.render_open_file()}
+          {this.render_revert_file()}
+          {this.render_open_snapshots()}
+          {this.render_export()}
+        </ButtonGroup>
+        {this.render_version()}
+        {", "}
+        {this.render_author()}
       </div>
+    );
+  }
+
+  private render_time_select(): Rendered {
+    return (
+      <>
+        {this.render_navigation_slider()}
+        {this.render_range_slider()}
+      </>
+    );
+  }
+
+  private render_view(): Rendered {
+    return (
+      <>
+        {this.render_document()}
+        {this.render_diff()}
+      </>
     );
   }
 
@@ -253,19 +272,9 @@ class TimeTravel extends Component<Props> {
     }
     return (
       <div className="smc-vfill">
-        {this.render_navigation_buttons()}
-        {this.render_navigation_slider()}
-        {this.render_range_slider()}
-        {this.render_version()}
-        {this.render_author()}
-        {this.render_load_full_history()}
-        {this.render_open_file()}
-        {this.render_open_snapshots()}
-        {this.render_revert_file()}
-        {this.render_export()}
-        {this.render_changes_mode()}
-        {this.render_document()}
-        {this.render_diff()}
+        {this.render_controls()}
+        {this.render_time_select()}
+        {this.render_view()}
       </div>
     );
   }

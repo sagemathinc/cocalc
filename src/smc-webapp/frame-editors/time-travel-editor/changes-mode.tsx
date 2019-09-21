@@ -18,6 +18,7 @@ export class ChangesMode extends Component<Props> {
       !this.props.changes_mode
     );
   }
+
   public render(): Rendered {
     return (
       <Checkbox
@@ -27,6 +28,7 @@ export class ChangesMode extends Component<Props> {
         }
         onChange={this.toggle.bind(this)}
         checked={this.props.disabled ? false : this.props.changes_mode}
+        style={{ display: "inline", margin: "0 10px" }}
       >
         Changes
       </Checkbox>

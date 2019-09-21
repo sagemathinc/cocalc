@@ -85,7 +85,7 @@ class Authors extends Component<Props> {
   }
 
   public render(): Rendered {
-    return <div>{this.render_content()}</div>;
+    return <span>{this.render_content()}</span>;
   }
 }
 

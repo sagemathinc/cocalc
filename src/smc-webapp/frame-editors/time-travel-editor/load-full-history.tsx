@@ -12,8 +12,9 @@ interface Props {
 export class LoadFullHistory extends Component<Props> {
   public render(): Rendered {
     return (
-      <Button onClick={() => this.props.actions.load_full_history()}>
-        <Icon name="floppy-o"/> Load Full History
+      <Button onClick={() => this.props.actions.load_full_history()}
+        title={"Load the complete edit history for this file."}>
+        <Icon name="floppy-o"/> Load All
       </Button>
     );
   }
