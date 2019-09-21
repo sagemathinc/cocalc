@@ -60,6 +60,7 @@
     "ts-jest": "^24.0.0",
     "ts-loader": "^4.4.1",
     "ts-node": "^7.0.0",
+    "tsd": "^0.7.4",
     "typescript": "^3.6.2",
     "uglify-js": "^2.6.2",
     "uglifyjs-webpack-plugin": "^1.2.4",

@@ -50,7 +50,7 @@
     "history": "^1.17.0",
     "htmlparser": "^1.7.7",
     "humanize-list": "^1.0.1",
-    "immutable": "^4.0.0-rc.10",
+    "immutable": "^4.0.0-rc.12",
     "install": "^0.13.0",
     "jquery": "^3.4.0",
     "jquery-caret": "^1.3",
@@ -131,7 +131,7 @@
     "react-addons-perf": "^15.4.2"
   },
   "scripts": {
-    "test": "cd .. && jest",
+    "test": "cd .. && npx jest smc-webapp",
     "testwapp": "echo 'TEST WEBAPP'; SMC_TEST=true node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
     "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
