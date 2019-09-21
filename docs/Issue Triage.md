@@ -2,14 +2,17 @@
 Contributors with sufficient permissions on the CoCalc repo can help by adding
 labels to triage issues:
 
-* Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to.
+* Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to.   
+  Answers the question: "Where should I be looking?"
 
 * Green, **E**-prefixed labels explain the type of **experience** necessary
-  to fix the issue.
+  to fix the issue.  
+  Answers the question "What kind of effort is necessary?"
 
-* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue.
+* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue.  
+  Answers the question: "Why is this important?"
 
-* **M** is market segment priority.
+* **M** is market segment priority. 
 
 * Orange, **P**-prefixed labels indicate a bug's **priority**.
 
@@ -24,7 +27,7 @@ If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 [eeasy]:https://github.com/sagemathinc/cocalc/labels/E-easy
 
 ### List of labels and their descriptions
-Most tags should be self explanatory but some can be unclear. If you're unsure what a label means how it's different from another just ask (Where??). We'll probably add it to the description here.
+Most tags should be self explanatory but some can be unclear. If you're unsure what a label means how it's different from another email John Jeng at j3@sagemath.com. He'll probably add it to the description here.
 
 - `blocked` -- Always link what the issue is blocked by.
 - `I-bug` -- Something that is clearly wrong based on what the UI tells you or on strongly expected behavior by the majority of people.
