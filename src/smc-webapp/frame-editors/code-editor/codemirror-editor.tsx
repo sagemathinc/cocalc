@@ -102,7 +102,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.props.is_public && this.props.value !== next.value) {
       if (next.value !== undefined) {
         // we really know that this will be undefined.
-        this.cm.setValue(next.value);
+        this.cm.setValueNoJump(next.value);
       }
     }
     if (this.props.misspelled_words !== next.misspelled_words) {

@@ -31,12 +31,15 @@ interface Props {
   actions: TimeTravelActions;
   id: string;
   path: string;
+  project_id: string;
   desc: Map<string, any>;
+  font_size: number;
 
   // reduxProps
-  versions: List<Date>;
-  loading: boolean;
-  has_full_history: boolean;
+  versions?: List<Date>;
+  loading?: boolean;
+  has_full_history?: boolean;
+  docpath?: string;
 }
 
 class TimeTravel extends Component<Props> {
@@ -56,7 +59,8 @@ class TimeTravel extends Component<Props> {
       [name]: {
         versions: rtypes.immutable.List,
         loading: rtypes.bool,
-        has_full_history: rtypes.bool
+        has_full_history: rtypes.bool,
+        docpath: rtypes.string
       }
     };
   }
@@ -103,16 +107,35 @@ class TimeTravel extends Component<Props> {
 
   private render_document(): Rendered {
     const doc = this.get_doc();
-    if (doc == null) return;
-    if (this.props.desc == null || this.props.desc.get("changes_mode")) return;
-    return <Document doc={doc} path={this.props.path} />;
+    if (
+      doc == null ||
+      this.props.docpath == null ||
+      this.props.desc == null ||
+      this.props.desc.get("changes_mode")
+    )
+      return;
+    return (
+      <Document
+        actions={this.props.actions}
+        id={this.props.id}
+        doc={doc}
+        path={this.props.docpath}
+        project_id={this.props.project_id}
+        font_size={this.props.font_size}
+      />
+    );
   }
 
   private render_diff(): Rendered {
-    if (this.props.desc == null || !this.props.desc.get("changes_mode")) return;
+    if (
+      this.props.docpath == null ||
+      this.props.desc == null ||
+      !this.props.desc.get("changes_mode")
+    )
+      return;
     const version0 = this.props.desc.get("version0");
     const version1 = this.props.desc.get("version1");
-    return <Diff doc0={version0} doc1={version1} path={this.props.path} />;
+    return <Diff doc0={version0} doc1={version1} path={this.props.docpath} />;
   }
 
   private render_navigation_buttons(): Rendered {
@@ -214,6 +237,7 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_changes_mode(): Rendered {
+    if (this.props.versions == null) return;
     return (
       <ChangesMode
         id={this.props.id}

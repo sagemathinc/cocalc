@@ -19,7 +19,6 @@ export const time_travel = {
     "decrease_font_size",
     "increase_font_size",
     "find",
-    "paste",
     "copy",
     "help"
   ])

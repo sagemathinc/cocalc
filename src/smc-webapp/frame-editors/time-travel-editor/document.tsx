@@ -4,9 +4,16 @@ Render a static version of a document for use in TimeTravel.
 
 import { Component, React, Rendered } from "../../app-framework";
 
+import { fromJS } from "immutable";
+import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+
 interface Props {
+  id: string;
+  actions: any;
+  font_size: number;
   doc: any; // actual value of the document (string or db object).
   path: string; // filename of doc, which determines what sort of editor it uses
+  project_id: string;
 }
 
 export class Document extends Component<Props> {
@@ -15,13 +22,28 @@ export class Document extends Component<Props> {
   }
 
   public render_string(): Rendered {
-    // TODO: codemirror static, etc.
+    if (this.props.doc == null || typeof this.props.doc.value != "string") {
+      throw Error("bug -- invalid input"); // can't happen
+    }
     return (
-      <pre
-        style={{ width: "100%", padding: "15px", border: "1px solid black" }}
-      >
-        {this.props.doc.value}
-      </pre>
+      <CodemirrorEditor
+        id={this.props.id}
+        actions={this.props.actions}
+        path={this.props.path}
+        project_id={this.props.project_id}
+        font_size={this.props.font_size}
+        cursors={fromJS({})}
+        editor_state={fromJS({})}
+        read_only={true}
+        is_current={true}
+        is_public={true}
+        value={this.props.doc.value}
+        misspelled_words={fromJS([])}
+        resize={0}
+        gutters={[]}
+        gutter_markers={fromJS({})}
+        editor_settings={fromJS({})}
+      />
     );
   }
 

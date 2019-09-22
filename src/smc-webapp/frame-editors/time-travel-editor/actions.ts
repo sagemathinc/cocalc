@@ -17,6 +17,7 @@ interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
   loading: boolean;
   has_full_history: boolean;
+  docpath: string;
 }
 
 export class TimeTravelActions extends Actions<TimeTravelState> {
@@ -32,7 +33,8 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     this.setState({
       versions: List([]),
       loading: true,
-      has_full_history: false
+      has_full_history: false,
+      docpath: this.docpath
     });
     this.init_syncdoc();
   }
@@ -65,8 +67,8 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
       const node = this._get_frame_node(id);
       if (node == null) continue;
       for (let x of ["version", "version0", "version1"]) {
-        let n = node.get(x);
-        if (n > max) {
+        let n: number | undefined = node.get(x);
+        if (n == null || n > max || n < 0) {
           // make it max except in the case of "version0"
           // when we want it to be one less than version1, which
           // will be max.
