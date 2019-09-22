@@ -322,7 +322,6 @@ class exports.HistoryEditor extends FileEditor
         line_numbers = []
         seen_context = {}
         chunk_boundaries = []
-        last_x = undefined
         len_diff = 0
         for x in patches
             n1 = x.start1; n2 = x.start2

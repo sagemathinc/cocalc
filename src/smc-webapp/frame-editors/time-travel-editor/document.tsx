@@ -12,21 +12,14 @@ interface Props {
   id: string;
   actions: TimeTravelActions;
   font_size: number;
-  doc: any; // actual value of the document (string or db object).
+  doc: string;
   path: string; // filename of doc, which determines what sort of editor it uses
   project_id: string;
   editor_settings: Map<string, any>;
 }
 
 export class Document extends Component<Props> {
-  public render_other(): Rendered {
-    return <div>{JSON.stringify(this.props.doc)}</div>;
-  }
-
-  public render_string(): Rendered {
-    if (this.props.doc == null || typeof this.props.doc.value != "string") {
-      throw Error("bug -- invalid input"); // can't happen
-    }
+  private render_body(): Rendered {
     return (
       <CodemirrorEditor
         id={this.props.id}
@@ -39,7 +32,7 @@ export class Document extends Component<Props> {
         read_only={true}
         is_current={true}
         is_public={true}
-        value={this.props.doc.value}
+        value={this.props.doc}
         misspelled_words={fromJS([])}
         resize={0}
         gutters={[]}
@@ -47,14 +40,6 @@ export class Document extends Component<Props> {
         editor_settings={this.props.editor_settings}
       />
     );
-  }
-
-  private render_body(): Rendered {
-    if (this.props.doc != null && typeof this.props.doc.value == "string") {
-      return this.render_string();
-    } else {
-      return this.render_other();
-    }
   }
 
   public render(): Rendered {

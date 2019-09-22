@@ -59,9 +59,8 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     });
   }
 
-  private init_frame_tree(): void {
+  private init_frame_tree(versions): void {
     // make sure all the version and version ranges are valid...
-    const versions = this.store.get("versions");
     const max = versions.size - 1;
     for (let id in this._get_leaf_ids()) {
       const node = this._get_frame_node(id);
@@ -93,7 +92,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     this.setState({ versions });
     if (this.first_load) {
       this.first_load = false;
-      this.init_frame_tree();
+      this.init_frame_tree(versions);
     }
   }
 

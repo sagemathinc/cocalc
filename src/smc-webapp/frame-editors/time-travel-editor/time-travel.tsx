@@ -1,3 +1,8 @@
+/*
+Time travel actions.
+
+*/
+
 import { List, Map } from "immutable";
 import {
   React,
@@ -34,7 +39,7 @@ interface Props {
   project_id: string;
   desc: Map<string, any>;
   font_size: number;
-  editor_settings : Map<string,any>;
+  editor_settings: Map<string, any>;
 
   // reduxProps
   versions?: List<Date>;
@@ -100,8 +105,13 @@ class TimeTravel extends Component<Props> {
     }
   }
 
-  private get_doc(): any {
-    const version = this.get_version();
+  private get_doc(version?: number | Date | undefined): any {
+    if (version == null) {
+      version = this.get_version();
+    } else if (typeof version == "number") {
+      if (this.props.versions == null) return;
+      version = this.props.versions.get(version);
+    }
     if (version == null) return;
     return this.props.actions.get_doc(version);
   }
@@ -113,14 +123,15 @@ class TimeTravel extends Component<Props> {
       this.props.docpath == null ||
       this.props.desc == null ||
       this.props.desc.get("changes_mode")
-    )
+    ) {
       return;
+    }
     return (
       <Document
         actions={this.props.actions}
         id={this.props.id}
-        doc={doc}
-        path={this.props.docpath}
+        doc={doc.to_str()}
+        path={doc.value == null ? "a.js" : this.props.docpath}
         project_id={this.props.project_id}
         font_size={this.props.font_size}
         editor_settings={this.props.editor_settings}
@@ -135,9 +146,23 @@ class TimeTravel extends Component<Props> {
       !this.props.desc.get("changes_mode")
     )
       return;
-    const version0 = this.props.desc.get("version0");
-    const version1 = this.props.desc.get("version1");
-    return <Diff doc0={version0} doc1={version1} path={this.props.docpath} />;
+    const doc0 = this.get_doc(this.props.desc.get("version0"));
+    if (doc0 == null) return; // something is wrong
+    const doc1 = this.get_doc(this.props.desc.get("version1"));
+    if (doc1 == null) return; // something is wrong
+
+    // TODO: for some types, e.g., jupyter, we will want to convert
+    // to the ipynb format first...
+    return (
+      <Diff
+        v0={doc0.to_str()}
+        v1={doc1.to_str()}
+        path={this.props.docpath}
+        font_size={this.props.font_size}
+        editor_settings={this.props.editor_settings}
+        use_json={doc0.value == null}
+      />
+    );
   }
 
   private render_navigation_buttons(): Rendered {
