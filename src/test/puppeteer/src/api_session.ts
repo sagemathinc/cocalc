@@ -4,8 +4,9 @@ import chalk from 'chalk';
 import Creds     from './test-creds';
 import time_log from './time_log';
 import { expect } from 'chai';
-import test_user_search from './test_user_search';
-import test_user_auth from './test_user_auth';
+import get_account_id from './get_account_id';
+import get_auth_token from './get_auth_token';
+import get_project_id from './get_project_id';
 
 const LONG_TIMEOUT = 70000; // msec
 
@@ -65,11 +66,14 @@ const api_session = async function (creds: Creds): Promise<void> {
     expect(api_key.substr(0,3)).to.equal("sk_");
     await page.setRequestInterception(false);
 
-    const account_id: string = await test_user_search(creds, api_key);
+    const account_id: string = await get_account_id(creds, api_key);
     expect(account_id.length).to.equal(36);
 
-    const auth_token: string = await test_user_auth(creds, api_key, account_id);
-    debuglog('auth_token', auth_token.substr(0,5)+"...");
+    const auth_token: string = await get_auth_token(creds, api_key, account_id);
+    expect(auth_token.length).to.equal(24);
+
+    const project_id: string = await get_project_id(creds, api_key);
+    expect(project_id.length).to.equal(36);
 
     time_log("api session total", tm_launch_browser);
 

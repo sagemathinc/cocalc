@@ -58,9 +58,9 @@ const cli_parse = function(): Creds|undefined {
 const run_tests = async function() {
   const creds: Creds|undefined = cli_parse();
   if (creds){
-  // edit 'true' to 'false' to skip tests
-  if (false) await login_tests(creds);
-  if (true) await api_session(creds);
+    // edit 'true' to 'false' to skip tests
+    if (false) await login_tests(creds);
+    if (true) await api_session(creds);
   }
 }
 

@@ -8,7 +8,7 @@
     "lev1": "lev1",
     "build": "tsc",
     "test": "node build/test_driver.js",
-    "tdbg": "NODE_DEBUG='cc-*' node build/test_driver.js"
+    "tdbg": "NODE_DEBUG='CC-*' node build/test_driver.js"
   },
   "author": "Hal Snyder",
   "license": "ISC",
