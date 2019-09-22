@@ -4,16 +4,18 @@ Render a static version of a document for use in TimeTravel.
 
 import { Component, React, Rendered } from "../../app-framework";
 
-import { fromJS } from "immutable";
+import { fromJS, Map } from "immutable";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+import { TimeTravelActions } from "./actions";
 
 interface Props {
   id: string;
-  actions: any;
+  actions: TimeTravelActions;
   font_size: number;
   doc: any; // actual value of the document (string or db object).
   path: string; // filename of doc, which determines what sort of editor it uses
   project_id: string;
+  editor_settings: Map<string, any>;
 }
 
 export class Document extends Component<Props> {
@@ -42,7 +44,7 @@ export class Document extends Component<Props> {
         resize={0}
         gutters={[]}
         gutter_markers={fromJS({})}
-        editor_settings={fromJS({})}
+        editor_settings={this.props.editor_settings}
       />
     );
   }

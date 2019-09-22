@@ -34,6 +34,7 @@ interface Props {
   project_id: string;
   desc: Map<string, any>;
   font_size: number;
+  editor_settings : Map<string,any>;
 
   // reduxProps
   versions?: List<Date>;
@@ -122,6 +123,7 @@ class TimeTravel extends Component<Props> {
         path={this.props.docpath}
         project_id={this.props.project_id}
         font_size={this.props.font_size}
+        editor_settings={this.props.editor_settings}
       />
     );
   }
