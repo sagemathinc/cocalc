@@ -5,11 +5,14 @@ import { debounce } from "lodash";
 import { List } from "immutable";
 import { callback2, once } from "smc-util/async-utils";
 import { filename_extension, keys } from "smc-util/misc2";
+import { meta_file } from "smc-util/misc";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
+
+const { IPYTHON_SYNCFILE_EXTENSION } = require("../../editor_jupyter");
 
 const EXTENSION = ".time-travel";
 
@@ -18,23 +21,33 @@ interface TimeTravelState extends CodeEditorState {
   loading: boolean;
   has_full_history: boolean;
   docpath: string;
+  docext: string;
 }
 
 export class TimeTravelActions extends Actions<TimeTravelState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   private docpath: string;
   private docext: string;
+  private syncpath: string;
   public syncdoc?: SyncDoc;
   private first_load: boolean = true;
 
   public _init2(): void {
-    this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
+    this.syncpath = this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
     this.docext = filename_extension(this.docpath);
+    if (this.docext == "ipynb") {
+      if (this.jupyter_classic()) {
+        this.syncpath = "." + this.docpath + IPYTHON_SYNCFILE_EXTENSION;
+      } else {
+        this.syncpath = meta_file(this.docpath, "jupyter2");
+      }
+    }
     this.setState({
       versions: List([]),
       loading: true,
       has_full_history: false,
-      docpath: this.docpath
+      docpath: this.docpath,
+      docext: this.docext
     });
     this.init_syncdoc();
   }
@@ -43,11 +56,17 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     return { type: "time_travel" };
   }
 
+  private jupyter_classic(): boolean {
+    const store = this.redux.getStore("account");
+    if (store == null) return false; // can't happen
+    return !!store.getIn(["editor_settings", "jupyter_classic"]);
+  }
+
   private async init_syncdoc(): Promise<void> {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
     this.syncdoc = await callback2(webapp_client.open_existing_sync_document, {
       project_id: this.project_id,
-      path: this.docpath,
+      path: this.syncpath,
       persistent
     });
     if (this.syncdoc == null) return;

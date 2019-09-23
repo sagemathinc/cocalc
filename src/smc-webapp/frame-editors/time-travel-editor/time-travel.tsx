@@ -4,6 +4,8 @@ Time travel actions.
 */
 
 import { List, Map } from "immutable";
+import { ButtonGroup } from "react-bootstrap";
+
 import {
   React,
   Component,
@@ -11,15 +13,9 @@ import {
   rclass,
   rtypes
 } from "../../app-framework";
-
-import { ButtonGroup } from "react-bootstrap";
-
 import { Loading } from "../../r_misc";
 
-import { filename_extension } from "smc-util/misc2";
-
 import { TimeTravelActions } from "./actions";
-
 import { Document } from "./document";
 import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
@@ -35,6 +31,7 @@ import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
 
 const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
+import { HistoryViewer as JupyterHistoryViewer } from "../../jupyter/history-viewer";
 
 interface Props {
   actions: TimeTravelActions;
@@ -50,28 +47,18 @@ interface Props {
   loading?: boolean;
   has_full_history?: boolean;
   docpath?: string;
+  docext?: string;
 }
 
 class TimeTravel extends Component<Props> {
-  private ext?: string;
-  /*
-  // TODO:
-  public shouldComponentUpdate(next_props): boolean {
-    if (this.props.versions != next_props.versions) return true;
-    if (this.props.desc != next_props.desc) {
-      return true;
-    }
-    return false;
-  }
-  */
-
   public static reduxProps({ name }) {
     return {
       [name]: {
         versions: rtypes.immutable.List,
         loading: rtypes.bool,
         has_full_history: rtypes.bool,
-        docpath: rtypes.string
+        docpath: rtypes.string,
+        docext: rtypes.string
       }
     };
   }
@@ -124,28 +111,32 @@ class TimeTravel extends Component<Props> {
   private render_document(): Rendered {
     if (
       this.props.docpath == null ||
+      this.props.docext == null ||
       this.props.desc == null ||
       this.props.desc.get("changes_mode")
     ) {
       return;
     }
-    if (this.ext == null) {
-      this.ext = filename_extension(this.props.docpath);
-    }
-    switch (this.ext) {
+    const version = this.get_version();
+    if (version == null) return;
+    const syncdb = this.props.actions.syncdoc;
+    if (syncdb == null) return;
+    switch (this.props.docext) {
       case "tasks":
-        return this.render_document_tasks();
+        return this.render_document_tasks(syncdb, version);
+      case "ipynb":
+        return this.render_document_jupyter_notebook(syncdb, version);
       default:
         return this.render_document_codemirror();
     }
   }
 
-  private render_document_tasks(): Rendered {
-    const version = this.get_version();
-    if (version == null) return;
-    const syncdb = this.props.actions.syncdoc;
-    if (syncdb == null) return;
+  private render_document_tasks(syncdb, version: Date): Rendered {
     return <TasksHistoryViewer syncdb={syncdb} version={version} />;
+  }
+
+  private render_document_jupyter_notebook(syncdb, version: Date): Rendered {
+    return <JupyterHistoryViewer syncdb={syncdb} version={version} />;
   }
 
   private render_document_codemirror(): Rendered {
