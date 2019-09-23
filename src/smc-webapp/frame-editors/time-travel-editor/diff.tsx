@@ -21,7 +21,7 @@ import { set_cm_line_diff } from "./diff-util";
 interface Props {
   v0: string;
   v1: string;
-  path: string; // filename of doc, which determines what sort of editor it uses
+  path: string; // filename of doc, which determines what sort of syntax highlighting to use.
   editor_settings: Map<string, any>;
   font_size: number;
   use_json: boolean;

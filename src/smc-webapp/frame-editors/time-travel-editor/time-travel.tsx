@@ -29,9 +29,13 @@ import { RevertFile } from "./revert-file";
 import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
+import * as json_stable from "json-stable-stringify";
 
 const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
-import { HistoryViewer as JupyterHistoryViewer } from "../../jupyter/history-viewer";
+import {
+  HistoryViewer as JupyterHistoryViewer,
+  to_ipynb
+} from "../../jupyter/history-viewer";
 
 interface Props {
   actions: TimeTravelActions;
@@ -156,28 +160,55 @@ class TimeTravel extends Component<Props> {
     );
   }
 
-  private render_diff(): Rendered {
+  private get_diff_values():
+    | { v0: string; v1: string; use_json: boolean }
+    | undefined {
     if (
       this.props.docpath == null ||
       this.props.desc == null ||
+      this.props.versions == null ||
       !this.props.desc.get("changes_mode")
-    )
+    ) {
       return;
+    }
+    if (this.props.docext == "ipynb") {
+      const syncdb = this.props.actions.syncdoc;
+      if (syncdb == null) return;
+      const d0 = this.props.versions.get(this.props.desc.get("version0"));
+      if (d0 == null) return;
+      const d1 = this.props.versions.get(this.props.desc.get("version1"));
+      if (d1 == null) return;
+      const v0 = json_stable(to_ipynb(syncdb, d0), { space: 1 });
+      const v1 = json_stable(to_ipynb(syncdb, d1), { space: 1 });
+      return { v0, v1, use_json: true };
+    }
+
     const doc0 = this.get_doc(this.props.desc.get("version0"));
     if (doc0 == null) return; // something is wrong
+    const v0 = doc0.to_str();
+    const use_json = doc0.value == null;
+
     const doc1 = this.get_doc(this.props.desc.get("version1"));
     if (doc1 == null) return; // something is wrong
+    const v1 = doc1.to_str();
 
-    // TODO: for some types, e.g., jupyter, we will want to convert
-    // to the ipynb format first...
+    return { v0, v1, use_json };
+  }
+
+  private render_diff(): Rendered {
+    if (this.props.docpath == null) return;
+    const x = this.get_diff_values();
+    if (x == null) return;
+    const { v0, v1, use_json } = x;
+
     return (
       <Diff
-        v0={doc0.to_str()}
-        v1={doc1.to_str()}
+        v0={v0}
+        v1={v1}
         path={this.props.docpath}
         font_size={this.props.font_size}
         editor_settings={this.props.editor_settings}
-        use_json={doc0.value == null}
+        use_json={use_json}
       />
     );
   }

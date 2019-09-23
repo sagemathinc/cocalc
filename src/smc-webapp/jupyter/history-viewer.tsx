@@ -84,6 +84,10 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
 import { export_to_ipynb } from "./export-to-ipynb";
 import * as json_stable from "json-stable-stringify";
 
+export function to_ipynb(syncdb: SyncDB, version: Date): object {
+  return export_to_ipynb(get_cells(syncdb, version));
+}
+
 export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
   const elt = $("<div class='smc-vfill'></div>");
   return {
@@ -106,7 +110,7 @@ export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
       );
     },
     to_str(version) {
-      const ipynb = export_to_ipynb(get_cells(syncdb, version));
+      const ipynb = to_ipynb(syncdb, version);
       return json_stable(ipynb, { space: 1 });
     }
   };
