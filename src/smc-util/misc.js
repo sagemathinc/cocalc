@@ -1,7 +1,6 @@
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS202: Simplify dynamic range loops
  * DS205: Consider reworking code to avoid use of IIFEs
@@ -3147,6 +3146,7 @@ exports.closest_kernel_match = function(name, kernel_list) {
     asc ? i++ : i--
   ) {
     const k = kernel_list.get(i);
+    if (k == null) continue;  // This happened to Harald once when using the "mod sim py" custom image.
     // filter out kernels with negative priority (using the priority would be great, though)
     if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
     const kernel_name = k.get("name").toLowerCase();
@@ -3222,9 +3222,4 @@ function __range__(left, right, inclusive) {
     range.push(i);
   }
   return range;
-}
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

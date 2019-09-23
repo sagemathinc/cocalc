@@ -16,6 +16,7 @@ let sale2 = sale1.set("name", "Mocha");
 For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
+import { DeepImmutable } from "./immutable-types"
 
 export interface TypedMap<TProps extends Object> {
   size: number;
@@ -31,6 +32,11 @@ export interface TypedMap<TProps extends Object> {
    * notSetValue will be returned if provided. Note that this scenario would
    * produce an error when using Flow or TypeScript.
    */
+  get<K extends keyof TProps>(field: K): DeepImmutable<TProps[K]>;
+  get<K extends keyof TProps, NSV>(
+    field: K,
+    notSetValue: NSV
+  ): DeepImmutable<TProps[K]> | NSV;
   get<K extends keyof TProps>(key: K): TProps[K];
 
   // Reading deep values
