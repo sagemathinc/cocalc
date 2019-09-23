@@ -48,7 +48,7 @@ export class Diff extends Component<Props> {
     this.cm = CodeMirror.fromTextArea(textarea, options);
     init_style_hacks(this.cm);
     set_cm_line_diff(this.cm, this.props.v0, this.props.v1);
-    function f(v0, v1) {
+    const f = (v0:string, v1:string) : void => {
       if (this.cm == null) return;
       set_cm_line_diff(this.cm, v0, v1);
     }

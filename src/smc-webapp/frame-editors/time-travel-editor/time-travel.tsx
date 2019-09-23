@@ -38,6 +38,7 @@ import {
   to_ipynb
 } from "../../jupyter/history-viewer";
 import { SageWorksheetHistory } from "./sagews";
+import { SagewsDiff } from "./sagews-diff";
 
 interface Props {
   actions: TimeTravelActions;
@@ -208,9 +209,23 @@ class TimeTravel extends Component<Props> {
 
   private render_diff(): Rendered {
     if (this.props.docpath == null) return;
+
     const x = this.get_diff_values();
     if (x == null) return;
     const { v0, v1, use_json } = x;
+
+    if (this.props.docext == "sagews") {
+      return (
+        <SagewsDiff
+          v0={v0}
+          v1={v1}
+          path={this.props.docpath}
+          project_id={this.props.project_id}
+          font_size={this.props.font_size}
+          editor_settings={this.props.editor_settings}
+        />
+      );
+    }
 
     return (
       <Diff

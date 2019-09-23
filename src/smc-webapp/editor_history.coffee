@@ -44,8 +44,8 @@ templates = $("#webapp-editor-templates")
 class exports.HistoryEditor extends FileEditor
     constructor: (project_id, filename, content, opts) ->
         super(project_id, filename)
-        if window.smc?
-            window.h = @ # for debugging
+        # if window.smc?
+        #    window.h = @ # for debugging
         @_use_timeago = not redux.getStore('account').getIn(['other_settings', 'time_ago_absolute'])
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
