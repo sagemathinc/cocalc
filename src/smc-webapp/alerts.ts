@@ -34,7 +34,7 @@ import {
 
 const { webapp_client } = require("./webapp_client");
 
-const types = tuple("error", "default", "success", "info");
+const types = tuple(["error", "default", "success", "info"]);
 type Severity = typeof types[number];
 
 // used for system notifications

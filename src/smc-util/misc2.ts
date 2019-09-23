@@ -519,6 +519,6 @@ export function contains_url(str: string): boolean {
 // typescript tuple, use this to convert an array to a literal type. e.g.
 // const types = tuple("error", "default", "success", "info");
 // type Severity = typeof types[number];
-export function tuple<T extends string[]>(...o: T) {
+export function tuple<T extends Array<string>>(o: T) {
   return o;
 }
