@@ -1,18 +1,34 @@
 {
-  "name": "thal",
-  "version": "0.1.0",
-  "description": "front-end cocalc test",
+  "name": "jt05",
+  "version": "1.0.0",
+  "description": "testing node program arch with async",
   "main": "index.js",
   "scripts": {
-    "test": "node index.js"
+    "lev0": "./lev0.js",
+    "lev1": "lev1",
+    "build": "tsc",
+    "test": "node build/test_driver.js",
+    "tdbg": "NODE_DEBUG='CC-*' node build/test_driver.js"
   },
   "author": "Hal Snyder",
   "license": "ISC",
   "devDependencies": {
-    "chalk": "^2.4.2",
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/preset-typescript": "^7.6.0",
+    "@types/chai": "^4.2.2",
+    "@types/expect-puppeteer": "^3.3.1",
+    "@types/js-yaml": "^3.12.1",
+    "@types/node": "^12.7.5",
+    "@types/puppeteer": "^1.19.1",
+    "axios": "^0.19.0",
+    "chai": "^4.2.0",
     "commander": "^2.20.0",
-    "css-to-xpath": "^0.1.0",
-    "puppeteer": "^1.16.0",
-    "sprintf-js": "^1.1.2"
+    "fs": "0.0.1-security",
+    "js-yaml": "^3.13.1",
+    "puppeteer": "^1.20.0",
+    "sprintf-js": "^1.1.2",
+    "type-of-is": "^3.5.1",
+    "typescript": "^3.6.3"
   }
 }

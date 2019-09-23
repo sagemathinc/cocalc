@@ -437,6 +437,15 @@ webapp_client.on 'new_version', (ver) ->
 if COCALC_FULLSCREEN
     if COCALC_FULLSCREEN == 'kiosk'
         redux.getActions('page').set_fullscreen('kiosk')
+        # We also check if user is loading a specific project in kiosk mode
+        # (which is the only thing they should ever do!), and in that
+        # case we record the project_id, so that we can make various
+        # query optimizations elsewhere.
+        x = parse_target(window.smc_target)
+        if x.page == 'project' and x.target?
+            kiosk_project_id = x.target.slice(0,36)
+            if misc.is_valid_uuid_string(kiosk_project_id)
+                redux.getActions('page').setState({kiosk_project_id})
     else
         redux.getActions('page').set_fullscreen('default')
 

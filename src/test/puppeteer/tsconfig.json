@@ -7,18 +7,22 @@
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
     "downlevelIteration": true,
-    "baseUrl": "."
+    "outDir": "build"
   },
+  "include": [
+    "src"
+  ],
   "exclude": [
     "./data",
     "node_modules",
-    "smc-project",
-    "smc-hub",
-    "smc-util-node",
-    "smc-webapp/jupyter/project-actions.ts",
-    "smc-webapp/test-mocha",
-    "smc-webapp/frame-editors/generic/mocha-tests/",
-    "./test"
+    "build"
+  ],
+  "typeRoots": [
+    "node_modules/@types",
+    "node_modules/types" //it's for chalk
   ]
 }

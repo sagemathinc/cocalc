@@ -335,6 +335,44 @@ schema.collaborators = {
   }
 };
 
+
+// This table does NOT support changefeeds.
+schema.collaborators_one_project = {
+  primary_key: "account_id",
+  db_standby: "unsafe",
+  anonymous: false,
+  virtual: "accounts",
+  fields: {
+    account_id: true,
+    project_id: true,
+    first_name: true,
+    last_name: true,
+    last_active: true,
+    profile: true
+  },
+  user_query: {
+    get: {
+      pg_where: [
+        {
+          "account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE project_id = $::UUID)":
+            "project_id"
+        }
+      ],
+      remove_from_query: [
+        "project_id"
+      ] /* this is only used for the pg_where and removed from the actual query */,
+      fields: {
+        account_id: null,
+        project_id: null,
+        first_name: "",
+        last_name: "",
+        last_active: null,
+        profile: null
+      }
+    }
+  }
+};
+
 schema.compute_servers = {
   primary_key: "host",
   fields: {
