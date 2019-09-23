@@ -1,0 +1,10 @@
+{
+  "packages": [
+    "smc-project",
+    "smc-util",
+    "smc-util-node",
+    "smc-webapp",
+    "smc-hub"
+  ],
+  "version": "0.0.0"
+}

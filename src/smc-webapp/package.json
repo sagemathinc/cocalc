@@ -5,6 +5,8 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "smc-util": "1.0.0",
+    "smc-hub": "1.0.0",
     "@fortawesome/fontawesome-free": "^5.8.1",
     "@jupyter-widgets/base": "^1.2.3",
     "@jupyter-widgets/controls": "^1.4.3",

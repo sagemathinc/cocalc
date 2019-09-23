@@ -5,6 +5,8 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "smc-util": "1.0.0",
+    "smc-util-node": "1.0.0",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@types/http-proxy": "^1.16.2",
     "async": "^1.4.2",

@@ -11,6 +11,7 @@
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
   "dependencies": {
+    "smc-util": "1.0.0",
     "async": "^1.4.2",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
