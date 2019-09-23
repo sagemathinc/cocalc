@@ -9,6 +9,7 @@ and it uses tables)  Codemirror automatically supports large documents, editor t
 so we build something on Codemirror instead
 */
 
+import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
 import { Component, React, Rendered } from "../../app-framework";
 import { Map } from "immutable";
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export class Diff extends Component<Props> {
+  private update: Function;
   private cm: CodeMirror.Editor;
   private textarea_ref: React.RefObject<HTMLTextAreaElement> = React.createRef<
     HTMLTextAreaElement
@@ -46,15 +48,26 @@ export class Diff extends Component<Props> {
     this.cm = CodeMirror.fromTextArea(textarea, options);
     init_style_hacks(this.cm);
     set_cm_line_diff(this.cm, this.props.v0, this.props.v1);
+    function f(v0, v1) {
+      if (this.cm == null) return;
+      set_cm_line_diff(this.cm, v0, v1);
+    }
+    this.update = debounce(f, 300);
   }
 
   public componentDidMount(): void {
     this.init_codemirror();
   }
 
+  public componentWillUnmount() : void {
+    if (this.cm == null) return;
+    $(this.cm.getWrapperElement()).remove();
+    delete this.cm;
+  }
+
   public UNSAFE_componentWillReceiveProps(props): void {
     if (props.v0 != this.props.v0 || props.v1 != this.props.v1) {
-      set_cm_line_diff(this.cm, props.v0, props.v1);
+      this.update(props.v0, props.v1);
     }
     this.cm.refresh();
   }
