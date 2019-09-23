@@ -25,7 +25,7 @@ import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
 import { SearchBar } from "./search-bar";
 import { NewButton } from "./new-button";
-import { TypedMap } from "../../app-framework/TypedMap";
+import { ShallowTypedMap } from "../../app-framework/ShallowTypedMap";
 import { ComputeImages } from "../../custom-software/init";
 import { ProjectMap, ProjectStatus } from "smc-webapp/todo-types";
 import { ProjectActions } from "smc-webapp/project_store";
@@ -50,7 +50,7 @@ const pager_range = function(page_size, page_number) {
   return { start_index, end_index: start_index + page_size };
 };
 
-export type Configuration = TypedMap<{ main: MainConfiguration }>;
+export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
 const error_style: React.CSSProperties = {
   marginRight: "1ex",
@@ -257,7 +257,7 @@ export const Explorer = rclass<ReactProps>(
         let disabled_ext;
         if (this.props.configuration != undefined) {
           ({ disabled_ext } = this.props.configuration.get("main", {
-            disabled_ext: [] as string[]
+            disabled_ext: []
           }));
         } else {
           disabled_ext = [];
@@ -510,7 +510,7 @@ export const Explorer = rclass<ReactProps>(
     ) {
       const needle = (project_state && project_state.get("state")) || "";
       const running_or_saving = ["running", "saving"].includes(needle);
-      if (running_or_saving) {
+      if (!running_or_saving) {
         return this.render_project_state(project_state);
       }
 
@@ -593,7 +593,9 @@ export const Explorer = rclass<ReactProps>(
     }
 
     on_click_start_project = () => {
-      this.props.start_project(this.props.project_id);
+      this.props.redux
+        .getActions("projects")
+        .start_project(this.props.project_id);
     };
 
     render_start_project_button(project_state?: ProjectStatus) {

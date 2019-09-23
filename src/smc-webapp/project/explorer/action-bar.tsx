@@ -42,14 +42,14 @@ export class ActionBar extends React.Component<Props, State> {
     this.state = { select_entire_directory: "hidden" };
   }
 
-  componentWillReceiveProps(nextProps: Props): void {
-    if (this.props.current_path !== nextProps.current_path) {
+  componentDidUpdate(prevProps: Props): void {
+    if (prevProps.current_path !== this.props.current_path) {
       // user changed directory, hide the "select entire directory" button
       if (this.state.select_entire_directory !== "hidden") {
         return this.setState({ select_entire_directory: "hidden" });
       }
     } else if (
-      nextProps.checked_files.size === nextProps.listing.length &&
+      this.props.checked_files.size === this.props.listing.length &&
       this.state.select_entire_directory === "check"
     ) {
       // user just clicked the "select entire directory" button, show the "clear" button

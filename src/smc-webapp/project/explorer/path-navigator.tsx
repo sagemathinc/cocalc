@@ -4,7 +4,7 @@ import { Icon } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
 
 const misc = require("smc-util/misc");
-const Breadcrumb = require("react-bootstrap");
+const { Breadcrumb } = require("react-bootstrap");
 
 interface Props {
   current_path: string;

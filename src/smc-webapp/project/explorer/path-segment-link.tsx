@@ -1,7 +1,7 @@
 import * as React from "react";
 import { COLORS, Tip } from "../../r_misc";
 
-const Breadcrumb = require("react-bootstrap");
+const { Breadcrumb } = require("react-bootstrap");
 
 interface Props {
   path: string;
@@ -33,7 +33,7 @@ export function PathSegmentLink({
     }
   }
 
-  function style(): React.CSSProperties{
+  function style(): React.CSSProperties {
     if (history) {
       return { color: "#c0c0c0" };
     } else if (active) {

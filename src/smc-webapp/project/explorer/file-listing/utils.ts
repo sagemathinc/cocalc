@@ -3,10 +3,26 @@ import { file_actions } from "../../../project_store";
 
 export const TERM_MODE_CHAR = "/";
 
+type Extension =
+  | "sagews"
+  | "ipynb"
+  | "tex"
+  | "term"
+  | "x11"
+  | "rnw"
+  | "rtex"
+  | "rmd"
+  | "md"
+  | "tasks"
+  | "course"
+  | "sage"
+  | "py"
+  | "sage-chat";
+
 // default extensions, in their order of precendence
 // the order of these buttons also determines the precedence of suggested file extensions
 // see also smc-webapp/project_files.cjsx
-export const EXTs: ReadonlyArray<string> = Object.freeze([
+export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "sagews",
   "ipynb",
   "tex",
@@ -23,7 +39,9 @@ export const EXTs: ReadonlyArray<string> = Object.freeze([
   "sage-chat"
 ]);
 
-export function default_ext(disabled_ext: string[] | undefined) {
+export function default_ext(
+  disabled_ext: { includes: (s: string) => boolean } | undefined
+): Extension {
   if (disabled_ext != null) {
     for (let ext of EXTs) {
       if (disabled_ext.includes(ext)) continue;
