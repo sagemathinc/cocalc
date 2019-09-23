@@ -40,7 +40,9 @@ if not fullscreen.COCALC_MINIMAL
 
 require('./widget-markdown-input/main').init(redux)
 
-require('./iframe-communication').init()
+# only enable iframe comms in minimal kiosk mode
+if fullscreen.COCALC_MINIMAL
+    require('./iframe-communication').init()
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')

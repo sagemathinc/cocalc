@@ -89,6 +89,60 @@ async function block_origin(mesg): Promise<boolean> {
   return true;
 }
 
+async function handle_open({ data, reply }) {
+  const { project_id, path } = data;
+  const action = "open"; //we're handling "open"
+  if (!is_valid_uuid_string(project_id)) {
+    reply({ status: "error", mesg: `invalid project_id='${project_id}'` });
+    return;
+  }
+
+  if (path == null || typeof path !== "string") {
+    reply({
+      status: "error",
+      mesg: `invalid path, it must be a string`
+    });
+    return;
+  }
+
+  // we're in kiosk mode and only want to open a single project (see init_app)
+  redux.getActions("page").setState({ kiosk_project_id: project_id });
+
+  // copied from cocalc/src/smc-webapp/file-use/util.ts
+  await redux.getActions("projects").open_project({ project_id });
+  await delay(0);
+  const actions = redux.getProjectActions(project_id);
+  if (actions == null) {
+    reply({
+      status: "error",
+      mesg: `problem opening project ${project_id}`
+    });
+    return;
+  }
+
+  const opts = {
+    path: path,
+    foreground: true,
+    foreground_project: true,
+    ignore_kiosk: true,
+    change_history: false
+  };
+
+  try {
+    reply({ status: "ack", action, path, project_id });
+    await actions.open_file(opts);
+    reply({ status: "done", action, path, project_id });
+  } catch (err) {
+    reply({
+      status: "error",
+      action,
+      path,
+      project_id,
+      mesg: err.toString()
+    });
+  }
+}
+
 async function process_message(mesg) {
   // NOTE: all kinds of messages might come in. e.g. there is the react
   // debugger in chrome's dev console. it has cocalc.com as origin.
@@ -132,56 +186,7 @@ async function process_message(mesg) {
   const { action } = data;
   switch (action) {
     case "open":
-      const { project_id, path } = data;
-      if (!is_valid_uuid_string(project_id)) {
-        reply({ status: "error", mesg: `invalid project_id='${project_id}'` });
-        break;
-      }
-
-      if (path == null || typeof path !== "string") {
-        reply({
-          status: "error",
-          mesg: `invalid path, it must be a string`
-        });
-        break;
-      }
-
-      // we're in kiosk mode and only want to open a single project (see init_app)
-      redux.getActions("page").setState({ kiosk_project_id: project_id });
-
-      // copied from cocalc/src/smc-webapp/file-use/util.ts
-      await redux.getActions("projects").open_project({ project_id });
-      await delay(0);
-      const actions = redux.getProjectActions(project_id);
-      if (actions == null) {
-        reply({
-          status: "error",
-          mesg: `problem opening project ${project_id}`
-        });
-        break;
-      }
-
-      const opts = {
-        path: path,
-        foreground: true,
-        foreground_project: true,
-        ignore_kiosk: true,
-        change_history: false
-      };
-
-      try {
-        reply({ status: "ack", action, path, project_id });
-        await actions.open_file(opts);
-        reply({ status: "done", action, path, project_id });
-      } catch (err) {
-        reply({
-          status: "error",
-          action,
-          path,
-          project_id,
-          mesg: err.toString()
-        });
-      }
+      await handle_open({ data, reply });
       break;
 
     case "status":
