@@ -13,6 +13,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "@types/json-stable-stringify": "^1.0.32",
+    "@types/node": "^12.7.5",
     "async": "^1.4.2",
     "async-await-utils": "^2.0.4",
     "awaiting": "^3.0.0",
