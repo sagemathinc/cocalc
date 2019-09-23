@@ -37,7 +37,8 @@ import {
   HistoryViewer as JupyterHistoryViewer,
   to_ipynb
 } from "../../jupyter/history-viewer";
-import { SageWorksheetHistory } from "./sagews";
+//import { SageWorksheetHistory } from "./sagews";
+import { SagewsCodemirror } from "./sagews-codemirror";
 import { SagewsDiff } from "./sagews-diff";
 
 interface Props {
@@ -48,6 +49,7 @@ interface Props {
   desc: Map<string, any>;
   font_size: number;
   editor_settings: Map<string, any>;
+  resize: number;
 
   // reduxProps
   versions?: List<Date>;
@@ -134,7 +136,7 @@ class TimeTravel extends Component<Props> {
       case "ipynb":
         return this.render_document_jupyter_notebook(syncdoc, version);
       case "sagews":
-        return this.render_document_sagews(syncdoc, version);
+        return this.render_document_sagews();
       default:
         return this.render_document_codemirror();
     }
@@ -151,8 +153,25 @@ class TimeTravel extends Component<Props> {
     return <JupyterHistoryViewer syncdb={syncdoc} version={version} />;
   }
 
+  /*
   private render_document_sagews(syncdoc: SyncDoc, version: Date): Rendered {
     return <SageWorksheetHistory syncdoc={syncdoc} version={version} />;
+  }
+  */
+
+  private render_document_sagews(): Rendered {
+    if (this.props.docpath == null || this.props.project_id == null) return;
+    const doc = this.get_doc();
+    if (doc == null) return;
+    return (
+      <SagewsCodemirror
+        content={doc.to_str()}
+        path={this.props.docpath}
+        project_id={this.props.project_id}
+        font_size={this.props.font_size}
+        editor_settings={this.props.editor_settings}
+      />
+    );
   }
 
   private render_document_codemirror(): Rendered {

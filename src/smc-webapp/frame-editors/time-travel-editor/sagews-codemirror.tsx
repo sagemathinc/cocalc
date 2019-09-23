@@ -7,21 +7,19 @@ import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
 import { Component, React, Rendered } from "../../app-framework";
 import { Map } from "immutable";
-import { set_cm_line_diff } from "./diff-util";
 
 const { codemirror_editor } = require("../../editor");
 const { SynchronizedWorksheet } = require("../../sagews/sagews");
 
 interface Props {
-  v0: string;
-  v1: string;
+  content: string;
   path: string;
   project_id: string;
   font_size: number;
   editor_settings: Map<string, any>;
 }
 
-export class SagewsDiff extends Component<Props> {
+export class SagewsCodemirror extends Component<Props> {
   private update: Function;
   private view_doc: any;
   private worksheet: any;
@@ -41,8 +39,6 @@ export class SagewsDiff extends Component<Props> {
       opts
     );
     this.cm = this.view_doc.codemirror;
-    this.view_doc.set_font_size(this.cm, this.props.font_size);
-
     // insert it into the dom.
     $(this.view_doc.element).appendTo($(div));
     // remove the second codemirror editor
@@ -54,13 +50,13 @@ export class SagewsDiff extends Component<Props> {
     };
     this.worksheet = new SynchronizedWorksheet(this.view_doc, opts0);
 
-    const f = (v0: string, v1: string): void => {
+    const f = (content: string): void => {
       if (this.view_doc == null) return;
-      set_cm_line_diff(this.cm, v0, v1);
+      this.cm.setValueNoJump(content);
       this.worksheet.process_sage_updates();
     };
-    f(this.props.v0, this.props.v1);
-    this.update = debounce(f, 300);
+    f(this.props.content);
+    this.update = debounce(f, 100);
   }
 
   public componentDidMount(): void {
@@ -75,8 +71,8 @@ export class SagewsDiff extends Component<Props> {
   }
 
   public UNSAFE_componentWillReceiveProps(props): void {
-    if (props.v0 != this.props.v0 || props.v1 != this.props.v1) {
-      this.update(props.v0, props.v1);
+    if (props.content != this.props.content) {
+      this.update(props.content);
     }
     if (props.font_size != this.props.font_size) {
       this.view_doc.set_font_size(this.cm, props.font_size);
@@ -86,7 +82,10 @@ export class SagewsDiff extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <div className="smc-vfill" style={{ overflow: "auto" }}>
+      <div
+        className="smc-vfill"
+        style={{ overflow: "auto" }}
+      >
         <div ref={this.div_ref} />
       </div>
     );

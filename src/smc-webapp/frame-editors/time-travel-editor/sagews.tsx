@@ -1,3 +1,12 @@
+/*
+Sage worksheet viewer using only react.
+This is what is also used by the share server.
+
+We are currently not using this here, since 3d graphics don't
+work, the look and feel is too different, and you can't copy
+out a range.
+*/
+
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 import { Worksheet } from "../../sagews/worksheet";
 import { parse_sagews } from "../../sagews/parse-sagews";
@@ -27,4 +36,3 @@ export class SageWorksheetHistory extends Component<Props> {
     );
   }
 }
-
