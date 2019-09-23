@@ -10,6 +10,7 @@ const {
 import { ProjectQuotaFreeTable } from "./project-quota-free-table";
 import { ProjectQuotaBoundsTable } from "./project-quota-bounds-table";
 import { DEDICATED_VM_TEXT } from "./dedicated-vm";
+import { FAQ } from "./faq";
 
 interface Props {
   type: "shared" | "dedicated";
@@ -166,6 +167,8 @@ export class ExplainResources extends Component<Props> {
                 <em>not</em> renew.
               </li>
             </ul>
+            <h4>More information</h4>
+            <FAQ />
           </Col>
           <Col md={4} sm={12}>
             <Row>
