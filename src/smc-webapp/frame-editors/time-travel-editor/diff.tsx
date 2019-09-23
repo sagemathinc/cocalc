@@ -53,7 +53,10 @@ export class Diff extends Component<Props> {
   }
 
   public UNSAFE_componentWillReceiveProps(props): void {
-    set_cm_line_diff(this.cm, props.v0, props.v1);
+    if (props.v0 != this.props.v0 || props.v1 != this.props.v1) {
+      set_cm_line_diff(this.cm, props.v0, props.v1);
+    }
+    this.cm.refresh();
   }
 
   public render(): Rendered {
