@@ -24,7 +24,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   private docpath: string;
   private docext: string;
-  private syncdoc?: SyncDoc;
+  public syncdoc?: SyncDoc;
   private first_load: boolean = true;
 
   public _init2(): void {

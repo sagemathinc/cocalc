@@ -16,6 +16,8 @@ import { ButtonGroup } from "react-bootstrap";
 
 import { Loading } from "../../r_misc";
 
+import { filename_extension } from "smc-util/misc2";
+
 import { TimeTravelActions } from "./actions";
 
 import { Document } from "./document";
@@ -31,6 +33,8 @@ import { RevertFile } from "./revert-file";
 import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
+
+const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
 
 interface Props {
   actions: TimeTravelActions;
@@ -49,6 +53,7 @@ interface Props {
 }
 
 class TimeTravel extends Component<Props> {
+  private ext?: string;
   /*
   // TODO:
   public shouldComponentUpdate(next_props): boolean {
@@ -117,15 +122,36 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_document(): Rendered {
-    const doc = this.get_doc();
     if (
-      doc == null ||
       this.props.docpath == null ||
       this.props.desc == null ||
       this.props.desc.get("changes_mode")
     ) {
       return;
     }
+    if (this.ext == null) {
+      this.ext = filename_extension(this.props.docpath);
+    }
+    switch (this.ext) {
+      case "tasks":
+        return this.render_document_tasks();
+      default:
+        return this.render_document_codemirror();
+    }
+  }
+
+  private render_document_tasks(): Rendered {
+    const version = this.get_version();
+    if (version == null) return;
+    const syncdb = this.props.actions.syncdoc;
+    if (syncdb == null) return;
+    return <TasksHistoryViewer syncdb={syncdb} version={version} />;
+  }
+
+  private render_document_codemirror(): Rendered {
+    if (this.props.docpath == null) return;
+    const doc = this.get_doc();
+    if (doc == null) return;
     return (
       <Document
         actions={this.props.actions}
