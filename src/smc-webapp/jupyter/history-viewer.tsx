@@ -28,7 +28,7 @@ function get_cells(
 
 interface HistoryViewerProps {
   syncdb: any; // syncdb object corresponding to a jupyter notebook
-  version?: any;
+  version?: Date;
 }
 
 export class HistoryViewer extends Component<HistoryViewerProps> {

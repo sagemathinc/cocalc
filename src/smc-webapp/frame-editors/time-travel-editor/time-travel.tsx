@@ -30,12 +30,14 @@ import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
 import * as json_stable from "json-stable-stringify";
+import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 
 const TasksHistoryViewer = require("../../tasks/history-viewer").HistoryViewer;
 import {
   HistoryViewer as JupyterHistoryViewer,
   to_ipynb
 } from "../../jupyter/history-viewer";
+import { SageWorksheetHistory } from "./sagews";
 
 interface Props {
   actions: TimeTravelActions;
@@ -123,24 +125,33 @@ class TimeTravel extends Component<Props> {
     }
     const version = this.get_version();
     if (version == null) return;
-    const syncdb = this.props.actions.syncdoc;
-    if (syncdb == null) return;
+    const syncdoc = this.props.actions.syncdoc;
+    if (syncdoc == null) return;
     switch (this.props.docext) {
       case "tasks":
-        return this.render_document_tasks(syncdb, version);
+        return this.render_document_tasks(syncdoc, version);
       case "ipynb":
-        return this.render_document_jupyter_notebook(syncdb, version);
+        return this.render_document_jupyter_notebook(syncdoc, version);
+      case "sagews":
+        return this.render_document_sagews(syncdoc, version);
       default:
         return this.render_document_codemirror();
     }
   }
 
-  private render_document_tasks(syncdb, version: Date): Rendered {
-    return <TasksHistoryViewer syncdb={syncdb} version={version} />;
+  private render_document_tasks(syncdoc: SyncDoc, version: Date): Rendered {
+    return <TasksHistoryViewer syncdb={syncdoc} version={version} />;
   }
 
-  private render_document_jupyter_notebook(syncdb, version: Date): Rendered {
-    return <JupyterHistoryViewer syncdb={syncdb} version={version} />;
+  private render_document_jupyter_notebook(
+    syncdoc: SyncDoc,
+    version: Date
+  ): Rendered {
+    return <JupyterHistoryViewer syncdb={syncdoc} version={version} />;
+  }
+
+  private render_document_sagews(syncdoc: SyncDoc, version: Date): Rendered {
+    return <SageWorksheetHistory syncdoc={syncdoc} version={version} />;
   }
 
   private render_document_codemirror(): Rendered {

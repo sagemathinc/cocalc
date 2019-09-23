@@ -8,7 +8,7 @@ export function valid_indent(x: any): number {
 import { Editor } from "codemirror";
 
 export function init_style_hacks(cm: Editor): void {
-  const e = cm.getWrapperElement();
+  const e: any = cm.getWrapperElement(); /* any type seems needed to import this under node.js right now by the project */
   e.classList.add("smc-vfill");
   // The Codemirror themes impose their own weird fonts, but most users want whatever
   // they've configured as "monospace" in their browser.  So we force that back:
