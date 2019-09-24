@@ -28,7 +28,6 @@ texfile:  latex-sample.tex
 widgetfile: widgets-sample.ipynb
 sageipynbfile: sage-sample.ipynb
 sagewsfile: sagews-sample.sagews
-apikey: sk_xxxx...
 </pre>
 
 Use special URL with http, project UUID, and project port for cc-in-cc:

@@ -7,7 +7,7 @@ const { Icon, TimeAgo, Tip } = require("../r_misc");
 
 const misc = require("smc-util/misc");
 
-const PROMPT_MIN_WIDTH = "80px";
+const PROMPT_MIN_WIDTH = "7em";
 
 export const INPUT_PROMPT_COLOR: string = "#303F9F";
 

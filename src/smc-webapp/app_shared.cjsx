@@ -94,7 +94,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
     if v.length == 0
         # this happens upon loading a URL for a project, but the project isn't open yet.
         # implicitly, this waits for a websocket connection, hence show the same banner as for the landing page
-        v.push <Connecting />
+        v.push <Connecting key={'connecting'} />
     return v
 
 exports.NavTab = rclass

@@ -1233,7 +1233,7 @@ class JupyterNotebook extends EventEmitter
         return false
 
     show_history_viewer: () =>
-        path = misc.history_path(@filename)
+        path = misc.history_path(@filename, true)
         #@dbg("show_history_viewer")(path)
         redux.getProjectActions(@project_id).open_file
             path       : path
