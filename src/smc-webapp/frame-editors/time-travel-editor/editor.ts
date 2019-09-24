@@ -18,8 +18,6 @@ export const time_travel = {
   buttons: set([
     "decrease_font_size",
     "increase_font_size",
-    "find",
-    "copy",
     "help"
   ])
 };

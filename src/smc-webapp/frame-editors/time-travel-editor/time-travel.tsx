@@ -143,14 +143,26 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_document_tasks(syncdoc: SyncDoc, version: Date): Rendered {
-    return <TasksHistoryViewer syncdb={syncdoc} version={version} />;
+    return (
+      <TasksHistoryViewer
+        font_size={this.props.font_size}
+        syncdb={syncdoc}
+        version={version}
+      />
+    );
   }
 
   private render_document_jupyter_notebook(
     syncdoc: SyncDoc,
     version: Date
   ): Rendered {
-    return <JupyterHistoryViewer syncdb={syncdoc} version={version} />;
+    return (
+      <JupyterHistoryViewer
+        font_size={this.props.font_size}
+        syncdb={syncdoc}
+        version={version}
+      />
+    );
   }
 
   /*

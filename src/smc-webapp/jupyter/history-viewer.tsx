@@ -29,6 +29,7 @@ function get_cells(
 interface HistoryViewerProps {
   syncdb: any; // syncdb object corresponding to a jupyter notebook
   version?: Date;
+  font_size?: number;
 }
 
 export class HistoryViewer extends Component<HistoryViewerProps> {
@@ -45,10 +46,13 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
       options: cm_options()
     });
 
-    const account_store = redux.getStore("account") as any;
-    let font_size = 14;
-    if (account_store) {
-      font_size = account_store.get("font_size", font_size);
+    let font_size = this.props.font_size;
+    if (font_size == null) {
+      const account_store = redux.getStore("account") as any;
+      if (account_store != null) {
+        font_size = account_store.get("font_size", font_size);
+      }
+      if (font_size == null) font_size = 14;
     }
     return (
       <CellList
