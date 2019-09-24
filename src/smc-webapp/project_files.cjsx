@@ -46,7 +46,6 @@ STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.st
 {PayCourseFee} = require('./billing/pay-course-fee')
 
 {MiniTerminal, output_style_searchbox}  = require('./project_miniterm')
-{file_associations}   = require('./file-associations')
 account               = require('./account')
 immutable             = require('immutable')
 underscore            = require('underscore')

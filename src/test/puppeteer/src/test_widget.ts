@@ -101,7 +101,7 @@ const test_widget = async function (creds: Creds, page: Page): Promise<void> {
     // { x: 166, y: 288, width: 212, height: 28, top: 288, right: 378, bottom: 316, left: 166 }
     // use "!" after querySelector to suppress TSC "possibly null" error
     const box = await page.evaluate(() => {
-      const gbcr = function(element) {
+      const gbcr = function(element: any) {
         const {top, right, bottom, left, width, height, x, y} = element!.getBoundingClientRect();
         return {top, right, bottom, left, width, height, x, y}
       }

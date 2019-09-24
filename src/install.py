@@ -108,7 +108,6 @@ def install_webapp(*args):
         paths = [
             '.',
             'smc-util',
-            'smc-util-node',
             'smc-webapp',
             'smc-webapp/jupyter',
         ]
