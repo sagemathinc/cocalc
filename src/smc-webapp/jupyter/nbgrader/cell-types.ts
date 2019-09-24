@@ -1,5 +1,7 @@
 import { Metadata } from "./types";
 
+type Language = "python" | "julia" | "r" | "sage";
+
 interface CelltypeInfo {
   title: string; // human readable title for this type of cell
   student_title: string;
@@ -13,8 +15,114 @@ interface CelltypeInfo {
   points?: number; // default number of points
   icon?: string; // icon that would make sense for this type of cell
   code_only?: boolean; // only code cells can be set to this type
-  template?: { [language: string]: string };
+  template?: { [language in Language]?: string };
 }
+
+const PY_TEST = `
+# [Modify the tests below for your own problem]
+# Check that squares returns the correct output for several inputs:
+from nose.tools import assert_equal
+assert_equal(squares(1), [1])
+assert_equal(squares(2), [1, 4])
+
+# Check that squares raises an error for invalid input:
+from nose.tools import assert_raises
+assert_raises(ValueError, squares, 0)
+assert_raises(ValueError, squares, -1)
+
+### BEGIN HIDDEN TESTS
+# students will NOT see these extra tests
+assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
+### END HIDDEN TESTS
+`;
+
+const PY_ANSWER = `
+def squares(n):  # modify function name and parameters
+    """
+    Compute the squares of the numbers from 1 to n.  [replace with function description]
+    """
+    ### BEGIN SOLUTION
+    # Put correct code here.  This code is removed for the student version, but is used
+    # to confirm that your tests are valid.
+    if n < 1: raise ValueError("n must be at least 1")
+    return [i**2 for i in range(1, n+1)]
+    ### END SOLUTION`;
+
+const R_TEST = `
+testthat::test_that("squares function works as expected", {
+  # test the result is an integer vector of length 10
+  testthat::expect_vector(squares(10), ptype = integer(), size = 10)
+  # check for a specific n=3
+  testthat::expect_equal(squares(3), c(1, 4, 9))
+  # use 'tolerance' when there are slight floating point errors
+  testthat::expect_equal(squares(2), c(1, 4.000001), tolerance = 0.002)
+})
+
+# make sure the error contains the word 'positive' for a negative n
+testthat::test_that("squares function raises errors", {
+  testthat::expect_error(squares(-1), "*positive*", ignore.case = TRUE)
+})
+
+### BEGIN HIDDEN TESTS
+
+# students will NOT see this extra test
+testthat::expect_equal(squares(10), c(1, 4, 9, 16, 25, 36, 49, 64, 81, 100))
+### END HIDDEN TESTS`;
+
+const R_ANSWER = `
+squares <- function(n) {
+  # Compute the squares of the numbers from 1 to n.
+
+  ### BEGIN SOLUTION
+
+  # Put correct code here. This code is removed for the student version, but is
+  # used to confirm that your tests are valid.
+  if (n <= 0) {
+    stop("n must be positive")
+  }
+  x <- 1:n
+  return(x * x)
+
+  ### END SOLUTION
+}`;
+
+const JULIA_TEST = `
+using Test
+
+@testset "squares function works as expected" begin
+    # test the result is an integer vector of length 10
+    s10 = squares(10)
+    @test size(s10) == (10,)
+    @test typeof(s10) == Array{Int64,1}
+    # check for a specific n=3
+    @test squares(3) == [1, 4, 9]
+    # use \approx with a tolerance when there are slight floating point errors
+    @test squares(2) ≈ [1, 4.000001]   atol = 0.002
+end
+
+# check if an ArgumentError is raised for a negative n
+@testset "squares function raises errors" begin
+  @test_throws ArgumentError squares(-1)
+end
+
+### BEGIN HIDDEN TESTS
+# students will NOT see this extra test
+@test squares(10) == [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+### END HIDDEN TESTS`;
+
+const JULIA_ANSWER = `
+function squares(n)
+    # Compute the squares of the numbers from 1 to n.
+
+    ### BEGIN SOLUTION
+    # Put correct code here. This code is removed for the student version, but is
+    # used to confirm that your tests are valid.
+    if (n <= 0)
+        throw(ArgumentError("n must be positive"))
+    end
+    return [i^2 for i in 1:n]
+    ### END SOLUTION
+end`;
 
 export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
@@ -62,17 +170,9 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     solution: true,
     code_only: true,
     template: {
-      python: `
-def squares(n):  # modify function name and parameters
-    """
-    Compute the squares of the numbers from 1 to n.  [replace with function description]
-    """
-    ### BEGIN SOLUTION
-    # Put correct code here.  This code is removed for the student version, but is used
-    # to confirm that your tests are valid.
-    if n < 1: raise ValueError("n must be at least 1")
-    return [i**2 for i in range(1, n+1)]
-    ### END SOLUTION`
+      python: PY_ANSWER,
+      r: R_ANSWER,
+      julia: JULIA_ANSWER
     }
   },
   {
@@ -92,23 +192,9 @@ def squares(n):  # modify function name and parameters
     points: 1,
     code_only: true,
     template: {
-      python: `
-# [Modify the tests below for your own problem]
-# Check that squares returns the correct output for several inputs:
-from nose.tools import assert_equal
-assert_equal(squares(1), [1])
-assert_equal(squares(2), [1, 4])
-
-# Check that squares raises an error for invalid input:
-from nose.tools import assert_raises
-assert_raises(ValueError, squares, 0)
-assert_raises(ValueError, squares, -1)
-
-### BEGIN HIDDEN TESTS
-# students will NOT see these extra tests
-assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
-### END HIDDEN TESTS
-`
+      python: PY_TEST,
+      r: R_TEST,
+      julia: JULIA_TEST
     }
   },
   {
