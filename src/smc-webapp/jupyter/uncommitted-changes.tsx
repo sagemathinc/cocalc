@@ -47,7 +47,7 @@ export class UncommittedChanges extends Component<
       return this.setState({ counter: this.state.counter + 1 });
     }
   };
-  componentWillUpdate(new_props) {
+  UNSAFE_componentWillUpdate(new_props) {
     if (
       new_props.has_uncommitted_changes !== this.props.has_uncommitted_changes
     ) {

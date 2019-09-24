@@ -166,7 +166,7 @@ exports.SMC_Dropwrapper = rclass
             @_create_dropzone()
 
     # Update Dropzone options each time the component updates.
-    componentWillUpdate: (new_props) ->
+    UNSAFE_componentWillUpdate: (new_props) ->
         if new_props.disabled
             @_destroy()
         else

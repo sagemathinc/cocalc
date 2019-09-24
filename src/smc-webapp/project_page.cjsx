@@ -252,7 +252,7 @@ ProjectContentViewer = rclass
     componentDidUpdate: ->
         @restore_scroll_position()
 
-    componentWillUpdate: ->
+    UNSAFE_componentWillUpdate: ->
         @save_scroll_position()
 
     restore_scroll_position: ->
