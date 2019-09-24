@@ -15,6 +15,10 @@ python: 3.6
 node_js:
   - "8"
 
+cache:
+  directories:
+  - "$HOME/.npm"
+
 git:
   depth: 3
 
@@ -42,9 +46,8 @@ env:
     - REPORTER=min # for mocha tests
     - PGUSER='smc'
   matrix:
-    # this runs the "normal" tests
-    - KUCALC_MODE=false    NODE_ENV=production
-    # - KUCALC_MODE=false   NODE_ENV=development   # disabled: just uses resources, no real gain
+    # this runs the "normal" tests, NODE_ENV installs devDependencies
+    - KUCALC_MODE=false    NODE_ENV=development
     # this just builds the webapp for production (full minifaction, all static pages, etc.)
     - KUCALC_MODE=webapp   NODE_ENV=production CC_COMP_ENV=true
     # this compiles the hub, project, etc. and runs hubs in test mode

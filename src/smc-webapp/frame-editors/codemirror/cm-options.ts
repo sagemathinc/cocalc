@@ -192,7 +192,7 @@ export function cm_options(
     }
   }
 
-  if (actions.sync != null) {
+  if (actions != null && actions.sync != null) {
     extraKeys["Alt-Enter"] = () => actions.sync(frame_id);
   }
 

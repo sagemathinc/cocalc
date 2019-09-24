@@ -1687,6 +1687,9 @@ class CodeMirrorEditor extends FileEditor
         @element.find(".webapp-editor-codemirror-textedit-buttons").mathjax()
 
 
+exports.codemirror_editor = (project_id, filename, extra_opts) ->
+    return new CodeMirrorEditor(project_id, filename, "", extra_opts)
+
 codemirror_session_editor = exports.codemirror_session_editor = (project_id, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
     ext = filename_extension_notilde(filename).toLowerCase()
