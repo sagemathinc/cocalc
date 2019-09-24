@@ -58,16 +58,21 @@ def install_project():
         c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install --upgrade {pkg} -g"
         cmd(SUDO + c)
 
-    # npm ci for using pkg lock file
-    pkgs = ['./smc-util', './smc-util-node', './smc-project', './smc-webapp']
+    pkgs = [
+        './smc-project',
+        './smc-webapp',
+        './smc-util-node',
+        './smc-util',
+    ]
 
+    # npm ci for using pkg lock file
     def build_op(pkg):
         c = f"npm --loglevel=warn --unsafe-perm=true --progress=false ci {pkg} -g"
         return cmd(SUDO + c)
 
     with executor:
         total = sum(_ for _ in executor.map(build_op, pkgs))
-        print(f"TOTAL PROJECT PKG TIME: {total:.1f}s")
+        print(f"TOTAL PROJECT PKG BUILD TIME: {total:.1f}s")
 
     # UGLY; hard codes the path -- TODO: fix at some point.
     cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
@@ -86,8 +91,9 @@ def install_project():
 
 
 def install_hub():
-    paths = ['.', 'smc-util', 'smc-util-node', 'smc-hub']
+    paths = ['.', 'smc-hub', 'smc-util-node', 'smc-util']
 
+    # npm ci for using pkg lock file
     def build_op(path):
         return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
 
@@ -106,12 +112,13 @@ def install_webapp(*args):
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
 
         paths = [
-            '.',
-            'smc-util',
             'smc-webapp',
             'smc-webapp/jupyter',
+            '.',
+            'smc-util',
         ]
 
+        # npm ci for using pkg lock file
         def build_op(path):
             return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
 
@@ -177,8 +184,14 @@ def install_webapp(*args):
 
 def install_primus():
     # The rm works around a bug in npm...
-    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm --loglevel=warn --progress=false install primus engine.io && cd .. && webapp-lib/primus/update_primus"
-        )
+    ops = [
+        "cd smc-hub",
+        "rm -rf node_modules/primus node_modules/engine.io",
+        "npm --loglevel=warn --progress=false install primus engine.io",
+        "cd ..",
+        "webapp-lib/primus/update_primus",
+    ]
+    cmd(" && ".join(ops))
 
 
 def install_all(compute=False, web=False):
