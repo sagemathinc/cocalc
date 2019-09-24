@@ -18,9 +18,7 @@ export async function repeat_course(
     ext: "course"
   });
   const tmp_name = new_name + project_id;
-
   const new_course_redux_id = init_redux(tmp_name, redux, project_id);
-
   const new_actions = redux.getActions<CourseActions>(new_course_redux_id);
 
   store // Add all old assignment paths
