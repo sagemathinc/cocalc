@@ -13,12 +13,18 @@ for making the data structure trivial.
 ###
 
 async                = require('async')
-
 message              = require('smc-util/message')
 misc                 = require('smc-util/misc')
 {required, defaults} = misc
-
 auth                 = require('./auth')
+{process_env_int}    = require("smc-util-node/misc2_node")
+Bottleneck           = require("bottleneck")
+
+# these parameters are per group and per hub!
+bottleneck_opts      =
+    minTime        : process_env_int('THROTTLE_SIGN_IN_MINTIME', 100)
+    maxConcurrent  : process_env_int('THROTTLE_SIGN_IN_CONCURRENT', 10)
+limit_group          = new Bottleneck.Group(bottleneck_opts)
 
 sign_in_fails =
     email_m : {}
@@ -80,7 +86,7 @@ sign_in_check = (opts) ->
     return false
 
 exports.sign_in = (opts) ->
-    {client, mesg} = opts = defaults opts,
+    opts = defaults opts,
         client   : required
         mesg     : required
         logger   : undefined
@@ -89,9 +95,19 @@ exports.sign_in = (opts) ->
         port     : undefined
         cb       : undefined
 
+    key = opts.client.ip_address
+
+    done_cb = () ->
+        opts.logger?.debug("sign_in(group='#{key}'): done")
+
+    limit_group.key(key).submit(_sign_in, opts, done_cb)
+
+
+_sign_in = (opts, done) ->
+    {client, mesg} = opts
     if opts.logger?
         dbg = (m) ->
-            opts.logger.debug("sign_in(#{mesg.email_address}): #{m}")
+            opts.logger.debug("_sign_in(#{mesg.email_address}): #{m}")
         dbg()
     else
         dbg = ->
@@ -218,10 +234,13 @@ exports.sign_in = (opts) ->
             client.signed_in(signed_in_mesg)
             client.push_to_client(signed_in_mesg)
             opts.cb?()
+
+        # final callback for bottleneck group
+        done()
     )
 
 exports.sign_in_using_auth_token = (opts) ->
-    {client, mesg} = opts = defaults opts,
+    opts = defaults opts,
         client   : required
         mesg     : required
         logger   : undefined
@@ -230,9 +249,18 @@ exports.sign_in_using_auth_token = (opts) ->
         port     : undefined
         cb       : undefined
 
+    key = opts.client.ip_address
+
+    done_cb = () ->
+        opts.logger?.debug("sign_in_using_auth_token(group='#{key}'): done")
+
+    limit_group.key(key).submit(_sign_in_using_auth_token, opts, done_cb)
+
+_sign_in_using_auth_token = (opts, done) ->
+    {client, mesg} = opts
     if opts.logger?
         dbg = (m) ->
-            opts.logger.debug("sign_in_using_auth_token(#{mesg.email_address}): #{m}")
+            opts.logger.debug("_sign_in_using_auth_token(#{mesg.email_address}): #{m}")
         dbg()
     else
         dbg = ->
@@ -306,6 +334,9 @@ exports.sign_in_using_auth_token = (opts) ->
             client.signed_in(signed_in_mesg)
             client.push_to_client(signed_in_mesg)
             opts.cb?()
+
+        # final callback for bottleneck group
+        done()
     )
 
 
