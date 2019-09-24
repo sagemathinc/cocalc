@@ -50,6 +50,7 @@ interface Props {
   font_size: number;
   editor_settings: Map<string, any>;
   resize: number;
+  is_current: boolean;
 
   // reduxProps
   versions?: List<Date>;
@@ -127,9 +128,9 @@ class TimeTravel extends Component<Props> {
       return;
     }
     const version = this.get_version();
-    if (version == null) return;
+    if (version == null) return this.render_loading();
     const syncdoc = this.props.actions.syncdoc;
-    if (syncdoc == null) return;
+    if (syncdoc == null) return this.render_loading();
     switch (this.props.docext) {
       case "tasks":
         return this.render_document_tasks(syncdoc, version);
@@ -239,10 +240,15 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_diff(): Rendered {
-    if (this.props.docpath == null) return;
+    if (
+      this.props.docpath == null ||
+      this.props.desc == null ||
+      this.props.desc.get("changes_mode") != true
+    )
+      return;
 
     const x = this.get_diff_values();
-    if (x == null) return;
+    if (x == null) return this.render_loading();
     const { v0, v1, use_json } = x;
 
     if (this.props.docext == "sagews") {
@@ -387,7 +393,12 @@ class TimeTravel extends Component<Props> {
 
   private render_controls(): Rendered {
     return (
-      <div>
+      <div
+        style={{
+          background: this.props.is_current ? "#fafafa" : "#ddd",
+          borderBottom: "1px solid #ccc"
+        }}
+      >
         {this.render_changes_mode()}
         {this.render_navigation_buttons()}
         <ButtonGroup style={{ margin: "0 10px" }}>
@@ -413,6 +424,10 @@ class TimeTravel extends Component<Props> {
     );
   }
 
+  private render_loading(): Rendered {
+    return <Loading theme={"medium"} />;
+  }
+
   private render_view(): Rendered {
     return (
       <>
@@ -424,7 +439,7 @@ class TimeTravel extends Component<Props> {
 
   public render(): Rendered {
     if (this.props.loading) {
-      return <Loading theme={"medium"} />;
+      return this.render_loading();
     }
     return (
       <div className="smc-vfill">

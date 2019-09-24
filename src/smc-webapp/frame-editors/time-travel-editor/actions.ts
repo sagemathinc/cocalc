@@ -1,18 +1,26 @@
 /*
 TimeTravel Frame Editor Actions
+
+path/to/file.foo --> path/to/.file.foo.time-travel
+
+Right now the file path/to/.file.foo.time-travel is empty, but we plan to use it later.
+
+IMPORTANT:
+(1) Jupyter classic still uses the old history viewer, and
+(2) If you open an old .sage-history file from a project log, that also still opens
+the old viewer, which is a convenient fallback if somebody needs it for some reason.
+
 */
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { callback2, once } from "smc-util/async-utils";
-import { filename_extension, keys } from "smc-util/misc2";
+import { filename_extension, keys, path_split } from "smc-util/misc2";
 import { meta_file } from "smc-util/misc";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
-
-const { IPYTHON_SYNCFILE_EXTENSION } = require("../../editor_jupyter");
 
 const EXTENSION = ".time-travel";
 
@@ -33,14 +41,15 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   private first_load: boolean = true;
 
   public _init2(): void {
-    this.syncpath = this.docpath = this.path.slice(0, this.path.length - EXTENSION.length);
+    const { head, tail } = path_split(this.path);
+    this.docpath = tail.slice(1, tail.length - EXTENSION.length);
+    if (head != "") {
+      this.docpath = head + "/" + this.docpath;
+    }
+    this.syncpath = this.docpath;
     this.docext = filename_extension(this.docpath);
     if (this.docext == "ipynb") {
-      if (this.jupyter_classic()) {
-        this.syncpath = "." + this.docpath + IPYTHON_SYNCFILE_EXTENSION;
-      } else {
-        this.syncpath = meta_file(this.docpath, "jupyter2");
-      }
+      this.syncpath = meta_file(this.docpath, "jupyter2");
     }
     this.setState({
       versions: List([]),
@@ -56,11 +65,12 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     return { type: "time_travel" };
   }
 
+  /*
   private jupyter_classic(): boolean {
     const store = this.redux.getStore("account");
     if (store == null) return false; // can't happen
     return !!store.getIn(["editor_settings", "jupyter_classic"]);
-  }
+  }*/
 
   private async init_syncdoc(): Promise<void> {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
@@ -265,5 +275,4 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     await actions.open_file({ path, foreground: true });
     return path;
   }
-
 }
