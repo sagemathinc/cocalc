@@ -130,15 +130,24 @@ class UsersTable extends Table
         user_map = store.get('user_map')
         if not user_map?
             @redux.getActions('users').setState(user_map: upstream_user_map)
-            return
-        # merge in upstream changes:
-        table.get().map (data, account_id) =>
-            if data != user_map.get(account_id)
-                user_map = user_map.set(account_id, data)
-            return false
-        @redux.getActions('users').setState(user_map: user_map)
+        else
+            # merge in upstream changes:
+            table.get().map (data, account_id) =>
+                if data != user_map.get(account_id)
+                    user_map = user_map.set(account_id, data)
+                return false
+            @redux.getActions('users').setState(user_map: user_map)
 
-redux.createTable('users', UsersTable)
+# we create the table either if we're in normal (not kiosk) mode,
+# or when we have a specific project_id for kiosk mode
+if not COCALC_MINIMAL or redux.getStore('page').get('kiosk_project_id')?
+    redux.createTable('users', UsersTable)
+
+# this is only for kiosk mode
+exports.recreate_users_table = ->
+    #console.log("recreate_users_table: project_id =", redux.getStore('page').get('kiosk_project_id'))
+    redux.removeTable('users')
+    redux.createTable('users', UsersTable)
 
 #TODO: Make useable without passing in user_map
 exports.User = User = rclass

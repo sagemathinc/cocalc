@@ -44,6 +44,7 @@ markdown = require('./markdown')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {UsersViewing} = require('./other-users')
+{recreate_users_table} = require('./users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {fromPairs} = require('lodash')
 ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
@@ -951,6 +952,12 @@ class ProjectsTable extends Table
             return 'projects'
 
     _change: (table, keys) =>
+        #project_map = redux.getTable('projects')?._table.get()
+        #if project_map?
+        #    new_project_map = project_map.merge(table.get())
+        #else
+        #    new_project_map = table.get()
+        #actions.setState(project_map: new_project_map)
         actions.setState(project_map: table.get())
 
 class ProjectsAllTable extends Table
@@ -992,9 +999,13 @@ if not COCALC_MINIMAL
 
 
 _project_tables = {}
+_previous_project_id = undefined
 
 load_single_project = (project_id) =>
     redux.getActions('page').setState({kiosk_project_id:project_id})
+    if _previous_project_id != project_id
+        recreate_users_table()
+        _previous_project_id = project_id
     pt_cached = _project_tables[project_id]
     if pt_cached
         redux._tables[project_id] = pt_cached

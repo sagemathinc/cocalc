@@ -7,7 +7,6 @@ misc = require('smc-util/misc')
 {defaults, types, required} = misc
 {React, ReactDOM, rclass, rtypes} = require('../app-framework')
 {Icon, HelpIcon, Space, TimeAgo} = require('../r_misc')
-{User} = require('../users')
 
 # Sibling Libraries
 {compute_fingerprint} = require('./fingerprint')
