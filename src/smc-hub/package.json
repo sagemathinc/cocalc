@@ -7,7 +7,7 @@
   "dependencies": {
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@types/http-proxy": "^1.16.2",
-    "@types/node": "^12.7.4",
+    "@types/node": "^12.7.5",
     "async": "^1.4.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
