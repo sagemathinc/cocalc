@@ -265,4 +265,5 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     await actions.open_file({ path, foreground: true });
     return path;
   }
+
 }
