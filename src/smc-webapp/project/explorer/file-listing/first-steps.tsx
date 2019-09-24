@@ -1,11 +1,11 @@
 import * as React from "react";
 
-import { ProjectActions } from "../../project_actions";
-import { AppRedux } from "../../app-framework";
+import { ProjectActions } from "../../../project_actions";
+import { AppRedux } from "../../../app-framework";
 
-const { COLORS, Space } = require("../../r_misc");
+import { COLORS, Space } from "../../../r_misc";
 const { Row, Col } = require("react-bootstrap");
-const { SiteName } = require("../../customize");
+const { SiteName } = require("../../../customize");
 
 interface Props {
   actions: ProjectActions;

@@ -8,23 +8,23 @@ NOTES:
 
 import * as React from "react";
 import * as immutable from "immutable";
-import { WindowedList } from "../../r_misc/windowed-list";
+import { WindowedList } from "../../../r_misc/windowed-list";
 
-const misc = require("smc-util/misc");
-const { Col, Row } = require("react-bootstrap");
-const { VisibleMDLG } = require("../../r_misc");
+import { VisibleMDLG } from "../../../r_misc";
 
-import { ProjectActions } from "../../project_actions";
-import { AppRedux, Rendered } from "../../app-framework";
+import { ProjectActions } from "../../../project_actions";
+import { AppRedux, Rendered } from "../../../app-framework";
 
 import { NoFiles } from "./no-files";
-// import { FirstSteps } from "./first-steps";
 import { TerminalModeDisplay } from "./terminal-mode-display";
 import { ListingHeader } from "./listing-header";
 import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
-import { MainConfiguration } from "../../project_configuration";
+import { MainConfiguration } from "../../../project_configuration";
+
+const misc = require("smc-util/misc");
+const { Col, Row } = require("react-bootstrap");
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -39,15 +39,15 @@ interface Props {
   checked_files: immutable.Set<string>;
   current_path: string;
   public_view: boolean;
-  create_folder: () => void; // TODO: should be action!
-  create_file: () => void; // TODO: should be action!
-  selected_file_index: number;
+  create_folder: (switch_over?: boolean) => void; // TODO: should be action!
+  create_file: (ext?: string, switch_over?: boolean) => void; // TODO: should be action!
+  selected_file_index?: number;
   project_id: string;
   shift_is_down: boolean;
   sort_by: (heading: string) => void; // TODO: should be data
-  library: object;
+  library?: object;
   other_settings?: immutable.Map<any, any>;
-  show_new: boolean;
+  show_new?: boolean;
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
 }

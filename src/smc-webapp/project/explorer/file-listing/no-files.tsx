@@ -1,16 +1,16 @@
 import * as React from "react";
-import { Rendered } from "../../app-framework";
-import { analytics_event } from "../../tracker";
-import { Icon } from "../../r_misc/icon";
-import { ProjectActions } from "../../project_actions";
+import { Rendered } from "../../../app-framework";
+import { analytics_event } from "../../../tracker";
+import { Icon } from "../../../r_misc/icon";
+import { ProjectActions } from "../../../project_actions";
 
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
 
-const { FileTypeSelector } = require("../../project_new");
+const { FileTypeSelector } = require("../../../project_new");
 const { Button, Row, Col } = require("react-bootstrap");
 
-import { MainConfiguration } from "../../project_configuration";
+import { MainConfiguration } from "../../../project_configuration";
 
 interface Props {
   name: string;
