@@ -15,6 +15,10 @@ python: 3.6
 node_js:
   - "8"
 
+cache:
+  directories:
+  - "$HOME/.npm"
+
 git:
   depth: 3
 

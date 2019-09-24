@@ -12,6 +12,7 @@
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
   "dependencies": {
+    "@types/jest": "^24.0.18",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/node": "^12.7.5",
     "async": "^1.4.2",
@@ -22,9 +23,11 @@
     "coffeelint": "^1.13.0",
     "coffeescript": "^2.1.0",
     "immutable": "^3.7.5",
+    "jest": "^24.9.0",
     "json-stable-stringify": "^1.0.1",
     "prop-types": "^15.5.10",
     "sha1": "^1.1.1",
+    "ts-jest": "^24.1.0",
     "underscore": "^1.9.1",
     "uuid": "^3.0.1"
   },
@@ -33,15 +36,12 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/jest": "^23.3.10",
     "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
-    "jest": "^24.7.1",
     "mocha": "^5.2.0",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
-    "sinon": "^1.17.2",
-    "ts-jest": "^23.10.5"
+    "sinon": "^1.17.2"
   }
 }

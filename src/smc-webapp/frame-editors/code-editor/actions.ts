@@ -83,12 +83,12 @@ const GutterMarker = createTypedMap<gutterMarkerParams>();
 type GutterMarkers = Map<string, TypedMap<gutterMarkerParams>>;
 
 interface LocalViewParams {
-  frame_tree?: Map<string, any>;// ImmutableFrameTree;
+  frame_tree?: Map<string, any>; // ImmutableFrameTree;
   active_id: string;
   full_id: string;
   editor_state?: unknown;
   version?: number;
-  font_size?: number
+  font_size?: number;
 }
 
 type LocalViewState = TypedMap<LocalViewParams>;
@@ -322,9 +322,7 @@ export class Actions<
 
     this._syncstring.once("error", err => {
       this.set_error(
-        `Fatal error opening ${
-          this.path
-        } -- ${err}\nFix this, then try opening the file again.`
+        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
     });
 
@@ -548,7 +546,7 @@ export class Actions<
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
     for (let key in obj) {
-      const coerced_key = key as keyof LocalViewParams
+      const coerced_key = key as keyof LocalViewParams;
       const value = obj[coerced_key];
       local = local.set(coerced_key, fromJS(value));
     }
@@ -1067,6 +1065,8 @@ export class Actions<
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
+        case "time_travel":
+          return "https://github.com/sagemathinc/cocalc/wiki/TimeTravel";
         default:
           return WIKI_HELP_URL + type + "-help";
       }
