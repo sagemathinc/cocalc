@@ -206,6 +206,7 @@ export class AppRedux {
   getActions(name: "admin-page"): AdminActions;
   getActions(name: "mentions"): MentionsActions;
   getActions(name: { project_id: string }): ProjectActions;
+  getActions<C extends Actions<any>>(name: string): C;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }

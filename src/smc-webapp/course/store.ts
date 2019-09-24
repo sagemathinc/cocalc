@@ -140,6 +140,7 @@ export interface CourseState {
   students: StudentsMap;
   tab: string;
   unsaved?: boolean;
+  processing_new_course?: boolean;
 }
 
 export class CourseStore extends Store<CourseState> {

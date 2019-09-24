@@ -2705,7 +2705,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  create_file(opts) {
+  create_file(opts: {
+    name: string;
+    ext?: string;
+    current_path?: string;
+    switch_over?: boolean;
+  }) {
     let p;
     opts = defaults(opts, {
       name: undefined,

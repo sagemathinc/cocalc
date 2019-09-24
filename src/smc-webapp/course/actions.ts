@@ -46,6 +46,7 @@ import { callback2 } from "smc-util/async-utils";
 const { webapp_client } = require("../webapp_client");
 
 // Course Library
+import { repeat_course } from "./repeat-course";
 import { previous_step, Step, assignment_identifier } from "./util";
 import {
   CourseState,
@@ -59,7 +60,6 @@ import { delay } from "awaiting";
 
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
-// React libraries
 import { Actions } from "../app-framework";
 
 const PARALLEL_LIMIT = 5; // number of async things to do in parallel
@@ -285,6 +285,24 @@ export class CourseActions extends Actions<CourseState> {
 
   set_tab(tab) {
     this.setState({ tab });
+  }
+
+  // Copies this course file with the same assignments, handouts, and configuration
+  //
+  async repeat_this_course(new_name: string): Promise<void> {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    if (
+      !this._loaded() ||
+      (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
+    ) {
+      return;
+    }
+    this.setState({ processing_new_course: true });
+    await repeat_course(new_name, store, this.redux);
+    this.setState({ processing_new_course: false });
   }
 
   async save(): Promise<void> {
@@ -775,13 +793,6 @@ export class CourseActions extends Actions<CourseState> {
       table: "students"
     });
     this.configure_all_projects(); // since they may get added back to shared project, etc.
-  }
-
-  delete_all_students() {
-    const store = this.get_Store();
-    if (store == null) {
-      return;
-    }
   }
 
   // Some students might *only* have been added using their email address, but they

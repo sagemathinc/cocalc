@@ -89,7 +89,7 @@ const redux_name = (project_id, course_filename) =>
 
 const syncdbs = {};
 
-function init_redux(
+export function init_redux(
   course_filename,
   redux: AppRedux,
   course_project_id
@@ -142,7 +142,7 @@ function init_redux(
   return the_redux_name;
 }
 
-const remove_redux = function(course_filename, redux, course_project_id) {
+export const remove_redux = function(course_filename, redux, course_project_id) {
   const the_redux_name = redux_name(course_project_id, course_filename);
 
   // Remove the listener for changes in the collaborators on this project.
