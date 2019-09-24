@@ -9,7 +9,7 @@ npm install uglify-js
 # the first few are for the hub services, but we also build the project
 for path in smc-util smc-util-node smc-hub smc-webapp smc-webapp/jupyter smc-project smc-project/jupyter smc-webapp/jupyter; do
     cd $TRAVIS_BUILD_DIR/src/$path
-    npm install
+    npm ci
 done
 
 # hub: build primus

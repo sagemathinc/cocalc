@@ -1,6 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
-import argparse, os, sys, time, urllib
+import argparse, os, sys, time
+from concurrent.futures import ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=3)
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
@@ -28,17 +30,9 @@ def cmd(s, error=True):
     print(s)
     if os.system(s) and error:
         sys.exit(1)
-    print("TOTAL TIME: %.1f seconds" % (time.time() - t0))
-
-
-def thread_map(callable, inputs, nb_threads=None):
-    if len(inputs) == 0:
-        return []
-    from multiprocessing.pool import ThreadPool
-    if not nb_threads:
-        nb_threads = min(50, len(inputs))
-    tp = ThreadPool(nb_threads)
-    return tp.map(callable, inputs)
+    elapsed = time.time() - t0
+    print("TOTAL TIME: %.1f seconds" % elapsed)
+    return elapsed
 
 
 def pull():
@@ -58,18 +52,30 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-    def f(m):
-        cmd(SUDO +
-            "npm --loglevel=warn --unsafe-perm=true install --upgrade %s -g" %
-            m)
 
-    thread_map(
-        f,
-        './smc-util ./smc-util-node ./smc-project ./smc-webapp coffeescript forever'
-        .split())
+    # global install, hence no "npm ci" (!)
+    for pkg in ['coffeescript', 'forever']:
+        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install --upgrade {pkg} -g"
+        cmd(SUDO + c)
+
+    pkgs = [
+        './smc-project',
+        './smc-webapp',
+        './smc-util-node',
+        './smc-util',
+    ]
+
+    # npm ci for using pkg lock file
+    def build_op(pkg):
+        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false ci {pkg} -g"
+        return cmd(SUDO + c)
+
+    with executor:
+        total = sum(_ for _ in executor.map(build_op, pkgs))
+        print(f"TOTAL PROJECT PKG BUILD TIME: {total:.1f}s")
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"
+    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
         % SUDO)
 
     # At least run typescript...
@@ -85,8 +91,15 @@ def install_project():
 
 
 def install_hub():
-    for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
-        cmd("cd %s; npm --loglevel=warn install" % path)
+    paths = ['.', 'smc-hub', 'smc-util-node', 'smc-util']
+
+    # npm ci for using pkg lock file
+    def build_op(path):
+        return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
+
+    with executor:
+        total = sum(_ for _ in executor.map(build_op, paths))
+        print(f"TOTAL HUB BUILD TIME: {total:.1f}s")
 
 
 def install_webapp(*args):
@@ -97,33 +110,43 @@ def install_webapp(*args):
     if 'build' in action:
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
-        # clean up all package-lock files in cocalc's codebase (before running npm install again)
-        # DISABLED -- causes troubles building
-        #cmd("git ls-files '../*/package-lock.json' | xargs rm -f")
-        for path in ['.', 'smc-util', 'smc-webapp', 'smc-webapp/jupyter']:
-            cmd("cd %s; npm --loglevel=warn install" % path)
+
+        paths = [
+            'smc-webapp',
+            'smc-webapp/jupyter',
+            '.',
+            'smc-util',
+        ]
+
+        # npm ci for using pkg lock file
+        def build_op(path):
+            return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
+
+        with executor:
+            total = sum(_ for _ in executor.map(build_op, paths))
+            print(f"TOTAL WEBAPP BUILD TIME: {total:.1f}s")
 
         # react static step must come *before* webpack step
         cmd("update_react_static")
 
         # download compute environment information
-        # TOOD python 3: https://docs.python.org/3.5/library/urllib.request.html#urllib.request.urlretrieve
         if os.environ.get('CC_COMP_ENV') == 'true':
             print(
                 "Downloading compute environment information, because 'CC_COMP_ENV' is true"
             )
+            # this is python3-only
+            from urllib.request import urlretrieve
             try:
                 host = 'https://storage.googleapis.com/cocalc-compute-environment/'
-                for fn in [
-                        'compute-inventory.json', 'compute-components.json'
-                ]:
+                files = ['compute-inventory.json', 'compute-components.json']
+                for fn in files:
                     out = os.path.join(SRC, 'webapp-lib', fn)
-                    urllib.urlretrieve(host + fn, out)
+                    urlretrieve(host + fn, out)
             except Exception as ex:
                 print(
                     "WARNING: problem while downloading the compute environment information"
                 )
-                print(ex)
+                raise ex
 
         # update primus - so client has it.
         install_primus()
@@ -132,14 +155,14 @@ def install_webapp(*args):
         wtype = 'debug' if (len(args) > 0 and args[0].debug) else 'production'
         if len(args) > 0 and args[0].debug:
             wtype = 'debug'
-            est = 1
+            est = 3
         else:
             wtype = 'production'
-            est = 5
+            est = 10
         print(
-            "Building {wtype} webpack -- this should take up to {est} minutes".
-            format(wtype=wtype, est=est))
-        cmd("npm --loglevel=warn run webpack-{wtype}".format(wtype=wtype))
+            f"Building {wtype} webpack -- this should take up to {est} minutes"
+        )
+        cmd(f"npm --loglevel=warn --progress=false run webpack-{wtype}")
         nothing = False
 
     if 'pull' == action:
@@ -161,8 +184,14 @@ def install_webapp(*args):
 
 def install_primus():
     # The rm works around a bug in npm...
-    cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm --loglevel=warn install primus engine.io && cd .. && webapp-lib/primus/update_primus"
-        )
+    ops = [
+        "cd smc-hub",
+        "rm -rf node_modules/primus node_modules/engine.io",
+        "npm --loglevel=warn --progress=false install primus engine.io",
+        "cd ..",
+        "webapp-lib/primus/update_primus",
+    ]
+    cmd(" && ".join(ops))
 
 
 def install_all(compute=False, web=False):

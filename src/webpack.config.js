@@ -462,9 +462,6 @@ if (COMP_ENV) {
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  minimize: true,
-  discardComments: { removeAll: true },
-  mergeLonghand: true,
   sourceMap: false
 });
 
@@ -649,17 +646,43 @@ module.exports = {
       { test: /\.ts$/, loader: "ts-loader" },
       {
         test: /\.less$/,
-        use: ["style-loader", "css-loader", `less-loader?${cssConfig}`]
-      },
-      {
-        test: /\.scss$/,
-        use: ["style-loader", "css-loader", `sass-loader?${cssConfig}`]
-      },
-      {
-        test: /\.sass$/,
         use: [
           "style-loader",
-          "css-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
+          `less-loader?${cssConfig}`
+        ]
+      },
+      {
+        test: /\.scss$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
+          `sass-loader?${cssConfig}`
+        ]
+      },
+      {
+        test: /\.sass$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
           `sass-loader?${cssConfig}&indentedSyntax`
         ]
       },
@@ -686,7 +709,19 @@ module.exports = {
         loader: `file-loader?name=${hashname}`
       },
       // ---
-      { test: /\.css$/, use: ["style-loader", `css-loader?${cssConfig}`] },
+      {
+        test: /\.css$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 1
+            }
+          },
+          "postcss-loader"
+        ]
+      },
       { test: /\.pug$/, loader: "pug-loader" }
     ]
   },
