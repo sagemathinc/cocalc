@@ -707,8 +707,6 @@ module.exports = {
     modules: [
       path.resolve(__dirname),
       path.resolve(__dirname, WEBAPP_LIB),
-      path.resolve(__dirname, "smc-util"),
-      path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
       path.resolve(__dirname, "node_modules")
