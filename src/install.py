@@ -100,10 +100,7 @@ def install_webapp(*args):
         # clean up all package-lock files in cocalc's codebase (before running npm install again)
         # DISABLED -- causes troubles building
         #cmd("git ls-files '../*/package-lock.json' | xargs rm -f")
-        for path in [
-                '.', 'smc-util', 'smc-util-node', 'smc-webapp',
-                'smc-webapp/jupyter'
-        ]:
+        for path in ['.', 'smc-util', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install" % path)
 
         # react static step must come *before* webpack step
@@ -222,11 +219,10 @@ def main():
 
     parser_sagews = subparsers.add_parser(
         'sagews', help='install sagews server into sage install')
-    parser_sagews.add_argument(
-        "--sage",
-        help="/path/to/sage (default: 'sage')",
-        default='sage',
-        type=str)
+    parser_sagews.add_argument("--sage",
+                               help="/path/to/sage (default: 'sage')",
+                               default='sage',
+                               type=str)
     parser_sagews.set_defaults(func=lambda *args: install_sagews())
 
     parser_project = subparsers.add_parser(
@@ -238,10 +234,14 @@ def main():
         help=
         'install all code that makes sense for the selected classes of servers; use "./install.py all --compute" for compute node and "./install.py all --web" for a web node'
     )
-    parser_all.add_argument(
-        "--compute", default=False, action="store_const", const=True)
-    parser_all.add_argument(
-        "--web", default=False, action="store_const", const=True)
+    parser_all.add_argument("--compute",
+                            default=False,
+                            action="store_const",
+                            const=True)
+    parser_all.add_argument("--web",
+                            default=False,
+                            action="store_const",
+                            const=True)
     parser_all.set_defaults(
         func=lambda args: install_all(compute=args.compute, web=args.web))
 
