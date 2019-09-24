@@ -777,6 +777,13 @@ export class CourseActions extends Actions<CourseState> {
     this.configure_all_projects(); // since they may get added back to shared project, etc.
   }
 
+  delete_all_students() {
+    const store = this.get_Store();
+    if (store == null) {
+      return;
+    }
+  }
+
   // Some students might *only* have been added using their email address, but they
   // subsequently signed up for an CoCalc account.  We check for any of these and if
   // we find any, we add in the account_id information about that student.
