@@ -70,7 +70,14 @@ export async function syncdoc_history(
   const results = await callback2(db._query, { query, where, order_by });
   const patches: Patch[] = [];
   function format_patch(row): Patch {
-    const patch: Patch = { time_utc: row.time, format: row.format };
+    const patch: Patch = {
+      time_utc: row.time,
+      format: row.format,
+      patch_length: undefined,
+      patch: undefined,
+      account_id: undefined,
+      snapshot: undefined
+    };
     const u = users[row.user_id];
     if (u != null) {
       for (let k in u) {

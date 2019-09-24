@@ -23,6 +23,9 @@
 PostgreSQL -- basic queries and database interface
 ###
 
+# Make loading typescript just work.
+require('ts-node').register({ cacheDirectory: process.env.HOME + '/.ts-node-cache' })
+
 exports.DEBUG = true
 
 # If database conection is non-responsive but no error raised directly
