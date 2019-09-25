@@ -16,15 +16,16 @@ import { React, ReactDOM, Rendered, Component } from "../../app-framework";
 
 import { debounce, throttle, isEqual } from "underscore";
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 
-const { Cursors } = require("smc-webapp/jupyter/cursors");
+import { Cursors } from "smc-webapp/jupyter/cursors";
 
-const { cm_options } = require("../codemirror/cm-options");
-const codemirror_state = require("../codemirror/codemirror-state");
-const doc = require("./doc");
+import { cm_options } from "../codemirror/cm-options";
+import { init_style_hacks } from "../codemirror/util";
+import * as codemirror_state from "../codemirror/codemirror-state";
+import * as doc from "./doc";
 
-const { GutterMarkers } = require("./codemirror-gutter-markers");
+import { GutterMarkers } from "./codemirror-gutter-markers";
 
 const STYLE = {
   width: "100%",
@@ -102,7 +103,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.props.is_public && this.props.value !== next.value) {
       if (next.value !== undefined) {
         // we really know that this will be undefined.
-        this.cm.setValue(next.value);
+        this.cm.setValueNoJump(next.value);
       }
     }
     if (this.props.misspelled_words !== next.misspelled_words) {
@@ -135,8 +136,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     // It's important to move the scroll position upon zooming -- otherwise the cursor line
     // move UP/DOWN after zoom, which is very annoying.
     const state = codemirror_state.get_state(this.cm);
-    codemirror_state.set_state(this.cm, state);
-  } // actual restore happens in next refresh cycle after render.
+    // actual restore happens in next refresh cycle after render.
+    if (state != null) codemirror_state.set_state(this.cm, state);
+  }
 
   componentWillUnmount(): void {
     if (this.cm != null && this.props.is_public == null) {
@@ -222,14 +224,16 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     this.safari_hack();
 
-    const options = cm_options(
+    const options : any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
       props.actions,
       props.id
     );
+    if (options == null) throw Error("bug");   // make typescript happy.
 
+    // we will explicitly enable and disable styleActiveLine depending focus
     this.style_active_line = options.styleActiveLine;
     options.styleActiveLine = false;
 
@@ -279,7 +283,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
 
     if (props.editor_state != null) {
-      codemirror_state.set_state(this.cm, props.editor_state.toJS());
+      codemirror_state.set_state(this.cm, props.editor_state.toJS() as any);
     }
 
     if (!props.is_public) {
@@ -317,16 +321,7 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     const save_editor_state = throttle(() => this.save_editor_state(), 150);
     this.cm.on("scroll", save_editor_state);
-
-    const e = $(this.cm.getWrapperElement());
-    e.addClass("smc-vfill");
-    // The Codemirror themes impose their own weird fonts, but most users want whatever
-    // they've configured as "monospace" in their browser.  So we force that back:
-    e.attr(
-      "style",
-      e.attr("style") + "; height:100%; font-family:monospace !important;"
-    );
-    // see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
+    init_style_hacks(this.cm);
 
     this.props.actions.set_cm(this.props.id, this.cm);
 

@@ -82,11 +82,22 @@ interface gutterMarkerParams {
 const GutterMarker = createTypedMap<gutterMarkerParams>();
 type GutterMarkers = Map<string, TypedMap<gutterMarkerParams>>;
 
+interface LocalViewParams {
+  frame_tree?: Map<string, any>; // ImmutableFrameTree;
+  active_id: string;
+  full_id: string;
+  editor_state?: unknown;
+  version?: number;
+  font_size?: number;
+}
+
+type LocalViewState = TypedMap<LocalViewParams>;
+
 export interface CodeEditorState {
   project_id: string;
   path: string;
   is_public: boolean;
-  local_view_state: any; // TypedMap({frame_tree?: ImmutableFrameTree, active_id: string, full_id: string, editor_state?: unknown, version?: number, font_size?: number})
+  local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
   misspelled_words: Set<string>;
@@ -311,9 +322,7 @@ export class Actions<
 
     this._syncstring.once("error", err => {
       this.set_error(
-        `Fatal error opening ${
-          this.path
-        } -- ${err}\nFix this, then try opening the file again.`
+        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
     });
 
@@ -478,7 +487,7 @@ export class Actions<
     );
   }
 
-  _load_local_view_state(): Map<string, any> {
+  _load_local_view_state(): LocalViewState {
     let local_view_state;
     const x = localStorage[this.name];
     if (x != null) {
@@ -530,15 +539,16 @@ export class Actions<
     this.reset_frame_tree();
   }
 
-  set_local_view_state(obj): void {
+  set_local_view_state(obj: LocalViewParams): void {
     if (this._state === "closed") {
       return;
     }
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
     for (let key in obj) {
-      const value = obj[key];
-      local = local.set(key, fromJS(value));
+      const coerced_key = key as keyof LocalViewParams;
+      const value = obj[coerced_key];
+      local = local.set(coerced_key, fromJS(value));
     }
     this.setState({
       local_view_state: local
@@ -548,7 +558,7 @@ export class Actions<
 
   _is_leaf_id(id: string): boolean {
     return tree_ops.is_leaf_id(
-      this.store.getIn(["local_view_state", "frame_tree"]),
+      this.store.getIn(["local_view_state", "frame_tree"]) as any,
       id
     );
   }
@@ -566,7 +576,7 @@ export class Actions<
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
-    const local: Map<string, any> = this.store.get("local_view_state");
+    const local = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
@@ -1055,6 +1065,8 @@ export class Actions<
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
+        case "time_travel":
+          return "https://github.com/sagemathinc/cocalc/wiki/TimeTravel";
         default:
           return WIKI_HELP_URL + type + "-help";
       }
@@ -1199,14 +1211,14 @@ export class Actions<
   }
 
   public _active_id(): string {
-    return this.store.getIn(["local_view_state", "active_id"]);
+    return this.store.getIn(["local_view_state", "active_id"]) as any;
   }
 
   _active_cm(): CodeMirror.Editor | undefined {
     return this._cm[this._active_id()];
   }
 
-  _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1576,10 +1588,7 @@ export class Actions<
     const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
       // TODO why is this an immutable map? it's project_configuration/Available
-      const available = proj_store.get("available_features") as Map<
-        string,
-        boolean
-      >;
+      const available = proj_store.get("available_features");
       if (available != null && !available.get("spellcheck", false)) {
         // console.log("Spellcheck not available");
         return;
