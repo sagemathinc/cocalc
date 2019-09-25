@@ -39,6 +39,7 @@ class CustomizeStore extends Store
 
     get_iframe_comm_hosts: =>
         hosts = @get("iframe_comm_hosts")
+        # ATTN: if you change this regex, also change smc-util/db-schema/site-defaults.ts
         return hosts.match(/[a-zA-Z0-9.-]+/g)
 
 store    = redux.createStore('customize', CustomizeStore, defaults)

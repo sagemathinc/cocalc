@@ -1,24 +1,17 @@
-// This listens to `postMessage`'s and dispatches actions accordingly.
-// For security reasons, this is very restrictive, involves extra checks, and only a selected set of origins is allowed
+// This makes it possible to communicate between a host page and CoCalc in an embedded IFrame in a clean way.
 //
-// TODO:
-// * some aspects of webapp are configured via a configuration endpoint. Use it to set the allowed origins
+// It listens to `postMessage`'s and dispatches actions accordingly.
+// For security reasons, this is very restrictive, involves extra checks, and only a selected set of origins is allowed.
 
 import { delay, callback } from "awaiting";
-import memoizeOne from "memoize-one";
+import * as memoizeOne from "memoize-one";
 import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 import { Map, List } from "immutable";
 
 var initialized = false;
 
-interface ConnectionStatus {
-  quality?: "good" | "flaky" | "bad";
-  status?: string;
-  status_time?: number;
-  ping?: number;
-}
-
+// all replies are of this format
 interface Reply {
   status: "done" | "ack" | "error";
   connection?: ConnectionStatus;
@@ -29,6 +22,15 @@ interface Reply {
   open_files?: object;
 }
 
+// this should give the host page a high-level view of how well the page works
+interface ConnectionStatus {
+  quality?: "good" | "flaky" | "bad";
+  status?: string;
+  status_time?: number;
+  ping?: number;
+}
+
+// acquire how well cocalc is connected to the server
 function connection_status(): ConnectionStatus | undefined {
   const page_store = redux.getStore("page") as any;
   if (page_store == null) return;
@@ -73,6 +75,8 @@ function all_opened_files(): undefined | object {
   return all_files.filter(files => files.length > 0).toJS();
 }
 
+// this gets and saves a list of allowed origin hosts.
+// they're configured via site-settings (db-schema/site-defaults.ts)
 const get_allowed_hosts = memoizeOne(
   async (): Promise<string[]> => {
     const customize_store = redux.getStore("customize");
@@ -82,9 +86,19 @@ const get_allowed_hosts = memoizeOne(
   }
 );
 
-async function block_origin(mesg): Promise<boolean> {
-  for (const allowed of await get_allowed_hosts()) {
-    if (mesg.origin.endsWith(allowed)) return false;
+// there are two cases: an allowed host starts with a "." or not
+// a "." implies the domain and all subdomains are allowed (i.e. origin ends with it)
+// ATTN what we do *not* want to match is this: bar.com is allowed, but we're embedded in foobar.com
+// we also reject http:// due to being insecure.
+export function block_origin(mesg, hosts: string[]): boolean {
+  if (mesg.origin.startsWith("http://")) return true;
+  for (const allowed of hosts) {
+    if (allowed.slice(0, 1) === ".") {
+      if (mesg.origin.endsWith(allowed)) return false;
+      if (mesg.origin.endsWith(`https://${allowed.slice(1)}`)) return false;
+    } else {
+      if (mesg.origin.endsWith(`https://${allowed}`)) return false;
+    }
   }
   return true;
 }
@@ -159,7 +173,7 @@ async function process_message(mesg) {
   }
 
   // check origin
-  if (await block_origin(mesg)) {
+  if (await block_origin(mesg, await get_allowed_hosts())) {
     // console.log(`Origin '${mesg.origin}' is blocked.`);
     return;
   }
@@ -216,6 +230,8 @@ async function process_message(mesg) {
   }
 }
 
+// this must be run to set this up
+// currently, this only happens for minimal/kiosk mode in smc-webapp/entry-point.coffee
 export function init() {
   if (initialized) return;
   initialized = true;

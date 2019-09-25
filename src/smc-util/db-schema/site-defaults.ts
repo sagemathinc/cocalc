@@ -61,7 +61,7 @@ export const site_settings_conf = {
   iframe_comm_hosts: {
     name: "IFrame communication hosts",
     desc:
-      "List of DNS names or suffixes (when starting with a dot), which are allowed to communicate back and forth with an embedded CoCalc instance. (it picks all matching '[a-zA-Z0-9.-]+')",
+      "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
     default: ""
   }
 };
