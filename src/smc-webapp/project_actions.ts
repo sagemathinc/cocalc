@@ -1766,7 +1766,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // check all files in the given file_list
-  set_file_list_checked(file_list: immutable.List<string>): void {
+  set_file_list_checked(file_list: immutable.List<string> | string[]): void {
     let store = this.get_store();
     if (store == undefined) {
       return;

@@ -1,8 +1,8 @@
 import * as React from "react";
 
-import { ProjectActions } from "../../project_actions";
+import { ProjectActions } from "../../../project_actions";
+import { Icon } from "../../../r_misc";
 
-const { Icon } = require("../../r_misc");
 const misc = require("smc-util/misc");
 
 interface Props {

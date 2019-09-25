@@ -1218,7 +1218,7 @@ export class Actions<
     return this._cm[this._active_id()];
   }
 
-  _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     return this.terminals.get_terminal(id, parent);
   }
 
