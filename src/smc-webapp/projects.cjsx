@@ -952,13 +952,17 @@ class ProjectsTable extends Table
             return 'projects'
 
     _change: (table, keys) =>
-        #project_map = redux.getTable('projects')?._table.get()
-        #if project_map?
-        #    new_project_map = project_map.merge(table.get())
-        #else
-        #    new_project_map = table.get()
-        #actions.setState(project_map: new_project_map)
-        actions.setState(project_map: table.get())
+        # in kiosk mode, merge in the new project table into the known project map
+        project_id = redux.getStore('page').get('kiosk_project_id')
+        if project_id?
+            project_map = redux.getStore("projects")?.get("project_map")
+            if project_map?
+                new_project_map = project_map.merge(table.get())
+            else
+                new_project_map = table.get()
+            actions.setState(project_map: new_project_map)
+        else
+            actions.setState(project_map: table.get())
 
 class ProjectsAllTable extends Table
     query: ->
