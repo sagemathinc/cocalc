@@ -1,3 +1,6 @@
 [submodule "src/examples"]
 	path = src/examples
 	url = https://github.com/sagemathinc/cocalc-snippets.git
+[submodule "src/cocalc-legacy-react-bootstrap"]
+	path = src/cocalc-legacy-react-bootstrap
+	url = https://github.com/sagemathinc/cocalc-legacy-react-bootstrap.git
