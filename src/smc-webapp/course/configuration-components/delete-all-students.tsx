@@ -20,7 +20,7 @@ export function DeleteAllStudents({ delete_all_students }: Props) {
         </h4>
       }
     >
-      <Button bsStyle="danger" onClick={open_confirmation}>
+      <Button bsStyle="warning" onClick={open_confirmation}>
         <Icon name="trash" /> Delete all Students...
       </Button>
       {is_opened && (
@@ -41,8 +41,8 @@ function Confirmation({ on_confirm, on_cancel }) {
       <br />
       Are you absolutely sure?
       <ButtonToolbar style={{ marginTop: "10px" }}>
-        <Button bsStyle="danger" onClick={on_confirm}>
-          YES, DELETE all Student Projects
+        <Button bsStyle="warning" onClick={on_confirm}>
+          YES, DELETE all Students
         </Button>
         <Button onClick={on_cancel}>Cancel</Button>
       </ButtonToolbar>
