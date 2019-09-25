@@ -469,6 +469,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             }
             project_map={this.props.project_map}
             configuring_projects={this.props.configuring_projects}
+            actions={this.get_actions()}
           />
         );
       } else {
