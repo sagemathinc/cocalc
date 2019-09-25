@@ -350,7 +350,6 @@ interface ConfigurationPanelProps {
   project_map: ProjectMap;
   shared_project_id?: string;
   configuring_projects?: boolean;
-  actions: CourseActions;
 }
 
 interface ConfigurationPanelState {
