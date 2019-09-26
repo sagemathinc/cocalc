@@ -6,6 +6,14 @@ MOTIVATION: Sage jmol.
 
 const misc = require("smc-util/misc"); // TODO: import type
 
+//function contains_audio(content: string): boolean {
+//  return (
+//    content.indexOf("data:audio") >= 0 &&
+//    content.indexOf("<source src=") >= 0 &&
+//    content.indexOf("<audio") >= 0
+//  );
+//}
+
 export function is_likely_iframe(content: string): boolean {
   if (!content) {
     return false;
@@ -18,6 +26,7 @@ export function is_likely_iframe(content: string): boolean {
     misc.startswith(content, '<iframe srcdoc="') ||
     content.indexOf("<!doctype html>") >= 0 ||
     (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0)
+    // ||    contains_audio(content)
   );
 }
 

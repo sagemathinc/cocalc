@@ -23,8 +23,6 @@ export const JUPYTER_MIMETYPES = [
   "image/jpeg",
   "application/pdf",
   "text/plain",
-  "audio/wav",
-  "audio/x-wav"
 ];
 
 export type Kernel = immutable.Map<string, string>;

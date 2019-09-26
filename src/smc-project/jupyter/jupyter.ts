@@ -638,9 +638,9 @@ export class JupyterKernel extends EventEmitter
     let type: string;
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
+        dbg(`${type} → ${type.split("/")[0]}`);
         if (
           type.split("/")[0] === "image" ||
-          type.split("/")[0] === "audio" ||
           type === "application/pdf"
         ) {
           content.data[type] = blob_store.save(content.data[type], type);
