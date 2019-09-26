@@ -38,11 +38,11 @@ export type Parser =
   | "tsx"
   | "jsx";
 
-export type Variant = "styler" | "formatR" | undefined;
+export type Variant = "styler" | "formatR";
 
 export interface ParserVariant {
   parser: Parser;
-  variant: Variant;
+  variant?: Variant;
 }
 
 export type Tool =
@@ -197,8 +197,8 @@ export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);
 
 export function format_parser_for_extension(ext: string): ParserVariant {
   let parser: Parser;
-  let variant: Variant;
-  switch (ext) {
+  let variant: Variant | undefined = undefined;
+  switch (ext.toLowerCase()) {
     case "js":
     case "jsx":
       parser = "babylon";

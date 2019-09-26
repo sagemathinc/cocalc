@@ -6,7 +6,7 @@ import { CloseX } from "./close-x";
 const error_text_style: React.CSSProperties = {
   marginRight: "1ex",
   whiteSpace: "pre-line",
-  maxWidth: "100ex"
+  maxWidth: "150ex"
 };
 
 interface Props {

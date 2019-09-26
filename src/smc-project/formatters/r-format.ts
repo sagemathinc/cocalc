@@ -3,8 +3,7 @@ const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
 // const { replace_all } = require("smc-util/misc");
-
-type Variant = "styler" | "formatR";
+import { Variant } from "../smc-util/code-formatter";
 
 interface ParserOptions {
   parser?: string;

@@ -99,7 +99,7 @@ export async function run_prettier_string(
     case "rnw":
     case "rmd":
       // formatting cells in jupyter has no extension. Make sure it is .R!
-      ext = misc.filename_extension(path !== undefined ? path : "code.R");
+      ext = misc.filename_extension(path || "code.R");
       // in case of Rmd, formulas are escaped (see above) and we format it first
       if (ext.toLowerCase() === "rmd") {
         ext = "Rmd";
@@ -120,7 +120,7 @@ export async function run_prettier_string(
       pretty = await bib_format(str, options, logger);
       break;
     case "clang-format":
-      ext = misc.filename_extension(path != null ? path : "");
+      ext = misc.filename_extension(path || "");
       pretty = await clang_format(str, options, ext, logger);
       break;
     case "gofmt":
