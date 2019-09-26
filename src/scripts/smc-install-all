@@ -18,7 +18,7 @@ run_install() {
 if `hash parallel &> /dev/null`; then
 
     export -f run_install
-    parallel --will-cite --linebuffer --jobs 3 run_install ::: "${CODE_DIRS[@]}"
+    parallel --will-cite --halt now,fail=1 --linebuffer --jobs 3 run_install ::: "${CODE_DIRS[@]}"
 
 else
 
