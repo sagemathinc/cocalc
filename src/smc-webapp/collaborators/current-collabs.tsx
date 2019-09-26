@@ -1,7 +1,6 @@
 import { React, Component, redux, rtypes, rclass } from "../app-framework";
-const { ProjectSettingsPanel } = require("../project/project-settings-support");
 import { Well, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
-const { Space, Icon } = require("../r_misc");
+import { Space, Icon, SettingBox } from "../r_misc";
 const { User } = require("../users");
 
 interface CurrentCollaboratorsPanelProps {
@@ -159,9 +158,9 @@ class CurrentCollaboratorsPanel0 extends Component<
   }
   render() {
     return (
-      <ProjectSettingsPanel title="Current collaborators" icon="user">
+      <SettingBox title="Current collaborators" icon="user">
         {this.render_collaborators_list()}
-      </ProjectSettingsPanel>
+      </SettingBox>
     );
   }
 }

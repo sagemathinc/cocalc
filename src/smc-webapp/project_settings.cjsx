@@ -41,7 +41,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed, A} = require('./r_misc')
+ DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed, A, SettingBox} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {User} = require('./users')
 
@@ -51,7 +51,6 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
 {JupyterLabServerPanel}   = require('./project/jupyterlab-server')
 
@@ -60,33 +59,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 {CUSTOM_IMG_PREFIX, CUSTOM_SOFTWARE_HELP_URL, compute_image2name, compute_image2basename} = require('./custom-software/util')
 
 {URLBox} = require('./project/settings/url-box')
-
-TitleDescriptionPanel = rclass
-    displayName : 'ProjectSettings-TitleDescriptionPanel'
-
-    propTypes :
-        project_title : rtypes.string.isRequired
-        project_id    : rtypes.string.isRequired
-        description   : rtypes.string.isRequired
-        actions       : rtypes.object.isRequired # projects actions
-
-    render: ->
-        <ProjectSettingsPanel title='Title and description' icon='header'>
-            <LabeledRow label='Title'>
-                <TextInput
-                    text={@props.project_title}
-                    on_change={(title)=>@props.actions.set_project_title(@props.project_id, title)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Description'>
-                <TextInput
-                    type      = 'textarea'
-                    rows      = {2}
-                    text      = {@props.description}
-                    on_change = {(desc)=>@props.actions.set_project_description(@props.project_id, desc)}
-                />
-            </LabeledRow>
-        </ProjectSettingsPanel>
+{TitleDescriptionBox} = require('./project/settings/title-description-box')
 
 QuotaConsole = rclass
     displayName : 'ProjectSettings-QuotaConsole'
@@ -395,7 +368,7 @@ UsagePanel = rclass
     render: ->
         if not require('./customize').commercial
             return null
-        <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
+        <SettingBox title='Project usage and quotas' icon='dashboard'>
             {@render_upgrades_button()}
             {@render_upgrade_adjustor() if @state.show_adjustor}
             <QuotaConsole
@@ -416,7 +389,7 @@ UsagePanel = rclass
                 include the following URL:
                 <URLBox />
             </span>
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 HideDeletePanel = rclass
     displayName : 'ProjectSettings-HideDeletePanel'
@@ -515,7 +488,7 @@ HideDeletePanel = rclass
         if not user?
             return <span>Does not make sense for admin.</span>
         hidden = user.get('hide')
-        <ProjectSettingsPanel title='Hide or delete project' icon='warning'>
+        <SettingBox title='Hide or delete project' icon='warning'>
             <Row>
                 <Col sm={8}>
                     {@hide_message()}
@@ -547,7 +520,7 @@ HideDeletePanel = rclass
                     that you accidentally copied into a project, contact <HelpEmailLink/>.
                 </Col>
             </Row>
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 SageWorksheetPanel = rclass
     displayName : 'ProjectSettings-SageWorksheetPanel'
@@ -585,7 +558,7 @@ SageWorksheetPanel = rclass
             <MessageDisplay message={@state.message} onClose={=>@setState(message:'')} />
 
     render: ->
-        <ProjectSettingsPanel title='Sage worksheet server' icon='refresh'>
+        <SettingBox title='Sage worksheet server' icon='refresh'>
             <Row>
                 <Col sm={8}>
                     Restart this Sage Worksheet server. <br />
@@ -602,7 +575,7 @@ SageWorksheetPanel = rclass
                 </Col>
             </Row>
             {@render_message()}
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 
 ProjectCapabilitiesPanel = rclass ({name}) ->
@@ -735,13 +708,13 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
     render : ->
         conf = @props.configuration
 
-        <ProjectSettingsPanel
+        <SettingBox
             title={'Features and configuration'}
             icon={'clipboard-check'}
         >
             {@render_debug_info(conf)}
             {@render_available()}
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 
 
@@ -1052,7 +1025,7 @@ ProjectControlPanel = rclass
         return style
 
     render: ->
-        <ProjectSettingsPanel title='Project control' icon='gears'>
+        <SettingBox title='Project control' icon='gears'>
             <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
@@ -1069,7 +1042,7 @@ ProjectControlPanel = rclass
             </LabeledRow>
             {<hr /> if @props.kucalc != 'yes'}
             {@render_select_compute_image_row()}
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 SSHPanel = rclass
     displayName: 'ProjectSettings-SSHPanel'
@@ -1188,7 +1161,7 @@ ProjectSettingsBody = rclass ({name}) ->
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Project Settings</h1>
             <Row>
                 <Col sm={6}>
-                    <TitleDescriptionPanel
+                    <TitleDescriptionBox
                         project_id    = {id}
                         project_title = {@props.project.get('title') ? ''}
                         description   = {@props.project.get('description') ? ''}

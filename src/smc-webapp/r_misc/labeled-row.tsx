@@ -2,11 +2,11 @@ import * as React from "react";
 const { Col, Row } = require("react-bootstrap");
 
 interface Props {
-  label_cols: number;
+  label_cols?: number;
   label?: string;
   style?: React.CSSProperties;
   className?: string;
-  children: React.ComponentType;
+  children: React.ReactNode;
 }
 
 export function LabeledRow({

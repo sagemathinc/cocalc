@@ -3,10 +3,9 @@ Add collaborators to a project
 */
 
 import { React, Component, rtypes, rclass, redux } from "../app-framework";
-const { ErrorDisplay, Icon, MarkdownInput } = require("../r_misc");
+import { ErrorDisplay, Icon, MarkdownInput, SettingBox } from "../r_misc";
 import { PickerList } from "./picker-list";
 const { webapp_client } = require("../webapp_client");
-const { ProjectSettingsPanel } = require("../project/project-settings-support");
 const { callback_opts } = require("smc-util/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
@@ -513,7 +512,7 @@ ${name}
 
   render() {
     return (
-      <ProjectSettingsPanel title="Add new collaborators" icon="plus">
+      <SettingBox title="Add new collaborators" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.
@@ -528,7 +527,7 @@ ${name}
         ) : (
           undefined
         )}
-      </ProjectSettingsPanel>
+      </SettingBox>
     );
   }
 }

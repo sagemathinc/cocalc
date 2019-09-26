@@ -1,3 +1,4 @@
+import { SettingBox } from "../../smc-project/smc-webapp/r_misc/setting-box";
 export { A } from "./A";
 export { Icon } from "./icon";
 export { Tip } from "./tip";
@@ -16,6 +17,7 @@ export { TextInput } from "./text-input";
 export { NumberInput } from "./number-input";
 export { LabeledRow } from "./labeled-row";
 export { TimeElapsed } from "./time-elapsed";
+export { SettingBox } from "./setting-box";
 
 export const {
   MarkdownInput,
