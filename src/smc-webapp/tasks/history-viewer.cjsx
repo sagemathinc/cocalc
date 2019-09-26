@@ -21,6 +21,7 @@ exports.HistoryViewer = HistoryViewer = rclass
     propTypes :
         syncdb  : rtypes.object.isRequired   # syncdb object corresponding to a jupyter notebook
         version : rtypes.object
+        font_size : rtypes.number
 
     getInitialState: ->
         show_done : false
@@ -59,7 +60,7 @@ exports.HistoryViewer = HistoryViewer = rclass
             visible    = {visible}
             read_only  = {true}
             style      = {overflowY:'auto'}
-            show_max   = {100}
+            font_size  = {@props.font_size}
             />
 
     render: ->

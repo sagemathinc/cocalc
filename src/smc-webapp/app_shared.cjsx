@@ -36,6 +36,7 @@ misc = require('smc-util/misc')
 {show_announce_end} = require('./redux_account')
 {analytics_event} = require('./tracker')
 {user_tracking} = require('./user-tracking')
+{Connecting} = require('./landing_page')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -84,6 +85,11 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
             v.push <AdminPage redux={redux} key={'admin'}/>
         when undefined
             v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+
+    if v.length == 0
+        # this happens upon loading a URL for a project, but the project isn't open yet.
+        # implicitly, this waits for a websocket connection, hence show the same banner as for the landing page
+        v.push <Connecting key={'connecting'} />
     return v
 
 exports.NavTab = rclass

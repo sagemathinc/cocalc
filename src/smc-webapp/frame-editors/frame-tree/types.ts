@@ -41,6 +41,7 @@ interface EditorDescription {
   buttons?: { [button_name: string]: true } | ButtonFunction;
   // NOTE: customize is only implemented for shell button right now!
   customize_buttons?: { [button_name: string]: ButtonCustomize };
+  hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
 }
 
 export interface EditorSpec {

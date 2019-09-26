@@ -44,7 +44,12 @@ const COL_BAR_BORDER = "rgb(204,204,204)";
 const title_bar_style: CSS.Properties = {
   background: COL_BAR_BACKGROUND_DARK,
   border: `1px solid ${COL_BAR_BORDER}`,
-  padding: "1px"
+  padding: "1px",
+  flexDirection: "row",
+  flexWrap: "nowrap",
+  flex: "0 0 auto",
+  display: "flex",
+  minHeight: "34px"
 };
 
 const path_style: CSS.Properties = {
@@ -56,12 +61,15 @@ const path_style: CSS.Properties = {
 };
 
 const TITLE_STYLE: CSS.Properties = {
+  background: COL_BAR_BACKGROUND_DARK,
   padding: "5px 5px 0 5px",
   color: "#333",
   fontSize: "10pt",
-  display: "inline-block",
-  float: "right",
-  whiteSpace: "nowrap"
+  /*  float: "right", */
+  whiteSpace: "nowrap",
+  flex: "1 1 auto",
+  textAlign: "right",
+  display: "inline-block"
 };
 
 const CONNECTION_STATUS_STYLE: CSS.Properties = {
@@ -257,10 +265,15 @@ export class FrameTitleBar extends Component<Props, State> {
   render_control(): Rendered {
     const is_active = this.props.active_id === this.props.id;
     const style: CSS.Properties = {
-      float: "right" as "right",
-      paddingLeft: "5px",
+      padding: 0,
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
     };
+    if (is_active) {
+      style.position = "absolute";
+      style.boxShadow = "#ccc -3px 0";
+      style.right = 0;
+      style.zIndex = 10; // so can click see buttons when flow around
+    }
     return (
       <ButtonGroup style={style} key={"close"}>
         {is_active ? this.render_types() : undefined}
@@ -1087,10 +1100,12 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!(this.props.is_only || this.props.is_full)) {
       return;
     }
+    const spec = this.props.editor_spec[this.props.type];
+    if (spec != null && spec.hide_file_menu) return;
     return (
       <EditorFileInfoDropdown
         key={"info"}
-        title={"File` related actions"}
+        title={"File related actions"}
         filename={this.props.path}
         actions={redux.getProjectActions(this.props.project_id)}
         is_public={false}
@@ -1177,16 +1192,21 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_main_buttons(): Rendered {
     // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
-    // and *ALSO* have buttons that vanish when there are many of them (via scrolling around).
+    // and *ALSO* have buttons that vanish when there are many of them.
+    const style: CSS.Properties = {
+      flex: "1 1 auto" /* controls shrink to the right due to 0 0 auto*/,
+      flexFlow: "row nowrap",
+      display: "flex"
+    };
     return (
-      <div style={{ display: "flex" }}>
+      <div style={style}>
         {!this.props.is_public ? this.render_file_menu() : undefined}
         {this.render_buttons()}
       </div>
     );
   }
 
-  render_connection_status(): Rendered {
+  render_connection_status(is_active: boolean): Rendered | undefined {
     if (
       !this.props.connection_status ||
       !this.is_visible("connection_status", true)
@@ -1199,11 +1219,15 @@ export class FrameTitleBar extends Component<Props, State> {
       // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx
       return;
     }
+
+    const style = is_active
+      ? Object.assign({}, CONNECTION_STATUS_STYLE, {
+          background: COL_BAR_BACKGROUND
+        })
+      : CONNECTION_STATUS_STYLE;
+
     return (
-      <span
-        style={CONNECTION_STATUS_STYLE}
-        title={this.props.connection_status}
-      >
+      <span style={style} title={this.props.connection_status}>
         <Icon
           style={{
             color: connection_status_color(this.props.connection_status)
@@ -1214,7 +1238,7 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  render_title(): Rendered {
+  render_title(is_active: boolean): Rendered {
     let title: string = "";
     let icon: string = "";
     if (this.props.title !== undefined) {
@@ -1233,12 +1257,17 @@ export class FrameTitleBar extends Component<Props, State> {
         }
       }
     }
+
+    const style = is_active
+      ? Object.assign({}, TITLE_STYLE, { background: COL_BAR_BACKGROUND })
+      : TITLE_STYLE;
+
     return (
-      <span style={TITLE_STYLE}>
+      <div style={style}>
         {icon ? <Icon name={icon} /> : null}
         <Space />
         {trunc_middle(title, 25)}
-      </span>
+      </div>
     );
   }
 
@@ -1297,6 +1326,9 @@ export class FrameTitleBar extends Component<Props, State> {
       if (!this.props.is_only && !this.props.is_full) {
         style.maxHeight = "34px";
       }
+      // position relative, so we can absolute position the
+      // frame controls to the right
+      style.position = "relative";
     } else {
       style = title_bar_style;
     }
@@ -1322,13 +1354,13 @@ export class FrameTitleBar extends Component<Props, State> {
           id={`titlebar-${this.props.id}`}
           className={"cc-frame-tree-title-bar"}
         >
-          {this.render_control()}
-          {this.props.connection_status
-            ? this.render_connection_status()
-            : undefined}
-          {this.props.title ? this.render_title() : undefined}
           {is_active ? this.render_main_buttons() : undefined}
-          {!is_active && !this.props.title ? this.render_title() : undefined}
+          {this.props.title ? this.render_title(is_active) : undefined}
+          {!is_active && !this.props.title
+            ? this.render_title(is_active)
+            : undefined}
+          {this.render_connection_status(is_active)}
+          {this.render_control()}
         </div>
         {this.render_confirm_bar()}
       </>

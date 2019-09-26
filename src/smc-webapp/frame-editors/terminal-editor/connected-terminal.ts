@@ -12,11 +12,10 @@ import { callback, delay } from "awaiting";
 import { aux_file } from "../frame-tree/util";
 
 import { Terminal as XTerminal } from "xterm";
-require("xterm/lib/xterm.css");
-import { proposeGeometry } from "xterm/lib/addons/fit/fit";
+require("xterm/css/xterm.css");
 
-import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
-webLinks.apply(XTerminal);
+import { FitAddon } from "xterm-addon-fit";
+import { WebLinksAddon } from "xterm-addon-web-links";
 
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
@@ -88,6 +87,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private command?: string;
   private args?: string[];
 
+  private fitAddon: FitAddon;
+  private webLinksAddon: WebLinksAddon;
+
   constructor(
     actions: Actions<T>,
     number: number,
@@ -120,10 +122,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.number = number;
     this.id = id;
     this.terminal = new XTerminal(this.get_xtermjs_options());
+    this.webLinksAddon = new WebLinksAddon(handleLink);
+    this.terminal.loadAddon(this.webLinksAddon);
+    this.fitAddon = new FitAddon();
+    this.terminal.loadAddon(this.fitAddon);
+
     this.terminal.open(parent);
     this.element = this.terminal.element;
     this.update_settings();
-    this.init_weblinks();
     this.init_title();
     this.init_terminal_data();
     this.init_settings();
@@ -327,7 +333,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_title(): void {
-    this.terminal.on("title", title => {
+    this.terminal.onTitleChange(title => {
       if (title != null) {
         this.actions.set_title(this.id, title);
       }
@@ -338,10 +344,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.actions != null) {
       this.actions.set_connection_status(this.id, status);
     }
-  }
-
-  init_weblinks(): void {
-    (this.terminal as any).webLinksInit(handleLink);
   }
 
   touch(): void {
@@ -482,9 +484,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.state === "closed") {
       return;
     }
-    const g = async cb => {
+    const g = cb => {
       const f = async () => {
-        this.terminal.off("refresh", f);
+        x.dispose();
         if (this.resize_after_no_ignore !== undefined) {
           this.terminal.resize(
             this.resize_after_no_ignore.cols,
@@ -504,7 +506,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.init_keyhandler();
         cb();
       };
-      this.terminal.on("refresh", f);
+      const x = this.terminal.onRender(f);
     };
     await callback(g);
   }
@@ -603,7 +605,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   init_terminal_data(): void {
-    this.terminal.on("data", data => {
+    this.terminal.onData(data => {
       if (this.ignore_terminal_data) {
         return;
       }
@@ -622,7 +624,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.focus();
   }
 
-  refresh() : void {
+  refresh(): void {
     this.terminal.refresh(0, this.terminal.rows - 1);
   }
 
@@ -652,7 +654,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   measure_size(): void {
-    const geom = proposeGeometry(this.terminal);
+    const geom = this.fitAddon.proposeDimensions();
     // console.log('measure_size', geom);
     if (geom == null) return;
     const { rows, cols } = geom;
@@ -686,7 +688,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   paste(): void {
     this.terminal.clearSelection();
-    (this.terminal as any)._core.handler(copypaste.get_buffer());
+    this.terminal.paste(copypaste.get_buffer());
     this.terminal.focus();
   }
 
@@ -709,7 +711,6 @@ async function touch_path(project_id: string, path: string): Promise<void> {
     console.warn(`error touching ${path} -- ${err}`);
   }
 }
-
 
 function handleLink(_: MouseEvent, uri: string): void {
   if (!starts_with_cloud_url(uri)) {

@@ -57,7 +57,7 @@ export class Tip extends React.Component<Props, State> {
     );
   }
 
-  render_title() {
+  private render_title() {
     return (
       <span>
         {this.props.icon ? <Icon name={this.props.icon} /> : undefined}{" "}
@@ -66,7 +66,7 @@ export class Tip extends React.Component<Props, State> {
     );
   }
 
-  render_popover() {
+  private render_popover() {
     if (this.props.tip) {
       return (
         <Popover
@@ -74,6 +74,7 @@ export class Tip extends React.Component<Props, State> {
           title={this.render_title()}
           id={this.props.id}
           style={this.props.popover_style}
+          onMouseLeave={this.overlay_onMouseLeave}
         >
           <span style={{ wordWrap: "break-word" }}>{this.props.tip}</span>
         </Popover>
@@ -84,6 +85,7 @@ export class Tip extends React.Component<Props, State> {
           bsSize={this.props.size}
           id={this.props.id}
           style={this.props.popover_style}
+          onMouseLeave={this.overlay_onMouseLeave}
         >
           {this.render_title()}
         </Tooltip>
@@ -91,7 +93,11 @@ export class Tip extends React.Component<Props, State> {
     }
   }
 
-  render_overlay() {
+  private overlay_onMouseLeave = () => {
+    this.setState({ display_trigger: false });
+  };
+
+  private render_overlay() {
     // NOTE: It's inadvisable to use "hover" or "focus" triggers for popovers, because they have poor
     // accessibility from keyboard and on mobile devices. -- from https://react-bootstrap.github.io/components/popovers/
     return (
@@ -103,10 +109,7 @@ export class Tip extends React.Component<Props, State> {
         rootClose={this.props.rootClose}
         trigger={feature.IS_TOUCH ? "click" : undefined}
       >
-        <span
-          style={this.props.style}
-          onMouseLeave={() => this.setState({ display_trigger: false })}
-        >
+        <span style={this.props.style} onMouseLeave={this.overlay_onMouseLeave}>
           {this.props.children}
         </span>
       </OverlayTrigger>

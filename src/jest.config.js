@@ -2,20 +2,28 @@ const { defaults: tsjPreset } = require("ts-jest/presets");
 const path = require("path");
 
 module.exports = {
-  roots: ["<rootDir>/smc-webapp/"],
-  transform: {
-    ...tsjPreset.transform
-  },
-  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$",
-  testPathIgnorePatterns: ["/node_modules/", "/test-mocha/"],
-  modulePaths: [
-    path.resolve(__dirname, "smc-util"),
-    path.resolve(__dirname, "smc-webapp"),
-    path.resolve(__dirname, "smc-webapp/node_modules"),
-  ],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  projects: [
+    {
+      displayName: "smc-webapp",
+      testMatch: [
+        "<rootDir>/smc-webapp/**/*test.ts",
+        "<rootDir>/smc-webapp/**/*test.tsx",
+      ],
+      transform: {
+        ...tsjPreset.transform
+      },
+      testPathIgnorePatterns: ["/node_modules/", "/test-mocha/", "/data/"],
+      moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+      modulePaths: [
+        path.resolve(__dirname, "smc-util"),
+        path.resolve(__dirname, "smc-util/misc"),
+        path.resolve(__dirname, "smc-webapp"),
+        path.resolve(__dirname, "smc-webapp/node_modules")
+      ],
 
-  // Setup Enzyme
-  "snapshotSerializers": ["enzyme-to-json/serializer"],
-  "setupFilesAfterEnv": ["<rootDir>/setupEnzyme.ts"],
+      // Setup Enzyme
+      snapshotSerializers: ["enzyme-to-json/serializer"],
+      setupFilesAfterEnv: ["<rootDir>/setupEnzyme.ts"]
+    }
+  ]
 };

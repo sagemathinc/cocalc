@@ -775,7 +775,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let url =
       (window.app_base_url != null ? window.app_base_url : "") +
       this._url_in_project(`files/${path}`);
-    url += "?session=&fullscreen=default";
+    url += "?session=&fullscreen=kiosk";
     require("./misc_page").open_popup_window(url, {
       width: 800,
       height: 640
@@ -1766,7 +1766,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // check all files in the given file_list
-  set_file_list_checked(file_list: immutable.List<string>): void {
+  set_file_list_checked(file_list: immutable.List<string> | string[]): void {
     let store = this.get_store();
     if (store == undefined) {
       return;
