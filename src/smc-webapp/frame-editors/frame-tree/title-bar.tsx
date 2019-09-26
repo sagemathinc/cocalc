@@ -1100,6 +1100,8 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!(this.props.is_only || this.props.is_full)) {
       return;
     }
+    const spec = this.props.editor_spec[this.props.type];
+    if (spec != null && spec.hide_file_menu) return;
     return (
       <EditorFileInfoDropdown
         key={"info"}

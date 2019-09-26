@@ -225,9 +225,9 @@ export function is_valid_uuid_string(uuid: string): boolean {
 export function history_path(path: string): string {
   const p = path_split(path);
   if (p.head) {
-    return `${p.head}/.${p.tail}.sage-history`;
+    return `${p.head}/.${p.tail}.time-travel`;
   } else {
-    return `.${p.tail}.sage-history`;
+    return `.${p.tail}.time-travel`;
   }
 }
 
