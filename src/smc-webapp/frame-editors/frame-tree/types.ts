@@ -35,13 +35,14 @@ type ButtonFunction = (path: string) => { [button_name: string]: true };
 
 interface EditorDescription {
   short: string; // short description of the editor
-  name: string; // slighlty longer description
+  name: string; // slightly longer description
   icon: string;
   component: any; // React component
   buttons?: { [button_name: string]: true } | ButtonFunction;
   // NOTE: customize is only implemented for shell button right now!
   customize_buttons?: { [button_name: string]: ButtonCustomize };
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
+  subframe_init?: Function;
 }
 
 export interface EditorSpec {

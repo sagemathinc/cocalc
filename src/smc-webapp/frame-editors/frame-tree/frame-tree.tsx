@@ -228,6 +228,27 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
 
     const id: string = desc.get("id");
+    const project_id = desc.get("project_id", this.props.project_id);
+    let name = this.props.name;
+    let actions = this.props.actions;
+    if (spec.name === "TimeTravel") {
+      console.log("making a time travel leaf");
+      if (path.slice(path.length - 12) != ".time-travel") {
+        console.log(
+          "making a time travel leaf inside a non-time-travel master"
+        );
+        path = "." + path + ".time-travel"; // quick hack; only root dir
+        const ed = require("./register").get_file_editor("time-travel", false);
+        if (ed == null) throw Error("bug");
+        const { redux } = require("../../app-framework");
+        name = ed.init(path, redux, project_id);
+        console.log("got redux name = ", name);
+        const actions2 = redux.getActions(name);
+        actions2.ambient_actions = actions;
+        actions = actions2;
+      }
+    }
+
     return (
       <div
         id={`frame-${id}`}
@@ -236,8 +257,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       >
         <Leaf
           id={id}
-          name={this.props.name}
-          actions={this.props.actions}
+          name={name}
+          actions={actions}
           mode={spec.mode}
           read_only={desc.get(
             "read_only",
@@ -247,7 +268,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           font_size={desc.get("font_size", this.props.font_size)}
           path={path}
           fullscreen_style={fullscreen_style}
-          project_id={desc.get("project_id", this.props.project_id)}
+          project_id={project_id}
           editor_state={this.props.editor_state.get(desc.get("id"), Map())}
           is_current={desc.get("id") === this.props.active_id}
           cursors={this.props.cursors}

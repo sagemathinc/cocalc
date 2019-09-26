@@ -22,7 +22,7 @@ interface Register {
 export function register_file_editor(opts: Register) {
   const v: boolean[] = [];
   if (opts.is_public != undefined) {
-    v.push(opts.is_public);
+    v.push(!!opts.is_public);
   } else {
     v.push(true);
     v.push(false);
@@ -32,8 +32,14 @@ export function register_file_editor(opts: Register) {
   }
 }
 
-function register(icon, ext, component, Actions, is_public) {
-  general_register_file_editor({
+function register(
+  icon: string | undefined,
+  ext: string | string[],
+  component,
+  Actions,
+  is_public: boolean
+) {
+  const data = {
     icon,
     ext,
     is_public,
@@ -77,5 +83,22 @@ function register(icon, ext, component, Actions, is_public) {
         actions.save();
       }
     }
-  });
+  };
+  general_register_file_editor(data);
+  if (typeof ext == "string") {
+    ext = [ext];
+  }
+  for (let e of ext) {
+    REGISTRY[key(e, is_public)] = data;
+  }
+}
+
+const REGISTRY : {[key:string]:any} = {};
+
+export function get_file_editor(ext: string, is_public: boolean) {
+  return REGISTRY[key(ext, is_public)];
+}
+
+function key(ext: string, is_public: boolean): string {
+  return `${is_public}-${ext}`;
 }

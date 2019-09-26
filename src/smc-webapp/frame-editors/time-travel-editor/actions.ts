@@ -24,12 +24,20 @@ import { export_to_json } from "./export-to-json";
 
 const EXTENSION = ".time-travel";
 
+/*interface FrameState {
+  version: number;
+  version0: number;
+  version1: number;
+  changes_mode: boolean;
+}*/
+
 interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
   loading: boolean;
   has_full_history: boolean;
   docpath: string;
   docext: string;
+  //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
 }
 
 export class TimeTravelActions extends Actions<TimeTravelState> {
@@ -39,8 +47,10 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   private syncpath: string;
   public syncdoc?: SyncDoc;
   private first_load: boolean = true;
+  public ambient_actions: any;   // Actions<CodeEditorState>;
 
   public _init2(): void {
+    this.ambient_actions = this;
     const { head, tail } = path_split(this.path);
     this.docpath = tail.slice(1, tail.length - EXTENSION.length);
     if (head != "") {
@@ -91,9 +101,9 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   private init_frame_tree(versions): void {
     // make sure all the version and version ranges are valid...
     const max = versions.size - 1;
-    for (let id in this._get_leaf_ids()) {
-      const node = this._get_frame_node(id);
-      if (node == null) continue;
+    for (let id in this.ambient_actions._get_leaf_ids()) {
+      const node = this.ambient_actions._get_frame_node(id);
+      if (node == null || node.get("type") != "time_travel") continue;
       for (let x of ["version", "version0", "version1"]) {
         let n: number | undefined = node.get(x);
         if (n == null || n > max || n < 0) {
@@ -101,7 +111,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
           // when we want it to be one less than version1, which
           // will be max.
           n = x == "version0" ? Math.max(0, max - 1) : max;
-          this.set_frame_tree({ id, [x]: n });
+          this.ambient_actions.set_frame_tree({ id, [x]: n });
         }
       }
     }
@@ -161,7 +171,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   }
 
   public set_version(id: string, version: number): void {
-    if (this._get_frame_node(id) == null) {
+    if (this.ambient_actions._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
     if (typeof version != "number") {
@@ -175,11 +185,11 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     } else if (version < 0) {
       version = 0;
     }
-    this.set_frame_tree({ id, version });
+    this.ambient_actions.set_frame_tree({ id, version });
   }
 
   public step(id: string, delta: number): void {
-    const node = this._get_frame_node(id);
+    const node = this.ambient_actions._get_frame_node(id);
     if (node == null) {
       throw Error(`no frame with id ${id}`);
     }
@@ -207,12 +217,12 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   }
 
   public set_changes_mode(id: string, changes_mode: boolean): void {
-    const node = this._get_frame_node(id);
+    const node = this.ambient_actions._get_frame_node(id);
     if (node == null) {
       throw Error(`no frame with id ${id}`);
     }
     changes_mode = !!changes_mode;
-    this.set_frame_tree({ id, changes_mode });
+    this.ambient_actions.set_frame_tree({ id, changes_mode });
     if (
       changes_mode &&
       (node.get("version0") == null || node.get("version1") == null)
@@ -227,12 +237,12 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
         version0 += 1;
         version1 += 1;
       }
-      this.set_frame_tree({ id, version0, version1 });
+      this.ambient_actions.set_frame_tree({ id, version0, version1 });
     }
   }
 
   public set_versions(id: string, version0: number, version1: number): void {
-    if (this._get_frame_node(id) == null) {
+    if (this.ambient_actions._get_frame_node(id) == null) {
       throw Error(`no frame with id ${id}`);
     }
     const versions = this.store.get("versions");
@@ -243,7 +253,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     if (version0 < 0) version0 = 0;
     if (version1 >= versions.size) version1 = versions.size - 1;
     if (version1 < 0) version1 = 0;
-    this.set_frame_tree({ id, version0, version1 });
+    this.ambient_actions.set_frame_tree({ id, version0, version1 });
   }
 
   public async open_file(): Promise<void> {
