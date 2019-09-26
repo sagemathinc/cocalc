@@ -44,12 +44,6 @@ export class ExplainResources extends Component<Props> {
             </b>
             : a node in the cluster for large workloads
           </li>
-          <li>
-            <b>
-              <a href="#faq">FAQ</a>
-            </b>
-            : frequently asked questions
-          </li>
         </ul>
         <Space />
       </>
@@ -145,7 +139,6 @@ export class ExplainResources extends Component<Props> {
                 You can upgrade the quotas up to the total amount given by your
                 subscription(s) and the upper limits per project.
               </li>
-
               <li>
                 Project collaborators can <em>collectively contribute</em> to
                 the same project, in order to increase the quotas of their
@@ -155,16 +148,6 @@ export class ExplainResources extends Component<Props> {
               <li>
                 You may also purchase any plans <em>more than once</em>, in
                 order to increase the total amount of upgrades available to you.
-              </li>
-              <li>
-                Right after the purchase the subscription becomes active. It{" "}
-                <em>automatically renews</em> after the indicated period
-                (monthly, yearly).
-              </li>
-              <li>
-                You can <em>cancel</em> a subscription at any time and it will
-                continue to run until the end of the current period and{" "}
-                <em>not</em> renew.
               </li>
             </ul>
             <h4>More information</h4>
