@@ -73,10 +73,13 @@ import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import { ProjectMap } from "../todo-types";
 import { CourseSettingsRecord, CourseStore } from "./store";
-const { HelpBox } = require("./help_box");
-const { DeleteStudentsPanel } = require("./delete_students");
-const { DeleteSharedProjectPanel } = require("./delete_shared_project");
-const { TerminalCommandPanel } = require("./terminal-command");
+import { HelpBox } from "./help_box";
+import {
+  DeleteAllStudents,
+  DeleteAllStudentProjects
+} from "./configuration-components";
+import { DeleteSharedProjectPanel } from "./delete_shared_project";
+import { TerminalCommandPanel } from "./terminal-command";
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -1030,10 +1033,18 @@ export class ConfigurationPanel extends Component<
     }
   }
 
-  render_delete_students() {
+  render_delete_student_projects() {
     return (
-      <DeleteStudentsPanel
-        delete={this.get_actions().delete_all_student_projects}
+      <DeleteAllStudentProjects
+        delete_projects={this.get_actions().delete_all_student_projects}
+      />
+    );
+  }
+
+  render_delete_all_students() {
+    return (
+      <DeleteAllStudents
+        delete_all_students={this.get_actions().delete_all_students}
       />
     );
   }
@@ -1063,7 +1074,8 @@ export class ConfigurationPanel extends Component<
             {this.render_save_grades()}
             {this.render_start_all_projects()}
             {this.render_terminal_command()}
-            {this.render_delete_students()}
+            {this.render_delete_student_projects()}
+            {this.render_delete_all_students()}
             {this.render_delete_shared_project()}
           </Col>
           <Col md={6}>
