@@ -59,16 +59,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {CUSTOM_IMG_PREFIX, CUSTOM_SOFTWARE_HELP_URL, compute_image2name, compute_image2basename} = require('./custom-software/util')
 
-URLBox = rclass
-    displayName : 'URLBox'
-
-    render: ->
-        url = document.URL
-        i   = url.lastIndexOf('/settings')
-        if i != -1
-            url = url.slice(0,i)
-        # note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
-        <pre style={fontSize:'11px'}>{url}</pre>
+{URLBox} = require('./project/settings/url-box')
 
 TitleDescriptionPanel = rclass
     displayName : 'ProjectSettings-TitleDescriptionPanel'
