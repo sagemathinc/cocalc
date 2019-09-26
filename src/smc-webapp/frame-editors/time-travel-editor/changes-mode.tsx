@@ -1,7 +1,10 @@
-/* Toggle diff mode */
+/* Toggle diff mode
+ */
 
 import { Rendered, Component, React } from "../../app-framework";
-import { Checkbox } from "react-bootstrap";
+//import Form from "new-react-bootstrap/Form";
+import 'new-bootstrap/dist/css/bootstrap.min.css';
+const Form = require("new-react-bootstrap/Form");
 import { TimeTravelActions } from "./actions";
 
 interface Props {
@@ -21,7 +24,8 @@ export class ChangesMode extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <Checkbox
+      <Form.Check
+        type="checkbox"
         disabled={this.props.disabled}
         title={
           "Toggle whether or not to show the changes from one point in time to another"
@@ -31,7 +35,7 @@ export class ChangesMode extends Component<Props> {
         style={{ display: "inline", margin: "0 10px" }}
       >
         Changes
-      </Checkbox>
+      </Form.Check>
     );
   }
 }
