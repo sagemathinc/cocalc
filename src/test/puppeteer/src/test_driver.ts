@@ -10,15 +10,16 @@ const program = require('commander');
 import chalk     from 'chalk';
 import * as fs   from 'fs';
 import * as yaml from 'js-yaml';
-import Creds     from './test-creds';
+import { Creds, Opts, PassFail } from './types';
+import { pf_log } from './time_log';
 
-const {login_tests} = require('./login_session');
+import { login_tests } from './login_session';
 const {api_session} = require('./api_session');
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
 
-const cli_parse = function(): Creds|undefined {
+const cli_parse = function() {
   try {
     // command line processing
     // -p option without arg uses the following path
@@ -27,41 +28,49 @@ const cli_parse = function(): Creds|undefined {
       .option('-c, --creds <file>', 'credentials file', "./creds")
       .option('-H, --no-headless', 'show browser (requires X11)', false)
       .option('-s, --screenshot', 'take screenshots', false)
-      .option('-p, --path-to-chrome [chromepath]>')
+      .option('-p, --path-to-chrome [chromepath]')
+      .option('-k, --skip <pattern>', 'skip tests matching pattern')
       .parse(process.argv);
     let creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
     debuglog('creds file:', creds_file);
     //let creds = require(creds_file);
     let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, 'utf8'));
-    creds.headless   = program.headless;
-    creds.screenshot = program.screenshot;
+    let cpath: string;
     if (program.pathToChrome == true) {
-      creds.path = ext_chrome_path;
+      cpath = ext_chrome_path;
     } else {
-      creds.path = program.pathToChrome;
+      cpath = program.pathToChrome;
     }
+    let skip: RegExp|undefined = undefined;
+    if (program.skip) skip = new RegExp(program.skip);
+    const opts: Opts = {
+      headless: program.headless,
+      screenshot: program.screenshot,
+      path: cpath,
+      skip: skip
+    }
+    debuglog("opts", opts);
     debuglog('site:', creds.sitename);
-    debuglog('headless:',creds.headless);
-    if (creds.path) debuglog('chrome path:',creds.path);
-    return creds;
+    return ({c: creds, o: opts});
   } catch (e) {
     console.log(chalk.red(`ERROR: ${e.message}`));
     process.exit();
-    return undefined;
+    return undefined; // not reached, added for tsc
   }
 }
 
-//const browser = await puppeteer.launch({executablePath: '/path/to/Chrome'});
-//cocalc: /usr/bin/chromium-browser
-
 const run_tests = async function() {
-  const creds: Creds|undefined = cli_parse();
-  if (creds){
+  const cp = cli_parse();
+  let pfcounts: PassFail = new PassFail();
+  if (cp){
     // edit 'true' to 'false' to skip tests
-    if (true) await login_tests(creds);
-    if (true) await api_session(creds);
+    let x = await login_tests(cp.c, cp.o);
+    pfcounts.add(x);
+    x = await api_session(cp.c, cp.o);
+    pfcounts.add(x);
   }
+  pf_log(pfcounts);
 }
 
 run_tests();

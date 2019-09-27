@@ -1,12 +1,13 @@
 const debuglog = require('util').debuglog('cc-login-widget');
 import chalk from 'chalk';
-import Creds from './test-creds';
-import time_log from './time_log';
+import { Creds, Opts, PassFail } from './types';
+import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 import { expect } from 'chai';
 
-const test_widget = async function (creds: Creds, page: Page): Promise<void> {
+const test_widget = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+  let pfcounts: PassFail = new PassFail();
   try {
     const tm_open_widget = process.hrtime.bigint()
 
@@ -128,12 +129,15 @@ const test_widget = async function (creds: Creds, page: Page): Promise<void> {
     debuglog('gotfile search');
 
     time_log("widget test", tm_widget_test);
-    await screenshot(page, creds, 'cocalc-widget.png');
+    await screenshot(page, opts, 'cocalc-widget.png');
+    pfcounts.pass += 1;
 
   } catch (e) {
+    pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   debuglog('widget test done');
+  return pfcounts;
 }
 
 export default test_widget;

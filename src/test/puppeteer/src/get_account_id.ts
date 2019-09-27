@@ -1,13 +1,13 @@
 const test_name = "cc-get-account-id";
 const debuglog = require('util').debuglog(test_name);
 import chalk from 'chalk';
-import Creds from './test-creds';
-import time_log from './time_log';
+import { Creds, ApiGetString } from './types';
+import { time_log } from './time_log';
 import axios from 'axios';
 import { expect } from 'chai';
 
-const get_account_id = async function (creds: Creds, api_key: string): Promise<string> {
-  let result: string = "NONE";
+const get_account_id = async function (creds: Creds, api_key: string): Promise<ApiGetString> {
+  let ags: ApiGetString = new ApiGetString();
   try {
     const tm_start = process.hrtime.bigint();
     const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/user_search";
@@ -28,12 +28,14 @@ const get_account_id = async function (creds: Creds, api_key: string): Promise<s
     expect(account_id.length).to.equal(36);
     debuglog('account_id:',account_id);
     time_log(test_name, tm_start);
-    result = account_id;
+    ags.result = account_id;
+    ags.pass += 1;
   } catch (e) {
+    ags.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   debuglog(test_name + ' done');
-  return result;
+  return ags;
 }
 
 export default get_account_id;

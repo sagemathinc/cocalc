@@ -1,13 +1,14 @@
 const debuglog = require('util').debuglog('cc-login-tex');
 import chalk from 'chalk';
-import Creds     from './test-creds';
-import time_log from './time_log';
+import { Creds, Opts, PassFail }     from './types';
+import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 
 import { expect } from 'chai';
 
-const test_tex = async function (creds: Creds, page: Page): Promise<void> {
+const test_tex = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+  let pfcounts: PassFail = new PassFail();
   try {
     const tm_open_tex = process.hrtime.bigint()
 
@@ -83,11 +84,14 @@ const test_tex = async function (creds: Creds, page: Page): Promise<void> {
     debuglog('clicked close file tab icon');
 
     time_log("word count tex file", tm_word_count);
-    await screenshot(page, creds, 'cocalc-tex.png');
+    await screenshot(page, opts, 'cocalc-tex.png');
+    pfcounts.pass += 1;
 
   } catch (e) {
+    pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
+  return pfcounts;
 }
 
 export default test_tex;

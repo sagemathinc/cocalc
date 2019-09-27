@@ -1,12 +1,13 @@
 const debuglog = require('util').debuglog('cc-login-sage_ker');
 import chalk from 'chalk';
-import Creds     from './test-creds';
-import time_log from './time_log';
+import { Creds, Opts, PassFail } from './types';
+import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 import { expect } from 'chai';
 
-const test_sage_ker = async function (creds: Creds, page: Page): Promise<void> {
+const test_sage_ker = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+  let pfcounts: PassFail = new PassFail();
   try {
     const tm_open_sage_ker = process.hrtime.bigint()
 
@@ -39,7 +40,7 @@ const test_sage_ker = async function (creds: Creds, page: Page): Promise<void> {
     await page.waitForSelector(sel);
     debuglog('got sage ipynb jupyter cell');
 
-    await screenshot(page, creds, 'wait-for-kernel-button.png');
+    await screenshot(page, opts, 'wait-for-kernel-button.png');
 
     // sage kernel takes longer to start than python 3 system kernel
     //const dqs: string = 'document.querySelector("button[id=\'Kernel\']").innerText=="Kernel"';
@@ -110,11 +111,14 @@ if(false) {
 }
 
     time_log("sage ipynb test", tm_sage_ker_test);
-    await screenshot(page, creds, 'cocalc-sage-ipynb.png');
+    await screenshot(page, opts, 'cocalc-sage-ipynb.png');
+    pfcounts.pass += 1;
 
   } catch (e) {
+    pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
+  return pfcounts;
 }
 
 export default test_sage_ker;
