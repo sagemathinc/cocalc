@@ -9,3 +9,11 @@ of blue for links) until we do a full switch.
 a {
     color: #428bca;
 }
+
+a:hover {
+    color: #428bca;
+}
+
+html {
+    overflow: hidden;
+}
