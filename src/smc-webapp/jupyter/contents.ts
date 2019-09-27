@@ -9,6 +9,7 @@ export interface TableOfContentsInfo {
   level: number;
   value: string;
   icon: string;
+  number?: number[];
 }
 
 export function parse_headings(
@@ -17,7 +18,8 @@ export function parse_headings(
 ): TableOfContentsInfo[] {
   const v: TableOfContentsInfo[] = [];
   let last_level: number = 0,
-    answer_number: number = 0;
+    answer_number: number = 0,
+    section_number: number[] = [];
   cell_list.forEach((id: string) => {
     const cell = cells.get(id);
     if (cell == null) return;
@@ -47,10 +49,26 @@ export function parse_headings(
 
     const { level, value } = parse_cell_heading(cell.get("input"));
     if (level > 0) {
-      last_level = level;
+      if (last_level != level) {
+        // reset section numbers
+        for (let i = level; i < section_number.length; i++) {
+          section_number[i] = 0;
+        }
+        last_level = level;
+      }
+      for (let i = 0; i < level; i++) {
+        if (section_number[i] == null) section_number[i] = 0;
+      }
+      section_number[level - 1] += 1;
       const id = cell.get("id");
       if (id == null) return;
-      v.push({ id, level, value, icon: "minus" });
+      v.push({
+        id,
+        level,
+        value,
+        icon: "minus",
+        number: section_number.slice(0, level)
+      });
     }
   });
   return v;

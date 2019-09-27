@@ -12,6 +12,8 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
 
+import { debounce } from "lodash";
+
 // NOTE! The smc-util relative path is so we can import this same
 // code in the project as well as here, due to me not
 // being able to properly figure out some typescript path issue.
@@ -48,6 +50,8 @@ import { IPynbImporter } from "./import-from-ipynb";
 import { JupyterKernelInterface } from "./project-interface";
 
 import { connection_to_project } from "../project/websocket/connect";
+
+import { parse_headings } from "./contents";
 
 import {
   codemirror_to_jupyter_pos,
@@ -120,6 +124,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store.syncdb = syncdb;
     this.syncdb = syncdb;
     this._client = client;
+    this.update_contents = debounce(this.update_contents.bind(this), 1500);
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
     store._is_project = this.is_project;
@@ -665,6 +670,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();
       }
+
+      this.update_contents();
     }
   };
 
@@ -2576,6 +2583,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   split_current_cell = () => {
     this.deprecated("split_current_cell");
   };
+
+  public update_contents(): void {
+    console.log("update_contents");
+    const cells = this.store.get("cells");
+    if (cells == null) return;
+    const cell_list = this.store.get("cell_list");
+    if (cell_list == null) return;
+    const contents = immutable.fromJS(parse_headings(cells, cell_list));
+    this.setState({ contents });
+  }
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {
