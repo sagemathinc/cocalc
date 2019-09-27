@@ -1,12 +1,12 @@
 const debuglog = require('util').debuglog('cc-login-widget');
 import chalk from 'chalk';
-import { Creds, Opts, PassFail } from './types';
+import { Opts, PassFail, TestFiles } from './types';
 import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 import { expect } from 'chai';
 
-const test_widget = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+const test_widget = async function (opts: Opts, page: Page): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
   try {
     const tm_open_widget = process.hrtime.bigint()
@@ -18,14 +18,14 @@ const test_widget = async function (creds: Creds, opts: Opts, page: Page): Promi
 
     sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
     await page.click(sel);
-    await page.type(sel, creds.widgetfile);
-    debuglog(`entered ${creds.widgetfile} into file search`);
+    await page.type(sel, TestFiles.widgetfile);
+    debuglog(`entered ${TestFiles.widgetfile} into file search`);
 
     // find and click the file link
     // split file name into base and ext because they appear in separate spans
-    const z = creds.widgetfile.lastIndexOf(".");
-    const tfbase = creds.widgetfile.slice(0,z);
-    const tfext  = creds.widgetfile.slice(z);
+    const z = TestFiles.widgetfile.lastIndexOf(".");
+    const tfbase = TestFiles.widgetfile.slice(0,z);
+    const tfext  = TestFiles.widgetfile.slice(z);
 
     let xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
     await page.waitForXPath(xpt);
@@ -33,7 +33,7 @@ const test_widget = async function (creds: Creds, opts: Opts, page: Page): Promi
     await page.click(sel);
     debuglog('clicked file line');
 
-    time_log(`open ${creds.widgetfile}`, tm_open_widget);
+    time_log(`open ${TestFiles.widgetfile}`, tm_open_widget);
     const tm_widget_test = process.hrtime.bigint()
 
     sel = '*[cocalc-test="jupyter-cell"]';

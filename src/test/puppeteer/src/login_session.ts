@@ -77,9 +77,9 @@ export const login_tests = async function (creds: Creds, opts: Opts): Promise<Pa
     time_log("open project", tm_open_project);
     pfcounts.pass += 1;
 
-    pfcounts.add(await test_tex(creds, opts, page));
-    pfcounts.add(await test_widget(creds, opts, page));
-    pfcounts.add(await test_sage_ker(creds, opts, page));
+    pfcounts.add(await test_tex(opts, page));
+    pfcounts.add(await test_widget(opts, page));
+    pfcounts.add(await test_sage_ker(opts, page));
 
     time_log("login session total", tm_launch_browser);
   } catch (e) {

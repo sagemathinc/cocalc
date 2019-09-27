@@ -4,10 +4,6 @@ export interface Creds {
   readonly email: string;
   readonly passw: string;
   readonly project: string;
-  readonly texfile: string;
-  readonly widgetfile: string;
-  readonly sageipynbfile: string;
-  readonly sagewsfile: string;
 }
 
 export interface Opts {
@@ -34,4 +30,11 @@ export class ApiGetString extends PassFail {
     super();
     this.result = "NONE";
   }
+}
+
+export const TestFiles = {
+  texfile: "latex-sample.tex",
+  widgetfile: "widgets-sample.ipynb",
+  sageipynbfile: "sage-sample.ipynb",
+  sagewsfile: "sagews-sample.sagews"
 }

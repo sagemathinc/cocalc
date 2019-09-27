@@ -14,6 +14,13 @@ npm run build
 
 Install test files into home directory from [TEST_FILES folder](https://cocalc.com/projects/77a92d07-c122-4577-9c4c-c051379cacfe/files/CCTEST/TEST_FILES/?session=default)
 
+```
+texfile:  latex-sample.tex
+widgetfile: widgets-sample.ipynb
+sageipynbfile: sage-sample.ipynb
+sagewsfile: sagews-sample.sagews
+```
+
 ## Credentials
 
 Create credentials yaml file for the project:
@@ -24,10 +31,6 @@ url: https://test47.cocalc.com/app
 email: bob@example.com
 passw: xxxxxx
 project:  my-test-project
-texfile:  latex-sample.tex
-widgetfile: widgets-sample.ipynb
-sageipynbfile: sage-sample.ipynb
-sagewsfile: sagews-sample.sagews
 </pre>
 
 Use special URL with http, project UUID, and project port for cc-in-cc:
@@ -64,3 +67,11 @@ With GUI browser:
 # run in .x11 terminal
 npm run test -- -c ~/path/to/creds.yaml -H
 ```
+
+To skip tests (and their subtests) that match a pattern:
+```
+npm run test -- -c ~/path/to/creds.yaml -k 'login'
+```
+
+
+

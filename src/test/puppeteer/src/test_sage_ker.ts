@@ -1,12 +1,12 @@
 const debuglog = require('util').debuglog('cc-login-sage_ker');
 import chalk from 'chalk';
-import { Creds, Opts, PassFail } from './types';
+import { Opts, PassFail, TestFiles } from './types';
 import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 import { expect } from 'chai';
 
-const test_sage_ker = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+const test_sage_ker = async function (opts: Opts, page: Page): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
   try {
     const tm_open_sage_ker = process.hrtime.bigint()
@@ -18,14 +18,14 @@ const test_sage_ker = async function (creds: Creds, opts: Opts, page: Page): Pro
 
     sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
     await page.click(sel);
-    await page.type(sel, creds.sageipynbfile);
-    debuglog(`entered ${creds.sageipynbfile} into file search`);
+    await page.type(sel, TestFiles.sageipynbfile);
+    debuglog(`entered ${TestFiles.sageipynbfile} into file search`);
 
     // find and click the file link
     // split file name into base and ext because they appear in separate spans
-    const z = creds.sageipynbfile.lastIndexOf(".");
-    const tfbase = creds.sageipynbfile.slice(0,z);
-    const tfext  = creds.sageipynbfile.slice(z);
+    const z = TestFiles.sageipynbfile.lastIndexOf(".");
+    const tfbase = TestFiles.sageipynbfile.slice(0,z);
+    const tfext  = TestFiles.sageipynbfile.slice(z);
 
     let xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
     await page.waitForXPath(xpt);
@@ -33,7 +33,7 @@ const test_sage_ker = async function (creds: Creds, opts: Opts, page: Page): Pro
     await page.click(sel);
     debuglog('clicked file line');
 
-    time_log(`open ${creds.sageipynbfile}`, tm_open_sage_ker);
+    time_log(`open ${TestFiles.sageipynbfile}`, tm_open_sage_ker);
     const tm_sage_ker_test = process.hrtime.bigint()
 
     sel = '*[cocalc-test="jupyter-cell"]';
