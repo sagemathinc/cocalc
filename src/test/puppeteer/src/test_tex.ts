@@ -1,4 +1,7 @@
-const debuglog = require('util').debuglog('cc-login-tex');
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
+
 import chalk from 'chalk';
 import { Opts, PassFail, TestFiles }     from './types';
 import { time_log } from './time_log';
@@ -9,6 +12,11 @@ import { expect } from 'chai';
 
 const test_tex = async function (opts: Opts, page: Page): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
+  if (opts.skip && opts.skip.test(this_file)) {
+    debuglog('skipping test: ' + this_file);
+    pfcounts.skip += 1;
+    return pfcounts;
+  }
   try {
     const tm_open_tex = process.hrtime.bigint()
 

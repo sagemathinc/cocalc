@@ -1,4 +1,7 @@
-const debuglog = require('util').debuglog('cc-api');
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
+
 const puppeteer = require('puppeteer');
 import chalk from 'chalk';
 import { Creds, Opts, PassFail, ApiGetString } from './types';
@@ -13,6 +16,11 @@ const LONG_TIMEOUT = 70000; // msec
 const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   let browser;
   let pfcounts: PassFail = new PassFail();
+  if (opts.skip && opts.skip.test(this_file)) {
+    debuglog('skipping test: ' + this_file);
+    pfcounts.skip += 1;
+    return pfcounts;
+  }
   try {
     const tm_launch_browser = process.hrtime.bigint()
     browser = await puppeteer.launch({
@@ -68,27 +76,27 @@ const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail>
     await page.setRequestInterception(false);
     pfcounts.pass += 1;
 
-    let ags: ApiGetString = await get_account_id(creds, api_key);
+    let ags: ApiGetString = await get_account_id(creds, opts, api_key);
     const account_id: string = ags.result;
     pfcounts.add(ags);
 
-    ags = await get_auth_token(creds, api_key, account_id);
-    const auth_token: string = ags.result;
-    expect(auth_token.length-1).to.equal(23); // delete this line when auth_token is used below
+    ags = await get_auth_token(creds, opts, api_key, account_id);
+    // uncomment next line when auth_token is used
+    // const auth_token: string = ags.result;
     pfcounts.add(ags);
 
-    ags = await get_project_id(creds, api_key);
-    const project_id: string = ags.result;
-    expect(project_id.length-1).to.equal(35); // delete this line when auth_token is used below
+    ags = await get_project_id(creds, opts, api_key);
+    // uncomment next line when project_id is used
+    // const project_id: string = ags.result;
     pfcounts.add(ags);
 
-    time_log("api session total", tm_launch_browser);
+    time_log(this_file, tm_launch_browser);
 
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
-  debuglog('api tests done - closing browser');
+  debuglog(this_file + ' done - closing browser');
   browser.close();
   return pfcounts;
 }

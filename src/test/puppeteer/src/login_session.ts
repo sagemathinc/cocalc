@@ -1,4 +1,7 @@
-const debuglog = require('util').debuglog('cc-login');
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
+
 const puppeteer = require('puppeteer');
 import chalk from 'chalk';
 import { Creds, Opts, PassFail } from './types';
@@ -13,6 +16,11 @@ const LONG_TIMEOUT = 70000; // msec
 export const login_tests = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   let browser;
   let pfcounts: PassFail = new PassFail();
+  if (opts.skip && opts.skip.test(this_file)) {
+    debuglog('skipping test: ' + this_file);
+    pfcounts.skip += 1;
+    return pfcounts;
+  }
   try {
     const tm_launch_browser = process.hrtime.bigint()
     browser = await puppeteer.launch({

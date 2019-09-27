@@ -10,4 +10,5 @@ export const time_log = function(desc: string, start: bigint): void {
 export const pf_log = function(pf: PassFail): void{
   console.log(chalk.green(sprintf("%32s: %3d", "passed", pf.pass)));
   console.log(chalk.green(sprintf("%32s: %3d", "failed", pf.fail)));
+  console.log(chalk.green(sprintf("%32s: %3d", "skipped", pf.skip)));
 }

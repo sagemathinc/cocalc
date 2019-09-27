@@ -16,10 +16,16 @@ export interface Opts {
 export class PassFail {
   pass: number;
   fail: number;
-  constructor(p: number = 0, f: number = 0) { this.pass = p; this.fail = f }
+  skip: number;
+  constructor(p: number = 0, f: number = 0, s: number = 0) {
+    this.pass = p;
+    this.fail = f;
+    this.skip = s
+  }
   add (pf: PassFail): PassFail {
     this.pass += pf.pass;
     this.fail += pf.fail;
+    this.skip += pf.skip;
     return this;
   }
 }
