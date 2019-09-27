@@ -5,7 +5,7 @@ import { Icon, SettingBox, DeletedProjectWarning } from "smc-webapp/r_misc";
 import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { ProjectsActions } from "smc-webapp/todo-types";
 const { webapp_client } = require("../../webapp_client");
-const { HelpEmailLink } = require("../../customize");
+import { HelpEmailLink } from "../../customize";
 
 interface Props {
   project: Project;

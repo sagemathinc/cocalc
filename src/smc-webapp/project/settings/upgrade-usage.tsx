@@ -6,7 +6,7 @@ import { redux } from "smc-webapp/app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";
 
-const { HelpEmailLink } = require("../../customize");
+import { HelpEmailLink } from "../../customize";
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
 
