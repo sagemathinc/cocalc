@@ -125,11 +125,11 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   // conditionally overwrites parent Action class method
-  get_spellcheck_path(): string {
+  get_user_edited_file_path(): string {
     if (this.knitr) {
       return this.filename_knitr;
     } else {
-      return super.get_spellcheck_path();
+      return super.get_user_edited_file_path();
     }
   }
 
@@ -346,9 +346,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.setState({ build_logs: Map() });
 
     if (this.bad_filename) {
-      const err = `ERROR: It is not possible to compile this LaTeX file with the name '${
-        this.path
-      }'.
+      const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
         Please modify the filename, such that it does **not** contain two or more consecutive spaces.`;
       this.set_error(err);
       return;

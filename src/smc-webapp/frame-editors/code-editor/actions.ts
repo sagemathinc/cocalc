@@ -1571,9 +1571,10 @@ export class Actions<
     return cm.focus();
   }
 
-  // returns the path, unless we aim to spellcheck for a related file (e.g. rnw, rtex)
-  // overwritten in derived classes
-  get_spellcheck_path(): string {
+  // returns the path to the file the user is editing.
+  // it's the actual path, unless we aim to e.g. spellcheck for a related file (e.g. rnw, rtex).
+  // this is overwritten in derived classes.
+  get_user_edited_file_path(): string {
     return this.path;
   }
 
@@ -1608,7 +1609,7 @@ export class Actions<
     try {
       const words: string[] = await misspelled_words({
         project_id: this.project_id,
-        path: this.get_spellcheck_path(),
+        path: this.get_user_edited_file_path(),
         lang,
         time
       });
@@ -1758,7 +1759,8 @@ export class Actions<
     }
 
     cm.focus();
-    const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
+    const path = this.get_user_edited_file_path();
+    const ext = filename_extension(path).toLowerCase() as FormatterExts;
     const { parser, variant }: ParserVariant = format_parser_for_extension(ext);
     const options: FormatterOptions = {
       parser,
@@ -1769,7 +1771,7 @@ export class Actions<
 
     this.set_status("Running code formatter...");
     try {
-      await prettier(this.project_id, this.path, options);
+      await prettier(this.project_id, path, options);
       this.set_error("");
     } catch (err) {
       this.set_error(`Error formatting code: \n${err}`, "monospace");
