@@ -63,62 +63,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 {QuotaConsole} = require('./project/settings/quota-console')
 {UpgradeUsage} = require('./project/settings/upgrade-usage')
 {HideDeleteBox} = require('./project/settings/hide-delete-box')
-
-class SageWorksheetPanel
-    displayName : 'ProjectSettings-SageWorksheetPanel'
-
-    getInitialState: ->
-        loading : false
-        message : ''
-
-    componentDidMount: ->
-        @_mounted = true
-
-    componentWillUnmount: ->
-        delete @_mounted
-
-    propTypes :
-        project : rtypes.object.isRequired
-
-    restart_worksheet: ->
-        @setState(loading : true)
-        webapp_client.exec
-            project_id : @props.project.get('project_id')
-            command    : 'smc-sage-server stop; smc-sage-server start'
-            timeout    : 30
-            cb         : (err, output) =>
-                if not @_mounted # see https://github.com/sagemathinc/cocalc/issues/1684
-                    return
-                @setState(loading : false)
-                if err
-                    @setState(message:'Error trying to restart worksheet server. Try restarting the project server instead.')
-                else
-                    @setState(message:'Worksheet server restarted. Restarted worksheets will use a new Sage session.')
-
-    render_message: ->
-        if @state.message
-            <MessageDisplay message={@state.message} onClose={=>@setState(message:'')} />
-
-    render: ->
-        <SettingBox title='Sage worksheet server' icon='refresh'>
-            <Row>
-                <Col sm={8}>
-                    Restart this Sage Worksheet server. <br />
-                    <span style={color: '#666'}>
-                        Existing worksheet sessions are unaffected; restart this
-                        server if you customize $HOME/bin/sage, so that restarted worksheets
-                        will use the new version of Sage.
-                    </span>
-                </Col>
-                <Col sm={4}>
-                    <Button bsStyle='warning' disabled={@state.loading} onClick={@restart_worksheet}>
-                        <Icon name='refresh' spin={@state.loading} /> Restart Sage Worksheet Server
-                    </Button>
-                </Col>
-            </Row>
-            {@render_message()}
-        </SettingBox>
-
+{SagewsControl} = require('./project/settings/sagews-control')
 
 class ProjectCapabilitiesPanel
     displayName : 'ProjectSettings-ProjectCapabilitiesPanel'
@@ -734,7 +679,7 @@ class ProjectSettingsBody
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
                     <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} allow_urls = {allow_urls}/>
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
-                    <SageWorksheetPanel  key='worksheet' project={@props.project} />
+                    <SagewsControl  key='worksheet' project={@props.project} />
                     {
                         if have_jupyter_notebook
                             <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
