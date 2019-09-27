@@ -10,4 +10,8 @@ import "antd/es/alert/style/css";
 import Alert from "antd/es/alert";
 export { Alert };
 
+import "antd/es/notification/style/css";
+import notification from "antd/es/notification";
+export { notification };
+
 import "./fix.css";
