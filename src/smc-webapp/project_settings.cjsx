@@ -61,80 +61,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 {URLBox} = require('./project/settings/url-box')
 {TitleDescriptionBox} = require('./project/settings/title-description-box')
 {QuotaConsole} = require('./project/settings/quota-console')
-
-UsagePanel = rclass
-    displayName : 'ProjectSettings-UsagePanel'
-
-    propTypes :
-        project_id                           : rtypes.string.isRequired
-        project                              : rtypes.object.isRequired
-        user_map                             : rtypes.object.isRequired
-        account_groups                       : rtypes.array.isRequired
-        upgrades_you_can_use                 : rtypes.object
-        upgrades_you_applied_to_all_projects : rtypes.object
-        upgrades_you_applied_to_this_project : rtypes.object
-        total_project_quotas                 : rtypes.object
-        all_upgrades_to_this_project         : rtypes.object
-        all_projects_have_been_loaded        : rtypes.bool
-        actions                              : rtypes.object.isRequired # projects actions
-
-    getInitialState: ->
-        show_adjustor : false
-
-    submit_upgrade_quotas: (new_quotas) ->
-        @props.actions.apply_upgrades_to_project(@props.project_id, new_quotas)
-        @setState(show_adjustor : false)
-
-    render_upgrades_button: ->
-        <Row>
-            <Col sm={12}>
-                <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust your upgrade contributions...
-                </Button>
-            </Col>
-        </Row>
-
-    render_upgrade_adjustor: ->
-        if not @props.all_projects_have_been_loaded
-            # See https://github.com/sagemathinc/cocalc/issues/3802
-            redux.getActions('projects').load_all_projects()
-            return <Loading theme={"medium"}  />
-        <UpgradeAdjustor
-                project_id                           = {@props.project_id}
-                upgrades_you_can_use                 = {@props.upgrades_you_can_use}
-                upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
-                upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
-                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
-                submit_upgrade_quotas                = {@submit_upgrade_quotas}
-                cancel_upgrading                     = {=>@setState(show_adjustor : false)}
-                total_project_quotas                 = {@props.total_project_quotas}
-        />
-
-    render: ->
-        if not require('./customize').commercial
-            return null
-        <SettingBox title='Project usage and quotas' icon='dashboard'>
-            {@render_upgrades_button()}
-            {@render_upgrade_adjustor() if @state.show_adjustor}
-            <QuotaConsole
-                project_id                   = {@props.project_id}
-                project_settings             = {@props.project.get('settings')}
-                project_status               = {@props.project.get('status')}
-                project_state                = {@props.project.get('state')?.get('state')}
-                user_map                     = {@props.user_map}
-                quota_params                 = {require('smc-util/schema').PROJECT_UPGRADES.params}
-                account_groups               = {@props.account_groups}
-                total_project_quotas         = {@props.total_project_quotas}
-                all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
-                actions                      = {@props.actions} />
-            <hr />
-            <span style={color:'#666'}>If you have any questions about upgrading a project,
-                create a <ShowSupportLink />,
-                or email <HelpEmailLink /> and
-                include the following URL:
-                <URLBox />
-            </span>
-        </SettingBox>
+{UpgradeUsage} = require('./project/settings/upgrade-usage')
 
 HideDeletePanel = rclass
     displayName : 'ProjectSettings-HideDeletePanel'
@@ -911,7 +838,7 @@ ProjectSettingsBody = rclass ({name}) ->
                         project_title = {@props.project.get('title') ? ''}
                         description   = {@props.project.get('description') ? ''}
                         actions       = {@actions('projects')} />
-                    <UsagePanel
+                    <UpgradeUsage
                         project_id                           = {id}
                         project                              = {@props.project}
                         actions                              = {@actions('projects')}
