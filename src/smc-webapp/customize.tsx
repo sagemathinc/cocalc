@@ -65,9 +65,11 @@ interface ReduxProps {
 const HelpEmailLink0 = rclass<Props0>(
   class HelpEmailLink extends React.Component<Props0 & ReduxProps> {
     public static reduxProps() {
-      customize: {
-        help_email: rtypes.string;
-      }
+      return {
+        customize: {
+          help_email: rtypes.string
+        }
+      };
     }
 
     public render() {
@@ -115,9 +117,11 @@ interface SiteNameProps {
 const SiteName0 = rclass<{}>(
   class SiteName extends React.Component<SiteNameProps> {
     public static reduxProps() {
-      customize: {
-        site_name: rtypes.string;
-      }
+      return {
+        customize: {
+          site_name: rtypes.string
+        }
+      };
     }
 
     public render(): JSX.Element {
@@ -146,9 +150,11 @@ interface SiteDescriptionProps {
 const SiteDescription0 = rclass<{ style: React.CSSProperties }>(
   class SiteDescription extends React.Component<SiteDescriptionProps> {
     public static reduxProps() {
-      customize: {
-        site_description: rtypes.string;
-      }
+      return {
+        customize: {
+          site_description: rtypes.string
+        }
+      };
     }
 
     public render(): JSX.Element {
@@ -189,9 +195,11 @@ interface ReduxProps {
 const TermsOfService0 = rclass<ReactProps>(
   class TermsOfService extends React.Component<ReactProps & ReduxProps> {
     public static reduxProps = () => {
-      customize: {
-        terms_of_service: rtypes.string;
-      }
+      return {
+        customize: {
+          terms_of_service: rtypes.string
+        }
+      };
     };
 
     render() {
@@ -225,9 +233,11 @@ const AccountCreationEmailInstructions0 = rclass<{}>(
     AccountCreationEmailInstructionsProps
   > {
     public static reduxProps = () => {
-      customize: {
-        account_creation_email_instructions: rtypes.string;
-      }
+      return {
+        customize: {
+          account_creation_email_instructions: rtypes.string
+        }
+      };
     };
 
     render() {
