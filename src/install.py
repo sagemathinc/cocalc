@@ -2,8 +2,8 @@
 from __future__ import print_function
 import argparse, os, sys, time
 from concurrent.futures import ThreadPoolExecutor
-executor = ThreadPoolExecutor(max_workers=3)
 
+WORKERS = 3
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
 # Only use sudo if not running as root already (this avoids having to install sudo)
@@ -68,7 +68,7 @@ def install_project():
         c = f"npm --loglevel=warn --unsafe-perm=true --progress=false ci {pkg} -g"
         return cmd(SUDO + c)
 
-    with executor:
+    with ThreadPoolExecutor(max_workers=WORKERS) as executor:
         total = sum(_ for _ in executor.map(build_op, pkgs))
         print(f"TOTAL PROJECT PKG BUILD TIME: {total:.1f}s")
 
@@ -89,13 +89,18 @@ def install_project():
 
 
 def install_hub():
-    paths = ['.', 'smc-hub', 'smc-util-node', 'smc-util']
+    paths = [
+        '.',
+        'smc-hub',
+        'smc-util-node',
+        'smc-util',
+    ]
 
     # npm ci for using pkg lock file
     def build_op(path):
         return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
 
-    with executor:
+    with ThreadPoolExecutor(max_workers=WORKERS) as executor:
         total = sum(_ for _ in executor.map(build_op, paths))
         print(f"TOTAL HUB BUILD TIME: {total:.1f}s")
 
@@ -117,7 +122,7 @@ def install_webapp(*args):
         def build_op(path):
             return cmd(f"cd {path} && npm --loglevel=warn --progress=false ci")
 
-        with executor:
+        with ThreadPoolExecutor(max_workers=WORKERS) as executor:
             total = sum(_ for _ in executor.map(build_op, paths))
             print(f"TOTAL WEBAPP BUILD TIME: {total:.1f}s")
 
@@ -191,8 +196,8 @@ def install_primus():
 
 def install_all(compute=False, web=False):
     if compute or web:
-        install_hub(
-        )  # also contains compute server right now (will refactor later)
+        # also contains compute server right now (will refactor later)
+        install_hub()
     if compute:
         install_pyutil()
         install_sagews()
