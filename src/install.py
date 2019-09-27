@@ -63,9 +63,9 @@ def install_project():
         './cocalc-ui'
     ]
 
-    # npm ci for using pkg lock file
+    # TODO switch to use npm ci to install these (which doesn't exist for global installs, AFAIU)
     def build_op(pkg):
-        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false ci {pkg} -g"
+        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install {pkg} -g"
         return cmd(SUDO + c)
 
     with ThreadPoolExecutor(max_workers=WORKERS) as executor:
