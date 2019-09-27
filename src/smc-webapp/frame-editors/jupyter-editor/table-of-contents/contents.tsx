@@ -2,6 +2,8 @@ import { delay } from "awaiting";
 
 import { List, Map } from "immutable";
 
+import { Icon } from "../../../r_misc";
+
 import {
   Component,
   React,
@@ -62,21 +64,28 @@ class TableOfContents extends Component<Props> {
     };
   }
 
-  private render_header(level: number, value: string): Rendered {
+  private render_header(level: number, value: string, icon: string): Rendered {
     const style = { marginTop: 0 };
+    const elt = (
+      <>
+        <Icon name={icon} style={{ width: "30px", display: "inline-block" }} />{" "}
+        <a>{value}</a>
+      </>
+    );
+
     switch (level) {
       case 1:
-        return <h1 style={style}>{value}</h1>;
+        return <h1 style={style}>{elt}</h1>;
       case 2:
-        return <h2 style={style}>{value}</h2>;
+        return <h2 style={style}>{elt}</h2>;
       case 3:
-        return <h3 style={style}>{value}</h3>;
+        return <h3 style={style}>{elt}</h3>;
       case 4:
-        return <h4 style={style}>{value}</h4>;
+        return <h4 style={style}>{elt}</h4>;
       case 5:
-        return <h5 style={style}>{value}</h5>;
+        return <h5 style={style}>{elt}</h5>;
       default:
-        return <h6 style={style}>{value}</h6>;
+        return <h6 style={style}>{elt}</h6>;
     }
   }
 
@@ -90,14 +99,14 @@ class TableOfContents extends Component<Props> {
     const headings = this.get_headings();
     if (headings == null) return this.render_loading();
     const v: Rendered[] = [];
-    for (let { id, level, value } of headings) {
+    for (let { id, level, value, icon } of headings) {
       v.push(
         <div
           key={id}
           onClick={() => this.jump_to_cell(id)}
           style={{ cursor: "pointer", paddingLeft: `${level * 2}em` }}
         >
-          {this.render_header(level, value)}
+          {this.render_header(level, value, icon)}
         </div>
       );
     }
@@ -106,7 +115,7 @@ class TableOfContents extends Component<Props> {
         style={{
           overflowY: "auto",
           margin: "15px",
-          fontSize: `${this.props.font_size-4}px`
+          fontSize: `${this.props.font_size - 4}px`
         }}
       >
         {v}
