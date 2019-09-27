@@ -11,4 +11,5 @@ export type Project = TypedMap<{
   state?: "opened" | "running" | "starting" | "stopping";
   status?: Map<string, any>;
   settings: Map<string, any>;
+  compute_image: string;
 }>;
