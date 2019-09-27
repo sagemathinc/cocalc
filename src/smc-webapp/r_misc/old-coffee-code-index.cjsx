@@ -1081,12 +1081,14 @@ exports.ProjectState = rclass
         </span>
 
     render_time: ->
-        time = @props.state?.get('time')
+        time = @props.state?.get?('time')
         if time
             return <span><Space/> (<exports.TimeAgo date={time} />)</span>
 
     render: ->
-        s = COMPUTE_STATES[@props.state?.get('state')]
+        # In production I hit a traceback in which @props.state was defined
+        # but did not have a get attribute.  No clue why.
+        s = COMPUTE_STATES[@props.state?.get?('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
