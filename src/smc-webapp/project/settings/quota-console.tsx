@@ -150,7 +150,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     );
   }
 
-  start_admin_editing() {
+  start_admin_editing = () => {
     this.setState({ editing: true });
   }
 
@@ -181,7 +181,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     this.setState({ editing: false });
   }
 
-  cancel_admin_editing() {
+  cancel_admin_editing = () => {
     const settings = this.props.project_settings;
     if (settings != undefined) {
       // reset user input states
@@ -338,12 +338,12 @@ export class QuotaConsole extends React.Component<Props, State> {
       // this happens for the admin -- just ignore any upgrades from the users
       total_quotas = {};
       for (name in this.props.quota_params) {
-        // Unused??
+        // Unused?? Found while typescripting. Could be a bug.
         // const data = this.props.quota_params[name];
         total_quotas[name] = settings.get(name);
       }
     }
-    // Unused??
+    // Unused?? Found while typescripting. Could be a bug.
     // const disk_quota = <b>{settings.get("disk_quota")}</b>;
     let memory: string | number = "?";
     let disk: string | number = "?";
@@ -360,14 +360,14 @@ export class QuotaConsole extends React.Component<Props, State> {
       }
     }
 
-    const r = misc.round2;
+    const round = misc.round2;
     // the keys in quotas have to match those in PROJECT_UPGRADES.field_order
     const quotas = {
       disk_quota: {
         view: (
           <span>
             <b>
-              {r(
+              {round(
                 total_quotas["disk_quota"] *
                   quota_params["disk_quota"].display_factor
               )}{" "}
@@ -387,7 +387,7 @@ export class QuotaConsole extends React.Component<Props, State> {
         view: (
           <span>
             <b>
-              {r(
+              {round(
                 total_quotas["memory"] * quota_params["memory"].display_factor
               )}{" "}
               MB
@@ -406,7 +406,7 @@ export class QuotaConsole extends React.Component<Props, State> {
         view: (
           <span>
             <b>
-              {r(
+              {round(
                 total_quotas["memory_request"] *
                   quota_params["memory_request"].display_factor
               )}{" "}
@@ -425,7 +425,7 @@ export class QuotaConsole extends React.Component<Props, State> {
         view: (
           <span>
             <b>
-              {r(total_quotas["cores"] * quota_params["cores"].display_factor)}{" "}
+              {round(total_quotas["cores"] * quota_params["cores"].display_factor)}{" "}
               {misc.plural(
                 total_quotas["cores"] * quota_params["cores"].display_factor,
                 "core"
@@ -438,7 +438,7 @@ export class QuotaConsole extends React.Component<Props, State> {
       cpu_shares: {
         view: (
           <b>
-            {r(
+            {round(
               total_quotas["cpu_shares"] *
                 quota_params["cpu_shares"].display_factor
             )}{" "}
