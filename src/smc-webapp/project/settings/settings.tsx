@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 import misc from "smc-util/misc";
 import { ErrorDisplay, Loading } from "../../r_misc";
@@ -18,7 +10,6 @@ import {
   StripeCustomer,
   Customer
 } from "smc-webapp/todo-types";
-import { Project } from "./types";
 const { webapp_client } = require("../../webapp_client");
 const { Alert } = require("react-bootstrap");
 
