@@ -23,12 +23,11 @@ export function DeleteAllStudents({ delete_all_students }: Props) {
       <Button bsStyle="warning" onClick={open_confirmation}>
         <Icon name="trash" /> Delete all Students...
       </Button>
-      {is_opened && (
-        <Confirmation on_confirm={confirm} on_cancel={cancel} />
-      )}
+      {is_opened && <Confirmation on_confirm={confirm} on_cancel={cancel} />}
       <hr />
       <span style={{ color: "#666" }}>
-        Students are undeleteable from the Student tab.
+        Student projects will not be deleted. Also, if you make a mistake,
+        students can still be un-deleted from the Student tab.
       </span>
     </Panel>
   );
