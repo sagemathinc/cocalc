@@ -4,10 +4,10 @@ import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
 import { rclass, rtypes } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
+import * as misc from "smc-util/misc2";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
-const misc = require("smc-util/misc");
 
 declare var DEBUG;
 
