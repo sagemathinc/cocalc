@@ -14,4 +14,16 @@ import "antd/es/notification/style/css";
 import notification from "antd/es/notification";
 export { notification };
 
+import "antd/es/button/style/css";
+import Button from "antd/es/button";
+export { Button };
+
+import "antd/es/row/style/css";
+import Row from "antd/es/row";
+export { Row };
+
+import "antd/es/col/style/css";
+import Col from "antd/es/col";
+export { Col };
+
 import "./fix.css";
