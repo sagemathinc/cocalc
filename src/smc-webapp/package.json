@@ -28,6 +28,7 @@
     "@types/react-redux": "^5.0.21",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",
+    "antd": "^3.23.4",
     "async": "^2.6.1",
     "async-await-utils": "^2.0.4",
     "awaiting": "^3.0.0",

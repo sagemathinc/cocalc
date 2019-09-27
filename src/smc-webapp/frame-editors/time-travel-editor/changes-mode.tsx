@@ -1,7 +1,9 @@
 /* Toggle diff mode */
 
 import { Rendered, Component, React } from "../../app-framework";
-import { Checkbox } from "react-bootstrap";
+
+import { Checkbox, Tooltip } from "../../ui";
+
 import { TimeTravelActions } from "./actions";
 
 interface Props {
@@ -21,17 +23,18 @@ export class ChangesMode extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <Checkbox
-        disabled={this.props.disabled}
-        title={
-          "Toggle whether or not to show the changes from one point in time to another"
-        }
-        onChange={this.toggle.bind(this)}
-        checked={this.props.disabled ? false : this.props.changes_mode}
-        style={{ display: "inline", margin: "0 10px" }}
+      <Tooltip
+        placement="top"
+        title="Toggle whether or not to show the changes from one point in time to another"
       >
-        Changes
-      </Checkbox>
+        <Checkbox
+          disabled={this.props.disabled}
+          onChange={this.toggle.bind(this)}
+          checked={this.props.disabled ? false : this.props.changes_mode}
+        >
+          Changes
+        </Checkbox>
+      </Tooltip>
     );
   }
 }
