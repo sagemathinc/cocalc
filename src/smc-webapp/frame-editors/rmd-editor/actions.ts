@@ -12,6 +12,28 @@ import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
 import { change_filename_extension, path_split } from "smc-util/misc2";
 
+const custom_pdf_error_message: string = `
+To create a PDF document from R Markdown, you specify the \`pdf_document\` output format in the
+YAML metadata by putting this code at the top of your file:
+
+\`\`\`
+---
+title: "My Document"
+author: CoCalc User
+date: Sept 27, 2019
+output: pdf_document
+---
+\`\`\`
+
+Within a document that generates PDF output, you can use raw LaTeX, and even define LaTeX macros.
+
+Once you make the above change, the HTML output will no longer be updated.  If you would
+like to switch back to HTML output, delete the output line or replace it with
+\`\`\`
+output: html_document
+\`\`\`
+`;
+
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;
 
@@ -21,6 +43,7 @@ export class RmdActions extends Actions {
       // one extra thing after markdown.
       this._init_rmd_converter();
       this._check_produced_files();
+      this.setState({ custom_pdf_error_message });
     }
   }
 
