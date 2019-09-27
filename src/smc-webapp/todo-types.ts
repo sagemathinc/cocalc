@@ -12,3 +12,6 @@ export type ProjectStatus = TypedMap<{
 }>;
 
 export type UserMap = Map<any, any>;
+
+export type StripeCustomer = TypedMap<{}>;
+export type Customer = TypedMap<{}>;

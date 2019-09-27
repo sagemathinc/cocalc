@@ -12,6 +12,7 @@ const misc = require("smc-util/misc");
 declare var DEBUG;
 
 interface ReactProps {
+  name: string;
   project: Project;
 }
 

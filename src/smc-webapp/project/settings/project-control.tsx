@@ -59,8 +59,8 @@ interface State {
   show_stop_confirmation?: boolean;
 }
 
-export const ProjectControlPanel = rclass<ReactProps>(
-  class ProjectControlPanel extends React.Component<
+export const ProjectControl = rclass<ReactProps>(
+  class ProjectControl extends React.Component<
     ReactProps & ReduxProps,
     State
   > {

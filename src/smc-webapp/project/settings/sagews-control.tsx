@@ -14,7 +14,7 @@ interface State {
   message: string;
 }
 
-export class SageWorksheetBox extends React.Component<Props, State> {
+export class SagewsControl extends React.Component<Props, State> {
   private _mounted: boolean;
 
   constructor(props) {
