@@ -62,139 +62,9 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 {TitleDescriptionBox} = require('./project/settings/title-description-box')
 {QuotaConsole} = require('./project/settings/quota-console')
 {UpgradeUsage} = require('./project/settings/upgrade-usage')
+{HideDeleteBox} = require('./project/settings/hide-delete-box')
 
-HideDeletePanel = rclass
-    displayName : 'ProjectSettings-HideDeletePanel'
-
-    propTypes :
-        project : rtypes.object.isRequired
-
-    getInitialState: ->
-        show_delete_conf : false
-
-    show_delete_conf: ->
-        @setState(show_delete_conf : true)
-
-    hide_delete_conf: ->
-        @setState(show_delete_conf : false)
-
-    toggle_delete_project: ->
-        @actions('projects').toggle_delete_project(@props.project.get('project_id'))
-        @hide_delete_conf()
-        if @props.project.get('deleted')
-            analytics_event('project_settings', 'undelete project')
-        else
-            analytics_event('project_settings', 'delete project')
-
-    toggle_hide_project: ->
-        @actions('projects').toggle_hide_project(@props.project.get('project_id'))
-        user = @props.project.getIn(['users', webapp_client.account_id])
-        if user.get('hide')
-            analytics_event('project_settings', 'unhide project')
-        else
-            analytics_event('project_settings', 'hide project')
-
-    # account_id : String
-    # project    : immutable.Map
-    user_has_applied_upgrades: (account_id, project) ->
-        project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
-
-    delete_message: ->
-        if @props.project.get('deleted')
-            <DeletedProjectWarning/>
-        else
-            <span>Delete this project for everyone. You can undo this.</span>
-
-    hide_message: ->
-        user = @props.project.getIn(['users', webapp_client.account_id])
-        if not user?
-            return <span>Does not make sense for admin.</span>
-        if user.get('hide')
-            <span>
-                Unhide this project, so it shows up in your default project listing.
-                Right now it only appears when hidden is checked.
-            </span>
-        else
-            <span>
-                Hide this project, so it does not show up in your default project listing.
-                This only impacts you, not your collaborators, and you can easily unhide it.
-            </span>
-
-    render_delete_undelete_button: (is_deleted, is_expanded) ->
-        if is_deleted
-            text = "Undelete Project"
-            onClick = @toggle_delete_project
-            disabled = false
-        else
-            text = "Delete Project..."
-            onClick = @show_delete_conf
-            disabled = is_expanded
-
-        <Button bsStyle='danger' style={float: 'right'} onClick={onClick} disabled={disabled}>
-            <Icon name='trash' /> {text}
-        </Button>
-
-    render_expanded_delete_info: ->
-        has_upgrades = @user_has_applied_upgrades(webapp_client.account_id, @props.project)
-        <Well style={textAlign:'center'} >
-            {<Alert bsStyle="info" style={padding:'8px'} >
-                All of your upgrades from this project will be removed automatically.
-                Undeleting the project will not automatically restore them.
-                This will not affect upgrades other people have applied.
-            </Alert> if has_upgrades}
-            {<div style={marginBottom:'5px'} >
-                Are you sure you want to delete this project?
-            </div> if not has_upgrades}
-            <ButtonToolbar >
-                <Button bsStyle='danger' onClick={@toggle_delete_project}>
-                    Yes, please delete this project
-                </Button>
-                <Button onClick={@hide_delete_conf}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-        </Well>
-
-    render: ->
-        user = @props.project.getIn(['users', webapp_client.account_id])
-        if not user?
-            return <span>Does not make sense for admin.</span>
-        hidden = user.get('hide')
-        <SettingBox title='Hide or delete project' icon='warning'>
-            <Row>
-                <Col sm={8}>
-                    {@hide_message()}
-                </Col>
-                <Col sm={4}>
-                    <Button bsStyle='warning' onClick={@toggle_hide_project} style={float: 'right'}>
-                        <Icon name='eye-slash' /> {if hidden then 'Unhide' else 'Hide'} Project
-                    </Button>
-                </Col>
-            </Row>
-            <hr />
-            <Row>
-                <Col sm={8}>
-                    {@delete_message()}
-                </Col>
-                <Col sm={4}>
-                    {@render_delete_undelete_button(@props.project.get('deleted'), @state.show_delete_conf)}
-                </Col>
-            </Row>
-            {<Row style={marginTop:'10px'} >
-                <Col sm={12}>
-                    {@render_expanded_delete_info()}
-                </Col>
-            </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
-            <hr/>
-            <Row style={color: '#666'}>
-                <Col sm={12}>
-                    If you do need to permanently delete some sensitive information
-                    that you accidentally copied into a project, contact <HelpEmailLink/>.
-                </Col>
-            </Row>
-        </SettingBox>
-
-SageWorksheetPanel = rclass
+class SageWorksheetPanel
     displayName : 'ProjectSettings-SageWorksheetPanel'
 
     getInitialState: ->
@@ -250,7 +120,7 @@ SageWorksheetPanel = rclass
         </SettingBox>
 
 
-ProjectCapabilitiesPanel = rclass ({name}) ->
+class ProjectCapabilitiesPanel
     displayName : 'ProjectSettings-ProjectCapabilitiesPanel'
 
     propTypes :
@@ -390,7 +260,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
 
 
 
-ProjectControlPanel = rclass
+class ProjectControlPanel
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState: ->
@@ -716,7 +586,7 @@ ProjectControlPanel = rclass
             {@render_select_compute_image_row()}
         </SettingBox>
 
-SSHPanel = rclass
+class SSHPanel
     displayName: 'ProjectSettings-SSHPanel'
 
     propTypes :
@@ -764,7 +634,7 @@ SSHPanel = rclass
             </SSHKeyList>
         </div>
 
-ProjectSettingsBody = rclass ({name}) ->
+class ProjectSettingsBody
     displayName : 'ProjectSettings-ProjectSettingsBody'
 
     propTypes :
@@ -852,7 +722,7 @@ ProjectSettingsBody = rclass ({name}) ->
                         all_projects_have_been_loaded        = {@props.all_projects_have_been_loaded}
                     />
 
-                    <HideDeletePanel key='hidedelete' project={@props.project} />
+                    <HideDeleteBox key='hidedelete' project={@props.project} actions={@actions('projects')} />
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
                     <ProjectCapabilitiesPanel
                         name={name}
@@ -877,7 +747,7 @@ ProjectSettingsBody = rclass ({name}) ->
             </Row>
         </div>
 
-exports.ProjectSettings = rclass ({name}) ->
+class exports.ProjectSettings ({name}) ->
     displayName : 'ProjectSettings-ProjectSettings'
 
     reduxProps :

@@ -4,18 +4,11 @@ import { QuotaConsole } from "./quota-console";
 import { Icon, Loading, UpgradeAdjustor, SettingBox } from "smc-webapp/r_misc";
 import { redux } from "smc-webapp/app-framework";
 import { URLBox } from "./url-box";
-import { TypedMap } from "smc-webapp/app-framework/TypedMap";
-import { Map } from "immutable";
+import { Project } from "./types";
 
 const { HelpEmailLink } = require("../../customize");
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
-
-type Project = TypedMap<{
-  state?: "opened" | "running" | "starting" | "stopping";
-  status?: Map<string, any>;
-  settings: Map<string, any>;
-}>;
 
 interface Props {
   project_id: string;
@@ -41,13 +34,13 @@ export class UpgradeUsage extends React.Component<Props, State> {
     this.state = { show_adjustor: false };
   }
 
-  submit_upgrade_quotas = (new_quotas) => {
+  submit_upgrade_quotas = new_quotas => {
     this.props.actions.apply_upgrades_to_project(
       this.props.project_id,
       new_quotas
     );
     this.setState({ show_adjustor: false });
-  }
+  };
 
   render_upgrades_button() {
     return (
