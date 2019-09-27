@@ -3,8 +3,8 @@ R Markdown Editor Actions
 */
 
 import { Set } from "immutable";
-import { callback } from "awaiting";
 import { debounce } from "lodash";
+import { callback2 } from "smc-util/async-utils";
 import { Actions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
@@ -42,10 +42,7 @@ export class RmdActions extends Actions {
       return;
     }
     const path = path_split(this.path).head;
-    const update_dir = (path, cb) => {
-      project_actions.fetch_directory_listing({ finish_cb: cb, path: path });
-    };
-    await callback(update_dir, path);
+    await callback2(project_actions.fetch_directory_listing, { path });
 
     const project_store = project_actions.get_store();
     if (project_store == undefined) {
@@ -110,7 +107,7 @@ export class RmdActions extends Actions {
       this.set_reload("pdfjs_canvas");
       await this._check_produced_files();
     } catch (err) {
-      this.set_error(err);
+      this.set_error(err, "monospace");
       return;
     } finally {
       this.set_status("");
