@@ -1,8 +1,7 @@
 import * as React from "react";
 import { Icon } from "./icon";
 import { CloseX2 } from "./close-x2";
-
-const { Panel } = require("react-bootstrap");
+import { Card } from "cocalc-ui";
 
 interface Props {
   icon: string;
@@ -31,12 +30,21 @@ export function SettingBox({
     }
 
     return (
-      <h3>
+      <h5>
         <Icon name={icon} /> {final_title}
         {close ? <CloseX2 close={close} /> : undefined}
-      </h3>
+      </h5>
     );
   }
 
-  return <Panel header={render_header()}>{children}</Panel>;
+  return (
+    <Card
+      size="small"
+      title={render_header()}
+      style={{ marginBottom: "20px" }}
+      headStyle={{ backgroundColor: "#f5f5f5", paddingTop: "0.5em" }}
+    >
+      {children}
+    </Card>
+  );
 }

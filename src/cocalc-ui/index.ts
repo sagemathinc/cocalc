@@ -10,4 +10,8 @@ import "antd/es/alert/style/css";
 import Alert from "antd/es/alert";
 export { Alert };
 
+import "antd/es/card/style/css";
+import Card from "antd/es/card";
+export { Card };
+
 import "./fix.css";
