@@ -8,7 +8,7 @@ import { Project } from "./types";
 import { UserMap } from "smc-webapp/todo-types";
 
 const { webapp_client } = require("../../webapp_client");
-const { SSHKeyAdder, SSHKeyList } = require("./widget-ssh-keys/main");
+const { SSHKeyAdder, SSHKeyList } = require("../../widget-ssh-keys/main");
 
 interface Props {
   project: Project;

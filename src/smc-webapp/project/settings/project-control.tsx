@@ -37,7 +37,7 @@ let {
 } = require("smc-util/compute-images");
 COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES); // only because that's how all the ui code was written.
 
-const { project_tasks } = require("./project_tasks");
+const { project_tasks } = require("../../project_tasks");
 const misc = require("smc-util/misc");
 
 interface ReactProps {
@@ -215,7 +215,7 @@ export const ProjectControl = rclass<ReactProps>(
                   onClick={e => {
                     e.preventDefault();
                     this.setState({ show_stop_confirmation: false });
-                    return this.stop_project();
+                    this.stop_project();
                   }}
                 >
                   <Icon name="stop" /> Stop Project Server
@@ -223,7 +223,7 @@ export const ProjectControl = rclass<ReactProps>(
                 <Button
                   onClick={e => {
                     e.preventDefault();
-                    return this.setState({ show_stop_confirmation: false });
+                    this.setState({ show_stop_confirmation: false });
                   }}
                 >
                   Cancel
@@ -247,7 +247,7 @@ export const ProjectControl = rclass<ReactProps>(
             disabled={!commands.includes("start") && !commands.includes("stop")}
             onClick={e => {
               e.preventDefault();
-              return this.setState({
+              this.setState({
                 show_stop_confirmation: false,
                 restart: true
               });
@@ -260,7 +260,7 @@ export const ProjectControl = rclass<ReactProps>(
             disabled={!commands.includes("stop")}
             onClick={e => {
               e.preventDefault();
-              return this.setState({
+              this.setState({
                 show_stop_confirmation: true,
                 restart: false
               });
@@ -330,15 +330,15 @@ export const ProjectControl = rclass<ReactProps>(
       );
     }
 
-    cancel_compute_image(current_image) {
-      return this.setState({
+    cancel_compute_image = (current_image) => {
+      this.setState({
         compute_image: current_image,
         compute_image_changing: false,
         compute_image_focused: false
       });
     }
 
-    async save_compute_image(current_image) {
+    save_compute_image = async (current_image) => {
       // image is reset to the previous name and componentWillReceiveProps will set it when new
       this.setState({
         compute_image: current_image,
@@ -352,15 +352,15 @@ export const ProjectControl = rclass<ReactProps>(
       analytics_event("project_settings", "change compute image");
       try {
         await actions.set_compute_image(new_image);
-        return this.restart_project();
+        this.restart_project();
       } catch (err) {
         alert_message({ type: "error", message: err });
-        return this.setState({ compute_image_changing: false });
+        this.setState({ compute_image_changing: false });
       }
     }
 
     set_compute_image(name) {
-      return this.setState({ compute_image: name });
+      this.setState({ compute_image: name });
     }
 
     compute_image_info(name, type) {

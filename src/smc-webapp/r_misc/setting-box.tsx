@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Icon } from "./icon"
+import { Icon } from "./icon";
 import { CloseX2 } from "./close-x2";
 
 const { Panel } = require("react-bootstrap");
@@ -13,23 +13,30 @@ interface Props {
   children?: React.ReactNode;
 }
 
-export function SettingBox(props: Props) {
+export function SettingBox({
+  icon,
+  title,
+  title_el,
+  close,
+  children,
+  show_header = true
+}: Props) {
   function render_header() {
-    if (!props.show_header) {
+    if (!show_header) {
       return;
     }
-    const title = props.title != undefined ? props.title : props.title_el;
-    if (title == undefined) {
+    const final_title = title != undefined ? title : title_el;
+    if (final_title == undefined) {
       return;
     }
 
     return (
       <h3>
-        <Icon name={props.icon} /> {title}
-        {props.close ? <CloseX2 close={props.close} /> : undefined}
+        <Icon name={icon} /> {final_title}
+        {close ? <CloseX2 close={close} /> : undefined}
       </h3>
     );
   }
 
-  return <Panel header={render_header()}>{props.children}</Panel>;
+  return <Panel header={render_header()}>{children}</Panel>;
 }

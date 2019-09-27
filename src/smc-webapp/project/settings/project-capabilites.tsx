@@ -5,7 +5,7 @@ import { rclass, rtypes } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
 
-const { CUSTOM_SOFTWARE_HELP_URL } = require("./custom-software/util");
+const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
 const misc = require("smc-util/misc");
 

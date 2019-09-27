@@ -1,6 +1,6 @@
 import * as React from "react";
 import { analytics_event } from "../../tracker";
-import misc from "smc-util/misc";
+const misc = require("smc-util/misc");
 import {
   Icon,
   NonMemberProjectWarning,
@@ -118,9 +118,9 @@ export const Body = rclass<ReactProps>(
         .getStore("projects")
         .allow_urls_in_emails(this.props.project_id);
 
-      const { commercial } = require("./customize");
+      const { commercial } = require("../../customize");
 
-      const { is_available } = require("./project_configuration");
+      const { is_available } = require("../../project_configuration");
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;

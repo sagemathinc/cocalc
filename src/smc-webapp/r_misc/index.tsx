@@ -1,4 +1,3 @@
-import { SettingBox } from "../../smc-project/smc-webapp/r_misc/setting-box";
 export { A } from "./A";
 export { Icon } from "./icon";
 export { Tip } from "./tip";

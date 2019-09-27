@@ -5,10 +5,11 @@ import { Icon, Loading, UpgradeAdjustor, SettingBox } from "smc-webapp/r_misc";
 import { redux } from "smc-webapp/app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";
-
 import { HelpEmailLink } from "../../customize";
+
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
+const { PROJECT_UPGRADES } = require("smc-util/schema");
 
 interface Props {
   project_id: string;
@@ -75,7 +76,7 @@ export class UpgradeUsage extends React.Component<Props, State> {
         upgrades_you_applied_to_this_project={
           this.props.upgrades_you_applied_to_this_project
         }
-        quota_params={require("smc-util/schema").PROJECT_UPGRADES.params}
+        quota_params={PROJECT_UPGRADES.params}
         submit_upgrade_quotas={this.submit_upgrade_quotas}
         cancel_upgrading={() => this.setState({ show_adjustor: false })}
         total_project_quotas={this.props.total_project_quotas}
@@ -84,8 +85,9 @@ export class UpgradeUsage extends React.Component<Props, State> {
   }
 
   render() {
-    if (!require("./customize").commercial) {
-      return undefined;
+    const custom = redux.getStore("customize");
+    if (!custom || !custom.get("commercial")) {
+      return <></>;
     }
     return (
       <SettingBox title="Project usage and quotas" icon="dashboard">
@@ -97,7 +99,7 @@ export class UpgradeUsage extends React.Component<Props, State> {
           project_status={this.props.project.get("status")}
           project_state={this.props.project.getIn(["state", "state"])}
           user_map={this.props.user_map}
-          quota_params={require("smc-util/schema").PROJECT_UPGRADES.params}
+          quota_params={PROJECT_UPGRADES.params}
           account_groups={this.props.account_groups}
           total_project_quotas={this.props.total_project_quotas}
           all_upgrades_to_this_project={this.props.all_upgrades_to_this_project}

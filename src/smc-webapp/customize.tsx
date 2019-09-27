@@ -41,7 +41,7 @@ actions.setState({ is_commercial: true }); // really simple way to have a defaul
 // to generate static content, which can't be customized.
 let COMMERCIAL: boolean = defaults.is_commercial;
 if (typeof $ !== "undefined" && $ != undefined) {
-  $.get(window.app_base_url + "/customize", function(obj, status) {
+  $.get((window as any).app_base_url + "/customize", function(obj, status) {
     if (status === "success") {
       obj.commercial =
         obj.commercial != undefined ? obj.commercial : defaults.commercial;
