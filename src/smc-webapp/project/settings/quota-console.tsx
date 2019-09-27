@@ -1,14 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 // TODO: Remove `as any`s in this file.
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
 import * as React from "react";
@@ -70,13 +59,11 @@ export class QuotaConsole extends React.Component<Props, State> {
       upgrading: false // user is currently upgrading
     };
     const settings = this.props.project_settings;
-    if (settings != null) {
-      // TODO: Make this nicer
+    if (settings != undefined) {
       for (let name in this.props.quota_params) {
-        var left;
         const data = this.props.quota_params[name];
         const factor = data.display_factor;
-        const base_value = (left = settings.get(name)) != null ? left : 0;
+        const base_value = settings.get(name) || 0;
         state[name] = misc.round2(base_value * factor);
       }
     }
@@ -86,7 +73,7 @@ export class QuotaConsole extends React.Component<Props, State> {
   componentWillReceiveProps(next_props) {
     const settings = next_props.project_settings;
     if (!immutable.is(this.props.project_settings, settings)) {
-      if (settings != null) {
+      if (settings != undefined) {
         const new_state = {};
         for (let name in this.props.quota_params) {
           const data = this.props.quota_params[name];
@@ -94,13 +81,24 @@ export class QuotaConsole extends React.Component<Props, State> {
             settings.get(name) * data.display_factor
           );
         }
-        return this.setState(new_state);
+        this.setState(new_state);
       }
     }
   }
 
-  render_quota_row(name, quota, base_value, upgrades, params_data) {
-    if (base_value == null) {
+  render_quota_row(
+    name: keyof QuotaParams,
+    quota: { edit: string; view: string },
+    base_value: number,
+    upgrades: QuotaParams,
+    params_data: {
+      display_factor: number;
+      display_unit: string;
+      display: string;
+      desc: string;
+    }
+  ) {
+    if (base_value == undefined) {
       base_value = 0;
     }
     const factor = params_data.display_factor;
@@ -116,7 +114,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     };
 
     const upgrade_list: JSX.Element[] = [];
-    if (upgrades != null) {
+    if (upgrades != undefined) {
       for (let id in upgrades) {
         const val = upgrades[id];
         const li = (
@@ -153,7 +151,7 @@ export class QuotaConsole extends React.Component<Props, State> {
   }
 
   start_admin_editing() {
-    return this.setState({ editing: true });
+    this.setState({ editing: true });
   }
 
   save_admin_editing() {
@@ -167,37 +165,36 @@ export class QuotaConsole extends React.Component<Props, State> {
       mintime: Math.floor(this.state.mintime * 3600),
       network: this.state.network,
       member_host: this.state.member_host,
-      cb(err, mesg) {
+      cb(err: Error, mesg: { event: string; error?: string }) {
         if (err) {
-          return alert_message({ type: "error", message: err });
+          alert_message({ type: "error", message: err });
         } else if (mesg.event === "error") {
-          return alert_message({ type: "error", message: mesg.error });
+          alert_message({ type: "error", message: mesg.error });
         } else {
-          return alert_message({
+          alert_message({
             type: "success",
             message: "Project quotas updated."
           });
         }
       }
     });
-    return this.setState({ editing: false });
+    this.setState({ editing: false });
   }
 
   cancel_admin_editing() {
     const settings = this.props.project_settings;
-    if (settings != null) {
+    if (settings != undefined) {
       // reset user input states
       const state = {};
       for (let name in this.props.quota_params) {
-        var left;
         const data = this.props.quota_params[name];
         const factor = data.display_factor;
-        const base_value = (left = settings.get(name)) != null ? left : 0;
+        const base_value = settings.get(name) || 0;
         state[name] = misc.round2(base_value * factor);
       }
       this.setState(state);
     }
-    return this.setState({ editing: false });
+    this.setState({ editing: false });
   }
 
   // Returns true if the admin inputs are valid, i.e.
@@ -207,19 +204,19 @@ export class QuotaConsole extends React.Component<Props, State> {
   valid_admin_inputs() {
     let changed;
     const settings = this.props.project_settings;
-    if (settings == null) {
+    if (settings == undefined) {
       return false;
     }
 
     for (let name in this.props.quota_params) {
-      const data = this.props.quota_params[name];
-      if (settings.get(name) == null) {
+      const data = this.props.quota_params[name] || {};
+      if (settings.get(name) == undefined) {
         continue;
       }
-      const factor = data != null ? data.display_factor : undefined;
+      const factor = data.display_factor;
       const cur_val = settings.get(name) * factor;
       const new_val = misc.parse_number_input(this.state[name]);
-      if (new_val == null) {
+      if (new_val == undefined) {
         return false;
       }
       if (cur_val !== new_val) {
@@ -230,7 +227,7 @@ export class QuotaConsole extends React.Component<Props, State> {
   }
 
   render_admin_edit_buttons() {
-    if (Array.from(this.props.account_groups).includes("admin")) {
+    if (this.props.account_groups.includes("admin")) {
       if (this.state.editing) {
         return (
           <Row>
@@ -266,16 +263,16 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  admin_input_validation_styles(input) {
-    let style;
-    if (misc.parse_number_input(input) == null) {
-      style = {
+  admin_input_validation_styles(
+    input: number
+  ): React.CSSProperties | undefined {
+    if (misc.parse_number_input(input) == undefined) {
+      return {
         outline: "none",
         borderColor: "red",
         boxShadow: "0 0 10px red"
       };
     }
-    return style;
   }
 
   render_input(label: keyof QuotaParams) {
@@ -332,12 +329,12 @@ export class QuotaConsole extends React.Component<Props, State> {
   render() {
     let name;
     const settings = this.props.project_settings;
-    if (settings == null) {
+    if (settings == undefined) {
       return <Loading />;
     }
     const status = this.props.project_status;
     let total_quotas = this.props.total_project_quotas;
-    if (total_quotas == null) {
+    if (total_quotas == undefined) {
       // this happens for the admin -- just ignore any upgrades from the users
       total_quotas = {};
       for (name in this.props.quota_params) {
@@ -352,9 +349,9 @@ export class QuotaConsole extends React.Component<Props, State> {
     let disk: string | number = "?";
     const { quota_params } = this.props;
 
-    if (status != null) {
-      const rss = __guard__(status.get("memory"), x => x.get("rss"));
-      if (rss != null) {
+    if (status != undefined) {
+      const rss = status.getIn(["memory", "rss"]);
+      if (rss != undefined) {
         memory = Math.round(rss / 1000);
       }
       disk = status.get("disk_MB");
@@ -503,28 +500,16 @@ export class QuotaConsole extends React.Component<Props, State> {
     return (
       <div>
         {this.render_admin_edit_buttons()}
-        {(() => {
-          const result: any[] = [];
-          for (name of Array.from(PROJECT_UPGRADES.field_order)) {
-            result.push(
-              this.render_quota_row(
-                name,
-                quotas[name],
-                settings.get(name),
-                upgrades[name],
-                quota_params[name]
-              )
-            );
-          }
-          return result;
-        })()}
+        {PROJECT_UPGRADES.field_order.map(name => {
+          return this.render_quota_row(
+            name,
+            quotas[name],
+            settings.get(name),
+            upgrades[name],
+            quota_params[name]
+          );
+        })}
       </div>
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
