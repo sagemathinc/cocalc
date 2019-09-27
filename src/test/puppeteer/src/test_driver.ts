@@ -61,6 +61,10 @@ const cli_parse = function() {
 }
 
 const run_tests = async function() {
+  // as of 2019-09-27, axios POST to CoCalc docker API fails
+  // with "certificate has expired"
+  // UNLESS the following setting is used
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   const cp = cli_parse();
   let pfcounts: PassFail = new PassFail();
   if (cp){

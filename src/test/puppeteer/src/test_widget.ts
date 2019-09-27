@@ -56,7 +56,7 @@ const test_widget = async function (opts: Opts, page: Page): Promise<PassFail> {
 
     sel = "[cocalc-test='jupyter-cell']";
     const empty_exec_str: string = "In []:";
-    const restart_max_tries = 2400;
+    const restart_max_tries = 200;
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
