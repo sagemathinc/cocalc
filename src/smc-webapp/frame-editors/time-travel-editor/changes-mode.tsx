@@ -2,7 +2,7 @@
 
 import { Rendered, Component, React } from "../../app-framework";
 
-import { Checkbox, Tooltip } from "../../ui";
+import { Checkbox, Tooltip } from "cocalc-ui";
 
 import { TimeTravelActions } from "./actions";
 
@@ -26,6 +26,7 @@ export class ChangesMode extends Component<Props> {
       <Tooltip
         placement="top"
         title="Toggle whether or not to show the changes from one point in time to another"
+        mouseEnterDelay={1}
       >
         <Checkbox
           disabled={this.props.disabled}

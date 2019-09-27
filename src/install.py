@@ -59,10 +59,8 @@ def install_project():
         cmd(SUDO + c)
 
     pkgs = [
-        './smc-project',
-        './smc-webapp',
-        './smc-util-node',
-        './smc-util',
+        './smc-project', './smc-webapp', './smc-util-node', './smc-util',
+        './cocalc-ui'
     ]
 
     # npm ci for using pkg lock file
@@ -112,10 +110,7 @@ def install_webapp(*args):
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
 
         paths = [
-            'smc-webapp',
-            'smc-webapp/jupyter',
-            '.',
-            'smc-util',
+            'smc-webapp', 'smc-webapp/jupyter', '.', 'smc-util', 'cocalc-ui'
         ]
 
         # npm ci for using pkg lock file
