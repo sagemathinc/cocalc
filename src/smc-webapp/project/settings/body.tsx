@@ -23,9 +23,9 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
+import { Col, Row } from "cocalc-ui";
 
 const { webapp_client } = require("../../webapp_client");
-const { Col, Row } = require("react-bootstrap");
 
 interface ReactProps {
   project_id: string;
@@ -160,7 +160,7 @@ export const Body = rclass<ReactProps>(
             <Icon name="wrench" /> Project Settings
           </h1>
           <Row>
-            <Col sm={6}>
+            <Col sm={12}>
               <TitleDescriptionBox
                 project_id={id}
                 project_title={this.props.project.get("title") || ""}
@@ -208,7 +208,7 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
               />
             </Col>
-            <Col sm={6}>
+            <Col sm={12}>
               <CurrentCollaboratorsPanel
                 key="current-collabs"
                 project={this.props.project}

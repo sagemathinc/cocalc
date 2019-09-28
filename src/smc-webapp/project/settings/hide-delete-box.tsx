@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Project } from "./types";
 import { analytics_event } from "smc-webapp/tracker";
-import { Icon, SettingBox, DeletedProjectWarning } from "smc-webapp/r_misc";
-import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
+import { Icon, SettingBox, DeletedProjectWarning, Well } from "smc-webapp/r_misc";
+import { Button, Alert, Radio, Row, Col } from "cocalc-ui";
 import { ProjectsActions } from "smc-webapp/todo-types";
 const { webapp_client } = require("../../webapp_client");
 import { HelpEmailLink } from "../../customize";
@@ -104,7 +104,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
 
     return (
       <Button
-        bsStyle="danger"
+        type="danger"
         style={{ float: "right" }}
         onClick={onClick}
         disabled={disabled}
@@ -122,7 +122,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
     return (
       <Well style={{ textAlign: "center" }}>
         {has_upgrades ? (
-          <Alert bsStyle="info" style={{ padding: "8px" }}>
+          <Alert type="info" style={{ padding: "8px" }}>
             All of your upgrades from this project will be removed
             automatically. Undeleting the project will not automatically restore
             them. This will not affect upgrades other people have applied.
@@ -137,12 +137,12 @@ export class HideDeleteBox extends React.Component<Props, State> {
         ) : (
           undefined
         )}
-        <ButtonToolbar>
-          <Button bsStyle="danger" onClick={this.toggle_delete_project}>
+        <Radio>
+          <Button block={true} type="danger" onClick={this.toggle_delete_project}>
             Yes, please delete this project
           </Button>
-          <Button onClick={this.hide_delete_conf}>Cancel</Button>
-        </ButtonToolbar>
+          <Button block={true} onClick={this.hide_delete_conf}>Cancel</Button>
+        </Radio>
       </Well>
     );
   }
@@ -156,10 +156,10 @@ export class HideDeleteBox extends React.Component<Props, State> {
     return (
       <SettingBox title="Hide or delete project" icon="warning">
         <Row>
-          <Col sm={8}>{this.hide_message()}</Col>
-          <Col sm={4}>
+          <Col sm={16}>{this.hide_message()}</Col>
+          <Col sm={8}>
             <Button
-              bsStyle="warning"
+              type="warning"
               onClick={this.toggle_hide_project}
               style={{ float: "right" }}
             >
@@ -169,8 +169,8 @@ export class HideDeleteBox extends React.Component<Props, State> {
         </Row>
         <hr />
         <Row>
-          <Col sm={8}>{this.delete_message()}</Col>
-          <Col sm={4}>
+          <Col sm={16}>{this.delete_message()}</Col>
+          <Col sm={8}>
             {this.render_delete_undelete_button(
               this.props.project.get("deleted"),
               this.state.show_delete_conf
@@ -179,14 +179,14 @@ export class HideDeleteBox extends React.Component<Props, State> {
         </Row>
         {this.state.show_delete_conf && !this.props.project.get("deleted") ? (
           <Row style={{ marginTop: "10px" }}>
-            <Col sm={12}>{this.render_expanded_delete_info()}</Col>
+            <Col sm={24}>{this.render_expanded_delete_info()}</Col>
           </Row>
         ) : (
           undefined
         )}
         <hr />
         <Row style={{ color: "#666" }}>
-          <Col sm={12}>
+          <Col sm={24}>
             If you do need to permanently delete some sensitive information that
             you accidentally copied into a project, contact <HelpEmailLink />.
           </Col>
