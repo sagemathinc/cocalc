@@ -87,7 +87,6 @@
     "pdfjs-dist": "^2.0.943",
     "pegjs": "^0.10.0",
     "pica": "^4.1.1",
-    "pnotify": "^3.0.0",
     "postcss-loader": "^3.0.0",
     "project-name-generator": "^2.1.6",
     "prom-client": "^11.1.3",
