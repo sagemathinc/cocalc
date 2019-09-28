@@ -61,7 +61,6 @@ export class RenderedMarkdown extends Component<Props, {}> {
     this.restore_scroll();
   }
 
-
   async restore_scroll(): Promise<void> {
     const scroll = this.props.editor_state.get("scroll");
     const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
@@ -90,7 +89,6 @@ export class RenderedMarkdown extends Component<Props, {}> {
 
   render(): Rendered {
     const value = apply_without_math(this.props.value, process_checkboxes);
-
     return (
       <div
         style={{

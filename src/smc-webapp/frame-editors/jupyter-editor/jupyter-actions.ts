@@ -5,7 +5,7 @@ import { syncdb2 as new_syncdb } from "../generic/client";
 
 const { webapp_client } = require("../../webapp_client");
 import { meta_file } from "smc-util/misc";
-const { alert_message } = require("../../alerts");
+import { alert_message } from "../../alerts";
 
 export function redux_name(name: string): string {
   return `jupyter-${name}`;

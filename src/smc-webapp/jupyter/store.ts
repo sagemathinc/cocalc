@@ -69,10 +69,11 @@ export interface JupyterStoreState {
   default_kernel?: string;
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
+  contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
 }
 
 export const initial_jupyter_store_state: {
-  [K in keyof JupyterStoreState]?: JupyterStoreState[K]
+  [K in keyof JupyterStoreState]?: JupyterStoreState[K];
 } = {
   check_select_kernel_init: false,
   show_kernel_selector: false,
@@ -130,7 +131,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   public get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
-    if (cell_list == null) {  // truly fatal
+    if (cell_list == null) {
+      // truly fatal
       throw Error("ordered list of cell id's not known");
     }
     const i = cell_list.indexOf(id);

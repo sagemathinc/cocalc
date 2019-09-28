@@ -1,1 +1,0 @@
-This library is LGPL'd, so any modifications have to be published.  I have made no modifications.

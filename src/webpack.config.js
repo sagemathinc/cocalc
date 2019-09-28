@@ -632,10 +632,6 @@ module.exports = {
 
   module: {
     rules: [
-      {
-        test: /pnotify.*\.js$/,
-        use: "imports-loader?define=>false,global=>window"
-      },
       { test: /\.coffee$/, loader: "coffee-loader" },
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },

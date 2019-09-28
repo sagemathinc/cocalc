@@ -46,11 +46,11 @@ function normalize(path: string): string {
   }
 }
 
-const misc = require("smc-util/misc");
-let { MARKERS } = require("smc-util/sagews");
-let { alert_message } = require("./alerts");
-let { webapp_client } = require("./webapp_client");
-let { project_tasks } = require("./project_tasks");
+import * as misc from "smc-util/misc";
+const { MARKERS } = require("smc-util/sagews");
+import { alert_message } from "./alerts";
+const { webapp_client } = require("./webapp_client");
+const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
 import { Actions, project_redux_name, redux } from "./app-framework";
@@ -2199,8 +2199,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     _init_library_index_ongoing[this.project_id] = true;
 
-    ({ webapp_client } = require("./webapp_client"));
-
     const index_json_url = webapp_client.read_file_from_project({
       project_id: this.project_id,
       path: LIBRARY_INDEX_FILE
@@ -3204,8 +3202,6 @@ function get_directory_listing(opts) {
     group: required,
     cb: required
   });
-
-  ({ webapp_client } = require("./webapp_client"));
 
   if (prom_client.enabled) {
     prom_dir_listing_start = misc.server_time();
