@@ -751,7 +751,7 @@ export class CourseActions extends Actions<CourseState> {
     if (store == null) {
       return;
     }
-    await this._delete_student(store.get(student));
+    await this._delete_student(store.get_student(student));
     this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
