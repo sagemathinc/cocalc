@@ -1,11 +1,9 @@
 // top-level front end test driver
-// npm run build
-// npm run test -- [-H] -c ~/CCTEST/cocalc.yaml
 
-// TODO - split CREDS and ARGS
-// TODO - report number of tests passed, failed, and skipped
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
 
-const debuglog = require('util').debuglog('cc-driver');
 const program = require('commander');
 import chalk     from 'chalk';
 import * as fs   from 'fs';
