@@ -12,13 +12,22 @@ npm run build
 
 ## Create test project
 
-Install test files into home directory from [TEST_FILES folder](https://cocalc.com/projects/77a92d07-c122-4577-9c4c-c051379cacfe/files/CCTEST/TEST_FILES/?session=default)
+Install test files into home directory from [test_files folder](https://cocalc.com/projects/77a92d07-c122-4577-9c4c-c051379cacfe/files/CCTEST/TEST_FILES/?session=default)
 
 ```
 texfile:  latex-sample.tex
 widgetfile: widgets-sample.ipynb
 sageipynbfile: sage-sample.ipynb
-sagewsfile: sagews-sample.sagews
+```
+
+The following will install files named in `types.ts: TestFiles` from the `test_files` folder:
+(terse):
+```
+ npm run install_files -- -c /path/to/creds.yaml
+```
+(verbose)
+```
+ npm run install_files_dbg -- -c /path/to/creds.yaml
 ```
 
 ## Credentials
@@ -44,33 +53,33 @@ By default, use the puppeteer built-in Chrome browser.
 
 With verbose output:
 ```
-npm run tdbg -- -c ~/path/to/creds.yaml
+npm run tdbg -- -c /path/to/creds.yaml
 ```
 
 Without verbose output:
 ```
-npm run test -- -c ~/path/to/creds.yaml
+npm run test -- -c /path/to/creds.yaml
 ```
 
 Use CoCalc pre-installed Chrome at `/usr/bin/chromium-browser`:
 ```
-npm run test -- -c ~/path/to/creds.yaml -p
+npm run test -- -c /path/to/creds.yaml -p
 ```
 
 Use Chrome at custom path:
 ```
-npm run test -- -c ~/path/to/creds.yaml -p /custom/chrome
+npm run test -- -c /path/to/creds.yaml -p /custom/chrome
 ```
 
 With GUI browser:
 ```
 # run in .x11 terminal
-npm run test -- -c ~/path/to/creds.yaml -H
+npm run test -- -c /path/to/creds.yaml -H
 ```
 
 To skip tests (and their subtests) that match a pattern:
 ```
-npm run test -- -c ~/path/to/creds.yaml -k 'login'
+npm run test -- -c /path/to/creds.yaml -k 'login'
 ```
 
 
