@@ -13,6 +13,10 @@ export interface Opts {
   skip?: RegExp;
 }
 
+export interface InstallOpts extends Opts {
+  install_folder: string;
+}
+
 export class PassFail {
   pass: number;
   fail: number;
@@ -38,9 +42,8 @@ export class ApiGetString extends PassFail {
   }
 }
 
-export const TestFiles = {
+export const TestFiles: { [key: string]: string }  = {
   texfile: "latex-sample.tex",
   widgetfile: "widgets-sample.ipynb",
-  sageipynbfile: "sage-sample.ipynb",
-  sagewsfile: "sagews-sample.sagews"
+  sageipynbfile: "sage-sample.ipynb"
 }

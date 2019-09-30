@@ -12,3 +12,7 @@ export const pf_log = function(pf: PassFail): void{
   console.log(chalk.green(sprintf("%32s: %3d", "failed", pf.fail)));
   console.log(chalk.green(sprintf("%32s: %3d", "skipped", pf.skip)));
 }
+
+export const num_log = function(msg: string, num: number): void{
+  console.log(chalk.green(sprintf("%32s: %3d", msg, num)));
+}

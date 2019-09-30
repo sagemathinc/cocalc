@@ -6,8 +6,11 @@
   "scripts": {
     "lev0": "./lev0.js",
     "lev1": "lev1",
+    "clean": "rm build/*",
     "build": "tsc",
     "test": "node build/test_driver.js",
+    "install_files": "node build/install_files.js",
+    "install_files_dbg": "NODE_DEBUG='CC-*' node build/install_files.js",
     "tdbg": "NODE_DEBUG='CC-*' node build/test_driver.js"
   },
   "author": "Hal Snyder",
