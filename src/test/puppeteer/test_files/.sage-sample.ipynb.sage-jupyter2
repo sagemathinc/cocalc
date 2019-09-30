@@ -1,0 +1,3 @@
+{"backend_state":"running","kernel":"sagemath","kernel_state":"idle","kernel_usage":{"cpu":0,"memory":190279680},"metadata":{"language_info":{"codemirror_mode":{"name":"ipython","version":2},"file_extension":".py","mimetype":"text/x-python","name":"python","nbconvert_exporter":"python","pygments_lexer":"ipython2","version":"2.7.15"}},"type":"settings"}
+{"cell_type":"code","exec_count":0,"id":"65e01b","input":"%display latex\nsum(1/x^2,x,1,oo)","pos":0,"type":"cell"}
+{"last_load":1569730954581,"type":"file"}

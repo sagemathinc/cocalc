@@ -28,7 +28,7 @@ const cli_parse = function() {
       .option('-H, --no-headless', 'show browser (requires X11)', false)
       .option('-s, --screenshot', 'take screenshots', false)
       .option('-p, --path-to-chrome [chromepath]')
-      .option('-i, --install-path <folder>', 'path to files to upload', "data")
+      .option('-i, --install-path <folder>', 'path to files to upload', "test_files")
       .parse(process.argv);
     let creds_file: string = program.creds;
     debuglog('creds file:', creds_file);
