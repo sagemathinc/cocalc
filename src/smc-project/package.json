@@ -9,6 +9,7 @@
     "@types/express": "^4.16.1",
     "@types/jquery": "^3.3.6",
     "@types/mocha": "^5.2.5",
+    "@types/node": "^12.7.5",
     "async": "^1.5.0",
     "async-await-utils": "^2.0.4",
     "awaiting": "^3.0.0",
@@ -55,7 +56,6 @@
     "ws": "^6.0.0"
   },
   "devDependencies": {
-    "@types/node": "^10.0.8",
     "coffeelint": "^2.0.7"
   },
   "scripts": {

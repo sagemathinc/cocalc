@@ -1223,9 +1223,7 @@ class RetryUntilSuccess {
             this.opts.max_time != null &&
             new Date() - start_time + retry_delay > this.opts.max_time
           ) {
-            err = `maximum time (=${
-              this.opts.max_time
-            }ms) exceeded - last error ${err}`;
+            err = `maximum time (=${this.opts.max_time}ms) exceeded - last error ${err}`;
             while (this._cb_stack.length > 0) {
               this._cb_stack.pop()(err);
             }
@@ -2586,12 +2584,20 @@ exports.to_human_list = function(arr) {
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings());
 
-exports.history_path = function(path) {
+exports.history_path = function(path, old = false) {
   const p = exports.path_split(path);
-  if (p.head) {
-    return `${p.head}/.${p.tail}.sage-history`;
+  if (old) {
+    if (p.head) {
+      return `${p.head}/.${p.tail}.sage-history`;
+    } else {
+      return `.${p.tail}.sage-history`;
+    }
   } else {
-    return `.${p.tail}.sage-history`;
+    if (p.head) {
+      return `${p.head}/.${p.tail}.time-travel`;
+    } else {
+      return `.${p.tail}.time-travel`;
+    }
   }
 };
 
@@ -3146,7 +3152,7 @@ exports.closest_kernel_match = function(name, kernel_list) {
     asc ? i++ : i--
   ) {
     const k = kernel_list.get(i);
-    if (k == null) continue;  // This happened to Harald once when using the "mod sim py" custom image.
+    if (k == null) continue; // This happened to Harald once when using the "mod sim py" custom image.
     // filter out kernels with negative priority (using the priority would be great, though)
     if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
     const kernel_name = k.get("name").toLowerCase();

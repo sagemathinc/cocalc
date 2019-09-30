@@ -19,8 +19,8 @@
 //
 //##############################################################################
 
-// window? is so this can be imported in the backend for testing...
-const $ = window !== null ? (window as any).$ : undefined;
+import { notification } from "cocalc-ui";
+import { ReactElement } from "react";
 
 import { redux } from "./app-framework";
 import { NAME_SYSTEM, NotificationsActions } from "./system_notifications";
@@ -34,7 +34,7 @@ import {
 
 const { webapp_client } = require("./webapp_client");
 
-const types = tuple(["error", "default", "success", "info"]);
+const types = tuple(["error", "default", "success", "info", "warning"]);
 type Severity = typeof types[number];
 
 // used for system notifications
@@ -48,23 +48,20 @@ export interface Alert {
 
 // seconds
 const default_timeout: { [type in Severity]: number } = {
+  warning: 4,
   error: 8,
   default: 4,
   success: 4,
   info: 6
 };
 
-if (typeof $ === "function") {
-  $("#alert-templates").hide();
-}
-
 const last_shown = {};
 
 // old api, used throughout cocalc, based on $.pnotify
 interface AlertMessageOptions {
   type?: Severity;
-  title?: string;
-  message?: string;
+  title?: string | ReactElement<any>;
+  message?: string | ReactElement<any> | Error;
   block?: boolean;
   timeout?: number; // seconds
 }
@@ -75,29 +72,25 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     title: undefined,
     message: defaults.required,
     block: undefined,
-    timeout: undefined
-  }); // time in seconds
+    timeout: undefined // time in seconds
+  });
   if (opts.type == null) throw Error("bug"); // make typescript happy.
   if (opts.timeout == null) {
-    let t: number | undefined = default_timeout[opts.type];
-    if (t == null) {
-      t = 5;
-    }
-    opts.timeout = t;
-  }
-
-  if (typeof opts.message !== "string") {
-    opts.message = `${opts.message}`;
+    opts.timeout = default_timeout[opts.type] || 5;
   }
 
   // Don't show the exact same alert message more than once per 5s.
   // This prevents a screenful of identical useless messages, which
   // is just annoying and useless.
-  const hash = hash_string(opts.message + opts.type);
-  if (last_shown[hash] >= server_seconds_ago(5)) {
-    return;
+  if (opts.message instanceof Error) {
+    opts.message = `${opts.message}`;
+  } else if (opts.message === "string") {
+    const hash = hash_string(opts.message + opts.type);
+    if (last_shown[hash] >= server_seconds_ago(5)) {
+      return;
+    }
+    last_shown[hash] = server_time();
   }
-  last_shown[hash] = server_time();
 
   if (opts.block == null) {
     if (opts.type === "error") {
@@ -107,22 +100,17 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     }
   }
 
-  if (!types.includes(opts.type)) {
-    alert(`Unknown alert_message type ${opts.type}.`);
+  const f =
+    opts.type == "default" ? notification.open : notification[opts.type];
+  if (f == null) {
+    alert(`BUG: Unknown alert_message type ${opts.type}.`);
     return;
   }
 
-  const title = opts.title != null ? opts.title : "";
-
-  $.pnotify({
-    title,
-    type: opts.type,
-    text: opts.message,
-    nonblock: false,
-    animation_speed: "fast",
-    closer_hover: false,
-    opacity: 0.9,
-    delay: opts.timeout * 1000
+  f({
+    message: opts.title != null ? opts.title : "",
+    description: opts.message,
+    duration: opts.block ? 0 : opts.timeout
   });
 
   if (opts.type === "error") {
@@ -151,16 +139,6 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   });
 }
 
-// c = $("#alert-templates .alert-#{opts.type}").clone()
-
-// if opts.block
-//     c.addClass('alert-block')
-// c.find(".message").text(opts.message)
-// c.prependTo("#alert-messages")
-// c.click(() -> $(this).remove())
-
-// setTimeout((()->c.remove()), opts.timeout*1000)
-
 function check_for_clock_skew() {
   const local_time = new Date().valueOf();
   const s = Math.ceil(
@@ -179,12 +157,17 @@ function check_for_clock_skew() {
 setTimeout(check_for_clock_skew, 60000);
 
 // for testing/development
-// alert_message({type:'error',   message:"This is an error"})
-// alert_message({type:'default', message:"This is a default alert"})
-// alert_message({type:'success', message:"This is a success alert"})
-// alert_message({type:'info',    message:"This is an info alert"})
 
-// Make it so alert_message can be used by user code, e.g., in sage worksheets.
+/*
+alert_message({ type: "error", message: "This is an error" });
+alert_message({ type: "default", message: "This is a default alert" });
+alert_message({ type: "warning", message: "This is a warning alert" });
+alert_message({ type: "success", message: "This is a success alert" });
+alert_message({ type: "info", message: "This is an info alert" });
+*/
+
+// Make it so alert_message can be used by user code, e.g., in sage worksheets and Jupyter notebooks.
+
 if (window !== null) {
   (window as any).alert_message = exports.alert_message;
 }

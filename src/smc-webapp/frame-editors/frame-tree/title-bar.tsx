@@ -1100,6 +1100,8 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!(this.props.is_only || this.props.is_full)) {
       return;
     }
+    const spec = this.props.editor_spec[this.props.type];
+    if (spec != null && spec.hide_file_menu) return;
     return (
       <EditorFileInfoDropdown
         key={"info"}
@@ -1153,12 +1155,12 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     v.push(this.render_edit_init_script());
     v.push(this.render_count_words());
+    v.push(this.render_table_of_contents());
     v.push(this.render_kick_other_users_out());
     v.push(this.render_format());
     v.push(this.render_shell());
     v.push(this.render_print());
     v.push(this.render_help(labels));
-    v.push(this.render_table_of_contents());
 
     const w: Rendered[] = [];
     for (let c of v) {

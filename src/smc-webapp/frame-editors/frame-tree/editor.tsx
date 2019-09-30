@@ -229,7 +229,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (this.props.errorstyle === "monospace") {
       style.fontFamily = "monospace";
       style.fontSize = "85%";
-      style.whiteSpace = "pre";
+      style.whiteSpace = "pre-wrap";
     }
     return (
       <ErrorDisplay

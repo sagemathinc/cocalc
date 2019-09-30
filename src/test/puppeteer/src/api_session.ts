@@ -4,6 +4,9 @@ import chalk from 'chalk';
 import Creds     from './test-creds';
 import time_log from './time_log';
 import { expect } from 'chai';
+import get_account_id from './get_account_id';
+import get_auth_token from './get_auth_token';
+import get_project_id from './get_project_id';
 
 const LONG_TIMEOUT = 70000; // msec
 
@@ -22,7 +25,7 @@ const api_session = async function (creds: Creds): Promise<void> {
     const version: string = await page.browser().version();
     debuglog('browser', version);
 
-    time_log("get api key launch", tm_launch_browser);
+    time_log("launch browser for api key", tm_launch_browser);
     const tm_login = process.hrtime.bigint()
     await page.setDefaultTimeout(LONG_TIMEOUT);
 
@@ -49,7 +52,7 @@ const api_session = async function (creds: Creds): Promise<void> {
 
     // intercepted url looks like https://authenticated/?api_key=sk_hJKSJax....
     const api_key:string = await new Promise<string>(function(resolve) {
-      page.on('request', async function(request) {
+      page.on('request', async function(request: any) {
         const regex: RegExp = /.*=/;
         const u: string = await request.url();
         if (/authenticated/.test(u)) {
@@ -60,10 +63,20 @@ const api_session = async function (creds: Creds): Promise<void> {
       });
     });
     debuglog('api_key', api_key.substr(0,5)+"...");
-    expect(api_key).to.equal(creds.apikey);
+    expect(api_key.substr(0,3)).to.equal("sk_");
     await page.setRequestInterception(false);
 
+    const account_id: string = await get_account_id(creds, api_key);
+    expect(account_id.length).to.equal(36);
+
+    const auth_token: string = await get_auth_token(creds, api_key, account_id);
+    expect(auth_token.length).to.equal(24);
+
+    const project_id: string = await get_project_id(creds, api_key);
+    expect(project_id.length).to.equal(36);
+
     time_log("api session total", tm_launch_browser);
+
   } catch (e) {
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
