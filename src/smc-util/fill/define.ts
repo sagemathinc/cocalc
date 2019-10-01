@@ -14,13 +14,15 @@ type Definition<T> = {
  * Guarantees at runtime that `props` matches `definition`
  * `U` must only be the optional params on `T`
  *
- * A run time guarantee on obj definition
- *  Given interface T with some optional parameters
- *  and defaults of only the optional parameters,
+ * @return {object} T where provided defaults are guaranteed
  *
- *  returns an object U where provided defaults are guaranteed
+ * @example
  *
- *
+ *     define<{name: string, 
+ *              highlight?: boolean,
+ *              last?: string},
+ *           {highlight: boolean}>(unknown_prop, {highlight: false});
+ * 
  * Unfortunately you must use both type annotations until this goes through
  * https://github.com/microsoft/TypeScript/issues/26242
  *

@@ -1,10 +1,27 @@
 import { fill } from "./fill";
 import { expectType } from "tsd";
 
-test("Supplied default should be merged in to target", () => {
+test("Supplied default should be merged in to target even if marked undefined", () => {
   const opts: { name: string; height?: number } = {
     name: "jack",
     height: undefined
+  };
+  const actual = fill(opts, { height: 20 });
+  expect(actual).toStrictEqual({name: "jack", height: 20})
+});
+
+test("Defaults should not overwrite already defined optional params", () => {
+  const opts: { name: string; height?: number, weight?: number } = {
+    name: "jack",
+    height: 20
+  };
+  const actual = fill(opts, { height: 30 });
+  expect(actual).toStrictEqual({name: "jack", height: 20})
+});
+
+test("Missing optional params should not appear if not given defaults", () => {
+  const opts: { name: string; height?: number, weight?: number } = {
+    name: "jack"
   };
   const actual = fill(opts, { height: 20 });
   expect(actual).toStrictEqual({name: "jack", height: 20})
