@@ -1863,10 +1863,10 @@ exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
 # for backward compatibility, and no circular import
-exports.open_popup_window = (...args) ->
-    require('./r_misc/open-browser-tab').open_popup_window(...args)
-exports.open_new_tab = (...args) ->
-    require('./r_misc/open-browser-tab').open_new_tab(...args)
+exports.open_popup_window = (args...) ->
+    require('./r_misc/open-browser-tab').open_popup_window(args...)
+exports.open_new_tab = (args...) ->
+    require('./r_misc/open-browser-tab').open_new_tab(args...)
 
 
 exports.get_cookie = (name) ->
