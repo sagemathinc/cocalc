@@ -482,9 +482,6 @@ if (COMP_ENV) {
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  minimize: true,
-  discardComments: { removeAll: true },
-  mergeLonghand: true,
   sourceMap: false
 });
 
@@ -672,10 +669,6 @@ module.exports = {
 
   module: {
     rules: [
-      {
-        test: /pnotify.*\.js$/,
-        use: "imports-loader?define=>false,global=>window"
-      },
       { test: /\.coffee$/, loader: "coffee-loader" },
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
@@ -699,17 +692,43 @@ module.exports = {
       { test: /\.ts$/, loader: "ts-loader" },
       {
         test: /\.less$/,
-        use: ["style-loader", "css-loader", `less-loader?${cssConfig}`]
-      },
-      {
-        test: /\.scss$/,
-        use: ["style-loader", "css-loader", `sass-loader?${cssConfig}`]
-      },
-      {
-        test: /\.sass$/,
         use: [
           "style-loader",
-          "css-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
+          `less-loader?${cssConfig}`
+        ]
+      },
+      {
+        test: /\.scss$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
+          `sass-loader?${cssConfig}`
+        ]
+      },
+      {
+        test: /\.sass$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
           `sass-loader?${cssConfig}&indentedSyntax`
         ]
       },
@@ -736,7 +755,19 @@ module.exports = {
         loader: `file-loader?name=${hashname}`
       },
       // ---
-      { test: /\.css$/, use: ["style-loader", `css-loader?${cssConfig}`] },
+      {
+        test: /\.css$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 1
+            }
+          },
+          "postcss-loader"
+        ]
+      },
       { test: /\.pug$/, loader: "pug-loader" }
     ]
   },
@@ -761,8 +792,10 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
-      path.resolve(__dirname, "node_modules"),
-      path.resolve(__dirname, "smc-webapp/lti/node_modules")
+      path.resolve(__dirname, "smc-webapp/lti/node_modules"),
+      path.resolve(__dirname, "cocalc-ui"),
+      path.resolve(__dirname, "cocalc-ui/node_modules"),
+      path.resolve(__dirname, "node_modules")
     ]
   },
 

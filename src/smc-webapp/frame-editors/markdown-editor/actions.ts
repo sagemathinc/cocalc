@@ -4,11 +4,18 @@ Markdown Editor Actions
 const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
 
 import * as $ from "jquery";
-import { Actions as CodeEditorActions } from "../code-editor/actions";
+import {
+  Actions as CodeEditorActions,
+  CodeEditorState
+} from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 
-export class Actions extends CodeEditorActions {
+interface MarkdownEditorState extends CodeEditorState {
+  custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
+}
+
+export class Actions extends CodeEditorActions<MarkdownEditorState> {
   _init2(): void {
     if (!this.is_public) {
       this._init_syncstring_value();

@@ -10,14 +10,14 @@ Register the task list editor
 TODO: this is very similar to jupyter/register.coffee -- can this be refactored?
 */
 
-const {register_file_editor} = require('../file-editors');
-const {alert_message}        = require('../alerts');
-const {redux_name}           = require('../app-framework');
-const {webapp_client}        = require('../webapp_client');
+const { register_file_editor } = require("../file-editors");
+import { alert_message } from "../alerts";
+import { redux_name } from "../app-framework";
+const { webapp_client } = require("../webapp_client");
 
-const {TaskEditor}           = require('./editor');
-const {TaskActions}          = require('./actions');
-const {TaskStore}            = require('./store');
+const { TaskEditor } = require("./editor");
+const { TaskActions } = require("./actions");
+const { TaskStore } = require("./store");
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 

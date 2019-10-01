@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -1081,12 +1081,14 @@ exports.ProjectState = rclass
         </span>
 
     render_time: ->
-        time = @props.state?.get('time')
+        time = @props.state?.get?('time')
         if time
             return <span><Space/> (<exports.TimeAgo date={time} />)</span>
 
     render: ->
-        s = COMPUTE_STATES[@props.state?.get('state')]
+        # In production I hit a traceback in which @props.state was defined
+        # but did not have a get attribute.  No clue why.
+        s = COMPUTE_STATES[@props.state?.get?('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
@@ -1114,8 +1116,9 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         return next.filename != @props.filename or next.is_public != next.is_public
 
     getDefaultProps: ->
+        # nowrap fixes https://github.com/sagemathinc/cocalc/issues/4064
         is_public : false
-        style     : {marginRight:'2px'}
+        style     : {marginRight:'2px', whiteSpace: 'nowrap'}
 
     handle_click: (name) ->
         @props.actions.show_file_action_panel
@@ -1155,7 +1158,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
             id      = 'file_info_button'
             title   = {@render_title()}
             bsSize  = {@props.bsSize}
-            >
+        >
             {@render_menu_items()}
         </DropdownButton>
 
@@ -1657,7 +1660,7 @@ exports.ErrorBoundary = rclass
             info  : info
 
     render: ->
-        # This is way worse than nothing, because it surpresses reporting the actual error to the
+        # This is way worse than nothing, because it suppresses reporting the actual error to the
         # backend!!!  I'm disabling it completely.
         return @props.children
         if @state.info?
