@@ -18,6 +18,11 @@ describe("IFrame Communication", () => {
     expect(block_origin(mesg, HOSTS)).toBe(true);
   });
 
+  test("blocks spoofing the original domain", () => {
+    const mesg = { origin: "https://bar.com.co" };
+    expect(block_origin(mesg, HOSTS)).toBe(true);
+  });
+
   test("allow base domain", () => {
     const mesg = { origin: "https://baz.com" };
     expect(block_origin(mesg, HOSTS)).toBe(false);
