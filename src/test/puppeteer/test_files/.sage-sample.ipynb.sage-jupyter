@@ -1,2 +1,0 @@
-{"kernelspec":{"display_name":"SageMath (stable)","language":"sagemath","name":"sagemath"},"language_info":{"codemirror_mode":{"name":"ipython","version":2},"file_extension":".py","mimetype":"text/x-python","name":"python","nbconvert_exporter":"python","pygments_lexer":"ipython2","version":"2.7.15"}}
-{"cell_type":"code","execution_count":0,"metadata":{"trusted":false},"outputs":[],"source":"%display latex\nsum(1/x^2,x,1,oo)"}
