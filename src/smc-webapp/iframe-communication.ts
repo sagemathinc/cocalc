@@ -4,7 +4,7 @@
 // For security reasons, this is very restrictive, involves extra checks, and only a selected set of origins is allowed.
 
 import { delay, callback } from "awaiting";
-import memoizeOne from "memoize-one";
+import * as memoizeOne from "memoize-one";
 import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 import { Map, List } from "immutable";
