@@ -1,8 +1,11 @@
-const debuglog = require('util').debuglog('cc-login');
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
+
 const puppeteer = require('puppeteer');
 import chalk from 'chalk';
-import Creds     from './test-creds';
-import time_log from './time_log';
+import { Creds, Opts, PassFail } from './types';
+import { time_log }  from './time_log';
 import test_tex from './test_tex';
 import test_widget from './test_widget';
 import test_sage_ker from './test_sage_ker';
@@ -10,14 +13,20 @@ import { Page } from 'puppeteer';
 
 const LONG_TIMEOUT = 70000; // msec
 
-const login_tests = async function (creds: Creds): Promise<void> {
+export const login_tests = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   let browser;
+  let pfcounts: PassFail = new PassFail();
+  if (opts.skip && opts.skip.test(this_file)) {
+    debuglog('skipping test: ' + this_file);
+    pfcounts.skip += 1;
+    return pfcounts;
+  }
   try {
     const tm_launch_browser = process.hrtime.bigint()
     browser = await puppeteer.launch({
       ignoreHTTPSErrors:true,
-      headless: creds.headless,
-      executablePath: creds.path,
+      headless: opts.headless,
+      executablePath: opts.path,
       slowMo:50 // without this sometimes the wrong project is selected
       })
 
@@ -74,17 +83,18 @@ const login_tests = async function (creds: Creds): Promise<void> {
     xpt = '//button[text()="Check All"]';
     await page.waitForXPath(xpt);
     time_log("open project", tm_open_project);
+    pfcounts.pass += 1;
 
-    if (true) await test_tex(creds, page);
-    if (true) await test_widget(creds, page);
-    await test_sage_ker(creds, page);
+    pfcounts.add(await test_tex(opts, page));
+    pfcounts.add(await test_widget(opts, page));
+    pfcounts.add(await test_sage_ker(opts, page));
 
     time_log("login session total", tm_launch_browser);
   } catch (e) {
+    pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   debuglog('login session done - closing browser');
   browser.close();
+  return pfcounts;
 }
-
-module.exports = {login_tests}
