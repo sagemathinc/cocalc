@@ -16,6 +16,7 @@ const { Alert } = require("react-bootstrap");
 interface ReactProps {
   project_id: string;
   group?: string;
+  name: string;
 }
 
 interface ReduxProps {
@@ -151,7 +152,7 @@ export const ProjectSettings = rclass<ReactProps>(
               customer={this.props.customer}
               email_address={this.props.email_address}
               project_map={this.props.project_map}
-              name={name}
+              name={this.props.name}
             />
           </div>
         );

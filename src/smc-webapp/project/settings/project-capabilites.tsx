@@ -22,8 +22,8 @@ interface ReduxProps {
   available_features: { formatting: string };
 }
 
-export const ProjectCapabilitiesPanel = rclass<ReactProps>(
-  class ProjectCapabilitiesPanel extends React.Component<
+export const ProjectCapabilities = rclass<ReactProps>(
+  class ProjectCapabilities extends React.Component<
     ReactProps & ReduxProps
   > {
     public static reduxProps({ name }) {
@@ -147,7 +147,7 @@ export const ProjectCapabilitiesPanel = rclass<ReactProps>(
 
     render_available() {
       const avail = this.props.available_features;
-      if (avail == null) {
+      if (avail == undefined) {
         return (
           <div>
             Information about available features will show up here.

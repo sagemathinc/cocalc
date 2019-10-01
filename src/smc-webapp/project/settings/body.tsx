@@ -18,7 +18,7 @@ import { TitleDescriptionBox } from "./title-description-box";
 import { UpgradeUsage } from "./upgrade-usage";
 import { HideDeleteBox } from "./hide-delete-box";
 import { SagewsControl } from "./sagews-control";
-import { ProjectCapabilitiesPanel } from "./project-capabilites";
+import { ProjectCapabilities } from "./project-capabilites";
 import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
@@ -35,7 +35,7 @@ interface ReactProps {
   customer?: Customer;
   email_address?: string;
   project_map?: ProjectMap; // if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
-  name?: string;
+  name: string;
 }
 
 interface ReduxProps {
@@ -124,7 +124,7 @@ export const Body = rclass<ReactProps>(
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;
-
+      console.log("name?", this.props.name)
       return (
         <div>
           {commercial &&
@@ -202,8 +202,8 @@ export const Body = rclass<ReactProps>(
               ) : (
                 undefined
               )}
-              <ProjectCapabilitiesPanel
-                name={name}
+              <ProjectCapabilities
+                name={this.props.name}
                 key={"capabilities"}
                 project={this.props.project}
               />
