@@ -374,6 +374,7 @@ export class CourseStore extends Store<CourseState> {
   get_student(student) {
     // return student with given id if a string; otherwise, just return student (the input)
     if (typeof student !== "string") {
+      // it is already a StudentRecord, but maybe outdated.
       student = student != null ? student.get("student_id") : undefined;
     }
     return this.getIn(["students", student]);
