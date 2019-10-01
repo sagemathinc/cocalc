@@ -55,7 +55,7 @@ import {
   Feedback
 } from "./store";
 
-import { delay } from "awaiting";
+import { delay, map as amap } from "awaiting";
 
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
@@ -114,6 +114,8 @@ export class CourseActions extends Actions<CourseState> {
     this.add_students = this.add_students.bind(this);
     this.delete_student = this.delete_student.bind(this);
     this.undelete_student = this.undelete_student.bind(this);
+    this.delete_all_students = this.delete_all_students.bind(this);
+    this._delete_student = this._delete_student.bind(this);
     this.lookup_nonregistered_students = this.lookup_nonregistered_students.bind(
       this
     );
@@ -744,26 +746,16 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  delete_student(student) {
+  public async delete_student(student): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    student = store.get_student(student);
-    const project_id = student.get("project_id");
-    if (project_id != null) {
-      // The student's project was created so let's clear any upgrades from it.
-      this.redux.getActions("projects").clear_project_upgrades(project_id);
-    }
-    this._set({
-      deleted: true,
-      student_id: student.get("student_id"),
-      table: "students"
-    });
+    await this._delete_student(store.get_student(student));
     this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
-  undelete_student(student) {
+  public undelete_student(student) {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -775,6 +767,29 @@ export class CourseActions extends Actions<CourseState> {
       table: "students"
     });
     this.configure_all_projects(); // since they may get added back to shared project, etc.
+  }
+
+  public async delete_all_students(): Promise<void> {
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+    const students = store.get_students().valueSeq().toArray();
+    await amap(students, PARALLEL_LIMIT, this._delete_student)
+    this.configure_all_projects();
+  }
+
+  private async _delete_student(student): Promise<void> {
+    const project_id = student.get("project_id");
+    if (project_id != null) {
+      // The student's project was created so let's clear any upgrades from it.
+      this.redux.getActions("projects").clear_project_upgrades(project_id);
+    }
+    this._set({
+      deleted: true,
+      student_id: student.get("student_id"),
+      table: "students"
+    });
   }
 
   // Some students might *only* have been added using their email address, but they
