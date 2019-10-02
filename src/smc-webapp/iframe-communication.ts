@@ -9,6 +9,8 @@ import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 import { Map, List } from "immutable";
 
+// This nonsense is due to mismatch in jest/webpack exports by memoize-one
+// https://github.com/alexreardon/memoize-one/issues/37
 const memoizeOne =
   typeof memoizeOneModule.default === "function"
     ? memoizeOneModule.default
