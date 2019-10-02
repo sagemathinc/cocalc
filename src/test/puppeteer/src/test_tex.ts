@@ -1,13 +1,22 @@
-const debuglog = require('util').debuglog('cc-login-tex');
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
+
 import chalk from 'chalk';
-import Creds     from './test-creds';
-import time_log from './time_log';
+import { Opts, PassFail, TestFiles }     from './types';
+import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 
 import { expect } from 'chai';
 
-const test_tex = async function (creds: Creds, page: Page): Promise<void> {
+const test_tex = async function (opts: Opts, page: Page): Promise<PassFail> {
+  let pfcounts: PassFail = new PassFail();
+  if (opts.skip && opts.skip.test(this_file)) {
+    debuglog('skipping test: ' + this_file);
+    pfcounts.skip += 1;
+    return pfcounts;
+  }
   try {
     const tm_open_tex = process.hrtime.bigint()
 
@@ -18,14 +27,14 @@ const test_tex = async function (creds: Creds, page: Page): Promise<void> {
 
     sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
     await page.click(sel);
-    await page.type(sel, creds.texfile);
-    debuglog(`entered ${creds.texfile} into file search`);
+    await page.type(sel, TestFiles.texfile);
+    debuglog(`entered ${TestFiles.texfile} into file search`);
 
     // find and click the texfile link
     // split texfile name into base and ext because they appear in separate spans
-    const z = creds.texfile.lastIndexOf(".");
-    const tfbase = creds.texfile.slice(0,z);
-    const tfext  = creds.texfile.slice(z);
+    const z = TestFiles.texfile.lastIndexOf(".");
+    const tfbase = TestFiles.texfile.slice(0,z);
+    const tfext  = TestFiles.texfile.slice(z);
 
     let xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
     //await page.waitForXPath(xpt, {timeout: 50000});
@@ -77,17 +86,20 @@ const test_tex = async function (creds: Creds, page: Page): Promise<void> {
     await page.waitForSelector(sel);
     debuglog('got Build project button');
 
-    sel = `[cocalc-test="${creds.texfile}"] [data-icon="times"]`;
+    sel = `[cocalc-test="${TestFiles.texfile}"] [data-icon="times"]`;
     //await page.waitForSelector(sel);
     await page.click(sel);
     debuglog('clicked close file tab icon');
 
     time_log("word count tex file", tm_word_count);
-    await screenshot(page, creds, 'cocalc-tex.png');
+    await screenshot(page, opts, 'cocalc-tex.png');
+    pfcounts.pass += 1;
 
   } catch (e) {
+    pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
+  return pfcounts;
 }
 
 export default test_tex;
