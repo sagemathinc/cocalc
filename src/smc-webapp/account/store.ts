@@ -1,13 +1,17 @@
 import { Store } from "../app-framework/Store";
+import { AccountState } from "./types";
+import { get_total_upgrades } from "smc-util/upgrades";
+import * as misc from "smc-util/misc2";
+import * as lodash from "lodash";
 
 // Define account store
-class AccountStore extends Store {
+export class AccountStore extends Store<AccountState> {
   // User type
   //   - 'public'     : user is not signed in at all, and not trying to sign in
   //   - 'signing_in' : user is currently waiting to see if sign-in attempt will succeed
   //   - 'signed_in'  : user has successfully authenticated and has an id
-  constructor(...args) {
-    super(...args);
+  constructor(name, redux) {
+    super(name, redux);
     this.get_user_type = this.get_user_type.bind(this);
     this.get_account_id = this.get_account_id.bind(this);
     this.is_admin = this.is_admin.bind(this);
@@ -59,13 +63,10 @@ class AccountStore extends Store {
   }
 
   get_color() {
-    let left, left1;
-    return (left =
-      (left1 = this.getIn(["profile", "color"])) != null
-        ? left1
-        : __guard__(this.get("account_id"), x => x.slice(0, 6))) != null
-      ? left
-      : "f00";
+    return this.getIn(
+      ["profile", "color"],
+      this.get("account_id", "f00").slice(0, 6)
+    );
   }
 
   get_username() {
@@ -82,33 +83,23 @@ class AccountStore extends Store {
 
   // Total ugprades this user is paying for (sum of all upgrades from subscriptions)
   get_total_upgrades() {
-    return require("upgrades").get_total_upgrades(
-      __guard__(this.getIn(["stripe_customer", "subscriptions", "data"]), x =>
-        x.toJS()
-      )
-    );
+    const stripe_data = this.getIn([
+      "stripe_customer",
+      "subscriptions",
+      "data"
+    ]);
+    return stripe_data && get_total_upgrades(stripe_data.toJS());
   }
 
   // uses the total upgrades information to determine, if this is a paying member
   is_paying_member() {
     const ups = this.get_total_upgrades();
     return (
-      ups != null &&
-      (() => {
-        const result = [];
-        for (let k in ups) {
-          const v = ups[k];
-          result.push(v);
-        }
-        return result;
-      })().reduce((a, b) => a + b, 0) > 0
+      ups != null && lodash.reduce(ups, (a: number, b: number) => a + b, 0) > 0
     );
   }
 
   get_page_size() {
-    let left;
-    return (left = this.getIn(["other_settings", "page_size"])) != null
-      ? left
-      : 500; // at least have a valid value if loading (actual default is in db-schema.js)
+    return this.getIn(["other_settings", "page_size"], 500);
   }
 }

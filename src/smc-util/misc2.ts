@@ -24,6 +24,14 @@ export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// turn an arbitrary string into a nice clean identifier that can safely be used in an URL
+export function make_valid_name(s: string): string {
+  // for now we just delete anything that isn't alphanumeric.
+  // See http://stackoverflow.com/questions/9364400/remove-not-alphanumeric-characters-from-string-having-trouble-with-the-char/9364527#9364527
+  // whose existence surprised me!
+  return s.replace(/\W/g, "_").toLowerCase();
+}
+
 const filename_extension_re = /(?:\.([^.]+))?$/;
 export function filename_extension(filename: string): string {
   const match = filename_extension_re.exec(filename);
@@ -510,8 +518,16 @@ export function human_readable_size(bytes: number | null | undefined): string {
 // (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
 //     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
 //     properly (not our use case).
-export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi
+export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi;
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
 }
+
+export function delete_local_storage(key) {
+  try {
+    return delete localStorage[key];
+  } catch (e) {
+    return console.warn(`localStorage delete error -- ${e}`);
+  }
+};

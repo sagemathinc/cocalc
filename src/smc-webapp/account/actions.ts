@@ -7,11 +7,18 @@ const remember_me = webapp_client.remember_me_key();
 import { alert_message } from "../alerts";
 
 import { show_announce_start, show_announce_end } from "./dates";
+import { AccountState } from "./types";
+
+import * as misc from "smc-util/misc2";
+const { server_days_ago } = require("smc-util/misc");
+import { define, required } from "smc-util/fill";
 
 // Define account actions
-class AccountActions extends Actions {
-  constructor(...args) {
-    super(...args);
+export class AccountActions extends Actions<AccountState> {
+  private _last_history_state: string;
+
+  constructor(name, redux) {
+    super(name, redux);
     this._init = this._init.bind(this);
     this.derive_show_global_info = this.derive_show_global_info.bind(this);
     this.set_user_type = this.set_user_type.bind(this);
@@ -25,12 +32,15 @@ class AccountActions extends Actions {
     this.set_active_tab = this.set_active_tab.bind(this);
     this.add_ssh_key = this.add_ssh_key.bind(this);
     this.delete_ssh_key = this.delete_ssh_key.bind(this);
-    super(...args);
   }
 
   _init(store) {
     return store.on("change", this.derive_show_global_info);
   }
+
+  private help = () => {
+    this.redux.getStore("customize").get("help_email");
+  };
 
   derive_show_global_info(store) {
     // TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
@@ -64,21 +74,19 @@ class AccountActions extends Actions {
   }
 
   set_user_type(user_type) {
-    return this.setState({
+    this.setState({
       user_type,
       is_logged_in: user_type === "signed_in"
     });
   }
 
   sign_in(email, password) {
-    const help = () => this.redux.getStore("customize").get("help_email");
-
     const doc_conn =
       "[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)";
     const err_help = `\
 Please reload this browser tab and try again.
 
-If that doesn't work after a few minutes, try these ${doc_conn} or email ${help()}.\
+If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.help()}.\
 `;
 
     this.setState({ signing_in: true });
@@ -87,7 +95,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
       password,
       remember_me: true,
       timeout: 30,
-      get_api_key: __guard__(redux.getStore("page"), x => x.get("get_api_key")),
+      get_api_key: this.redux.getStore("page").get("get_api_key"),
       cb: (error, mesg) => {
         this.setState({ signing_in: false });
         if (error) {
@@ -98,19 +106,22 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
         }
         switch (mesg.event) {
           case "sign_in_failed":
-            return this.setState({ sign_in_error: mesg.reason });
+            this.setState({ sign_in_error: mesg.reason });
+            return;
           case "signed_in":
             //redux.getActions('page').set_active_tab('projects')
             break;
           case "error":
-            return this.setState({ sign_in_error: mesg.reason });
+            this.setState({ sign_in_error: mesg.reason });
+            return;
           default:
             // should never ever happen
-            return this.setState({
+            this.setState({
               sign_in_error: `The server responded with invalid message when signing in: ${JSON.stringify(
                 mesg
               )}`
             });
+            return;
         }
       }
     });
@@ -118,7 +129,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
 
   create_account(first_name, last_name, email, password, token, usage_intent) {
     this.setState({ signing_up: true });
-    return webapp_client.create_account({
+    webapp_client.create_account({
       first_name,
       last_name,
       email_address: email,
@@ -126,7 +137,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
       usage_intent,
       agreed_to_terms: true,
       token,
-      get_api_key: __guard__(redux.getStore("page"), x => x.get("get_api_key")),
+      get_api_key: this.redux.getStore("page").get("get_api_key"),
       cb: (err, mesg) => {
         this.setState({ signing_up: false });
         if (err != null) {
@@ -136,32 +147,33 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
         }
         switch (mesg.event) {
           case "account_creation_failed":
-            return this.setState({ sign_up_error: mesg.reason });
+            this.setState({ sign_up_error: mesg.reason });
+            return;
           case "signed_in":
-            redux.getActions("page").set_active_tab("projects");
+            this.redux.getActions("page").set_active_tab("projects");
             var { analytics_event, track_conversion } = require("./misc_page");
             analytics_event("account", "create_account"); // user created an account
-            return track_conversion("create_account");
+            track_conversion("create_account");
+            return;
           default:
+          // should never ever happen
+          // alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
         }
       }
     });
   }
-  // should never ever happen
-  // alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
-
   // deletes the account and then signs out everywhere
   delete_account() {
-    return async.series(
+    async.series(
       [
         async cb => {
           // cancel any subscriptions
           try {
-            await redux.getActions("billing").cancel_everything();
+            await this.redux.getActions("billing").cancel_everything();
             return cb();
           } catch (error) {
             const err = error;
-            if (redux.getStore("billing").get("no_stripe")) {
+            if (this.redux.getStore("billing").get("no_stripe")) {
               // stripe not configured on backend, so no this err is expected
               return cb();
             } else {
@@ -180,11 +192,11 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
       ],
       err => {
         if (err != null) {
-          return this.setState({
+          this.setState({
             account_deletion_error: `Error trying to delete the account: ${err}`
           });
         } else {
-          return this.sign_out(true);
+          this.sign_out(true);
         }
       }
     );
@@ -198,15 +210,17 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
           err = mesg.error;
         }
         if (err != null) {
-          return this.setState({
-            forgot_password_error: `Error sending password reset message to ${email} -- ${err}. Write to ${help()} for help.`,
+          this.setState({
+            forgot_password_error: `Error sending password reset message to ${email} -- ${err}. Write to ${this.help()} for help.`,
             forgot_password_success: ""
           });
+          return;
         } else {
-          return this.setState({
-            forgot_password_success: `Password reset message sent to ${email}; if you don't receive it, check your spam folder; if you have further trouble, write to ${help()}.`,
+          this.setState({
+            forgot_password_success: `Password reset message sent to ${email}; if you don't receive it, check your spam folder; if you have further trouble, write to ${this.help()}.`,
             forgot_password_error: ""
           });
+          return;
         }
       }
     });
@@ -218,12 +232,12 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
       new_password,
       cb: (error, mesg) => {
         if (error) {
-          return this.setState({
+          this.setState({
             reset_password_error: `Error communicating with server: ${error}`
           });
         } else {
           if (mesg.error) {
-            return this.setState({ reset_password_error: mesg.error });
+            this.setState({ reset_password_error: mesg.error });
           } else {
             // success
             // TODO: can we automatically log them in?
@@ -232,7 +246,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
               document.title,
               window.location.pathname
             );
-            return this.setState({ reset_key: "", reset_password_error: "" });
+            this.setState({ reset_key: "", reset_password_error: "" });
           }
         }
       }
@@ -246,7 +260,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
     let { APP_BASE_URL } = require("./misc_page");
-    const exp = misc.server_days_ago(-30).toGMTString();
+    const exp = server_days_ago(-30).toGMTString();
     document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
 
     // record this event
@@ -279,10 +293,13 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
           // Invalidate the remember_me cookie and force a refresh, since otherwise there could be data
           // left in the DOM, which could lead to a vulnerability
           // or bleed into the next login somehow.
-          $(window).off("beforeunload", redux.getActions("page").check_unload);
+          $(window).off(
+            "beforeunload",
+            this.redux.getActions("page").check_unload
+          );
           window.location.hash = "";
           ({ APP_BASE_URL } = require("./misc_page"));
-          window.location = APP_BASE_URL + "/app?signed_out";
+          window.location = (APP_BASE_URL + "/app?signed_out") as any;
         }
       }
     }); // redirect to sign in page
@@ -297,16 +314,23 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
       url = "";
     }
     this._last_history_state = url;
-    return set_url("/settings" + misc.encode_path(url));
+    set_url("/settings" + misc.encode_path(url));
   }
 
-  set_active_tab(tab) {
-    return this.setState({ active_page: tab });
+  set_active_tab(tab: string): void {
+    this.setState({ active_page: tab });
   }
 
   // Add an ssh key for this user, with the given fingerprint, title, and value
-  add_ssh_key(opts) {
-    opts = defaults(opts, {
+  add_ssh_key(unsafe_opts: unknown) {
+    const opts = define<
+      {
+        fingerprint: string;
+        title: string;
+        value: string;
+      },
+      {}
+    >(unsafe_opts, {
       fingerprint: required,
       title: required,
       value: required
@@ -316,7 +340,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${help(
         [opts.fingerprint]: {
           title: opts.title,
           value: opts.value,
-          creation_date: new Date() - 0
+          creation_date: new Date().valueOf()
         }
       }
     });

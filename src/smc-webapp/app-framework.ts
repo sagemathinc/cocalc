@@ -203,6 +203,7 @@ export class AppRedux {
   getActions(name: "account"): any;
   getActions(name: "projects"): any;
   getActions(name: "billing"): any;
+  getActions(name: "page"): any;
   getActions(name: "admin-page"): AdminActions;
   getActions(name: "mentions"): MentionsActions;
   getActions(name: { project_id: string }): ProjectActions;
@@ -264,6 +265,8 @@ export class AppRedux {
   getStore(name: "customize"): any;
   getStore(name: "projects"): any;
   getStore(name: "users"): any;
+  getStore(name: "page"): any;
+  getStore(name: "billing"): any;
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "admin-page"): AdminStore;
   getStore(name: "file_use"): FileUseStore | undefined;

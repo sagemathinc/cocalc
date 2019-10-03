@@ -1,5 +1,9 @@
 import * as misc from "smc-util/misc";
 const { webapp_client } = require("../webapp_client");
+const remember_me = webapp_client.remember_me_key();
+import { AccountActions } from "./actions";
+import { AccountStore } from "./store";
+import { AccountTable } from "./table";
 
 export function init(redux) {
   // Register account store
@@ -14,9 +18,8 @@ export function init(redux) {
     ? "signing_in"
     : "public"; // default
   const store = redux.createStore("account", AccountStore, init);
-
-  // Register account actions
   const actions = redux.createActions("account", AccountActions);
+  
   actions._init(store);
 
   redux.createTable("account", AccountTable);
@@ -41,7 +44,7 @@ export function init(redux) {
   );
 
   // Autosave interval
-  let _autosave_interval = undefined;
+  let _autosave_interval: NodeJS.Timeout | undefined = undefined;
   const init_autosave = function(autosave) {
     if (_autosave_interval) {
       // This function can safely be called again to *adjust* the
