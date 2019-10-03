@@ -323,14 +323,11 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
   // Add an ssh key for this user, with the given fingerprint, title, and value
   add_ssh_key(unsafe_opts: unknown) {
-    const opts = define<
-      {
-        fingerprint: string;
-        title: string;
-        value: string;
-      },
-      {}
-    >(unsafe_opts, {
+    const opts = define<{
+      fingerprint: string;
+      title: string;
+      value: string;
+    }>(unsafe_opts, {
       fingerprint: required,
       title: required,
       value: required
