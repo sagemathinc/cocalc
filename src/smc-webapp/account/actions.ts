@@ -35,7 +35,7 @@ export class AccountActions extends Actions<AccountState> {
   }
 
   _init(store) {
-    return store.on("change", this.derive_show_global_info);
+    store.on("change", this.derive_show_global_info);
   }
 
   private help = () => {
@@ -332,7 +332,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       title: required,
       value: required
     });
-    return this.redux.getTable("account").set({
+    this.redux.getTable("account").set({
       ssh_keys: {
         [opts.fingerprint]: {
           title: opts.title,
@@ -345,7 +345,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
   // Delete the ssh key with given fingerprint for this user.
   delete_ssh_key(fingerprint) {
-    return this.redux.getTable("account").set({
+    this.redux.getTable("account").set({
       ssh_keys: {
         [fingerprint]: null
       }
