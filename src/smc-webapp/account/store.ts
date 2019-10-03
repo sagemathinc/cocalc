@@ -1,0 +1,114 @@
+import { Store } from "../app-framework/Store";
+
+// Define account store
+class AccountStore extends Store {
+  // User type
+  //   - 'public'     : user is not signed in at all, and not trying to sign in
+  //   - 'signing_in' : user is currently waiting to see if sign-in attempt will succeed
+  //   - 'signed_in'  : user has successfully authenticated and has an id
+  constructor(...args) {
+    super(...args);
+    this.get_user_type = this.get_user_type.bind(this);
+    this.get_account_id = this.get_account_id.bind(this);
+    this.is_admin = this.is_admin.bind(this);
+    this.get_terminal_settings = this.get_terminal_settings.bind(this);
+    this.get_editor_settings = this.get_editor_settings.bind(this);
+    this.get_fullname = this.get_fullname.bind(this);
+    this.get_first_name = this.get_first_name.bind(this);
+    this.get_color = this.get_color.bind(this);
+    this.get_username = this.get_username.bind(this);
+    this.get_email_address = this.get_email_address.bind(this);
+    this.get_confirm_close = this.get_confirm_close.bind(this);
+    this.get_total_upgrades = this.get_total_upgrades.bind(this);
+    this.is_paying_member = this.is_paying_member.bind(this);
+    this.get_page_size = this.get_page_size.bind(this);
+  }
+
+  get_user_type() {
+    return this.get("user_type");
+  }
+
+  get_account_id() {
+    return this.get("account_id");
+  }
+
+  is_admin() {
+    return this.get("groups").includes("admin");
+  }
+
+  get_terminal_settings() {
+    return this.get("terminal") ? this.get("terminal").toJS() : undefined;
+  }
+
+  get_editor_settings() {
+    return this.get("editor_settings")
+      ? this.get("terminal").toJS()
+      : undefined;
+  }
+
+  get_fullname() {
+    let left, left1;
+    return `${(left = this.get("first_name")) != null ? left : ""} ${
+      (left1 = this.get("last_name")) != null ? left1 : ""
+    }`;
+  }
+
+  get_first_name() {
+    let left;
+    return (left = this.get("first_name")) != null ? left : "";
+  }
+
+  get_color() {
+    let left, left1;
+    return (left =
+      (left1 = this.getIn(["profile", "color"])) != null
+        ? left1
+        : __guard__(this.get("account_id"), x => x.slice(0, 6))) != null
+      ? left
+      : "f00";
+  }
+
+  get_username() {
+    return misc.make_valid_name(this.get_fullname());
+  }
+
+  get_email_address() {
+    return this.get("email_address");
+  }
+
+  get_confirm_close() {
+    return this.getIn(["other_settings", "confirm_close"]);
+  }
+
+  // Total ugprades this user is paying for (sum of all upgrades from subscriptions)
+  get_total_upgrades() {
+    return require("upgrades").get_total_upgrades(
+      __guard__(this.getIn(["stripe_customer", "subscriptions", "data"]), x =>
+        x.toJS()
+      )
+    );
+  }
+
+  // uses the total upgrades information to determine, if this is a paying member
+  is_paying_member() {
+    const ups = this.get_total_upgrades();
+    return (
+      ups != null &&
+      (() => {
+        const result = [];
+        for (let k in ups) {
+          const v = ups[k];
+          result.push(v);
+        }
+        return result;
+      })().reduce((a, b) => a + b, 0) > 0
+    );
+  }
+
+  get_page_size() {
+    let left;
+    return (left = this.getIn(["other_settings", "page_size"])) != null
+      ? left
+      : 500; // at least have a valid value if loading (actual default is in db-schema.js)
+  }
+}

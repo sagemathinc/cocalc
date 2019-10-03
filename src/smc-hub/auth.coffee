@@ -335,7 +335,7 @@ passport_login = (opts) ->
                 if err
                     cb(err)
                 else
-                    # NOTE: See also code to generate similar URL in smc-webapp/redux_account.coffee
+                    # NOTE: See also code to generate similar URL in smc-webapp/account/init.ts
                     locals.target = "https://authenticated?api_key=#{locals.api_key}"
                     cb()
             )
