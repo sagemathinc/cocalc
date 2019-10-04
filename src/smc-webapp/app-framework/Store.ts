@@ -4,7 +4,7 @@ import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
-import { fill } from "smc-util/fill";
+import { fill } from "../../smc-util/fill";
 import { throttle } from "lodash";
 
 const misc = require("smc-util/misc");
