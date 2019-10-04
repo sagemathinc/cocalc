@@ -531,3 +531,15 @@ export function delete_local_storage(key) {
     return console.warn(`localStorage delete error -- ${e}`);
   }
 };
+
+// converts an array to a "human readable" array
+export function to_human_list(arr) {
+  arr = lodash.map(arr, x => x.toString());
+  if (arr.length > 1) {
+    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
+  } else if (arr.length === 1) {
+    return arr[0].toString();
+  } else {
+    return "";
+  }
+};

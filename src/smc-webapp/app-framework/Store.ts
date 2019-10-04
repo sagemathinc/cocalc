@@ -4,10 +4,16 @@ import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
-import { fill } from "smc-util/fill";
-import { throttle } from "lodash";
+import * as misc from "../../smc-util/misc";
+// Relative import is temporary, until I figure this out -- needed for *project*
+// import { fill } from "../../smc-util/fill";
+// fill does not even compile for the backend project (using the fill from the fill
+// module breaks starting projects).
+// NOTE: a basic requirement of "redux app framework" is that it can fully run
+// on the backend (e.g., in a project) under node.js.
+const { defaults, required } = misc;
 
-const misc = require("smc-util/misc");
+import { throttle } from "lodash";
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
@@ -190,8 +196,16 @@ export class Store<State> extends EventEmitter {
     timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
   }): this | undefined {
     let timeout_ref;
+    /*
     let { until, cb, throttle_ms, timeout } = fill(opts, {
       timeout: 30
+    });
+    */
+    let { until, cb, throttle_ms, timeout } = defaults(opts, {
+      until: required,
+      throttle_ms: undefined,
+      timeout: 30,
+      cb: required
     });
     if (throttle_ms != undefined) {
       until = throttle(until, throttle_ms);
