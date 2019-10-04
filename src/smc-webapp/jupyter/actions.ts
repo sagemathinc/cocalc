@@ -124,7 +124,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store.syncdb = syncdb;
     this.syncdb = syncdb;
     this._client = client;
-    this.update_contents = debounce(this.update_contents.bind(this), 1500);
+    this.update_contents = debounce(this.update_contents.bind(this), 2000);
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
     store._is_project = this.is_project;
@@ -2090,13 +2090,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._state = "ready";
   }
 
-  cell_toolbar = (name?: string): void => {
-    // Set which cell toolbar is visible.  At most one may be visible.
-    // name=undefined to not show any.
-    this.set_local_storage("cell_toolbar", name);
-    this.setState({ cell_toolbar: name });
-  };
-
   public set_cell_slide(id: string, value: any): void {
     if (!value) {
       value = null; // delete
@@ -2585,7 +2578,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   public update_contents(): void {
-    console.log("update_contents");
     const cells = this.store.get("cells");
     if (cells == null) return;
     const cell_list = this.store.get("cell_list");

@@ -2,7 +2,7 @@ import * as React from "react";
 import { ProjectsActions } from "smc-webapp/todo-types";
 import { QuotaConsole } from "./quota-console";
 import { Icon, Loading, UpgradeAdjustor, SettingBox } from "smc-webapp/r_misc";
-import { redux } from "smc-webapp/app-framework";
+import { redux, rtypes, rclass, Rendered } from "smc-webapp/app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";
@@ -23,27 +23,39 @@ interface Props {
   all_upgrades_to_this_project?: object;
   all_projects_have_been_loaded?: boolean;
   actions: ProjectsActions; // projects actions
+
+  // redux props
+  is_commercial?: boolean;
 }
 
 interface State {
   show_adjustor: boolean;
 }
 
-export class UpgradeUsage extends React.Component<Props, State> {
+class UpgradeUsage extends React.Component<Props, State> {
   constructor(props) {
     super(props);
     this.state = { show_adjustor: false };
   }
 
-  submit_upgrade_quotas = new_quotas => {
+  public static reduxProps(): object {
+    return {
+      customize: {
+        is_commercial: rtypes.bool
+      }
+    };
+  }
+
+  private submit_upgrade_quotas(new_quotas): void {
     this.props.actions.apply_upgrades_to_project(
       this.props.project_id,
       new_quotas
     );
     this.setState({ show_adjustor: false });
-  };
+  }
 
-  render_upgrades_button() {
+  private render_upgrades_button(): Rendered {
+    if (!this.props.is_commercial) return; // never show if not commercial
     return (
       <Row>
         <Col sm={12}>
@@ -60,9 +72,13 @@ export class UpgradeUsage extends React.Component<Props, State> {
     );
   }
 
-  render_upgrade_adjustor() {
+  private render_upgrade_adjustor(): Rendered {
+    if (!this.props.is_commercial) return; // never show if not commercial
+    if (!this.state.show_adjustor) return; // not being displayed since button not clicked
     if (!this.props.all_projects_have_been_loaded) {
-      // See https://github.com/sagemathinc/cocalc/issues/3802
+      // Have to wait for this to get accurate value right now.
+      // Plan to fix: https://github.com/sagemathinc/cocalc/issues/4123
+      // Also, see https://github.com/sagemathinc/cocalc/issues/3802
       redux.getActions("projects").load_all_projects();
       return <Loading theme={"medium"} />;
     }
@@ -77,41 +93,55 @@ export class UpgradeUsage extends React.Component<Props, State> {
           this.props.upgrades_you_applied_to_this_project
         }
         quota_params={PROJECT_UPGRADES.params}
-        submit_upgrade_quotas={this.submit_upgrade_quotas}
+        submit_upgrade_quotas={this.submit_upgrade_quotas.bind(this)}
         cancel_upgrading={() => this.setState({ show_adjustor: false })}
         total_project_quotas={this.props.total_project_quotas}
       />
     );
   }
 
-  render() {
-    const custom = redux.getStore("customize");
-    if (!custom || !custom.get("commercial")) {
-      return <></>;
-    }
+  private render_quota_console(): Rendered {
+    // Note -- we always render this, even if is_commercial is false,
+    // since we want admins to be able to change the quotas.
+    return (
+      <QuotaConsole
+        project_id={this.props.project_id}
+        project_settings={this.props.project.get("settings")}
+        project_status={this.props.project.get("status")}
+        project_state={this.props.project.getIn(["state", "state"])}
+        user_map={this.props.user_map}
+        quota_params={PROJECT_UPGRADES.params}
+        account_groups={this.props.account_groups}
+        total_project_quotas={this.props.total_project_quotas}
+        all_upgrades_to_this_project={this.props.all_upgrades_to_this_project}
+      />
+    );
+  }
+
+  private render_support(): Rendered {
+    if (!this.props.is_commercial) return; // don't render if not commercial
+    return (
+      <span style={{ color: "#666" }}>
+        If you have any questions about upgrading a project, create a{" "}
+        <ShowSupportLink />, or email <HelpEmailLink /> and include the
+        following URL:
+        <URLBox />
+      </span>
+    );
+  }
+
+  public render(): Rendered {
     return (
       <SettingBox title="Project usage and quotas" icon="dashboard">
         {this.render_upgrades_button()}
-        {this.state.show_adjustor ? this.render_upgrade_adjustor() : undefined}
-        <QuotaConsole
-          project_id={this.props.project_id}
-          project_settings={this.props.project.get("settings")}
-          project_status={this.props.project.get("status")}
-          project_state={this.props.project.getIn(["state", "state"])}
-          user_map={this.props.user_map}
-          quota_params={PROJECT_UPGRADES.params}
-          account_groups={this.props.account_groups}
-          total_project_quotas={this.props.total_project_quotas}
-          all_upgrades_to_this_project={this.props.all_upgrades_to_this_project}
-        />
+        {this.render_upgrade_adjustor()}
+        {this.render_quota_console()}
         <hr />
-        <span style={{ color: "#666" }}>
-          If you have any questions about upgrading a project, create a{" "}
-          <ShowSupportLink />, or email <HelpEmailLink /> and include the
-          following URL:
-          <URLBox />
-        </span>
+        {this.render_support()}
       </SettingBox>
     );
   }
 }
+
+const tmp = rclass(UpgradeUsage);
+export { tmp as UpgradeUsage };
