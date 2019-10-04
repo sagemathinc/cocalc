@@ -1,6 +1,6 @@
 import * as React from "react";
 import { analytics_event } from "../../tracker";
-import misc from "smc-util/misc";
+import * as misc from "smc-util/misc";
 import { Icon } from "../../r_misc";
 import { redux } from "../../app-framework";
 

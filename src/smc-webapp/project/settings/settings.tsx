@@ -1,5 +1,5 @@
 import * as React from "react";
-import misc from "smc-util/misc";
+import * as misc from "smc-util/misc";
 import { ErrorDisplay, Loading } from "../../r_misc";
 import { rtypes, rclass } from "../../app-framework";
 
