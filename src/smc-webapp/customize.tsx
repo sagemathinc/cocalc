@@ -39,19 +39,17 @@ actions.setState({ is_commercial: true }); // really simple way to have a defaul
 
 // If we are running in the browser, then we customize the schema.  This also gets run on the backend
 // to generate static content, which can't be customized.
-let COMMERCIAL: boolean = defaults.is_commercial;
+export let commercial: boolean = defaults.is_commercial;
 if (typeof $ !== "undefined" && $ != undefined) {
   $.get((window as any).app_base_url + "/customize", function(obj, status) {
     if (status === "success") {
       obj.commercial =
         obj.commercial != undefined ? obj.commercial : defaults.commercial;
-      obj.is_commercial = COMMERCIAL = test_commercial(obj.commercial);
+      obj.is_commercial = commercial = test_commercial(obj.commercial);
       actions.setState(obj);
     }
   });
 }
-
-export const commercial = COMMERCIAL;
 
 interface Props0 {
   text: React.ReactNode;
