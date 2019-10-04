@@ -48,6 +48,7 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { AdminStore, AdminActions } from "./admin";
+import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
 import { FileUseStore } from "./file-use/store";
@@ -200,7 +201,7 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
-  getActions(name: "account"): any;
+  getActions(name: "account"): AccountActions;
   getActions(name: "projects"): any;
   getActions(name: "billing"): any;
   getActions(name: "page"): any;
@@ -261,7 +262,7 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore(name: "account"): any;
+  getStore(name: "account"): AccountStore;
   getStore(name: "customize"): any;
   getStore(name: "projects"): any;
   getStore(name: "users"): any;

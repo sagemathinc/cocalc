@@ -36,8 +36,9 @@ export class AccountStore extends Store<AccountState> {
     return this.get("account_id");
   }
 
-  is_admin() {
-    return this.get("groups").includes("admin");
+  is_admin(): boolean {
+    const groups = this.get("groups")
+    return !!groups && groups.includes("admin");
   }
 
   get_terminal_settings() {

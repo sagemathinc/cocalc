@@ -4,13 +4,14 @@ export interface AccountState {
   active_page: string;
   user_type: string;
   account_id: string;
-  groups: string;
+  groups?: string[];
   terminal: immutable.Map<string, any>;
   first_name: string;
   last_name: string;
   profile: { color: string };
   email_address: string;
-  editor_settings: string;
+  editor_settings: { jupyter_classic?: boolean; jupyter?: { kernel: string } };
+  font_size: number;
   other_settings: { confirm_close: string; page_size?: number };
   stripe_customer?: { subscriptions: { data: immutable.Map<string, any> } };
   show_global_info: boolean;

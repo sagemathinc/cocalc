@@ -127,7 +127,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
 
-  create_account(first_name, last_name, email, password, token, usage_intent) {
+  create_account(first_name, last_name, email, password, token, usage_intent?) {
     this.setState({ signing_up: true });
     webapp_client.create_account({
       first_name,

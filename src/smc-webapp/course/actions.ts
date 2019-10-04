@@ -731,9 +731,7 @@ export class CourseActions extends Actions<CourseState> {
       );
     };
     const id = this.set_activity({
-      desc: `Creating ${
-        students.length
-      } student projects (do not close the course until done)`
+      desc: `Creating ${students.length} student projects (do not close the course until done)`
     });
     return async.mapLimit(student_ids, PARALLEL_LIMIT, f, err => {
       this.set_activity({ id });
@@ -774,8 +772,11 @@ export class CourseActions extends Actions<CourseState> {
     if (store == undefined) {
       return;
     }
-    const students = store.get_students().valueSeq().toArray();
-    await amap(students, PARALLEL_LIMIT, this._delete_student)
+    const students = store
+      .get_students()
+      .valueSeq()
+      .toArray();
+    await amap(students, PARALLEL_LIMIT, this._delete_student);
     this.configure_all_projects();
   }
 
@@ -1454,11 +1455,10 @@ export class CourseActions extends Actions<CourseState> {
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
   public async admin_upgrade_all_student_projects(quotas): Promise<void> {
+    const account_store = this.redux.getStore("account");
     if (
-      !this.redux
-        .getStore("account")
-        .get("groups", [])
-        .contains("admin")
+      account_store &&
+      account_store.get("groups", { includes: _ => false }).includes("admin")
     ) {
       throw Error("must be an admin to upgrade");
       return;
@@ -2611,9 +2611,7 @@ You can find the comments they made in the folders below.\
             return webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: target_path + `/GRADER - ${name.simple}.txt`,
-              content: `The student who did the peer grading is named ${
-                name.full
-              }.`,
+              content: `The student who did the peer grading is named ${name.full}.`,
               cb
             });
           },
