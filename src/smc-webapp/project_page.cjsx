@@ -39,7 +39,7 @@ Draggable = require('react-draggable')
 {ProjectNew}       = require('./project_new')
 {ProjectLog}       = require('./project_log')
 {ProjectSearch}    = require('./project_search')
-{ProjectSettings}  = require('./project_settings')
+{ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
 {DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
 

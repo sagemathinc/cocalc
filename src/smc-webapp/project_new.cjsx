@@ -26,13 +26,12 @@ underscore = require('underscore')
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2, SettingBox} = require('./r_misc')
 {User} = require('./users')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
 {SMC_Dropzone} = require('./smc-dropzone')
-{ProjectSettingsPanel} = require('./project/project-settings-support')
 
 {JupyterServerPanel} = require('./project/plain-jupyter-server')
 {JupyterLabServerPanel} = require('./project/jupyterlab-server')
@@ -475,7 +474,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </span>
 
     render: ->
-        <ProjectSettingsPanel
+        <SettingBox
             show_header = {@props.show_header}
             icon = {'plus-circle'}
             title_el = {@render_title()}
@@ -518,7 +517,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                 </Col>
             </Row>
             {@render_upload()}
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
