@@ -11,10 +11,9 @@ import * as misc from "../../smc-util/misc";
 // module breaks starting projects).
 // NOTE: a basic requirement of "redux app framework" is that it can fully run
 // on the backend (e.g., in a project) under node.js.
-const fill = misc.defaults;
+const { defaults, required } = misc;
 
 import { throttle } from "lodash";
-
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
@@ -191,8 +190,16 @@ export class Store<State> extends EventEmitter {
     timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
   }): this | undefined {
     let timeout_ref;
+    /*
     let { until, cb, throttle_ms, timeout } = fill(opts, {
       timeout: 30
+    });
+    */
+    let { until, cb, throttle_ms, timeout } = defaults(opts, {
+      until: required,
+      throttle_ms: undefined,
+      timeout: 30,
+      cb: required
     });
     if (throttle_ms != undefined) {
       until = throttle(until, throttle_ms);
