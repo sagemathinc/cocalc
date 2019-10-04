@@ -4,7 +4,7 @@ import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
-const misc = require("smc-util/misc");
+import * as misc from "../../smc-util/misc";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
 // fill does not even compile for the backend project (using the fill from the fill
