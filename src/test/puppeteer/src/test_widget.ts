@@ -1,12 +1,21 @@
-const debuglog = require('util').debuglog('cc-login-widget');
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
+
 import chalk from 'chalk';
-import Creds from './test-creds';
-import time_log from './time_log';
+import { Opts, PassFail, TestFiles } from './types';
+import { time_log } from './time_log';
 import screenshot from './screenshot';
 import { Page } from 'puppeteer';
 import { expect } from 'chai';
 
-const test_widget = async function (creds: Creds, page: Page): Promise<void> {
+const test_widget = async function (opts: Opts, page: Page): Promise<PassFail> {
+  let pfcounts: PassFail = new PassFail();
+  if (opts.skip && opts.skip.test(this_file)) {
+    debuglog('skipping test: ' + this_file);
+    pfcounts.skip += 1;
+    return pfcounts;
+  }
   try {
     const tm_open_widget = process.hrtime.bigint()
 
@@ -17,14 +26,14 @@ const test_widget = async function (creds: Creds, page: Page): Promise<void> {
 
     sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
     await page.click(sel);
-    await page.type(sel, creds.widgetfile);
-    debuglog(`entered ${creds.widgetfile} into file search`);
+    await page.type(sel, TestFiles.widgetfile);
+    debuglog(`entered ${TestFiles.widgetfile} into file search`);
 
     // find and click the file link
     // split file name into base and ext because they appear in separate spans
-    const z = creds.widgetfile.lastIndexOf(".");
-    const tfbase = creds.widgetfile.slice(0,z);
-    const tfext  = creds.widgetfile.slice(z);
+    const z = TestFiles.widgetfile.lastIndexOf(".");
+    const tfbase = TestFiles.widgetfile.slice(0,z);
+    const tfext  = TestFiles.widgetfile.slice(z);
 
     let xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
     await page.waitForXPath(xpt);
@@ -32,7 +41,7 @@ const test_widget = async function (creds: Creds, page: Page): Promise<void> {
     await page.click(sel);
     debuglog('clicked file line');
 
-    time_log(`open ${creds.widgetfile}`, tm_open_widget);
+    time_log(`open ${TestFiles.widgetfile}`, tm_open_widget);
     const tm_widget_test = process.hrtime.bigint()
 
     sel = '*[cocalc-test="jupyter-cell"]';
@@ -55,7 +64,7 @@ const test_widget = async function (creds: Creds, page: Page): Promise<void> {
 
     sel = "[cocalc-test='jupyter-cell']";
     const empty_exec_str: string = "In []:";
-    const restart_max_tries = 2400;
+    const restart_max_tries = 200;
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
@@ -128,12 +137,15 @@ const test_widget = async function (creds: Creds, page: Page): Promise<void> {
     debuglog('gotfile search');
 
     time_log("widget test", tm_widget_test);
-    await screenshot(page, creds, 'cocalc-widget.png');
+    await screenshot(page, opts, 'cocalc-widget.png');
+    pfcounts.pass += 1;
 
   } catch (e) {
+    pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   debuglog('widget test done');
+  return pfcounts;
 }
 
 export default test_widget;
