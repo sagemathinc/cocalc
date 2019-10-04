@@ -100,7 +100,7 @@ export class Store<State> extends EventEmitter {
   get<K extends keyof State, NSV>(
     field: K,
     notSetValue: NSV
-  ): DeepImmutable<State[K]> | NSV;
+  ): NonNullable<DeepImmutable<State[K]>> | NSV;
   get<K extends keyof State, NSV = State[K]>(
     field: K,
     notSetValue?: NSV
@@ -139,11 +139,15 @@ export class Store<State> extends EventEmitter {
   getIn<K1 extends keyof State, NSV>(
     path: [K1],
     notSetValue: NSV
-  ): DeepImmutable<State[K1]> | NSV;
+  ): NonNullable<DeepImmutable<State[K1]>> | NSV;
   getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>, NSV>(
     path: [K1, K2],
     notSetValue: NSV
-  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>> | NSV;
+  ):
+    | NonNullable<
+        DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>>
+      >
+    | NSV;
   getIn<
     K1 extends keyof State,
     K2 extends keyof NonNullable<State[K1]>,
@@ -153,11 +157,13 @@ export class Store<State> extends EventEmitter {
     path: [K1, K2, K3],
     notSetValue: NSV
   ):
-    | DeepImmutable<
-        CopyAnyMaybe<
-          State[K1],
-          NonNullable<State[K1]>[K2],
-          NonNullable<NonNullable<State[K1]>[K2]>[K3]
+    | NonNullable<
+        DeepImmutable<
+          CopyAnyMaybe<
+            State[K1],
+            NonNullable<State[K1]>[K2],
+            NonNullable<NonNullable<State[K1]>[K2]>[K3]
+          >
         >
       >
     | NSV;
