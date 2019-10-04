@@ -10,7 +10,7 @@ import { Set, Map, List, OrderedMap, fromJS } from "immutable";
 import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
-import { KernelInfo } from "./types";
+import { KernelInfo, CellToolbarName } from "./types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -20,7 +20,7 @@ export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
 export interface JupyterStoreState {
   nbconvert_dialog: any;
-  cell_toolbar: string;
+  cell_toolbar: CellToolbarName;
   edit_attachments?: string;
   edit_cell_metadata: any;
   raw_ipynb: any;
@@ -46,7 +46,7 @@ export interface JupyterStoreState {
   project_id: string;
   font_size: number;
   sel_ids: any;
-  toolbar?: any;
+  toolbar?: boolean;
   view_mode: string;
   mode: string;
   nbconvert: any;
