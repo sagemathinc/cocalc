@@ -4,10 +4,17 @@ import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
-import { fill } from "smc-util/fill";
+const misc = require("smc-util/misc");
+// Relative import is temporary, until I figure this out -- needed for *project*
+// import { fill } from "../../smc-util/fill";
+// fill does not even compile for the backend project (using the fill from the fill
+// module breaks starting projects).
+// NOTE: a basic requirement of "redux app framework" is that it can fully run
+// on the backend (e.g., in a project) under node.js.
+const fill = misc.defaults;
+
 import { throttle } from "lodash";
 
-const misc = require("smc-util/misc");
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
