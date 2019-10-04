@@ -124,7 +124,6 @@ export const Body = rclass<ReactProps>(
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;
-      console.log("name?", this.props.name)
       return (
         <div>
           {commercial &&
