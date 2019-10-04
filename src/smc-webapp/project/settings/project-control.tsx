@@ -374,7 +374,7 @@ export const ProjectControl = rclass<ReactProps>(
           <MenuItem
             key={name}
             eventKey={name}
-            onSelect={this.set_compute_image}
+            onSelect={this.set_compute_image.bind(this)}
           >
             {data.get("title")}
           </MenuItem>
