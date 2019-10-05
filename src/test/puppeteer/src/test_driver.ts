@@ -67,7 +67,7 @@ const run_tests = async function() {
   let pfcounts: PassFail = new PassFail();
   if (cp){
     // edit 'true' to 'false' to skip tests
-    let x = await login_tests(cp.c, cp.o);
+    let x: PassFail = await login_tests(cp.c, cp.o);
     pfcounts.add(x);
     x = await api_session(cp.c, cp.o);
     pfcounts.add(x);
