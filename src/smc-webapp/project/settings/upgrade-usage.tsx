@@ -26,6 +26,7 @@ interface Props {
 
   // redux props
   is_commercial?: boolean;
+  kucalc?: string;
 }
 
 interface State {
@@ -41,7 +42,8 @@ class UpgradeUsage extends React.Component<Props, State> {
   public static reduxProps(): object {
     return {
       customize: {
-        is_commercial: rtypes.bool
+        is_commercial: rtypes.bool,
+        kucalc: rtypes.string
       }
     };
   }
@@ -114,6 +116,8 @@ class UpgradeUsage extends React.Component<Props, State> {
         account_groups={this.props.account_groups}
         total_project_quotas={this.props.total_project_quotas}
         all_upgrades_to_this_project={this.props.all_upgrades_to_this_project}
+        kucalc={this.props.kucalc}
+        is_commercial={this.props.is_commercial}
       />
     );
   }

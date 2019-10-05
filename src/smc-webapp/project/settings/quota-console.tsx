@@ -28,6 +28,8 @@ interface Props {
   account_groups: any[];
   total_project_quotas?: object; // undefined if viewing as admin
   all_upgrades_to_this_project: object;
+  is_commercial?: boolean;
+  kucalc?: string;
 }
 
 interface QuotaParams {
@@ -99,6 +101,11 @@ export class QuotaConsole extends React.Component<Props, State> {
       desc: string;
     }
   ): Rendered {
+    if (this.props.kucalc == "no" && name != "mintime") {
+      // In anything except KuCalc, only the mintime quota is implemented.
+      // NONE of the other quotas are.
+      return;
+    }
     if (base_value == undefined) {
       base_value = 0;
     }
@@ -128,7 +135,7 @@ export class QuotaConsole extends React.Component<Props, State> {
       }
     }
 
-    if (base_value) {
+    if (base_value && this.props.is_commercial) {
       // amount given by free project
       upgrade_list.unshift(
         <li key="free">{text(base_value)} given by free project</li>
