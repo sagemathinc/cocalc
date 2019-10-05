@@ -28,6 +28,7 @@ const cli_parse = function() {
       .option('-s, --screenshot', 'take screenshots', false)
       .option('-p, --path-to-chrome [chromepath]')
       .option('-k, --skip <pattern>', 'skip tests matching pattern')
+      .option('-r, --create-records', 'create account, project, etc', false)
       .parse(process.argv);
     let creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -46,7 +47,8 @@ const cli_parse = function() {
       headless: program.headless,
       screenshot: program.screenshot,
       path: cpath,
-      skip: skip
+      skip: skip,
+      createRecords: program.createRecords
     }
     debuglog("opts", opts);
     debuglog('site:', creds.sitename);

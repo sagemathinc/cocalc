@@ -4,6 +4,7 @@ export interface Creds {
   readonly email: string;
   readonly passw: string;
   readonly project: string;
+  readonly mayCreateRecords: boolean;
 }
 
 export interface Opts {
@@ -11,6 +12,7 @@ export interface Opts {
   screenshot?: string;
   path?: string|boolean;
   skip?: RegExp;
+  createRecords?: boolean;
 }
 
 export interface InstallOpts extends Opts {
