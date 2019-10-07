@@ -56,9 +56,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }
   //console.log(`project websocket: connecting to ${project_id}...`);
   const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
-  const url: string = `${
-    window0.app_base_url
-  }/${project_id}/raw/.smc/primus.js`;
+  const url: string = `${window0.app_base_url}/${project_id}/raw/.smc/primus.js`;
 
   const Primus0 = window0.Primus; // the global primus
   let Primus;
@@ -126,7 +124,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
 
   // This dance is because evaling primus_js sets window.Primus.
   // However, we don't want to overwrite the usual global window.Primus.
-  const conn = (connections[project_id] = Primus.connect({
+  const conn = (connections[project_id] = Primus.connect());
+  /*
+  {
     reconnect: {
       min: 250,
       max: 5000, // do not make too aggressive or it DDOS proxy server;
@@ -135,6 +135,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
       retries: Infinity
     }
   }));
+  */
   conn.api = new API(conn, project_id);
   conn.verbose = false;
 

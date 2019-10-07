@@ -222,16 +222,22 @@ class Connection extends client.Connection
 
         @ondata = ondata
 
+        ###
+        # We are switching to the built-in default reconnect opts, since they are much less
+        # likely to trigger https://bugs.chromium.org/p/chromium/issues/detail?id=1006243
+        # (and probably more thought through anyways).  Also, our backend servers are
+        # much much more stable than they used to be.
         opts =
             reconnect:
                 max     : 10000
                 min     : 1000
                 factor  : 1.3
                 retries : 100000
+        ###
 
         misc_page.delete_cookie('SMCSERVERID3')
         @_delete_websocket_cookie()
-        conn = new Primus(url, opts)
+        conn = new Primus(url)  #, opts)
 
         @_conn = conn
         conn.on 'open', () =>
