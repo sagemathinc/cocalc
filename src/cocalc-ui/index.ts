@@ -26,4 +26,8 @@ import "antd/es/col/style/css";
 import Col from "antd/es/col";
 export { Col };
 
+import "antd/es/popconfirm/style/css";
+import Popconfirm from "antd/es/popconfirm";
+export { Popconfirm };
+
 import "./fix.css";

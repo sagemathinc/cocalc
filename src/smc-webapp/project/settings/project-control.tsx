@@ -1,5 +1,5 @@
 import * as React from "react";
-import { rtypes, redux, rclass } from "../../app-framework";
+import { rtypes, redux, rclass, Rendered } from "../../app-framework";
 import {
   COLORS,
   Loading,
@@ -30,6 +30,7 @@ import {
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
+import { Popconfirm } from "cocalc-ui";
 
 let {
   COMPUTE_IMAGES,
@@ -60,10 +61,7 @@ interface State {
 }
 
 export const ProjectControl = rclass<ReactProps>(
-  class ProjectControl extends React.Component<
-    ReactProps & ReduxProps,
-    State
-  > {
+  class ProjectControl extends React.Component<ReactProps & ReduxProps, State> {
     static reduxProps() {
       return {
         customize: {
@@ -164,41 +162,38 @@ export const ProjectControl = rclass<ReactProps>(
       analytics_event("project_settings", "stop project");
     };
 
-    render_confirm_restart() {
-      if (this.state.restart) {
-        return (
-          <LabeledRow key="restart" label="">
-            <Well>
-              Restarting the project server will kill all processes, update the
-              project code, and start the project running again. It takes a few
-              seconds, and can fix some issues in case things are not working
-              properly.
-              <hr />
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ restart: false });
-                    this.restart_project();
-                  }}
-                >
-                  <Icon name="refresh" /> Restart Project Server
-                </Button>
-                <Button
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ restart: false });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </ButtonToolbar>
-            </Well>
-          </LabeledRow>
-        );
-      }
-    }
+    //render_confirm_restart() {
+    //  if (this.state.restart) {
+    //    return (
+    //      <LabeledRow key="restart" label="">
+    //        <Well>
+    //
+    //          <hr />
+    //          <ButtonToolbar>
+    //            <Button
+    //              bsStyle="warning"
+    //              onClick={e => {
+    //                e.preventDefault();
+    //                this.setState({ restart: false });
+    //                this.restart_project();
+    //              }}
+    //            >
+    //              <Icon name="refresh" /> Restart Project Server
+    //            </Button>
+    //            <Button
+    //              onClick={e => {
+    //                e.preventDefault();
+    //                this.setState({ restart: false });
+    //              }}
+    //            >
+    //              Cancel
+    //            </Button>
+    //          </ButtonToolbar>
+    //        </Well>
+    //      </LabeledRow>
+    //    );
+    //  }
+    //}
 
     render_confirm_stop() {
       if (this.state.show_stop_confirmation) {
@@ -235,26 +230,50 @@ export const ProjectControl = rclass<ReactProps>(
       }
     }
 
-    render_action_buttons() {
+    render_restart_button(commands): Rendered {
+      const icon = <Icon name="refresh" />;
+      const text = (
+        <div style={{ maxWidth: "300px" }}>
+          Restarting the project server will terminate all processes, update the
+          project code, and start the project running again. It takes a few
+          seconds, and can fix some issues in case things are not working
+          properly. You'll not lose any files, but you have to start your
+          notebooks and worksheets again.
+        </div>
+      );
+
+      return (
+        <Popconfirm
+          placement={"bottom"}
+          arrowPointAtCenter={true}
+          title={text}
+          icon={icon}
+          onConfirm={e => {
+            if (e != null) e.preventDefault();
+            this.setState({ show_stop_confirmation: false });
+            this.restart_project();
+          }}
+          okText="Yes, restart project server"
+          cancelText="No"
+        >
+          <Button
+            disabled={!commands.includes("start") && !commands.includes("stop")}
+            bsStyle="warning"
+          >
+            <Icon name="refresh" /> Restart Project…
+          </Button>
+        </Popconfirm>
+      );
+    }
+
+    render_action_buttons(): Rendered {
       const { COMPUTE_STATES } = require("smc-util/schema");
       const state = this.props.project.getIn(["state", "state"]);
       const commands = (COMPUTE_STATES[state] &&
         COMPUTE_STATES[state].commands) || ["save", "stop", "start"];
       return (
         <ButtonToolbar style={{ marginTop: "10px", marginBottom: "10px" }}>
-          <Button
-            bsStyle="warning"
-            disabled={!commands.includes("start") && !commands.includes("stop")}
-            onClick={e => {
-              e.preventDefault();
-              this.setState({
-                show_stop_confirmation: false,
-                restart: true
-              });
-            }}
-          >
-            <Icon name="refresh" /> Restart Project...
-          </Button>
+          {this.render_restart_button(commands)}
           <Button
             bsStyle="warning"
             disabled={!commands.includes("stop")}
@@ -330,15 +349,15 @@ export const ProjectControl = rclass<ReactProps>(
       );
     }
 
-    cancel_compute_image = (current_image) => {
+    cancel_compute_image = current_image => {
       this.setState({
         compute_image: current_image,
         compute_image_changing: false,
         compute_image_focused: false
       });
-    }
+    };
 
-    save_compute_image = async (current_image) => {
+    save_compute_image = async current_image => {
       // image is reset to the previous name and componentWillReceiveProps will set it when new
       this.setState({
         compute_image: current_image,
@@ -357,7 +376,7 @@ export const ProjectControl = rclass<ReactProps>(
         alert_message({ type: "error", message: err });
         this.setState({ compute_image_changing: false });
       }
-    }
+    };
 
     set_compute_image(name) {
       this.setState({ compute_image: name });
@@ -556,7 +575,6 @@ export const ProjectControl = rclass<ReactProps>(
           <LabeledRow key="action" label="Actions">
             {this.render_action_buttons()}
           </LabeledRow>
-          {this.render_confirm_restart()}
           {this.render_confirm_stop()}
           <LabeledRow key="project_id" label="Project id">
             <pre>{this.props.project.get("project_id")}</pre>
