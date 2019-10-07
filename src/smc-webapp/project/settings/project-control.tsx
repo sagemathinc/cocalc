@@ -30,7 +30,7 @@ import {
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
-import { Popconfirm } from "cocalc-ui";
+import { Popconfirm, Icon as AntIcon } from "cocalc-ui";
 
 let {
   COMPUTE_IMAGES,
@@ -231,7 +231,6 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_restart_button(commands): Rendered {
-      const icon = <Icon name="refresh" />;
       const text = (
         <div style={{ maxWidth: "300px" }}>
           Restarting the project server will terminate all processes, update the
@@ -247,7 +246,7 @@ export const ProjectControl = rclass<ReactProps>(
           placement={"bottom"}
           arrowPointAtCenter={true}
           title={text}
-          icon={icon}
+          icon={<AntIcon type={"sync"} theme="outlined" />}
           onConfirm={e => {
             if (e != null) e.preventDefault();
             this.setState({ show_stop_confirmation: false });
