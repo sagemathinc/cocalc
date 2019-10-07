@@ -10,6 +10,7 @@ interface CelltypeInfo {
   grade: boolean; // is it graded?
   locked: boolean; // is it locked?
   solution: boolean; // is it a solution?
+  task: boolean; // is it a task?
   link: string; // link to some html help (the nbgrader docs)
   hover: string; // hover text that is helpful about this cell type (summary of nbgrader docs)
   points?: number; // default number of points
@@ -133,6 +134,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: false,
     solution: false,
+    task: false,
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
@@ -152,6 +154,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: true,
     locked: false,
     solution: true,
+    task: false,
     points: 1
   },
   {
@@ -168,6 +171,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: false,
     solution: true,
+    task: false,
     code_only: true,
     template: {
       python: PY_ANSWER,
@@ -189,6 +193,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: true,
     locked: true,
     solution: false,
+    task: false,
     points: 1,
     code_only: true,
     template: {
@@ -210,7 +215,8 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     icon: "lock",
     grade: false,
     locked: true,
-    solution: false
+    solution: false,
+    task: false
   }
 ];
 
@@ -227,6 +233,7 @@ export function state_to_value(state: Metadata): string {
   const grade: boolean = !!state.grade;
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
+  const task: boolean = !!state.task;
   if (grade === false && solution === false) {
     // special case: either nothing or readonly
     return locked ? "readonly" : "";
@@ -236,7 +243,7 @@ export function state_to_value(state: Metadata): string {
   const key = JSON.stringify({ grade, solution });
   if (value_cache[key] != undefined) return value_cache[key];
   for (let x of CELLTYPE_INFO_LIST) {
-    if (x.grade == grade && x.solution == solution) {
+    if (x.grade == grade && x.solution == solution && x.task == task) {
       value_cache[key] = x.value;
       return x.value;
     }
@@ -253,6 +260,7 @@ export function value_to_state(value: string): Metadata {
     grade: x.grade,
     locked: x.locked,
     solution: x.solution,
+    task: x.task,
     points: x.points
   };
 }

@@ -396,7 +396,8 @@ class TimeTravel extends Component<Props> {
       <div
         style={{
           background: this.props.is_current ? "#fafafa" : "#ddd",
-          borderBottom: "1px solid #ccc"
+          borderBottom: "1px solid #ccc",
+          marginLeft: "5px"
         }}
       >
         {this.render_changes_mode()}

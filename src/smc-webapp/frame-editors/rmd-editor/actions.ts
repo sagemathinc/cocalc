@@ -3,14 +3,36 @@ R Markdown Editor Actions
 */
 
 import { Set } from "immutable";
-import { callback } from "awaiting";
 import { debounce } from "lodash";
+import { callback2 } from "smc-util/async-utils";
 import { Actions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
 import { change_filename_extension, path_split } from "smc-util/misc2";
+
+const custom_pdf_error_message: string = `
+To create a PDF document from R Markdown, you specify the \`pdf_document\` output format in the
+YAML metadata by putting this code at the top of your file:
+
+\`\`\`
+---
+title: "My Document"
+author: CoCalc User
+date: Sept 27, 2019
+output: pdf_document
+---
+\`\`\`
+
+Within a document that generates PDF output, you can use raw LaTeX, and even define LaTeX macros.
+
+Once you make the above change, the HTML output will no longer be updated.  If you would
+like to switch back to HTML output, delete the output line or replace it with
+\`\`\`
+output: html_document
+\`\`\`
+`;
 
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;
@@ -21,6 +43,7 @@ export class RmdActions extends Actions {
       // one extra thing after markdown.
       this._init_rmd_converter();
       this._check_produced_files();
+      this.setState({ custom_pdf_error_message });
     }
   }
 
@@ -42,10 +65,7 @@ export class RmdActions extends Actions {
       return;
     }
     const path = path_split(this.path).head;
-    const update_dir = (path, cb) => {
-      project_actions.fetch_directory_listing({ finish_cb: cb, path: path });
-    };
-    await callback(update_dir, path);
+    await callback2(project_actions.fetch_directory_listing, { path });
 
     const project_store = project_actions.get_store();
     if (project_store == undefined) {
@@ -110,7 +130,7 @@ export class RmdActions extends Actions {
       this.set_reload("pdfjs_canvas");
       await this._check_produced_files();
     } catch (err) {
-      this.set_error(err);
+      this.set_error(err, "monospace");
       return;
     } finally {
       this.set_status("");
