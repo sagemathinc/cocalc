@@ -20,7 +20,6 @@ import {
 import { async } from "async";
 import { analytics_event } from "../../tracker";
 import {
-  Well,
   ButtonToolbar,
   Button,
   MenuItem,
@@ -52,12 +51,10 @@ interface ReduxProps {
 }
 
 interface State {
-  restart: boolean;
   show_ssh: boolean;
   compute_image: string;
   compute_image_changing: boolean;
   compute_image_focused: boolean;
-  show_stop_confirmation?: boolean;
 }
 
 export const ProjectControl = rclass<ReactProps>(
@@ -76,7 +73,6 @@ export const ProjectControl = rclass<ReactProps>(
     constructor(props) {
       super(props);
       this.state = {
-        restart: false,
         show_ssh: false,
         compute_image: this.props.project.get("compute_image"),
         compute_image_changing: false,
@@ -162,72 +158,30 @@ export const ProjectControl = rclass<ReactProps>(
       analytics_event("project_settings", "stop project");
     };
 
-    //render_confirm_restart() {
-    //  if (this.state.restart) {
-    //    return (
-    //      <LabeledRow key="restart" label="">
-    //        <Well>
-    //
-    //          <hr />
-    //          <ButtonToolbar>
-    //            <Button
-    //              bsStyle="warning"
-    //              onClick={e => {
-    //                e.preventDefault();
-    //                this.setState({ restart: false });
-    //                this.restart_project();
-    //              }}
-    //            >
-    //              <Icon name="refresh" /> Restart Project Server
-    //            </Button>
-    //            <Button
-    //              onClick={e => {
-    //                e.preventDefault();
-    //                this.setState({ restart: false });
-    //              }}
-    //            >
-    //              Cancel
-    //            </Button>
-    //          </ButtonToolbar>
-    //        </Well>
-    //      </LabeledRow>
-    //    );
-    //  }
-    //}
+    render_stop_button(commands): Rendered {
+      const text = (
+        <div style={{ maxWidth: "300px" }}>
+          Stopping the project server will kill all processes. After stopping a
+          project, it will not start until you or a collaborator restarts the
+          project.
+        </div>
+      );
 
-    render_confirm_stop() {
-      if (this.state.show_stop_confirmation) {
-        return (
-          <LabeledRow key="stop" label="">
-            <Well>
-              Stopping the project server will kill all processes. After
-              stopping a project, it will not start until a collaborator
-              restarts the project.
-              <hr />
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ show_stop_confirmation: false });
-                    this.stop_project();
-                  }}
-                >
-                  <Icon name="stop" /> Stop Project Server
-                </Button>
-                <Button
-                  onClick={e => {
-                    e.preventDefault();
-                    this.setState({ show_stop_confirmation: false });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </ButtonToolbar>
-            </Well>
-          </LabeledRow>
-        );
-      }
+      return (
+        <Popconfirm
+          placement={"bottom"}
+          arrowPointAtCenter={true}
+          title={text}
+          icon={<AntIcon type={"stop"} theme="outlined" />}
+          onConfirm={() => this.stop_project()}
+          okText="Yes, stop project"
+          cancelText="No"
+        >
+          <Button bsStyle="warning" disabled={!commands.includes("stop")}>
+            <Icon name="stop" /> Stop Project...
+          </Button>
+        </Popconfirm>
+      );
     }
 
     render_restart_button(commands): Rendered {
@@ -247,12 +201,8 @@ export const ProjectControl = rclass<ReactProps>(
           arrowPointAtCenter={true}
           title={text}
           icon={<AntIcon type={"sync"} theme="outlined" />}
-          onConfirm={e => {
-            if (e != null) e.preventDefault();
-            this.setState({ show_stop_confirmation: false });
-            this.restart_project();
-          }}
-          okText="Yes, restart project server"
+          onConfirm={() => this.restart_project()}
+          okText="Yes, restart project"
           cancelText="No"
         >
           <Button
@@ -273,19 +223,7 @@ export const ProjectControl = rclass<ReactProps>(
       return (
         <ButtonToolbar style={{ marginTop: "10px", marginBottom: "10px" }}>
           {this.render_restart_button(commands)}
-          <Button
-            bsStyle="warning"
-            disabled={!commands.includes("stop")}
-            onClick={e => {
-              e.preventDefault();
-              this.setState({
-                show_stop_confirmation: true,
-                restart: false
-              });
-            }}
-          >
-            <Icon name="stop" /> Stop Project...
-          </Button>
+          {this.render_stop_button(commands)}
         </ButtonToolbar>
       );
     }
@@ -574,7 +512,6 @@ export const ProjectControl = rclass<ReactProps>(
           <LabeledRow key="action" label="Actions">
             {this.render_action_buttons()}
           </LabeledRow>
-          {this.render_confirm_stop()}
           <LabeledRow key="project_id" label="Project id">
             <pre>{this.props.project.get("project_id")}</pre>
           </LabeledRow>
