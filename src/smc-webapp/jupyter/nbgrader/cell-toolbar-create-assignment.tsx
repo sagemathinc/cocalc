@@ -40,7 +40,9 @@ for (let x of CELLTYPE_INFO_LIST) {
       {x.title}
     </option>
   );
-  OPTIONS_CODE.push(option);
+  if (!x.markdown_only) {
+    OPTIONS_CODE.push(option);
+  }
   if (!x.code_only) {
     OPTIONS_NOTCODE.push(option);
   }
