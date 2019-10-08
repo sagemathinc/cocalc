@@ -199,7 +199,8 @@ function process_media_tags(e, opts: Options2) {
     ["img", "src"],
     ["object", "data"],
     ["video", "src"],
-    ["source", "src"]
+    ["source", "src"],
+    ["audio", "src"]
   ]) {
     for (let x of e.find(tag)) {
       process_media_tag($(x), attr, opts);
