@@ -14,6 +14,7 @@ import { callback2 } from "smc-util/async-utils";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
+import { CellToolbarName } from "./types";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -55,6 +56,13 @@ export class JupyterActions extends JupyterActions0 {
     // state, all user tab completions, widget state, etc.
     this.init_project_conn();
 
+    // this initializes actions+store for the snippet dialog
+    // this is also only a UI specific action
+    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
+
+    // nbgrader support
+    this.nbgrader_actions = new NBGraderActions(this, this.redux);
+
     this.syncdb.once("ready", () => {
       const ipywidgets_state = this.syncdb.ipywidgets_state;
       if (ipywidgets_state == null) {
@@ -69,6 +77,14 @@ export class JupyterActions extends JupyterActions0 {
       // This should not be necessary, and may indicate a bug in the sync layer?
       this.syncdb.set({ type: "user", id: 0, time: new Date().valueOf() });
       this.syncdb.commit();
+
+      // If using nbgrader ensure document is fully updated.
+      if (this.store.get("cell_toolbar") == "create_assignment") {
+        // We only do this for notebooks where the toolbar is open, not for *any* old
+        // random notebook.  It would be dumb to run this always (e.g., for a 1000
+        // cell notebook that has nothing to do with nbgrader).
+        this.nbgrader_actions.update_metadata();
+      }
     });
 
     // Put an entry in the project log once the jupyter notebook gets opened.
@@ -80,12 +96,6 @@ export class JupyterActions extends JupyterActions0 {
     // project doesn't care about cursors, but browser clients do:
     this.syncdb.on("cursor_activity", this.syncdb_cursor_activity);
     this.cursor_manager = new CursorManager();
-
-    // this initializes actions+store for the snippet dialog
-    // this is also only a UI specific action
-    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
-
-    this.nbgrader_actions = new NBGraderActions(this, this.redux);
 
     if (window != null && (window as any).$ != null) {
       // frontend browser client with jQuery
@@ -538,8 +548,7 @@ export class JupyterActions extends JupyterActions0 {
   public async confirm_restart(): Promise<void> {
     const choice = await this.confirm_dialog({
       title: "Restart kernel?",
-      body:
-        "Do you want to restart the kernel?  All variables will be lost.",
+      body: "Do you want to restart the kernel?  All variables will be lost.",
       choices: [
         { title: "Continue running" },
         { title: "Restart", style: "danger", default: true }
@@ -548,5 +557,17 @@ export class JupyterActions extends JupyterActions0 {
     if (choice === "Restart") {
       this.restart();
     }
+  }
+
+  public cell_toolbar(name?: CellToolbarName): void {
+    // Set which cell toolbar is visible.
+    // At most one may be visible.
+    // name=undefined to not show any.
+    // When switching to the 'nbgrader' toolbar, the metadata is also updated.
+    this.set_local_storage("cell_toolbar", name);
+    if (name == "create_assignment") {
+      this.nbgrader_actions.update_metadata();
+    }
+    this.setState({ cell_toolbar: name });
   }
 }

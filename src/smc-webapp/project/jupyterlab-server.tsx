@@ -7,9 +7,7 @@ import { exec } from "../frame-editors/generic/client";
 
 import { Component, React, Rendered } from "../app-framework";
 
-const { ProjectSettingsPanel } = require("./project-settings-support");
-
-const { Icon } = require("../r_misc");
+import { Icon, SettingBox } from "../r_misc";
 
 const { LinkRetryUntilSuccess } = require("../widgets-misc/link-retry");
 
@@ -52,7 +50,7 @@ export class JupyterLabServerPanel extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <ProjectSettingsPanel title="JupyterLab Server" icon="list-alt">
+      <SettingBox title="JupyterLab Server" icon="list-alt">
         <span style={{ color: "#444" }}>
           The JupyterLab server runs from your project and provides support for
           Jupyter notebooks, terminals, drag and drop, with a nice multiwindow
@@ -67,7 +65,7 @@ export class JupyterLabServerPanel extends Component<Props, {}> {
         <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
           {this.render_jupyter_link()}
         </div>
-      </ProjectSettingsPanel>
+      </SettingBox>
     );
   }
 }

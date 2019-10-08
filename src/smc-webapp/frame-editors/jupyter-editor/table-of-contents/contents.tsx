@@ -15,8 +15,6 @@ import { Loading } from "../../../r_misc/loading";
 
 import { redux_name } from "../jupyter-actions";
 
-import { parse_headings, TableOfContentsInfo } from "./parse";
-
 import { JupyterEditorActions } from "../actions";
 
 interface Props {
@@ -25,41 +23,22 @@ interface Props {
   font_size: number;
 
   // REDUX PROPS
-  cell_list?: List<string>; // list of ids of cells in order
-  cells?: Map<string, any>; // map from ids to cells
+  contents?: List<Map<string, any>>;
 }
 
 class TableOfContents extends Component<Props> {
-  private headings?: TableOfContentsInfo[];
-
   public shouldComponentUpdate(nextProps): boolean {
     return (
-      this.props.cells != nextProps.cells ||
-      this.props.cell_list != nextProps.cell_list ||
+      this.props.contents != nextProps.contents ||
       this.props.font_size != nextProps.font_size
     );
-  }
-
-  public componentWillReceiveProps(nextProps): void {
-    if (this.props.cells != nextProps.cells) {
-      delete this.headings;
-    }
-  }
-
-  private get_headings(): TableOfContentsInfo[] | undefined {
-    if (this.props.cells == null || this.props.cell_list == null) return;
-    if (this.headings == null) {
-      this.headings = parse_headings(this.props.cells, this.props.cell_list);
-    }
-    return this.headings;
   }
 
   public static reduxProps({ name }) {
     const name_of_jupyter_store = redux_name(name);
     return {
       [name_of_jupyter_store]: {
-        cell_list: rtypes.immutable.List,
-        cells: rtypes.immutable.Map
+        contents: rtypes.immutable.List
       }
     };
   }
@@ -96,10 +75,14 @@ class TableOfContents extends Component<Props> {
   }
 
   private render_contents(): Rendered {
-    const headings = this.get_headings();
-    if (headings == null) return this.render_loading();
+    const contents = this.props.contents;
+    if (contents == null) return this.render_loading();
     const v: Rendered[] = [];
-    for (let { id, level, value, icon } of headings) {
+    // todo: make better use of immutable.js, etc.
+    for (let { id, level, value, icon, number } of contents.toJS()) {
+      if (number != null) {
+        value = `${number.join(".")}.  ${value}`;
+      }
       v.push(
         <div
           key={id}
@@ -128,9 +111,11 @@ class TableOfContents extends Component<Props> {
   }
 
   public render(): Rendered {
-    if (this.props.cell_list == null || this.props.cells == null)
+    if (this.props.contents == null) {
       return this.render_loading();
-    else return this.render_contents();
+    } else {
+      return this.render_contents();
+    }
   }
 }
 
