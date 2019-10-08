@@ -4,6 +4,7 @@ import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
 import { clear_solution } from "./clear-solutions";
 import { clear_hidden_tests } from "./clear-hidden-tests";
+import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
@@ -194,6 +195,7 @@ export class NBGraderActions {
     */
     this.assign_clear_solutions(); // step 3a
     this.assign_clear_hidden_tests(); // step 3b
+    this.assign_clear_mark_regions(); // step 3c
     this.jupyter_actions.clear_all_outputs(false); // step 4
     this.assign_save_checksums(); // step 5
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
@@ -222,6 +224,21 @@ export class NBGraderActions {
       if (!cell.getIn(["metadata", "nbgrader", "grade"])) return;
       if (cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = clear_hidden_tests(cell);
+      if (cell !== cell2) {
+        // set the input
+        this.jupyter_actions.set_cell_input(
+          cell.get("id"),
+          cell2.get("input"),
+          false
+        );
+      }
+    });
+  }
+
+  private assign_clear_mark_regions(): void {
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
+      const cell2 = clear_mark_regions(cell);
       if (cell !== cell2) {
         // set the input
         this.jupyter_actions.set_cell_input(
