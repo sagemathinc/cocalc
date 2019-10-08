@@ -1155,12 +1155,12 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     v.push(this.render_edit_init_script());
     v.push(this.render_count_words());
+    v.push(this.render_table_of_contents());
     v.push(this.render_kick_other_users_out());
     v.push(this.render_format());
     v.push(this.render_shell());
     v.push(this.render_print());
     v.push(this.render_help(labels));
-    v.push(this.render_table_of_contents());
 
     const w: Rendered[] = [];
     for (let c of v) {

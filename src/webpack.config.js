@@ -632,10 +632,6 @@ module.exports = {
 
   module: {
     rules: [
-      {
-        test: /pnotify.*\.js$/,
-        use: "imports-loader?define=>false,global=>window"
-      },
       { test: /\.coffee$/, loader: "coffee-loader" },
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
@@ -746,6 +742,8 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
+      path.resolve(__dirname, "cocalc-ui"),
+      path.resolve(__dirname, "cocalc-ui/node_modules"),
       path.resolve(__dirname, "node_modules")
     ]
   },

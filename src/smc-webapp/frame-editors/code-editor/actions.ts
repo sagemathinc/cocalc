@@ -1983,8 +1983,10 @@ export class Actions<
 
   // Override in derived class to set a special env for
   // any launched terminals.
-  get_term_env(): any {
-    return undefined;
+  get_term_env(): { [envvar: string]: string } {
+    // https://github.com/sagemathinc/cocalc/issues/4120
+    const MPLBACKEND = "Agg";
+    return { MPLBACKEND };
   }
 
   // If you override show, make sure to still call this

@@ -510,8 +510,21 @@ export function human_readable_size(bytes: number | null | undefined): string {
 // (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
 //     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
 //     properly (not our use case).
-export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi
+export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi;
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
 }
+
+
+// converts an array to a "human readable" array
+export function to_human_list(arr) {
+  arr = lodash.map(arr, x => x.toString());
+  if (arr.length > 1) {
+    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
+  } else if (arr.length === 1) {
+    return arr[0].toString();
+  } else {
+    return "";
+  }
+};
