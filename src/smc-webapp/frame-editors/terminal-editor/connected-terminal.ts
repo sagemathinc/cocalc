@@ -29,6 +29,8 @@ import { ConnectionStatus } from "../frame-tree/types";
 declare const $: any;
 import { starts_with_cloud_url } from "smc-webapp/process-links";
 
+// import { debounce } from "lodash";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
@@ -135,6 +137,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.init_settings();
     this.init_touch();
     this.set_connection_status("disconnected");
+
+    // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
+    // "It’s best practice to debounce calls to resize, this will help ensure that
+    //  the pty can respond to the resize event before another one occurs."
+    // We do NOT debounce, because it strangely breaks everything,
+    // as you can see by just resizing the window.
+    // this.terminal_resize = debounce(this.terminal_resize.bind(this), 2000);
   }
 
   private get_xtermjs_options(): any {
@@ -479,11 +488,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   private terminal_resize(opts: { cols: number; rows: number }): void {
+    // console.log("terminal_resize", opts);
     // terminal.resize only takes integers, hence the floor;
     // we use floor to avoid cutting off a line halfway.
     // See https://github.com/sagemathinc/cocalc/issues/4140
     const { rows, cols } = opts;
-    this.terminal.resize(Math.floor(cols), Math.floor(rows));
+    // Yes, this can throw an exception, thus breaking everything (resulting in
+    // a blank page for the user).  This is probably an upstream xterm.js bug,
+    // but we still have to work around it.
+    // The fix to https://github.com/sagemathinc/cocalc/issues/4140
+    // might now prevent this bug.
+    try {
+      this.terminal.resize(Math.floor(cols), Math.floor(rows));
+    } catch (err) {
+      console.warn("Error resizing terminal", err, rows, cols);
+    }
   }
 
   // Stop ignoring terminal data... but ONLY once
@@ -668,15 +687,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const { rows, cols } = geom;
     if (this.ignore_terminal_data) {
       // during the initial render
-      //console.log('direct resize')
-      // Yes, this can throw an exception, thus breaking everything (resulting in
-      // a blank page for the user).  This is probably an upstream xterm.js bug,
-      // but we still have to work around it.
-      try {
-        this.terminal_resize({ cols, rows });
-      } catch (err) {
-        console.warn("Error resizing terminal", err, rows, cols);
-      }
+      this.terminal_resize({ cols, rows });
     }
     if (
       this.last_geom !== undefined &&
