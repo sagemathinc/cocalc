@@ -87,7 +87,7 @@ function all_opened_files(): undefined | object {
 const get_allowed_hosts = memoizeOne(
   async (): Promise<string[]> => {
     const customize_store = redux.getStore("customize");
-    await callback(customize_store.is_configured);
+    await customize_store.is_configured();
     const hosts = customize_store.get_iframe_comm_hosts();
     return hosts;
   }
