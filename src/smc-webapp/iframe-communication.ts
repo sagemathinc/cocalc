@@ -3,7 +3,7 @@
 // It listens to `postMessage`'s and dispatches actions accordingly.
 // For security reasons, this is very restrictive, involves extra checks, and only a selected set of origins is allowed.
 
-import { delay, callback } from "awaiting";
+import { delay } from "awaiting";
 import * as memoizeOneModule from "memoize-one";
 import { redux } from "./app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
@@ -87,7 +87,7 @@ function all_opened_files(): undefined | object {
 const get_allowed_hosts = memoizeOne(
   async (): Promise<string[]> => {
     const customize_store = redux.getStore("customize");
-    await customize_store.is_configured();
+    await customize_store.until_configured();
     const hosts = customize_store.get_iframe_comm_hosts();
     return hosts;
   }

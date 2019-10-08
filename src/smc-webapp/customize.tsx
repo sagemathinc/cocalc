@@ -17,6 +17,7 @@ import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
 import { Loading } from "./r_misc";
 
+// import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2 } from "smc-util/async-utils";
 const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");
@@ -36,19 +37,24 @@ const defaults = misc.dict(result);
 defaults.is_commercial = test_commercial(defaults.commercial);
 defaults._is_configured = false; // will be true after set via call to server
 
-class CustomizeStore extends Store {
-  async is_configured(cb): Promise<void> {
-    if (!this.get("_is_configured")) {
-      console.log("is_configured: waiting started")
-      await callback2(this.wait, { until: () => this.get("_is_configured") });
-      console.log("is_configured: waiting done")
-    }
+// TODO type the store. it's an extension of what's in SiteSettings
+// type SiteSettings = { [k in keyof SiteSettingsConfig]: any  };
+//
+// interface CustomizeStoreState extends SiteSettings {
+//   _is_configured: any;
+// }
+
+class CustomizeStore extends Store<any> {
+  async until_configured(): Promise<void> {
+    if (this.get("_is_configured")) return;
+    await callback2(this.wait, { until: () => this.get("_is_configured") });
   }
 
-  get_iframe_comm_hosts() {
+  get_iframe_comm_hosts(): string[] {
     const hosts = this.get("iframe_comm_hosts");
+    if (hosts == null) return [];
     // ATTN: if you change this regex, also change smc-util/db-schema/site-defaults.ts
-    return hosts.match(/[a-zA-Z0-9.-]+/g);
+    return hosts.match(/[a-zA-Z0-9.-]+/g) || [];
   }
 }
 
