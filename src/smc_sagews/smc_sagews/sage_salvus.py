@@ -2748,14 +2748,19 @@ def plot3d_using_matplotlib(expr,
     plt.show()
 
 
-# 8.9 introduced https://doc.sagemath.org/html/en/reference/plotting/sage/plot/multigraphics.html#sage.plot.multigraphics.MultiGraphics
+# Sage version 8.9 introduced
+# https://doc.sagemath.org/html/en/reference/plotting/sage/plot/multigraphics.html#sage.plot.multigraphics.MultiGraphics
+# which complicates the logic below.
 try:
-    # pre 8.9
-    from sage.plot.graphics import GraphicsArray
-    PRE_8_9 = True
-except:
+    # Try to import both GraphicsArray and MultiGraphics
     from sage.plot.multigraphics import GraphicsArray, MultiGraphics
-    PRE_8_9 = False
+except:
+    # Import failed, so probably 8.9 -- we try to import GraphicsArray.
+    # If this also fails, then Sage has changed a lot and some manual work is needed.
+    from sage.plot.graphics import GraphicsArray
+    # Also ensure MultiGraphics is defined but None.  We'll have to
+    # check for None in the places where MultiGraphics is used below.
+    MultiGraphics = None
 
 from sage.plot.graphics import Graphics
 from sage.plot.plot3d.base import Graphics3d
@@ -2771,7 +2776,7 @@ GRAPHICS_MODULES_SHOW = [
     matplotlib.image.AxesImage,
 ]
 
-if not PRE_8_9:
+if MultiGraphics is not None:
     GRAPHICS_MODULES_SHOW.append(MultiGraphics)
 
 GRAPHICS_MODULES_SHOW = tuple(GRAPHICS_MODULES_SHOW)
@@ -2969,7 +2974,7 @@ def show(*objs, **kwds):
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
 GraphicsArray.show = show
-if not PRE_8_9:
+if MultiGraphics is not None:
     MultiGraphics.show = show
 Animation.show = show
 
@@ -3976,7 +3981,7 @@ DISPLAYHOOK_MODULES_SHOW = [
     Tachyon,
 ]
 
-if not PRE_8_9:
+if MultiGraphics is not None:
     DISPLAYHOOK_MODULES_SHOW.append(MultiGraphics)
 
 DISPLAYHOOK_MODULES_SHOW = tuple(DISPLAYHOOK_MODULES_SHOW)
@@ -4002,7 +4007,7 @@ TYPESET_MODE_EXCLUDES = [
     GraphicsArray,
 ]
 
-if not PRE_8_9:
+if MultiGraphics is not None:
     TYPESET_MODE_EXCLUDES.append(MultiGraphics)
 
 TYPESET_MODE_EXCLUDES = tuple(TYPESET_MODE_EXCLUDES)
