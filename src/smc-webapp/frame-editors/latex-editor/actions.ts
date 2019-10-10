@@ -622,7 +622,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory()
       );
-      // Now run latex again, since we had to run sagetex, which changes
+      // Now Run LaTeX, since we had to run sagetex, which changes
       // the sage output. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
       await this.run_latex(time + 1, force);

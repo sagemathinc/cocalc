@@ -89,7 +89,7 @@ const redux_name = (project_id, course_filename) =>
 
 const syncdbs = {};
 
-function init_redux(
+export function init_redux(
   course_filename,
   redux: AppRedux,
   course_project_id
@@ -142,7 +142,7 @@ function init_redux(
   return the_redux_name;
 }
 
-const remove_redux = function(course_filename, redux, course_project_id) {
+export function remove_redux(course_filename, redux, course_project_id) {
   const the_redux_name = redux_name(course_project_id, course_filename);
 
   // Remove the listener for changes in the collaborators on this project.
@@ -163,7 +163,7 @@ const remove_redux = function(course_filename, redux, course_project_id) {
   }
   delete syncdbs[the_redux_name];
   return the_redux_name;
-};
+}
 
 const COURSE_EDITOR_STYLE: CSSProperties = {
   height: "100%",
@@ -433,7 +433,9 @@ export const CourseEditor = rclass<CourseReactProps>(
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
-            store_object={this.props.redux.getStore<CourseState, CourseStore>(this.props.name)}
+            store_object={this.props.redux.getStore<CourseState, CourseStore>(
+              this.props.name
+            )}
             project_actions={this.props.redux.getProjectActions(
               this.props.project_id
             )}
