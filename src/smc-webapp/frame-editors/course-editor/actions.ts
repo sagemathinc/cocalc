@@ -31,6 +31,8 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
   }
 
   private init_course_actions_and_store(): void {
+    // We use a different name for the redux store managed by the course actions,
+    // since otherwise it would conflict with the frame tree's own store.
     this.course_actions = init_course_actions_and_store({
       redux: this.redux,
       path: this.path,

@@ -68,7 +68,7 @@ import {
   AssignmentRecord
 } from "./store";
 import { CourseActions } from "./actions";
-import * as CourseSync from "./sync";
+import { create_sync_db } from "./sync";
 import { CSSProperties } from "react";
 
 import { StudentsPanel, StudentsPanelHeader } from "./students_panel";
@@ -90,13 +90,15 @@ const redux_name = (project_id, course_filename) =>
 const syncdbs = {};
 
 export function init_redux(
-  course_filename,
+  course_filename: string,
   redux: AppRedux,
-  course_project_id
+  course_project_id: string,
+  the_redux_name?: string
 ): string {
-  const the_redux_name = redux_name(course_project_id, course_filename);
-  const get_actions = () => redux.getActions(the_redux_name);
-  if (get_actions() != null) {
+  if (the_redux_name == null) {
+    the_redux_name = redux_name(course_project_id, course_filename);
+  }
+  if (redux.getActions(the_redux_name) != null) {
     // already initalized
     return the_redux_name;
   }
@@ -126,13 +128,16 @@ export function init_redux(
     action_all_projects_state: "any"
   };
 
-  const store = redux.createStore(
+  const store: CourseStore = redux.createStore(
     the_redux_name,
     CourseStore as any,
     initial_store_state
+  ) as CourseStore;
+  const actions: CourseActions = redux.createActions(
+    the_redux_name,
+    CourseActions
   );
-  const actions = redux.createActions(the_redux_name, CourseActions);
-  actions.syncdb = syncdbs[the_redux_name] = CourseSync.create_sync_db(
+  actions.syncdb = syncdbs[the_redux_name] = create_sync_db(
     redux,
     actions,
     store,
@@ -142,11 +147,18 @@ export function init_redux(
   return the_redux_name;
 }
 
-export function remove_redux(course_filename, redux, course_project_id) {
-  const the_redux_name = redux_name(course_project_id, course_filename);
+export function remove_redux(
+  course_filename: string,
+  redux: AppRedux,
+  course_project_id: string,
+  the_redux_name?: string
+) {
+  if (the_redux_name == null) {
+    the_redux_name = redux_name(course_project_id, course_filename);
+  }
 
   // Remove the listener for changes in the collaborators on this project.
-  const actions = redux.getActions(the_redux_name);
+  const actions : CourseActions = redux.getActions(the_redux_name);
   if (actions == null) {
     // already cleaned up and removed.
     return;
