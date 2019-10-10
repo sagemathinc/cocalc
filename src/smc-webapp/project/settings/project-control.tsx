@@ -175,7 +175,7 @@ export const ProjectControl = rclass<ReactProps>(
           icon={<AntIcon type={"stop"} theme="outlined" />}
           onConfirm={() => this.stop_project()}
           okText="Yes, stop project"
-          cancelText="No"
+          cancelText="Cancel"
         >
           <Button bsStyle="warning" disabled={!commands.includes("stop")}>
             <Icon name="stop" /> Stop Project...
@@ -203,7 +203,7 @@ export const ProjectControl = rclass<ReactProps>(
           icon={<AntIcon type={"sync"} theme="outlined" />}
           onConfirm={() => this.restart_project()}
           okText="Yes, restart project"
-          cancelText="No"
+          cancelText="Cancel"
         >
           <Button
             disabled={!commands.includes("start") && !commands.includes("stop")}
