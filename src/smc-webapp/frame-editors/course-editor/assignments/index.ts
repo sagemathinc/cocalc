@@ -1,2 +1,2 @@
-import { Overview } from "../overview";
-export { Overview as Assignments };
+import { Assignments } from "./assignments";
+export { Assignments };

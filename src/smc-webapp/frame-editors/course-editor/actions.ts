@@ -48,7 +48,12 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
 
   async save(explicit: boolean = true): Promise<void> {
     explicit = explicit; // not used
-    if (!this.course_actions.syncdb.has_unsaved_changes()) return;
+    if (
+      this.course_actions == null ||
+      this.course_actions.syncdb == null ||
+      !this.course_actions.syncdb.has_unsaved_changes()
+    )
+      return;
 
     // Do the save itself, using try/finally to ensure proper
     // setting of is_saving.
