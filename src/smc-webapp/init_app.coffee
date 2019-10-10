@@ -25,6 +25,7 @@ misc                    = require('smc-util/misc')
 
 history                 = require('./history')
 {set_window_title}      = require('./browser')
+{get_browser}           = require('./feature')
 
 {alert_message}         = require('./alerts')
 
@@ -434,16 +435,20 @@ webapp_client.on "connecting", () ->
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
+            if get_browser() == 'chrome'
+                extra = " If your network is fine, close this browser tab and open a new tab (or use any browser besides Chrome v77, e.g., Firefox or Chrome 78 beta).  There is a major bug in Chrome v77; opening a new tab works around this bug."
+            else
+                extra = ''
             if num_recent_disconnects() >= 7 or attempt >= 20
                 reconnect
                     type: "error"
                     timeout: 10
-                    message: "Your connection is unstable or #{SiteName} is temporarily not available."
+                    message: "Your connection is unstable or #{SiteName} is temporarily not available." + extra
             else if attempt >= 10
                 reconnect
                     type: "info"
                     timeout: 10
-                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution."
+                    message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution." + extra
     else
         reconnection_warning = null
 

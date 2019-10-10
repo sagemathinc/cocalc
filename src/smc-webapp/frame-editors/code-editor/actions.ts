@@ -355,7 +355,8 @@ export class Actions<
       project_id: this.project_id,
       path: aux,
       primary_keys,
-      string_cols
+      string_cols,
+      file_use_interval: 0 // disable file use,, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", err => {
       this.set_error(
@@ -1983,8 +1984,10 @@ export class Actions<
 
   // Override in derived class to set a special env for
   // any launched terminals.
-  get_term_env(): any {
-    return undefined;
+  get_term_env(): { [envvar: string]: string } {
+    // https://github.com/sagemathinc/cocalc/issues/4120
+    const MPLBACKEND = "Agg";
+    return { MPLBACKEND };
   }
 
   // If you override show, make sure to still call this

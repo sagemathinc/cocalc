@@ -877,10 +877,6 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
-    if program.single
-        winston.debug("init_mintime: running in single-machine mode; not initializing idle timeout")
-        cb()
-        return
     setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 

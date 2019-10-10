@@ -66,7 +66,8 @@ const MASKED_FILE_EXTENSIONS = {
   ),
   rnw: ["tex", "NODOT-concordance.tex"],
   rtex: ["tex", "NODOT-concordance.tex"],
-  rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"]
+  rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"],
+  sage: ["sage.py"]
 };
 
 export interface ProjectStoreState {

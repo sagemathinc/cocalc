@@ -7,6 +7,9 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
+import * as sha1 from "sha1";
+export { sha1 };
+
 import * as lodash from "lodash";
 export const keys = lodash.keys;
 
@@ -521,4 +524,16 @@ export function contains_url(str: string): boolean {
 // type Severity = typeof types[number];
 export function tuple<T extends Array<string>>(o: T) {
   return o;
+}
+
+// converts an array to a "human readable" array
+export function to_human_list(arr) {
+  arr = lodash.map(arr, x => x.toString());
+  if (arr.length > 1) {
+    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
+  } else if (arr.length === 1) {
+    return arr[0].toString();
+  } else {
+    return "";
+  }
 }
