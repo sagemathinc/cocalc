@@ -1,3 +1,11 @@
+/*
+This is some slightly complicated code to avoid needless duplication.
+
+It's a bit more complicated than you might expect partly due to the fact
+we have to insert these course tab components as frame in a frame tree,
+so there is no commoon containing react component that we control...
+*/
+
 import {
   React,
   Component,
