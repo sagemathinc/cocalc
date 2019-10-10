@@ -138,9 +138,7 @@ export async function prettier(
     let loc = resp.error.loc;
     if (loc && loc.start) {
       throw Error(
-        `Syntax error prevented formatting code (possibly on line ${
-          loc.start.line
-        } column ${loc.start.column}) -- fix and run again.`
+        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
       );
     } else if (resp.error) {
       throw Error(resp.error);
