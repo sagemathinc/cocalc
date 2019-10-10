@@ -355,7 +355,8 @@ export class Actions<
       project_id: this.project_id,
       path: aux,
       primary_keys,
-      string_cols
+      string_cols,
+      file_use_interval: 0 // disable file use,, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", err => {
       this.set_error(
