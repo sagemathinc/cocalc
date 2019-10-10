@@ -698,8 +698,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       obj.time = misc.server_time();
     }
     obj.id = id;
+    const query = { project_log: obj };
     require("./webapp_client").webapp_client.query({
-      query: { project_log: obj },
+      query,
       cb: err => {
         if (err) {
           // TODO: what do we want to do if a log doesn't get recorded?
@@ -710,6 +711,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (cb != null) cb(err);
       }
     });
+
+    if (window.parent != null) {
+      // (I think this is always defined.)
+      // We also fire a postMessage.  This allows the containing
+      // iframe (if there is one), or other parts of the page, to
+      // be alerted of any logged event, which can be very helpful
+      // when building applications.  See
+      //      https://github.com/sagemathinc/cocalc/issues/4145
+      // If embedded in an iframe, it is the embedding window.
+      // If not in an iframe, seems to be the window itself.
+      // I copied the {source:?,payload:?} format from react devtools.
+      window.parent.postMessage({ source: "cocalc-project-log", payload: query }, "*");
+    }
+
     return id;
   }
 
