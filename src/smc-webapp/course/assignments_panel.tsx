@@ -102,7 +102,7 @@ interface AssignmentsPanelReactProps {
   project_id: string;
   redux: AppRedux;
   actions: object;
-  all_assignments: Map<string, AssignmentRecord>;
+  assignments: Map<string, AssignmentRecord>;
   students: Map<string, StudentRecord>;
   user_map: object;
 }
@@ -153,7 +153,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
 
     private get_assignment(id: string): AssignmentRecord {
-      let assignment = this.props.all_assignments.get(id);
+      let assignment = this.props.assignments.get(id);
       if (assignment == undefined) {
         console.warn(`Tried to access undefined assignment ${id}`);
       }
@@ -168,7 +168,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     } {
       let deleted, f, num_deleted, num_omitted;
       let list = util.immutable_to_list(
-        this.props.all_assignments,
+        this.props.assignments,
         "assignment_id"
       );
 
@@ -382,7 +382,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
             search_change={value => this.setState({ search: value })}
             num_omitted={num_omitted}
             project_id={this.props.project_id}
-            items={this.props.all_assignments}
+            items={this.props.assignments}
             add_folders={paths => paths.map(add_assignment)}
             item_name={"assignment"}
             plural_item_name={"assignments"}

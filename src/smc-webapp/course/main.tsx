@@ -158,7 +158,7 @@ export function remove_redux(
   }
 
   // Remove the listener for changes in the collaborators on this project.
-  const actions : CourseActions = redux.getActions(the_redux_name);
+  const actions: CourseActions = redux.getActions(the_redux_name);
   if (actions == null) {
     // already cleaned up and removed.
     return;
@@ -418,7 +418,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           <AssignmentsPanel
             actions={this.props.redux.getActions(this.props.name)}
             redux={this.props.redux}
-            all_assignments={this.props.assignments}
+            assignments={this.props.assignments}
             name={this.props.name}
             project_id={this.props.project_id}
             user_map={this.props.user_map}
