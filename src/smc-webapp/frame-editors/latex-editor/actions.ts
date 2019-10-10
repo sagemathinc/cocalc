@@ -268,13 +268,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private ensure_output_directory(cmd: List<string>): List<string> {
-    let has_output_dir: boolean = false;
-    cmd.forEach(x => {
-      if (x.indexOf("-output-directory=") != -1) {
-        has_output_dir = true;
-      }
-    });
-    if (!has_output_dir) {
+    const has_output_dir = cmd.some(x => x.indexOf("-output-directory=") != -1);
+    if (!has_output_dir && this.output_directory != null) {
       // no output directory option.
       return cmd.splice(
         cmd.size - 2,
