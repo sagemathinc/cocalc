@@ -213,7 +213,7 @@ Page = rclass
 
     render_mentions_button: ->
         return if not @props.is_logged_in
-        <MentionsButton />
+        <MentionsButton active_top_tab = {@props.active_top_tab} />
 
     render_right_nav: ->
         logged_in = @props.is_logged_in

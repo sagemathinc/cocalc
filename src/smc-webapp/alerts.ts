@@ -34,20 +34,20 @@ import {
 
 const { webapp_client } = require("./webapp_client");
 
-const types = tuple(["error", "default", "success", "info", "warning"]);
-type Severity = typeof types[number];
+const severities = tuple(["error", "default", "success", "info", "warning"]);
+type Severity = typeof severities[number];
 
 // used for system notifications
 export interface Alert {
   time: any; // type time object ?
-  title: string;
-  text: string;
+  title?: string | ReactElement<any>;
+  text?: string | ReactElement<any> | Error;
   delay: number; // seconds
-  severity: Severity;
+  severity?: Severity;
 }
 
 // seconds
-const default_timeout: { [type in Severity]: number } = {
+const default_timeout: { [severity in Severity]: number } = {
   warning: 4,
   error: 8,
   default: 4,
@@ -79,6 +79,8 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     opts.timeout = default_timeout[opts.type] || 5;
   }
 
+  const title = opts.title != null ? opts.title : "";
+
   // Don't show the exact same alert message more than once per 5s.
   // This prevents a screenful of identical useless messages, which
   // is just annoying and useless.
@@ -108,7 +110,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   }
 
   f({
-    message: opts.title != null ? opts.title : "",
+    message: title,
     description: opts.message,
     duration: opts.block ? 0 : opts.timeout
   });

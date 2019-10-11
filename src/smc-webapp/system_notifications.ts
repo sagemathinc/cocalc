@@ -1,6 +1,7 @@
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 import { uuid } from "smc-util/misc2";
+import { ReactElement } from "react";
 import { OrderedMap, Map } from "immutable";
 import { Actions, Table, Store, redux } from "./app-framework";
 import { createTypedMap, TypedMap } from "./app-framework/TypedMap";
@@ -19,7 +20,8 @@ export type Message = TypedMap<{
   id: string;
   priority: Priority;
   time: any; // time type ?
-  text: string;
+  title?: string | ReactElement<any>;
+  text?: string | ReactElement<any> | Error;
   done?: boolean;
 }>;
 export const MessageObject = createTypedMap<Message>();
@@ -142,11 +144,9 @@ export class NotificationsActions extends Actions<NotificationsState> {
 
   create_alert = (alert: Alert): void => {
     const id = uuid();
+    const priority = "alert" as Priority;
     const alert_msg = new MessageObject(
-      Object.assign(alert, {
-        id: id,
-        priority: "alert" as Priority
-      })
+      Object.assign({}, alert, { id, priority })
     );
     const alerts = store.get("alerts") || Map<string, any>();
     this.setState({ alerts: alerts.set(id, alert_msg) });
