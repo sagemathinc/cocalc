@@ -70,4 +70,21 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
       this.setState({ is_saving: false });
     }
   }
+
+  exit_undo_mode(): void {
+    this.course_actions.syncdb.exit_undo_mode();
+  }
+
+  // per-session sync-aware undo
+  undo(_id: string): void {
+    this.course_actions.syncdb.undo();
+    this.course_actions.syncdb.commit();
+  }
+
+  // per-session sync-aware redo
+  redo(_id: string): void {
+    this.course_actions.syncdb.redo();
+    this.course_actions.syncdb.commit();
+  }
+
 }

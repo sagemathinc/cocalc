@@ -5,8 +5,23 @@ Spec for editing Jupyter notebooks via a frame tree.
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 
-import { Assignments, Configuration, SharedProject, Students, Handouts } from "./course-panels";
+import {
+  Assignments,
+  Configuration,
+  SharedProject,
+  Students,
+  Handouts
+} from "./course-panels";
 //import { Overview } from "./overview";
+
+const buttons = set([
+  "decrease_font_size",
+  "increase_font_size",
+  "save",
+  "time_travel",
+  "undo",
+  "redo"
+]);
 
 export const EDITOR_SPEC = {
   /*
@@ -27,60 +42,35 @@ export const EDITOR_SPEC = {
     name: "Students",
     icon: "users",
     component: Students,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel"
-    ])
+    buttons
   },
   course_assignments: {
     short: "Assignments",
     name: "Assignments",
     icon: "share-square",
     component: Assignments,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel"
-    ])
+    buttons
   },
   course_handouts: {
     short: "Handouts",
     name: "Handouts",
     icon: "copy",
     component: Handouts,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel"
-    ])
+    buttons
   },
   course_configuration: {
     short: "Configuration",
     name: "Configuration",
     icon: "cogs",
     component: Configuration,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel"
-    ])
+    buttons
   },
   course_shared_project: {
     short: "SharedProject",
     name: "SharedProject",
     icon: "share-alt",
     component: SharedProject,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel"
-    ])
+    buttons
   }
 };
 
