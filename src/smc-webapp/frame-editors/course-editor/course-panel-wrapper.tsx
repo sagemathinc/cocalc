@@ -16,7 +16,12 @@ import {
   AppRedux
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
-import { AssignmentsMap, StudentsMap, HandoutsMap } from "../../course/store";
+import {
+  AssignmentsMap,
+  CourseSettingsRecord,
+  StudentsMap,
+  HandoutsMap
+} from "../../course/store";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
 import { merge } from "smc-util/misc2";
@@ -35,6 +40,8 @@ interface ReduxProps {
   project_map?: ProjectMap;
   assignments?: AssignmentsMap;
   handouts?: HandoutsMap;
+  settings?: CourseSettingsRecord;
+  configuring_projects?: boolean;
 }
 
 export interface PanelProps {
@@ -46,8 +53,10 @@ export interface PanelProps {
   project_map: ProjectMap;
   assignments: AssignmentsMap;
   handouts: HandoutsMap;
+  settings: CourseSettingsRecord;
   redux: AppRedux;
   actions: CourseActions;
+  configuring_projects?: boolean;
 }
 
 class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
@@ -57,7 +66,9 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       [name]: {
         students: rtypes.immutable.Map,
         assignments: rtypes.immutable.Map,
-        handouts: rtypes.immutable.Map
+        handouts: rtypes.immutable.Map,
+        settings: rtypes.immutable.Map,
+        configuring_projects: rtypes.bool
       },
       users: {
         user_map: rtypes.immutable
@@ -74,7 +85,8 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       this.props.user_map == null ||
       this.props.project_map == null ||
       this.props.assignments == null ||
-      this.props.handouts == null
+      this.props.handouts == null ||
+      this.props.settings == null
     ) {
       return <Loading theme={"medium"} />;
     }
@@ -90,6 +102,8 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       project_map: this.props.project_map,
       assignments: this.props.assignments,
       handouts: this.props.handouts,
+      configuring_projects: this.props.configuring_projects,
+      settings: this.props.settings,
       redux,
       actions: redux.getActions(name)
     };

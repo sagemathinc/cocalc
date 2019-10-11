@@ -458,22 +458,13 @@ export const CourseEditor = rclass<CourseReactProps>(
         this.props.redux != null &&
         this.props.settings != null
       ) {
-        const allow_urls = redux
-          .getStore("projects")
-          .allow_urls_in_emails(this.props.project_id);
         return (
           <ConfigurationPanel
             redux={this.props.redux}
             settings={this.props.settings}
             name={this.props.name}
             project_id={this.props.project_id}
-            allow_urls={allow_urls}
             path={this.props.path}
-            shared_project_id={
-              this.props.settings != null
-                ? this.props.settings.get("shared_project_id")
-                : undefined
-            }
             project_map={this.props.project_map}
             configuring_projects={this.props.configuring_projects}
           />
