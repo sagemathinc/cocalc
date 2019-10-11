@@ -231,11 +231,16 @@ export class WindowedList extends Component<Props, State> {
     let min_index: number = 999999;
     for (let entry of entries) {
       // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
-      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0)
-        continue;
       const elt = entry.target;
       const key = elt.getAttribute("data-key");
       if (key == null) continue;
+      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0) {
+        // A row was deleted, so goes from a possibly big height to 0.
+        // Make stale so will get measured again.
+        this.row_heights_stale[key] = true;
+        num_changed += 1;
+        continue;
+      }
       const index = elt.getAttribute("data-index");
       if (index != null) {
         min_index = Math.min(min_index, parseInt(index));
@@ -402,7 +407,10 @@ function create_row_component(windowed_list: WindowedList) {
       }
       return (
         <div
-          style={{ display: "flex", flexDirection: "column" }}
+          style={{
+            display: "flex",
+            flexDirection: "column"
+          }}
           data-key={key}
           data-index={index}
           ref={node => {

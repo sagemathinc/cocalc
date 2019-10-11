@@ -730,7 +730,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    private render_sort_link(column_name: string, display_name: string) : Rendered {
+    private render_sort_link(
+      column_name: string,
+      display_name: string
+    ): Rendered {
       return (
         <a
           href=""
@@ -746,7 +749,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    private render_student_table_header() : Rendered {
+    private render_student_table_header(): Rendered {
       // HACK: that marginRight is to get things to line up with students.
       // This is done all wrong due to using react-window...  We need
       // to make an extension to our WindowedList that supports explicit
