@@ -76,7 +76,13 @@ export class SharedProjectPanel extends Component<
     return (
       <div
         className="smc-vfill"
-        style={{ margin: "15px", maxWidth: "800px", overflowY: "auto" }}
+        style={{
+          padding: "15px",
+          margin: "15px auto",
+          border: "1px solid #ccc",
+          maxWidth: "800px",
+          overflowY: "auto"
+        }}
       >
         <h4>
           <Icon name="users" /> {this.panel_header_text()}{" "}

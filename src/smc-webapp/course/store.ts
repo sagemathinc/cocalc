@@ -475,9 +475,9 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  _num_nondeleted(a) {
+  _num_nondeleted(a) : number {
     if (a == null) {
-      return;
+      return 0;
     }
     let n = 0;
     a.map(val => {

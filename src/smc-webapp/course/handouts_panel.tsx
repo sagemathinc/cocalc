@@ -891,7 +891,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             this.props.is_expanded ? styles.selected_entry : styles.entry_style
           }
         >
-          <Col xs={12}>
+          <Col xs={12} style={{ paddingTop: "5px", paddingBottom: "5px" }}>
             {this.render_handout_heading()}
             {this.render_more()}
           </Col>

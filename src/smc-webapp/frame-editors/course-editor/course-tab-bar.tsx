@@ -14,11 +14,11 @@ interface Props {
   frame_id: string;
   type: string;
   actions: CourseEditorActions;
+  counts: { students: number; assignments: number; handouts: number };
 }
 
 export class CourseTabBar extends Component<Props> {
   private select_tab(key: string): void {
-    console.log("key = ", key);
     this.props.actions.set_frame_type(this.props.frame_id, key);
   }
 
@@ -28,9 +28,18 @@ export class CourseTabBar extends Component<Props> {
         defaultActiveKey={this.props.type}
         onChange={this.select_tab.bind(this)}
       >
-        <TabPane tab="Students" key="course_students"></TabPane>
-        <TabPane tab="Assignments" key="course_assignments"></TabPane>
-        <TabPane tab="Handouts" key="course_handouts"></TabPane>
+        <TabPane
+          tab={`Students (${this.props.counts.students})`}
+          key="course_students"
+        ></TabPane>
+        <TabPane
+          tab={`Assignments (${this.props.counts.assignments})`}
+          key="course_assignments"
+        ></TabPane>
+        <TabPane
+          tab={`Handouts (${this.props.counts.handouts})`}
+          key="course_handouts"
+        ></TabPane>
         <TabPane tab="Configuration" key="course_configuration"></TabPane>
         <TabPane tab="Shared Project" key="course_shared_project"></TabPane>
       </Tabs>

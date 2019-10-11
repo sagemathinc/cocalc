@@ -28,6 +28,7 @@ import { CourseActions, course_redux_name } from "./course-actions";
 import { merge } from "smc-util/misc2";
 import { CourseTabBar } from "./course-tab-bar";
 import { CourseEditorActions } from "./actions";
+import { CourseStore } from "../../course/store";
 
 export interface FrameProps {
   id: string;
@@ -118,18 +119,36 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
 
     return (
       <>
-        {this.render_tab_bar()}
+        {this.render_tab_bar(name)}
         {React.createElement(this.props.course_panel, props)}
       </>
     );
   }
 
-  private render_tab_bar(): Rendered {
+  private counts(
+    name: string
+  ): {
+    students: number;
+    assignments: number;
+    handouts: number;
+  } {
+    const store: CourseStore = redux.getStore(name) as CourseStore;
+    if (store == null) return { students: 0, assignments: 0, handouts: 0 }; // shouldn't happen?
+    // have to use these functions on the store since only count non-deleted ones
+    return {
+      students: store.num_students(),
+      assignments: store.num_assignments(),
+      handouts: store.num_handouts()
+    };
+  }
+
+  private render_tab_bar(name: string): Rendered {
     return (
       <CourseTabBar
         actions={this.props.actions}
         frame_id={this.props.id}
         type={this.props.desc.get("type")}
+        counts={this.counts(name)}
       />
     );
   }
