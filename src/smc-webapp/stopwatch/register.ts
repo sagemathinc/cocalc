@@ -6,7 +6,7 @@ Register the time editor -- stopwatch
 
 let { register_file_editor } = require("../project_file");
 import { redux_name, Store, AppRedux } from "../app-framework";
-let { alert_message } = require("../alerts");
+import { alert_message } from "../alerts";
 
 let { EditorTime } = require("./editor");
 import { TimeActions, StopwatchEditorState } from "./actions";
@@ -28,7 +28,7 @@ register_file_editor({
       return name; // already initialized
     }
 
-    const store: Store<StopwatchEditorState> = redux.createStore(name);
+    const store: Store<StopwatchEditorState> = redux.createStore<StopwatchEditorState>(name);
     const actions = redux.createActions(name, TimeActions);
 
     actions._init(project_id, path);
@@ -55,7 +55,7 @@ register_file_editor({
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();
     }
-    const store: Store<StopwatchEditorState> | undefined = redux.getStore(name);
+    const store: Store<StopwatchEditorState> | undefined = redux.getStore<StopwatchEditorState>(name);
     if (store == undefined) {
       return name;
     }

@@ -340,7 +340,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (!this.file_use_interval || !this.client.is_user()) {
-      // file_use_interval has to be set, and we only do
+      // file_use_interval has to be nonzero, and we only do
       // this for browser user.
       return;
     }

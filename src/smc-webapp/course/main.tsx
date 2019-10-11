@@ -60,6 +60,7 @@ let {
 // Course components
 import {
   CourseStore,
+  CourseState,
   StudentsMap,
   AssignmentsMap,
   HandoutsMap,
@@ -168,7 +169,7 @@ const remove_redux = function(course_filename, redux, course_project_id) {
 
 const COURSE_EDITOR_STYLE: CSSProperties = {
   height: "100%",
-  overflowY: "scroll",
+  overflowY: "auto",
   overflowX: "hidden"
 };
 
@@ -191,6 +192,7 @@ interface CourseReduxProps {
   settings: CourseSettingsRecord;
   unsaved: boolean;
   loading: boolean;
+  configuring_projects?: boolean;
 
   user_map: UserMap;
 
@@ -212,7 +214,8 @@ export const CourseEditor = rclass<CourseReactProps>(
           assignments: rtypes.immutable.Map,
           handouts: rtypes.immutable.Map,
           settings: rtypes.immutable.Map,
-          unsaved: rtypes.bool
+          unsaved: rtypes.bool,
+          configuring_projects: rtypes.bool
         },
         users: {
           user_map: rtypes.immutable
@@ -234,7 +237,8 @@ export const CourseEditor = rclass<CourseReactProps>(
         "settings",
         "unsaved",
         "user_map",
-        "project_map"
+        "project_map",
+        "configuring_projects"
       ]);
     }
 
@@ -432,7 +436,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
-            store_object={this.props.redux.getStore(this.props.name)}
+            store_object={this.props.redux.getStore<CourseState, CourseStore>(this.props.name)}
             project_actions={this.props.redux.getProjectActions(
               this.props.project_id
             )}
@@ -450,12 +454,16 @@ export const CourseEditor = rclass<CourseReactProps>(
         this.props.redux != null &&
         this.props.settings != null
       ) {
+        const allow_urls = redux
+          .getStore("projects")
+          .allow_urls_in_emails(this.props.project_id);
         return (
           <ConfigurationPanel
             redux={this.props.redux}
             settings={this.props.settings}
             name={this.props.name}
             project_id={this.props.project_id}
+            allow_urls={allow_urls}
             path={this.props.path}
             shared_project_id={
               this.props.settings != null
@@ -463,6 +471,7 @@ export const CourseEditor = rclass<CourseReactProps>(
                 : undefined
             }
             project_map={this.props.project_map}
+            configuring_projects={this.props.configuring_projects}
           />
         );
       } else {

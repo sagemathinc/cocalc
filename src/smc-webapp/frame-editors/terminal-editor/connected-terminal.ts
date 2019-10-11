@@ -12,15 +12,14 @@ import { callback, delay } from "awaiting";
 import { aux_file } from "../frame-tree/util";
 
 import { Terminal as XTerminal } from "xterm";
-require("xterm/lib/xterm.css");
-import { proposeGeometry } from "xterm/lib/addons/fit/fit";
+require("xterm/css/xterm.css");
 
-import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
-webLinks.apply(XTerminal);
+import { FitAddon } from "xterm-addon-fit";
+import { WebLinksAddon } from "xterm-addon-web-links";
 
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
-import { Actions } from "../code-editor/actions";
+import { Actions, CodeEditorState } from "../code-editor/actions";
 
 import { endswith, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
@@ -29,6 +28,8 @@ import { ConnectionStatus } from "../frame-tree/types";
 
 declare const $: any;
 import { starts_with_cloud_url } from "smc-webapp/process-links";
+
+// import { debounce } from "lodash";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -48,9 +49,9 @@ function bind(that: any, v: string[]): void {
   }
 }
 
-export class Terminal {
+export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private state: string = "ready";
-  private actions: Actions;
+  private actions: Actions<T>;
   private account: any;
   private terminal_settings: Map<string, any>;
   private project_id: string;
@@ -88,8 +89,11 @@ export class Terminal {
   private command?: string;
   private args?: string[];
 
+  private fitAddon: FitAddon;
+  private webLinksAddon: WebLinksAddon;
+
   constructor(
-    actions: Actions,
+    actions: Actions<T>,
     number: number,
     id: string,
     parent: HTMLElement,
@@ -120,15 +124,26 @@ export class Terminal {
     this.number = number;
     this.id = id;
     this.terminal = new XTerminal(this.get_xtermjs_options());
+    this.webLinksAddon = new WebLinksAddon(handleLink);
+    this.terminal.loadAddon(this.webLinksAddon);
+    this.fitAddon = new FitAddon();
+    this.terminal.loadAddon(this.fitAddon);
+
     this.terminal.open(parent);
     this.element = this.terminal.element;
     this.update_settings();
-    this.init_weblinks();
     this.init_title();
     this.init_terminal_data();
     this.init_settings();
     this.init_touch();
     this.set_connection_status("disconnected");
+
+    // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
+    // "It’s best practice to debounce calls to resize, this will help ensure that
+    //  the pty can respond to the resize event before another one occurs."
+    // We do NOT debounce, because it strangely breaks everything,
+    // as you can see by just resizing the window.
+    // this.terminal_resize = debounce(this.terminal_resize.bind(this), 2000);
   }
 
   private get_xtermjs_options(): any {
@@ -327,7 +342,7 @@ export class Terminal {
   }
 
   init_title(): void {
-    this.terminal.on("title", title => {
+    this.terminal.onTitleChange(title => {
       if (title != null) {
         this.actions.set_title(this.id, title);
       }
@@ -338,10 +353,6 @@ export class Terminal {
     if (this.actions != null) {
       this.actions.set_connection_status(this.id, status);
     }
-  }
-
-  init_weblinks(): void {
-    (this.terminal as any).webLinksInit(handleLink);
   }
 
   touch(): void {
@@ -422,7 +433,7 @@ export class Terminal {
       case "size":
         if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
           try {
-            this.resize(mesg.rows, mesg.cols);
+            this.terminal_resize({ cols: mesg.cols, rows: mesg.rows });
           } catch (err) {
             // See https://github.com/sagemathinc/cocalc/issues/3536
             console.warn(`ERROR resizing terminal -- ${err}`);
@@ -476,20 +487,38 @@ export class Terminal {
     this.actions.set_error("");
   }
 
+  private terminal_resize(opts: { cols: number; rows: number }): void {
+    // console.log("terminal_resize", opts);
+    // terminal.resize only takes integers, hence the floor;
+    // we use floor to avoid cutting off a line halfway.
+    // See https://github.com/sagemathinc/cocalc/issues/4140
+    const { rows, cols } = opts;
+    // Yes, this can throw an exception, thus breaking everything (resulting in
+    // a blank page for the user).  This is probably an upstream xterm.js bug,
+    // but we still have to work around it.
+    // The fix to https://github.com/sagemathinc/cocalc/issues/4140
+    // might now prevent this bug.
+    try {
+      this.terminal.resize(Math.floor(cols), Math.floor(rows));
+    } catch (err) {
+      console.warn("Error resizing terminal", err, rows, cols);
+    }
+  }
+
   // Stop ignoring terminal data... but ONLY once
   // the render buffer is also empty.
   async no_ignore(): Promise<void> {
     if (this.state === "closed") {
       return;
     }
-    const g = async cb => {
+    const g = cb => {
       const f = async () => {
-        this.terminal.off("refresh", f);
+        x.dispose();
         if (this.resize_after_no_ignore !== undefined) {
-          this.terminal.resize(
-            this.resize_after_no_ignore.cols,
-            this.resize_after_no_ignore.rows
-          );
+          this.terminal_resize({
+            cols: this.resize_after_no_ignore.cols,
+            rows: this.resize_after_no_ignore.rows
+          });
           delete this.resize_after_no_ignore;
         }
         // cause render to actually appear now.
@@ -504,7 +533,7 @@ export class Terminal {
         this.init_keyhandler();
         cb();
       };
-      this.terminal.on("refresh", f);
+      const x = this.terminal.onRender(f);
     };
     await callback(g);
   }
@@ -577,7 +606,7 @@ export class Terminal {
       this.resize_after_no_ignore = { rows, cols };
       return;
     }
-    this.terminal.resize(cols, rows);
+    this.terminal_resize({ cols, rows });
   }
 
   pause(): void {
@@ -603,7 +632,7 @@ export class Terminal {
   }
 
   init_terminal_data(): void {
-    this.terminal.on("data", data => {
+    this.terminal.onData(data => {
       if (this.ignore_terminal_data) {
         return;
       }
@@ -622,7 +651,7 @@ export class Terminal {
     this.terminal.focus();
   }
 
-  refresh() : void {
+  refresh(): void {
     this.terminal.refresh(0, this.terminal.rows - 1);
   }
 
@@ -652,21 +681,13 @@ export class Terminal {
   }
 
   measure_size(): void {
-    const geom = proposeGeometry(this.terminal);
+    const geom = this.fitAddon.proposeDimensions();
     // console.log('measure_size', geom);
     if (geom == null) return;
     const { rows, cols } = geom;
     if (this.ignore_terminal_data) {
       // during the initial render
-      //console.log('direct resize')
-      // Yes, this can throw an exception, thus breaking everything (resulting in
-      // a blank page for the user).  This is probably an upstream xterm.js bug,
-      // but we still have to work around it.
-      try {
-        this.terminal.resize(cols, rows);
-      } catch (err) {
-        console.warn("Error resizing terminal", err, rows, cols);
-      }
+      this.terminal_resize({ cols, rows });
     }
     if (
       this.last_geom !== undefined &&
@@ -686,7 +707,7 @@ export class Terminal {
 
   paste(): void {
     this.terminal.clearSelection();
-    (this.terminal as any)._core.handler(copypaste.get_buffer());
+    this.terminal.paste(copypaste.get_buffer());
     this.terminal.focus();
   }
 
@@ -709,7 +730,6 @@ async function touch_path(project_id: string, path: string): Promise<void> {
     console.warn(`error touching ${path} -- ${err}`);
   }
 }
-
 
 function handleLink(_: MouseEvent, uri: string): void {
   if (!starts_with_cloud_url(uri)) {

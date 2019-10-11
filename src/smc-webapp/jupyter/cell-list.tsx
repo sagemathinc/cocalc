@@ -372,7 +372,7 @@ export class CellList extends Component<CellListProps> {
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
-      padding: "5px"
+      paddingLeft: "5px"
     };
 
     if (this.use_windowed_list) {

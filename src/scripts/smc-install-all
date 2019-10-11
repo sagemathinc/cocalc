@@ -6,38 +6,56 @@ set -v
 cd `dirname $0`/..
 . smc-env
 
-# npm audit fix is disabled, because sometimes it errors saying that
-# the "endpoint is not available"
+# npm ci install function, will run in parallel if gnu parallel is installed
 run_install() {
     cd "$1"
-    npm install
-    npm install --only=dev
-    #npm audit fix
+    npm ci
 }
 
-run_install $SMC_ROOT
-run_install $SMC_ROOT/smc-util
-run_install $SMC_ROOT/smc-util-node
-run_install $SMC_ROOT/smc-project
-run_install $SMC_ROOT/smc-project/jupyter
-run_install $SMC_ROOT/smc-webapp
-run_install $SMC_ROOT/smc-webapp/jupyter
-run_install $SMC_ROOT/smc-hub
+# all module directories
+. cocalc-dirs.sh
 
-# get rid of package-lock files
-# DISABLED: causes build issues; we need to understand npm better
-#git ls-files '../*/package-lock.json' | xargs rm -f
+if `hash parallel &> /dev/null`; then
 
-# assistant example code snippets
-cd $SMC_ROOT
-git submodule update --init
-cd $SMC_ROOT/examples
-env OUTDIR=../webapp-lib/examples make
+    export -f run_install
+    parallel --will-cite --halt now,fail=1 --linebuffer --jobs 3 run_install ::: "${CODE_DIRS[@]}"
 
-# generating color scheme
-cd $SMC_ROOT
-scripts/update_color_scheme.coffee
+else
 
-# static react pages update must come *before* webpack
-cd $SMC_ROOT
-update_react_static
+    for dir in "${CODE_DIRS[@]}"; do
+        run_install "$dir"
+    done
+
+fi
+
+
+# after everything is installed, we run some extra jobs
+
+
+assistant() {
+    # assistant example code snippets
+    cd $SMC_ROOT
+    git submodule update --init
+    cd $SMC_ROOT/examples
+    env OUTDIR=../webapp-lib/examples make
+}
+
+colors() {
+    # generating color scheme
+    cd $SMC_ROOT
+    scripts/update_color_scheme.coffee
+}
+
+react_static() {
+    # static react pages update must come *before* webpack
+    cd $SMC_ROOT
+    update_react_static
+}
+
+# run extras in the background
+assistant &
+colors &
+react_static &
+
+wait # for all background processes to finish
+echo "ALL DONE"

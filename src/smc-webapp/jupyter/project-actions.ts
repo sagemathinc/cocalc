@@ -18,9 +18,11 @@ import * as misc from "../../smc-util/misc";
 import * as json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
 
+type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
+
 export class JupyterActions extends JupyterActions0 {
   // TODO: type
-  private _backend_state: any;
+  private _backend_state: BackendState = "init";
   private _initialize_manager_already_done: any;
   private _kernel_state: any;
   private _last_save_ipynb_file: any;
@@ -29,7 +31,7 @@ export class JupyterActions extends JupyterActions0 {
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
 
-  set_backend_state = (state: any) => {
+  private set_backend_state(state: BackendState) : void {
     /*
         The backend states, which are put in the syncdb so clients
         can display this:
@@ -46,10 +48,18 @@ export class JupyterActions extends JupyterActions0 {
 
         Going from ready to starting happens when a code execution is requested.
         */
+
+    // Check just in case Typescript doesn't catch something:
     if (
       ["init", "ready", "spawning", "starting", "running"].indexOf(state) === -1
     ) {
       throw Error(`invalid backend state '${state}'`);
+    }
+    if (state == "init" && this._backend_state != "init") {
+      // Do NOT allow changing the state to init from any other state.
+      throw Error(
+        `illegal state change '${this._backend_state}' --> '${state}'`
+      );
     }
     this._backend_state = state;
     this._set({
@@ -146,8 +156,6 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("_init_after_first_load");
 
     dbg("initializing");
-    this.set_backend_state("init");
-
     this.ensure_backend_kernel_setup(); // this may change the syncdb.
 
     this.init_file_watcher();
@@ -176,8 +184,7 @@ export class JupyterActions extends JupyterActions0 {
                 this.set_kernel_state(this._kernel_state, true);
               }
               if (
-                record.get("backend_state") !== this._backend_state &&
-                this._backend_state != null
+                record.get("backend_state") !== this._backend_state
               ) {
                 this.set_backend_state(this._backend_state);
               }
@@ -1130,33 +1137,32 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
 
     const attachments = cell.get("attachments");
-    if (attachments != null) {
-      attachments.forEach((x, name) => {
-        if ((x != null ? x.get("type") : undefined) === "load") {
-          // need to load from disk
+    if (attachments == null) return; // nothing to do
+    attachments.forEach(async (x, name) => {
+      if (x == null) return;
+      if (x.get("type") === "load") {
+        if (this.jupyter_kernel == null) return; // try later
+        // need to load from disk
+        this.set_cell_attachment(cell.get("id"), name, {
+          type: "loading",
+          value: null
+        });
+        let sha1: string;
+        try {
+          sha1 = await this.jupyter_kernel.load_attachment(x.get("value"));
+        } catch (err) {
           this.set_cell_attachment(cell.get("id"), name, {
-            type: "loading",
-            value: null
+            type: "error",
+            value: `${err}`
           });
-          if (this.jupyter_kernel != null) {
-            this.jupyter_kernel
-              .load_attachment(x.get("value"))
-              .then(sha1 => {
-                this.set_cell_attachment(cell.get("id"), name, {
-                  type: "sha1",
-                  value: sha1
-                });
-              })
-              .catch(err => {
-                this.set_cell_attachment(cell.get("id"), name, {
-                  type: "error",
-                  value: err
-                });
-              });
-          }
+          return;
         }
-      });
-    }
+        this.set_cell_attachment(cell.get("id"), name, {
+          type: "sha1",
+          value: sha1
+        });
+      }
+    });
   };
 
   private handle_ipywidgets_state_change(keys): void {

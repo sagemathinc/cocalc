@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -29,7 +29,7 @@ require('./redux_account')
 {Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
 {LandingPage}                            = require('./landing_page')
 {AccountSettingsTop}                     = require('./r_account')
-{BillingPageRedux}                       = require('./billing')
+{BillingPage}                            = require('./billing/billing-page')
 {UpgradesPage}                           = require('./r_upgrades')
 {SupportPage}                            = require('./support')
 {SSHKeysPage}                            = require('./account_ssh_keys')
@@ -154,14 +154,15 @@ exports.AccountPage = rclass
             reset_password_error    = {@props.reset_password_error}
             remember_me             = {@props.remember_me}
             has_remember_me         = {@props.has_remember_me}
-            has_account             = {misc.local_storage_length() > 0} />
+            has_account             = {misc.local_storage_length() > 0}
+        />
 
     render_commercial_tabs: ->
         if not require('./customize').commercial
             return null
         v = []
         v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions and Course Packages'}</span>}>
-            {<BillingPageRedux /> if @props.active_page == 'billing'}
+            {<BillingPage is_simplified={false} /> if @props.active_page == 'billing'}
         </Tab>
         v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
             {@render_upgrades() if @props.active_page == 'upgrades'}

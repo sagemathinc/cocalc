@@ -31,9 +31,18 @@
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
 const { COLORS } = require("smc-util/theme");
+import { contains_url } from "smc-util/misc2";
+import { debounce } from "lodash";
 
 // React libraries and Components
-import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";
+import {
+  React,
+  rclass,
+  rtypes,
+  Component,
+  AppRedux,
+  Rendered
+} from "../app-framework";
 const {
   Alert,
   Button,
@@ -56,7 +65,8 @@ const {
   Space,
   TextInput,
   TimeAgo,
-  Tip
+  Tip,
+  ErrorDisplay
 } = require("../r_misc");
 
 import { StudentProjectUpgrades } from "./upgrades";
@@ -64,10 +74,13 @@ import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import { ProjectMap } from "../todo-types";
 import { CourseSettingsRecord, CourseStore } from "./store";
-const { HelpBox } = require("./help_box");
-const { DeleteStudentsPanel } = require("./delete_students");
-const { DeleteSharedProjectPanel } = require("./delete_shared_project");
-const { TerminalCommandPanel } = require("./terminal-command");
+import { HelpBox } from "./help_box";
+import {
+  DeleteAllStudents,
+  DeleteAllStudentProjects
+} from "./configuration-components";
+import { DeleteSharedProjectPanel } from "./delete_shared_project";
+import { TerminalCommandPanel } from "./terminal-command";
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -111,7 +124,11 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     }
 
     get_actions(): CourseActions {
-      return redux.getActions(this.props.name);
+      const actions = redux.getActions(this.props.name);
+      if (actions == null) {
+        throw Error("actions must be defined");
+      }
+      return actions as CourseActions;
     }
 
     render_in_progress_action() {
@@ -204,7 +221,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
         <Panel
           header={
             <h4>
-              <Icon name="flash" /> Student projects control
+              <Icon name="flash" /> Start or stop all student projects
             </h4>
           }
         >
@@ -329,13 +346,16 @@ interface ConfigurationPanelProps {
   name: string;
   path: string;
   project_id: string;
+  allow_urls: boolean;
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   shared_project_id?: string;
+  configuring_projects?: boolean;
 }
 
 interface ConfigurationPanelState {
   show_students_pay_dialog: boolean;
+  email_body_error?: string;
   students_pay?: boolean;
 }
 
@@ -348,17 +368,26 @@ export class ConfigurationPanel extends Component<
   constructor(props) {
     super(props);
     this.state = {
-      show_students_pay_dialog: false
+      show_students_pay_dialog: false,
+      email_body_error: undefined
     };
+    this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
+      leading: true,
+      trailing: true
+    });
   }
 
   shouldComponentUpdate(props, state) {
     return (
-      state.show_students_pay_dialog !== this.state.show_students_pay_dialog ||
+      misc.is_different(this.state, state, [
+        "show_students_pay_dialog",
+        "email_body_error"
+      ]) ||
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "shared_project_id"
+        "shared_project_id",
+        "configuring_projects"
       ])
     );
   }
@@ -718,6 +747,22 @@ export class ConfigurationPanel extends Component<
   /*
    * Custom invitation email body
    */
+
+  check_email_body(value) {
+    if (!this.props.allow_urls && contains_url(value)) {
+      this.setState({
+        email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
+      });
+    } else {
+      this.setState({ email_body_error: undefined });
+    }
+  }
+
+  render_email_body_error() {
+    if (this.state.email_body_error == null) return;
+    return <ErrorDisplay error={this.state.email_body_error} />;
+  }
+
   render_email_invite_body() {
     const template_instr =
       " Also, {title} will be replaced by the title of the course and {name} by your name.";
@@ -725,7 +770,7 @@ export class ConfigurationPanel extends Component<
       <Panel
         header={
           <h4>
-            <Icon name="envelope" /> Customize email invitation
+            <Icon name="envelope" /> Email invitation
           </h4>
         }
       >
@@ -736,6 +781,7 @@ export class ConfigurationPanel extends Component<
             borderRadius: "5px"
           }}
         >
+          {this.render_email_body_error()}
           <MarkdownInput
             persist_id={this.props.name + "email-invite-body"}
             attach_to={this.props.name}
@@ -743,14 +789,45 @@ export class ConfigurationPanel extends Component<
             type="textarea"
             default_value={this.get_store().get_email_invite()}
             on_save={body => this.get_actions().set_email_invite(body)}
+            save_disabled={this.state.email_body_error != null}
+            on_change={this.check_email_body}
+            on_cancel={() => this.setState({ email_body_error: undefined })}
           />
         </div>
         <hr />
         <span style={{ color: "#666" }}>
           If you add a student to this course using their email address, and
-          they do not have a CoCalc account, then they will receive an email
+          they do not have a CoCalc account, then they will receive this email
           invitation. {template_instr}
         </span>
+      </Panel>
+    );
+  }
+
+  render_configure_all_projects(): Rendered {
+    return (
+      <Panel
+        header={
+          <h4>
+            <Icon name="envelope" /> Reconfigure all projects
+          </h4>
+        }
+      >
+        Ensure all projects have the correct students and TA's, titles and
+        descriptions set, etc. This will also resend any outstanding email
+        invitations.
+        <hr />
+        <Button
+          disabled={this.props.configuring_projects}
+          onClick={() => this.get_actions().configure_all_projects(true)}
+        >
+          {this.props.configuring_projects ? (
+            <Icon name="cc-icon-cocalc-ring" spin />
+          ) : (
+            undefined
+          )}{" "}
+          Reconfigure all projects
+        </Button>
       </Panel>
     );
   }
@@ -1044,10 +1121,18 @@ export class ConfigurationPanel extends Component<
     }
   }
 
-  render_delete_students() {
+  render_delete_student_projects() {
     return (
-      <DeleteStudentsPanel
-        delete={this.get_actions().delete_all_student_projects}
+      <DeleteAllStudentProjects
+        delete_projects={this.get_actions().delete_all_student_projects}
+      />
+    );
+  }
+
+  render_delete_all_students() {
+    return (
+      <DeleteAllStudents
+        delete_all_students={this.get_actions().delete_all_students}
       />
     );
   }
@@ -1077,7 +1162,8 @@ export class ConfigurationPanel extends Component<
             {this.render_save_grades()}
             {this.render_start_all_projects()}
             {this.render_terminal_command()}
-            {this.render_delete_students()}
+            {this.render_delete_student_projects()}
+            {this.render_delete_all_students()}
             {this.render_delete_shared_project()}
           </Col>
           <Col md={6}>
@@ -1085,6 +1171,7 @@ export class ConfigurationPanel extends Component<
             {this.render_title_description()}
             {this.render_email_invite_body()}
             {this.render_disable_students()}
+            {this.render_configure_all_projects()}
           </Col>
         </Row>
       </Grid>

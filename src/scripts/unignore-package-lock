@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -ev
+export SRC="$( dirname "${BASH_SOURCE[0]}" )"/..
+
+git update-index --no-assume-unchanged $SRC/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-project/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-project/jupyter/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-webapp/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-webapp/jupyter/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-util/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-util-node/package-lock.json
+git update-index --no-assume-unchanged $SRC/smc-hub/package-lock.json

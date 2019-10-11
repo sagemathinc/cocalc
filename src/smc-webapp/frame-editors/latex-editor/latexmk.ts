@@ -4,13 +4,15 @@ Convert LaTeX file to PDF using latexmk.
 
 import { exec, ExecOutput } from "../generic/client";
 import { path_split, change_filename_extension } from "smc-util/misc2";
+import { pdf_path } from "./util";
 
 export async function latexmk(
   project_id: string,
   path: string,
   build_command: string | string[],
   time: number | undefined, // (ms since epoch)  used to aggregate multiple calls into one across all users.
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<ExecOutput> {
   const x = path_split(path);
   let command: string;
@@ -24,17 +26,35 @@ export async function latexmk(
     args = build_command.slice(1);
     status([command].concat(args).join(" "));
   }
-  return await exec({
+  const exec_output = await exec({
     bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
     allow_post: false, // definitely could take a long time to fully run latex
     timeout: 4 * 60, // 4 minutes, on par with Overleaf
-    command: command,
-    args: args,
-    project_id: project_id,
+    command,
+    args,
+    project_id,
     path: x.head,
     err_on_exit: false,
     aggregate: time
   });
+  if (output_directory != null) {
+    // We use cp instead of `ln -sf` so the file persists after project restart.
+    // Using a symlink would be faster and more efficient *while editing*,
+    // but would likely cause great confusion otherwise.
+    try {
+      await exec({
+        project_id,
+        bash: false,
+        allow_post: true,
+        command: "cp",
+        path: x.head,
+        args: [`${output_directory}/${pdf_path(x.tail)}`, "."]
+      });
+    } catch (err) {
+      // good reasons this could fail (due to err_on_exit above), e.g., no pdf produced.
+    }
+  }
+  return exec_output;
 }
 
 export type Engine =
@@ -63,7 +83,8 @@ export function get_engine_from_config(config: string): Engine | null {
 export function build_command(
   engine: Engine,
   filename: string,
-  knitr: boolean
+  knitr: boolean,
+  output_directory: string | undefined // probably should not require special escaping.
 ): string[] {
   /*
   errorstopmode recommended by
@@ -116,9 +137,12 @@ export function build_command(
     "-g",
     "-bibtex",
     "-synctex=1",
-    "-interaction=nonstopmode",
-    filename
+    "-interaction=nonstopmode"
   ];
+  if (!knitr && output_directory != null) {
+    tail.push(`-output-directory=${output_directory}`);
+  }
+  tail.push(filename);
 
   return head.concat(tail);
 }

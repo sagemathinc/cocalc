@@ -196,8 +196,9 @@ describe 'do not allow URLs in names', ->
         expect(is_valid_username("harald")).toBe(undefined)
         expect(is_valid_username("ABC FOO-BAR")).toBe(undefined)
         # DNS-like substrings easily trigger a violoation. these are fine, though
-        expect(is_valid_username("is.test.ok")).toBe(undefined)
-        expect(is_valid_username("is.a.test")).toBe(undefined)
+        # this was relaxed in commit cafbf9c900f917
+        expect(is_valid_username("is.test.ok")).toExist() #.toBe(undefined)
+        expect(is_valid_username("is.a.test")).toExist() #.toBe(undefined)
 
     it 'blocks suspicious names', ->
         expect(is_valid_username("OPEN http://foo.com")).toExist()
