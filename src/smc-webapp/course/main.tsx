@@ -484,11 +484,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           <SharedProjectPanel
             redux={this.props.redux}
             name={this.props.name}
-            shared_project_id={
-              this.props.settings != null
-                ? this.props.settings.get("shared_project_id")
-                : undefined
-            }
+            settings={this.props.settings}
           />
         );
       } else {
