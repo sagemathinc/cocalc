@@ -22,9 +22,12 @@ import {
   StudentsMap,
   HandoutsMap
 } from "../../course/store";
+import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
 import { merge } from "smc-util/misc2";
+import { CourseTabBar } from "./course-tab-bar";
+import { CourseEditorActions } from "./actions";
 
 export interface FrameProps {
   id: string;
@@ -32,7 +35,9 @@ export interface FrameProps {
   project_id: string;
   path: string;
   font_size: number;
-  course_panel: any;
+  course_panel: any; // TODO...
+  actions: CourseEditorActions;
+  desc: Map<string, any>;
 }
 
 interface ReduxProps {
@@ -81,7 +86,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     };
   };
 
-  public render(): Rendered {
+  private render_panel(): Rendered {
     if (
       this.props.students == null ||
       this.props.user_map == null ||
@@ -112,11 +117,30 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     };
 
     return (
+      <>
+        {this.render_tab_bar()}
+        {React.createElement(this.props.course_panel, props)}
+      </>
+    );
+  }
+
+  private render_tab_bar(): Rendered {
+    return (
+      <CourseTabBar
+        actions={this.props.actions}
+        frame_id={this.props.id}
+        type={this.props.desc.get("type")}
+      />
+    );
+  }
+
+  public render(): Rendered {
+    return (
       <div
         style={{ fontSize: `${this.props.font_size}px` }}
         className="smc-vfill"
       >
-        {React.createElement(this.props.course_panel, props)}
+        {this.render_panel()}
       </div>
     );
   }
