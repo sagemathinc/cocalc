@@ -5,15 +5,25 @@ import { ReactElement } from "react";
 import { OrderedMap, Map } from "immutable";
 import { Actions, Table, Store, redux } from "./app-framework";
 import { createTypedMap, TypedMap } from "./app-framework/TypedMap";
-const { alert_message } = require("./alerts");
+import { alert_message } from "./alerts";
 import { debug } from "./feature";
 import { once } from "smc-util/async-utils";
-import * as LS from "misc/local-storage";
+import * as LS from "./misc/local-storage";
 import { Alert } from "./alerts";
 
 export const NAME_SYSTEM = "system_notifications";
 
 export type Priority = "high" | "info" | "alert";
+
+// the order sets their priority -- alerts are right "now" for the specific instance, very important.
+// notifications are sent by the administrators, and announcements are long-term, not immediately important.
+enum MessageTypes {
+  "alerts",
+  "notifications",
+  "announcements"
+}
+
+type MessageType = keyof typeof MessageTypes;
 
 // TODO somehow figure out how to use a TypedMap for actual typing
 export type Message = TypedMap<{
@@ -29,6 +39,8 @@ export const MessageObject = createTypedMap<Message>();
 // TODO mapping string to Message breaks somehow
 export type Messages = OrderedMap<string, any>;
 
+type NewestMessages = { [mt in MessageType]: Message | undefined };
+
 function sort_messages(messages: Messages): Messages {
   // we sort by time. this is an opportunity to also sort by priority.
   return messages.sortBy(a => -a.get("time").getTime());
@@ -41,6 +53,8 @@ interface NotificationsState {
   alerts?: Messages;
   messages?: Messages; // synthesized ordered map of notifications+announcements
   current_message?: Message; // which message to display
+  newest_messages?: NewestMessages; // to decide if an update contains a new message
+  previous_messages?: Messages;
   have_next: boolean;
   have_previous: boolean;
   dismissed_info?: any; // string or timestamp
@@ -51,10 +65,39 @@ const INIT_STATE: NotificationsState = {
   loading: true,
   have_next: false,
   have_previous: false,
-  alerts: Map<string, any>()
+  alerts: OrderedMap<string, any>(),
+  announcements: OrderedMap<string, any>(),
+  notifications: OrderedMap<string, any>()
 };
 
-export class NotificationsStore extends Store<NotificationsState> {}
+const first = val => (val != null ? val.first() : undefined);
+
+export class NotificationsStore extends Store<NotificationsState> {
+  private get_newest_messages(): NewestMessages {
+    const x = Object.keys(MessageTypes).map((mt: MessageType) => {
+      return { mt: first(store.get(mt)) };
+    });
+    return Object.assign({}, ...x);
+  }
+
+  get_newer_message(): {
+    newer_msg: Message | undefined;
+    newest_messages: NewestMessages;
+  } {
+    const prev_newest = this.get("newest_messages");
+    const cur_newest = this.get_newest_messages();
+
+    if (prev_newest != null) {
+      Object.keys(MessageTypes).map((mt: MessageType) => {
+        const newest_msg = first(this.get(mt));
+        if (newest_msg != cur_newest[mt]) {
+          return { newer_msg: newest_msg, newest_messages: cur_newest };
+        }
+      });
+    }
+    return { newer_msg: undefined, newest_messages: cur_newest };
+  }
+}
 
 export class NotificationsActions extends Actions<NotificationsState> {
   private show_banner(show = true): void {
@@ -80,13 +123,30 @@ export class NotificationsActions extends Actions<NotificationsState> {
 
     const start: number = store.get("dismissed_info") || 0;
     const newest = messages.first();
+
+    // there are no messages
     if (newest == null) return;
-    const time = newest.get("time").getTime();
-    // show newest announcement iff it is newer than the last dismissed update
-    if (time > start) {
-      this.set_current_message(newest);
-      this.show_banner(true);
+
+    // check if there are new messages
+    const { newer_msg, newest_messages } = store.get_newer_message();
+    this.setState({ newest_messages });
+    const current = store.get("current_message");
+
+    if (current != null) {
+      // do not disturb what someone is currently looking at a message, unless a new one pops up
+      if (current != newer_msg) {
+        this.set_current_message(newer_msg);
+        this.show_banner(true);
+      }
+    } else {
+      // show newest announcement iff it is newer than the last dismissed update
+      const time = newest.get("time").getTime();
+      if (time > start) {
+        this.set_current_message(newest);
+        this.show_banner(true);
+      }
     }
+    this.setState({ previous_messages: messages });
   }
 
   dismiss_all = (priority: Priority): void => {
@@ -149,7 +209,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
       Object.assign({}, alert, { id, priority })
     );
     const alerts = store.get("alerts") || Map<string, any>();
-    this.setState({ alerts: alerts.set(id, alert_msg) });
+    this.setState({ alerts: sort_messages(alerts.set(id, alert_msg)) });
     this.process_all_messages();
   };
 
@@ -211,7 +271,10 @@ class NotificationsTable extends Table {
 
   change = table => {
     const notifications = sort_messages(table.get());
-    actions.setState({ loading: false, notifications });
+    actions.setState({
+      loading: false,
+      notifications: sort_messages(notifications)
+    });
     actions.process_all_messages();
 
     // show any message from the last hour that we have not seen already
@@ -254,7 +317,10 @@ class AnnouncementsTable extends Table {
 
   change = table => {
     const announcements = sort_messages(table.get());
-    actions.setState({ loading: false, announcements });
+    actions.setState({
+      loading: false,
+      announcements: sort_messages(announcements)
+    });
     actions.process_all_messages();
   };
 
