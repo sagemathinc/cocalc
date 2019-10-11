@@ -330,8 +330,10 @@ class DisableStudentCollaboratorsPanel extends Component<
           If this box is checked (this is the default), the owner and any collaborator on this student
           project may add collaborators to this project. If this box is not checked, any collaborators
           on this student project will be removed, with the exception of the student, instructor, and TAs.
-          Here "instructor and TAs" means any user who is owner or collaborator on the teaching project,
-          i.e. the project containing the course file.
+          Here "instructor and TAs" means any user who is an owner or collaborator on the teaching project,
+          i.e. the project containing the course file. After "Allow arbitrary collaborators" is checked,
+          collaborators to be excluded are removed when opening the course file or upon clicking
+          "Reconfigure all projects".
         </span>
       </Panel>
     );
