@@ -155,7 +155,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return {
         [name]: {
           expanded_students: rtypes.immutable.Set,
-          et_a: rtypes.immutable.Map,
+          active_student_sort: rtypes.immutable.Map,
           get_student_name: rtypes.func,
           active_feedback_edits: rtypes.immutable.Map
         }
