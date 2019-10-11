@@ -327,13 +327,11 @@ class DisableStudentCollaboratorsPanel extends Component<
         </div>
         <hr />
         <span style={{ color: "#666" }}>
-          Every collaborator on the project that contains this course is
-          automatically added to every student project (and the shared project).
-          In addition, each student is a collaborator on their project. If
-          students add additional collaborators, by default they will be
-          allowed. If you uncheck the above box, then collaborators will be
-          automatically removed from projects; in particular, students may not
-          add arbitrary collaborators to their projects.
+          If this box is checked (this is the default), the owner and any collaborator on this student
+          project may add collaborators to this project. If this box is not checked, any collaborators
+          on this student project will be removed, with the exception of the student, instructor, and TAs.
+          Here "instructor and TAs" means any user who is owner or collaborator on the teaching project,
+          i.e. the project containing the course file.
         </span>
       </Panel>
     );
