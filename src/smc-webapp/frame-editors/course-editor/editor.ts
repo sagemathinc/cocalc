@@ -4,6 +4,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
+import { terminal } from "../terminal-editor/editor";
 
 import {
   Assignments,
@@ -59,19 +60,20 @@ export const EDITOR_SPEC = {
     buttons
   },
   course_configuration: {
-    short: "Configuration",
+    short: "Config",
     name: "Configuration",
     icon: "cogs",
     component: Configuration,
     buttons
   },
   course_shared_project: {
-    short: "SharedProject",
-    name: "SharedProject",
+    short: "Shared",
+    name: "Shared Project",
     icon: "share-alt",
     component: SharedProject,
     buttons
-  }
+  },
+  terminal
 };
 
 export const Editor = createEditor({
