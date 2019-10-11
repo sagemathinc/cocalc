@@ -6,9 +6,10 @@ import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 
 import { Assignments, Configuration, SharedProject, Students, Handouts } from "./course-panels";
-import { Overview } from "./overview";
+//import { Overview } from "./overview";
 
 export const EDITOR_SPEC = {
+  /*
   course_overview: {
     short: "Overview",
     name: "Course Overview",
@@ -20,7 +21,7 @@ export const EDITOR_SPEC = {
       "save",
       "time_travel"
     ])
-  },
+  },*/
   course_students: {
     short: "Students",
     name: "Students",
