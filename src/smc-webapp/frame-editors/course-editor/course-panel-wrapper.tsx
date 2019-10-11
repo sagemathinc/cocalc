@@ -27,6 +27,7 @@ import { CourseActions, course_redux_name } from "./course-actions";
 import { merge } from "smc-util/misc2";
 
 export interface FrameProps {
+  id: string;
   name: string;
   project_id: string;
   path: string;
@@ -46,6 +47,7 @@ interface ReduxProps {
 
 export interface PanelProps {
   name: string;
+  frame_id: string;
   project_id: string;
   path: string;
   students: StudentsMap;
@@ -94,6 +96,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     const name = course_redux_name(this.props.project_id, this.props.path);
 
     const props: PanelProps = {
+      frame_id: this.props.id,
       name,
       project_id: this.props.project_id,
       path: this.props.path,

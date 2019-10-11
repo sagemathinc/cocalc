@@ -98,6 +98,7 @@ const { SkipCopy } = require("./skip");
 //import { SkipCopy } from "./skip";
 
 interface AssignmentsPanelReactProps {
+  frame_id?: string;
   name: string;
   project_id: string;
   redux: AppRedux;
@@ -256,6 +257,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         <Assignment
           key={assignment_id}
           project_id={this.props.project_id}
+          frame_id={this.props.frame_id}
           name={this.props.name}
           redux={this.props.redux}
           assignment={this.get_assignment(assignment_id)}
@@ -287,7 +289,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
               ? assignments[index].assignment_id
               : undefined
           }
-          cache_id={"course-assignments-" + this.props.name}
+          cache_id={`course-assignments-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
@@ -425,6 +427,7 @@ export function AssignmentsPanelHeader(props: { n: number }) {
 
 interface AssignmentProps {
   name: string;
+  frame_id?: string;
   project_id: string;
   redux: AppRedux;
 
@@ -693,6 +696,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           <Panel header={this.render_more_header()}>
             <StudentListForAssignment
               redux={this.props.redux}
+              frame_id={this.props.frame_id}
               name={this.props.name}
               assignment={this.props.assignment}
               students={this.props.students}
@@ -1662,6 +1666,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 }
 
 interface StudentListForAssignmentProps {
+  frame_id?: string;
   name: string;
   redux: AppRedux;
   assignment: AssignmentRecord;
@@ -1769,11 +1774,9 @@ class StudentListForAssignment extends Component<
         row_count={info.length}
         row_renderer={({ key }) => this.render_student_info(key)}
         row_key={index => this.get_student_list()[index]}
-        cache_id={
-          "course-assignment-" +
-          this.props.assignment.get("assignment_id") +
-          this.props.name
-        }
+        cache_id={`course-assignment-${this.props.assignment.get(
+          "assignment_id"
+        )}-${this.props.name}-${this.props.frame_id}`}
       />
     );
   }

@@ -112,6 +112,7 @@ const past_tense = function(word) {
 };
 
 interface HandoutsPanelReactProps {
+  frame_id?: string;
   name: string;
   actions: CourseActions;
   project_id: string;
@@ -258,6 +259,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     private render_handout(handout_id: string, index: number): Rendered {
       return (
         <Handout
+          frame_id={this.props.frame_id}
           backgroundColor={index % 2 === 0 ? "#eee" : undefined}
           key={handout_id}
           handout={this.get_handout(handout_id)}
@@ -284,7 +286,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
           row_key={index =>
             handouts[index] != null ? handouts[index].handout_id : undefined
           }
-          cache_id={"course-handouts-" + this.props.name}
+          cache_id={`course-handouts-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
@@ -367,6 +369,7 @@ export function HandoutsPanelHeader(props: { n: number }) {
 }
 
 interface HandoutProps {
+  frame_id?: string;
   name: string;
   handout: HandoutRecord;
   backgroundColor?: string;
@@ -786,6 +789,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         <Col sm={12}>
           <Panel header={this.render_more_header()}>
             <StudentListForHandout
+              frame_id={this.props.frame_id}
               handout={this.props.handout}
               students={this.props.students}
               user_map={this.props.user_map}
@@ -898,6 +902,7 @@ Select "Replace student files!" in case you do not want to create any backups an
 }
 
 interface StudentListForHandoutProps {
+  frame_id?: string;
   name: string;
   user_map: UserMap;
   students: StudentsMap;
@@ -935,11 +940,9 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
         row_count={info.length}
         row_renderer={({ key }) => this.render_student_info(key)}
         row_key={index => this.get_student_list()[index]}
-        cache_id={
-          "course-handout-" +
-          this.props.handout.get("handout_id") +
+        cache_id={`course-handout-${this.props.handout.get("handout_id")}-${
           this.props.actions.name
-        }
+        }-${this.props.frame_id}`}
       />
     );
   }

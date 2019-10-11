@@ -93,6 +93,7 @@ interface StudentNameDescription {
 }
 
 interface StudentsPanelReactProps {
+  frame_id?: string; // used for state caching
   name: string;
   redux: AppRedux;
   project_id: string;
@@ -823,7 +824,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           row_key={index =>
             students[index] != null ? students[index].student_id : undefined
           }
-          cache_id={"course-student-" + this.props.name}
+          cache_id={`course-student-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
