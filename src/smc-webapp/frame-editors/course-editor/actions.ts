@@ -23,11 +23,25 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
 
   _init2(): void {
     this.init_course_actions_and_store();
+    this.init_changes_state();
   }
 
   public close(): void {
     this.close_course_actions_and_store();
     super.close();
+  }
+
+  // We manually handle the "unsaved changes" state, since we're using
+  // our own separate syncdb file.  The same thing is done for the
+  // Jupyter frame editor.
+  private init_changes_state(): void {
+    const syncdb = this.course_actions.syncdb;
+    syncdb.on("has-uncommitted-changes", has_uncommitted_changes =>
+      this.setState({ has_uncommitted_changes })
+    );
+    syncdb.on("has-unsaved-changes", has_unsaved_changes => {
+      this.setState({ has_unsaved_changes });
+    });
   }
 
   private init_course_actions_and_store(): void {
@@ -86,5 +100,4 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
     this.course_actions.syncdb.redo();
     this.course_actions.syncdb.commit();
   }
-
 }
