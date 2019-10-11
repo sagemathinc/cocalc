@@ -5,3 +5,6 @@ export const Assignments = wrap(AssignmentsPanel);
 
 import { StudentsPanel } from "../../course/students_panel";
 export const Students = wrap(StudentsPanel);
+
+import { HandoutsPanel } from "../../course/handouts_panel";
+export const Handouts = wrap(HandoutsPanel);

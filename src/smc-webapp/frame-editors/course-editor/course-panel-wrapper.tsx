@@ -16,7 +16,7 @@ import {
   AppRedux
 } from "../../app-framework";
 import { Loading } from "../../r_misc";
-import { AssignmentsMap, StudentsMap } from "../../course/store";
+import { AssignmentsMap, StudentsMap, HandoutsMap } from "../../course/store";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
 import { merge } from "smc-util/misc2";
@@ -34,6 +34,7 @@ interface ReduxProps {
   user_map?: UserMap;
   project_map?: ProjectMap;
   assignments?: AssignmentsMap;
+  handouts?: HandoutsMap;
 }
 
 export interface PanelProps {
@@ -44,6 +45,7 @@ export interface PanelProps {
   user_map: UserMap;
   project_map: ProjectMap;
   assignments: AssignmentsMap;
+  handouts: HandoutsMap;
   redux: AppRedux;
   actions: CourseActions;
 }
@@ -54,7 +56,8 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     return {
       [name]: {
         students: rtypes.immutable.Map,
-        assignments: rtypes.immutable.Map
+        assignments: rtypes.immutable.Map,
+        handouts: rtypes.immutable.Map
       },
       users: {
         user_map: rtypes.immutable
@@ -70,7 +73,8 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       this.props.students == null ||
       this.props.user_map == null ||
       this.props.project_map == null ||
-      this.props.assignments == null
+      this.props.assignments == null ||
+      this.props.handouts == null
     ) {
       return <Loading theme={"medium"} />;
     }
@@ -85,13 +89,14 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       user_map: this.props.user_map,
       project_map: this.props.project_map,
       assignments: this.props.assignments,
+      handouts: this.props.handouts,
       redux,
       actions: redux.getActions(name)
     };
 
     return (
       <div
-        style={{ fontSize: `${this.props.font_size}pt` }}
+        style={{ fontSize: `${this.props.font_size}px` }}
         className="smc-vfill"
       >
         {React.createElement(this.props.course_panel, props)}

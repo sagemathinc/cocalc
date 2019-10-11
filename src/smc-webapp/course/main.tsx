@@ -60,7 +60,6 @@ let {
 // Course components
 import {
   CourseStore,
-  CourseState,
   StudentsMap,
   AssignmentsMap,
   HandoutsMap,
@@ -441,16 +440,10 @@ export const CourseEditor = rclass<CourseReactProps>(
         return (
           <HandoutsPanel
             actions={this.props.redux.getActions(this.props.name)}
-            all_handouts={this.props.handouts}
+            handouts={this.props.handouts}
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
-            store_object={this.props.redux.getStore<CourseState, CourseStore>(
-              this.props.name
-            )}
-            project_actions={this.props.redux.getProjectActions(
-              this.props.project_id
-            )}
             name={this.props.name}
           />
         );

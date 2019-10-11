@@ -5,9 +5,8 @@ Spec for editing Jupyter notebooks via a frame tree.
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 
-import { Assignments, Students } from "./course-panels";
+import { Assignments, Students, Handouts } from "./course-panels";
 import { Overview } from "./overview";
-import { Handouts } from "./handouts";
 import { Configuration } from "./configuration";
 import { SharedProject } from "./shared-project";
 

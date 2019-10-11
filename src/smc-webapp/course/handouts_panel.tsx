@@ -32,7 +32,14 @@ import { WindowedList } from "../r_misc/windowed-list";
 import * as misc from "smc-util/misc";
 
 // React Libraries
-import { React, rtypes, Component, rclass, Rendered } from "../app-framework";
+import {
+  React,
+  rtypes,
+  Component,
+  rclass,
+  Rendered,
+  redux
+} from "../app-framework";
 import {
   Alert,
   Button,
@@ -59,7 +66,6 @@ import {
   StudentRecord
 } from "./store";
 import { UserMap } from "../todo-types";
-import { ProjectActions } from "../project_store";
 import { Set } from "immutable";
 import { CourseActions } from "./actions";
 import { ErrorDisplay } from "../r_misc/error-display";
@@ -108,10 +114,8 @@ const past_tense = function(word) {
 interface HandoutsPanelReactProps {
   name: string;
   actions: CourseActions;
-  store_object?: CourseStore;
-  project_actions: ProjectActions;
   project_id: string;
-  all_handouts: HandoutsMap; // handout_id -> handout
+  handouts: HandoutsMap; // handout_id -> handout
   students: StudentsMap; // student_id -> student
   user_map: UserMap;
 }
@@ -149,11 +153,9 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     }
 
     // Update on different students, handouts, or filter parameters
-    // TODO: this is BS -- do this right.  Get rid of store_object above and
-    // put the actual data it uses; make everything immutable!
     public shouldComponentUpdate(nextProps, nextState): boolean {
       if (
-        nextProps.all_handouts !== this.props.all_handouts ||
+        nextProps.handouts !== this.props.handouts ||
         nextProps.students !== this.props.students ||
         this.props.expanded_handouts !== nextProps.expanded_handouts
       ) {
@@ -166,7 +168,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     }
 
     private get_handout(id: string): HandoutRecord {
-      let handout = this.props.all_handouts.get(id);
+      let handout = this.props.handouts.get(id);
       if (handout == undefined) {
         console.warn(`Tried to access undefined handout ${id}`);
       }
@@ -175,7 +177,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
     private compute_handouts_list() {
       let deleted, num_deleted, num_omitted;
-      let list = util.immutable_to_list(this.props.all_handouts, "handout_id");
+      let list = util.immutable_to_list(this.props.handouts, "handout_id");
 
       ({ list, num_omitted } = util.compute_match_list({
         list,
@@ -254,7 +256,6 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     }
 
     private render_handout(handout_id: string, index: number): Rendered {
-      if (this.props.store_object == null) return;
       return (
         <Handout
           backgroundColor={index % 2 === 0 ? "#eee" : undefined}
@@ -264,8 +265,6 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
           students={this.props.students}
           user_map={this.props.user_map}
           actions={this.props.actions}
-          store_object={this.props.store_object}
-          open_directory={this.props.project_actions.open_directory}
           is_expanded={this.props.expanded_handouts.has(handout_id)}
           name={this.props.name}
         />
@@ -273,7 +272,6 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     }
 
     private render_handouts(handouts): Rendered {
-      if (!this.props.store_object) return;
       if (handouts.length == 0) {
         return this.render_no_handouts();
       }
@@ -329,7 +327,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
           search_change={value => this.setState({ search: value })}
           num_omitted={num_omitted}
           project_id={this.props.project_id}
-          items={this.props.all_handouts}
+          items={this.props.handouts}
           add_folders={paths => paths.map(add_handout)}
           item_name={"handout"}
           plural_item_name={"handouts"}
@@ -372,9 +370,7 @@ interface HandoutProps {
   name: string;
   handout: HandoutRecord;
   backgroundColor?: string;
-  store_object: CourseStore;
   actions: CourseActions;
-  open_directory: (path: string) => void; // open_directory(path)
   is_expanded: boolean;
   students: StudentsMap;
   user_map: UserMap;
@@ -403,7 +399,10 @@ class Handout extends Component<HandoutProps, HandoutState> {
 
   private open_handout_path = e => {
     e.preventDefault();
-    return this.props.open_directory(this.props.handout.get("path"));
+    const actions = redux.getProjectActions(this.props.project_id);
+    if (actions != null) {
+      actions.open_directory(this.props.handout.get("path"));
+    }
   };
 
   private render_more_header() {
@@ -790,8 +789,8 @@ Select "Replace student files!" in case you do not want to create any backups an
               handout={this.props.handout}
               students={this.props.students}
               user_map={this.props.user_map}
-              store_object={this.props.store_object}
               actions={this.props.actions}
+              name={this.props.name}
             />
             {this.render_handout_notes()}
           </Panel>
@@ -832,8 +831,14 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
+  private get_store(): CourseStore {
+    const store = redux.getStore(this.props.name);
+    if (store == null) throw Error("store must be defined");
+    return store as CourseStore;
+  }
+
   private render_handout_heading(): Rendered {
-    let status = this.props.store_object.get_handout_status(this.props.handout);
+    let status = this.get_store().get_handout_status(this.props.handout);
     if (status == null) {
       status = {
         handout: 0,
@@ -893,10 +898,10 @@ Select "Replace student files!" in case you do not want to create any backups an
 }
 
 interface StudentListForHandoutProps {
+  name: string;
   user_map: UserMap;
   students: StudentsMap;
   handout: HandoutRecord;
-  store_object: CourseStore;
   actions: CourseActions;
 }
 
@@ -913,6 +918,12 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
       delete this.student_list;
     }
     return x;
+  }
+
+  private get_store(): CourseStore {
+    const store = redux.getStore(this.props.name);
+    if (store == null) throw Error("store must be defined");
+    return store as CourseStore;
   }
 
   private render_students(): Rendered {
@@ -969,14 +980,8 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
       <StudentHandoutInfo
         key={id}
         actions={this.props.actions}
-        info={this.props.store_object.student_handout_info(
-          id,
-          this.props.handout
-        )}
-        title={misc.trunc_middle(
-          this.props.store_object.get_student_name(id),
-          40
-        )}
+        info={this.get_store().student_handout_info(id, this.props.handout)}
+        title={misc.trunc_middle(this.get_store().get_student_name(id), 40)}
         student={id}
         handout={this.props.handout}
       />
