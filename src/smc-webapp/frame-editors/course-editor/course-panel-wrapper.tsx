@@ -15,7 +15,8 @@ import {
   rtypes,
   AppRedux
 } from "../../app-framework";
-import { Loading } from "../../r_misc";
+import { Loading, ActivityDisplay, ErrorDisplay } from "../../r_misc";
+
 import {
   AssignmentsMap,
   CourseSettingsRecord,
@@ -26,6 +27,7 @@ import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
 import { merge } from "smc-util/misc2";
+import { values } from "smc-util/misc";
 import { CourseTabBar } from "./course-tab-bar";
 import { CourseEditorActions } from "./actions";
 import { CourseStore } from "../../course/store";
@@ -50,6 +52,8 @@ interface ReduxProps {
   handouts?: HandoutsMap;
   settings?: CourseSettingsRecord;
   configuring_projects?: boolean;
+  activity?: Map<string, any>;
+  error?: string;
 }
 
 export interface PanelProps {
@@ -77,7 +81,9 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
         assignments: rtypes.immutable.Map,
         handouts: rtypes.immutable.Map,
         settings: rtypes.immutable.Map,
-        configuring_projects: rtypes.bool
+        configuring_projects: rtypes.bool,
+        error: rtypes.string,
+        activity: rtypes.immutable.Map
       },
       users: {
         user_map: rtypes.immutable
@@ -120,6 +126,8 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
 
     return (
       <>
+        {this.render_activity(name)}
+        {this.render_error(name)}
         {this.render_pay_banner(name)}
         {this.render_tab_bar(name)}
         {React.createElement(this.props.course_panel, props)}
@@ -164,6 +172,35 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
         num_students={this.props.students.size}
         tab={this.props.desc.get("type", "").slice("course_".length)}
       />
+    );
+  }
+
+  private render_activity(name: string): Rendered {
+    if (this.props.activity == null) return;
+    return (
+      <ActivityDisplay
+        activity={values(this.props.activity.toJS())}
+        trunc={80}
+        on_clear={() => {
+          const actions = redux.getActions(name) as CourseActions;
+          if (actions != null) actions.clear_activity();
+        }}
+      />
+    );
+  }
+
+  private render_error(name: string): Rendered {
+    if (!this.props.error) return;
+    return (
+      <div style={{ margin: "5px 15px" }}>
+        <ErrorDisplay
+          error={this.props.error}
+          onClose={() => {
+            const actions = redux.getActions(name) as CourseActions;
+            if (actions != null) actions.set_error("");
+          }}
+        />
+      </div>
     );
   }
 
