@@ -234,22 +234,26 @@ export class WindowedList extends Component<Props, State> {
       const elt = entry.target;
       const key = elt.getAttribute("data-key");
       if (key == null) continue;
+      const index = elt.getAttribute("data-index");
       if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0) {
         // A row was deleted, so goes from a possibly big height to 0.
         // Make stale so will get measured again.
+        this.row_heights_cache[key] = 0;
         this.row_heights_stale[key] = true;
         num_changed += 1;
+        if (index != null) {
+          min_index = Math.min(min_index, parseInt(index));
+        }
         continue;
-      }
-      const index = elt.getAttribute("data-index");
-      if (index != null) {
-        min_index = Math.min(min_index, parseInt(index));
       }
       const s = entry.contentRect.height - this.row_heights_cache[key];
       if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
         // not really changed or just disappeared from DOM or just shrunk a little,
         // ... so continue using what we have cached (or the default).
         continue;
+      }
+      if (index != null) {
+        min_index = Math.min(min_index, parseInt(index));
       }
       this.row_heights_stale[key] = true;
       num_changed += 1;
