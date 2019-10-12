@@ -29,6 +29,7 @@ import { merge } from "smc-util/misc2";
 import { CourseTabBar } from "./course-tab-bar";
 import { CourseEditorActions } from "./actions";
 import { CourseStore } from "../../course/store";
+import { PayBanner } from "../../course/pay-banner";
 
 export interface FrameProps {
   id: string;
@@ -119,6 +120,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
 
     return (
       <>
+        {this.render_pay_banner(name)}
         {this.render_tab_bar(name)}
         {React.createElement(this.props.course_panel, props)}
       </>
@@ -149,6 +151,18 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
         frame_id={this.props.id}
         type={this.props.desc.get("type")}
         counts={this.counts(name)}
+      />
+    );
+  }
+
+  private render_pay_banner(name: string): Rendered {
+    if (this.props.students == null || this.props.settings == null) return;
+    return (
+      <PayBanner
+        name={name}
+        settings={this.props.settings}
+        num_students={this.props.students.size}
+        tab={this.props.desc.get("type", "").slice("course_".length)}
       />
     );
   }
