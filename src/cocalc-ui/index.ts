@@ -34,4 +34,10 @@ import "antd/es/icon/style/css";
 import Icon from "antd/es/icon";
 export { Icon };
 
+import "antd/es/tabs/style/css";
+import Tabs from "antd/es/tabs";
+export { Tabs };
+
+
+
 import "./fix.css";

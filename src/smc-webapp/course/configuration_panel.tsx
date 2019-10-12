@@ -37,6 +37,7 @@ import { debounce } from "lodash";
 import {
   React,
   rclass,
+  redux,
   rtypes,
   Component,
   AppRedux,
@@ -70,7 +71,6 @@ const {
 
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "./actions";
-import { redux } from "../frame-editors/generic/test/util";
 import { ProjectMap } from "../todo-types";
 import { CourseSettingsRecord, CourseStore } from "./store";
 import { HelpBox } from "./help_box";
@@ -327,13 +327,15 @@ class DisableStudentCollaboratorsPanel extends Component<
         </div>
         <hr />
         <span style={{ color: "#666" }}>
-          If this box is checked (this is the default), the owner and any collaborator on this student
-          project may add collaborators to this project. If this box is not checked, any collaborators
-          on this student project will be removed, with the exception of the student, instructor, and TAs.
-          Here "instructor and TAs" means any user who is an owner or collaborator on the teaching project,
-          i.e. the project containing the course file. After "Allow arbitrary collaborators" is checked,
-          collaborators to be excluded are removed when opening the course file or upon clicking
-          "Reconfigure all projects".
+          If this box is checked (this is the default), the owner and any
+          collaborator on this student project may add collaborators to this
+          project. If this box is not checked, any collaborators on this student
+          project will be removed, with the exception of the student,
+          instructor, and TAs. Here "instructor and TAs" means any user who is
+          an owner or collaborator on the teaching project, i.e. the project
+          containing the course file. After "Allow arbitrary collaborators" is
+          checked, collaborators to be excluded are removed when opening the
+          course file or upon clicking "Reconfigure all projects".
         </span>
       </Panel>
     );
@@ -345,10 +347,8 @@ interface ConfigurationPanelProps {
   name: string;
   path: string;
   project_id: string;
-  allow_urls: boolean;
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
-  shared_project_id?: string;
   configuring_projects?: boolean;
 }
 
@@ -385,7 +385,6 @@ export class ConfigurationPanel extends Component<
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "shared_project_id",
         "configuring_projects"
       ])
     );
@@ -661,7 +660,10 @@ export class ConfigurationPanel extends Component<
    */
 
   check_email_body(value) {
-    if (!this.props.allow_urls && contains_url(value)) {
+    const allow_urls: boolean = redux
+      .getStore("projects")
+      .allow_urls_in_emails(this.props.project_id);
+    if (!allow_urls && contains_url(value)) {
       this.setState({
         email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
       });
@@ -1024,7 +1026,7 @@ export class ConfigurationPanel extends Component<
   }
 
   render_delete_shared_project() {
-    if (this.props.shared_project_id) {
+    if (this.props.settings.get("shared_project_id")) {
       return (
         <DeleteSharedProjectPanel
           delete={this.get_actions().delete_shared_project}
@@ -1066,7 +1068,11 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%", overflowY: "scroll" }}>
+      <Grid
+        fluid={true}
+        className="smc-vfill"
+        style={{ width: "100%", overflowY: "scroll" }}
+      >
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}

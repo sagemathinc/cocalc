@@ -694,7 +694,7 @@ export class FrameTitleBar extends Component<Props, State> {
     return (
       <Button
         key={"redo"}
-        title={"Redo last thing you did"}
+        title={"Redo last thing you undid"}
         onClick={() => this.props.actions.redo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}

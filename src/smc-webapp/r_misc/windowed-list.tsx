@@ -231,20 +231,29 @@ export class WindowedList extends Component<Props, State> {
     let min_index: number = 999999;
     for (let entry of entries) {
       // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
-      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0)
-        continue;
       const elt = entry.target;
       const key = elt.getAttribute("data-key");
       if (key == null) continue;
       const index = elt.getAttribute("data-index");
-      if (index != null) {
-        min_index = Math.min(min_index, parseInt(index));
+      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0) {
+        // A row was deleted, so goes from a possibly big height to 0.
+        // Make stale so will get measured again.
+        this.row_heights_cache[key] = 0;
+        this.row_heights_stale[key] = true;
+        num_changed += 1;
+        if (index != null) {
+          min_index = Math.min(min_index, parseInt(index));
+        }
+        continue;
       }
       const s = entry.contentRect.height - this.row_heights_cache[key];
       if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
         // not really changed or just disappeared from DOM or just shrunk a little,
         // ... so continue using what we have cached (or the default).
         continue;
+      }
+      if (index != null) {
+        min_index = Math.min(min_index, parseInt(index));
       }
       this.row_heights_stale[key] = true;
       num_changed += 1;
@@ -402,7 +411,10 @@ function create_row_component(windowed_list: WindowedList) {
       }
       return (
         <div
-          style={{ display: "flex", flexDirection: "column" }}
+          style={{
+            display: "flex",
+            flexDirection: "column"
+          }}
           data-key={key}
           data-index={index}
           ref={node => {

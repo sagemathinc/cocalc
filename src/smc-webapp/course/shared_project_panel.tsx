@@ -25,11 +25,12 @@
 
 import { React, Component, AppRedux } from "../app-framework";
 import { CourseActions } from "./actions";
-const { Alert, Button, ButtonToolbar, Panel } = require("react-bootstrap");
+import { CourseSettingsRecord } from "./store";
+const { Alert, Button, ButtonToolbar } = require("react-bootstrap");
 const { HiddenXS, Icon, Tip, VisibleMDLG } = require("../r_misc");
 
 interface SharedProjectPanelProps {
-  shared_project_id?: string;
+  settings: CourseSettingsRecord;
   redux: AppRedux;
   name: string;
 }
@@ -54,7 +55,8 @@ export class SharedProjectPanel extends Component<
   shouldComponentUpdate(props, state) {
     return (
       this.state.confirm_create !== state.confirm_create ||
-      this.props.shared_project_id !== props.shared_project_id
+      this.props.settings.get("shared_project_id") !==
+        props.settings.get("shared_project_id")
     );
   }
 
@@ -63,7 +65,7 @@ export class SharedProjectPanel extends Component<
   }
 
   panel_header_text() {
-    if (this.props.shared_project_id) {
+    if (this.props.settings.get("shared_project_id")) {
       return "Shared project that everybody can fully use";
     } else {
       return "Optionally create a shared project for everybody";
@@ -72,21 +74,26 @@ export class SharedProjectPanel extends Component<
 
   render() {
     return (
-      <Panel
-        style={{ margin: "auto", maxWidth: "800px" }}
-        header={
-          <h4>
-            <Icon name="users" /> {this.panel_header_text()}{" "}
-          </h4>
-        }
+      <div
+        className="smc-vfill"
+        style={{
+          padding: "15px",
+          margin: "15px auto",
+          border: "1px solid #ccc",
+          maxWidth: "800px",
+          overflowY: "auto"
+        }}
       >
+        <h4>
+          <Icon name="users" /> {this.panel_header_text()}{" "}
+        </h4>
         {this.render_content()}
-      </Panel>
+      </div>
     );
   }
 
   render_content() {
-    if (this.props.shared_project_id) {
+    if (this.props.settings.get("shared_project_id")) {
       return this.render_has_shared_project();
     } else {
       return this.render_no_shared_project();
@@ -121,9 +128,9 @@ export class SharedProjectPanel extends Component<
   }
 
   open_project = () => {
-    return this.props.redux
-      .getActions("projects")
-      .open_project({ project_id: this.props.shared_project_id });
+    return this.props.redux.getActions("projects").open_project({
+      project_id: this.props.settings.get("shared_project_id")
+    });
   };
 
   render_no_shared_project() {
