@@ -780,7 +780,8 @@ describe 'test system_notifications ', ->
     before(setup)
     after(teardown)
 
-    obj = {id:null, time:null, text:null, priority:null, done:null}
+    # interestingly, it is necessary to explicitly add priority=high -- how do default values work?
+    obj = {id:null, time:null, text:null, priority:"high", done:null}
 
     accounts= undefined
     it 'make two accounts', (done) ->
@@ -801,7 +802,8 @@ describe 'test system_notifications ', ->
                     cb(err)
         async.map([accounts[0], accounts[1], undefined], f, done)
 
-    obj0 = {id:misc.uuid(), time:new Date(), text:"watch out!", done:true}
+    # interestingly, it is necessary to explicitly add priority=high -- otherwise nothing is stored in the table?
+    obj0 = {id:misc.uuid(), time:new Date(), text:"watch out!", done:true, priority:'high'}
     it 'tries to write as admin, non-admin and anon to system_notifications table', (done) ->
         f = (x, cb) ->
             db.user_query
@@ -814,7 +816,7 @@ describe 'test system_notifications ', ->
 
     it 'reads non-empty table as admin, non-admin, and anon', (done) ->
         # fill in the defaults from the schema
-        obj0.priority = 'low'
+        obj0.priority = 'high'
         f = (account_id, cb) ->
             db.user_query
                 account_id : account_id
@@ -861,4 +863,97 @@ describe 'test system_notifications ', ->
 
         async.mapSeries([accounts[0], accounts[1], undefined], f, done)
 
+
+# this is copy/paste of system_notifications with minor changes
+describe 'test announcements ', ->
+    before(setup)
+    after(teardown)
+
+    obj = {id:null, time:null, text:null, priority:'info', done:null}
+
+    accounts= undefined
+    it 'make two accounts', (done) ->
+        async.series([
+            (cb) ->
+                create_accounts 2, (err, x) -> accounts=x; cb(err)
+            (cb) ->
+                db.make_user_admin(account_id: accounts[0], cb:cb)
+        ], done)
+
+
+    it 'reads empty table as admin, non-admin, and anon', (done) ->
+        f = (account_id, cb) ->
+            db.user_query
+                account_id : account_id
+                query      : {system_notifications: [obj]}
+                cb         : (err, x) ->
+                    expect(x).toEqual(system_notifications: [])
+                    cb(err)
+        async.map([accounts[0], accounts[1], undefined], f, done)
+
+
+    # interestingly, it is necessary to explicitly add priority=info -- otherwise nothing is stored in the table?
+    ago = (24*60*60*1000) * 50 # 50 days ago
+    long_ago = new Date()
+    long_ago.setTime(long_ago.getTime() - ago)
+    obj0 = {id:misc.uuid(), time:long_ago, text:"watch out!", done:true, priority:'info'}
+
+    it 'tries to write as admin, non-admin and anon to system_notifications table', (done) ->
+        f = (x, cb) ->
+            db.user_query
+                account_id : x.account_id
+                query      : {system_notifications: obj0}
+                cb         : (err, result) ->
+                    expect(err).toEqual(x.err)
+                    cb()
+        async.map([{account_id:accounts[0]}, {account_id:accounts[1], err:'FATAL: user must be an admin'}, {err:'FATAL: no anonymous set queries'}], f, done)
+
+    it 'reads non-empty table as admin, non-admin, and anon', (done) ->
+        # fill in the defaults from the schema
+        obj0.priority = 'info'
+        f = (account_id, cb) ->
+            db.user_query
+                account_id : account_id
+                query      : {announcements: [obj]}
+                cb         : (err, x) ->
+                    expect(x).toEqual(announcements: [obj0])
+                    cb(err)
+        async.map([accounts[0], accounts[1], undefined], f, done)
+
+
+#    it 'create changefeed, insert entry, and see it appear (as admin, non-admin, and anon)', (done) ->
+#        f = (account_id, cb) ->
+#            obj1 = {id:misc.uuid(), time:new Date(), text:'news announcement!', priority:'info', done:false}
+#            changefeed_id = misc.uuid()
+#            db.user_query
+#                account_id : account_id
+#                query      : {announcements: [obj]}
+#                changes    : changefeed_id
+#                cb         : changefeed_series([
+#                    (x, cb) ->
+#                        expect(x.announcements.length).toEqual(1)
+#
+#                        db.user_query
+#                            account_id : accounts[0]  # as admin
+#                            query      : {system_notifications: [obj1]}
+#                            cb         : cb
+#                    (x, cb) ->
+#                        expect(x).toEqual( { action: 'insert', new_val: obj1 })
+#
+#                        obj1.done = true
+#                        db.user_query
+#                            account_id : accounts[0]  # as admin
+#                            query      : {announcements: [obj1]}
+#                            cb         : cb
+#                    (x, cb) ->
+#                        expect(x.action).toEqual('update');
+#                        expect(x.new_val.done).toEqual(true);
+#
+#                        db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+#                    (x, cb) ->
+#                        expect(x).toEqual({action:'close'})
+#                        cb()
+#                ], done)
+#
+#        async.mapSeries([accounts[0], accounts[1], undefined], f, done)
 
