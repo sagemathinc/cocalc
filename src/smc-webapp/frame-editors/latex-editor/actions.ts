@@ -268,13 +268,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private ensure_output_directory(cmd: List<string>): List<string> {
-    let has_output_dir: boolean = false;
-    cmd.forEach(x => {
-      if (x.indexOf("-output-directory=") != -1) {
-        has_output_dir = true;
-      }
-    });
-    if (!has_output_dir) {
+    const has_output_dir = cmd.some(x => x.indexOf("-output-directory=") != -1);
+    if (!has_output_dir && this.output_directory != null) {
       // no output directory option.
       return cmd.splice(
         cmd.size - 2,
@@ -579,7 +574,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       const output: BuildLog = await bibtex(
         this.project_id,
         this.path,
-        this.make_timestamp(time, force)
+        this.make_timestamp(time, force),
+        this.get_output_directory()
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -595,7 +591,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     let hash: string = "";
     if (!force) {
       try {
-        hash = await sagetex_hash(this.project_id, this.path, time, status);
+        hash = await sagetex_hash(
+          this.project_id,
+          this.path,
+          time,
+          status,
+          this.get_output_directory()
+        );
         if (hash === this._last_sagetex_hash) {
           // no change - nothing to do except updating the pdf preview
           this.update_pdf(time, force);
@@ -613,7 +615,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     let output: BuildLog | undefined;
     try {
       // Next run Sage.
-      output = await sagetex(this.project_id, this.path, hash, status);
+      output = await sagetex(
+        this.project_id,
+        this.path,
+        hash,
+        status,
+        this.get_output_directory()
+      );
       // Now run latex again, since we had to run sagetex, which changes
       // the sage output. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
@@ -642,7 +650,14 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     try {
       // Run PythonTeX
-      output = await pythontex(this.project_id, this.path, time, force, status);
+      output = await pythontex(
+        this.project_id,
+        this.path,
+        time,
+        force,
+        status,
+        this.get_output_directory()
+      );
       // Now run latex again, since we had to run pythontex, which changes
       // the inserted snippets. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
