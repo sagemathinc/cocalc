@@ -625,7 +625,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 );
 
 require("project_file").register_file_editor({
-  ext: "course",
+  ext: "course2",  // temparily in case some hideous bug is discovered in new frame editor version, so trivial to revert/test.
   icon: "graduation-cap",
   init: init_redux,
   component: CourseEditor,

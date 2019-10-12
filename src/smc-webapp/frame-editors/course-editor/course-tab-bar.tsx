@@ -27,6 +27,7 @@ export class CourseTabBar extends Component<Props> {
       <Tabs
         defaultActiveKey={this.props.type}
         onChange={this.select_tab.bind(this)}
+        animated={false}
       >
         <TabPane
           tab={`Students (${this.props.counts.students})`}
