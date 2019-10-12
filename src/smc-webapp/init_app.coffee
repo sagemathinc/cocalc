@@ -489,4 +489,4 @@ redux.getActions('page').set_session(session)
 get_api_key_query_value = QueryParams.get('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
-    redux.getActions('page').set_fullscreen('kiosk')
+    redux.getActions('page').set_fullscreen('default')
