@@ -16,7 +16,8 @@ interface CelltypeInfo {
   points?: number; // default number of points
   icon?: string; // icon that would make sense for this type of cell
   code_only?: boolean; // only code cells can be set to this type
-  template?: { [language in Language]?: string };
+  markdown_only?: boolean; // only markdown cells can be set to this type
+  template?: { [language in Language]?: string } | string;
 }
 
 const PY_TEST = `
@@ -125,6 +126,17 @@ function squares(n)
     ### END SOLUTION
 end`;
 
+const TASK_TEMPLATE = `
+Describe the task here, e.g., "Process the data and create
+a plot to illustrate your results."
+
+=== BEGIN MARK SCHEME ===
+
+Describe how you will grade the task here.
+
+=== END MARK SCHEME ===
+`;
+
 export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
     title: "-",
@@ -155,10 +167,33 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: false,
     solution: true,
     task: false,
-    points: 1
+    points: 0
   },
   {
-    title: "Automatically graded answer",
+    // The official docs so this is only for markdown cells only and that is all that makes sense,
+    // but the official implementation in nbgrader
+    // makes it available for both task and code cells, which is surely a bug.   I'm doing it
+    // right and also complained here:
+    //     https://github.com/jupyter/nbgrader/pull/984#issuecomment-539255861
+    title: "Manually graded task",
+    student_title: "Manually graded task",
+    student_tip:
+      "This is a task that you must perform.  Instead of editing this cell, you'll be creating or editing some other cells, which will be manually graded by a person.",
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-task-cells",
+    hover: "",
+    value: "task",
+    icon: "tasks",
+    grade: false,
+    locked: true,
+    solution: false,
+    task: true,
+    template: TASK_TEMPLATE,
+    points: 0,
+    markdown_only: true
+  },
+  {
+    title: "Autograded answer",
     student_title: "Your answer (tests are below)",
     student_tip:
       "Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
@@ -180,7 +215,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     }
   },
   {
-    title: "Test cell",
+    title: "Autograder tests",
     student_title: "Test your code",
     student_tip:
       "You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
@@ -194,7 +229,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     task: false,
-    points: 1,
+    points: 0,
     code_only: true,
     template: {
       python: PY_TEST,
@@ -222,6 +257,9 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
 
 export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
 for (let x of CELLTYPE_INFO_LIST) {
+  if (CELLTYPE_INFO_MAP[x.value] != null) {
+    throw Error("bug -- values must be unique");
+  }
   CELLTYPE_INFO_MAP[x.value] = x;
 }
 
@@ -234,13 +272,13 @@ export function state_to_value(state: Metadata): string {
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
   const task: boolean = !!state.task;
-  if (grade === false && solution === false) {
+  if (grade === false && solution === false && task === false) {
     // special case: either nothing or readonly
     return locked ? "readonly" : "";
   }
 
-  // other 3 possibilities for grade/solution:
-  const key = JSON.stringify({ grade, solution });
+  // other 7 possibilities for grade/solution/task state:
+  const key = JSON.stringify({ grade, solution, task });
   if (value_cache[key] != undefined) return value_cache[key];
   for (let x of CELLTYPE_INFO_LIST) {
     if (x.grade == grade && x.solution == solution && x.task == task) {
@@ -279,6 +317,7 @@ export function value_to_template_content(
   }
   const template = x.template;
   if (template == null) return "";
+  if (typeof template == "string") return template.trim();
   if (language == "sage" && template[language] == null) {
     language = "python";
   }

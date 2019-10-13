@@ -93,6 +93,7 @@ interface StudentNameDescription {
 }
 
 interface StudentsPanelReactProps {
+  frame_id?: string; // used for state caching
   name: string;
   redux: AppRedux;
   project_id: string;
@@ -104,7 +105,7 @@ interface StudentsPanelReactProps {
 
 interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
-  active_student_sort: SortDescription;
+  active_student_sort?: SortDescription;
   get_student_name: (id: string) => string;
   active_feedback_edits: IsGradingMap;
 }
@@ -654,16 +655,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         this.props.user_map,
         this.props.redux
       );
-      students.sort(
-        util.pick_student_sorter(
-          this.props.active_student_sort != null
-            ? this.props.active_student_sort.toJS()
-            : (undefined as any)
-        )
-      );
-
-      if (this.props.active_student_sort.get("is_descending")) {
-        students.reverse();
+      if (this.props.active_student_sort != null) {
+        students.sort(
+          util.pick_student_sorter(this.props.active_student_sort.toJS())
+        );
+        if (this.props.active_student_sort.get("is_descending")) {
+          students.reverse();
+        }
       }
 
       // Deleted and non-deleted students
@@ -715,7 +713,28 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return this.student_list;
     }
 
-    render_sort_link(column_name, display_name) {
+    private render_sort_icon(column_name: string): Rendered {
+      if (
+        this.props.active_student_sort == null ||
+        this.props.active_student_sort.get("column_name") != column_name
+      )
+        return;
+      return (
+        <Icon
+          style={{ marginRight: "10px" }}
+          name={
+            this.props.active_student_sort.get("is_descending")
+              ? "caret-up"
+              : "caret-down"
+          }
+        />
+      );
+    }
+
+    private render_sort_link(
+      column_name: string,
+      display_name: string
+    ): Rendered {
       return (
         <a
           href=""
@@ -726,23 +745,12 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         >
           {display_name}
           <Space />
-          {this.props.active_student_sort.get("column_name") === column_name ? (
-            <Icon
-              style={{ marginRight: "10px" }}
-              name={
-                this.props.active_student_sort.get("is_descending")
-                  ? "caret-up"
-                  : "caret-down"
-              }
-            />
-          ) : (
-            undefined
-          )}
+          {this.render_sort_icon(column_name)}
         </a>
       );
     }
 
-    render_student_table_header() {
+    private render_student_table_header(): Rendered {
       // HACK: that marginRight is to get things to line up with students.
       // This is done all wrong due to using react-window...  We need
       // to make an extension to our WindowedList that supports explicit
@@ -816,7 +824,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           row_key={index =>
             students[index] != null ? students[index].student_id : undefined
           }
-          cache_id={"course-student-" + this.props.name}
+          cache_id={`course-student-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
