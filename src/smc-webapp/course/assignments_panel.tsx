@@ -55,7 +55,7 @@ import {
   Grid
 } from "react-bootstrap";
 
-const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
+import { Card } from "cocalc-ui";
 
 import { Set, Map } from "immutable";
 
@@ -693,7 +693,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return (
       <Row key="more">
         <Col sm={12}>
-          <Panel header={this.render_more_header()}>
+          <Card title={this.render_more_header()}>
             <StudentListForAssignment
               redux={this.props.redux}
               frame_id={this.props.frame_id}
@@ -705,7 +705,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               active_feedback_edits={this.props.active_feedback_edits}
             />
             {this.render_note()}
-          </Panel>
+          </Card>
         </Col>
       </Row>
     );

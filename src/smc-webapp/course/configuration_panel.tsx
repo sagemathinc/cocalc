@@ -49,10 +49,11 @@ const {
   ButtonToolbar,
   Row,
   Col,
-  Panel,
   Checkbox,
   Grid
 } = require("react-bootstrap");
+
+import { Card } from "cocalc-ui";
 
 // CoCalc Components
 const {
@@ -217,11 +218,11 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
       const r = this.props.num_running_projects;
       const n = this.props.num_students;
       return (
-        <Panel
-          header={
-            <h4>
+        <Card
+          title={
+            <>
               <Icon name="flash" /> Start or stop all student projects
-            </h4>
+            </>
           }
         >
           <Row>
@@ -282,7 +283,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
             order to ensure that they do not waste resources or are properly
             upgraded when next used by students.
           </span>
-        </Panel>
+        </Card>
       );
     }
   }
@@ -304,11 +305,11 @@ class DisableStudentCollaboratorsPanel extends Component<
 
   render() {
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="envelope" /> Collaborator policy
-          </h4>
+          </>
         }
       >
         <div
@@ -337,7 +338,7 @@ class DisableStudentCollaboratorsPanel extends Component<
           checked, collaborators to be excluded are removed when opening the
           course file or upon clicking "Reconfigure all projects".
         </span>
-      </Panel>
+      </Card>
     );
   }
 }
@@ -403,9 +404,9 @@ export class ConfigurationPanel extends Component<
    */
   render_title_desc_header() {
     return (
-      <h4>
+      <>
         <Icon name="header" /> Title and description
-      </h4>
+      </>
     );
   }
 
@@ -415,7 +416,7 @@ export class ConfigurationPanel extends Component<
       return <Loading />;
     }
     return (
-      <Panel header={this.render_title_desc_header()}>
+      <Card title={this.render_title_desc_header()}>
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
@@ -441,7 +442,7 @@ export class ConfigurationPanel extends Component<
           title. Use the description to provide additional information about the
           course, e.g., a link to the main course website.
         </span>
-      </Panel>
+      </Card>
     );
   }
 
@@ -450,9 +451,9 @@ export class ConfigurationPanel extends Component<
    */
   render_grades_header() {
     return (
-      <h4>
+      <>
         <Icon name="table" /> Export grades
-      </h4>
+      </>
     );
   }
 
@@ -627,7 +628,7 @@ export class ConfigurationPanel extends Component<
 
   render_save_grades() {
     return (
-      <Panel header={this.render_grades_header()}>
+      <Card title={this.render_grades_header()}>
         <div style={{ marginBottom: "10px" }}>Save grades to... </div>
         <ButtonToolbar>
           <Button onClick={this.save_grades_to_csv}>
@@ -651,7 +652,7 @@ export class ConfigurationPanel extends Component<
           </a>
           .
         </div>
-      </Panel>
+      </Card>
     );
   }
 
@@ -681,11 +682,11 @@ export class ConfigurationPanel extends Component<
     const template_instr =
       " Also, {title} will be replaced by the title of the course and {name} by your name.";
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="envelope" /> Email invitation
-          </h4>
+          </>
         }
       >
         <div
@@ -714,17 +715,17 @@ export class ConfigurationPanel extends Component<
           they do not have a CoCalc account, then they will receive this email
           invitation. {template_instr}
         </span>
-      </Panel>
+      </Card>
     );
   }
 
   render_configure_all_projects(): Rendered {
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="envelope" /> Reconfigure all projects
-          </h4>
+          </>
         }
       >
         Ensure all projects have the correct students and TA's, titles and
@@ -742,7 +743,7 @@ export class ConfigurationPanel extends Component<
           )}{" "}
           Reconfigure all projects
         </Button>
-      </Panel>
+      </Card>
     );
   }
 
@@ -983,12 +984,12 @@ export class ConfigurationPanel extends Component<
       bg = "#fcf8e3";
     }
     return (
-      <Panel
+      <Card
         style={{ background: bg }}
-        header={
-          <h4 style={style}>
+        title={
+          <div style={style}>
             <Icon name="dashboard" /> Require students to upgrade (students pay)
-          </h4>
+          </div>
         }
       >
         {this.render_student_pay_choice_checkbox()}
@@ -997,7 +998,7 @@ export class ConfigurationPanel extends Component<
         : undefined)
           ? this.render_student_pay_details()
           : undefined}
-      </Panel>
+      </Card>
     );
   }
 
@@ -1076,19 +1077,30 @@ export class ConfigurationPanel extends Component<
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}
+            <br/>
             {this.render_require_institute_pay()}
+            <br/>
             {this.render_save_grades()}
+            <br/>
             {this.render_start_all_projects()}
+            <br/>
             {this.render_terminal_command()}
+            <br/>
             {this.render_delete_student_projects()}
+            <br/>
             {this.render_delete_all_students()}
+            <br/>
             {this.render_delete_shared_project()}
           </Col>
           <Col md={6}>
             <HelpBox />
+            <br/>
             {this.render_title_description()}
+            <br/>
             {this.render_email_invite_body()}
+            <br/>
             {this.render_disable_students()}
+            <br/>
             {this.render_configure_all_projects()}
           </Col>
         </Row>

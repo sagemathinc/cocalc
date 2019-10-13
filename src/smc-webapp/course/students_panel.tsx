@@ -55,10 +55,11 @@ const {
   Row,
   Col,
   Grid,
-  Panel,
   Well,
   Form
 } = require("react-bootstrap");
+
+import { Card } from "cocalc-ui";
 
 // CoCalc components
 import { WindowedList } from "../r_misc/windowed-list";
@@ -1553,9 +1554,9 @@ class Student extends Component<StudentProps, StudentState> {
   render_more_panel() {
     return (
       <Row>
-        <Panel header={this.render_panel_header()}>
+        <Card title={this.render_panel_header()}>
           {this.render_more_info()}
-        </Panel>
+        </Card>
       </Row>
     );
   }
