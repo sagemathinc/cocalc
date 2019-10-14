@@ -25,16 +25,16 @@ interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
   frame_actions?: NotebookFrameActions;
   name?: string;
-  cell_list: immutable.List<string>; // list of ids of cells in order
-  cells: immutable.Map<string, any>;
-  font_size: number;
+  cell_list?: immutable.List<string>; // list of ids of cells in order
+  cells?: immutable.Map<string, any>;
+  font_size?: number;
   sel_ids?: immutable.Set<string>; // set of selected cells
   md_edit_ids?: immutable.Set<string>;
   cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
   mode: NotebookMode;
   hook_offset?: number;
   scroll?: Scroll; // scroll by this amount
-  cm_options: immutable.Map<string, any>;
+  cm_options?: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
   scrollTop?: number;
@@ -184,6 +184,7 @@ export class CellList extends Component<CellListProps> {
   }
 
   private async scroll_cell_list(scroll: Scroll): Promise<void> {
+    if (this.props.cell_list == null) return;
     if (!this.use_windowed_list) return;
     let list = this.windowed_list_ref.current;
     if (list == null) return;
@@ -269,6 +270,12 @@ export class CellList extends Component<CellListProps> {
     isScrolling: boolean,
     index: number
   ): Rendered {
+    if (
+      this.props.cells == null ||
+      this.props.cm_options == null ||
+      this.props.font_size == null
+    )
+      return;
     const cell = this.props.cells.get(id);
     return (
       <Cell
@@ -316,6 +323,7 @@ export class CellList extends Component<CellListProps> {
     isScrolling,
     index
   }): Rendered {
+    if (this.props.cell_list == null) return;
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
       <div>
@@ -327,6 +335,9 @@ export class CellList extends Component<CellListProps> {
   }
 
   private render_list_of_cells_using_windowed_list(): Rendered {
+    if (this.props.cell_list == null) return;
+    const cell_list = this.props.cell_list;
+
     let cache_id: undefined | string = undefined;
     if (this.props.name != null && this.props.frame_actions != null) {
       cache_id = this.props.name + this.props.frame_actions.frame_id;
@@ -337,7 +348,7 @@ export class CellList extends Component<CellListProps> {
         ref={this.windowed_list_ref}
         overscan_row_count={10}
         estimated_row_size={DEFAULT_ROW_SIZE}
-        row_key={index => this.props.cell_list.get(index)}
+        row_key={index => cell_list.get(index)}
         row_count={this.props.cell_list.size}
         row_renderer={this.windowed_list_row_renderer.bind(this)}
         cache_id={cache_id}
@@ -350,6 +361,7 @@ export class CellList extends Component<CellListProps> {
   }
 
   private render_list_of_cells_directly(): Rendered[] {
+    if (this.props.cell_list == null) return [];
     const v: Rendered[] = [];
     let index: number = 0;
     this.props.cell_list.forEach((id: string) => {
@@ -387,7 +399,12 @@ export class CellList extends Component<CellListProps> {
   }
 
   public render(): Rendered {
-    if (this.props.cell_list == null) {
+    if (
+      this.props.cell_list == null ||
+      this.props.cells == null ||
+      this.props.font_size == null ||
+      this.props.cm_options == null
+    ) {
       return this.render_loading();
     }
 

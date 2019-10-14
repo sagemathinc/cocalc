@@ -145,6 +145,7 @@ export class Data extends Component<DataProps> {
           }
           return (
             <Image
+              name={this.props.name}
               project_id={this.props.project_id}
               type={type}
               sha1={sha1}

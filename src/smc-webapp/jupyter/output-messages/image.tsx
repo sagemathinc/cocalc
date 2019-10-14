@@ -1,28 +1,50 @@
 import { delay } from "awaiting";
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import {
+  React,
+  Component,
+  Rendered,
+  rclass,
+  rtypes
+} from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
+// https://github.com/souporserious/react-measure
+import Measure from "react-measure";
+import { Dimensions } from "../store";
 
 interface ImageProps {
+  name?: string;
   type: string;
   sha1?: string; // one of sha1 or value must be given
   value?: string;
   project_id?: string;
   width?: number;
   height?: number;
+  // redux props
+  cell_list_dim?: Dimensions;
 }
 
 interface ImageState {
   attempts: number;
   zoomed: boolean;
+  image_dim?: Dimensions;
 }
 
-export class Image extends Component<ImageProps, ImageState> {
+class ImageComponent extends Component<ImageProps, ImageState> {
   private is_mounted: any;
 
   constructor(props: ImageProps, context: any) {
     super(props, context);
     this.img_click = this.img_click.bind(this);
     this.state = { attempts: 0, zoomed: false };
+  }
+
+  public static reduxProps({ name }) {
+    console.log("name", name);
+    return {
+      [name]: {
+        cell_list_dim: rtypes.object
+      }
+    };
   }
 
   load_error = async (): Promise<void> => {
@@ -51,6 +73,15 @@ export class Image extends Component<ImageProps, ImageState> {
     });
   }
 
+  on_img_resize = (contentRect): void => {
+    this.setState({
+      image_dim: {
+        width: contentRect.client.width,
+        height: contentRect.client.height
+      }
+    });
+  };
+
   render_image(src, on_error?): Rendered {
     const props = {
       src,
@@ -58,8 +89,9 @@ export class Image extends Component<ImageProps, ImageState> {
       height: this.props.height,
       onClick: this.img_click
     };
+    const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";
+
     if (this.props.width == null && this.props.height == null) {
-      const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";
       props["style"] = { cursor } as React.CSSProperties;
       if (!this.state.zoomed) {
         const limit: React.CSSProperties = { maxWidth: "100%", height: "auto" };
@@ -69,7 +101,18 @@ export class Image extends Component<ImageProps, ImageState> {
     if (on_error != null) {
       props["onError"] = on_error;
     }
-    return <img {...props} />;
+    if (this.state.image_dim != null) {
+      const { width, height } = this.state.image_dim;
+      console.log("image_dim", width, height);
+    }
+    if (this.props.cell_list_dim != null) {
+      console.log("cell_list_dim", this.props.cell_list_dim);
+    }
+    return (
+      <Measure client onResize={this.on_img_resize}>
+        {({ measureRef }) => <img ref={measureRef} {...props} />}
+      </Measure>
+    );
   }
 
   render_using_server(project_id: string, sha1: string): Rendered {
@@ -107,3 +150,5 @@ export class Image extends Component<ImageProps, ImageState> {
     }
   }
 }
+
+export const Image = rclass(ImageComponent);

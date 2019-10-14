@@ -4,6 +4,7 @@ Top-level react component, which ties everything together
 
 import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
+import Measure from "react-measure";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
@@ -28,6 +29,7 @@ import { RawEditor } from "./raw-editor";
 const { SnippetsDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 import { Scroll } from "./types";
+import { Dimensions } from "./store";
 
 const KERNEL_STYLE: React.CSSProperties = {
   float: "right",
@@ -112,6 +114,7 @@ interface JupyterEditorProps {
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
   default_kernel?: string;
   closestKernel?: KernelType;
+  cell_list_dim?: Dimensions;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {
@@ -275,7 +278,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
-  render_cells() {
+  render_cells(): Rendered {
     if (
       this.props.cell_list == null ||
       this.props.font_size == null ||
@@ -283,47 +286,54 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.kernels == null ||
       this.props.cells == null
     ) {
-      return (
-        <Loading
-          style={{
-            fontSize: "24pt",
-            textAlign: "center",
-            marginTop: "15px",
-            color: "#888"
-          }}
-        />
-      );
+      return this.render_loading();
     }
 
     return (
-      <CellList
-        actions={this.props.actions}
-        frame_actions={this.props.frame_actions}
-        name={this.props.name}
-        cell_list={this.props.cell_list}
-        cells={this.props.cells}
-        font_size={this.props.font_size}
-        sel_ids={this.props.sel_ids}
-        md_edit_ids={this.props.md_edit_ids}
-        cur_id={this.props.cur_id}
-        mode={this.props.mode}
-        hook_offset={this.props.hook_offset}
-        cm_options={this.props.cm_options}
-        project_id={this.props.project_id}
-        directory={this.props.directory}
-        scrollTop={this.props.scrollTop}
-        complete={this.props.is_focused ? this.props.complete : undefined}
-        is_focused={this.props.is_focused}
-        more_output={this.props.more_output}
-        scroll={this.props.scroll}
-        cell_toolbar={this.props.cell_toolbar}
-        trust={this.props.trust}
-        use_windowed_list={
-          this.props.frame_actions != null &&
-          this.props.editor_settings != null &&
-          !this.props.editor_settings.get("disable_jupyter_windowing")
-        }
-      />
+      <Measure
+        client
+        onResize={contentRect => {
+          const { height, width } = contentRect.client;
+          this.props.actions.set_cell_list_dim({ height, width });
+        }}
+      >
+        {({ measureRef }) => {
+          return (
+            <div ref={measureRef} className={"smc-vfill"}>
+              <CellList
+                actions={this.props.actions}
+                frame_actions={this.props.frame_actions}
+                name={this.props.name}
+                cell_list={this.props.cell_list}
+                cells={this.props.cells}
+                font_size={this.props.font_size}
+                sel_ids={this.props.sel_ids}
+                md_edit_ids={this.props.md_edit_ids}
+                cur_id={this.props.cur_id}
+                mode={this.props.mode}
+                hook_offset={this.props.hook_offset}
+                cm_options={this.props.cm_options}
+                project_id={this.props.project_id}
+                directory={this.props.directory}
+                scrollTop={this.props.scrollTop}
+                complete={
+                  this.props.is_focused ? this.props.complete : undefined
+                }
+                is_focused={this.props.is_focused}
+                more_output={this.props.more_output}
+                scroll={this.props.scroll}
+                cell_toolbar={this.props.cell_toolbar}
+                trust={this.props.trust}
+                use_windowed_list={
+                  this.props.frame_actions != null &&
+                  this.props.editor_settings != null &&
+                  !this.props.editor_settings.get("disable_jupyter_windowing")
+                }
+              />
+            </div>
+          );
+        }}
+      </Measure>
     );
   }
 

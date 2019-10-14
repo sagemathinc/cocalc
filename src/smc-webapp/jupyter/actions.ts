@@ -35,7 +35,8 @@ import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
-  show_kernel_selector_reasons
+  show_kernel_selector_reasons,
+  Dimensions
 } from "./store";
 import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
@@ -2584,6 +2585,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cell_list == null) return;
     const contents = immutable.fromJS(parse_headings(cells, cell_list));
     this.setState({ contents });
+  }
+
+  set_cell_list_dim(dim: Dimensions) {
+    this.setState({ cell_list_dim: dim });
   }
 }
 

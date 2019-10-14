@@ -18,6 +18,11 @@ let global_clipboard: any = undefined;
 
 export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
+export interface Dimensions {
+  height: number;
+  width: number;
+}
+
 export interface JupyterStoreState {
   nbconvert_dialog: any;
   cell_toolbar: CellToolbarName;
@@ -70,6 +75,7 @@ export interface JupyterStoreState {
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
+  cell_list_dim?: Dimensions;
 }
 
 export const initial_jupyter_store_state: {
