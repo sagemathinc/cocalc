@@ -65,6 +65,8 @@ With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
 
+.. index:: API; get_api_key
+
 It is also possible to obtain an API key using a javascript-enabled automated web client.
 This option is useful for applications that embed CoCalc
 in a custom environment, for example [juno.sh](https://juno.sh),

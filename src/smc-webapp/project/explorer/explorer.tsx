@@ -9,7 +9,8 @@ import {
   TimeAgo,
   ErrorDisplay,
   Loading,
-  CourseProjectExtraHelp
+  CourseProjectExtraHelp,
+  SettingBox
 } from "../../r_misc";
 import { default_ext } from "./file-listing/utils";
 import { BillingPage } from "../../billing/billing-page";
@@ -39,9 +40,6 @@ const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
 const { SMC_Dropwrapper } = require("../../smc-dropzone");
 const { ProjectNewForm } = require("../../project_new");
 const { Library } = require("../../library");
-const {
-  ProjectSettingsPanel
-} = require("../../project/project-settings-support");
 const { webapp_client } = require("../../webapp_client");
 const { UsersViewing } = require("../../other-users");
 
@@ -336,7 +334,7 @@ export const Explorer = rclass<ReactProps>(
       return (
         <Row>
           <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-            <ProjectSettingsPanel
+            <SettingBox
               icon={"book"}
               title={"Library"}
               close={() => this.props.actions.toggle_library(false)}
@@ -347,7 +345,7 @@ export const Explorer = rclass<ReactProps>(
                 actions={this.props.actions}
                 close={() => this.props.actions.toggle_library(false)}
               />
-            </ProjectSettingsPanel>
+            </SettingBox>
           </Col>
         </Row>
       );

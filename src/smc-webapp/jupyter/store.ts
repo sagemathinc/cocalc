@@ -10,7 +10,7 @@ import { Set, Map, List, OrderedMap, fromJS } from "immutable";
 import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
-import { KernelInfo } from "./types";
+import { KernelInfo, CellToolbarName } from "./types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -20,7 +20,7 @@ export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
 export interface JupyterStoreState {
   nbconvert_dialog: any;
-  cell_toolbar: string;
+  cell_toolbar: CellToolbarName;
   edit_attachments?: string;
   edit_cell_metadata: any;
   raw_ipynb: any;
@@ -46,7 +46,7 @@ export interface JupyterStoreState {
   project_id: string;
   font_size: number;
   sel_ids: any;
-  toolbar?: any;
+  toolbar?: boolean;
   view_mode: string;
   mode: string;
   nbconvert: any;
@@ -69,10 +69,11 @@ export interface JupyterStoreState {
   default_kernel?: string;
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
+  contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
 }
 
 export const initial_jupyter_store_state: {
-  [K in keyof JupyterStoreState]?: JupyterStoreState[K]
+  [K in keyof JupyterStoreState]?: JupyterStoreState[K];
 } = {
   check_select_kernel_init: false,
   show_kernel_selector: false,
@@ -130,7 +131,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   public get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
-    if (cell_list == null) {  // truly fatal
+    if (cell_list == null) {
+      // truly fatal
       throw Error("ordered list of cell id's not known");
     }
     const i = cell_list.indexOf(id);

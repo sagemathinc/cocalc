@@ -20,11 +20,17 @@ import { React, Rendered, Component } from "../../app-framework";
 import { split } from "smc-util/misc2";
 
 import { Engine, build_command } from "./latexmk";
+import { Actions } from "./actions";
 
-const ENGINES: Engine[] = ["PDFLaTeX", "PDFLaTeX (shell-escape)", "XeLaTeX", "LuaTex"];
+const ENGINES: Engine[] = [
+  "PDFLaTeX",
+  "PDFLaTeX (shell-escape)",
+  "XeLaTeX",
+  "LuaTex"
+];
 
 interface Props {
-  actions: any;
+  actions: Actions;
   filename: string;
   build_command: string | List<string>;
   knitr: boolean;
@@ -86,7 +92,8 @@ export class BuildCommand extends Component<Props, State> {
     const cmd: string[] = build_command(
       engine,
       this.props.filename,
-      this.props.knitr
+      this.props.knitr,
+      this.props.actions.output_directory
     );
     this.props.actions.set_build_command(cmd);
     this.setState({ build_command: this.build_command_string(fromJS(cmd)) });

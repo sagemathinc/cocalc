@@ -47,7 +47,8 @@ import {
   separate_file_extension,
   splitlines,
   startswith,
-  change_filename_extension
+  change_filename_extension,
+  sha1
 } from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
 const { open_new_tab } = require("smc-webapp/misc_page");
@@ -93,6 +94,15 @@ export class Actions extends BaseActions<LatexEditorState> {
   // optional engine configuration string -- https://github.com/sagemathinc/cocalc/issues/2839
   private engine_config: Engine | null | undefined = undefined;
 
+  // The output_directory that will be used if we are building
+  // and using an output directory.  NOTE: this is a /tmp
+  // directory, which we do not explicitly clean up.  However,
+  // it gets cleaned up when the project stops (in kucalc it
+  // is a ramdisk), or by whatever tmp cleaner should probably
+  // be installed (say for docker...).  At least the size
+  // should be relatively small.
+  public output_directory: string;
+
   _init2(): void {
     if (!this.is_public) {
       this.init_bad_filename();
@@ -102,6 +112,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.init_latexmk();
       this._init_spellcheck();
       this.init_config();
+      if (!this.knitr) {
+        this.output_directory = `/tmp/${sha1(this.path)}`;
+      }
     }
   }
 
@@ -177,7 +190,8 @@ export class Actions extends BaseActions<LatexEditorState> {
               build_command(
                 this.engine_config,
                 path_split(this.path).tail,
-                this.knitr
+                this.knitr,
+                this.output_directory
               )
             );
           }
@@ -225,7 +239,12 @@ export class Actions extends BaseActions<LatexEditorState> {
             return;
           }
         } else if (cmd.size > 0) {
-          this.setState({ build_command: fromJS(cmd) });
+          // It's an array so the output-directory option should be
+          // set; however, it's possible it isn't in case this is
+          // an old document that had the build_command set before
+          // we implemented output directory support.
+          const build_command: List<string> = this.ensure_output_directory(cmd);
+          this.setState({ build_command });
           return;
         }
       }
@@ -234,7 +253,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       const default_cmd = build_command(
         this.engine_config || "PDFLaTeX",
         path_split(this.path).tail,
-        this.knitr
+        this.knitr,
+        this.output_directory
       );
       this.set_build_command(default_cmd);
     };
@@ -245,6 +265,20 @@ export class Actions extends BaseActions<LatexEditorState> {
     // We now definitely have the build command set and the document loaded,
     // so let's kick off our initial build.
     this.force_build();
+  }
+
+  private ensure_output_directory(cmd: List<string>): List<string> {
+    const has_output_dir = cmd.some(x => x.indexOf("-output-directory=") != -1);
+    if (!has_output_dir && this.output_directory != null) {
+      // no output directory option.
+      return cmd.splice(
+        cmd.size - 2,
+        0,
+        `-output-directory=${this.output_directory}`
+      );
+    } else {
+      return cmd;
+    }
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -346,9 +380,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.setState({ build_logs: Map() });
 
     if (this.bad_filename) {
-      const err = `ERROR: It is not possible to compile this LaTeX file with the name '${
-        this.path
-      }'.
+      const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
         Please modify the filename, such that it does **not** contain two or more consecutive spaces.`;
       this.set_error(err);
       return;
@@ -445,6 +477,28 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  // Return the output directory that should actually be used
+  // for latexmk, synctex, etc., commands.  This depends on
+  // the configured build line.  This is NOT always just
+  // this.output_directory.
+  private get_output_directory(): string | undefined {
+    if (this.knitr) return;
+    const s: string | List<string> | undefined = this.store.get(
+      "build_command"
+    );
+    if (!s) {
+      return;
+    }
+    if (typeof s == "string" && s.indexOf("output-directory") == -1) {
+      // we aren't going to go so far as to
+      // parse a changed output-directory option...
+      // At least if there is no option, we just
+      // assume no output directory.
+      return undefined;
+    }
+    return this.output_directory;
+  }
+
   async run_latex(
     time: number,
     force: boolean,
@@ -453,7 +507,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     let output: BuildLog;
     let build_command: string | string[];
     const timestamp = this.make_timestamp(time, force);
-    let s: string | List<string> = this.store.get("build_command");
+    let s: string | List<string> | undefined = this.store.get("build_command");
     if (!s) {
       return;
     }
@@ -472,7 +526,8 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.path,
         build_command,
         timestamp,
-        status
+        status,
+        this.get_output_directory()
       );
     } catch (err) {
       this.set_error(err);
@@ -519,7 +574,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       const output: BuildLog = await bibtex(
         this.project_id,
         this.path,
-        this.make_timestamp(time, force)
+        this.make_timestamp(time, force),
+        this.get_output_directory()
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -535,7 +591,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     let hash: string = "";
     if (!force) {
       try {
-        hash = await sagetex_hash(this.project_id, this.path, time, status);
+        hash = await sagetex_hash(
+          this.project_id,
+          this.path,
+          time,
+          status,
+          this.get_output_directory()
+        );
         if (hash === this._last_sagetex_hash) {
           // no change - nothing to do except updating the pdf preview
           this.update_pdf(time, force);
@@ -553,8 +615,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     let output: BuildLog | undefined;
     try {
       // Next run Sage.
-      output = await sagetex(this.project_id, this.path, hash, status);
-      // Now run latex again, since we had to run sagetex, which changes
+      output = await sagetex(
+        this.project_id,
+        this.path,
+        hash,
+        status,
+        this.get_output_directory()
+      );
+      // Now Run LaTeX, since we had to run sagetex, which changes
       // the sage output. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
       await this.run_latex(time + 1, force);
@@ -582,7 +650,14 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     try {
       // Run PythonTeX
-      output = await pythontex(this.project_id, this.path, time, force, status);
+      output = await pythontex(
+        this.project_id,
+        this.path,
+        time,
+        force,
+        status,
+        this.get_output_directory()
+      );
       // Now run latex again, since we had to run pythontex, which changes
       // the inserted snippets. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
@@ -620,7 +695,8 @@ export class Actions extends BaseActions<LatexEditorState> {
         y,
         page,
         pdf_path: pdf_path(this.path),
-        project_id: this.project_id
+        project_id: this.project_id,
+        output_directory: this.get_output_directory()
       });
       this.set_status("");
       let line = info.Line;
@@ -658,7 +734,8 @@ export class Actions extends BaseActions<LatexEditorState> {
         tex_path: filename,
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
-        knitr: this.knitr
+        knitr: this.knitr,
+        output_directory: this.get_output_directory()
       });
     } catch (err) {
       console.warn("ERROR ", err);
@@ -729,7 +806,13 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     this.set_status("Cleaning up auxiliary files...");
     try {
-      await clean(this.project_id, this.path, this.knitr, logger);
+      await clean(
+        this.project_id,
+        this.path,
+        this.knitr,
+        logger,
+        this.get_output_directory()
+      );
     } catch (err) {
       this.set_error(`Error cleaning auxiliary files -- ${err}`);
     }
