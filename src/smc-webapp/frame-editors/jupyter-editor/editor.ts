@@ -5,6 +5,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 import { CellNotebook } from "./cell-notebook/cell-notebook";
 
@@ -57,7 +58,6 @@ export const EDITOR_SPEC = {
       }
     }
   },
-  terminal,
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
@@ -78,7 +78,9 @@ export const EDITOR_SPEC = {
     icon: "info",
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size"])
-  }
+  },
+  terminal,
+  time_travel
 };
 /*,
   jupyter_singledoc_notebook: {

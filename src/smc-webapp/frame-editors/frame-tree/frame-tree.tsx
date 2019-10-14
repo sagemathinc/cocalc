@@ -41,6 +41,8 @@ const tree_ops = require("./tree-ops");
 const { Loading } = require("smc-webapp/r_misc");
 import { Available as AvailableFeatures } from "../../project_configuration";
 
+import { TimeTravelActions } from "../time-travel-editor/actions";
+
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
 const cols_drag_bar = {
@@ -231,18 +233,18 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     const project_id = desc.get("project_id", this.props.project_id);
     let name = this.props.name;
     let actions = this.props.actions;
-    if (spec.name === "TimeTravel") {
-      console.log("making a time travel leaf");
+
+    // This approach to TimeTravel as a subframe is not sufficiently
+    // generic and is a **temporary** hack.  It'll be rewritten
+    // soon in a more generic way that also will support multifile
+    // latex editing.
+    if (spec.name === "TimeTravel" && !(actions instanceof TimeTravelActions)) {
       if (path.slice(path.length - 12) != ".time-travel") {
-        console.log(
-          "making a time travel leaf inside a non-time-travel master"
-        );
         path = "." + path + ".time-travel"; // quick hack; only root dir
         const ed = require("./register").get_file_editor("time-travel", false);
         if (ed == null) throw Error("bug");
         const { redux } = require("../../app-framework");
         name = ed.init(path, redux, project_id);
-        console.log("got redux name = ", name);
         const actions2 = redux.getActions(name);
         actions2.ambient_actions = actions;
         actions = actions2;

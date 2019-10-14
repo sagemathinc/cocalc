@@ -774,7 +774,11 @@ export class FrameTitleBar extends Component<Props, State> {
         title={"Show complete edit history"}
         bsStyle={"info"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.time_travel()}
+        onClick={() =>
+          this.props.actions.time_travel({
+            frame: this.props.editor_spec["time_travel"] != null
+          })
+        }
       >
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>

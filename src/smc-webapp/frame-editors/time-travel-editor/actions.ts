@@ -47,7 +47,7 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   private syncpath: string;
   public syncdoc?: SyncDoc;
   private first_load: boolean = true;
-  public ambient_actions: any;   // Actions<CodeEditorState>;
+  public ambient_actions: any; // Actions<CodeEditorState>;
 
   public _init2(): void {
     this.ambient_actions = this;
@@ -91,7 +91,9 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     });
     if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
-    await once(this.syncdoc, "ready");
+    if (this.syncdoc.get_state() != "ready") {
+      await once(this.syncdoc, "ready");
+    }
     this.setState({
       loading: false,
       has_full_history: this.syncdoc.has_full_history()

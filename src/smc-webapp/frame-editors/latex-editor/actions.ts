@@ -906,7 +906,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // knitr case: point to editor file, not the generated tex
     // https://github.com/sagemathinc/cocalc/issues/3336
     if (this.knitr) {
-      super.time_travel(this.filename_knitr);
+      super.time_travel({ path: this.filename_knitr });
     } else {
       super.time_travel();
     }
