@@ -26,6 +26,7 @@ interface ImageProps {
 interface ImageState {
   attempts: number;
   zoomed: boolean;
+  style?: React.CSSProperties;
   image_dim?: Dimensions;
 }
 
@@ -73,13 +74,77 @@ class ImageComponent extends Component<ImageProps, ImageState> {
     });
   }
 
-  on_img_resize = (contentRect): void => {
-    this.setState({
-      image_dim: {
-        width: contentRect.client.width,
-        height: contentRect.client.height
+  private limit_height(style, height) {
+    const max_height = Math.round(height * 0.9);
+    const limit: React.CSSProperties = {
+      maxHeight: `${max_height}px`,
+      width: "auto"
+    };
+    Object.assign(style, limit);
+  }
+
+  //private limit_width(style) {}
+
+  private calc_img_style(image_dim: Dimensions): React.CSSProperties {
+    // zoomed actually means we return the image without style extras
+    if (this.state.zoomed) return {};
+
+    // if we know it, return the already computed one
+    // this avoids endless loops, where a resized image gets a different style, resizing again, etc.
+    if (this.state.style != null) return this.state.style;
+
+    const style: React.CSSProperties = {};
+    const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";
+    const has_size = this.props.width != null && this.props.height != null;
+    const area_dim = this.props.cell_list_dim;
+    if (image_dim == null || area_dim == null) return style;
+    // no data yet
+    if (image_dim.width === 0 && image_dim.height === 0) return style;
+
+    if (has_size) {
+      console.log("image_dim", image_dim);
+      console.log("area_dim", area_dim);
+
+      const portrait = image_dim.width < image_dim.height;
+      if (portrait) {
+        if (area_dim.height < image_dim.height) {
+          this.limit_height(style, area_dim.height);
+        }
+      } else {
+        // landsacpe image
+        if (area_dim.width <= image_dim.width) {
+          const limit: React.CSSProperties = {
+            maxWidth: `${area_dim.width}px`,
+            height: "auto"
+          };
+          Object.assign(style, limit);
+        }
       }
-    });
+    } else {
+      // the image has no specific size set
+      Object.assign(style, { cursor } as React.CSSProperties);
+      if (area_dim.height <= image_dim.height) {
+        this.limit_height(style, area_dim.height);
+      } else {
+        const limit: React.CSSProperties = {
+          maxWidth: `100%`,
+          height: "auto"
+        };
+        Object.assign(style, limit);
+      }
+    }
+
+    this.setState({ style: style });
+    return style;
+  }
+
+  on_img_resize = (contentRect): void => {
+    const image_dim = {
+      width: contentRect.client.width,
+      height: contentRect.client.height
+    };
+    const style = this.calc_img_style(image_dim);
+    this.setState({ image_dim, style });
   };
 
   render_image(src, on_error?): Rendered {
@@ -89,28 +154,18 @@ class ImageComponent extends Component<ImageProps, ImageState> {
       height: this.props.height,
       onClick: this.img_click
     };
-    const cursor = this.state.zoomed ? "zoom-out" : "zoom-in";
 
-    if (this.props.width == null && this.props.height == null) {
-      props["style"] = { cursor } as React.CSSProperties;
-      if (!this.state.zoomed) {
-        const limit: React.CSSProperties = { maxWidth: "100%", height: "auto" };
-        Object.assign(props["style"], limit);
-      }
-    }
     if (on_error != null) {
       props["onError"] = on_error;
     }
-    if (this.state.image_dim != null) {
-      const { width, height } = this.state.image_dim;
-      console.log("image_dim", width, height);
-    }
-    if (this.props.cell_list_dim != null) {
-      console.log("cell_list_dim", this.props.cell_list_dim);
-    }
+
     return (
       <Measure client onResize={this.on_img_resize}>
-        {({ measureRef }) => <img ref={measureRef} {...props} />}
+        {({ measureRef }) => {
+          const style = this.state.style;
+          if (style) Object.assign(props, { style });
+          return <img ref={measureRef} {...props} />;
+        }}
       </Measure>
     );
   }
