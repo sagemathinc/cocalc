@@ -19,6 +19,11 @@ try {
   Tooltip = Popover = Idempotent;
 }
 
+const TIP_STYLE: React.CSSProperties = {
+  wordWrap: "break-word",
+  maxWidth: "250px"
+};
+
 interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
   placement?: "top" | "right" | "bottom" | "left";
@@ -83,8 +88,9 @@ export class Tip extends React.Component<Props, State> {
   //   this.setState({ display_trigger: false });
   // };
 
+  // a tip is rendered in a description box below the title
   private render_tip(): Rendered {
-    return <span style={{ wordWrap: "break-word" }}>{this.props.tip}</span>;
+    return <div style={TIP_STYLE}>{this.props.tip}</div>;
   }
 
   // this is the visible element, which gets some information
@@ -93,23 +99,6 @@ export class Tip extends React.Component<Props, State> {
   }
 
   private render_tooltip(): Rendered {
-    // NOTE: It's inadvisable to use "hover" or "focus" triggers for popovers, because they have poor
-    // accessibility from keyboard and on mobile devices. -- from https://react-bootstrap.github.io/components/popovers/
-    // return (
-    //   <OverlayTrigger
-    //     placement={this.props.placement}
-    //     overlay={this.render_popover()}
-    //     delayShow={this.props.delayShow}
-    //     delayHide={this.props.delayHide}
-    //     rootClose={this.props.rootClose}
-    //     trigger={feature.IS_TOUCH ? "click" : undefined}
-    //   >
-    //     <span style={this.props.style} onMouseLeave={this.overlay_onMouseLeave}>
-    //       {this.props.children}
-    //     </span>
-    //   </OverlayTrigger>
-    // );
-
     if (this.props.delayShow == null || this.props.delayHide == null) return;
 
     const props: { [key: string]: any } = {
