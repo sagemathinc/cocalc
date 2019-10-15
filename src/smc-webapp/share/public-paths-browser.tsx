@@ -5,7 +5,7 @@ Share server top-level landing page.
 import { List, Map } from "immutable";
 import { Component, React, Rendered } from "../app-framework";
 import { encode_path } from "smc-util/misc";
-const { TimeAgoElement } = require("../r_misc");
+const { TimeAgoElement } = require("../r_misc/old-coffee-code-index");
 import { Space } from "../r_misc/space";
 
 const INDEX_STYLE = {

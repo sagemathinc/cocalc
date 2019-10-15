@@ -15,7 +15,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 
 import { redux, Redux, rclass, rtypes } from "./app-framework";
 import * as React from "react";
-import { Loading } from "./r_misc";
+import { Loading } from "./r_misc/loading";
 
 const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");

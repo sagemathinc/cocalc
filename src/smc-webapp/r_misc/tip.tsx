@@ -4,8 +4,8 @@ import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 import * as feature from "../feature";
 
-const { Popover } = require("react-bootstrap");
-import { Tooltip } from "cocalc-ui";
+// const { Popover } = require("react-bootstrap");
+import { Tooltip, Popover } from "cocalc-ui";
 
 interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
@@ -17,8 +17,8 @@ interface Props {
   rootClose?: boolean;
   icon?: string;
   id?: string; // can be used for screen readers
-  style?: object; // changing not checked when updating if stable is true
-  popover_style?: object; // changing not checked ever (default={zIndex:1000})
+  style?: React.CSSProperties; // changing not checked when updating if stable is true
+  popover_style?: React.CSSProperties; // changing not checked ever (default={zIndex:1000})
   stable?: boolean; // if true, children assumed to never change
   allow_touch?: boolean;
 }
@@ -72,16 +72,12 @@ export class Tip extends React.Component<Props, State> {
   // };
 
   private render_tip(): Rendered {
-    return (
-      <Popover
-        bsSize={this.props.size}
-        placement={this.props.placement}
-        title={this.render_title()}
-        style={this.props.popover_style}
-      >
-        <span style={{ wordWrap: "break-word" }}>{this.props.tip}</span>
-      </Popover>
-    );
+    return <span style={{ wordWrap: "break-word" }}>{this.props.tip}</span>;
+  }
+
+  // this is the visible element, which gets some information
+  private render_wrapped(): Rendered {
+    return <span style={this.props.style}>{this.props.children}</span>;
   }
 
   private render_tooltip(): Rendered {
@@ -114,29 +110,29 @@ export class Tip extends React.Component<Props, State> {
 
     if (this.props.tip) {
       return (
-        <Tooltip overlayClassName="" title={this.render_tip()} {...props}>
-          <span style={this.props.style}>{this.props.children}</span>
-        </Tooltip>
+        <Popover
+          title={this.render_title()}
+          content={this.render_tip()}
+          {...props}
+        >
+          {this.render_wrapped()}
+        </Popover>
       );
     } else {
       return (
         <Tooltip title={this.render_title()} {...props}>
-          <span style={this.props.style}>{this.props.children}</span>
+          {this.render_wrapped()}
         </Tooltip>
       );
     }
   }
 
   render() {
-    if (feature.IS_TOUCH) {
-      // Tooltips are very frustrating and pointless on mobile or tablets, and cause a lot of trouble; also,
-      // our assumption is that mobile users will also use the desktop version at some point, where
-      // they can learn what the tooltips say.  We do optionally allow a way to use them.
-      if (this.props.allow_touch) {
-        return this.render_tooltip();
-      } else {
-        return <span style={this.props.style}>{this.props.children}</span>;
-      }
+    // Tooltips are very frustrating and pointless on mobile or tablets, and cause a lot of trouble; also,
+    // our assumption is that mobile users will also use the desktop version at some point, where
+    // they can learn what the tooltips say.  We do optionally allow a way to use them.
+    if (feature.IS_TOUCH && !this.props.allow_touch) {
+      return this.render_wrapped();
     }
 
     return this.render_tooltip();
