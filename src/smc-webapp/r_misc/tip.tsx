@@ -5,7 +5,19 @@ import * as misc from "smc-util/misc";
 import * as feature from "../feature";
 
 // const { Popover } = require("react-bootstrap");
-import { Tooltip, Popover } from "cocalc-ui";
+let Tooltip: any, Popover: any;
+try {
+  Tooltip = require("cocalc-ui").Tooltip;
+  Popover = require("cocalc-ui").Popover;
+} catch (err) {
+  console.log(`Tooltip&Popover cannot be imported -- ${err}`);
+  class Idempotent extends React.Component {
+    render() {
+      return this.props.children;
+    }
+  }
+  Tooltip = Popover = Idempotent;
+}
 
 interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
