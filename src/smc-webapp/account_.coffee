@@ -107,20 +107,6 @@ webapp_client.on "remember_me_failed", () ->
 {get_cookie, APP_BASE_URL} = require('./misc_page')
 redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 
-# Return a default filename with the given ext (or not extension if ext not given)
-# this is just a wrapper for backwards compatibility
-{NewFilenames} = require('project/utils')
-{NEW_FILENAMES} = require('smc-util/db-schema')
-new_filenames_generator = new NewFilenames(undefined, true)
-exports.default_filename = (ext, project_id) ->
-    new_filenames_generator.set_ext(ext)
-    if project_id?
-        avoid = redux.getProjectActions(project_id).get_filenames_in_current_dir()
-        return new_filenames_generator.gen(type, avoid)
-    else
-        return new_filenames_generator.gen(type)
-
-
 # Ensure the hooks to process various things after user signs in
 # are enabled.
 require('./landing-page/sign-in-hooks')
