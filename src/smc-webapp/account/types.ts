@@ -1,4 +1,5 @@
 import * as immutable from "immutable";
+import { NewFilenameTypes } from "../project/utils";
 
 export interface AccountState {
   active_page: string;
@@ -10,9 +11,16 @@ export interface AccountState {
   last_name: string;
   profile: { color: string };
   email_address: string;
-  editor_settings: { jupyter_classic?: boolean; jupyter?: { kernel: string } };
+  editor_settings: {
+    jupyter_classic?: boolean;
+    jupyter?: { kernel: string };
+  };
   font_size: number;
-  other_settings: { confirm_close: string; page_size?: number };
+  other_settings: {
+    confirm_close: string;
+    page_size?: number;
+    new_filenames?: NewFilenameTypes;
+  };
   stripe_customer?: { subscriptions: { data: immutable.Map<string, any> } };
   show_global_info: boolean;
   is_logged_in: boolean;

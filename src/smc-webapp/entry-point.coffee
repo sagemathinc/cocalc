@@ -32,7 +32,7 @@ require('./jquery_plugins')
 require('./init_app')
 
 # Initialize the account store.
-require('./account')
+require('./account_')
 
 if not fullscreen.COCALC_MINIMAL
     notifications = require('./notifications')

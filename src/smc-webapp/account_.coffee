@@ -113,7 +113,6 @@ redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_UR
 {NEW_FILENAMES} = require('smc-util/db-schema')
 new_filenames_generator = new NewFilenames(undefined, true)
 exports.default_filename = (ext, project_id) ->
-    type = redux.getStore("account")?.getIn(["other_settings", NEW_FILENAMES]) ? NewFilenames.default_family
     new_filenames_generator.set_ext(ext)
     if project_id?
         avoid = redux.getProjectActions(project_id).get_filenames_in_current_dir()

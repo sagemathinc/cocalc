@@ -19,7 +19,7 @@ export function init(redux) {
     : "public"; // default
   const store = redux.createStore("account", AccountStore, init);
   const actions = redux.createActions("account", AccountActions);
-  
+
   actions._init(store);
 
   redux.createTable("account", AccountTable);

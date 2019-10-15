@@ -151,7 +151,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
             return;
           case "signed_in":
             this.redux.getActions("page").set_active_tab("projects");
-            var { analytics_event, track_conversion } = require("./misc_page");
+            var { analytics_event, track_conversion } = require("../misc_page");
             analytics_event("account", "create_account"); // user created an account
             track_conversion("create_account");
             return;
@@ -259,7 +259,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // disable redirection from main index page to landing page
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
-    let { APP_BASE_URL } = require("./misc_page");
+    let { APP_BASE_URL, analytics_event } = require("../misc_page");
     const exp = server_days_ago(-30).toGMTString();
     document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
 
@@ -268,7 +268,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     if (everywhere) {
       evt += "_everywhere";
     }
-    const { analytics_event } = require("./misc_page");
+
     analytics_event("account", evt); // user explicitly signed out.
 
     // Send a message to the server that the user explicitly
@@ -298,7 +298,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
             this.redux.getActions("page").check_unload
           );
           window.location.hash = "";
-          ({ APP_BASE_URL } = require("./misc_page"));
+          ({ APP_BASE_URL } = require("../misc_page"));
           window.location = (APP_BASE_URL + "/app?signed_out") as any;
         }
       }
@@ -306,7 +306,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   push_state(url) {
-    const { set_url } = require("./history");
+    const { set_url } = require("../history");
     if (url == null) {
       url = this._last_history_state;
     }
