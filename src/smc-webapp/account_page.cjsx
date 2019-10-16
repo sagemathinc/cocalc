@@ -33,9 +33,6 @@ immutable = require('immutable')
 {Icon, Loading}                          = require('./r_misc')
 {set_url}                                = require('./history')
 
-# Import redux_account, so the account store is initialized.
-require('./account').init(redux)
-
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     account_id              : rtypes.string
     active_page             : rtypes.string

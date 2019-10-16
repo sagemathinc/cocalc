@@ -28,10 +28,12 @@ require('./landing-actions')
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
+###
 # Initialize app stores, actions, etc.
+###
 require('./init_app')
 
-# Initialize the account store.
+# legacy account store
 require('./account_')
 
 if not fullscreen.COCALC_MINIMAL
@@ -39,6 +41,7 @@ if not fullscreen.COCALC_MINIMAL
     notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
+require('./account').init(redux)
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
