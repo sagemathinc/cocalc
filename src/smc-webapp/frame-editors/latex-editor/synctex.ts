@@ -24,7 +24,7 @@ function exec_synctex(
     command: "synctex",
     args: args,
     project_id: project_id,
-    path: path,
+    path,
     err_on_exit: true
   });
 }
@@ -34,10 +34,13 @@ export async function pdf_to_tex(opts: {
   project_id: string;
   page: number; // 1-based page number
   x: number; // x-coordinate on page
-  y: number; // y-coordinate on page
+  y: number; // y-coordinate on page,
+  output_directory: string | undefined;
 }): Promise<SyncTex> {
   let { head, tail } = path_split(opts.pdf_path);
-  let output = await exec_synctex(opts.project_id, head, [
+  const path: string =
+    opts.output_directory != null ? opts.output_directory : head;
+  let output = await exec_synctex(opts.project_id, path, [
     "edit",
     "-o",
     `${opts.page}:${opts.x}:${opts.y}:${tail}`
@@ -52,12 +55,15 @@ export async function tex_to_pdf(opts: {
   line: number; // 1-based line number
   column: number; // 1-based column
   knitr: boolean;
+  output_directory: string | undefined;
 }): Promise<SyncTex> {
   let { head, tail } = path_split(opts.tex_path);
   if (opts.knitr) {
     tail = change_filename_extension(tail, "Rnw");
   }
-  let output = await exec_synctex(opts.project_id, head, [
+  const path: string =
+    opts.output_directory != null ? opts.output_directory : head;
+  let output = await exec_synctex(opts.project_id, path, [
     "view",
     "-i",
     `${opts.line}:${opts.column}:${tail}`,
