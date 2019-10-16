@@ -7,6 +7,9 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
+import * as sha1 from "sha1";
+export { sha1 };
+
 import * as lodash from "lodash";
 export const keys = lodash.keys;
 
@@ -542,4 +545,4 @@ export function to_human_list(arr) {
   } else {
     return "";
   }
-};
+}

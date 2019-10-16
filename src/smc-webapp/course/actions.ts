@@ -42,6 +42,7 @@ const markdownlib = require("../markdown");
 import * as misc from "smc-util/misc";
 import { defaults, required } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
+import { SyncDB } from "smc-util/sync/editor/db/sync";
 
 const { webapp_client } = require("../webapp_client");
 
@@ -73,7 +74,7 @@ const primary_key = {
 // Requires a syncdb to be set later
 // Manages local and sync changes
 export class CourseActions extends Actions<CourseState> {
-  public syncdb: any;
+  public syncdb: SyncDB;
   private _last_collaborator_state: any;
   private _activity_id: number;
   private prev_interval_id: number;

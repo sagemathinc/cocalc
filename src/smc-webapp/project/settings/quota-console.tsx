@@ -2,6 +2,7 @@
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
 import * as React from "react";
 import * as immutable from "immutable";
+import { Rendered } from "../../app-framework";
 import { Assign } from "utility-types";
 import { LabeledRow, Tip, Icon, Space, Loading } from "../../r_misc";
 import { alert_message } from "../../alerts";
@@ -27,6 +28,8 @@ interface Props {
   account_groups: any[];
   total_project_quotas?: object; // undefined if viewing as admin
   all_upgrades_to_this_project: object;
+  is_commercial?: boolean;
+  kucalc?: string;
 }
 
 interface QuotaParams {
@@ -70,7 +73,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     this.state = state as any;
   }
 
-  componentWillReceiveProps(next_props) {
+  public componentWillReceiveProps(next_props: Props): void {
     const settings = next_props.project_settings;
     if (!immutable.is(this.props.project_settings, settings)) {
       if (settings != undefined) {
@@ -86,7 +89,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  render_quota_row(
+  private render_quota_row(
     name: keyof QuotaParams,
     quota: { edit: string; view: string },
     base_value: number,
@@ -97,7 +100,12 @@ export class QuotaConsole extends React.Component<Props, State> {
       display: string;
       desc: string;
     }
-  ) {
+  ): Rendered {
+    if (this.props.kucalc == "no" && name != "mintime") {
+      // In anything except KuCalc, only the mintime quota is implemented.
+      // NONE of the other quotas are.
+      return;
+    }
     if (base_value == undefined) {
       base_value = 0;
     }
@@ -127,7 +135,7 @@ export class QuotaConsole extends React.Component<Props, State> {
       }
     }
 
-    if (base_value) {
+    if (base_value && this.props.is_commercial) {
       // amount given by free project
       upgrade_list.unshift(
         <li key="free">{text(base_value)} given by free project</li>
@@ -150,11 +158,11 @@ export class QuotaConsole extends React.Component<Props, State> {
     );
   }
 
-  start_admin_editing = () => {
+  private start_admin_editing(): void {
     this.setState({ editing: true });
   }
 
-  save_admin_editing() {
+  private save_admin_editing(): void {
     webapp_client.project_set_quotas({
       project_id: this.props.project_id,
       cores: this.state.cores,
@@ -181,7 +189,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     this.setState({ editing: false });
   }
 
-  cancel_admin_editing = () => {
+  private cancel_admin_editing(): void {
     const settings = this.props.project_settings;
     if (settings != undefined) {
       // reset user input states
@@ -201,7 +209,7 @@ export class QuotaConsole extends React.Component<Props, State> {
   //    - at least one has changed
   //    - none are negative
   //    - none are empty
-  valid_admin_inputs() {
+  private valid_admin_inputs(): boolean {
     let changed;
     const settings = this.props.project_settings;
     if (settings == undefined) {
@@ -226,7 +234,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     return changed;
   }
 
-  render_admin_edit_buttons() {
+  private render_admin_edit_buttons(): Rendered {
     if (this.props.account_groups.includes("admin")) {
       if (this.state.editing) {
         return (
@@ -234,13 +242,15 @@ export class QuotaConsole extends React.Component<Props, State> {
             <Col sm={6} smOffset={6}>
               <ButtonToolbar style={{ float: "right" }}>
                 <Button
-                  onClick={this.save_admin_editing}
+                  onClick={this.save_admin_editing.bind(this)}
                   bsStyle="warning"
                   disabled={!this.valid_admin_inputs()}
                 >
                   <Icon name="thumbs-up" /> Done
                 </Button>
-                <Button onClick={this.cancel_admin_editing}>Cancel</Button>
+                <Button onClick={this.cancel_admin_editing.bind(this)}>
+                  Cancel
+                </Button>
               </ButtonToolbar>
             </Col>
           </Row>
@@ -250,7 +260,7 @@ export class QuotaConsole extends React.Component<Props, State> {
           <Row>
             <Col sm={6} smOffset={6}>
               <Button
-                onClick={this.start_admin_editing}
+                onClick={this.start_admin_editing.bind(this)}
                 bsStyle="warning"
                 style={{ float: "right" }}
               >
@@ -263,7 +273,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  admin_input_validation_styles(
+  private admin_input_validation_styles(
     input: number
   ): React.CSSProperties | undefined {
     if (misc.parse_number_input(input) == undefined) {
@@ -275,7 +285,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  render_input(label: keyof QuotaParams) {
+  private render_input(label: keyof QuotaParams): Rendered {
     if (label === "network" || label === "member_host") {
       return (
         <Checkbox
@@ -304,7 +314,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  render_disk_used(disk) {
+  private render_disk_used(disk: number | string): Rendered {
     if (!disk) {
       return;
     }
@@ -315,7 +325,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     );
   }
 
-  render_memory_used(memory) {
+  private render_memory_used(memory: number | string): Rendered {
     if (!["running", "saving"].includes(this.props.project_state || "")) {
       return;
     }
@@ -326,7 +336,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     );
   }
 
-  render() {
+  public render(): Rendered {
     let name;
     const settings = this.props.project_settings;
     if (settings == undefined) {
@@ -425,7 +435,9 @@ export class QuotaConsole extends React.Component<Props, State> {
         view: (
           <span>
             <b>
-              {round(total_quotas["cores"] * quota_params["cores"].display_factor)}{" "}
+              {round(
+                total_quotas["cores"] * quota_params["cores"].display_factor
+              )}{" "}
               {misc.plural(
                 total_quotas["cores"] * quota_params["cores"].display_factor,
                 "core"

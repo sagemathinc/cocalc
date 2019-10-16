@@ -18,8 +18,8 @@ export function parse_headings(
 ): TableOfContentsInfo[] {
   const v: TableOfContentsInfo[] = [];
   let last_level: number = 0,
-    answer_number: number = 0,
-    section_number: number[] = [];
+    nbgrader_counter: number = 0,
+    section_counter: number[] = [];
   cell_list.forEach((id: string) => {
     const cell = cells.get(id);
     if (cell == null) return;
@@ -27,11 +27,11 @@ export function parse_headings(
     if (nbgrader != null) {
       if (nbgrader.get("solution")) {
         // It's where a student enters an answer.
-        answer_number += 1;
+        nbgrader_counter += 1;
         v.push({
           id,
           level: last_level + 1,
-          value: `Answer ${answer_number}`,
+          value: `Answer ${nbgrader_counter}`,
           icon: "graduation-cap"
         });
       } else if (nbgrader.get("grade")) {
@@ -39,8 +39,16 @@ export function parse_headings(
         v.push({
           id,
           level: last_level + 1,
-          value: `Test of answer ${answer_number}`,
+          value: `Tests for answer ${nbgrader_counter}`,
           icon: "equals"
+        });
+      } else if (nbgrader.get("task")) {
+        nbgrader_counter += 1;
+        v.push({
+          id,
+          level: last_level + 1,
+          value: `Task ${nbgrader_counter}`,
+          icon: "tasks"
         });
       }
     }
@@ -51,15 +59,15 @@ export function parse_headings(
     if (level > 0) {
       if (last_level != level) {
         // reset section numbers
-        for (let i = level; i < section_number.length; i++) {
-          section_number[i] = 0;
+        for (let i = level; i < section_counter.length; i++) {
+          section_counter[i] = 0;
         }
         last_level = level;
       }
       for (let i = 0; i < level; i++) {
-        if (section_number[i] == null) section_number[i] = 0;
+        if (section_counter[i] == null) section_counter[i] = 0;
       }
-      section_number[level - 1] += 1;
+      section_counter[level - 1] += 1;
       const id = cell.get("id");
       if (id == null) return;
       v.push({
@@ -67,7 +75,7 @@ export function parse_headings(
         level,
         value,
         icon: "minus",
-        number: section_number.slice(0, level)
+        number: section_counter.slice(0, level)
       });
     }
   });
