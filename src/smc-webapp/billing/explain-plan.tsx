@@ -31,10 +31,10 @@ export class ExplainPlan extends Component<Props> {
         <p>
           Personal subscriptions award you with{" "}
           <A href="https://doc.cocalc.com/billing.html#quota-upgrades">
-            upgrades for project's quotas
+            upgrades for project quotas
           </A>
-          . Such subscriptions <b>automatically renew</b> after each period. You
-          can cancel any time.
+          . They <b>automatically renew</b> after each period and you can{" "}
+          <b>cancel at any time</b>.
         </p>
         <p>
           Once such upgrades are added to your account, you can distribute them
@@ -61,11 +61,9 @@ export class ExplainPlan extends Component<Props> {
         <h3>Course packages</h3>
         <div>
           <p>
-            You can teach a course on <SiteName />. The{" "}
-            <A href={INSTRUCTOR_GUIDE}>instructor guide</A> explains how to
-            create and manage a course. Each of your students works in their own
-            project, while you oversee everyone and track the progress.{" "}
-            <SiteName />
+            You can <A href={INSTRUCTOR_GUIDE}>teach a course</A> on{" "}
+            <SiteName />. Each student works in their own project, while you
+            oversee everyone and track everyone's progress. <SiteName />
             {"'s"} real-time collaboration makes it easy to help students
             directly where they work.
           </p>

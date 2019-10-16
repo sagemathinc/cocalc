@@ -150,6 +150,8 @@ export class ExplainResources extends Component<Props> {
                 order to increase the total amount of upgrades available to you.
               </li>
             </ul>
+
+            <Space />
             <h4>More information</h4>
             <FAQ />
           </Col>
