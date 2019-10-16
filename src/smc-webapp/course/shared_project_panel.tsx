@@ -23,11 +23,12 @@
 //
 //#############################################################################
 
-import { React, Component, AppRedux } from "../app-framework";
+import { React, Component, AppRedux, Rendered } from "../app-framework";
 import { CourseActions } from "./actions";
 import { CourseSettingsRecord } from "./store";
-const { Alert, Button, ButtonToolbar } = require("react-bootstrap");
-const { HiddenXS, Icon, Tip, VisibleMDLG } = require("../r_misc");
+import { HiddenXS, Icon, Tip, VisibleMDLG } from "../r_misc";
+
+import { Button, Popconfirm } from "cocalc-ui";
 
 interface SharedProjectPanelProps {
   settings: CourseSettingsRecord;
@@ -35,61 +36,22 @@ interface SharedProjectPanelProps {
   name: string;
 }
 
-interface SharedProjectPanelState {
-  confirm_create: boolean;
-}
-
-export class SharedProjectPanel extends Component<
-  SharedProjectPanelProps,
-  SharedProjectPanelState
-> {
+export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
   displayName: "CourseEditor-SharedProject";
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      confirm_create: false
-    };
-  }
-
-  shouldComponentUpdate(props, state) {
+  public shouldComponentUpdate(props): boolean {
     return (
-      this.state.confirm_create !== state.confirm_create ||
       this.props.settings.get("shared_project_id") !==
-        props.settings.get("shared_project_id")
+      props.settings.get("shared_project_id")
     );
   }
 
-  get_actions(): CourseActions {
-    return this.props.redux.getActions(this.props.name);
-  }
-
-  panel_header_text() {
+  private panel_header_text(): string {
     if (this.props.settings.get("shared_project_id")) {
       return "Shared project that everybody can fully use";
     } else {
       return "Optionally create a shared project for everybody";
     }
-  }
-
-  render() {
-    return (
-      <div
-        className="smc-vfill"
-        style={{
-          padding: "15px",
-          margin: "15px auto",
-          border: "1px solid #ccc",
-          maxWidth: "800px",
-          overflowY: "auto"
-        }}
-      >
-        <h4>
-          <Icon name="users" /> {this.panel_header_text()}{" "}
-        </h4>
-        {this.render_content()}
-      </div>
-    );
   }
 
   render_content() {
@@ -120,20 +82,20 @@ export class SharedProjectPanel extends Component<
           </p>
         </div>
         <br />
-        <Button onClick={this.open_project} bsSize={"large"}>
-          <Icon name="edit" /> Open shared project...
+        <Button onClick={this.open_project} size={"large"} icon={"project"}>
+          Open shared project
         </Button>
       </div>
     );
   }
 
   open_project = () => {
-    return this.props.redux.getActions("projects").open_project({
+    this.props.redux.getActions("projects").open_project({
       project_id: this.props.settings.get("shared_project_id")
     });
   };
 
-  render_no_shared_project() {
+  private render_no_shared_project(): Rendered {
     return (
       <div>
         <div style={{ color: "#444" }}>
@@ -159,45 +121,46 @@ export class SharedProjectPanel extends Component<
           </p>
         </div>
         <br />
-        <Button
-          onClick={() => this.setState({ confirm_create: true })}
-          disabled={this.state.confirm_create}
+        <Popconfirm
+          title="Are you sure you want to create a shared project and add all students in this course as collaborators?"
+          onConfirm={() => {
+            const actions = this.props.redux.getActions(
+              this.props.name
+            ) as CourseActions;
+            if (actions != null) actions.create_shared_project();
+          }}
+          okText="Create Shared Project"
+          cancelText="Cancel"
         >
-          <Icon name="plus" /> Create shared project...
-        </Button>
-        {this.render_confirm_create()}
+          <Button size={"large"} icon={"usergroup-add"}>
+            Create shared project...
+          </Button>
+        </Popconfirm>
       </div>
     );
   }
-
-  render_confirm_create() {
-    if (this.state.confirm_create) {
-      return (
-        <Alert bsStyle="warning" style={{ marginTop: "15px" }}>
-          <ButtonToolbar>
-            <Button
-              bsStyle="warning"
-              onClick={() => {
-                this.setState({ confirm_create: false });
-                return this.create_shared_project();
-              }}
-            >
-              Create shared project for everybody involved in this class
-            </Button>
-            <Button onClick={() => this.setState({ confirm_create: false })}>
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
-      );
-    }
-  }
-
-  create_shared_project() {
-    return this.get_actions().create_shared_project();
+  public render(): Rendered {
+    return (
+      <div
+        className="smc-vfill"
+        style={{
+          padding: "15px",
+          margin: "15px auto",
+          border: "1px solid #ccc",
+          maxWidth: "800px",
+          overflowY: "auto"
+        }}
+      >
+        <h4>
+          <Icon name="users" /> {this.panel_header_text()}{" "}
+        </h4>
+        {this.render_content()}
+      </div>
+    );
   }
 }
 
+// TODO: delete this
 export function SharedProjectPanelHeader(props: { project_exists: boolean }) {
   let tip;
   if (props.project_exists) {

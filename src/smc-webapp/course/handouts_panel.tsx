@@ -52,7 +52,7 @@ import {
   Grid
 } from "react-bootstrap";
 
-const { Panel } = require("react-bootstrap"); // since we are so out of sync with the latest version...
+import { Card } from "cocalc-ui";
 
 // CoCalc and course components
 import * as util from "./util";
@@ -787,7 +787,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     return (
       <Row key="more">
         <Col sm={12}>
-          <Panel header={this.render_more_header()}>
+          <Card title={this.render_more_header()}>
             <StudentListForHandout
               frame_id={this.props.frame_id}
               handout={this.props.handout}
@@ -797,7 +797,7 @@ Select "Replace student files!" in case you do not want to create any backups an
               name={this.props.name}
             />
             {this.render_handout_notes()}
-          </Panel>
+          </Card>
         </Col>
       </Row>
     );

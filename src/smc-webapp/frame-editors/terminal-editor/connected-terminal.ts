@@ -431,13 +431,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     //console.log("handle_mesg", this.id, mesg);
     switch (mesg.cmd) {
       case "size":
-        if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
-          try {
-            this.terminal_resize({ cols: mesg.cols, rows: mesg.rows });
-          } catch (err) {
-            // See https://github.com/sagemathinc/cocalc/issues/3536
-            console.warn(`ERROR resizing terminal -- ${err}`);
-          }
+        if (typeof mesg.rows == "number" && typeof mesg.cols == "number") {
+          this.terminal_resize({ rows: mesg.rows, cols: mesg.cols });
         }
         break;
       case "burst":
@@ -487,12 +482,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.actions.set_error("");
   }
 
+  // Try to resize terminal to given number of rows and columns.
+  // This should not throw an exception no matter how wrong the input
+  // actually is.
   private terminal_resize(opts: { cols: number; rows: number }): void {
     // console.log("terminal_resize", opts);
     // terminal.resize only takes integers, hence the floor;
     // we use floor to avoid cutting off a line halfway.
     // See https://github.com/sagemathinc/cocalc/issues/4140
     const { rows, cols } = opts;
+    if (!(rows >= 1) || !(cols >= 1)) {
+      // invalid measurement -- silently ignore
+      // Note -- NaN is not >= 0; see
+      // https://github.com/sagemathinc/cocalc/issues/4158
+      return;
+    }
     // Yes, this can throw an exception, thus breaking everything (resulting in
     // a blank page for the user).  This is probably an upstream xterm.js bug,
     // but we still have to work around it.
@@ -515,10 +519,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       const f = async () => {
         x.dispose();
         if (this.resize_after_no_ignore !== undefined) {
-          this.terminal_resize({
-            cols: this.resize_after_no_ignore.cols,
-            rows: this.resize_after_no_ignore.rows
-          });
+          this.terminal_resize(this.resize_after_no_ignore);
           delete this.resize_after_no_ignore;
         }
         // cause render to actually appear now.
@@ -540,7 +541,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   close_request(): void {
     this.actions.set_error(
-      "Another user closed one of your terminal sessions."
+      "You were removed from a terminal."
     );
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
@@ -606,7 +607,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       this.resize_after_no_ignore = { rows, cols };
       return;
     }
-    this.terminal_resize({ cols, rows });
+    this.terminal_resize({ rows, cols });
   }
 
   pause(): void {
@@ -687,7 +688,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const { rows, cols } = geom;
     if (this.ignore_terminal_data) {
       // during the initial render
-      this.terminal_resize({ cols, rows });
+      this.terminal_resize({ rows, cols });
     }
     if (
       this.last_geom !== undefined &&

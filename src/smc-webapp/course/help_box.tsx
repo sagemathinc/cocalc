@@ -19,17 +19,17 @@
 //#############################################################################
 
 import { React } from "../app-framework";
-const { Panel } = require("react-bootstrap");
+import { Card } from "cocalc-ui";
 const { Icon } = require("../r_misc");
 const { SITE_NAME, LIVE_DEMO_REQUEST } = require("smc-util/theme");
 
 export function HelpBox() {
   return (
-    <Panel
-      header={
-        <h4>
+    <Card
+      title={
+        <>
           <Icon name="question-circle" /> Help
-        </h4>
+        </>
       }
     >
       <span style={{ color: "#666", fontSize: "11pt" }}>
@@ -81,6 +81,6 @@ export function HelpBox() {
           </li>
         </ul>
       </span>
-    </Panel>
+    </Card>
   );
 }

@@ -24,7 +24,8 @@
 //#############################################################################
 
 import { Component, React } from "../app-framework";
-const { Button, ButtonToolbar, Panel, Well } = require("react-bootstrap");
+const { Button, ButtonToolbar, Well } = require("react-bootstrap");
+import { Card } from "cocalc-ui";
 const { Icon } = require("../r_misc");
 
 interface DeleteSharedProjectPanelProps {
@@ -74,11 +75,11 @@ export class DeleteSharedProjectPanel extends Component<
 
   render() {
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="trash" /> Delete shared project
-          </h4>
+          </>
         }
       >
         <Button
@@ -96,10 +97,11 @@ export class DeleteSharedProjectPanel extends Component<
         <span style={{ color: "#666" }}>
           If for some reason you would like to delete the shared projects that
           you created for this course, you may do so by clicking above. Be
-          careful!<br />
+          careful!
+          <br />
           All students will be removed from the deleted shared projects.
         </span>
-      </Panel>
+      </Card>
     );
   }
 }
