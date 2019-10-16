@@ -2,8 +2,10 @@
 // changes here must correspond with cocalc-ui.css
 
 import Tooltip from "antd/es/tooltip";
-export { Tooltip };
+import { TooltipPlacement } from "antd/es/tooltip";
+export { Tooltip, TooltipPlacement };
 
+// popover and other components also use the TooltipPlacement type
 import Popover from "antd/es/popover";
 export { Popover };
 

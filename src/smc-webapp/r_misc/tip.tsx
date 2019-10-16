@@ -2,10 +2,11 @@ import * as React from "react";
 import { Rendered } from "smc-webapp/app-framework";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
+import { unreachable } from "smc-util/misc2";
 import * as feature from "../feature";
 
-// const { Popover } = require("react-bootstrap");
 let Tooltip: any, Popover: any;
+import { TooltipPlacement } from "cocalc-ui";
 try {
   Tooltip = require("cocalc-ui").Tooltip;
   Popover = require("cocalc-ui").Popover;
@@ -24,11 +25,13 @@ const TIP_STYLE: React.CSSProperties = {
   maxWidth: "250px"
 };
 
+type Size = "xsmall" | "small" | "medium" | "large";
+
 interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
-  placement?: "top" | "right" | "bottom" | "left";
+  placement?: TooltipPlacement;
   tip?: string | JSX.Element | JSX.Element[]; // not checked for update
-  size?: "xsmall" | "small" | "medium" | "large";
+  size?: Size;
   delayShow?: number;
   delayHide?: number;
   rootClose?: boolean;
@@ -84,10 +87,6 @@ export class Tip extends React.Component<Props, State> {
     );
   }
 
-  //  private overlay_onMouseLeave = () => {
-  //   this.setState({ display_trigger: false });
-  // };
-
   // a tip is rendered in a description box below the title
   private render_tip(): Rendered {
     return <div style={TIP_STYLE}>{this.props.tip}</div>;
@@ -98,16 +97,38 @@ export class Tip extends React.Component<Props, State> {
     return <span style={this.props.style}>{this.props.children}</span>;
   }
 
+  private get_scale(): React.CSSProperties | undefined {
+    if (this.props.size == null) return;
+    switch (this.props.size) {
+      case "xsmall":
+        return { transform: "scale(0.75)" };
+      case "small":
+        return { transform: "scale(0.9)" };
+      case "medium":
+        return;
+      case "large":
+        return { transform: "scale(1.2)" };
+      default:
+        unreachable(this.props.size);
+    }
+  }
+
   private render_tooltip(): Rendered {
     if (this.props.delayShow == null || this.props.delayHide == null) return;
 
     const props: { [key: string]: any } = {
-      overlayStyle: this.props.popover_style,
+      arrowPointAtCenter: true,
       placement: this.props.placement,
       trigger: "hover",
       mouseEnterDelay: this.props.delayShow / 1000,
       mouseLeaveDelay: this.props.delayHide / 1000
     };
+
+    props.overlayStyle = Object.assign(
+      {},
+      this.props.popover_style,
+      this.get_scale()
+    );
 
     if (this.props.tip) {
       return (
