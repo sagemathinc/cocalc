@@ -118,7 +118,7 @@ class TestPython3Mode:
         code = r"""%python3
 from IPython.display import Math
 Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
-        htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
+        htmp = r"""F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx"""
         exec2(code, html_pattern=htmp)
 
     def test_p3_pandas(self, exec2):
