@@ -240,7 +240,9 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    const pay = this.get("settings").get("pay");
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return "";
+    const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
   }
@@ -372,6 +374,7 @@ export class CourseStore extends Store<CourseState> {
   get_student(student) {
     // return student with given id if a string; otherwise, just return student (the input)
     if (typeof student !== "string") {
+      // it is already a StudentRecord, but maybe outdated.
       student = student != null ? student.get("student_id") : undefined;
     }
     return this.getIn(["students", student]);
@@ -472,9 +475,9 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  _num_nondeleted(a) {
+  _num_nondeleted(a) : number {
     if (a == null) {
-      return;
+      return 0;
     }
     let n = 0;
     a.map(val => {

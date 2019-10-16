@@ -28,7 +28,8 @@ function get_cells(
 
 interface HistoryViewerProps {
   syncdb: any; // syncdb object corresponding to a jupyter notebook
-  version?: any;
+  version?: Date;
+  font_size?: number;
 }
 
 export class HistoryViewer extends Component<HistoryViewerProps> {
@@ -45,10 +46,13 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
       options: cm_options()
     });
 
-    const account_store = redux.getStore("account") as any;
-    let font_size = 14;
-    if (account_store) {
-      font_size = account_store.get("font_size", font_size);
+    let font_size = this.props.font_size;
+    if (font_size == null) {
+      const account_store = redux.getStore("account") as any;
+      if (account_store != null) {
+        font_size = account_store.get("font_size", font_size);
+      }
+      if (font_size == null) font_size = 14;
     }
     return (
       <CellList
@@ -84,6 +88,10 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
 import { export_to_ipynb } from "./export-to-ipynb";
 import * as json_stable from "json-stable-stringify";
 
+export function to_ipynb(syncdb: SyncDB, version: Date): object {
+  return export_to_ipynb(get_cells(syncdb, version));
+}
+
 export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
   const elt = $("<div class='smc-vfill'></div>");
   return {
@@ -106,7 +114,7 @@ export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
       );
     },
     to_str(version) {
-      const ipynb = export_to_ipynb(get_cells(syncdb, version));
+      const ipynb = to_ipynb(syncdb, version);
       return json_stable(ipynb, { space: 1 });
     }
   };

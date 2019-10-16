@@ -26,6 +26,7 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{get_browser} = require('./feature')
 {Passports} = require('./passports')
 {SignUp} = require('./landing-page/sign-up')
 {SignIn} = require('./landing-page/sign-in')
@@ -227,10 +228,19 @@ SagePreview = rclass
             </Well>
         </div>
 
-Connecting = () ->
-    <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
-        <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
-    </div>
+exports.Connecting = Connecting = () ->
+    <React.Fragment>
+        <div style={fontSize : "25px", marginTop: "75px", textAlign: "center", color: COLORS.GRAY}>
+            <Icon name="cc-icon-cocalc-ring" spin /> Connecting...
+        </div>
+        {<div style={textAlign: "center", margin:"auto", width:"50%", fontSize:'13pt', color: COLORS.GRAY}>
+            If you are having persistent problems connecting,
+            close this browser tab and open a new tab
+            (or use any browser besides Chrome v77, e.g., Firefox or Chrome 78 beta).  There is a major
+            {" "}<a target='_blank' rel="noopener" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1006243">bug in Chrome v77</a>;{" "}
+            opening a new tab works around this bug.
+        </div> if get_browser() == 'chrome'}
+    </React.Fragment>
 
 exports.LandingPage = rclass
     displayName: 'LandingPage'
@@ -318,8 +328,8 @@ exports.LandingPage = rclass
         if @props.remember_me and not @props.get_api_key
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
-            #return <Connecting />
-            return <span/>
+            return <Connecting />
+            #return <span/>
 
         topbar =
             img_icon    : APP_ICON_WHITE

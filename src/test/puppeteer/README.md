@@ -1,84 +1,86 @@
-# front-end testing of CoCalc with puppeteer
+# Setup
 
-## Setup
+## Install node modules
 
-1. Prepare test site. TODO: automate this.
+By default 100+ MB local Chrome (v78 at present) is installed.
 
-    - create a test account in the instance to be tested
-    - create a test project in the test user account
-    - add test files to project home directory
-      - latex-sample.tex (for test file [index.js](index.js))
-      - widget-sample.tex (for test file [widget.js](widget.js))
+```
+cd ~/cocalc/src/test/puppeteer
+npm i -D
+npm run build
+```
 
-1. Create `<creds-file.js`file for the site to be tested, outside of the git repository. Do NOT add/commit credentials files to git.
+## Create test project
 
-    Example credentials file "creds.js":
+Install test files into home directory from [test_files folder](https://cocalc.com/projects/77a92d07-c122-4577-9c4c-c051379cacfe/files/CCTEST/TEST_FILES/?session=default)
 
-    ```
-    module.exports = {
-        url: 'https://cocalcinstance.com/app',
-        username: 'testuser@example.com',
-        password: 'asdf8qwerty',
-        project:  'fe-test',
-        texfile:  'latex-sample.tex'
-    }
-    ```
+```
+texfile:  latex-sample.tex
+widgetfile: widgets-sample.ipynb
+sageipynbfile: sage-sample.ipynb
+```
 
-## Running the tests
+The following will install files named in `types.ts: TestFiles` from the `test_files` folder:
+(terse):
+```
+ npm run install_files -- -c /path/to/creds.yaml
+```
+(verbose)
+```
+ npm run install_files_dbg -- -c /path/to/creds.yaml
+```
 
-1. Default operation is headless.
-To view the browser during testing, run the script from a .x11 terminal and add `-s` or `--screen` to command line options. Omit `.js` suffix from credentials file on the command line, e.g. if the file is ~/creds.js, use `node -c ~/creds`.``
+## Credentials
 
-    ```
-    cd ~/cocalc/src/test/puppeteer
+Create credentials yaml file for the project:
 
-    node index.js [-s] [-c credentials-file]
-      -s - display the browser window (opposite of headless), default false
-      -c - name of credentials file, without ".js" extension
-    ```
+<pre>
+sitename: test_site
+url: https://test47.cocalc.com/app
+email: bob@example.com
+passw: xxxxxx
+project:  my-test-project
+</pre>
 
-1. If the Cocalc instance was recently restarted or the test project is stopped, the first one or two runs of the test will timeout. (See TODO below.)
+Use special URL with http, project UUID, and project port for cc-in-cc:
+<pre>
+url: 'http://localhost:12345/8a3d0.../port/12345/app/',
+</pre>
 
-1. These tests have been tested with the latest regular and no-agpl Docker images as well as test and production cocalc.com.
+## Running tests
 
-## What is tested
+By default, use the puppeteer built-in Chrome browser.
 
-### index.js
+With verbose output:
+```
+npm run tdbg -- -c /path/to/creds.yaml
+```
 
-1. Get sign-in page.
-1. Sign in with email and password.
-1. Open test project.
-1. Open tex file.
-1. Get word count.
+Without verbose output:
+```
+npm run test -- -c /path/to/creds.yaml
+```
 
-### api_key.js
+Use CoCalc pre-installed Chrome at `/usr/bin/chromium-browser`:
+```
+npm run test -- -c /path/to/creds.yaml -p
+```
 
-1. Get get_api sign-in page.
-1. Get api key.
+Use Chrome at custom path:
+```
+npm run test -- -c /path/to/creds.yaml -p /custom/chrome
+```
 
-### widget.js
+With GUI browser:
+```
+# run in .x11 terminal
+npm run test -- -c /path/to/creds.yaml -H
+```
 
-1. Get sign-in page.
-1. Sign in with email and password.
-1. Open test project.
-1. Open Jupyter notebook.
-1. Run first cell.
-1. Click on IntSlider() widget and verify change in readout.
+To skip tests (and their subtests) that match a pattern:
+```
+npm run test -- -c /path/to/creds.yaml -k 'login'
+```
 
-## Limitations
 
-1. CoCalc instance undergoing test must be fully started.
-1. Test project must be created before testing.
-1. Test files must be in place:
-    - latex-sample.tex
-    - widget-sample.ipynb
-1. Test project must be in recent project list and running.
-1. Does not work with CoCalc-in-CoCalc instances.
 
-## TODO
-
-1. Put in jest framework.
-1. Be more forgiving of projects that are not started.
-1. Code in typescript.
-1. Needs to be hosted & run regularly.
-1. Expand the test suite.

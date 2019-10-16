@@ -22,6 +22,7 @@
 $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
+json_stable = require("json-stable-stringify")
 
 {COCALC_MINIMAL} = require('./fullscreen')
 
@@ -42,7 +43,6 @@ markdown = require('./markdown')
 {VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
-{BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {fromPairs} = require('lodash')
@@ -209,11 +209,13 @@ class ProjectsActions extends Actions
         if misc.len(to_upgrade) > 0
             @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
+    ###
+    # See comment in db-schema.ts about projects_owner table.
     # only owner can set course description.
     # **THIS IS AN ASYNC FUNCTION!**
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not await @have_project(project_id)
-            msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
+            msg = "Can't set course info -- you are not a collaborator on project '#{project_id}'."
             console.warn(msg)
             return
         course_info = store.get_course_info(project_id)?.toJS()
@@ -232,6 +234,27 @@ class ProjectsActions extends Actions
                         pay           : pay
                         account_id    : account_id
                         email_address : email_address)
+    ###
+
+    set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
+        if not await @have_project(project_id)
+            msg = "Can't set course info -- you are not a collaborator on project '#{project_id}'."
+            console.warn(msg)
+            return
+        course_info = store.get_course_info(project_id)?.toJS()
+        # pay is either a Date or the string "".
+        course =
+            project_id    : course_project_id
+            path          : path
+            pay           : pay
+            account_id    : account_id
+            email_address : email_address
+        # json_stable -- I'm tired and this needs to just work for comparing.
+        if json_stable(course_info) == json_stable(course)
+            # already set as required; do nothing
+            return
+        await @projects_table_set({project_id, course})
+
 
     # Create a new project
     # **THIS IS AN ASYNC FUNCTION!**
@@ -446,7 +469,7 @@ class ProjectsActions extends Actions
                 cb         : (err) =>
                     if not silent
                         if err # TODO: -- set error in store for this project...
-                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{JSON.stringify(err)}"
                             alert_message(type:'error', message:err)
                     cb(err)
         await callback(f)
@@ -512,6 +535,7 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
+    # Throws on project_id not UUID
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
@@ -914,7 +938,14 @@ require('./process-links')
 # synchronized with the server.
 class ProjectsTable extends Table
     query: ->
-        return 'projects'
+        project_id = redux.getStore('page').get('kiosk_project_id')
+        if project_id?
+            # In kiosk mode we load only the relevant project.
+            query = require('smc-util/sync/table/util').parse_query('projects_all')
+            query.projects_all[0].project_id = project_id
+            return query
+        else
+            return 'projects'
 
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
@@ -922,8 +953,11 @@ class ProjectsTable extends Table
 class ProjectsAllTable extends Table
     query: ->
         return 'projects_all'
+
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
+
+
 
 # We define functions below that load all projects or just the recent
 # ones.  First we try loading the recent ones.  If this is *empty*,

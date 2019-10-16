@@ -82,11 +82,22 @@ interface gutterMarkerParams {
 const GutterMarker = createTypedMap<gutterMarkerParams>();
 type GutterMarkers = Map<string, TypedMap<gutterMarkerParams>>;
 
+interface LocalViewParams {
+  frame_tree?: Map<string, any>; // ImmutableFrameTree;
+  active_id: string;
+  full_id: string;
+  editor_state?: unknown;
+  version?: number;
+  font_size?: number;
+}
+
+type LocalViewState = TypedMap<LocalViewParams>;
+
 export interface CodeEditorState {
   project_id: string;
   path: string;
   is_public: boolean;
-  local_view_state: any; // TypedMap({frame_tree?: ImmutableFrameTree, active_id: string, full_id: string, editor_state?: unknown, version?: number, font_size?: number})
+  local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
   misspelled_words: Set<string>;
@@ -108,9 +119,9 @@ export interface CodeEditorState {
   visible: boolean;
 }
 
-export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseActions<
-  T | CodeEditorState
-> {
+export class Actions<
+  T extends CodeEditorState = CodeEditorState
+> extends BaseActions<T | CodeEditorState> {
   protected _state: "closed" | undefined;
   protected _syncstring: SyncString;
   protected _syncdb?: SyncDB; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
@@ -311,9 +322,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
 
     this._syncstring.once("error", err => {
       this.set_error(
-        `Fatal error opening ${
-          this.path
-        } -- ${err}\nFix this, then try opening the file again.`
+        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
     });
 
@@ -346,7 +355,8 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
       project_id: this.project_id,
       path: aux,
       primary_keys,
-      string_cols
+      string_cols,
+      file_use_interval: 0 // disable file use,, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", err => {
       this.set_error(
@@ -478,7 +488,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     );
   }
 
-  _load_local_view_state(): Map<string, any> {
+  _load_local_view_state(): LocalViewState {
     let local_view_state;
     const x = localStorage[this.name];
     if (x != null) {
@@ -530,15 +540,16 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     this.reset_frame_tree();
   }
 
-  set_local_view_state(obj): void {
+  set_local_view_state(obj: LocalViewParams): void {
     if (this._state === "closed") {
       return;
     }
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
     for (let key in obj) {
-      const value = obj[key];
-      local = local.set(key, fromJS(value));
+      const coerced_key = key as keyof LocalViewParams;
+      const value = obj[coerced_key];
+      local = local.set(coerced_key, fromJS(value));
     }
     this.setState({
       local_view_state: local
@@ -548,7 +559,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
 
   _is_leaf_id(id: string): boolean {
     return tree_ops.is_leaf_id(
-      this.store.getIn(["local_view_state", "frame_tree"]),
+      this.store.getIn(["local_view_state", "frame_tree"]) as any,
       id
     );
   }
@@ -566,7 +577,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
-    const local: Map<string, any> = this.store.get("local_view_state");
+    const local = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
@@ -625,7 +636,10 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
   }
 
   _get_tree(): ImmutableFrameTree {
-    let tree: ImmutableFrameTree | undefined = this.store.getIn(["local_view_state", "frame_tree"]);
+    let tree: ImmutableFrameTree | undefined = this.store.getIn([
+      "local_view_state",
+      "frame_tree"
+    ]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
       // See https://github.com/sagemathinc/cocalc/issues/3756
@@ -837,7 +851,8 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     id?: string, // id of frame being split (uses active_id by default)
     type?: string, // type of new frame
     extra?: object, // set this data in the new frame immediately.
-    first?: boolean // if true, new frame is left or top instead of right or bottom.
+    first?: boolean, // if true, new frame is left or top instead of right or bottom.
+    no_focus?: boolean // do not change active frame
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
@@ -849,8 +864,9 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     for (let new_id in after) {
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
-        this.set_active_id(new_id);
-
+        if (!no_focus) {
+          this.set_active_id(new_id);
+        }
         // Emit new-frame event so other code can handle or initialize
         // creation of a new frame further.
         if (type === undefined) {
@@ -1050,6 +1066,8 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
+        case "time_travel":
+          return "https://github.com/sagemathinc/cocalc/wiki/TimeTravel";
         default:
           return WIKI_HELP_URL + type + "-help";
       }
@@ -1194,14 +1212,14 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
   }
 
   public _active_id(): string {
-    return this.store.getIn(["local_view_state", "active_id"]);
+    return this.store.getIn(["local_view_state", "active_id"]) as any;
   }
 
   _active_cm(): CodeMirror.Editor | undefined {
     return this._cm[this._active_id()];
   }
 
-  _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1571,10 +1589,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
       // TODO why is this an immutable map? it's project_configuration/Available
-      const available = proj_store.get("available_features") as Map<
-        string,
-        boolean
-      >;
+      const available = proj_store.get("available_features");
       if (available != null && !available.get("spellcheck", false)) {
         // console.log("Spellcheck not available");
         return;
@@ -1969,8 +1984,10 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
 
   // Override in derived class to set a special env for
   // any launched terminals.
-  get_term_env(): any {
-    return undefined;
+  get_term_env(): { [envvar: string]: string } {
+    // https://github.com/sagemathinc/cocalc/issues/4120
+    const MPLBACKEND = "Agg";
+    return { MPLBACKEND };
   }
 
   // If you override show, make sure to still call this
@@ -1997,7 +2014,10 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
   public refresh_visible(): void {
     // Right now either there is one that is "fullscreen", and
     // only that one is visible, or all are visible.
-    const full_id: string | undefined = this.store.getIn(["local_view_state", "full_id"]);
+    const full_id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "full_id"
+    ]);
     if (full_id != null) {
       this.refresh(full_id);
     } else {
@@ -2090,7 +2110,9 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     );
   }
 
-  public show_focused_frame_of_type(
+  // Show the most recently focused frame of the given type, or create
+  // one of that type.  Does NOT focus that frame.
+  public show_recently_focused_frame_of_type(
     type: string,
     dir: FrameDirection = "col",
     first: boolean = false,
@@ -2102,7 +2124,7 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
     if (id == null) {
       // no such frame, so make one
       const active_id = this._get_active_id();
-      this.split_frame(dir, active_id, type, undefined, first);
+      this.split_frame(dir, active_id, type, undefined, first, true);
       id = this._get_most_recent_active_frame_id_of_type(type);
       if (pos != null && id != null) {
         const parent_id = this.get_parent_id(id);
@@ -2110,11 +2132,41 @@ export class Actions<T extends CodeEditorState = CodeEditorState> extends BaseAc
           this.set_frame_tree({ id: parent_id, pos });
         }
       }
+      this.set_active_id(active_id); // above could change it.
     }
     if (id == null) {
       throw Error("bug creating frame");
     }
+    let local_view_state = this.store.get("local_view_state");
+    if (local_view_state != null && local_view_state.get("full_id") != id) {
+      this.unset_frame_full();
+    }
+    return id;
+  }
+
+  // Shows most recent frame of the given type, or creates it.
+  // Also focuses that frame.
+  public show_focused_frame_of_type(
+    type: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    let id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
+  }
+
+  // Closes the most recently focused frame of the given type.
+  public close_recently_focused_frame_of_type(
+    type: string
+  ): string | undefined {
+    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
+      type
+    );
+    if (id != null) {
+      this.close_frame(id);
+      return id;
+    }
   }
 }

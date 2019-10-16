@@ -35,11 +35,11 @@ Draggable = require('react-draggable')
 
 # CoCalc Libraries
 {SideChat}         = require('./side_chat')
-{ProjectFiles}     = require('./project_files')
+{Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project_new')
 {ProjectLog}       = require('./project_log')
 {ProjectSearch}    = require('./project_search')
-{ProjectSettings}  = require('./project_settings')
+{ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
 {DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
 
@@ -380,7 +380,7 @@ ProjectContentViewer = rclass
     render_tab_content : ->
         switch @props.active_tab_name
             when 'files'
-                <ProjectFiles name={@props.project_name} project_id={@props.project_id} />
+                <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
             when 'new'
                 <ProjectNew name={@props.project_name} project_id={@props.project_id} />
             when 'log'

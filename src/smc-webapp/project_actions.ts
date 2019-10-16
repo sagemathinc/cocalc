@@ -46,11 +46,11 @@ function normalize(path: string): string {
   }
 }
 
-const misc = require("smc-util/misc");
-let { MARKERS } = require("smc-util/sagews");
-let { alert_message } = require("./alerts");
-let { webapp_client } = require("./webapp_client");
-let { project_tasks } = require("./project_tasks");
+import * as misc from "smc-util/misc";
+const { MARKERS } = require("smc-util/sagews");
+import { alert_message } from "./alerts";
+const { webapp_client } = require("./webapp_client");
+const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
 import { Actions, project_redux_name, redux } from "./app-framework";
@@ -100,6 +100,11 @@ export const QUERIES = {
     }
   }
 };
+
+interface FetchDirectoryListingOpts {
+  path: string;
+  cb?: () => void;
+}
 
 // src: where the library files are
 // start: open this file after copying the directory
@@ -693,8 +698,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       obj.time = misc.server_time();
     }
     obj.id = id;
+    const query = { project_log: obj };
     require("./webapp_client").webapp_client.query({
-      query: { project_log: obj },
+      query,
       cb: err => {
         if (err) {
           // TODO: what do we want to do if a log doesn't get recorded?
@@ -705,6 +711,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (cb != null) cb(err);
       }
     });
+
+    if (window.parent != null) {
+      // (I think this is always defined.)
+      // We also fire a postMessage.  This allows the containing
+      // iframe (if there is one), or other parts of the page, to
+      // be alerted of any logged event, which can be very helpful
+      // when building applications.  See
+      //      https://github.com/sagemathinc/cocalc/issues/4145
+      // If embedded in an iframe, it is the embedding window.
+      // If not in an iframe, seems to be the window itself.
+      // I copied the {source:?,payload:?} format from react devtools.
+      window.parent.postMessage({ source: "cocalc-project-log", payload: query }, "*");
+    }
+
     return id;
   }
 
@@ -775,7 +795,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let url =
       (window.app_base_url != null ? window.app_base_url : "") +
       this._url_in_project(`files/${path}`);
-    url += "?session=&fullscreen=default";
+    url += "?session=&fullscreen=kiosk";
     require("./misc_page").open_popup_window(url, {
       width: 800,
       height: 640
@@ -812,9 +832,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
     alert_message({
       type: "info",
-      message: `Opening converted CoCalc worksheet file instead of '${
-        opts.path
-      }...`
+      message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`
     });
     try {
       const path: string = await callback(
@@ -946,9 +964,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ) {
       alert_message({
         type: "error",
-        message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${
-          document.location.origin
-        } directly.`,
+        message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${document.location.origin} directly.`,
         timeout: 15
       });
       return;
@@ -994,9 +1010,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
-        error: `Error opening file '${
-          opts.path
-        }' (error ensuring project is open) -- ${err}`
+        error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`
       });
       return;
     }
@@ -1524,13 +1538,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Update the directory listing cache for the given path
   // Uses current path if path not provided
-  fetch_directory_listing(opts?): void {
+  fetch_directory_listing(opts_args?: FetchDirectoryListingOpts): void {
     let status;
     let store = this.get_store();
     if (store == undefined) {
       return;
     }
-    opts = defaults(opts, {
+    const opts: FetchDirectoryListingOpts = defaults(opts_args, {
       path: store.get("current_path"),
       cb: undefined
     }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
@@ -1645,7 +1659,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           }
         }
         //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.cb)
-        if (opts.cb !== undefined) {
+        if (typeof opts.cb === "function") {
           opts.cb();
         }
       }
@@ -1766,7 +1780,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // check all files in the given file_list
-  set_file_list_checked(file_list: immutable.List<string>): void {
+  set_file_list_checked(file_list: immutable.List<string> | string[]): void {
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -2199,8 +2213,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     _init_library_index_ongoing[this.project_id] = true;
-
-    ({ webapp_client } = require("./webapp_client"));
 
     const index_json_url = webapp_client.read_file_from_project({
       project_id: this.project_id,
@@ -3205,8 +3217,6 @@ function get_directory_listing(opts) {
     group: required,
     cb: required
   });
-
-  ({ webapp_client } = require("./webapp_client"));
 
   if (prom_client.enabled) {
     prom_dir_listing_start = misc.server_time();

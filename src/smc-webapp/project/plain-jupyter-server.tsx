@@ -5,9 +5,7 @@ Jupyter notebook server is running, then pops it up in a new tab.
 
 import { Component, React, Rendered } from "../app-framework";
 
-const { ProjectSettingsPanel } = require("./project-settings-support");
-
-const { Icon } = require("../r_misc");
+import { Icon, SettingBox } from "../r_misc";
 
 const { jupyter_server_url } = require("../editor_jupyter");
 
@@ -31,7 +29,7 @@ export class JupyterServerPanel extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <ProjectSettingsPanel title="Plain Jupyter Classic Server" icon="list-alt">
+      <SettingBox title="Plain Jupyter Classic Server" icon="list-alt">
         <span style={{ color: "#444" }}>
           The Jupyter Classic notebook server runs in your project and provides support
           for classical Jupyter notebooks. You can also use the plain classical
@@ -46,7 +44,7 @@ export class JupyterServerPanel extends Component<Props, {}> {
         <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
           {this.render_jupyter_link()}
         </div>
-      </ProjectSettingsPanel>
+      </SettingBox>
     );
   }
 }

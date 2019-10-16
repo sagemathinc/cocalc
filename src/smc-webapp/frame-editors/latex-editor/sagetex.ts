@@ -17,7 +17,8 @@ export async function sagetex_hash(
   project_id: string,
   path: string,
   time: number,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<string> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
@@ -28,7 +29,7 @@ export async function sagetex_hash(
     command: "sha1sum",
     args: [s],
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: true,
     aggregate: time
   });
@@ -39,7 +40,8 @@ export async function sagetex(
   project_id: string,
   path: string,
   hash: string,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
@@ -51,7 +53,7 @@ export async function sagetex(
     command: "sage",
     args: [s],
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: false,
     aggregate: hash ? { value: hash } : undefined
   });

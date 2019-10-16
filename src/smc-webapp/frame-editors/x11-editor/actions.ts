@@ -142,11 +142,14 @@ export class Actions extends BaseActions<X11EditorState> {
     });
   }
 
-  get_term_env(): any {
+  // overrides parent class method
+  get_term_env() {
     const DISPLAY = `:${this.client.get_display()}`;
     // This supports url forwarding via xdg-open wrapper:
     const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();
-    return { DISPLAY, XPRA_XDG_OPEN_SERVER_SOCKET };
+    // https://github.com/sagemathinc/cocalc/issues/4120
+    const MPLBACKEND = "WxAgg"; // a more conservative (b/c old) choice is TkAgg
+    return { DISPLAY, XPRA_XDG_OPEN_SERVER_SOCKET, MPLBACKEND };
   }
 
   close(): void {

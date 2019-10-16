@@ -1,12 +1,19 @@
 import { EventEmitter } from "events";
 import * as async from "async";
-import * as underscore from "underscore";
 import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
-
-const misc = require("smc-util/misc");
+import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
+import * as misc from "../../smc-util/misc";
+// Relative import is temporary, until I figure this out -- needed for *project*
+// import { fill } from "../../smc-util/fill";
+// fill does not even compile for the backend project (using the fill from the fill
+// module breaks starting projects).
+// NOTE: a basic requirement of "redux app framework" is that it can fully run
+// on the backend (e.g., in a project) under node.js.
 const { defaults, required } = misc;
+
+import { throttle } from "lodash";
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
@@ -19,6 +26,9 @@ export interface selector<State, K extends keyof State> {
   fn: () => State[K];
 }
 
+/**
+ *
+ */
 export class Store<State> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
@@ -86,12 +96,17 @@ export class Store<State> extends EventEmitter {
 
   destroy = (): void => {
     this.redux.removeStore(this.name);
-  }
+  };
 
   getState(): TypedMap<State> {
     return this.redux._redux_store.getState().get(this.name);
   }
 
+  get<K extends keyof State>(field: K): DeepImmutable<State[K]>;
+  get<K extends keyof State, NSV>(
+    field: K,
+    notSetValue: NSV
+  ): DeepImmutable<State[K]> | NSV;
   get<K extends keyof State, NSV = State[K]>(
     field: K,
     notSetValue?: NSV
@@ -110,20 +125,48 @@ export class Store<State> extends EventEmitter {
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
   // Does not work with selectors.
-  getIn<K1 extends keyof State, NSV>(
-    path: [K1],
-    notSetValue?: NSV
-  ): State[K1] | NSV;
-  getIn<K1 extends keyof State, K2 extends keyof State[K1], NSV>(
-    path: [K1, K2],
-    notSetValue?: NSV
-  ): State[K1][K2] | NSV;
+  getIn<K1 extends keyof State>(path: [K1]): DeepImmutable<State[K1]>;
+  getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>>(
+    path: [K1, K2]
+  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>>;
   getIn<
     K1 extends keyof State,
-    K2 extends keyof State[K1],
-    K3 extends keyof State[K1][K2],
+    K2 extends keyof NonNullable<State[K1]>,
+    K3 extends keyof NonNullable<NonNullable<State[K1]>[K2]>
+  >(
+    path: [K1, K2, K3]
+  ): DeepImmutable<
+    CopyAnyMaybe<
+      State[K1],
+      NonNullable<State[K1]>[K2],
+      NonNullable<NonNullable<State[K1]>[K2]>[K3]
+    >
+  >;
+  getIn<K1 extends keyof State, NSV>(
+    path: [K1],
+    notSetValue: NSV
+  ): DeepImmutable<State[K1]> | NSV;
+  getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>, NSV>(
+    path: [K1, K2],
+    notSetValue: NSV
+  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>> | NSV;
+  getIn<
+    K1 extends keyof State,
+    K2 extends keyof NonNullable<State[K1]>,
+    K3 extends keyof NonNullable<NonNullable<State[K1]>[K2]>,
     NSV
-  >(path: [K1, K2, K3], notSetValue?: NSV): State[K1][K2][K3] | NSV;
+  >(
+    path: [K1, K2, K3],
+    notSetValue: NSV
+  ):
+    | DeepImmutable<
+        CopyAnyMaybe<
+          State[K1],
+          NonNullable<State[K1]>[K2],
+          NonNullable<NonNullable<State[K1]>[K2]>[K3]
+        >
+      >
+    | NSV;
   getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store
       .getState()
@@ -136,48 +179,55 @@ export class Store<State> extends EventEmitter {
       .getIn([this.name].concat(path), notSetValue);
   }
 
-  // wait: for the store to change to a specific state, and when that
-  // happens call the given callback.
+  /**
+   * wait for the store to change to a specific state, and when that
+   * happens call the given callback.
+   */
   wait<T>(opts: {
-    until: (store: Store<State>) => T;
-    cb: (err?: string, result?: T) => any;
-    throttle_ms?: number;
-    timeout?: number;
+    until: (store: Store<State>) => T; // waits until "until(store)" evaluates to something truthy
+    cb: (err?: string, result?: T) => any; // cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+    throttle_ms?: number; // in ms -- throttles the call to until(store)
+    timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
   }): this | undefined {
-    let timeout;
-    opts = defaults(opts, {
-      until: required, // waits until "until(store)" evaluates to something truthy
-      throttle_ms: undefined, // in ms -- throttles the call to until(store)
-      timeout: 30, // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+    let timeout_ref;
+    /*
+    let { until, cb, throttle_ms, timeout } = fill(opts, {
+      timeout: 30
+    });
+    */
+    let { until, cb, throttle_ms, timeout } = defaults(opts, {
+      until: required,
+      throttle_ms: undefined,
+      timeout: 30,
       cb: required
-    }); // cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
-    if (opts.throttle_ms != null) {
-      opts.until = underscore.throttle(opts.until, opts.throttle_ms);
+    });
+    if (throttle_ms != undefined) {
+      until = throttle(until, throttle_ms);
     }
     // Do a first check to see if until is already true
-    let x = opts.until(this);
+    let x = until(this);
     if (x) {
-      opts.cb(undefined, x);
+      cb(undefined, x);
       return;
     }
     // If we want a timeout (the default), setup a timeout
-    if (opts.timeout) {
+    if (timeout) {
       const timeout_error = () => {
         this.removeListener("change", listener);
-        opts.cb("timeout");
+        cb("timeout");
         return;
       };
-      timeout = setTimeout(timeout_error, opts.timeout * 1000);
+      timeout_ref = setTimeout(timeout_error, timeout * 1000);
     }
     // Setup a listener
     var listener = () => {
-      x = opts.until(this);
+      x = until(this);
       if (x) {
-        if (timeout) {
-          clearTimeout(timeout);
+        if (timeout_ref) {
+          clearTimeout(timeout_ref);
         }
         this.removeListener("change", listener);
-        return async.nextTick(() => opts.cb(undefined, x));
+        return async.nextTick(() => cb(undefined, x));
       }
     };
     return this.on("change", listener);

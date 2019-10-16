@@ -30,7 +30,7 @@ interface Props {
 export class TerminalFrame extends Component<Props, {}> {
   static displayName = "TerminalFrame";
 
-  private terminal: Terminal;
+  private terminal?: Terminal;
   private is_mounted: boolean = false;
 
   shouldComponentUpdate(next): boolean {
@@ -45,7 +45,7 @@ export class TerminalFrame extends Component<Props, {}> {
     ]);
   }
 
-  componentWillReceiveProps(next: Props): void {
+  UNSAFE_componentWillReceiveProps(next: Props): void {
     if (this.props.id != next.id || this.terminal == null) {
       /* yes, this can change!! -- see https://github.com/sagemathinc/cocalc/issues/3819 */
       this.delete_terminal();
@@ -66,6 +66,7 @@ export class TerminalFrame extends Component<Props, {}> {
     this.is_mounted = true;
     this.set_font_size = throttle(this.set_font_size, 500);
     this.init_terminal();
+    if (this.terminal == null) return;
     this.terminal.is_mounted = true;
     this.measure_size = this.measure_size.bind(this);
   }
@@ -92,8 +93,10 @@ export class TerminalFrame extends Component<Props, {}> {
     try {
       this.terminal = this.props.actions._get_terminal(this.props.id, node);
     } catch (err) {
-      return; // not yet ready.
+      console.log("init_terminal warning -- ", err);
+      return; // not yet ready -- might be ok; will try again.
     }
+    if (this.terminal == null) return;  // should be impossible.
     this.set_font_size(this.props.font_size);
     this.measure_size();
     if (this.props.is_current) {
@@ -104,11 +107,9 @@ export class TerminalFrame extends Component<Props, {}> {
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
     // if we switch, disable this...
     // Well, this context menu is still silly. Always disable it.
-    if (true || this.terminal.rendererType != "dom") {
-      $(node).bind("contextmenu", function() {
-        return false;
-      });
-    }
+    $(node).bind("contextmenu", function() {
+      return false;
+    });
 
     // TODO: Obviously restoring the exact scroll position would be better...
     this.terminal.scroll_to_bottom();
@@ -124,7 +125,7 @@ export class TerminalFrame extends Component<Props, {}> {
     }
   }
 
-  measure_size(): void {
+  private measure_size(): void {
     if (this.terminal == null || !this.is_mounted) {
       return;
     }

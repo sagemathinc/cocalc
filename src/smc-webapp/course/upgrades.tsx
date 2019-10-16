@@ -64,10 +64,11 @@ const {
   Checkbox,
   FormGroup,
   FormControl,
-  Panel,
   Row,
   Col
 } = require("react-bootstrap");
+
+import { Card } from "cocalc-ui";
 
 interface StudentProjectUpgradesProps {
   name: string;
@@ -633,18 +634,18 @@ class StudentProjectUpgrades extends Component<
       bg = "#fcf8e3";
     }
     return (
-      <Panel
+      <Card
         style={{ background: bg }}
-        header={
-          <h4 style={style}>
+        title={
+          <div style={style}>
             <Icon name="dashboard" /> Upgrade all student projects (institute
             pays)
-          </h4>
+          </div>
         }
       >
         {this.render_checkbox()}
         {this.props.institute_pay ? this.render_details() : undefined}
-      </Panel>
+      </Card>
     );
   }
 }

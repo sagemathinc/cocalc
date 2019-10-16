@@ -7,9 +7,11 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
+import * as sha1 from "sha1";
+export { sha1 };
+
 import * as lodash from "lodash";
 export const keys = lodash.keys;
-const urlRegex = require("url-regex");
 
 interface SplittedPath {
   head: string;
@@ -226,9 +228,9 @@ export function is_valid_uuid_string(uuid: string): boolean {
 export function history_path(path: string): string {
   const p = path_split(path);
   if (p.head) {
-    return `${p.head}/.${p.tail}.sage-history`;
+    return `${p.head}/.${p.tail}.time-travel`;
   } else {
-    return `.${p.tail}.sage-history`;
+    return `.${p.tail}.time-travel`;
   }
 }
 
@@ -504,9 +506,27 @@ export function human_readable_size(bytes: number | null | undefined): string {
   return `${b / 10} GB`;
 }
 
-// used to test for URLs in a string
-export const re_url = urlRegex({ exact: false, strict: false });
+// Regexp used to test for URLs in a string.
+// We just use a simple one that was a top Google search when I searched: https://www.regextester.com/93652
+// We don't use a complicated one like https://www.npmjs.com/package/url-regex, since
+// (1) it is heavy and doesn't work on Edge -- https://github.com/sagemathinc/cocalc/issues/4056
+// (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
+//     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
+//     properly (not our use case).
+export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi;
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
+}
+
+// converts an array to a "human readable" array
+export function to_human_list(arr) {
+  arr = lodash.map(arr, x => x.toString());
+  if (arr.length > 1) {
+    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
+  } else if (arr.length === 1) {
+    return arr[0].toString();
+  } else {
+    return "";
+  }
 }
