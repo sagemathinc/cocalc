@@ -43,14 +43,12 @@ interface Props {
   allow_touch?: boolean;
 }
 
-interface State {
-  display_trigger: boolean;
-}
+interface State {}
 
 export class Tip extends React.Component<Props, State> {
   constructor(props) {
     super(props);
-    this.state = { display_trigger: false };
+    this.state = {};
   }
 
   static defaultProps = {
@@ -63,10 +61,9 @@ export class Tip extends React.Component<Props, State> {
     id: "tip"
   };
 
-  shouldComponentUpdate(props, state) {
+  shouldComponentUpdate(props) {
     return (
       !this.props.stable ||
-      this.state.display_trigger !== state.display_trigger ||
       misc.is_different(this.props, props, [
         "placement",
         "size",
