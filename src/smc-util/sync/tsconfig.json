@@ -9,6 +9,6 @@
     "downlevelIteration": true,
     "esModuleInterop": true,
     "incremental": true,
-    "tsBuildInfoFile": "~/.cache/cocalc-buildcache/sync"
+    "tsBuildInfoFile": "./.tsbuildcache/sync"
   }
 }

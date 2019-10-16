@@ -23,6 +23,8 @@ node_modules
 err
 log
 
+.tsbuildcache
+
 src/cocalc-testcafe/package-lock.json
 
 src/static/

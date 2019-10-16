@@ -10,7 +10,7 @@
     "downlevelIteration": true,
     "baseUrl": ".",
     "incremental": true,
-    "tsBuildInfoFile": "~/.cache/cocalc-buildcache/src"
+    "tsBuildInfoFile": "./.tsbuildcache/root"
   },
   "exclude": [
     "./data",

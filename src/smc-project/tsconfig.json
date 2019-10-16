@@ -8,12 +8,12 @@
     "noUnusedParameters": true,
     "downlevelIteration": true,
     "incremental": true,
-    "tsBuildInfoFile": "~/.cache/cocalc-buildcache/project"
+    "tsBuildInfoFile": "./.tsbuildcache/project"
   },
   "exclude": [
     "../smc-webapp/node_modules/",
     "./smc-webapp/node_modules/",
     "smc-webapp/node_modules",
-    "../smc-webapp/node_modules/*",
+    "../smc-webapp/node_modules/*"
   ]
 }
