@@ -96,7 +96,7 @@
     "react-bootstrap": "^0.31.5",
     "react-dom": "^16.9.0",
     "react-draggable": "^3.0.0",
-    "react-dropzone-component": "^2.0.0",
+    "react-dropzone-component": "^3.2.0",
     "react-image-crop": "^6.0.9",
     "react-json-inspector": "^7.0.1",
     "react-mentions": "^2.4.2",
