@@ -527,13 +527,18 @@ export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
 }
 
+/**
+ * Deletes ket from local storage
+ * FRONT END ONLY
+ */
 export function delete_local_storage(key) {
+  declare var localStorage;
   try {
     return delete localStorage[key];
   } catch (e) {
     return console.warn(`localStorage delete error -- ${e}`);
   }
-};
+}
 
 // converts an array to a "human readable" array
 export function to_human_list(arr) {
