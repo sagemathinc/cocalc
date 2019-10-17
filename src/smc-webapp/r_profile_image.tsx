@@ -453,10 +453,12 @@ export class ProfileImageSelector extends Component<
 /**
  * @param {File} image - Image File Object
  * @param {Object} pixelCrop - pixelCrop Object provided by react-image-crop
-
- Returns a Base64 string
- */
+ *
+ * Returns a Base64 string
+*/
 async function getCroppedImg(image, crop: ReactCrop.Crop): Promise<string> {
+  // Higher quality cropping upon completion of
+  // https://github.com/DominicTobias/react-image-crop/issues/263
   if (crop.width == null || crop.height == null) {
     throw Error("Error cropping image -- width and height not set");
   }
