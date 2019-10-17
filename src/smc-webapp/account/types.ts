@@ -35,4 +35,8 @@ export interface AccountState {
   reset_key?: string;
   sign_out_error?: string;
   show_sign_out?: boolean;
+  mesg_info?: string;
+  hub?: string;
+  remember_me?: boolean;
+  has_remember_me?: boolean;
 }
