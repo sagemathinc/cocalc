@@ -30,14 +30,14 @@ export function UncommittedChanges({
    * So error is only set to true when the prop doesn't change for ~delay_ms time
    */
   React.useEffect(() => {
-    const interval_id = setInterval(() => {
+    const timeout_id = setTimeout(() => {
       if (has_uncommitted_changes) {
         set_error(true);
       }
     }, delay_ms + 10);
 
     return function cleanup() {
-      clearInterval(interval_id);
+      clearInterval(timeout_id);
     };
   }, [has_uncommitted_changes, delay_ms]);
 
