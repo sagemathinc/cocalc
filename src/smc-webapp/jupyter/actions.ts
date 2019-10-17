@@ -865,7 +865,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id,
       delta
     );
-    return this.insert_cell_at(pos, save);
+    return this.insert_cell_at(pos != null ? pos : 0, save);
   }
 
   delete_selected_cells = (sync = true): void => {

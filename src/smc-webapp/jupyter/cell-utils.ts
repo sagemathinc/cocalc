@@ -47,7 +47,9 @@ export function positions_between(
   return v;
 }
 
-export function sorted_cell_list(cells: Map<string, any>): List<string> {
+export function sorted_cell_list(
+  cells: Map<string, any> | undefined
+): List<string> {
   // Given an immutable Map from id's to cells, returns an immutable List whose
   // entries are the id's in the correct order, as defined by the pos field (a float).
   if (cells == null) {
@@ -91,11 +93,11 @@ export function ensure_positions_are_unique(cells?: Map<string, any>) {
 }
 
 export function new_cell_pos(
-  cells: Map<string, any>,
-  cell_list: List<string>,
-  cur_id: string,
+  cells: Map<string, any> | undefined,
+  cell_list: List<string> | undefined,
+  cur_id: string | undefined,
   delta: -1 | 1
-): number {
+): number | undefined {
   /*
     Returns pos for a new cell whose position
     is relative to the cell with cur_id.
@@ -109,8 +111,9 @@ export function new_cell_pos(
     just makes up a pos, and it'll get sorted out.
   */
   let cell_list_0: List<string>;
+  if (cells == null) return;
   if (cell_list == null) {
-    cell_list_0 = sorted_cell_list(cells)!;
+    cell_list_0 = sorted_cell_list(cells);
   } else {
     cell_list_0 = cell_list;
   }
