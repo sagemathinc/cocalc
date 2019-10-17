@@ -29,7 +29,7 @@ require('./jquery_plugins')
 ###
 # Initialize app stores, actions, etc.
 ###
-require('./init_app') # Initializes redux stores.
+require('./init_app')
 require('./account').init(redux)
 require('./webapp-hooks.ts')
 
