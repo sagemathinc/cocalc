@@ -118,7 +118,7 @@ class TestPython3Mode:
         code = r"""%python3
 from IPython.display import Math
 Math(r'F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx')"""
-        htmp = r"""\$\$F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx\$\$"""
+        htmp = r"""F\(k\) = \\int_\{-\\infty\}\^\{\\infty\} f\(x\) e\^\{2\\pi i k\} dx"""
         exec2(code, html_pattern=htmp)
 
     def test_p3_pandas(self, exec2):
@@ -340,4 +340,4 @@ class TestJuliaMode:
             timeout=40)
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern=r'^v"1\.1\.\d+"', timeout=40)
+        exec2("%julia\nVERSION", pattern=r'^v"1\.2\.\d+"', timeout=40)
