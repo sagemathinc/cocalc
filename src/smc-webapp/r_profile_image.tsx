@@ -5,17 +5,8 @@ const { Avatar } = require("./other-users");
 const { ErrorDisplay, Icon } = require("./r_misc");
 const md5 = require("md5");
 
-// The docs say this should work but typescript rejects it:
-// import ReactCrop from 'react-image-crop';
-// Typescript likes this, but it still does not work.
-// I think @types/react-image-crop is just very wrong... :-(
-//import * as ReactCrop from "react-image-crop";
-// So we use this:
-const ReactCrop = require("react-image-crop");
+import * as ReactCrop from "react-image-crop"
 import "react-image-crop/dist/ReactCrop.css";
-// WARNING: the docs, types, etc. are a little out of
-// sync for react-image-crop, so don't try to "fix" the
-// code to match the docs below, and expect it to work.
 
 // This is what facebook uses, and it makes
 // 40x40 look very good.  It takes about 20KB
@@ -346,8 +337,8 @@ export class ProfileImageSelector extends Component<
   render_crop_selection(): Rendered {
     return (
       <>
-        <ReactCrop.Component
-          src={this.state.custom_image_src}
+        <ReactCrop
+          src={this.state.custom_image_src || ""}
           minWidth={20}
           minHeight={20}
           onChange={(crop, pixelCrop) => {
@@ -361,9 +352,10 @@ export class ProfileImageSelector extends Component<
                 aspect: 1,
                 width: 30
               },
-              image.width / image.height
+              image.width,
+              image.height
             );
-            const pixelCrop = ReactCrop.getPixelCrop(image, crop);
+            const pixelCrop = ReactCrop.convertToPixelCrop(image, crop);
             this.setState({
               crop,
               pixelCrop
