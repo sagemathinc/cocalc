@@ -2,18 +2,25 @@
  * Sets up some hooks for webapp_client
  * This file all side effects.
  * Should be imported ONCE at the top level of the app
-*/
+ */
 import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
 
 const { webapp_client } = require("./webapp_client");
-const { misc_page } = require("./misc_page");
+const {
+  analytics_event,
+  APP_BASE_URL,
+  misc_page,
+  get_cookie
+} = require("./misc_page");
 const misc = require("misc");
 const { reset_password_key } = require("./password-reset");
 
 let first_login = true;
 
 // load more of the app now that user is logged in.
+// TODO: Check for side effects otherwise this is unecessary...
+// projects.cjsx definitely has side effects
 const load_app = cb =>
   (require as any).ensure([], function() {
     require("./r_account.cjsx"); // initialize react-related account page
@@ -36,7 +43,6 @@ const signed_in = function(mesg) {
   // the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
   // next time the main landing page is visited, haproxy or hub will redirect to the client
   // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
-  const { APP_BASE_URL } = require("./misc_page");
   const exp = misc.server_days_ago(-30).toGMTString();
   document.cookie = `${APP_BASE_URL}has_remember_me=true; expires=${exp} ;path=/`;
   // Record which hub we're connected to.
@@ -45,7 +51,6 @@ const signed_in = function(mesg) {
   console.log(`Signed into ${mesg.hub} at ${new Date()}`);
   if (first_login) {
     first_login = false;
-    const { analytics_event } = require("./misc_page");
     analytics_event("account", "signed_in"); // user signed in
     if (!misc_page.should_load_target_url()) {
       load_app(() => require("./history").load_target("projects"));
@@ -97,7 +102,6 @@ webapp_client.on("remember_me_failed", function() {
 
 // Check if user has a has_remember_me cookie (regardless if it is valid or not)
 // the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
-const { get_cookie, APP_BASE_URL } = require("./misc_page");
 redux.getActions("account").setState({
   has_remember_me: get_cookie(`${APP_BASE_URL}has_remember_me`) === "true"
 });
