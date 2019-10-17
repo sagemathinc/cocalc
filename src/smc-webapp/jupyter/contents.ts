@@ -55,8 +55,9 @@ export function parse_headings(
 
     if (cell.get("cell_type") != "markdown") return;
 
-    const { level, value } = parse_cell_heading(cell.get("input"));
-    if (level > 0) {
+    const heading = parse_cell_heading(cell.get("input"));
+    if (heading != null) {
+      const { level, value } = heading;
       if (last_level != level) {
         // reset section numbers
         for (let i = level; i < section_counter.length; i++) {
@@ -82,7 +83,12 @@ export function parse_headings(
   return v;
 }
 
-function parse_cell_heading(input: string): { level: number; value: string } {
+// returning undefined means there is no heading in markdown
+function parse_cell_heading(
+  input: string | undefined
+): { level: number; value: string } | undefined {
+  if (input == null) return;
+
   for (let line of input.split("\n")) {
     const x = line.trim();
     if (x[0] != "#") continue;
@@ -92,5 +98,4 @@ function parse_cell_heading(input: string): { level: number; value: string } {
       }
     }
   }
-  return { level: 0, value: "" }; // no heading in markdown
 }
