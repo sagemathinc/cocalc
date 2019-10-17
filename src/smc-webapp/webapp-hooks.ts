@@ -10,7 +10,7 @@ const { webapp_client } = require("./webapp_client");
 const {
   analytics_event,
   APP_BASE_URL,
-  misc_page,
+  should_load_target_url,
   get_cookie
 } = require("./misc_page");
 const misc = require("misc");
@@ -52,7 +52,7 @@ const signed_in = function(mesg) {
   if (first_login) {
     first_login = false;
     analytics_event("account", "signed_in"); // user signed in
-    if (!misc_page.should_load_target_url()) {
+    if (!should_load_target_url()) {
       load_app(() => require("./history").load_target("projects"));
     }
   }
