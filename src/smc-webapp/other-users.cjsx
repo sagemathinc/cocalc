@@ -177,7 +177,7 @@ exports.Avatar = Avatar = rclass
         # don't fade out completely as then just see an empty face, which looks broken...
         return misc.ensure_bound(1 - ((server_time() - last_used) / (@props.max_age_s*1000)), 0, .85)
 
-
+    # TODO: Use profile-icon for code reusability! (eg. A lighter weight icon)
     render : ->
         if not @props.user_map?
             return <Loading />
