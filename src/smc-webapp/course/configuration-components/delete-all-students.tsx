@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../r_misc";
-const { Button, ButtonToolbar, Panel, Well } = require("react-bootstrap");
+const { Button, ButtonToolbar, Well } = require("react-bootstrap");
+import { Card } from "cocalc-ui";
 
 interface Props {
   delete_all_students: () => void;
@@ -13,11 +14,11 @@ export function DeleteAllStudents({ delete_all_students }: Props) {
   );
 
   return (
-    <Panel
-      header={
-        <h4>
+    <Card
+      title={
+        <>
           <Icon name="trash" /> Delete all students
-        </h4>
+        </>
       }
     >
       <Button bsStyle="warning" onClick={open_confirmation}>
@@ -29,7 +30,7 @@ export function DeleteAllStudents({ delete_all_students }: Props) {
         Student projects will not be deleted. Also, if you make a mistake,
         students can still be un-deleted from the Student tab.
       </span>
-    </Panel>
+    </Card>
   );
 }
 

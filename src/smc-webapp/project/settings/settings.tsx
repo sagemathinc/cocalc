@@ -12,6 +12,7 @@ import {
 } from "smc-webapp/todo-types";
 const { webapp_client } = require("../../webapp_client");
 const { Alert } = require("react-bootstrap");
+import { SCHEMA } from "smc-util/schema";
 
 interface ReactProps {
   project_id: string;
@@ -78,10 +79,11 @@ export const ProjectSettings = rclass<ReactProps>(
       // try to load it directly for future use
       this._admin_project = "loading";
       const query = {};
-      for (let k of misc.keys(
-        require("smc-util/schema").SCHEMA.projects.user_query.get.fields
-      )) {
-        query[k] = k === "project_id" ? this.props.project_id : undefined;
+      for (let k of misc.keys(SCHEMA.projects.user_query.get.fields)) {
+        // Do **not** change the null here to undefined, which means something
+        // completely different. See
+        // https://github.com/sagemathinc/cocalc/issues/4137
+        query[k] = k === "project_id" ? this.props.project_id : null;
       }
       this._table = webapp_client.sync_table2({ projects_admin: query }, []);
       this._table.on("change", () => {

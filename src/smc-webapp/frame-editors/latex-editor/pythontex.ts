@@ -22,7 +22,8 @@ export async function pythontex(
   path: string,
   time: number,
   force: boolean,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const args = ["--jobs", "2"];
@@ -39,7 +40,7 @@ export async function pythontex(
     command: "pythontex3",
     args: args.concat(base),
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: false,
     aggregate
   });
