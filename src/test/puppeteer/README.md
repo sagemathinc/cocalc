@@ -112,3 +112,4 @@ Commands
 npm run create_account_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -s -p
 npm run install_files_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -j -i test_files/
 npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p
+```
