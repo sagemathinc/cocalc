@@ -25,7 +25,7 @@ export interface JupyterStoreState {
   edit_cell_metadata: any;
   raw_ipynb: any;
   backend_kernel_info: KernelInfo;
-  cell_list: any;
+  cell_list: List<string>; // list of id's of the cells
   cells: any;
   cur_id: string;
   error?: string;
@@ -77,7 +77,8 @@ export const initial_jupyter_store_state: {
 } = {
   check_select_kernel_init: false,
   show_kernel_selector: false,
-  widget_model_ids: Set()
+  widget_model_ids: Set(),
+  cell_list: List()
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
@@ -107,7 +108,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // immutable List
   public get_cell_list = (): List<string> => {
-    return this.get("cell_list", List([]));
+    return this.get("cell_list");
   };
 
   // string[]
@@ -201,14 +202,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
       return;
     }
 
-    const more_output: any = {};
-    let cell_list = this.get("cell_list");
-    if (cell_list == null) {
-      cell_list = [];
-    } else {
-      cell_list = cell_list.toJS();
-    }
-    for (let id of cell_list) {
+    const cell_list = this.get("cell_list");
+    const more_output: { [id: string]: any } = {};
+    for (let id of cell_list.toJS()) {
       const x = this.get_more_output(id);
       if (x != null) {
         more_output[id] = x;
@@ -217,7 +213,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
     return export_to_ipynb({
       cells: this.get("cells"),
-      cell_list: this.get("cell_list"),
+      cell_list,
       metadata: this.get("metadata"), // custom metadata
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
