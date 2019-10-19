@@ -51,12 +51,8 @@ export class PayBanner extends Component<PayBannerProps> {
     return false;
   }
 
-  show_configuration = () => {
-    return __guard__(this.get_actions(), x => x.set_tab("configuration"));
-  };
-
   render() {
-    let link, mesg, style;
+    let mesg, style;
     if (this.paid()) {
       return <span />;
     }
@@ -67,18 +63,18 @@ export class PayBanner extends Component<PayBannerProps> {
         background: "red",
         color: "white",
         fontSize: "16pt",
-        fontWeight: "bold"
+        fontWeight: "bold",
+        margin: "5px 15px"
       };
-      link = { color: "navajowhite" };
     } else {
       style = {
         fontSize: "12pt",
-        color: "#666"
+        color: "#666",
+        margin: "5px 15px"
       };
-      link = {};
     }
 
-    if (this.props.tab === "settings") {
+    if (this.props.tab === "configuration") {
       mesg = (
         <span>
           Please select either the student pay or institute pay option below.
@@ -87,11 +83,8 @@ export class PayBanner extends Component<PayBannerProps> {
     } else {
       mesg = (
         <span>
-          Please open the course{" "}
-          <a onClick={this.show_configuration} style={link}>
-            Configuration tab of this course
-          </a>{" "}
-          and select a pay option.
+          Please open the Configuration page for this course and select a pay
+          option.
         </span>
       );
     }
@@ -108,10 +101,4 @@ export class PayBanner extends Component<PayBannerProps> {
       </Alert>
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

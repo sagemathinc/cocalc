@@ -11,7 +11,7 @@ var coverageVar = coffeeCoverage.findIstanbulVariable();
 var writeOnExit = (coverageVar == null) ? (projectRoot + '/coverage/coverage-coffee.json') : null;
 
 coffeeCoverage.register({
-    instrumentor: 'istanbul',
+    instrumentor: 'nyc',
     basePath: projectRoot,
     exclude: ['/test', '/node_modules'],
     coverageVar: coverageVar,

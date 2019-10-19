@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../r_misc";
-const { Button, ButtonToolbar, Panel, Well } = require("react-bootstrap");
+const { Button, ButtonToolbar, Well } = require("react-bootstrap");
+import { Card } from "cocalc-ui";
 
 interface Props {
   delete_projects: () => void;
@@ -12,11 +13,11 @@ export function DeleteAllStudentProjects({ delete_projects }: Props) {
     delete_projects
   );
   return (
-    <Panel
-      header={
-        <h4>
+    <Card
+      title={
+        <>
           <Icon name="trash" /> Delete all student projects
-        </h4>
+        </>
       }
     >
       <Button bsStyle="danger" onClick={open_confirmation}>
@@ -30,7 +31,7 @@ export function DeleteAllStudentProjects({ delete_projects }: Props) {
         <br />
         Students will be removed from the deleted projects.
       </span>
-    </Panel>
+    </Card>
   );
 }
 
