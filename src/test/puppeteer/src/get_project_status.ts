@@ -8,7 +8,7 @@ import { time_log } from './time_log';
 import axios from 'axios';
 import { expect } from 'chai';
 
-export const get_project_id = async function (creds: Creds, api_key: string): Promise<ApiGetString> {
+export const get_project_status = async function (creds: Creds, api_key: string, project_id: string): Promise<ApiGetString> {
   let ags: ApiGetString = new ApiGetString();
   try {
     const tm_start = process.hrtime.bigint();
@@ -25,8 +25,8 @@ export const get_project_id = async function (creds: Creds, api_key: string): Pr
       data: {
         query: {
           projects: {
-            project_id: null,
-            title: creds.project
+            project_id: project_id,
+            status: null
           }
         }
       }
@@ -35,11 +35,11 @@ export const get_project_id = async function (creds: Creds, api_key: string): Pr
     const event: string = response.data.event;
     if (event === "error") console.log(chalk.red(`ERROR: ${response.data}`));
     expect(response.data.event).to.equal('query');
-    const project_id: string = response.data.query.projects.project_id;
-    debuglog('project_id', project_id);
-    expect(project_id.length).to.equal(36);
+    const status: string = response.data.query.projects.status;
+    debuglog('status', status);
+    //expect(status.length).to.equal(36);
     time_log(this_file, tm_start);
-    ags.result = project_id;
+    ags.result = status;
     ags.pass += 1;
   } catch (e) {
     ags.fail += 1;
