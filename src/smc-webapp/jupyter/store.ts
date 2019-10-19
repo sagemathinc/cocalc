@@ -10,7 +10,7 @@ import { Set, Map, List, OrderedMap, fromJS } from "immutable";
 import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
-import { KernelInfo, CellToolbarName } from "./types";
+import { KernelInfo, Cell, CellToolbarName } from "./types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -26,7 +26,7 @@ export interface JupyterStoreState {
   raw_ipynb: any;
   backend_kernel_info: KernelInfo;
   cell_list: List<string>; // list of id's of the cells
-  cells: any;
+  cells: Map<string, Cell>; // map from string id to cell; the structure of a cell is complicated...
   cur_id: string;
   error?: string;
   fatal: string;
@@ -78,7 +78,8 @@ export const initial_jupyter_store_state: {
   check_select_kernel_init: false,
   show_kernel_selector: false,
   widget_model_ids: Set(),
-  cell_list: List()
+  cell_list: List(),
+  cells: Map()
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
@@ -123,7 +124,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   public get_cell_type(id: string): "markdown" | "code" | "raw" {
     // NOTE: default cell_type is "code", which is common, to save space.
-    const type = this.getIn(["cells", id, "cell_type"], "code");
+    // TODO: We use unsafe_getIn because maybe the cell type isn't spelled out yet, or our typescript isn't good enough.
+    const type = this.unsafe_getIn(["cells", id, "cell_type"], "code");
     if (type != "markdown" && type != "code" && type != "raw") {
       throw Error(`invalid cell type ${type} for cell ${id}`);
     }
