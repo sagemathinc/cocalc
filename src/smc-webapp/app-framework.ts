@@ -489,6 +489,7 @@ rclass = function(x: any) {
         }
         const reduxProps = x.reduxProps(this.props);
         const key = compute_cache_key(reduxProps);
+        // console.log("ES6 rclass render", key);
         if (this.cache0[key] == null) {
           this.cache0[key] = connect_component(reduxProps)(x);
         }
@@ -514,6 +515,7 @@ rclass = function(x: any) {
         // currently assumes making a new object is fast enough
         const definition = x(this.props);
         const key = compute_cache_key(definition.reduxProps);
+        // console.log("function rclass render", key);
 
         if (definition.actions != null) {
           throw Error(
