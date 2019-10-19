@@ -2,13 +2,24 @@
 
 ## Install node modules
 
-By default 100+ MB local Chrome (v78 at present) is installed.
+By default 110+ MB local Chromium is installed. Note that puppeteer's Chromium is typically at least 1 release ahead of CoCalc installed Chrome, `/usr/bin/chromium-browser`.
 
 ```
 cd ~/cocalc/src/test/puppeteer
 npm i -D
 npm run build
 ```
+
+If you don't want to install puppeteer's local chromium binary, you can do the following instead.
+Then run tests with `-p` option.
+
+```
+cd ~/cocalc/src/test/puppeteer
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm i -D
+npm run build
+npm run test -- -c /path/to/creds.yaml -p
+```
+
 
 ## Create test project
 
@@ -82,5 +93,23 @@ To skip tests (and their subtests) that match a pattern:
 npm run test -- -c /path/to/creds.yaml -k 'login'
 ```
 
+### Sample run that creates account, project, and test files
 
+Sample credentials in yaml file. Omit account creation token line if none is set for the instance under test.
+```
+sitename: cc-in-cc-myproj
+url: http://localhost:34425/77a92d07-c122-4577-9c4c-c051379cacfe/port/34425/app/
+email: joe@example.com
+passw: asdfg
+project: testproj
+token: soylentgreen
+firstname: Joe
+lastname: Jones
+```
 
+Commands
+```
+npm run create_account_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -s -p
+npm run install_files_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -j -i test_files/
+npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p
+```
