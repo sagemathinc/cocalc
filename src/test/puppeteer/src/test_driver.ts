@@ -8,11 +8,11 @@ const program = require('commander');
 import chalk     from 'chalk';
 import * as fs   from 'fs';
 import * as yaml from 'js-yaml';
-import { Creds, Opts, PassFail } from './types';
+import { Creds, Opts, ExtChromePath, PassFail } from './types';
 import { pf_log } from './time_log';
 
 import { login_tests } from './login_session';
-const {api_session} = require('./api_session');
+import { api_session } from './api_session';
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
@@ -21,14 +21,12 @@ const cli_parse = function() {
   try {
     // command line processing
     // -p option without arg uses the following path
-    const ext_chrome_path: string = '/usr/bin/chromium-browser';
     program
       .option('-c, --creds <file>', 'credentials file', "./creds")
       .option('-H, --no-headless', 'show browser (requires X11)', false)
       .option('-s, --screenshot', 'take screenshots', false)
       .option('-p, --path-to-chrome [chromepath]')
       .option('-k, --skip <pattern>', 'skip tests matching pattern')
-      .option('-r, --create-records', 'create account, project, etc', false)
       .parse(process.argv);
     let creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -37,7 +35,7 @@ const cli_parse = function() {
     let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, 'utf8'));
     let cpath: string;
     if (program.pathToChrome == true) {
-      cpath = ext_chrome_path;
+      cpath = ExtChromePath;
     } else {
       cpath = program.pathToChrome;
     }
@@ -48,7 +46,6 @@ const cli_parse = function() {
       screenshot: program.screenshot,
       path: cpath,
       skip: skip,
-      createRecords: program.createRecords
     }
     debuglog("opts", opts);
     debuglog('site:', creds.sitename);

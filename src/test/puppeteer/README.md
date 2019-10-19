@@ -2,13 +2,24 @@
 
 ## Install node modules
 
-By default 100+ MB local Chrome (v78 at present) is installed.
+By default 110+ MB local Chromium is installed. Note that puppeteer's Chromium is typically at least 1 release ahead of CoCalc installed Chrome, `/usr/bin/chromium-browser`.
 
 ```
 cd ~/cocalc/src/test/puppeteer
 npm i -D
 npm run build
 ```
+
+If you don't want to install puppeteer's local chromium binary, you can do the following instead.
+Then run tests with `-p` option.
+
+```
+cd ~/cocalc/src/test/puppeteer
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm i -D
+npm run build
+npm run test -- -c /path/to/creds.yaml -p
+```
+
 
 ## Create test project
 
