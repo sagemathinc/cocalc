@@ -49,7 +49,8 @@ export const api_create_file = async function (
       const event: string = response.data.event;
       //if (event === "error") console.log(chalk.red(`ERROR-A: ${JSON.stringify(response.data)}`));
       if (event === "error") {
-        console.log(chalk.red(`ERROR-A: ${response.data.error}`));
+        //console.log(chalk.red(`ERROR-A: ${response.data.error}`));
+        debuglog(`${response.data.error}, retrying...`);
         await sleep(1000);
         continue;
       }

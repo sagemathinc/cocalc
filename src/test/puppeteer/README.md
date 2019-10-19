@@ -93,5 +93,22 @@ To skip tests (and their subtests) that match a pattern:
 npm run test -- -c /path/to/creds.yaml -k 'login'
 ```
 
+### Sample run that creates account, project, and test files
 
+Sample credentials in yaml file. Omit account creation token line if none is set for the instance under test.
+```
+sitename: cc-in-cc-myproj
+url: http://localhost:34425/77a92d07-c122-4577-9c4c-c051379cacfe/port/34425/app/
+email: joe@example.com
+passw: asdfg
+project: testproj
+token: soylentgreen
+firstname: Joe
+lastname: Jones
+```
 
+Commands
+```
+npm run create_account_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -s -p
+npm run install_files_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -j -i test_files/
+npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p

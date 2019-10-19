@@ -5,6 +5,8 @@ export interface Creds {
   readonly passw: string;
   readonly project: string;
   readonly token?: string;
+  readonly firstname?: string;
+  readonly lastname?: string;
 }
 
 export interface Opts {
