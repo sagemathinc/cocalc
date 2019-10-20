@@ -55,7 +55,7 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 import {
   ext2parser,
   parser2tool,
@@ -1726,14 +1726,14 @@ export class Actions<
     available_features: AvailableFeatures,
     ext: string
   ): false | string {
-    const formatting = available_features.formatting;
-    // there is no formatting available at all
-    if (!formatting) return false;
+    const formatting = available_features.get("formatting");
+    if (formatting == null || formatting == false) return false;
+    // Now formatting is either "true" or a map itself.
     const parser = ext2parser[ext];
     if (parser == null) return false;
     const tool = parser2tool[parser];
     if (tool == null) return false;
-    if (!formatting[tool]) return false;
+    if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
   }
 

@@ -35,7 +35,7 @@ import { ConnectionStatus, EditorSpec } from "./types";
 // TODO:
 // import { Actions } from "../code-editor/actions";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
