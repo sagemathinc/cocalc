@@ -6,16 +6,35 @@ set -v
 cd `dirname $0`/..
 . smc-env
 
-# npm ci install function, will run in parallel if gnu parallel is installed
-run_install() {
-    cd "$1"
-    npm ci
-}
-
 # all module directories
 . cocalc-dirs.sh
 
-if `hash parallel &> /dev/null`; then
+# we move and delete node_modules in parallel of npm ci to speed up install
+for dir in "${CODE_DIRS[@]}"; do
+    cd "$dir"
+    echo "cleanup $(basename $dir)"
+    # get rid of leftovers in case this got interrupted
+    rm -rf node_modules.delme/
+    if [[ -d node_modules/ ]]; then
+        mv -v node_modules node_modules.delme
+    fi
+done
+
+cd $SMC_ROOT
+find -type d -name node_modules.delme | xargs rm -rf &
+
+# npm ci install function, will run in parallel if gnu parallel is installed
+run_install() {
+    cd "$1"
+    # ts is part of moreutils
+    if `hash ts 2> /dev/null`; then
+        npm ci | ts "[%Y-%m-%d %H:%M:%S|$(basename $1)]"
+    else
+        npm ci
+    fi
+}
+
+if `hash parallel 2> /dev/null`; then
 
     export -f run_install
     parallel --will-cite --halt now,fail=1 --linebuffer --jobs 3 run_install ::: "${CODE_DIRS[@]}"

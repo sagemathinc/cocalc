@@ -75,7 +75,15 @@ export function split(s: string): string[] {
   }
 }
 
-export function is_different(a: any, b: any, fields: string[]): boolean {
+export function is_different(
+  a: any,
+  b: any,
+  fields: string[],
+  verbose?: string
+): boolean {
+  if (verbose != null) {
+    return is_different_verbose(a, b, fields, verbose);
+  }
   let field: string;
   if (a == null) {
     if (b == null) {
@@ -104,6 +112,53 @@ export function is_different(a: any, b: any, fields: string[]): boolean {
       return true;
     }
   }
+  return false;
+}
+
+// Use for debugging purposes only -- copy code from above to avoid making that
+// code more complicated and possibly slower.
+function is_different_verbose(
+  a: any,
+  b: any,
+  fields: string[],
+  verbose: string
+): boolean {
+  function log(...x) {
+    console.log("is_different_verbose", verbose, ...x);
+  }
+  let field: string;
+  if (a == null) {
+    if (b == null) {
+      log("both null");
+      return false; // they are the same
+    }
+    // a not defined but b is
+    for (field of fields) {
+      if (b[field] != null) {
+        log("a not defined but b is");
+        return true;
+      }
+    }
+    return false;
+  }
+  if (b == null) {
+    // a is defined or would be handled above
+    for (field of fields) {
+      if (a[field] != null) {
+        log(`b null and "${field}" of a is not null`);
+        return true; // different
+      }
+    }
+    return false; // same
+  }
+
+  for (field of fields) {
+    if (a[field] !== b[field]) {
+      log(`field "${field}" differs`, a[field], b[field]);
+      return true;
+    }
+  }
+  log("same");
   return false;
 }
 

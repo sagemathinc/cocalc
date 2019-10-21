@@ -1,4 +1,4 @@
-// top-level front end test driver
+// use the GUI to create an account
 
 const path = require('path');
 const this_file:string = path.basename(__filename, '.js');
@@ -11,8 +11,7 @@ import * as yaml from 'js-yaml';
 import { Creds, Opts, ExtChromePath, PassFail } from './types';
 import { pf_log } from './time_log';
 
-import { login_tests } from './login_session';
-import { api_session } from './api_session';
+import { sign_up } from './sign_up';
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
@@ -66,9 +65,7 @@ const run_tests = async function() {
   let pfcounts: PassFail = new PassFail();
   if (cp){
     // edit 'true' to 'false' to skip tests
-    let x: PassFail = await login_tests(cp.c, cp.o);
-    pfcounts.add(x);
-    x = await api_session(cp.c, cp.o);
+    let x: PassFail = await sign_up(cp.c, cp.o);
     pfcounts.add(x);
   }
   pf_log(pfcounts);

@@ -228,6 +228,9 @@ fixed_project_pages =
 ProjectContentViewer = rclass
     displayName: 'ProjectContentViewer'
 
+    shouldComponentUpdate: (nextProps) ->
+        return @props.is_visible or nextProps.is_visible
+
     propTypes :
         is_visible      : rtypes.bool.isRequired
         project_id      : rtypes.string.isRequired

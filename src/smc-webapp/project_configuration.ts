@@ -7,6 +7,7 @@
 
 import { Map as iMap } from "immutable";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
+import { TypedMap } from "./app-framework/TypedMap";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
@@ -55,6 +56,8 @@ export interface Available {
   library: boolean;
   formatting: Capabilities | boolean;
 }
+
+export type AvailableFeatures = TypedMap<Available>;
 
 const NO_AVAIL: Readonly<Available> = Object.freeze({
   jupyter_lab: false,

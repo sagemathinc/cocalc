@@ -9,9 +9,10 @@
     "clean": "rm build/*",
     "build": "tsc",
     "test": "node build/test_driver.js",
+    "tdbg": "NODE_DEBUG='CC-*' node build/test_driver.js",
     "install_files": "node build/install_files.js",
     "install_files_dbg": "NODE_DEBUG='CC-*' node build/install_files.js",
-    "tdbg": "NODE_DEBUG='CC-*' node build/test_driver.js"
+    "create_account_dbg": "NODE_DEBUG='CC-*' node build/create_account.js"
   },
   "author": "Hal Snyder",
   "license": "ISC",
@@ -33,6 +34,6 @@
     "puppeteer": "^1.20.0",
     "sprintf-js": "^1.1.2",
     "type-of-is": "^3.5.1",
-    "typescript": "^3.6.3"
+    "typescript": "^3.6.4"
   }
 }
