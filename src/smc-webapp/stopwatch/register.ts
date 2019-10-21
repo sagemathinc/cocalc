@@ -6,7 +6,7 @@ Register the time editor -- stopwatch
 
 let { register_file_editor } = require("../project_file");
 import { redux_name, Store, AppRedux } from "../app-framework";
-let { alert_message } = require("../alerts");
+import { alert_message } from "../alerts";
 
 let { EditorTime } = require("./editor");
 import { TimeActions, StopwatchEditorState } from "./actions";

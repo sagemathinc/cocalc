@@ -39,7 +39,7 @@ Draggable = require('react-draggable')
 {ProjectNew}       = require('./project_new')
 {ProjectLog}       = require('./project_log')
 {ProjectSearch}    = require('./project_search')
-{ProjectSettings}  = require('./project_settings')
+{ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
 {DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
 
@@ -226,6 +226,9 @@ fixed_project_pages =
 # Children must define their own padding from navbar and screen borders
 ProjectContentViewer = rclass
     displayName: 'ProjectContentViewer'
+
+    shouldComponentUpdate: (nextProps) ->
+        return @props.is_visible or nextProps.is_visible
 
     propTypes :
         is_visible      : rtypes.bool.isRequired

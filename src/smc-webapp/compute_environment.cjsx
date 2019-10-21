@@ -77,13 +77,13 @@ class ComputeEnvironmentActions extends Actions
     load: ->
         return if @get('loading')
         @setState(loading: true)
-        if DEBUG then console.log("ComputeEnvironmentActions: loading ...")
+        #if DEBUG then console.log("ComputeEnvironmentActions: loading ...")
         require.ensure [], =>
             # these files only contain "{}" per default!
             inventory  = require('webapp-lib/compute-inventory.json')
             components = require('webapp-lib/compute-components.json')
             @init_data(inventory, components)
-            if DEBUG then console.log("ComputeEnvironmentActions: loading done.")
+            #if DEBUG then console.log("ComputeEnvironmentActions: loading done.")
 
 
 # the components

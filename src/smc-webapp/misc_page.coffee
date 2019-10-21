@@ -1862,44 +1862,12 @@ exports.drag_start_iframe_disable = ->
 exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
-exports.open_popup_window = (url, opts) ->
-    exports.open_new_tab(url, true, opts)
+# for backward compatibility, and no circular import
+exports.open_popup_window = (args...) ->
+    require('./r_misc/open-browser-tab').open_popup_window(args...)
+exports.open_new_tab = (args...) ->
+    require('./r_misc/open-browser-tab').open_new_tab(args...)
 
-# open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
-exports.open_new_tab = (url, popup=false, opts) ->
-    # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
-
-    opts = misc.defaults opts,
-        menubar    : 'yes'
-        toolbar    : 'no'
-        resizable  : 'yes'
-        scrollbars : 'yes'
-        width      : '800'
-        height     : '640'
-
-    if popup
-        popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
-        tab = window.open("", '_blank', popup_opts)
-    else
-        tab = window.open("", '_blank')
-    if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
-        {alert_message} = require('./alerts')
-        if url
-            message = "Either enable popups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
-        else
-            message = "Enable popups for this website and try again."
-        alert_message
-            title   : "Popups blocked."
-            message : message
-            type    : 'info'
-            timeout : 15
-        return null
-    # equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
-    # credits: https://stackoverflow.com/a/49276673/54236
-    tab.opener = null
-    # only *after* the above, we set the URL!
-    tab.location = url
-    return tab
 
 exports.get_cookie = (name) ->
     value = "; " + document.cookie

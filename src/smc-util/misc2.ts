@@ -7,6 +7,9 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
+import * as sha1 from "sha1";
+export { sha1 };
+
 import * as lodash from "lodash";
 export const keys = lodash.keys;
 
@@ -72,7 +75,15 @@ export function split(s: string): string[] {
   }
 }
 
-export function is_different(a: any, b: any, fields: string[]): boolean {
+export function is_different(
+  a: any,
+  b: any,
+  fields: string[],
+  verbose?: string
+): boolean {
+  if (verbose != null) {
+    return is_different_verbose(a, b, fields, verbose);
+  }
   let field: string;
   if (a == null) {
     if (b == null) {
@@ -101,6 +112,53 @@ export function is_different(a: any, b: any, fields: string[]): boolean {
       return true;
     }
   }
+  return false;
+}
+
+// Use for debugging purposes only -- copy code from above to avoid making that
+// code more complicated and possibly slower.
+function is_different_verbose(
+  a: any,
+  b: any,
+  fields: string[],
+  verbose: string
+): boolean {
+  function log(...x) {
+    console.log("is_different_verbose", verbose, ...x);
+  }
+  let field: string;
+  if (a == null) {
+    if (b == null) {
+      log("both null");
+      return false; // they are the same
+    }
+    // a not defined but b is
+    for (field of fields) {
+      if (b[field] != null) {
+        log("a not defined but b is");
+        return true;
+      }
+    }
+    return false;
+  }
+  if (b == null) {
+    // a is defined or would be handled above
+    for (field of fields) {
+      if (a[field] != null) {
+        log(`b null and "${field}" of a is not null`);
+        return true; // different
+      }
+    }
+    return false; // same
+  }
+
+  for (field of fields) {
+    if (a[field] !== b[field]) {
+      log(`field "${field}" differs`, a[field], b[field]);
+      return true;
+    }
+  }
+  log("same");
   return false;
 }
 
@@ -510,8 +568,20 @@ export function human_readable_size(bytes: number | null | undefined): string {
 // (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
 //     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
 //     properly (not our use case).
-export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi
+export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi;
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
+}
+
+// converts an array to a "human readable" array
+export function to_human_list(arr) {
+  arr = lodash.map(arr, x => x.toString());
+  if (arr.length > 1) {
+    return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
+  } else if (arr.length === 1) {
+    return arr[0].toString();
+  } else {
+    return "";
+  }
 }

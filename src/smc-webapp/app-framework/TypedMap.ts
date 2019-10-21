@@ -16,7 +16,7 @@ let sale2 = sale1.set("name", "Mocha");
 For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
-import { DeepImmutable } from "./immutable-types"
+import { DeepImmutable } from "./immutable-types";
 
 export interface TypedMap<TProps extends Object> {
   size: number;

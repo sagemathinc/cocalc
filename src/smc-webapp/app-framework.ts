@@ -51,6 +51,7 @@ import { AdminStore, AdminActions } from "./admin";
 
 import { MentionsActions, MentionsStore } from "./notifications";
 import { FileUseStore } from "./file-use/store";
+export { TypedMap } from "./app-framework/TypedMap";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
@@ -474,6 +475,22 @@ x.actions must not be defined.
 
 */
 
+// Uncomment (and also use below) for working on
+// https://github.com/sagemathinc/cocalc/issues/4176
+/*
+function reduxPropsCheck(reduxProps: object) {
+  for (let store in reduxProps) {
+    const x = reduxProps[store];
+    if (x == null) continue;
+    for (let field in x) {
+      if (x[field] == rtypes.object) {
+        console.log(`WARNING: reduxProps object ${store}.${field}`);
+      }
+    }
+  }
+}
+*/
+
 function compute_cache_key(data: { [key: string]: any }): string {
   return json_stable(keys(data).sort());
 }
@@ -488,7 +505,9 @@ rclass = function(x: any) {
           this.cache0 = {};
         }
         const reduxProps = x.reduxProps(this.props);
+        //reduxPropsCheck(reduxProps);
         const key = compute_cache_key(reduxProps);
+        // console.log("ES6 rclass render", key);
         if (this.cache0[key] == null) {
           this.cache0[key] = connect_component(reduxProps)(x);
         }
@@ -513,7 +532,9 @@ rclass = function(x: any) {
         // OPTIMIZATION: Cache props before generating a new key.
         // currently assumes making a new object is fast enough
         const definition = x(this.props);
+        //reduxPropsCheck(definition.reduxProps);
         const key = compute_cache_key(definition.reduxProps);
+        // console.log("function rclass render", key);
 
         if (definition.actions != null) {
           throw Error(
@@ -552,6 +573,7 @@ rclass = function(x: any) {
         }
       }
       x.propTypes = propTypes;
+      //reduxPropsCheck(propTypes);
     }
 
     if (x.actions != null && x.actions !== redux.getActions) {

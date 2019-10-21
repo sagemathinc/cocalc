@@ -55,7 +55,7 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 import {
   ext2parser,
   parser2tool,
@@ -355,7 +355,8 @@ export class Actions<
       project_id: this.project_id,
       path: aux,
       primary_keys,
-      string_cols
+      string_cols,
+      file_use_interval: 0 // disable file use,, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", err => {
       this.set_error(
@@ -1725,14 +1726,14 @@ export class Actions<
     available_features: AvailableFeatures,
     ext: string
   ): false | string {
-    const formatting = available_features.formatting;
-    // there is no formatting available at all
-    if (!formatting) return false;
+    const formatting = available_features.get("formatting");
+    if (formatting == null || formatting == false) return false;
+    // Now formatting is either "true" or a map itself.
     const parser = ext2parser[ext];
     if (parser == null) return false;
     const tool = parser2tool[parser];
     if (tool == null) return false;
-    if (!formatting[tool]) return false;
+    if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
   }
 
@@ -1983,8 +1984,10 @@ export class Actions<
 
   // Override in derived class to set a special env for
   // any launched terminals.
-  get_term_env(): any {
-    return undefined;
+  get_term_env(): { [envvar: string]: string } {
+    // https://github.com/sagemathinc/cocalc/issues/4120
+    const MPLBACKEND = "Agg";
+    return { MPLBACKEND };
   }
 
   // If you override show, make sure to still call this

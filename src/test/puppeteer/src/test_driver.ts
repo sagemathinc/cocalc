@@ -1,67 +1,77 @@
 // top-level front end test driver
-// npm run build
-// npm run test -- [-H] -c ~/CCTEST/cocalc.yaml
 
-// TODO - split CREDS and ARGS
-// TODO - report number of tests passed, failed, and skipped
+const path = require('path');
+const this_file:string = path.basename(__filename, '.js');
+const debuglog = require('util').debuglog('cc-' + this_file);
 
-const debuglog = require('util').debuglog('cc-driver');
 const program = require('commander');
 import chalk     from 'chalk';
 import * as fs   from 'fs';
 import * as yaml from 'js-yaml';
-import Creds     from './test-creds';
+import { Creds, Opts, ExtChromePath, PassFail } from './types';
+import { pf_log } from './time_log';
 
-const {login_tests} = require('./login_session');
-const {api_session} = require('./api_session');
+import { login_tests } from './login_session';
+import { api_session } from './api_session';
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
 
-const cli_parse = function(): Creds|undefined {
+const cli_parse = function() {
   try {
     // command line processing
     // -p option without arg uses the following path
-    const ext_chrome_path: string = '/usr/bin/chromium-browser';
     program
       .option('-c, --creds <file>', 'credentials file', "./creds")
       .option('-H, --no-headless', 'show browser (requires X11)', false)
       .option('-s, --screenshot', 'take screenshots', false)
-      .option('-p, --path-to-chrome [chromepath]>')
+      .option('-p, --path-to-chrome [chromepath]')
+      .option('-k, --skip <pattern>', 'skip tests matching pattern')
       .parse(process.argv);
     let creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
     debuglog('creds file:', creds_file);
     //let creds = require(creds_file);
     let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, 'utf8'));
-    creds.headless   = program.headless;
-    creds.screenshot = program.screenshot;
+    let cpath: string;
     if (program.pathToChrome == true) {
-      creds.path = ext_chrome_path;
+      cpath = ExtChromePath;
     } else {
-      creds.path = program.pathToChrome;
+      cpath = program.pathToChrome;
     }
+    let skip: RegExp|undefined = undefined;
+    if (program.skip) skip = new RegExp(program.skip);
+    const opts: Opts = {
+      headless: program.headless,
+      screenshot: program.screenshot,
+      path: cpath,
+      skip: skip,
+    }
+    debuglog("opts", opts);
     debuglog('site:', creds.sitename);
-    debuglog('headless:',creds.headless);
-    if (creds.path) debuglog('chrome path:',creds.path);
-    return creds;
+    return ({c: creds, o: opts});
   } catch (e) {
     console.log(chalk.red(`ERROR: ${e.message}`));
     process.exit();
-    return undefined;
+    return undefined; // not reached, added for tsc
   }
 }
 
-//const browser = await puppeteer.launch({executablePath: '/path/to/Chrome'});
-//cocalc: /usr/bin/chromium-browser
-
 const run_tests = async function() {
-  const creds: Creds|undefined = cli_parse();
-  if (creds){
+  // as of 2019-09-27, axios POST to CoCalc docker API fails
+  // with "certificate has expired"
+  // UNLESS the following setting is used
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  const cp = cli_parse();
+  let pfcounts: PassFail = new PassFail();
+  if (cp){
     // edit 'true' to 'false' to skip tests
-    if (true) await login_tests(creds);
-    if (true) await api_session(creds);
+    let x: PassFail = await login_tests(cp.c, cp.o);
+    pfcounts.add(x);
+    x = await api_session(cp.c, cp.o);
+    pfcounts.add(x);
   }
+  pf_log(pfcounts);
 }
 
 run_tests();

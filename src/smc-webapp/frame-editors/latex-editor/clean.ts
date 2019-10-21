@@ -27,14 +27,19 @@ export async function clean(
   project_id: string,
   path: string,
   delete_tex: boolean = false,
-  logger: Function
+  logger: Function,
+  output_directory: string | undefined
 ) {
   const { directory, base } = parse_path(path);
 
   logger(`Running 'latexmk -f -c ${base}'\n`);
+  const latexmk_args = ["-f", "-c", base];
+  if (output_directory != null) {
+    latexmk_args.push(`-output-directory=${output_directory}`);
+  }
   let output = await exec({
     command: "latexmk",
-    args: ["-f", "-c", base],
+    args: latexmk_args,
     project_id: project_id,
     path: directory
   });

@@ -1,9 +1,9 @@
 import chalk from 'chalk';
-import Creds from './test-creds';
+import { Opts } from './types';
 import { Page } from 'puppeteer';
 
-const screenshot = async function(page: Page, creds: Creds, spath: string): Promise<void> {
-  if (creds.screenshot) {
+const screenshot = async function(page: Page, opts: Opts, spath: string): Promise<void> {
+  if (opts.screenshot) {
     try {
       await page.screenshot({ path: spath});
       console.log(chalk.blue(`screenshot saved to ${spath}`));

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "jsx": "react",
     "types": ["node"],
     "lib": ["es7"],
     "strictNullChecks": true,

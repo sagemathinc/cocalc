@@ -9,7 +9,8 @@ This is a renderer using pdf.js.
 const WINDOW_SIZE: number = 3000;
 const HIGHLIGHT_TIME_S: number = 3;
 
-const { Icon, Loading } = require("smc-webapp/r_misc");
+const { Icon, Loading, Markdown } = require("smc-webapp/r_misc");
+import { Alert } from "cocalc-ui";
 
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
@@ -53,6 +54,7 @@ interface PDFJSProps {
   scroll_pdf_into_view?: { page: number; y: number; id: string };
   mode: undefined | "rmd";
   derived_file_types: Set<string>;
+  custom_pdf_error_message?: string;
 }
 
 interface PDFJSState {
@@ -92,7 +94,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         zoom_page_width: rtypes.string,
         zoom_page_height: rtypes.string,
         sync: rtypes.string,
-        scroll_pdf_into_view: rtypes.object
+        scroll_pdf_into_view: rtypes.object,
+        custom_pdf_error_message: rtypes.string
       }
     };
   }
@@ -206,12 +209,16 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       if (this.mounted && err.toString().indexOf("Missing") != -1) {
         this.setState({ missing: true });
         await delay(3000);
-        if (this.mounted && this.state.missing) {
-          // try again
+        if (
+          this.mounted &&
+          this.state.missing &&
+          this.props.actions.update_pdf != null
+        ) {
+          // try again, since there is functionality for updating the pdf
           this.props.actions.update_pdf(new Date().valueOf(), true);
         }
       }
-      //this.props.actions.set_error();
+      // this.props.actions.set_error();
     }
   }
 
@@ -467,25 +474,44 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     return <div style={{ background: "yellow" }} id={"cc-highlight"} />;
   }
 
-  render_no_pdf(): Rendered {
+  private render_other_viewers(): Rendered {
+    if (this.props.derived_file_types.size == 0) return;
     return (
-      <div style={{ backgroundColor: "white" }}>
-        {" "}
-        <p>There is no rendered PDF file available.</p>
-        {this.props.derived_file_types.size > 0 ? (
-          <p>
-            Instead, you might want to switch to the{" "}
-            {list_alternatives(this.props.derived_file_types)} view by selecting
-            it via the dropdown selector in the button row above.
-          </p>
-        ) : (
-          ""
-        )}
+      <>
+        Instead, you might want to switch to the{" "}
+        {list_alternatives(this.props.derived_file_types)} view by selecting it
+        via the dropdown selector above.
+      </>
+    );
+  }
+
+  private render_custom_error_message(): Rendered {
+    if (this.props.custom_pdf_error_message == null) return;
+    return (
+      <Alert
+        message={<Markdown value={this.props.custom_pdf_error_message} />}
+        type="info"
+      />
+    );
+  }
+
+  private render_no_pdf(): Rendered {
+    return (
+      <div
+        style={{
+          backgroundColor: "white",
+          margin: "15px",
+          overflowY: "scroll"
+        }}
+      >
+        There is no rendered PDF file available. {this.render_other_viewers()}
+        <hr />
+        {this.render_custom_error_message()}
       </div>
     );
   }
 
-  render() {
+  public render(): Rendered {
     if (
       this.props.mode == "rmd" &&
       this.props.derived_file_types != undefined

@@ -152,9 +152,9 @@ export class Data extends Component<DataProps> {
                 if (value && value.forEach) {
                   value.forEach((value: any, key: any) => {
                     if (key === "width") {
-                      return (width = value);
+                      width = value;
                     } else if (key === "height") {
-                      return (height = value);
+                      height = value;
                     }
                   });
                 }
