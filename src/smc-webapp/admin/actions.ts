@@ -1,7 +1,8 @@
 import { Actions } from "../app-framework";
 import { user_search, User } from "smc-webapp/frame-editors/generic/client";
 import { cmp } from "smc-util/misc2";
-import { AdminStoreState } from "./store"
+import { AdminStoreState, User as ImmutableUser } from "./store";
+import { fromJS, List } from "immutable";
 
 function user_sort_key(user: User): string {
   if (user.last_active) {
@@ -18,7 +19,7 @@ export class AdminActions extends Actions<AdminStoreState> {
 
   set_user_search_query = (query: string): void => {
     this.setState({ user_search_query: query });
-  }
+  };
 
   clear_user_search_status = (): void => {
     this.setState({ user_search_status: "" });
@@ -39,13 +40,13 @@ export class AdminActions extends Actions<AdminStoreState> {
     });
     */
 
-    const result: User[] = await user_search({
+    const result = await user_search({
       query: this.store.get("user_search_query"),
       admin: true,
       limit: 100
     });
 
-    if (!result) {
+    if (result == null) {
       this.set_user_search_status("ERROR");
       return;
     }
@@ -56,6 +57,8 @@ export class AdminActions extends Actions<AdminStoreState> {
     });
     this.set_user_search_status("");
 
-    this.setState({ user_search_result: result });
+    this.setState({
+      user_search_result: fromJS(result) as List<ImmutableUser>
+    });
   };
 }
