@@ -10,12 +10,12 @@ CoCalc: Collaborative Calculation in the Cloud
 Copyright (C) 2016, Sagemath Inc.
 ---
 
-Site Customize -- dynamically customize the look of SMC for the client.
+Site Customize -- dynamically customize the look of CoCalc for the client.
 */
 
 import { redux, Redux, rclass, rtypes } from "./app-framework";
 import * as React from "react";
-import { Loading } from "./r_misc/loading";
+import { Loading } from "./r_misc";
 
 const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");

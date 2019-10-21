@@ -7,6 +7,8 @@ import * as feature from "../feature";
 
 let Tooltip: any, Popover: any;
 import { TooltipPlacement } from "cocalc-ui";
+
+// This ugly hack is needed because of a problem when starting the share server
 try {
   Tooltip = require("cocalc-ui").Tooltip;
   Popover = require("cocalc-ui").Popover;
@@ -53,8 +55,8 @@ export class Tip extends React.Component<Props, State> {
 
   static defaultProps = {
     placement: "right",
-    delayShow: 500,
-    delayHide: 100, // was 0, but .1 is the Antd default
+    delayShow: 500, // [ms]
+    delayHide: 100, // [ms] this was 0 before switching to Antd – which has 100ms as its default, though.
     rootClose: false,
     popover_style: { zIndex: 1000 },
     allow_touch: false,
@@ -77,9 +79,10 @@ export class Tip extends React.Component<Props, State> {
   }
 
   private render_title() {
+    if (!this.props.icon) return this.props.title;
     return (
       <span>
-        {this.props.icon && <Icon name={this.props.icon} />} {this.props.title}
+        <Icon name={this.props.icon} /> {this.props.title}
       </span>
     );
   }
