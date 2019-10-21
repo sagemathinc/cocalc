@@ -14,6 +14,7 @@ export interface Opts {
   screenshot?: string;
   path?: string|boolean;
   skip?: RegExp;
+  xprj?: string;
 }
 
 export interface InstallOpts {
