@@ -47,7 +47,7 @@ export class ProfileImageSelector extends Component<
       is_dragging_image_over_dropzone: false,
       crop: {
         unit: "%",
-        width: 30,
+        width: 100,
         aspect: 1
       }
     };
@@ -353,30 +353,6 @@ export class ProfileImageSelector extends Component<
             }}
             onImageLoaded={image => {
               this.imageRef = image;
-              // Center a square percent crop.
-              const width =
-                image.width > image.height // Landscape
-                  ? (image.height / image.width) * 100
-                  : 100;
-              const height =
-                image.height > image.width // Portrait
-                  ? (image.width / image.height) * 100
-                  : 100;
-              const x = width === 100 ? 0 : (100 - width) / 2;
-              // Use the upper third if the photo is vertical
-              const y = height === 100 ? 0 : (100 - height) / 3.3;
-
-              this.setState({
-                crop: {
-                  unit: "%",
-                  aspect: 1,
-                  width,
-                  height,
-                  x,
-                  y
-                }
-              });
-              return false; // Required by API from setting crop
             }}
             onComplete={crop => this.makeClientCrop(crop)}
           />
@@ -455,7 +431,7 @@ export class ProfileImageSelector extends Component<
  * @param {Object} pixelCrop - pixelCrop Object provided by react-image-crop
  *
  * Returns a Base64 string
-*/
+ */
 async function getCroppedImg(image, crop: ReactCrop.Crop): Promise<string> {
   // Higher quality cropping upon completion of
   // https://github.com/DominicTobias/react-image-crop/issues/263
