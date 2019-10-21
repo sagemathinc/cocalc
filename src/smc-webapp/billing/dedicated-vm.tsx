@@ -16,16 +16,16 @@ export const DEDICATED_VM_TEXT = (
     <div>
       A <b>Dedicated VM</b> is a specific node in the cluster, which solely
       hosts one or more of your projects. This allows you to run much larger
-      workloads with a consistent performance, because no resources are shared
-      with other projects. The usual quota limitations do not apply and you also
-      get additional disk space attached to individual projects.
+      workloads with consistent performance, because no resources are shared
+      with other projects. The usual quota limitations do not apply and you can
+      also pay for additional disk space attached to individual projects.
     </div>
     <Space />
     <div>
       To get started, please contact us at <HelpEmailLink />. We will work out
-      the actual requirements with you and set everything up. It is also
-      possible to deviate from the given options, in order to accommodate
-      exactly for the expected resource usage.
+      the actual requirements with you and set everything up. The list of
+      dedicated VM options below are just examples; we can create VM's with
+      almost any configuration up to 1.4 terabyte of RAM and 96 vCPU's.
     </div>
   </React.Fragment>
 );

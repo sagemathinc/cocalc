@@ -1,6 +1,6 @@
 import { React, Component, Rendered } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
-import { A } from "../r_misc/A";
+import { A } from "../r_misc";
 import { STUDENT_COURSE_PRICE } from "./data";
 import { Space } from "../r_misc/space";
 
@@ -72,7 +72,7 @@ export class ExplainPlan extends Component<Props> {
             course packages <b>starting at $4 per student</b> to distribute
             across your and your student's projects &mdash; or each of your
             students pays ${STUDENT_COURSE_PRICE}. Any course package offering
-            starts right after the purchase, last for the indicated period, and
+            starts right after the purchase, lasts for the indicated period, and
             does <b>not auto-renew</b> when it ends.
           </p>
           <p>
@@ -89,7 +89,7 @@ export class ExplainPlan extends Component<Props> {
                 <A href={TEACHER_PAYS}>You or your institution pays</A>
               </b>{" "}
               for one or more course plans. You distribute the quota upgrades to
-              all projects of the course via the settings panel of the course
+              all projects of the course via the configuration frame of the course
               management file.
             </li>
 
@@ -97,7 +97,7 @@ export class ExplainPlan extends Component<Props> {
               <b>
                 <A href={STUDENT_PAYS}>Students pay a one-time fee.</A>
               </b>{" "}
-              In the settings panel of the course management file, you opt to
+              In the configuration frame of the course management file, you opt to
               require all students to pay a one-time ${STUDENT_COURSE_PRICE} fee
               to upgrade their projects.
             </li>

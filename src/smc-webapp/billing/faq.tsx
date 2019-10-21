@@ -1,5 +1,5 @@
 import { Component, React, Rendered } from "../app-framework";
-import { A } from "smc-webapp/r_misc/A";
+import { A } from "smc-webapp/r_misc";
 
 export class FAQ extends Component {
   public render(): Rendered {

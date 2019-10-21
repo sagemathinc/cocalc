@@ -1,7 +1,6 @@
 const { Panel } = require("react-bootstrap");
 import { Component, React, Rendered } from "../app-framework";
-import { Icon } from "../r_misc/icon";
-import { Loading } from "../r_misc/loading";
+import { Icon, Loading } from "../r_misc";
 import { Invoice } from "./invoice";
 import { Invoices } from "./types";
 import { WindowedList } from "../r_misc/windowed-list";
