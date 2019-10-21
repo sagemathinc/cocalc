@@ -126,6 +126,12 @@ function preflight_check(): void {
       spec.buildID[2] <= 3865 &&
       spec.buildID[3] < 114);
 
+  // This is set to be accessible globally, since this bug is still widely deployed (e.g.,
+  // all ChromeOS users), right now it is used elsewhere to display a message
+  // that is likely to be visible when the actual bug happens.
+  // See https://github.com/sagemathinc/cocalc/issues/4136
+  (window as any).buggyCh77 = buggyCh77;
+
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
     const msg = `
       <h2>CoCalc does not support ${spec.name} version ${spec.version}.</h2>
@@ -133,10 +139,15 @@ function preflight_check(): void {
           <p>We recommend that you use the newest version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>.</p>
       </div>`;
     halt_and_catch_fire(msg);
-  } else if (buggyCh77 && spec.buildID != null && Array.isArray(spec.buildID)) {
+  } else if (
+    false &&
+    buggyCh77 &&
+    spec.buildID != null &&
+    Array.isArray(spec.buildID)
+  ) {
     const id = spec.buildID.join(".");
     const msg = `
-      <h2>CoCalc does not work with ${spec.name} version ${id}.</h2>
+      <h2>CoCalc does not work well with ${spec.name} version ${id}.</h2>
       <div>
           <p style="font-weight:bold">
              You cannot use CoCalc with your current browser, because of
