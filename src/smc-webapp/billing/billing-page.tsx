@@ -106,16 +106,13 @@ export const BillingPage = rclass<ReactProps>(
           <b>
             <Space />
             <HelpEmailLink text={<span>Contact&nbsp;us</span>} /> if you are
-            considering purchasing a course subscription and need a short trial
-            to test things out first.
+            considering purchasing a course subscription and need a short evaluation trial.
             <Space />
           </b>
-          <b>
-            <Space /> Customized course plans are available.
-            <Space />
-          </b>
-          If you do not see a plan that fits your needs, email <HelpEmailLink />{" "}
-          with a description of your specific requirements.
+          <br/><br/>
+          <b>Enterprise Support:</b> Contact us at <HelpEmailLink /> for <i>enterprise
+          support</i>, including customized course packages, modified terms of service,
+          additional legal agreements, purchase orders, insurance and priority technical support.
         </span>
       );
     }

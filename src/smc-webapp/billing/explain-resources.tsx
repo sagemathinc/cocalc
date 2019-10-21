@@ -73,8 +73,11 @@ export class ExplainResources extends Component<Props> {
               ) : (
                 undefined
               )}
-              if anything is unclear to you, or you just have a quick question
-              and do not want to wade through all the text below.
+              if anything is unclear to you, you just have a quick question
+              and do not want to wade through all the text below.  Also, contact
+              us if you need <b>enterprise support</b>, which includes customized
+              course packages, modified terms of service, additional legal
+              agreements, purchase orders, insurance and priority technical support.
             </div>
             <Space />
 
