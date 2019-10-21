@@ -25,7 +25,7 @@ const { required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
-import { KernelInfo } from "./types";
+import { Cell, KernelInfo } from "./types";
 import {
   Parser,
   format_parser_for_extension
@@ -542,7 +542,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // in the syncdb database.   These look like, e.g.,
       //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
-      let cells = immutable.Map();
+      let cells: immutable.Map<string, Cell> = immutable.Map();
       this.syncdb.get().forEach(record => {
         switch (record.get("type")) {
           case "cell":

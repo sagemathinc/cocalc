@@ -112,7 +112,7 @@ ChatRoom = rclass ({name}) ->
             misc.original_path(@props.path)
         )
         @props.actions.send_chat(value)
-        if @input_ref.current?
+        if @input_ref.current?.focus?
             @input_ref.current.focus()
 
     on_input_change: (value, mentions, plain_text) ->

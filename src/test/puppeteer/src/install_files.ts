@@ -9,11 +9,12 @@ const program = require('commander');
 import chalk     from 'chalk';
 import * as fs   from 'fs';
 import * as yaml from 'js-yaml';
-import { Creds, Opts, InstallOpts, PassFail, ApiGetString, TestFiles } from './types';
+import { Creds, Opts, InstallOpts, ExtChromePath, PassFail, ApiGetString, TestFiles } from './types';
 import { time_log, num_log } from './time_log';
 import { get_api_key } from './get_api_key';
 import { api_create_file } from './api_create_file';
-import get_project_id from './get_project_id';
+import { api_create_project } from './api_create_project';
+import { get_project_id } from './get_project_id';
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
@@ -22,29 +23,27 @@ const cli_parse = function() {
   try {
     // command line processing
     // -p option without arg uses the following path
-    const ext_chrome_path: string = '/usr/bin/chromium-browser';
     program
       .option('-c, --creds <file>', 'credentials file', "./creds")
       .option('-H, --no-headless', 'show browser (requires X11)', false)
-      .option('-s, --screenshot', 'take screenshots', false)
-      .option('-p, --path-to-chrome [chromepath]')
       .option('-i, --install-path <folder>', 'path to files to upload', "test_files")
+      .option('-j, --create-project', 'create project for tests')
+      .option('-p, --path-to-chrome [chromepath]')
       .parse(process.argv);
     let creds_file: string = program.creds;
     debuglog('creds file:', creds_file);
     let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, 'utf8'));
     let cpath: string;
     if (program.pathToChrome == true) {
-      cpath = ext_chrome_path;
+      cpath = ExtChromePath;
     } else {
       cpath = program.pathToChrome;
     }
     const iopts: InstallOpts = {
+      install_folder: program.installPath,
+      create_project: (program.createProject),
       headless: program.headless,
-      screenshot: program.screenshot,
       path: cpath,
-      skip: undefined,
-      install_folder: program.installPath
     }
     debuglog("iopts", iopts);
     debuglog('site:', creds.sitename);
@@ -58,17 +57,24 @@ const cli_parse = function() {
 
 const install_api_session = async function (creds: Creds, iopts: InstallOpts): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
-  const opts: Opts = iopts;
   try {
     const tm_start = process.hrtime.bigint()
-
+    const opts: Opts = {
+      headless: iopts.headless,
+      path: iopts.path
+    }
     let ags: ApiGetString = await get_api_key(creds, opts);
     const api_key = ags.result;
     pfcounts.add(ags);
     debuglog('api_key', api_key.substr(0,7)+"...");
 
-    ags = await get_project_id(creds, opts, api_key);
-    const project_id: string = ags.result;
+    let project_id: string;
+    if (iopts.create_project) {
+      ags = await api_create_project(creds, api_key);
+    } else {
+      ags = await get_project_id(creds, api_key);
+    }
+    project_id = ags.result;
     pfcounts.add(ags);
     debuglog('project_id', project_id.substr(0,7)+"...");
 
