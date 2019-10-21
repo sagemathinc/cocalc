@@ -17,6 +17,7 @@ For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
 import { DeepImmutable } from "./immutable-types";
+import { CopyMaybe, CopyAnyMaybe } from "./immutable-types";
 
 export interface TypedMap<TProps extends Object> {
   size: number;
@@ -43,7 +44,54 @@ export interface TypedMap<TProps extends Object> {
 
   // Reading deep values
   hasIn(keyPath: Iterable<any>): boolean;
-  getIn<NSV>(keyPath: Iterable<any>, notSetValue?: NSV): any;
+
+  // Only works 3 levels deep.
+  // It's probably advisable to normalize your data if you find yourself that deep
+  // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
+  // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
+  // Same code exists in Store.ts
+  getIn<K1 extends keyof TProps>(path: [K1]): DeepImmutable<TProps[K1]>;
+  getIn<K1 extends keyof TProps, K2 extends keyof NonNullable<TProps[K1]>>(
+    path: [K1, K2]
+  ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable<TProps[K1]>[K2]>>;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable<TProps[K1]>,
+    K3 extends keyof NonNullable<NonNullable<TProps[K1]>[K2]>
+  >(
+    path: [K1, K2, K3]
+  ): DeepImmutable<
+    CopyAnyMaybe<
+      TProps[K1],
+      NonNullable<TProps[K1]>[K2],
+      NonNullable<NonNullable<TProps[K1]>[K2]>[K3]
+    >
+  >;
+  getIn<K1 extends keyof TProps, NSV>(
+    path: [K1],
+    notSetValue: NSV
+  ): DeepImmutable<TProps[K1]> | NSV;
+  getIn<K1 extends keyof TProps, K2 extends keyof NonNullable<TProps[K1]>, NSV>(
+    path: [K1, K2],
+    notSetValue: NSV
+  ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable<TProps[K1]>[K2]>> | NSV;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable<TProps[K1]>,
+    K3 extends keyof NonNullable<NonNullable<TProps[K1]>[K2]>,
+    NSV
+  >(
+    path: [K1, K2, K3],
+    notSetValue: NSV
+  ):
+    | DeepImmutable<
+        CopyAnyMaybe<
+          TProps[K1],
+          NonNullable<TProps[K1]>[K2],
+          NonNullable<NonNullable<TProps[K1]>[K2]>[K3]
+        >
+      >
+    | NSV;
 
   // Value equality
   equals(other: any): boolean;
