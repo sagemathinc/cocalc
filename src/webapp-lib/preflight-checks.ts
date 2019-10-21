@@ -66,7 +66,7 @@ function halt_and_catch_fire(msg: string): void {
             <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" rel="noopener">browser requirements</a>.
           </div>
           <div style="margin-top: 20px; font-weight:bold; font-size: 115%">
-            <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my broken browser...</a>
+            <a href="./app?${SKIP_TOKEN}">Use CoCalc anyways with my unsupported browser...</a>
           </div>
          </div>`;
   // clean page
@@ -139,22 +139,18 @@ function preflight_check(): void {
           <p>We recommend that you use the newest version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>.</p>
       </div>`;
     halt_and_catch_fire(msg);
-  } else if (
-    false &&
-    buggyCh77 &&
-    spec.buildID != null &&
-    Array.isArray(spec.buildID)
-  ) {
-    const id = spec.buildID.join(".");
+  } else if (false && buggyCh77) {
+    // spec.buildID must be a number[] because buggyCh77 is true.
+    // Trying to use Typescript type inference in this case didn't work...
+    const id = (spec.buildID as number[]).join(".");
     const msg = `
-      <h2>CoCalc does not work well with ${spec.name} version ${id}.</h2>
+      <h2>There is a signficant bug using CoCalc with ${spec.name} version ${id}.</h2>
       <div>
           <p style="font-weight:bold">
-             You cannot use CoCalc with your current browser, because of
+             You may have problems using CoCalc with your current browser, because of
              <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=1006243">Chrome issue #1006243</a>.
           </p>
-          <p>Either update to at least Chrome/Chromium version 77 with subrelease <code>77.0.3865.114</code>,
-             or version 78 or higher.
+          <p>Update to at least Chrome/Chromium version 77 with subrelease <code>77.0.3865.114</code>.
           </p>
       </div>`;
     halt_and_catch_fire(msg);
@@ -163,12 +159,12 @@ function preflight_check(): void {
       <h2>CoCalc does not work with ${spec.name} version ${spec.version}.</h2>
       <div>
           <p style="font-weight:bold">
-             You cannot use CoCalc with your current browser, because of
+             You will have trouble using CoCalc with your current browser, because of
              <a href="https://github.com/sagemathinc/cocalc/issues/2875">issue #2875</a> caused by
              <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1453204">firefox issue #1453204</a>.
              (Something similar now afflicts Firefox 66 too.)
           </p>
-          <p>Either update to at least Firefox version 62 (but less than 66),
+          <p>Either update to at least Firefox version 62,
              switch to a recent version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>,
              or tweak your TSL settings (we wouldn't recommend that, though):
              <a href="https://tinyurl.com/y9hphj39">https://tinyurl.com/y9hphj39</a> and
