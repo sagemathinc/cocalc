@@ -23,9 +23,7 @@ interface ReduxProps {
 }
 
 export const ProjectCapabilities = rclass<ReactProps>(
-  class ProjectCapabilities extends React.Component<
-    ReactProps & ReduxProps
-  > {
+  class ProjectCapabilities extends React.Component<ReactProps & ReduxProps> {
     public static reduxProps({ name }) {
       return {
         [name]: {
@@ -137,9 +135,9 @@ export const ProjectCapabilities = rclass<ReactProps>(
           <hr />
           <div style={{ color: COLORS.GRAY }}>
             Some features are not available, because this project runs a small{" "}
-            {A(CUSTOM_SOFTWARE_HELP_URL, "customized stack of software")}. To
-            enable all features, please create a new project using the default
-            software environment.
+            <A href={CUSTOM_SOFTWARE_HELP_URL}>customized stack of software</A>.
+            To enable all features, please create a new project using the
+            default software environment.
           </div>
         </>
       );
