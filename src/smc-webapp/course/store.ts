@@ -66,13 +66,13 @@ export type AssignmentRecord = TypedMap<{
   deleted: boolean;
   due_date: Date;
   path: string;
-  peer_grade?: TypedMap<{ enabled: boolean }>;
+  peer_grade?: { enabled: boolean; due_date: number };
   note: string;
-  last_assignment: TypedMap<{
+  last_assignment: {
     time?: number;
     error?: string;
     start?: number;
-  }>;
+  };
   skip_assignment: boolean;
   skip_collect: boolean;
   skip_grading: boolean;
@@ -475,7 +475,7 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  _num_nondeleted(a) : number {
+  _num_nondeleted(a): number {
     if (a == null) {
       return 0;
     }
