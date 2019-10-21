@@ -7,11 +7,13 @@ Opera: 55
 Chrome is wrong on that page, I assume we should check for 61 or 62.
 */
 
+type NAMES = "Firefox" | "MSIE" | "IE" | "Edge" | "Safari" | "Opera" | "Chrome";
+
 interface ISpecs {
-  name: string;
+  name: NAMES;
   version: number;
-  /* buildID only for FF, first 8 digits are a date-timestamp */
-  buildID: string | undefined;
+  /* buildID: string for FF, first 8 digits are a date-timestamp; int-quadruple for chrome */
+  buildID: string | number[] | undefined;
 }
 
 /* credits: https://stackoverflow.com/a/38080051/54236 */
@@ -28,7 +30,7 @@ const get_spec = function(): ISpecs {
     tem = ua.match(/\b(OPR|Edge)\/(\d+)/);
     if (tem != null)
       return {
-        name: tem[1].replace("OPR", "Opera"),
+        name: tem[1].replace("OPR", "Opera") as NAMES,
         version: parseInt(tem[2]),
         buildID: ""
       };
@@ -37,14 +39,36 @@ const get_spec = function(): ISpecs {
   if ((tem = ua.match(/version\/(\d+)/i)) != null) {
     M.splice(1, 1, tem[1]);
   }
+  let buildID = (navigator as any).buildID;
+  // only exists for FF, this below is for Chrome
+  if (buildID == null && navigator.appVersion != null) {
+    try {
+      const vers = navigator.appVersion.match(/\bChrome\/([0-9.]+)\b/);
+      if (vers != null) {
+        buildID = vers[1].split(".").map(x => parseInt(x));
+      }
+    } catch {
+      console.log(`Unable to extract buildID from ${navigator.appVersion}`);
+    }
+  }
   return {
-    name: M[0],
+    name: M[0] as NAMES,
     version: parseInt(M[1]),
-    buildID: (navigator as any).buildID
+    buildID
   };
 };
 
 function halt_and_catch_fire(msg: string): void {
+  msg = `<div style='text-align:center'>
+          <h1 style="color:red;font-size:400%">&#9888;</h1>
+          ${msg}
+          <div style="margin-top: 20px;">Learn more about our
+            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" rel="noopener">browser requirements</a>.
+          </div>
+          <div style="margin-top: 20px; font-weight:bold; font-size: 115%">
+            <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my broken browser...</a>
+          </div>
+         </div>`;
   // clean page
   for (let eid of ["smc-startup-banner-status", "smc-startup-banner"]) {
     const banner = document.getElementById(eid);
@@ -81,6 +105,7 @@ function preflight_check(): void {
     spec.name === "Firefox" &&
     spec.version == 60 &&
     (spec.buildID !== undefined &&
+      typeof spec.buildID === "string" &&
       spec.buildID.length >= 8 &&
       spec.buildID.slice(0, 8) >= "20180903");
 
@@ -92,28 +117,53 @@ function preflight_check(): void {
     ((59 <= spec.version && spec.version <= 61) || spec.version == 66) &&
     !ff60esr;
 
+  // https://bugs.chromium.org/p/chromium/issues/detail?id=1006243
+  const buggyCh77 =
+    spec.name === "Chrome" &&
+    spec.version == 77 &&
+    (spec.buildID !== undefined &&
+      Array.isArray(spec.buildID) &&
+      spec.buildID[2] <= 3865 &&
+      spec.buildID[3] < 114);
+
+  // This is set to be accessible globally, since this bug is still widely deployed (e.g.,
+  // all ChromeOS users), right now it is used elsewhere to display a message
+  // that is likely to be visible when the actual bug happens.
+  // See https://github.com/sagemathinc/cocalc/issues/4136
+  (window as any).buggyCh77 = buggyCh77;
+
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
-    const msg = `<div style='text-align:center'>
-      <h1 style="color:red;font-size:400%">&#9888;</h1>
+    const msg = `
       <h2>CoCalc does not support ${spec.name} version ${spec.version}.</h2>
       <div>
           <p>We recommend that you use the newest version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>.</p>
-          <p>Learn more about our
-            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" rel="noopener">browser requirements</a>.
+      </div>`;
+    halt_and_catch_fire(msg);
+  } else if (
+    false &&
+    buggyCh77 &&
+    spec.buildID != null &&
+    Array.isArray(spec.buildID)
+  ) {
+    const id = spec.buildID.join(".");
+    const msg = `
+      <h2>CoCalc does not work well with ${spec.name} version ${id}.</h2>
+      <div>
+          <p style="font-weight:bold">
+             You cannot use CoCalc with your current browser, because of
+             <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=1006243">Chrome issue #1006243</a>.
           </p>
-          <p style="font-weight:bold; font-size: 115%">
-            <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my old browser...</a>
+          <p>Either update to at least Chrome/Chromium version 77 with subrelease <code>77.0.3865.114</code>,
+             or version 78 or higher.
           </p>
-      </div>
-    </div>`;
+      </div>`;
     halt_and_catch_fire(msg);
   } else if (buggyFF) {
-    const msg = `<div style='text-align:center'>
-      <h1 style="color:red;font-size:400%">&#9888;</h1>
+    const msg = `
       <h2>CoCalc does not work with ${spec.name} version ${spec.version}.</h2>
       <div>
           <p style="font-weight:bold">
-             You cannot use CoCac with your current browser, because of
+             You cannot use CoCalc with your current browser, because of
              <a href="https://github.com/sagemathinc/cocalc/issues/2875">issue #2875</a> caused by
              <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1453204">firefox issue #1453204</a>.
              (Something similar now afflicts Firefox 66 too.)
@@ -124,14 +174,7 @@ function preflight_check(): void {
              <a href="https://tinyurl.com/y9hphj39">https://tinyurl.com/y9hphj39</a> and
              <a href="https://tinyurl.com/yboeepsf">https://tinyurl.com/yboeepsf</a>.
           </p>
-          <p>Learn more about our
-            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" rel="noopener">browser requirements</a>.
-          </p>
-          <p style="font-weight:bold; font-size: 115%">
-            <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my broken browser...</a>
-          </p>
-      </div>
-    </div>`;
+      </div>`;
     halt_and_catch_fire(msg);
   }
 }
