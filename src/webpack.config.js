@@ -537,6 +537,12 @@ if (STATICPAGES) {
     "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
   };
   plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
+
+  if (DEVMODE && !STATICPAGES) {
+    console.log("Enabling ForkTsCheckerWebpackPlugin");
+    const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+    plugins.push(new ForkTsCheckerWebpackPlugin());
+  }
 }
 
 if (DEVMODE) {
@@ -638,8 +644,16 @@ module.exports = {
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
       // Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
       // It just kind of does its own thing. See tsconfig.json for further congiration.
-      { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
-      { test: /\.ts$/, loader: "ts-loader" },
+      {
+        test: /\.tsx?$/,
+        use: {
+          loader: "ts-loader",
+          options: { // do not run typescript checker here except when building static page.
+            transpileOnly: !STATICPAGES,
+            experimentalWatchApi: true
+          }
+        }
+      },
       {
         test: /\.less$/,
         use: [

@@ -16,7 +16,7 @@
  */
 
 import { redux, Actions, Store } from "./app-framework";
-import * as LS from "misc/local-storage";
+import * as LS from "./misc/local-storage";
 import { analytics_event } from "./tracker";
 import { QueryParams } from "./misc_page2";
 import { uuid } from "smc-util/misc2";
