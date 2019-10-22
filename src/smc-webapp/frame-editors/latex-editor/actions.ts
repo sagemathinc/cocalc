@@ -30,6 +30,7 @@ import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { count_words } from "./count_words";
+import { optimize_pdf } from "./optimize-pdf";
 import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
@@ -416,7 +417,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // we suppress a cycle of loading the PDF if sagetex or pythontex runs above
     // because these two trigger a rebuild and update_pdf on their own at the end
     if (update_pdf) {
-      this.update_pdf(time, force);
+      await this.update_pdf(time, force);
     }
 
     // and finally, wait for word count to finish -- to make clear the whole operation is done
@@ -553,11 +554,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
 
     if (update_pdf) {
-      this.update_pdf(time, force);
+      await this.update_pdf(time, force);
     }
   }
 
-  update_pdf(time: number, force: boolean): void {
+  async update_pdf(time: number, force: boolean): Promise<void> {
+    await optimize_pdf(this.project_id, this.path, time);
+
     const timestamp = this.make_timestamp(time, force);
     // forget currently cached pdf
     this._forget_pdf_document();
@@ -600,12 +603,12 @@ export class Actions extends BaseActions<LatexEditorState> {
         );
         if (hash === this._last_sagetex_hash) {
           // no change - nothing to do except updating the pdf preview
-          this.update_pdf(time, force);
+          await this.update_pdf(time, force);
           return;
         }
       } catch (err) {
         this.set_error(err);
-        this.update_pdf(time, force);
+        await this.update_pdf(time, force);
         return;
       } finally {
         this.set_status("");
@@ -628,7 +631,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
-      this.update_pdf(time, force);
+      await this.update_pdf(time, force);
     } finally {
       this._last_sagetex_hash = hash;
       this.set_status("");
@@ -665,7 +668,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       this.set_error(err);
       // this.setState({ pythontex_error: true });
-      this.update_pdf(time, force);
+      await this.update_pdf(time, force);
       return;
     } finally {
       this.set_status("");
