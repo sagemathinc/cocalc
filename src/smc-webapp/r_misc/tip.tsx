@@ -2,7 +2,7 @@ import * as React from "react";
 import { Rendered } from "smc-webapp/app-framework";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
-import { unreachable } from "smc-util/misc2";
+//import { unreachable } from "smc-util/misc2";
 import * as feature from "../feature";
 
 let Tooltip: any, Popover: any;
@@ -33,7 +33,7 @@ interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
   placement?: TooltipPlacement;
   tip?: string | JSX.Element | JSX.Element[]; // not checked for update
-  size?: Size;
+  size?: Size;   // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
   delayShow?: number;
   delayHide?: number;
   rootClose?: boolean;
@@ -98,6 +98,11 @@ export class Tip extends React.Component<Props, State> {
   }
 
   private get_scale(): React.CSSProperties | undefined {
+    return;
+    // I'm disabling this since I don't think it's that useful,
+    // and this does not work at all.  Plus our current react-bootstrap
+    // tip implementation is horribly broken.
+    /*
     if (this.props.size == null) return;
     switch (this.props.size) {
       case "xsmall":
@@ -111,6 +116,7 @@ export class Tip extends React.Component<Props, State> {
       default:
         unreachable(this.props.size);
     }
+    */
   }
 
   private render_tooltip(): Rendered {
