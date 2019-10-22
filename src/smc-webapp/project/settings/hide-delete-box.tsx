@@ -108,6 +108,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
         style={{ float: "right" }}
         onClick={onClick}
         disabled={disabled}
+        cocalc-test={is_deleted ? "undelete-project" : "delete-project"}
       >
         <Icon name="trash" /> {text}
       </Button>
@@ -138,7 +139,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
           undefined
         )}
         <ButtonToolbar>
-          <Button bsStyle="danger" onClick={this.toggle_delete_project}>
+          <Button bsStyle="danger" onClick={this.toggle_delete_project} cocalc-test="please-delete-project">
             Yes, please delete this project
           </Button>
           <Button onClick={this.hide_delete_conf}>Cancel</Button>
@@ -162,6 +163,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
               bsStyle="warning"
               onClick={this.toggle_hide_project}
               style={{ float: "right" }}
+              cocalc-test={hidden ? "unhide-project" : "hide-project"}
             >
               <Icon name="eye-slash" /> {hidden ? "Unhide" : "Hide"} Project
             </Button>
