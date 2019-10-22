@@ -76,7 +76,7 @@ const test_sage_ker = async function (opts: Opts, page: Page): Promise<PassFail>
 
     sel = "[cocalc-test='jupyter-cell']";
     const empty_exec_str: string = "In []:";
-    const restart_max_tries = 200;
+    const restart_max_tries = 300;
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
@@ -91,12 +91,6 @@ const test_sage_ker = async function (opts: Opts, page: Page): Promise<PassFail>
     debuglog('after ', step, 'tries, exec number starts with ', enpfx);
     expect(enpfx).to.equal(empty_exec_str);
 
-    // readout of slider should be zero
-    // WARNING: puppeteer waitForFunction does not work with async functions
-    // https://github.com/GoogleChrome/puppeteer/issues/4045
-
-    //await page.waitForFunction('document.querySelector("div.widget-readout").innerText==0');
-
     await page.$$('.myfrac');
     debuglog('got fraction in sage ipynb');
 
@@ -107,16 +101,6 @@ const test_sage_ker = async function (opts: Opts, page: Page): Promise<PassFail>
     sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
     await page.waitForSelector(sel);
     debuglog('got file search');
-
-if(false) {
-    sel = "button[id='Cell']";
-    await page.click(sel);
-    debuglog('clicked Cell button');
-
-    linkHandlers = await page.$x("//a[contains(., 'Clear all output')]");
-    await linkHandlers[0].click();
-    debuglog("clicked Clear all output");
-}
 
     time_log("sage ipynb test", tm_sage_ker_test);
     await screenshot(page, opts, 'cocalc-sage-ipynb.png');

@@ -4,7 +4,6 @@ import { ExplainResources } from "./explain-resources";
 import { ExplainPlan } from "./explain-plan";
 import { SubscriptionGrid } from "./subscription-grid";
 import { DedicatedVM } from "./dedicated-vm";
-import { FAQ } from "./faq";
 
 export function render_static_pricing_page(): Rendered {
   return (
@@ -21,8 +20,6 @@ export function render_static_pricing_page(): Rendered {
       />
       <hr />
       <DedicatedVM />
-      <hr />
-      <FAQ />
     </div>
   );
 }

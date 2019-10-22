@@ -120,9 +120,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     }
 
     // param below is just to avoid caching.
-    const src_url = `${window.app_base_url}/${
-      this.props.project_id
-    }/raw/${path}?param=${this.props.reload}`;
+    const src_url = `${window.app_base_url}/${this.props.project_id}/raw/${path}?param=${this.props.reload}`;
 
     return (
       <iframe

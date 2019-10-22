@@ -10,7 +10,6 @@ import { redux } from "../app-framework";
 export function init_jupyter_classic_support(
   register_cocalc_jupyter: Function
 ): void {
-  console.log("init_jupyter_classic_support...");
   const account_store = redux.getStore("account");
   const account_table = redux.getTable("account");
   let last_jupyter_classic: boolean | undefined = undefined;

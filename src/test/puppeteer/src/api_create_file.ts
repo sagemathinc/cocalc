@@ -8,6 +8,10 @@ import { time_log } from './time_log';
 import axios from 'axios';
 import { expect } from 'chai';
 
+function sleep(ms: number = 0): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export const api_create_file = async function (
     creds: Creds,
     file_path: string,
@@ -23,24 +27,36 @@ export const api_create_file = async function (
     debuglog('url ', url);
     debuglog('writing ', file_path);
 
-    const response = await axios({
-      method: 'post',
-      url: url,
-      auth: {
-        username: api_key,
-        password: ""
-      },
-      data: {
-        project_id: project_id,
-        path: file_path,
-        content: content
+    // use retry loop because project might not be started
+    const write_max_tries = 60;
+    let step: number = 0;
+    for (; step < write_max_tries; step++) {
+      const response = await axios({
+        method: 'post',
+        url: url,
+        auth: {
+          username: api_key,
+          password: ""
+        },
+        data: {
+          project_id: project_id,
+          path: file_path,
+          content: content
+        }
+      });
+      expect(response.status).to.equal(200);
+      //debuglog('RESPONSE DATA ', response.data);
+      const event: string = response.data.event;
+      //if (event === "error") console.log(chalk.red(`ERROR-A: ${JSON.stringify(response.data)}`));
+      if (event === "error") {
+        //console.log(chalk.red(`ERROR-A: ${response.data.error}`));
+        debuglog(`${response.data.error}, retrying...`);
+        await sleep(1000);
+        continue;
       }
-    });
-    expect(response.status).to.equal(200);
-    //debuglog('RESPONSE DATA ', response.data);
-    const event: string = response.data.event;
-    if (event === "error") console.log(chalk.red(`ERROR-A: ${response.data}`));
-    expect(response.data.event).to.equal('file_written_to_project');
+      expect(response.data.event).to.equal('file_written_to_project');
+      break;
+    }
     time_log(this_file, tm_start);
     pfcounts.pass += 1;
   } catch (e) {

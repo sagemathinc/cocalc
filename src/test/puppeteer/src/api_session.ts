@@ -8,9 +8,10 @@ import { time_log } from './time_log';
 import { get_api_key } from './get_api_key';
 import get_account_id from './get_account_id';
 import get_auth_token from './get_auth_token';
-import get_project_id from './get_project_id';
+import { get_project_id } from './get_project_id';
+import { get_project_status } from './get_project_status';
 
-const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail> {
+export const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog('skipping test: ' + this_file);
@@ -33,9 +34,12 @@ const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail>
     // const auth_token: string = ags.result;
     pfcounts.add(ags);
 
-    ags = await get_project_id(creds, opts, api_key);
+    ags = await get_project_id(creds, api_key);
     // uncomment next line when project_id is used
-    // const project_id: string = ags.result;
+    const project_id: string = ags.result;
+    pfcounts.add(ags);
+
+    ags = await get_project_status(creds, api_key, project_id);
     pfcounts.add(ags);
 
     time_log(this_file, tm_start);
@@ -47,5 +51,3 @@ const api_session = async function (creds: Creds, opts: Opts): Promise<PassFail>
   debuglog(this_file + ' done');
   return pfcounts;
 }
-
-module.exports = {api_session}

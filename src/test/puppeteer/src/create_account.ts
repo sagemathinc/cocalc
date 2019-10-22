@@ -1,4 +1,4 @@
-// top-level front end test driver
+// use the GUI to create an account
 
 const path = require('path');
 const this_file:string = path.basename(__filename, '.js');
@@ -11,9 +11,7 @@ import * as yaml from 'js-yaml';
 import { Creds, Opts, ExtChromePath, PassFail } from './types';
 import { pf_log } from './time_log';
 
-import { login_tests } from './login_session';
-import { api_session } from './api_session';
-import { expect } from 'chai';
+import { sign_up } from './sign_up';
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
@@ -28,7 +26,6 @@ const cli_parse = function() {
       .option('-s, --screenshot', 'take screenshots', false)
       .option('-p, --path-to-chrome [chromepath]')
       .option('-k, --skip <pattern>', 'skip tests matching pattern')
-      .option('-x, --xprj <cmd>', 'delete|undelete|hide|unhide project')
       .parse(process.argv);
     let creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -43,11 +40,9 @@ const cli_parse = function() {
     }
     let skip: RegExp|undefined = undefined;
     if (program.skip) skip = new RegExp(program.skip);
-    if (program.xprj) expect(['delete','undelete','hide','unhide'], 'bad xprj value').to.include(program.xprj);
     const opts: Opts = {
       headless: program.headless,
       screenshot: program.screenshot,
-      xprj: program.xprj,
       path: cpath,
       skip: skip,
     }
@@ -70,13 +65,8 @@ const run_tests = async function() {
   let pfcounts: PassFail = new PassFail();
   if (cp){
     // edit 'true' to 'false' to skip tests
-    let x: PassFail = await login_tests(cp.c, cp.o);
+    let x: PassFail = await sign_up(cp.c, cp.o);
     pfcounts.add(x);
-    // skip api tests if project was just deleted
-    if (cp.o.xprj && cp.o.xprj !== 'delete') {
-      x = await api_session(cp.c, cp.o);
-      pfcounts.add(x);
-    }
   }
   pf_log(pfcounts);
 }
