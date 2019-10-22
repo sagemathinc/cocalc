@@ -137,8 +137,12 @@ const BUILD_TS = date.getTime();
 const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 
+// Sadly this is always disabled due to
+//   https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
+// and I cannot get any of the workarounds mentioned there to work!!!
+// They all just fail.  Why???
 const DISABLE_TS_LOADER_OPTIMIZATIONS =
-  !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS || PRODMODE || STATICPAGES;
+  true || !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS || PRODMODE || STATICPAGES;
 
 // create a file base_url to set a base url
 const { BASE_URL } = misc_node;
@@ -170,7 +174,9 @@ console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
 console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
 console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
-console.log(`DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`);
+console.log(
+  `DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`
+);
 
 // mathjax version → symlink with version info from package.json/version
 if (CDN_BASE_URL != null) {
@@ -553,6 +559,10 @@ if (STATICPAGES) {
         // We still benefit from parallel computing though.
         // We could change this to async if there were some
         // better way to display that output is pending and that it appeared...
+        // NOTE: it is very important to do
+        //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
+        // in package.json's watch. See
+        //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
         async: false,
         measureCompilationTime: true
       })
