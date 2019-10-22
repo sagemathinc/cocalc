@@ -2,7 +2,7 @@ import * as React from "react";
 
 interface AProps {
   href: string;
-  children: string;
+  children: React.ReactNode;
 }
 
 export function A({ href, children }: AProps) {
