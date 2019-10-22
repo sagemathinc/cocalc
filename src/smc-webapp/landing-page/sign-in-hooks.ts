@@ -3,7 +3,7 @@
 */
 
 const { webapp_client } = require("../webapp_client");
-import * as LS from "misc/local-storage";
+import * as LS from "../misc/local-storage";
 const { APP_BASE_URL } = require("../misc_page");
 import { SignedIn } from "../../smc-util/message-types";
 

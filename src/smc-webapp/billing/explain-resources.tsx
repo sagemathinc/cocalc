@@ -1,6 +1,7 @@
 import { Col, Row } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
 import { Space } from "../r_misc/space";
+import { A } from "../r_misc/A";
 const {
   HelpEmailLink,
   PolicyPricingPageUrl,
@@ -8,6 +9,8 @@ const {
 } = require("../customize");
 import { ProjectQuotaFreeTable } from "./project-quota-free-table";
 import { ProjectQuotaBoundsTable } from "./project-quota-bounds-table";
+import { DEDICATED_VM_TEXT } from "./dedicated-vm";
+import { FAQ } from "./faq";
 
 interface Props {
   type: "shared" | "dedicated";
@@ -21,8 +24,8 @@ export class ExplainResources extends Component<Props> {
     }
     return (
       <>
-        <h4>Table of content</h4>
-        <ul>
+        <h4>Table of contents</h4>
+        <ul style={{ paddingLeft: "20px" }}>
           <li>
             <b>
               <a href="#subscriptions">Personal subscriptions</a>
@@ -40,12 +43,6 @@ export class ExplainResources extends Component<Props> {
               <a href="#dedicated">Dedicated VMs</a>
             </b>
             : a node in the cluster for large workloads
-          </li>
-          <li>
-            <b>
-              <a href="#faq">FAQ</a>
-            </b>
-            : frequently asked questions
           </li>
         </ul>
         <Space />
@@ -76,66 +73,92 @@ export class ExplainResources extends Component<Props> {
               ) : (
                 undefined
               )}
-              if anything is unclear to you, or you just have a quick question
-              and do not want to wade through all the text below.
+              if anything is unclear to you, you just have a quick question and
+              do not want to wade through all the text below. Also, contact us
+              if you need <b>enterprise support</b>, which includes customized
+              course packages, modified terms of service, additional legal
+              agreements, purchase orders, insurance and priority technical
+              support.
             </div>
             <Space />
-
-            {this.render_toc()}
 
             <a id="projects" />
             <h4>Projects</h4>
             <div>
-              Your work on <SiteName /> happens inside <em>projects</em>. You
-              may create any number of independent projects. They form your
-              personal workspaces, where you privately store your files,
-              computational worksheets, and data. You typically run computations
-              through a web browser, either via a worksheet, notebook, or by
-              executing a program in a terminal (you can also ssh into any
-              project). You can also invite collaborators to work with you
-              inside a project, and you can explicitly make files or directories
-              publicly available to everybody.
+              Your work on <SiteName /> happens inside one or more{" "}
+              <A href="https://doc.cocalc.com/project.html">projects</A>. They
+              form your personal workspaces, where you privately store your
+              files, computational worksheets, and data. You typically run
+              computations through a web browser, either via a{" "}
+              <A href="https://doc.cocalc.com/sagews.html">Sage Worksheet</A>,{" "}
+              <A href="https://doc.cocalc.com/jupyter.html">Jupyter Notebook</A>
+              , or by executing a program in a{" "}
+              <A href="https://doc.cocalc.com/terminal.html">terminal</A>. You
+              can also{" "}
+              <A href="https://doc.cocalc.com/project-settings.html#add-new-collaborators">
+                invite collaborators
+              </A>{" "}
+              to work with you inside a project, and you can explicitly make
+              files or directories{" "}
+              <A href="https://doc.cocalc.com/share.html">
+                publicly available to everybody
+              </A>
+              .
             </div>
             <Space />
 
-            <h4>Shared Resources</h4>
+            <h4>Shared resources</h4>
             <div>
               Each project runs on a server, where it shares disk space, CPU,
-              and RAM with other projects. Initially, projects run with default
-              quotas on heavily used machines that are rebooted frequently. You
-              can upgrade any quota on any project on which you collaborate, and
-              you can move projects to faster very stable{" "}
-              <em>members-only computers</em>, where there is much less
+              and RAM with other projects. Initially, you work in a{" "}
+              <A href="https://doc.cocalc.com/trial.html">trial project</A>,
+              which runs with default quotas on heavily used machines that are
+              rebooted frequently. Upgrading to "member hosting" moves your
+              project to a machine with higher-quality hosting and less
               competition for resources.
             </div>
             <Space />
 
             <h4>Quota upgrades</h4>
             <div>
-              By purchasing one or more of our subscriptions, you receive a
-              certain amount of <em>quota upgrades</em>.
-              <ul style={{ paddingLeft: "20px" }}>
-                <li>
-                  You can upgrade the quotas on any of your projects up to the
-                  total amount given by your subscription(s) and the upper
-                  limits per project.
-                </li>
-                <li>
-                  Project collaborators can collectively contribute to the same
-                  project, in order to increase the quotas of their common
-                  project &mdash; these contributions add together to benefit
-                  all project collaborators equally.
-                </li>
-                <li>
-                  You can remove your contributions to any project at any time.
-                </li>
-                <li>
-                  You may also purchase multiple plans more than once, in order
-                  to increase the total amount of upgrades available to you.
-                </li>
-              </ul>
+              By purchasing one or more of our subscriptions or plans, you
+              receive a certain amount of{" "}
+              <A href="https://doc.cocalc.com/billing.html#quota-upgrades">
+                quota upgrades
+              </A>
+              . Use these upgrades to improve hosting quality, enable internet
+              access from within a project or increase quotas for CPU and RAM in
+              order to work on larger problems and do more computations
+              simultaneously. On top of that, your{" "}
+              <HelpEmailLink text={"support questions"} /> are prioritized.
             </div>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li>
+                These upgrades are applied on top of the project{"'"}s free
+                quotas.
+              </li>
+              <li>
+                You can upgrade the quotas up to the total amount given by your
+                subscription(s) and the upper limits per project.
+              </li>
+              <li>
+                Project collaborators can <em>collectively contribute</em> to
+                the same project, in order to increase the quotas of their
+                common project &mdash; these contributions add together to
+                benefit all project collaborators equally.
+              </li>
+              <li>
+                You may also purchase any plans <em>more than once</em>, in
+                order to increase the total amount of upgrades available to you.
+              </li>
+            </ul>
             <Space />
+
+            {this.render_toc()}
+
+            <Space />
+            <h4>More information</h4>
+            <FAQ />
           </Col>
           <Col md={4} sm={12}>
             <Row>
@@ -153,17 +176,7 @@ export class ExplainResources extends Component<Props> {
   }
 
   private render_dedicated(): Rendered {
-    return (
-      <div>
-        <a id="dedicated" />
-        <h4>Dedicated resources</h4>
-        You may also rent dedicated computers. Projects on such a machine of
-        your choice get full use of the hard disk, CPU and RAM, and do{" "}
-        <em>not</em> have to compete with other users for resources. We have not
-        fully automated purchase of dedicated computers yet, so please contact
-        us at <HelpEmailLink /> if you need a dedicated machine.
-      </div>
-    );
+    return DEDICATED_VM_TEXT;
   }
 
   public render(): Rendered {
