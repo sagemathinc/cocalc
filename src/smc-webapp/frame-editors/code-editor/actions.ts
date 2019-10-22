@@ -1739,11 +1739,18 @@ export class Actions<
 
   // Not an action, but works to make code clean
   has_format_support(
-    id?: string,
-    available_features?: AvailableFeatures
+    id: string,
+    available_features?: AvailableFeatures // is in project store
   ): false | string {
-    const cm = this._get_cm(id);
-    if (!cm || available_features == null) return false; // not a code editor or no features
+    if (available_features == null) return false;
+    const leaf = this._get_frame_node(id);
+    if (leaf != null) {
+      // Our default format support is only for
+      // normal code editors.  This can be
+      // overloaded in derived actions, e.g.,
+      // it is in the Jupyter notebook actions.
+      if (leaf.get("type") != "cm") return false;
+    }
     const ext = filename_extension(this.path).toLowerCase();
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
@@ -1753,7 +1760,7 @@ export class Actions<
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
-  async format(id?: string): Promise<void> {
+  async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
 
@@ -1767,7 +1774,7 @@ export class Actions<
     const s = this.redux.getProjectStore(this.project_id);
     if (s == null) return;
     // TODO: Using any here since TypeMap is just not working right...
-    const af : any = s.get('available_features');
+    const af: any = s.get("available_features");
     if (!this.has_format_support(id, af)) return;
 
     // Definitely have format support
