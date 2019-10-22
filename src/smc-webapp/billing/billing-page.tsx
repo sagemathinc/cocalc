@@ -11,8 +11,15 @@ import {
 } from "../app-framework";
 import { AppliedCoupons, Customer, Invoices } from "./types";
 import { Map } from "immutable";
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Loading, Space, Icon, A, ActivityDisplay, Footer } from "../r_misc";
+import {
+  A,
+  ActivityDisplay,
+  ErrorDisplay,
+  Footer,
+  Icon,
+  Loading,
+  Space
+} from "../r_misc";
 const { HelpEmailLink, PolicyPricingPageUrl } = require("../customize");
 import { SubscriptionList } from "./subscription-list";
 import { PaymentMethods } from "./payment-methods";
