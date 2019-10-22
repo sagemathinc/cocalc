@@ -19,6 +19,10 @@ import { Map } from "immutable";
 import { DeepImmutable } from "./immutable-types";
 import { CopyMaybe, CopyAnyMaybe } from "./immutable-types";
 
+// There has to be a better way to move across TypedMap/immutable.Map boundaries...
+type Value<T> = T extends Map<string, infer V> ? V : never;
+type State<T> = T extends TypedMap<infer TP> ? TP : never;
+
 export interface TypedMap<TProps extends Object> {
   size: number;
 
@@ -56,14 +60,7 @@ export interface TypedMap<TProps extends Object> {
   ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable<TProps[K1]>[K2]>>;
   getIn<K1 extends keyof TProps, K2 extends string>(
     path: [K1, K2]
-  ): DeepImmutable<
-    CopyMaybe<
-      TProps[K1],
-      NonNullable<TProps[K1]> extends Map<string, infer V>
-        ? V
-        : never
-    >
-  >;
+  ): DeepImmutable<CopyMaybe<TProps[K1], Value<NonNullable<TProps[K1]>>>>;
   getIn<
     K1 extends keyof TProps,
     K2 extends keyof NonNullable<TProps[K1]>,
@@ -75,6 +72,19 @@ export interface TypedMap<TProps extends Object> {
       TProps[K1],
       NonNullable<TProps[K1]>[K2],
       NonNullable<NonNullable<TProps[K1]>[K2]>[K3]
+    >
+  >;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends string, // Key type of Map<string, unknown>
+    K3 extends keyof State<Value<NonNullable<TProps[K1]>>>
+  >(
+    path: [K1, K2, K3]
+  ): DeepImmutable<
+    CopyAnyMaybe<
+      TProps[K1],
+      Value<NonNullable<TProps[K1]>>,
+      NonNullable<State<Value<NonNullable<TProps[K1]>>>[K3]>
     >
   >;
   getIn<K1 extends keyof TProps, NSV>(

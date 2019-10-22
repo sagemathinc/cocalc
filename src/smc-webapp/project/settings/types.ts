@@ -1,7 +1,7 @@
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework/TypedMap";
 
-type UserRecord = TypedMap<{ group: string }>;
+type UserRecord = TypedMap<{ group: string; upgrades: any }>;
 
 export type Project = TypedMap<{
   title: string;
@@ -10,7 +10,7 @@ export type Project = TypedMap<{
   deleted?: boolean;
   hidden?: boolean;
   users: Map<string, UserRecord>;
-  state?: "opened" | "running" | "starting" | "stopping";
+  state?: { state: "opened" | "running" | "starting" | "stopping" };
   status?: Map<string, any>;
   settings: Map<string, any>;
   compute_image: string;
