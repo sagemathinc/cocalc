@@ -137,6 +137,9 @@ const BUILD_TS = date.getTime();
 const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 
+const DISABLE_TS_LOADER_OPTIMIZATIONS =
+  !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS || PRODMODE || STATICPAGES;
+
 // create a file base_url to set a base url
 const { BASE_URL } = misc_node;
 
@@ -538,7 +541,7 @@ if (STATICPAGES) {
   };
   plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
 
-  if (DEVMODE && !STATICPAGES) {
+  if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
     console.log("Enabling ForkTsCheckerWebpackPlugin");
     const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
     plugins.push(new ForkTsCheckerWebpackPlugin());
@@ -642,16 +645,19 @@ module.exports = {
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
-      // Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
-      // It just kind of does its own thing. See tsconfig.json for further congiration.
+      // Note: see https://github.com/TypeStrong/ts-loader/issues/552
+      // for discussion of issues with ts-loader + webpack.
       {
         test: /\.tsx?$/,
         use: {
           loader: "ts-loader",
-          options: { // do not run typescript checker here except when building static page.
-            transpileOnly: !STATICPAGES,
-            experimentalWatchApi: true
-          }
+          options: DISABLE_TS_LOADER_OPTIMIZATIONS
+            ? {} // run as normal
+            : {
+                // do not run typescript checker in same process...
+                transpileOnly: !STATICPAGES,
+                experimentalWatchApi: true
+              }
         }
       },
       {
