@@ -50,7 +50,7 @@ export class Actions extends CodeEditorActions {
       return;
     }
 
-    this.set_reload("iframe");
+    this.set_reload("iframe", new Date().getTime());
   }
 
   print(id: string): void {
