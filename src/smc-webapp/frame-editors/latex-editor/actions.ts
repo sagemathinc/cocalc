@@ -902,13 +902,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.synctex_tex_to_pdf(line, ch, this.path);
   }
 
-  time_travel(): void {
+  time_travel(opts: { path?: string; frame?: boolean }): void {
     // knitr case: point to editor file, not the generated tex
     // https://github.com/sagemathinc/cocalc/issues/3336
     if (this.knitr) {
-      super.time_travel({ path: this.filename_knitr });
+      super.time_travel({ path: this.filename_knitr, frame: opts.frame });
     } else {
-      super.time_travel();
+      super.time_travel(opts);
     }
   }
 

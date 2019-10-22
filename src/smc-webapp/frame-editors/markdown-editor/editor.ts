@@ -8,6 +8,7 @@ import { set } from "smc-util/misc2";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -46,7 +47,8 @@ const EDITOR_SPEC = {
     ])
   },
   terminal,
-  settings: SETTINGS_SPEC
+  settings: SETTINGS_SPEC,
+  time_travel
 };
 
 export const Editor = createEditor({

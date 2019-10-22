@@ -1054,9 +1054,9 @@ export class Actions<
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(opts: { path?: string; frame?: boolean } = {}): void {
+  time_travel(opts: { path?: string; frame?: boolean }): void {
     if (opts.frame) {
-      this.show_focused_frame_of_type('time_travel');
+      this.show_focused_frame_of_type("time_travel");
     } else {
       this._get_project_actions().open_file({
         path: history_path(opts.path || this.path),

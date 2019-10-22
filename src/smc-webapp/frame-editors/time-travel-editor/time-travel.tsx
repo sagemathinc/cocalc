@@ -51,6 +51,7 @@ interface Props {
   editor_settings: Map<string, any>;
   resize: number;
   is_current: boolean;
+  is_subframe: boolean;
 
   // reduxProps
   versions?: List<Date>;
@@ -360,10 +361,12 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_open_file(): Rendered {
+    if (this.props.is_subframe) return;
     return <OpenFile actions={this.props.actions} />;
   }
 
   private render_open_snapshots(): Rendered {
+    if (this.props.is_subframe) return;
     return <OpenSnapshots actions={this.props.actions} />;
   }
 

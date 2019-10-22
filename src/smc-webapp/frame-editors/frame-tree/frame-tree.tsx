@@ -27,8 +27,8 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { is_different } from "smc-util/misc2";
-import { React, ReactDOM, Component } from "../../app-framework";
+import { hidden_meta_file, is_different } from "smc-util/misc2";
+import { React, ReactDOM, Component, redux } from "../../app-framework";
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
@@ -234,20 +234,25 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     let name = this.props.name;
     let actions = this.props.actions;
 
-    // This approach to TimeTravel as a subframe is not sufficiently
+    // This approach to TimeTravel as a frame is not sufficiently
     // generic and is a **temporary** hack.  It'll be rewritten
     // soon in a more generic way that also will support multifile
-    // latex editing.
+    // latex editing. See https://github.com/sagemathinc/cocalc/issues/904
+
+    let is_subframe: boolean = false; // this name sucks...
     if (spec.name === "TimeTravel" && !(actions instanceof TimeTravelActions)) {
       if (path.slice(path.length - 12) != ".time-travel") {
-        path = "." + path + ".time-travel"; // quick hack; only root dir
-        const ed = require("./register").get_file_editor("time-travel", false);
-        if (ed == null) throw Error("bug");
-        const { redux } = require("../../app-framework");
-        name = ed.init(path, redux, project_id);
-        const actions2 = redux.getActions(name);
+        path = hidden_meta_file(path, "time-travel");
+        const editor = require("./register").get_file_editor(
+          "time-travel",
+          false
+        );
+        if (editor == null) throw Error("bug -- editor must exist");
+        name = editor.init(path, redux, project_id);
+        const actions2 : TimeTravelActions = redux.getActions(name);
         actions2.ambient_actions = actions;
         actions = actions2;
+        is_subframe = true;
       }
     }
 
@@ -293,6 +298,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           derived_file_types={this.props.derived_file_types}
           desc={desc}
           available_features={this.props.available_features}
+          is_subframe={is_subframe}
         />
       </div>
     );
