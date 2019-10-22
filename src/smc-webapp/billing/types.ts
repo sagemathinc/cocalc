@@ -4,6 +4,7 @@ what stripe actually provides!
 */
 
 import { Map, Set } from "immutable";
+import { TypedMap } from "../app-framework";
 
 export type AppliedCoupons = Map<string, any>;
 
@@ -56,16 +57,23 @@ export interface Invoice {
   };
 }
 
+export type InvoiceMap = TypedMap<Invoice>;
+
 export interface Invoices {
   data: Invoice[];
   total_count: number;
 }
+
+export type InvoicesMap = TypedMap<Invoices>;
 
 export interface Customer {
   sources: { data: Source[]; total_count: number };
   subscriptions: { data: Subscription[]; total_count: number };
   default_source: string;
 }
+
+export type CustomerMap = TypedMap<Customer>;
+
 
 export interface Subscription {
   id: string;
