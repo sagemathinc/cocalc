@@ -1,0 +1,27 @@
+// Here we revert some of the style changes that antd made.
+
+// This is mainly meant to be temporary, so that we keep the
+// overall global bootstrap style (e.g., the particular shade
+// of blue for links) until we do a full switch.
+
+@import ../smc-webapp/colors
+
+a
+  color: #428bca
+
+
+a:hover
+  color: #428bca
+
+
+html
+  overflow: hidden
+
+
+.ant-popover-content
+  border: 1px solid $COL_GRAY_L
+  border-radius: 3px
+
+  .ant-popover-arrow
+    border-color: $COL_GRAY_L !important
+    z-index: -1 !important
