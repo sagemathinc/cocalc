@@ -8,7 +8,7 @@ const { throttle } = require("underscore");
 const { webapp_client } = require("./webapp_client");
 const misc_page = require("./misc_page");
 import { AppRedux } from "./app-framework";
-import * as LS from "misc/local-storage";
+import * as LS from "./misc/local-storage";
 
 const async = require("async");
 
