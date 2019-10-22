@@ -17,6 +17,7 @@ export { NumberInput } from "./number-input";
 export { LabeledRow } from "./labeled-row";
 export { TimeElapsed } from "./time-elapsed";
 export { SettingBox } from "./setting-box";
+export { ProfileIcon } from "./profile-icon";
 
 export const {
   MarkdownInput,

@@ -6,7 +6,7 @@ export class FAQ extends Component {
     return (
       <div>
         <a id="faq" />
-        <ul>
+        <ul style={{ paddingLeft: "20px" }}>
           <li>
             <A href={"https://doc.cocalc.com/billing.html"}>
               Billing, quotas, and upgrades FAQ
