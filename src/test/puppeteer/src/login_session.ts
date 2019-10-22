@@ -9,6 +9,7 @@ import { time_log }  from './time_log';
 import test_tex from './test_tex';
 import test_widget from './test_widget';
 import test_sage_ker from './test_sage_ker';
+import { del_hide_project } from './del_hide_project';
 import { Page } from 'puppeteer';
 
 const LONG_TIMEOUT = 70000; // msec
@@ -85,9 +86,12 @@ export const login_tests = async function (creds: Creds, opts: Opts): Promise<Pa
     time_log("open project", tm_open_project);
     pfcounts.pass += 1;
 
-    pfcounts.add(await test_tex(opts, page));
-    pfcounts.add(await test_widget(opts, page));
-    pfcounts.add(await test_sage_ker(opts, page));
+    if (opts.xprj) pfcounts.add(await del_hide_project(opts, page));
+    if ((opts.xprj === undefined) || (opts.xprj !== "delete")) {
+      pfcounts.add(await test_tex(opts, page));
+      pfcounts.add(await test_widget(opts, page));
+      pfcounts.add(await test_sage_ker(opts, page));
+    }
 
     time_log("login session total", tm_launch_browser);
   } catch (e) {
