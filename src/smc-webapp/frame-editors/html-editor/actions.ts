@@ -40,6 +40,19 @@ export class Actions extends CodeEditorActions {
     }
   }
 
+  // https://github.com/sagemathinc/cocalc/issues/3984
+  reload(id: string) {
+    const node = this._get_frame_node(id);
+    if (!node) return;
+
+    if (node.get("type") !== "iframe") {
+      super.reload(id);
+      return;
+    }
+
+    this.set_reload("iframe", new Date().getTime());
+  }
+
   print(id: string): void {
     const node = this._get_frame_node(id);
     if (!node) return;
