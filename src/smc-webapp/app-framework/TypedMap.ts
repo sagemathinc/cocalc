@@ -54,6 +54,16 @@ export interface TypedMap<TProps extends Object> {
   getIn<K1 extends keyof TProps, K2 extends keyof NonNullable<TProps[K1]>>(
     path: [K1, K2]
   ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable<TProps[K1]>[K2]>>;
+  getIn<K1 extends keyof TProps, K2 extends string>(
+    path: [K1, K2]
+  ): DeepImmutable<
+    CopyMaybe<
+      TProps[K1],
+      NonNullable<TProps[K1]> extends Map<string, infer V>
+        ? V
+        : never
+    >
+  >;
   getIn<
     K1 extends keyof TProps,
     K2 extends keyof NonNullable<TProps[K1]>,
@@ -172,10 +182,18 @@ export interface TypedMap<TProps extends Object> {
    * @see `Map#asImmutable`
    */
   asImmutable(): this;
+
+  filter(fn: (predicate) => boolean): this;
 }
 
 interface TypedMapFactory<TProps extends Object> {
   new (values: TProps): TypedMap<TProps>;
+}
+
+export function typedMap<TProps extends object>(
+  defaults: Partial<TProps> = {}
+): TypedMap<TProps> {
+  return Map(defaults) as any;
 }
 
 export function createTypedMap<OuterProps extends Object>(
