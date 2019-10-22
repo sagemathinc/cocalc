@@ -129,9 +129,9 @@ class TimeTravel extends Component<Props> {
       return;
     }
     const version = this.get_version();
-    if (version == null) return this.render_loading();
+    if (version == null) return;  // no versions yet, so nothing to render
     const syncdoc = this.props.actions.syncdoc;
-    if (syncdoc == null) return this.render_loading();
+    if (syncdoc == null) return;  // no syncdoc yet so again nothing to render.
     switch (this.props.docext) {
       case "tasks":
         return this.render_document_tasks(syncdoc, version);
