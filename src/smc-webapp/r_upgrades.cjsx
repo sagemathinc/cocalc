@@ -52,7 +52,7 @@ exports.UpgradesPage = rclass
             <SubscriptionGrid periods={['week','month4','year1']} is_static={true}/>
 
             <Space/>
-            <ExplainResources type='dedicated'/>
+            <DedicatedVM />
 
             <Space/>
             <DedicatedVM/>

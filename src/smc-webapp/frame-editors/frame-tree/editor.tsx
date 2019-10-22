@@ -18,7 +18,7 @@ import { copy, is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 interface FrameTreeEditorReactProps {
   name: string;
@@ -113,7 +113,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         derived_file_types: rtypes.immutable.Set
       },
       [project_store_name]: {
-        available_features: rtypes.object
+        available_features: rtypes.immutable.Map
       }
     };
   }

@@ -1,9 +1,14 @@
 import * as React from "react";
 
-export function A(url, display) {
+interface AProps {
+  href: string;
+  children: string;
+}
+
+export function A({ href, children }: AProps) {
   return (
-    <a href={url} target={"_blank"} rel={"noopener"}>
-      {display}
+    <a href={href} target={"_blank"} rel={"noopener"}>
+      {children}
     </a>
   );
 }

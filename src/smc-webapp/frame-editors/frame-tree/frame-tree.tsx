@@ -39,7 +39,7 @@ const feature = require("smc-webapp/feature");
 const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
 const { Loading } = require("smc-webapp/r_misc");
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 import { TimeTravelActions } from "../time-travel-editor/actions";
 

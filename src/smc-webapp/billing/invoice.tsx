@@ -140,13 +140,13 @@ export class Invoice extends Component<Props, State> {
   }
 
   render() {
+    const style: React.CSSProperties = {
+      borderBottom: "1px solid #999",
+      padding: this.state.hide_line_items ? "0" : "15px 0",
+      margin: "0"
+    };
     return (
-      <Row
-        style={{
-          borderBottom: "1px solid #999",
-          padding: this.state.hide_line_items ? 0 : "15px 0"
-        }}
-      >
+      <Row style={style}>
         <Col md={1}>
           {render_amount(
             this.props.invoice.amount_due,
