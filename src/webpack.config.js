@@ -170,6 +170,7 @@ console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
 console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
 console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
+console.log(`DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`);
 
 // mathjax version → symlink with version info from package.json/version
 if (CDN_BASE_URL != null) {
