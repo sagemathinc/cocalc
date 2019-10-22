@@ -218,7 +218,8 @@ export const ProjectControl = rclass<ReactProps>(
     render_action_buttons(): Rendered {
       const { COMPUTE_STATES } = require("smc-util/schema");
       const state = this.props.project.getIn(["state", "state"]);
-      const commands = (state && COMPUTE_STATES[state] &&
+      const commands = (state &&
+        COMPUTE_STATES[state] &&
         COMPUTE_STATES[state].commands) || ["save", "stop", "start"];
       return (
         <ButtonToolbar style={{ marginTop: "10px", marginBottom: "10px" }}>

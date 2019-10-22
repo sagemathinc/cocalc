@@ -11,7 +11,7 @@ export type Project = TypedMap<{
   hidden?: boolean;
   users: Map<string, UserRecord>;
   state?: { state: "opened" | "running" | "starting" | "stopping" };
-  status?: Map<string, any>;
+  status: { cpu: { usage: number }; start_ts: number };
   settings: Map<string, any>;
   compute_image: string;
 }>;
