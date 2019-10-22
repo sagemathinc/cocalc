@@ -1,7 +1,10 @@
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework/TypedMap";
 
-type UserRecord = TypedMap<{ group: string; upgrades: any }>;
+type UserRecord = TypedMap<{
+  group: string;
+  upgrades: { network: number };
+}>;
 
 export type Project = TypedMap<{
   title: string;
