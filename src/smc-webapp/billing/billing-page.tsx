@@ -88,6 +88,18 @@ export const BillingPage = rclass<ReactProps>(
       }
     }
 
+    private render_enterprise_support(): Rendered {
+      return (
+        <p>
+          <br />
+          <b>Enterprise Support:</b> Contact us at <HelpEmailLink /> for{" "}
+          <i>enterprise support</i>, including customized course packages,
+          modified terms of service, additional legal agreements, purchase
+          orders, insurance and priority technical support.
+        </p>
+      );
+    }
+
     private render_help_suggestion(): Rendered {
       return (
         <span>
@@ -103,12 +115,7 @@ export const BillingPage = rclass<ReactProps>(
             evaluation trial.
             <Space />
           </b>
-          <br />
-          <br />
-          <b>Enterprise Support:</b> Contact us at <HelpEmailLink /> for{" "}
-          <i>enterprise support</i>, including customized course packages,
-          modified terms of service, additional legal agreements, purchase
-          orders, insurance and priority technical support.
+          {this.render_enterprise_support()}
         </span>
       );
     }
@@ -158,6 +165,7 @@ export const BillingPage = rclass<ReactProps>(
               about purchase orders, using PayPal or wire transfers for
               non-recurring subscriptions above $50) please email{" "}
               <HelpEmailLink /> immediately.
+              {this.render_enterprise_support()}
             </span>
           );
         }
