@@ -544,7 +544,18 @@ if (STATICPAGES) {
   if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
     console.log("Enabling ForkTsCheckerWebpackPlugin");
     const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
-    plugins.push(new ForkTsCheckerWebpackPlugin());
+    plugins.push(
+      new ForkTsCheckerWebpackPlugin({
+        // async false makes it much easy to see the error messages and
+        // be aware of when compilation is done,
+        // but is slower because it has to wait before showing them.
+        // We still benefit from parallel computing though.
+        // We could change this to async if there were some
+        // better way to display that output is pending and that it appeared...
+        async: false,
+        measureCompilationTime: true
+      })
+    );
   }
 }
 
