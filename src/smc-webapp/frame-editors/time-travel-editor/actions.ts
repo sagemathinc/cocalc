@@ -102,7 +102,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
   }
 
-  private init_frame_tree(versions): void {
+  public init_frame_tree(versions?: List<Date>): void {
+    if (versions == null) {
+      if (this.syncdoc == null || this.syncdoc.get_state() != 'ready') return;
+      versions = List<Date>(this.syncdoc.all_versions());
+    }
     // make sure all the version and version ranges are valid...
     const max = versions.size - 1;
     for (let actions of [this.ambient_actions, this]) {

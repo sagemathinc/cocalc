@@ -253,6 +253,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         actions2.ambient_actions = actions;
         actions = actions2;
         is_subframe = true;
+        actions2.init_frame_tree(); // this is particularly hacky for now...
       }
     }
 
