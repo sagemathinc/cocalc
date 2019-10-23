@@ -3,7 +3,7 @@ import * as async from "async";
 import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
-import { CopyMaybe, Copy2Maybes, DeepImmutable } from "./immutable-types";
+import { TypedCollectionMethods, DeepImmutable } from "./immutable-types";
 import * as misc from "../../smc-util/misc";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
@@ -102,15 +102,10 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State>(field: K): DeepImmutable<State[K]>;
-  get<K extends keyof State, NSV>(
-    field: K,
-    notSetValue: NSV
-  ): DeepImmutable<State[K]> | NSV;
-  get<K extends keyof State, NSV = State[K]>(
-    field: K,
-    notSetValue?: NSV
-  ): State[K] | NSV {
+  get: TypedCollectionMethods<State>["get"] = (
+    field: string,
+    notSetValue?: any
+  ): any => {
     if (this.selectors && this.selectors[field] != undefined) {
       return this.selectors[field].fn();
     } else {
@@ -118,61 +113,16 @@ export class Store<State> extends EventEmitter {
         .getState()
         .getIn([this.name, field], notSetValue);
     }
-  }
+  };
 
-  // Only works 3 levels deep.
-  // It's probably advisable to normalize your data if you find yourself that deep
-  // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
-  // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
-  // Does not work with selectors.
-  // Same code exists in TypedMap.ts
-  getIn<K1 extends keyof State>(path: [K1]): DeepImmutable<State[K1]>;
-  getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>>(
-    path: [K1, K2]
-  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>>;
-  getIn<
-    K1 extends keyof State,
-    K2 extends keyof NonNullable<State[K1]>,
-    K3 extends keyof NonNullable<NonNullable<State[K1]>[K2]>
-  >(
-    path: [K1, K2, K3]
-  ): DeepImmutable<
-    Copy2Maybes<
-      State[K1],
-      NonNullable<State[K1]>[K2],
-      NonNullable<NonNullable<State[K1]>[K2]>[K3]
-    >
-  >;
-  getIn<K1 extends keyof State, NSV>(
-    path: [K1],
-    notSetValue: NSV
-  ): DeepImmutable<State[K1]> | NSV;
-  getIn<K1 extends keyof State, K2 extends keyof NonNullable<State[K1]>, NSV>(
-    path: [K1, K2],
-    notSetValue: NSV
-  ): DeepImmutable<CopyMaybe<State[K1], NonNullable<State[K1]>[K2]>> | NSV;
-  getIn<
-    K1 extends keyof State,
-    K2 extends keyof NonNullable<State[K1]>,
-    K3 extends keyof NonNullable<NonNullable<State[K1]>[K2]>,
-    NSV
-  >(
-    path: [K1, K2, K3],
-    notSetValue: NSV
-  ):
-    | DeepImmutable<
-        Copy2Maybes<
-          State[K1],
-          NonNullable<State[K1]>[K2],
-          NonNullable<NonNullable<State[K1]>[K2]>[K3]
-        >
-      >
-    | NSV;
-  getIn(path: any[], notSetValue?: any): any {
+  getIn: TypedCollectionMethods<State>["getIn"] = (
+    path: any[],
+    notSetValue?: any
+  ): any => {
     return this.redux._redux_store
       .getState()
       .getIn([this.name].concat(path), notSetValue);
-  }
+  };
 
   unsafe_getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store

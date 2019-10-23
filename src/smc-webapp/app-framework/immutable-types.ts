@@ -1,12 +1,28 @@
-import { Collection, List, getIn as unsafe_getIn } from "immutable";
+import { Collection, List } from "immutable";
 import { TypedMap } from "./TypedMap";
 
-export type Maybe<T> = T | undefined;
+type Maybe<T> = T | undefined;
 // Return Maybe<U> iff T is a Maybe<?>
-export type CopyMaybe<T, U> = Maybe<T> extends T ? Maybe<U> : U;
+type CopyMaybe<T, U> = Maybe<T> extends T ? Maybe<U> : U;
 // Could be shortened with Variadic Types?
-export type Copy2Maybes<T, U, V> = CopyMaybe<T, V> | CopyMaybe<U, V>;
-export type Copy3Maybes<T0, T1, T2, V> = CopyMaybe<T0, V> | CopyMaybe<T1, V> | CopyMaybe<T2, V>;
+type Copy2Maybes<T, U, V> = CopyMaybe<T, V> | CopyMaybe<U, V>;
+type Copy3Maybes<T0, T1, T2, V> =
+  | CopyMaybe<T0, V>
+  | CopyMaybe<T1, V>
+  | CopyMaybe<T2, V>;
+
+type NonNullable1<Top, K1 extends keyof Top> = NonNullable<Top[K1]>;
+type NonNullable2<
+  Top,
+  K1 extends keyof Top,
+  K2 extends keyof NonNullable1<Top, K1>
+> = NonNullable<NonNullable1<Top, K1>[K2]>;
+type NonNullable3<
+  Top,
+  K1 extends keyof Top,
+  K2 extends keyof NonNullable1<Top, K1>,
+  K3 extends keyof NonNullable2<Top, K1, K2>
+> = NonNullable<NonNullable2<Top, K1, K2>[K3]>;
 
 type CoveredJSBuiltInTypes =
   | Date
@@ -41,15 +57,120 @@ type ListToRecurse<U> = {
 type MapToRecurse<T extends object> = TypedMap<
   { [P in keyof T]: DeepImmutable<T[P]> }
 >;
-// Only works 3 levels deep.
-// It's probably advisable to normalize your data if you find yourself that deep
-// https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
-// If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
-// Same code exists in Store.ts
-export function getIn<T, K1 extends T extends { get: infer GET } ? GET : never>(
-  collection: T,
-  path: [K1]
-): K1 extends () => infer V ? V : never;
-export function getIn(collection, searchKeyPath, notSetValue?) {
-  return unsafe_getIn(collection, searchKeyPath, notSetValue);
+
+// There has to be a better way to move across TypedMap/immutable.Map boundaries...
+type Value<T> = T extends Map<string, infer V>
+  ? V
+  : T extends List<infer V>
+  ? V
+  : never;
+type State<T> = T extends TypedMap<infer TP> ? TP : never;
+
+export interface TypedCollectionMethods<TProps> {
+  /**
+   * Returns the value associated with the provided key.
+   *
+   * If the requested key is undefined, then
+   * notSetValue will be returned if provided.
+   */
+  get<K extends keyof TProps>(field: K): DeepImmutable<TProps[K]>;
+  get<K extends keyof TProps, NSV>(
+    field: K,
+    notSetValue: NSV
+  ): NonNullable<DeepImmutable<TProps[K]>> | NSV;
+  get<K extends keyof TProps>(key: K): TProps[K];
+  get<K extends keyof TProps, NSV>(
+    key: K,
+    notSetValue: NSV
+  ): NonNullable<TProps[K]> | NSV;
+  get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
+
+  // Only works 4 levels deep.
+  // It's probably advisable to normalize your data if you find yourself that deep
+  // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
+  // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
+  getIn<K1 extends keyof TProps>(path: [K1]): DeepImmutable<TProps[K1]>;
+  getIn<K1 extends keyof TProps, K2 extends keyof NonNullable1<TProps, K1>>(
+    path: [K1, K2]
+  ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable1<TProps, K1>[K2]>>;
+  getIn<K1 extends keyof TProps, K2 extends string>( // Operating on TypedMap<{ foo: immutable.Map<K2, V> }>
+    path: [K1, K2]
+  ): DeepImmutable<CopyMaybe<TProps[K1], Value<NonNullable1<TProps, K1>>>>;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable1<TProps, K1>,
+    K3 extends keyof NonNullable2<TProps, K1, K2>
+  >(
+    path: [K1, K2, K3]
+  ): DeepImmutable<
+    Copy2Maybes<
+      TProps[K1],
+      NonNullable1<TProps, K1>[K2],
+      NonNullable2<TProps, K1, K2>[K3]
+    >
+  >;
+  getIn<
+    // Operating on TypedMap<{ foo: immutable.Map<K2, V}> where V: TypedMap<any>
+    K1 extends keyof TProps,
+    K2 extends string, // Key type of Map<string, unknown>
+    K3 extends keyof State<Value<NonNullable1<TProps, K1>>>
+  >(
+    path: [K1, K2, K3]
+  ): DeepImmutable<
+    Copy2Maybes<
+      TProps[K1],
+      Value<NonNullable1<TProps, K1>>,
+      NonNullable<State<Value<NonNullable1<TProps, K1>>>[K3]>
+    >
+  >;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable1<TProps, K1>,
+    K3 extends keyof NonNullable2<TProps, K1, K2>,
+    K4 extends keyof NonNullable3<TProps, K1, K2, K3>
+  >(
+    path: [K1, K2, K3, K4]
+  ): DeepImmutable<
+    Copy3Maybes<
+      TProps[K1],
+      NonNullable1<TProps, K1>[K2],
+      NonNullable2<TProps, K1, K2>[K3],
+      NonNullable3<TProps, K1, K2, K3>[K4]
+    >
+  >;
+  getIn<K1 extends keyof TProps, NSV>(
+    path: [K1],
+    notSetValue: NSV
+  ): NonNullable<DeepImmutable<TProps[K1]>> | NSV;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable1<TProps, K1>,
+    NSV
+  >(
+    path: [K1, K2],
+    notSetValue: NSV
+  ): DeepImmutable<NonNullable1<TProps, K1>[K2]> | NSV;
+  getIn<K1 extends keyof TProps, K2 extends string, NSV>( // Operating on TypedMap<{ foo: immutable.Map<K2, V> }>
+    path: [K1, K2],
+    NotSetValue: NSV
+  ): NonNullable<DeepImmutable<Value<NonNullable1<TProps, K1>>>> | NSV;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable1<TProps, K1>,
+    K3 extends keyof NonNullable2<TProps, K1, K2>,
+    NSV
+  >(
+    path: [K1, K2, K3],
+    notSetValue: NSV
+  ): DeepImmutable<NonNullable2<TProps, K1, K2>[K3]> | NSV;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable1<TProps, K1>,
+    K3 extends keyof NonNullable2<TProps, K1, K2>,
+    K4 extends keyof NonNullable3<TProps, K1, K2, K3>,
+    NSV
+  >(
+    path: [K1, K2, K3, K4],
+    notSetValue: NSV
+  ): DeepImmutable<NonNullable3<TProps, K1, K2, K3>[K4]> | NSV;
 }
