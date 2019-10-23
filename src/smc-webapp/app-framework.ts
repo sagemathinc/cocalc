@@ -499,26 +499,24 @@ rclass = function(x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
     // using an ES6 class *and* reduxProps...
-    C = createReactClass({
-      render() {
-        if (this.cache0 == null) {
-          this.cache0 = {};
-        }
-        const reduxProps = x.reduxProps(this.props);
-        //reduxPropsCheck(reduxProps);
-        const key = compute_cache_key(reduxProps);
-        // console.log("ES6 rclass render", key);
-        if (this.cache0[key] == null) {
-          this.cache0[key] = connect_component(reduxProps)(x);
-        }
-        return React.createElement(
-          this.cache0[key],
-          this.props,
-          this.props.children
-        );
+    const cache0 = {};
+    return function C(props) {
+      if (cache0 == null) {
+        console.trace("WTF IS HAPPENING????")
       }
-    });
-    return C;
+      const reduxProps = x.reduxProps(props);
+      //reduxPropsCheck(reduxProps);
+      const key = compute_cache_key(reduxProps);
+      // console.log("ES6 rclass render", key);
+      if (cache0[key] == null) {
+        cache0[key] = connect_component(reduxProps)(x);
+      }
+      return React.createElement(
+        cache0[key],
+        props,
+        props.children
+      );
+    }
   } else if (typeof x === "function") {
     // Creates a react class that wraps the eventual component.
     // It calls the generator function with props as a parameter
