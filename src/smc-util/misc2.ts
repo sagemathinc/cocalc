@@ -280,15 +280,6 @@ export function is_valid_uuid_string(uuid: string): boolean {
   );
 }
 
-export function history_path(path: string): string {
-  const p = path_split(path);
-  if (p.head) {
-    return `${p.head}/.${p.tail}.time-travel`;
-  } else {
-    return `.${p.tail}.time-travel`;
-  }
-}
-
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 export function len(obj: object | undefined | null): number {
   if (obj == null) {
@@ -584,4 +575,17 @@ export function to_human_list(arr) {
   } else {
     return "";
   }
+}
+
+export function hidden_meta_file(path: string, ext: string): string {
+  const p = path_split(path);
+  let head: string = p.head;
+  if (head !== "") {
+    head += "/";
+  }
+  return head + "." + p.tail + "." + ext;
+}
+
+export function history_path(path: string): string {
+  return hidden_meta_file(path, 'time-travel');
 }

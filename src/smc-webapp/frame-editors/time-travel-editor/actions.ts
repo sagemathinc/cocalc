@@ -18,11 +18,21 @@ import { filename_extension, keys, path_split } from "smc-util/misc2";
 import { meta_file } from "smc-util/misc";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  Actions as CodeEditorActions,
+  CodeEditorState
+} from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 
 const EXTENSION = ".time-travel";
+
+/*interface FrameState {
+  version: number;
+  version0: number;
+  version1: number;
+  changes_mode: boolean;
+}*/
 
 interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
@@ -30,15 +40,17 @@ interface TimeTravelState extends CodeEditorState {
   has_full_history: boolean;
   docpath: string;
   docext: string;
+  //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
 }
 
-export class TimeTravelActions extends Actions<TimeTravelState> {
+export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   private docpath: string;
   private docext: string;
   private syncpath: string;
   public syncdoc?: SyncDoc;
   private first_load: boolean = true;
+  public ambient_actions?: CodeEditorActions;
 
   public _init2(): void {
     const { head, tail } = path_split(this.path);
@@ -81,7 +93,9 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     });
     if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
-    await once(this.syncdoc, "ready");
+    if (this.syncdoc.get_state() != "ready") {
+      await once(this.syncdoc, "ready");
+    }
     this.setState({
       loading: false,
       has_full_history: this.syncdoc.has_full_history()
@@ -91,17 +105,20 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   private init_frame_tree(versions): void {
     // make sure all the version and version ranges are valid...
     const max = versions.size - 1;
-    for (let id in this._get_leaf_ids()) {
-      const node = this._get_frame_node(id);
-      if (node == null) continue;
-      for (let x of ["version", "version0", "version1"]) {
-        let n: number | undefined = node.get(x);
-        if (n == null || n > max || n < 0) {
-          // make it max except in the case of "version0"
-          // when we want it to be one less than version1, which
-          // will be max.
-          n = x == "version0" ? Math.max(0, max - 1) : max;
-          this.set_frame_tree({ id, [x]: n });
+    for (let actions of [this.ambient_actions, this]) {
+      if (actions == null) continue;
+      for (let id in actions._get_leaf_ids()) {
+        const node = actions._get_frame_node(id);
+        if (node == null || node.get("type") != "time_travel") continue;
+        for (let x of ["version", "version0", "version1"]) {
+          let n: number | undefined = node.get(x);
+          if (n == null || n > max || n < 0) {
+            // make it max except in the case of "version0"
+            // when we want it to be one less than version1, which
+            // will be max.
+            n = x == "version0" ? Math.max(0, max - 1) : max;
+            actions.set_frame_tree({ id, [x]: n });
+          }
         }
       }
     }
@@ -160,29 +177,36 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
     return keys(account_ids);
   }
 
+  private get_frame_node_global(id: string) {
+    for (let actions of [this, this.ambient_actions]) {
+      if (actions == null) continue;
+      const node = actions._get_frame_node(id);
+      if (node != null) return node;
+    }
+    throw Error(`BUG -- no node with id ${id}`);
+  }
+
   public set_version(id: string, version: number): void {
-    if (this._get_frame_node(id) == null) {
-      throw Error(`no frame with id ${id}`);
+    for (let actions of [this, this.ambient_actions]) {
+      if (actions == null || actions._get_frame_node(id) == null) continue;
+      if (typeof version != "number") {
+        // be extra careful
+        throw Error("version must be a number");
+      }
+      const versions = this.store.get("versions");
+      if (versions == null || versions.size == 0) return;
+      if (version == -1 || version >= versions.size) {
+        version = versions.size - 1;
+      } else if (version < 0) {
+        version = 0;
+      }
+      actions.set_frame_tree({ id, version });
+      return;
     }
-    if (typeof version != "number") {
-      // be extra careful
-      throw Error("version must be a number");
-    }
-    const versions = this.store.get("versions");
-    if (versions == null || versions.size == 0) return;
-    if (version == -1 || version >= versions.size) {
-      version = versions.size - 1;
-    } else if (version < 0) {
-      version = 0;
-    }
-    this.set_frame_tree({ id, version });
   }
 
   public step(id: string, delta: number): void {
-    const node = this._get_frame_node(id);
-    if (node == null) {
-      throw Error(`no frame with id ${id}`);
-    }
+    const node = this.get_frame_node_global(id);
     if (node.get("changes_mode")) {
       this.set_versions(
         id,
@@ -207,43 +231,46 @@ export class TimeTravelActions extends Actions<TimeTravelState> {
   }
 
   public set_changes_mode(id: string, changes_mode: boolean): void {
-    const node = this._get_frame_node(id);
-    if (node == null) {
-      throw Error(`no frame with id ${id}`);
-    }
-    changes_mode = !!changes_mode;
-    this.set_frame_tree({ id, changes_mode });
-    if (
-      changes_mode &&
-      (node.get("version0") == null || node.get("version1") == null)
-    ) {
-      let version1 = node.get("version");
-      if (version1 == null) {
-        const versions = this.store.get("versions");
-        version1 = versions.size - 1;
+    for (let actions of [this, this.ambient_actions]) {
+      if (actions == null) continue;
+      const node = actions._get_frame_node(id);
+      if (node == null) continue;
+      changes_mode = !!changes_mode;
+      actions.set_frame_tree({ id, changes_mode });
+      if (
+        changes_mode &&
+        (node.get("version0") == null || node.get("version1") == null)
+      ) {
+        let version1 = node.get("version");
+        if (version1 == null) {
+          const versions = this.store.get("versions");
+          version1 = versions.size - 1;
+        }
+        let version0 = version1 - 1;
+        if (version0 < 0) {
+          version0 += 1;
+          version1 += 1;
+        }
+        actions.set_frame_tree({ id, version0, version1 });
       }
-      let version0 = version1 - 1;
-      if (version0 < 0) {
-        version0 += 1;
-        version1 += 1;
-      }
-      this.set_frame_tree({ id, version0, version1 });
+      return;
     }
   }
 
   public set_versions(id: string, version0: number, version1: number): void {
-    if (this._get_frame_node(id) == null) {
-      throw Error(`no frame with id ${id}`);
+    for (let actions of [this, this.ambient_actions]) {
+      if (actions == null || actions._get_frame_node(id) == null) continue;
+      const versions = this.store.get("versions");
+      if (version0 >= version1) {
+        version0 = version1 - 1;
+      }
+      if (version0 >= versions.size) version0 = versions.size - 1;
+      if (version0 < 0) version0 = 0;
+      if (version1 >= versions.size) version1 = versions.size - 1;
+      if (version1 < 0) version1 = 0;
+      actions.set_frame_tree({ id, version0, version1 });
+      return;
     }
-    const versions = this.store.get("versions");
-    if (version0 >= version1) {
-      version0 = version1 - 1;
-    }
-    if (version0 >= versions.size) version0 = versions.size - 1;
-    if (version0 < 0) version0 = 0;
-    if (version1 >= versions.size) version1 = versions.size - 1;
-    if (version1 < 0) version1 = 0;
-    this.set_frame_tree({ id, version0, version1 });
   }
 
   public async open_file(): Promise<void> {

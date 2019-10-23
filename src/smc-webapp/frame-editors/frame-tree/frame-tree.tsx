@@ -27,8 +27,8 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { is_different } from "smc-util/misc2";
-import { React, ReactDOM, Component } from "../../app-framework";
+import { hidden_meta_file, is_different } from "smc-util/misc2";
+import { React, ReactDOM, Component, redux } from "../../app-framework";
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
@@ -40,6 +40,8 @@ const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
 const { Loading } = require("smc-webapp/r_misc");
 import { AvailableFeatures } from "../../project_configuration";
+
+import { TimeTravelActions } from "../time-travel-editor/actions";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -228,6 +230,32 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
 
     const id: string = desc.get("id");
+    const project_id = desc.get("project_id", this.props.project_id);
+    let name = this.props.name;
+    let actions = this.props.actions;
+
+    // This approach to TimeTravel as a frame is not sufficiently
+    // generic and is a **temporary** hack.  It'll be rewritten
+    // soon in a more generic way that also will support multifile
+    // latex editing. See https://github.com/sagemathinc/cocalc/issues/904
+
+    let is_subframe: boolean = false; // this name sucks...
+    if (spec.name === "TimeTravel" && !(actions instanceof TimeTravelActions)) {
+      if (path.slice(path.length - 12) != ".time-travel") {
+        path = hidden_meta_file(path, "time-travel");
+        const editor = require("./register").get_file_editor(
+          "time-travel",
+          false
+        );
+        if (editor == null) throw Error("bug -- editor must exist");
+        name = editor.init(path, redux, project_id);
+        const actions2 : TimeTravelActions = redux.getActions(name);
+        actions2.ambient_actions = actions;
+        actions = actions2;
+        is_subframe = true;
+      }
+    }
+
     return (
       <div
         id={`frame-${id}`}
@@ -236,8 +264,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       >
         <Leaf
           id={id}
-          name={this.props.name}
-          actions={this.props.actions}
+          name={name}
+          actions={actions}
           mode={spec.mode}
           read_only={desc.get(
             "read_only",
@@ -247,7 +275,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           font_size={desc.get("font_size", this.props.font_size)}
           path={path}
           fullscreen_style={fullscreen_style}
-          project_id={desc.get("project_id", this.props.project_id)}
+          project_id={project_id}
           editor_state={this.props.editor_state.get(desc.get("id"), Map())}
           is_current={desc.get("id") === this.props.active_id}
           cursors={this.props.cursors}
@@ -270,6 +298,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           derived_file_types={this.props.derived_file_types}
           desc={desc}
           available_features={this.props.available_features}
+          is_subframe={is_subframe}
         />
       </div>
     );
