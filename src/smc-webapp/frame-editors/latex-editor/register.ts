@@ -4,7 +4,7 @@ Register the LaTeX file editor
 
 import { Editor } from "./editor";
 import { Actions } from "./actions";
-import { KNITR_EXTS } from "./constants.ts";
+import { KNITR_EXTS } from "./constants";
 
 import { register_file_editor } from "../frame-tree/register";
 

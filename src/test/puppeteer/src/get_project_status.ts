@@ -37,7 +37,6 @@ export const get_project_status = async function (creds: Creds, api_key: string,
     expect(response.data.event).to.equal('query');
     const status: string = response.data.query.projects.status;
     debuglog('status', status);
-    //expect(status.length).to.equal(36);
     time_log(this_file, tm_start);
     ags.result = status;
     ags.pass += 1;

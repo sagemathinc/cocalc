@@ -24,7 +24,7 @@ export class ExplainResources extends Component<Props> {
     }
     return (
       <>
-        <h4>Table of content</h4>
+        <h4>Table of contents</h4>
         <ul style={{ paddingLeft: "20px" }}>
           <li>
             <b>
@@ -73,12 +73,14 @@ export class ExplainResources extends Component<Props> {
               ) : (
                 undefined
               )}
-              if anything is unclear to you, or you just have a quick question
-              and do not want to wade through all the text below.
+              if anything is unclear to you, you just have a quick question and
+              do not want to wade through all the text below. Also, contact us
+              if you need <b>enterprise support</b>, which includes customized
+              course packages, modified terms of service, additional legal
+              agreements, purchase orders, insurance and priority technical
+              support.
             </div>
             <Space />
-
-            {this.render_toc()}
 
             <a id="projects" />
             <h4>Projects</h4>
@@ -105,7 +107,7 @@ export class ExplainResources extends Component<Props> {
             </div>
             <Space />
 
-            <h4>Shared Resources</h4>
+            <h4>Shared resources</h4>
             <div>
               Each project runs on a server, where it shares disk space, CPU,
               and RAM with other projects. Initially, you work in a{" "}
@@ -150,6 +152,9 @@ export class ExplainResources extends Component<Props> {
                 order to increase the total amount of upgrades available to you.
               </li>
             </ul>
+            <Space />
+
+            {this.render_toc()}
 
             <Space />
             <h4>More information</h4>

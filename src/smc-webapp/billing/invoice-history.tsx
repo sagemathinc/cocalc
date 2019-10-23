@@ -2,11 +2,11 @@ const { Panel } = require("react-bootstrap");
 import { Component, React, Rendered } from "../app-framework";
 import { Icon, Loading } from "../r_misc";
 import { Invoice } from "./invoice";
-import { Invoices } from "./types";
+import { InvoicesMap, InvoiceMap } from "./types";
 import { WindowedList } from "../r_misc/windowed-list";
 
 interface Props {
-  invoices?: Invoices;
+  invoices?: InvoicesMap;
 }
 
 export class InvoiceHistory extends Component<Props> {
@@ -22,9 +22,10 @@ export class InvoiceHistory extends Component<Props> {
 
   private render_invoice({ index: idx }): Rendered | undefined {
     if (this.props.invoices == null) return;
-    const invoice = this.props.invoices.data[idx];
-    if (invoice == null) return;
-    return <Invoice key={invoice.id} invoice={invoice} />;
+    const invoice = this.props.invoices.get('data').get(idx);
+    if (invoice == null) return
+    const I : InvoiceMap = (invoice as unknown) as InvoiceMap;
+    return <Invoice key={I.get('id')} invoice={I.toJS()} />;
   }
 
   private render_invoices(): Rendered[] | Rendered {
@@ -32,7 +33,7 @@ export class InvoiceHistory extends Component<Props> {
       return <Loading />;
     }
 
-    const size = this.props.invoices.data.length;
+    const size = this.props.invoices.get('data').size;
 
     return (
       <div className={"smc-vfill"} style={{ height: "300px" }}>
