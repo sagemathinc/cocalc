@@ -1,4 +1,4 @@
-import { Collection, List } from "immutable";
+import { Collection, List, getIn as unsafe_getIn } from "immutable";
 import { TypedMap } from "./TypedMap";
 
 export type Maybe<T> = T | undefined;
@@ -25,11 +25,29 @@ export type DeepImmutable<T> = T extends  // TODO: Make any non-plain-object ret
   | CoveredJSBuiltInTypes
   ? T // Any of the types above should not be TypedMap-ified
   : T extends (infer U)[]
-  ? List<U>
+  ? ListToRecurse<U>
   : T extends object // Filter out desired objects above this line
   ? MapToRecurse<T>
   : T; // Base case primatives
 
+// https://github.com/microsoft/TypeScript/issues/26980
+type ListToRecurse<U> = {
+  1: List<DeepImmutable<U>>;
+  0: never;
+}[U extends never ? 0 : 1];
+
 type MapToRecurse<T extends object> = TypedMap<
   { [P in keyof T]: DeepImmutable<T[P]> }
 >;
+// Only works 3 levels deep.
+// It's probably advisable to normalize your data if you find yourself that deep
+// https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
+// If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
+// Same code exists in Store.ts
+export function getIn<T, K1 extends T extends { get: infer GET } ? GET : never>(
+  collection: T,
+  path: [K1]
+): K1 extends () => infer V ? V : never;
+export function getIn(collection, searchKeyPath, notSetValue?) {
+  return unsafe_getIn(collection, searchKeyPath, notSetValue);
+}

@@ -30,20 +30,18 @@ export interface TypedMap<TProps extends Object> {
   has(key: string): boolean;
 
   /**
-   * Returns the value associated with the provided key, which may be the
-   * default value defined when creating the Record factory function.
+   * Returns the value associated with the provided key.
    *
-   * If the requested key is not defined by this Record type, then
-   * notSetValue will be returned if provided. Note that this scenario would
-   * produce an error when using Flow or TypeScript.
+   * If the requested key is undefined, then
+   * notSetValue will be returned if provided. 
    */
   get<K extends keyof TProps>(field: K): DeepImmutable<TProps[K]>;
   get<K extends keyof TProps, NSV>(
     field: K,
     notSetValue: NSV
-  ): DeepImmutable<TProps[K]> | NSV;
+  ): NonNullable<DeepImmutable<TProps[K]>> | NSV;
   get<K extends keyof TProps>(key: K): TProps[K];
-  get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
+  get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): NonNullable<TProps[K]> | NSV;
   get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
 
   // Reading deep values
@@ -58,7 +56,7 @@ export interface TypedMap<TProps extends Object> {
   getIn<K1 extends keyof TProps, K2 extends keyof NonNullable<TProps[K1]>>(
     path: [K1, K2]
   ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable<TProps[K1]>[K2]>>;
-  getIn<K1 extends keyof TProps, K2 extends string>(
+  getIn<K1 extends keyof TProps, K2 extends string>( // Operating on TypedMap<{ foo: immutable.Map<K2, V> }>
     path: [K1, K2]
   ): DeepImmutable<CopyMaybe<TProps[K1], Value<NonNullable<TProps[K1]>>>>;
   getIn<
@@ -74,7 +72,7 @@ export interface TypedMap<TProps extends Object> {
       NonNullable<NonNullable<TProps[K1]>[K2]>[K3]
     >
   >;
-  getIn<
+  getIn< // Operating on TypedMap<{ foo: immutable.Map<K2, V}> where V: TypedMap<any>
     K1 extends keyof TProps,
     K2 extends string, // Key type of Map<string, unknown>
     K3 extends keyof State<Value<NonNullable<TProps[K1]>>>
@@ -192,6 +190,8 @@ export interface TypedMap<TProps extends Object> {
    * @see `Map#asImmutable`
    */
   asImmutable(): this;
+
+  [Symbol.iterator](): IterableIterator<[keyof TProps, TProps[keyof TProps]]>;
 
   filter(fn: (predicate) => boolean): this;
 }
