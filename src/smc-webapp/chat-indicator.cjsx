@@ -116,7 +116,7 @@ exports.ChatIndicator = rclass
             <Tip
                 title     = {title}
                 tip       = {CHAT_INDICATOR_TIP}
-                placement = 'left'
+                placement = {'leftTop'}
                 delayShow = {2500}
                 stable    = {false}
                 >

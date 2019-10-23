@@ -137,12 +137,20 @@ const BUILD_TS = date.getTime();
 const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 
-// Sadly this is always disabled due to
-//   https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
-// and I cannot get any of the workarounds mentioned there to work!!!
-// They all just fail.  Why???
+// If True, do not run typescript compiler at all. Fast,
+// but obviously less safe.  This is designed for use, e.g.,
+// when trying to do a quick production build in an emergency,
+// when we already know the typescript all works.
+const TS_TRANSPILE_ONLY = process.env.TS_TRANSPILE_ONLY;
+
+// When building the static page or if the user explicitly sets
+// an env variable, we do not want to use the forking typescript
+// module instead.
 const DISABLE_TS_LOADER_OPTIMIZATIONS =
-  true || !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS || PRODMODE || STATICPAGES;
+  !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS ||
+  PRODMODE ||
+  STATICPAGES ||
+  TS_TRANSPILE_ONLY;
 
 // create a file base_url to set a base url
 const { BASE_URL } = misc_node;
@@ -174,6 +182,7 @@ console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
 console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
 console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
+console.log(`TS_TRANSPILE_ONLY= ${TS_TRANSPILE_ONLY}`);
 console.log(
   `DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`
 );
@@ -549,7 +558,19 @@ if (STATICPAGES) {
   plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
 
   if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
-    console.log("Enabling ForkTsCheckerWebpackPlugin");
+    console.log("Enabling ForkTsCheckerWebpackPlugin...");
+    if (process.env.TSC_WATCHDIRECTORY == null || process.env.TSC_WATCHFILE) {
+      console.log(
+        "To workaround performance issues with the default typescript watch, we set TSC_WATCH* env vars:"
+      );
+      // See https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
+      // This one seems to work well; others miss changes:
+      process.env.TSC_WATCHFILE = "UseFsEventsOnParentDirectory";
+      // Using "RecursiveDirectoryUsingFsWatchFile" for the directory is very inefficient on CoCalc.
+      process.env.TSC_WATCHDIRECTORY =
+        "RecursiveDirectoryUsingDynamicPriorityPolling";
+    }
+
     const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
     plugins.push(
       new ForkTsCheckerWebpackPlugin({
@@ -673,13 +694,14 @@ module.exports = {
         test: /\.tsx?$/,
         use: {
           loader: "ts-loader",
-          options: DISABLE_TS_LOADER_OPTIMIZATIONS
-            ? {} // run as normal
-            : {
-                // do not run typescript checker in same process...
-                transpileOnly: !STATICPAGES,
-                experimentalWatchApi: true
-              }
+          options:
+            TS_TRANSPILE_ONLY || DISABLE_TS_LOADER_OPTIMIZATIONS
+              ? { transpileOnly: TS_TRANSPILE_ONLY } // run as normal or not at all
+              : {
+                  // do not run typescript checker in same process...
+                  transpileOnly: !STATICPAGES,
+                  experimentalWatchApi: true
+                }
         }
       },
       {
