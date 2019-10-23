@@ -69,11 +69,10 @@ const run_tests = async function() {
   const cp = cli_parse();
   let pfcounts: PassFail = new PassFail();
   if (cp){
-    // edit 'true' to 'false' to skip tests
     let x: PassFail = await login_tests(cp.c, cp.o);
     pfcounts.add(x);
     // skip api tests if project was just deleted
-    if (cp.o.xprj && cp.o.xprj !== 'delete') {
+    if ((cp.o.xprj === undefined) || (cp.o.xprj !== "delete")) {
       x = await api_session(cp.c, cp.o);
       pfcounts.add(x);
     }
