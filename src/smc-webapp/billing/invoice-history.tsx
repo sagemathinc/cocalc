@@ -20,12 +20,16 @@ export class InvoiceHistory extends Component<Props> {
     );
   }
 
-  private render_invoice({ index: idx }): Rendered | undefined {
+  private render_invoice({
+    index: idx
+  }: {
+    index: number;
+  }): Rendered | undefined {
     if (this.props.invoices == null) return;
-    const invoice = this.props.invoices.get('data').get(idx);
-    if (invoice == null) return
-    const I : InvoiceMap = (invoice as unknown) as InvoiceMap;
-    return <Invoice key={I.get('id')} invoice={I.toJS()} />;
+    const invoice = this.props.invoices.getIn(["data", idx]);
+    if (invoice == null) return;
+    // LHS and RHS agree on type tooltip yet it errors without "as"
+    return <Invoice key={invoice.get("id")} invoice={invoice as InvoiceMap} />;
   }
 
   private render_invoices(): Rendered[] | Rendered {
@@ -33,7 +37,7 @@ export class InvoiceHistory extends Component<Props> {
       return <Loading />;
     }
 
-    const size = this.props.invoices.get('data').size;
+    const size = this.props.invoices.get("data").size;
 
     return (
       <div className={"smc-vfill"} style={{ height: "300px" }}>
