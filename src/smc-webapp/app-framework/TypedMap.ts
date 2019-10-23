@@ -17,7 +17,7 @@ For more information see "app-framework/examples/"
 */
 import { Map, List } from "immutable";
 import { DeepImmutable } from "./immutable-types";
-import { CopyMaybe, CopyAnyMaybe } from "./immutable-types";
+import { CopyMaybe, Copy2Maybes, Copy3Maybes } from "./immutable-types";
 
 // There has to be a better way to move across TypedMap/immutable.Map boundaries...
 type Value<T> = T extends Map<string, infer V>
@@ -26,6 +26,19 @@ type Value<T> = T extends Map<string, infer V>
   ? V
   : never;
 type State<T> = T extends TypedMap<infer TP> ? TP : never;
+
+type Drill1<Top, K1 extends keyof Top> = NonNullable<Top[K1]>;
+type Drill2<
+  Top,
+  K1 extends keyof Top,
+  K2 extends keyof Drill1<Top, K1>
+> = NonNullable<Drill1<Top, K1>[K2]>;
+type Drill3<
+  Top,
+  K1 extends keyof Top,
+  K2 extends keyof Drill1<Top, K1>,
+  K3 extends keyof Drill2<Top, K1, K2>
+> = NonNullable<Drill2<Top, K1, K2>[K3]>;
 
 export interface TypedMap<TProps extends Object> {
   size: number;
@@ -73,7 +86,7 @@ export interface TypedMap<TProps extends Object> {
   >(
     path: [K1, K2, K3]
   ): DeepImmutable<
-    CopyAnyMaybe<
+    Copy2Maybes<
       TProps[K1],
       NonNullable<TProps[K1]>[K2],
       NonNullable<NonNullable<TProps[K1]>[K2]>[K3]
@@ -87,10 +100,25 @@ export interface TypedMap<TProps extends Object> {
   >(
     path: [K1, K2, K3]
   ): DeepImmutable<
-    CopyAnyMaybe<
+    Copy2Maybes<
       TProps[K1],
       Value<NonNullable<TProps[K1]>>,
       NonNullable<State<Value<NonNullable<TProps[K1]>>>[K3]>
+    >
+  >;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof Drill1<TProps, K1>,
+    K3 extends keyof Drill2<TProps, K1, K2>,
+    K4 extends keyof Drill3<TProps, K1, K2, K3>,
+  >(
+    path: [K1, K2, K3, K4]
+  ): DeepImmutable<
+    Copy3Maybes<
+      TProps[K1],
+      Drill1<TProps, K1>[K2],
+      Drill2<TProps, K1, K2>[K3],
+      Drill3<TProps, K1, K2, K3>[K4]
     >
   >;
   getIn<K1 extends keyof TProps, NSV>(
@@ -100,7 +128,7 @@ export interface TypedMap<TProps extends Object> {
   getIn<K1 extends keyof TProps, K2 extends keyof NonNullable<TProps[K1]>, NSV>(
     path: [K1, K2],
     notSetValue: NSV
-  ): NonNullable<DeepImmutable<NonNullable<TProps[K1]>[K2]>> | NSV;
+  ): DeepImmutable<NonNullable<TProps[K1]>[K2]> | NSV;
   getIn<K1 extends keyof TProps, K2 extends string, NSV>( // Operating on TypedMap<{ foo: immutable.Map<K2, V> }>
     path: [K1, K2],
     NotSetValue: NSV
@@ -113,8 +141,20 @@ export interface TypedMap<TProps extends Object> {
   >(
     path: [K1, K2, K3],
     notSetValue: NSV
+  ): DeepImmutable<NonNullable<NonNullable<TProps[K1]>[K2]>[K3]> | NSV;
+  getIn<
+    K1 extends keyof TProps,
+    K2 extends keyof NonNullable<TProps[K1]>,
+    K3 extends keyof NonNullable<NonNullable<TProps[K1]>[K2]>,
+    K4 extends keyof NonNullable<NonNullable<NonNullable<TProps[K1]>[K2]>[K3]>,
+    NSV
+  >(
+    path: [K1, K2, K3, K4],
+    notSetValue: NSV
   ):
-    | NonNullable<DeepImmutable<NonNullable<NonNullable<TProps[K1]>[K2]>[K3]>>
+    | DeepImmutable<
+        NonNullable<NonNullable<NonNullable<TProps[K1]>[K2]>[K3]>[K4]
+      >
     | NSV;
 
   // Value equality

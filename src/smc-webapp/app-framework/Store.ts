@@ -3,7 +3,7 @@ import * as async from "async";
 import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
-import { CopyMaybe, CopyAnyMaybe, DeepImmutable } from "./immutable-types";
+import { CopyMaybe, Copy2Maybes, DeepImmutable } from "./immutable-types";
 import * as misc from "../../smc-util/misc";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
@@ -137,7 +137,7 @@ export class Store<State> extends EventEmitter {
   >(
     path: [K1, K2, K3]
   ): DeepImmutable<
-    CopyAnyMaybe<
+    Copy2Maybes<
       State[K1],
       NonNullable<State[K1]>[K2],
       NonNullable<NonNullable<State[K1]>[K2]>[K3]
@@ -161,7 +161,7 @@ export class Store<State> extends EventEmitter {
     notSetValue: NSV
   ):
     | DeepImmutable<
-        CopyAnyMaybe<
+        Copy2Maybes<
           State[K1],
           NonNullable<State[K1]>[K2],
           NonNullable<NonNullable<State[K1]>[K2]>[K3]

@@ -4,7 +4,9 @@ import { TypedMap } from "./TypedMap";
 export type Maybe<T> = T | undefined;
 // Return Maybe<U> iff T is a Maybe<?>
 export type CopyMaybe<T, U> = Maybe<T> extends T ? Maybe<U> : U;
-export type CopyAnyMaybe<T, U, V> = CopyMaybe<T, V> | CopyMaybe<U, V>;
+// Could be shortened with Variadic Types?
+export type Copy2Maybes<T, U, V> = CopyMaybe<T, V> | CopyMaybe<U, V>;
+export type Copy3Maybes<T0, T1, T2, V> = CopyMaybe<T0, V> | CopyMaybe<T1, V> | CopyMaybe<T2, V>;
 
 type CoveredJSBuiltInTypes =
   | Date
