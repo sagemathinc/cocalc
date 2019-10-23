@@ -54,5 +54,6 @@ export class ApiGetString extends PassFail {
 export const TestFiles: { [key: string]: string }  = {
   texfile: "latex-sample.tex",
   widgetfile: "widgets-sample.ipynb",
-  sageipynbfile: "sage-sample.ipynb"
+  sageipynbfile: "sage-sample.ipynb",
+  sagewsfile: "sagews-sample.sagews"
 }
