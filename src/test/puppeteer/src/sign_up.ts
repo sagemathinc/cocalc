@@ -42,12 +42,12 @@ export const sign_up = async function (creds: Creds, opts: Opts): Promise<PassFa
 
     let sel: string;
 
-    sel = '*[cocalc-test="sign-up-tos';
+    sel = '*[cocalc-test="sign-up-tos"]';
     await page.click(sel);
     debuglog('checked ToS');
 
     if (creds.token) {
-      sel = '*[cocalc-test="sign-up-token';
+      sel = '*[cocalc-test="sign-up-token"]';
       await page.click(sel);
       await page.keyboard.type(creds.token);
       debuglog('entered token');
@@ -56,13 +56,13 @@ export const sign_up = async function (creds: Creds, opts: Opts): Promise<PassFa
     }
 
     const firstname:string = creds.firstname!;
-    sel = '*[cocalc-test="sign-up-first-name';
+    sel = '*[cocalc-test="sign-up-first-name"]';
     await page.click(sel);
     await page.keyboard.type(firstname);
     debuglog('entered first name', firstname);
 
     const lastname:string = creds.lastname!;
-    sel = '*[cocalc-test="sign-up-last-name';
+    sel = '*[cocalc-test="sign-up-last-name"]';
     await page.click(sel);
     await page.keyboard.type(lastname);
     debuglog('entered last name', lastname);
