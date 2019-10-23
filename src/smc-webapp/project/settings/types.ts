@@ -6,6 +6,15 @@ type UserRecord = TypedMap<{
   upgrades: { network: number };
 }>;
 
+export type ProjectStatus = TypedMap<{
+  cpu: { usage: number };
+  memory: { rss: number };
+  disk_MB: number;
+  start_ts: number;
+}>;
+
+export type ProjectSettings = Map<string, any>;
+
 export type Project = TypedMap<{
   title: string;
   description: string;
@@ -14,7 +23,7 @@ export type Project = TypedMap<{
   hidden?: boolean;
   users: Map<string, UserRecord>;
   state?: { state: "opened" | "running" | "starting" | "stopping" };
-  status: { cpu: { usage: number }; start_ts: number };
-  settings: Map<string, any>;
+  status: ProjectStatus;
+  settings: ProjectSettings;
   compute_image: string;
 }>;

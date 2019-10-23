@@ -55,7 +55,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
   };
 
   user_has_applied_upgrades(account_id: string, project: Project) {
-    const upgrades = project.getIn(["users", account_id, "upgrades"]);
+    const upgrades = project.getIn(["users", account_id]);
     return upgrades ? upgrades.some(val => val > 0) : undefined;
   }
 

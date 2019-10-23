@@ -16,7 +16,7 @@ let sale2 = sale1.set("name", "Mocha");
 For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
-import { DeepImmutable, TypedCollectionMethods } from "./immutable-types";
+import { TypedCollectionMethods } from "./immutable-types";
 
 export interface TypedMap<TProps extends Object> extends TypedCollectionMethods<TProps> {
   size: number;
@@ -110,6 +110,7 @@ export interface TypedMap<TProps extends Object> extends TypedCollectionMethods<
   [Symbol.iterator](): IterableIterator<[keyof TProps, TProps[keyof TProps]]>;
 
   filter(fn: (predicate) => boolean): this;
+  some: Map<string, any>["some"]
 }
 
 interface TypedMapFactory<TProps extends Object> {

@@ -1,4 +1,4 @@
-import { Collection, List } from "immutable";
+import { Collection, List, Map } from "immutable";
 import { TypedMap } from "./TypedMap";
 
 type Maybe<T> = T | undefined;
