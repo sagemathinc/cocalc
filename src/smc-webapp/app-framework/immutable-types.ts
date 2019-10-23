@@ -1,4 +1,4 @@
-import { Collection, List, Map } from "immutable";
+import * as Immutable from "immutable";
 import { TypedMap } from "./TypedMap";
 
 type Maybe<T> = T | undefined;
@@ -38,19 +38,19 @@ type CoveredJSBuiltInTypes =
 // all objects could be U<T>
 // As it is, right now that U<T> = TypeMap<T>
 export type DeepImmutable<T> = T extends  // TODO: Make any non-plain-object retain it's type
-  | Collection<any, any>
+  | Immutable.Collection<any, any>
   | TypedMap<any>
   | CoveredJSBuiltInTypes
   ? T // Any of the types above should not be TypedMap-ified
   : T extends (infer U)[]
-  ? ListToRecurse<U>
+  ? ListToRecurse<U> // Converts values of arrays as well
   : T extends object // Filter out desired objects above this line
   ? MapToRecurse<T>
   : T; // Base case primatives
 
 // https://github.com/microsoft/TypeScript/issues/26980
 type ListToRecurse<U> = {
-  1: List<DeepImmutable<U>>;
+  1: Immutable.List<DeepImmutable<U>>;
   0: never;
 }[U extends never ? 0 : 1];
 
@@ -59,9 +59,9 @@ type MapToRecurse<T extends object> = TypedMap<
 >;
 
 // There has to be a better way to move across TypedMap/immutable.Map boundaries...
-type Value<T> = T extends Map<string, infer V>
+type Value<T> = T extends Immutable.Map<string, infer V>
   ? V
-  : T extends List<infer V>
+  : T extends Immutable.List<infer V>
   ? V
   : never;
 type State<T> = T extends TypedMap<infer TP> ? TP : never;
