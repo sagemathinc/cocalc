@@ -2,20 +2,13 @@ import { React, Component, Rendered } from "./app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "react-bootstrap";
 const { Avatar } = require("./other-users");
-const { ErrorDisplay, Icon } = require("./r_misc");
+import { ErrorDisplay, Icon, ProfileIcon } from "./r_misc";
 const md5 = require("md5");
 
-// The docs say this should work but typescript rejects it:
-// import ReactCrop from 'react-image-crop';
-// Typescript likes this, but it still does not work.
-// I think @types/react-image-crop is just very wrong... :-(
-//import * as ReactCrop from "react-image-crop";
-// So we use this:
-const ReactCrop = require("react-image-crop");
+import * as ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-// WARNING: the docs, types, etc. are a little out of
-// sync for react-image-crop, so don't try to "fix" the
-// code to match the docs below, and expect it to work.
+
+const ReactCropComponent = (ReactCrop as any).Component;
 
 // This is what facebook uses, and it makes
 // 40x40 look very good.  It takes about 20KB
@@ -32,13 +25,13 @@ interface ProfileImageSelectorProps {
 interface ProfileImageSelectorState {
   is_dragging_image_over_dropzone: boolean;
   custom_image_src?: string;
-  crop?: any;
-  pixelCrop?: ReactCrop.Crop;
+  crop?: ReactCrop.Crop;
   is_loading?: boolean;
   error?: any;
   show_default_explanation?: boolean;
   show_gravatar_explanation?: boolean;
   show_adorable_explanation?: boolean;
+  croppedImageUrl?: string;
 }
 
 export class ProfileImageSelector extends Component<
@@ -46,11 +39,17 @@ export class ProfileImageSelector extends Component<
   ProfileImageSelectorState
 > {
   private is_mounted: boolean = true;
+  private imageRef: any;
 
   constructor(props: ProfileImageSelectorProps, context: any) {
     super(props, context);
     this.state = {
-      is_dragging_image_over_dropzone: false
+      is_dragging_image_over_dropzone: false,
+      crop: {
+        unit: "%",
+        width: 100,
+        aspect: 1
+      }
     };
   }
 
@@ -190,7 +189,7 @@ export class ProfileImageSelector extends Component<
           <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
             Gravatar is a service for using a common avatar across websites. Go
             to the{" "}
-            <a href="https://en.gravatar.com" target="_blank" rel='noopener'>
+            <a href="https://en.gravatar.com" target="_blank" rel="noopener">
               Wordpress Gravatar site
             </a>{" "}
             and sign in (or create an account) using {this.props.email_address}.
@@ -236,7 +235,7 @@ export class ProfileImageSelector extends Component<
           <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
             Adorable creates a cute randomize monster face out of your email.
             See{" "}
-            <a href="http://avatars.adorable.io" target="_blank" rel='noopener'>
+            <a href="http://avatars.adorable.io" target="_blank" rel="noopener">
               {"http://avatars.adorable.io"}
             </a>{" "}
             for more.
@@ -322,60 +321,52 @@ export class ProfileImageSelector extends Component<
     );
   }
 
-  handle_done_cropping = async (): Promise<void> => {
-    const { pixelCrop, custom_image_src } = this.state;
-    if (custom_image_src == null) {
-      this.setState({ error: "image should be set" });
-      return;
-    }
-    if (pixelCrop == null) {
-      this.setState({ error: "pixelCrop should be set" });
-      return;
-    }
+  async handle_save_cropping(): Promise<void> {
     this.setState({ custom_image_src: undefined });
-    const image = new Image();
-    image.src = custom_image_src;
     try {
-      this.set_image(await getCroppedImg(image, pixelCrop));
+      this.set_image(this.state.croppedImageUrl || "");
     } catch (err) {
       console.warn("ERROR cropping -- ", err);
       this.setState({ error: `${err}` });
     }
-  };
+  }
+
+  async makeClientCrop(crop): Promise<void> {
+    if (this.imageRef && crop.width && crop.height) {
+      const croppedImageUrl = await getCroppedImg(this.imageRef, crop);
+      this.setState({ croppedImageUrl });
+    }
+  }
 
   render_crop_selection(): Rendered {
     return (
       <>
-        <ReactCrop.Component
-          src={this.state.custom_image_src}
-          minWidth={20}
-          minHeight={20}
-          onChange={(crop, pixelCrop) => {
-            this.setState({ crop, pixelCrop });
-          }}
-          onImageLoaded={image => {
-            const crop = ReactCrop.makeAspectCrop(
-              {
-                x: 0,
-                y: 0,
-                aspect: 1,
-                width: 30
-              },
-              image.width / image.height
-            );
-            const pixelCrop = ReactCrop.getPixelCrop(image, crop);
-            this.setState({
-              crop,
-              pixelCrop
-            });
-          }}
-          crop={this.state.crop}
-        />
+        {this.state.custom_image_src && (
+          <ReactCropComponent
+            src={this.state.custom_image_src}
+            crop={this.state.crop}
+            circularCrop={true}
+            minWidth={20}
+            minHeight={20}
+            onChange={crop => {
+              this.setState({ crop });
+            }}
+            onImageLoaded={image => {
+              this.imageRef = image;
+            }}
+            onComplete={crop => this.makeClientCrop(crop)}
+          />
+        )}
+        {this.state.croppedImageUrl && (
+          <>
+            Preview: <ProfileIcon url={this.state.croppedImageUrl} size={42} />
+          </>
+        )}
         <br />
         <ButtonToolbar>
           <Button
             style={{ marginTop: "5px" }}
-            onClick={this.handle_done_cropping}
+            onClick={() => this.handle_save_cropping()}
             bsStyle="success"
           >
             Save
@@ -438,19 +429,20 @@ export class ProfileImageSelector extends Component<
 /**
  * @param {File} image - Image File Object
  * @param {Object} pixelCrop - pixelCrop Object provided by react-image-crop
-
- Returns a Base64 string
+ *
+ * Returns a Base64 string
  */
-async function getCroppedImg(
-  image,
-  pixelCrop: ReactCrop.Crop
-): Promise<string> {
-  if (pixelCrop.width == null || pixelCrop.height == null) {
+async function getCroppedImg(image, crop: ReactCrop.Crop): Promise<string> {
+  // Higher quality cropping upon completion of
+  // https://github.com/DominicTobias/react-image-crop/issues/263
+  if (crop.width == null || crop.height == null) {
     throw Error("Error cropping image -- width and height not set");
   }
   const canvas = document.createElement("canvas");
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  canvas.width = crop.width;
+  canvas.height = crop.height;
   const ctx = canvas.getContext("2d");
   if (ctx == null) {
     throw Error("Error cropping image; please retry later");
@@ -458,18 +450,18 @@ async function getCroppedImg(
 
   ctx.drawImage(
     image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
+    (crop as any).x * scaleX,
+    (crop as any).y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    crop.width,
+    crop.height
   );
 
   // Resize to at most AVATAR_SIZE.
-  if (pixelCrop.width > AVATAR_SIZE || pixelCrop.height > AVATAR_SIZE) {
+  if (crop.width > AVATAR_SIZE || crop.height > AVATAR_SIZE) {
     const canvas2 = document.createElement("canvas");
     canvas2.width = AVATAR_SIZE;
     canvas2.height = AVATAR_SIZE;

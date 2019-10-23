@@ -15,6 +15,7 @@ export const api_create_project = async function (creds: Creds, api_key: string)
     const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/create_project";
     debuglog('url', url);
 
+    const desc: string = new Date().toISOString();
     const response = await axios({
       method: 'post',
       url: url,
@@ -24,10 +25,12 @@ export const api_create_project = async function (creds: Creds, api_key: string)
       },
       data: {
         title: creds.project,
-        description: "front end testing",
+        description: desc,
         start: true
       }
     });
+    debuglog('title: ', creds.project);
+    debuglog('description: ', desc);
     expect(response.status).to.equal(200);
     const event: string = response.data.event;
     if (event === "error") console.log(chalk.red(`ERROR: ${response.data}`));

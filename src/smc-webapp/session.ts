@@ -8,9 +8,9 @@ const { throttle } = require("underscore");
 const { webapp_client } = require("./webapp_client");
 const misc_page = require("./misc_page");
 import { AppRedux } from "./app-framework";
-import * as LS from "misc/local-storage";
 import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "../smc-util/async-utils";
+import * as LS from "./misc/local-storage";
 
 exports.session_manager = (name, redux) => {
   const sm = new SessionManager(name, redux);

@@ -422,8 +422,9 @@ webapp_client.on "connecting", () ->
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            if get_browser() == 'chrome'
-                extra = " If your network is fine, close this browser tab and open a new tab (or use any browser besides Chrome v77, e.g., Firefox or Chrome 78 beta).  There is a major bug in Chrome v77; opening a new tab works around this bug."
+            # This "extra" crap will get deleted -- see https://github.com/sagemathinc/cocalc/issues/4136
+            if window.buggyCh77
+                extra = " If your network is fine, close this browser tab and open a new tab, or upgrade to Chrome version at least 77.3865.114.  There was a major bug in Chrome v77; opening a new tab works around this bug."
             else
                 extra = ''
             if num_recent_disconnects() >= 7 or attempt >= 20
