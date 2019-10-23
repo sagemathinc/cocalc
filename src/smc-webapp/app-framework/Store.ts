@@ -3,7 +3,7 @@ import * as async from "async";
 import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
-import { TypedCollectionMethods, DeepImmutable } from "./immutable-types";
+import { TypedCollectionMethods } from "./immutable-types";
 import * as misc from "../../smc-util/misc";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
