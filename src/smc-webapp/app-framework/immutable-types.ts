@@ -131,16 +131,20 @@ export interface TypedCollectionMethods<TProps> {
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
   getIn<K1 extends ValidKey>(path: [K1]): DeepImmutable<Get<TProps, K1>>; // TProps is anything else.
-  getIn<K1 extends keyof TProps, K2 extends ValidKey>(
+  getIn<K1 extends ValidKey, K2 extends ValidKey>(
     path: [K1, K2]
-  ): DeepImmutable<CopyMaybe<TProps[K1], Get<TProps[K1], K2>>>;
-  getIn<K1 extends keyof TProps, K2 extends ValidKey, K3 extends ValidKey>(
+  ): DeepImmutable<CopyMaybe<Get<TProps, K1>, Get<Get<TProps, K1>, K2>>>;
+  getIn<K1 extends ValidKey, K2 extends ValidKey, K3 extends ValidKey>(
     path: [K1, K2, K3]
   ): DeepImmutable<
-    Copy2Maybes<TProps[K1], Get<TProps[K1], K2>, Get<Get<TProps[K1], K2>, K3>>
+    Copy2Maybes<
+      Get<TProps, K1>,
+      Get<Get<TProps, K1>, K2>,
+      Get<Get<Get<TProps, K1>, K2>, K3>
+    >
   >;
   getIn<
-    K1 extends keyof TProps,
+    K1 extends ValidKey,
     K2 extends ValidKey,
     K3 extends ValidKey,
     K4 extends ValidKey
@@ -148,10 +152,10 @@ export interface TypedCollectionMethods<TProps> {
     path: [K1, K2, K3, K4]
   ): DeepImmutable<
     Copy3Maybes<
-      TProps[K1],
-      Get<TProps[K1], K2>,
-      Get<Get<TProps[K1], K2>, K3>,
-      Get<Get<Get<TProps[K1], K2>, K3>, K4>
+      Get<TProps, K1>,
+      Get<Get<TProps, K1>, K2>,
+      Get<Get<Get<TProps, K1>, K2>, K3>,
+      Get<Get<Get<Get<TProps, K1>, K2>, K3>, K4>
     >
   >;
   getIn<K1 extends keyof TProps, NSV>(

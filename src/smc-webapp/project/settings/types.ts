@@ -4,6 +4,7 @@ import { TypedMap } from "../../app-framework/TypedMap";
 type UserRecord = TypedMap<{
   group: string;
   upgrades: { network: number };
+  hide: boolean;
 }>;
 
 export type ProjectStatus = TypedMap<{

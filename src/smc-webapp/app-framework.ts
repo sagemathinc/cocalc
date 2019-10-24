@@ -658,6 +658,10 @@ export { redux }; // global redux singleton
 export { Actions };
 export { Table };
 export { Store };
+function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
+  return arg as any;
+}
+export { UNSAFE_NONNULLABLE };
 export let ReactDOM = require("react-dom");
 
 if (DEBUG) {

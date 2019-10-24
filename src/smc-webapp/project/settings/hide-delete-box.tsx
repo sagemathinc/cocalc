@@ -47,7 +47,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
       this.props.project.get("project_id")
     );
     const user = this.props.project.getIn(["users", webapp_client.account_id]);
-    if (user.get("hide")) {
+    if (user && user.get("hide")) {
       analytics_event("project_settings", "unhide project");
     } else {
       analytics_event("project_settings", "hide project");
