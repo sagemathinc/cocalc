@@ -64,10 +64,15 @@ type Value<T> = T extends Immutable.Map<string, infer V>
   : T extends Immutable.List<infer V>
   ? V
   : never;
-type State<T> = T extends TypedMap<infer TP> ? TP : never;
-type KState<T> = T extends TypedMap<infer TP> ? keyof TP : never;
-
-type Get<T, K> = T extends TypedMap<infer TP>
+/**
+ * Returns type V of "getting" K from T
+ * Order of precendence:
+ * 1. `TypedMap<{K: V}>`
+ * 1. `{ get: (key: K) => V }`
+ * 1. `V = T[K]`
+ *
+ */
+type Get<T, K extends ValidKey> = T extends TypedMap<infer TP>
   ? K extends keyof TP
     ? TP[K]
     : never
@@ -78,6 +83,13 @@ type Get<T, K> = T extends TypedMap<infer TP>
   : K extends keyof T
   ? T[K]
   : never;
+
+/**
+ *  1. immutable.js allows any type as keys but we're not dealing with that
+ *  2. Prevents widening https://github.com/Microsoft/TypeScript/pull/10676
+ *  3. Numbers are coerced to strings to sue me.
+ */
+type ValidKey = string | number | Symbol;
 
 /**
  * Provides an interface for immutable methods on a structure defined by
@@ -95,6 +107,7 @@ type Get<T, K> = T extends TypedMap<infer TP>
  *
  */
 export interface TypedCollectionMethods<TProps> {
+  // TODO: Write tests. Probably trivial based on Get above
   /**
    * Returns the value associated with the provided key.
    *
@@ -117,58 +130,28 @@ export interface TypedCollectionMethods<TProps> {
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
-  getIn<K1 extends KState<TProps>>(path: [K1]): Get<TProps, K1>; // TProps is a TypedMap
-  getIn<K1 extends keyof TProps>(path: [K1]): DeepImmutable<TProps[K1]>; // TProps is a obj lit or array
-  getIn<K1>(path: [K1]): Get<TProps, K1>; // TProps is anything else.
-  getIn<K1 extends keyof TProps, K2 extends KState<TProps[K1]>>(
+  getIn<K1 extends ValidKey>(path: [K1]): DeepImmutable<Get<TProps, K1>>; // TProps is anything else.
+  getIn<K1 extends keyof TProps, K2 extends ValidKey>(
     path: [K1, K2]
   ): DeepImmutable<CopyMaybe<TProps[K1], Get<TProps[K1], K2>>>;
-  getIn<K1 extends keyof TProps, K2 extends keyof NonNullable1<TProps, K1>>(
-    path: [K1, K2]
-  ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable1<TProps, K1>[K2]>>;
-  getIn<K1 extends keyof TProps, K2>( // K2 Unknown
-    path: [K1, K2]
-  ): DeepImmutable<Get<TProps[K1], K2>>;
-  getIn<
-    K1 extends keyof TProps,
-    K2 extends keyof NonNullable1<TProps, K1>,
-    K3 extends keyof NonNullable2<TProps, K1, K2>
-  >(
+  getIn<K1 extends keyof TProps, K2 extends ValidKey, K3 extends ValidKey>(
     path: [K1, K2, K3]
   ): DeepImmutable<
-    Copy2Maybes<
-      TProps[K1],
-      NonNullable1<TProps, K1>[K2],
-      NonNullable2<TProps, K1, K2>[K3]
-    >
+    Copy2Maybes<TProps[K1], Get<TProps[K1], K2>, Get<Get<TProps[K1], K2>, K3>>
   >;
   getIn<
-    // Operating on TypedMap<{ foo: immutable.Map<K2, V}> where V: TypedMap<any>
     K1 extends keyof TProps,
-    K2 extends string, // Key type of Map<string, unknown>
-    K3 extends keyof State<Value<NonNullable1<TProps, K1>>>
-  >(
-    path: [K1, K2, K3]
-  ): DeepImmutable<
-    Copy2Maybes<
-      TProps[K1],
-      Value<NonNullable1<TProps, K1>>,
-      NonNullable<State<Value<NonNullable1<TProps, K1>>>[K3]>
-    >
-  >;
-  getIn<
-    K4 extends keyof NonNullable3<TProps, K1, K2, K3>,
-    K1 extends keyof TProps,
-    K2 extends keyof NonNullable1<TProps, K1>,
-    K3 extends keyof NonNullable2<TProps, K1, K2>
+    K2 extends ValidKey,
+    K3 extends ValidKey,
+    K4 extends ValidKey
   >(
     path: [K1, K2, K3, K4]
   ): DeepImmutable<
     Copy3Maybes<
       TProps[K1],
-      NonNullable1<TProps, K1>[K2],
-      NonNullable2<TProps, K1, K2>[K3],
-      NonNullable3<TProps, K1, K2, K3>[K4]
+      Get<TProps[K1], K2>,
+      Get<Get<TProps[K1], K2>, K3>,
+      Get<Get<Get<TProps[K1], K2>, K3>, K4>
     >
   >;
   getIn<K1 extends keyof TProps, NSV>(
