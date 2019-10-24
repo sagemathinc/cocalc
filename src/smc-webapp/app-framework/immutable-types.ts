@@ -65,7 +65,35 @@ type Value<T> = T extends Immutable.Map<string, infer V>
   ? V
   : never;
 type State<T> = T extends TypedMap<infer TP> ? TP : never;
+type KState<T> = T extends TypedMap<infer TP> ? keyof TP : never;
 
+type Get<T, K> = T extends TypedMap<infer TP>
+  ? K extends keyof TP
+    ? TP[K]
+    : never
+  : T extends { get: infer get }
+  ? get extends (key: K) => infer V
+    ? V
+    : never
+  : K extends keyof T
+  ? T[K]
+  : never;
+
+/**
+ * Provides an interface for immutable methods on a structure defined by
+ * TProps. Return types are always their immutable counterparts.
+ * Values of arrays and object literals are deeply converted to immutable.
+ * Values which extend immutable.Collection<K, V> are ignored and not converted.
+ * JS built in classes are also not converted eg. Date, WeakMap, WeakSet, etc.
+ *
+ * Conversions:
+ * Object literal ->TypedMap
+ * Array<U> -> List<converted<U>>
+ *
+ * Preserved:
+ * Map<K, V>, List<U>, Date, WeakMap, and more
+ *
+ */
 export interface TypedCollectionMethods<TProps> {
   /**
    * Returns the value associated with the provided key.
@@ -89,13 +117,18 @@ export interface TypedCollectionMethods<TProps> {
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
-  getIn<K1 extends keyof TProps>(path: [K1]): DeepImmutable<TProps[K1]>;
+  getIn<K1 extends KState<TProps>>(path: [K1]): Get<TProps, K1>; // TProps is a TypedMap
+  getIn<K1 extends keyof TProps>(path: [K1]): DeepImmutable<TProps[K1]>; // TProps is a obj lit or array
+  getIn<K1>(path: [K1]): Get<TProps, K1>; // TProps is anything else.
+  getIn<K1 extends keyof TProps, K2 extends KState<TProps[K1]>>(
+    path: [K1, K2]
+  ): DeepImmutable<CopyMaybe<TProps[K1], Get<TProps[K1], K2>>>;
   getIn<K1 extends keyof TProps, K2 extends keyof NonNullable1<TProps, K1>>(
     path: [K1, K2]
   ): DeepImmutable<CopyMaybe<TProps[K1], NonNullable1<TProps, K1>[K2]>>;
-  getIn<K1 extends keyof TProps, K2 extends string>( // Operating on TypedMap<{ foo: immutable.Map<K2, V> }>
+  getIn<K1 extends keyof TProps, K2>( // K2 Unknown
     path: [K1, K2]
-  ): DeepImmutable<CopyMaybe<TProps[K1], Value<NonNullable1<TProps, K1>>>>;
+  ): DeepImmutable<Get<TProps[K1], K2>>;
   getIn<
     K1 extends keyof TProps,
     K2 extends keyof NonNullable1<TProps, K1>,
@@ -124,10 +157,10 @@ export interface TypedCollectionMethods<TProps> {
     >
   >;
   getIn<
+    K4 extends keyof NonNullable3<TProps, K1, K2, K3>,
     K1 extends keyof TProps,
     K2 extends keyof NonNullable1<TProps, K1>,
-    K3 extends keyof NonNullable2<TProps, K1, K2>,
-    K4 extends keyof NonNullable3<TProps, K1, K2, K3>
+    K3 extends keyof NonNullable2<TProps, K1, K2>
   >(
     path: [K1, K2, K3, K4]
   ): DeepImmutable<
