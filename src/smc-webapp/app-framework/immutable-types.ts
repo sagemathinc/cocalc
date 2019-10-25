@@ -11,19 +11,6 @@ type Copy3Maybes<T0, T1, T2, V> =
   | CopyMaybe<T1, V>
   | CopyMaybe<T2, V>;
 
-type NonNullable1<Top, K1 extends keyof Top> = NonNullable<Top[K1]>;
-type NonNullable2<
-  Top,
-  K1 extends keyof Top,
-  K2 extends keyof NonNullable1<Top, K1>
-> = NonNullable<NonNullable1<Top, K1>[K2]>;
-type NonNullable3<
-  Top,
-  K1 extends keyof Top,
-  K2 extends keyof NonNullable1<Top, K1>,
-  K3 extends keyof NonNullable2<Top, K1, K2>
-> = NonNullable<NonNullable2<Top, K1, K2>[K3]>;
-
 type CoveredJSBuiltInTypes =
   | Date
   | Map<any, any>
@@ -58,12 +45,6 @@ type MapToRecurse<T extends object> = TypedMap<
   { [P in keyof T]: DeepImmutable<T[P]> }
 >;
 
-// There has to be a better way to move across TypedMap/immutable.Map boundaries...
-type Value<T> = T extends Immutable.Map<string, infer V>
-  ? V
-  : T extends Immutable.List<infer V>
-  ? V
-  : never;
 /**
  * Returns type V of "getting" K from T
  * Order of precendence:
@@ -158,39 +139,28 @@ export interface TypedCollectionMethods<TProps> {
       Get<Get<Get<Get<TProps, K1>, K2>, K3>, K4>
     >
   >;
-  getIn<K1 extends keyof TProps, NSV>(
+  getIn<K1 extends ValidKey, NSV>(
     path: [K1],
     notSetValue: NSV
-  ): NonNullable<DeepImmutable<TProps[K1]>> | NSV;
-  getIn<
-    K1 extends keyof TProps,
-    K2 extends keyof NonNullable1<TProps, K1>,
-    NSV
-  >(
+  ): NonNullable<DeepImmutable<Get<TProps, K1>>> | NSV;
+  getIn<K1 extends ValidKey, K2 extends ValidKey, NSV>(
     path: [K1, K2],
     notSetValue: NSV
-  ): DeepImmutable<NonNullable1<TProps, K1>[K2]> | NSV;
-  getIn<K1 extends keyof TProps, K2 extends string, NSV>( // Operating on TypedMap<{ foo: immutable.Map<K2, V> }>
-    path: [K1, K2],
-    NotSetValue: NSV
-  ): NonNullable<DeepImmutable<Value<NonNullable1<TProps, K1>>>> | NSV;
-  getIn<
-    K1 extends keyof TProps,
-    K2 extends keyof NonNullable1<TProps, K1>,
-    K3 extends keyof NonNullable2<TProps, K1, K2>,
-    NSV
-  >(
+  ): NonNullable<DeepImmutable<Get<Get<TProps, K1>, K2>>> | NSV;
+  getIn<K1 extends ValidKey, K2 extends ValidKey, K3 extends ValidKey, NSV>(
     path: [K1, K2, K3],
     notSetValue: NSV
-  ): DeepImmutable<NonNullable2<TProps, K1, K2>[K3]> | NSV;
+  ): NonNullable<DeepImmutable<Get<Get<Get<TProps, K1>, K2>, K3>>> | NSV;
   getIn<
-    K1 extends keyof TProps,
-    K2 extends keyof NonNullable1<TProps, K1>,
-    K3 extends keyof NonNullable2<TProps, K1, K2>,
-    K4 extends keyof NonNullable3<TProps, K1, K2, K3>,
+    K1 extends ValidKey,
+    K2 extends ValidKey,
+    K3 extends ValidKey,
+    K4 extends ValidKey,
     NSV
   >(
     path: [K1, K2, K3, K4],
     notSetValue: NSV
-  ): DeepImmutable<NonNullable3<TProps, K1, K2, K3>[K4]> | NSV;
+  ):
+    | NonNullable<DeepImmutable<Get<Get<Get<Get<TProps, K1>, K2>, K3>, K4>>>
+    | NSV;
 }
