@@ -65,10 +65,28 @@ type Get<T, K extends ValidKey> = T extends TypedMap<infer TP>
   ? T[K]
   : never;
 
+type Drill2Get<T, K1 extends ValidKey, K2 extends ValidKey> = Get<
+  Get<T, K1>,
+  K2
+>;
+type Drill3Get<
+  T,
+  K1 extends ValidKey,
+  K2 extends ValidKey,
+  K3 extends ValidKey
+> = Get<Drill2Get<T, K1, K2>, K3>;
+type Drill4Get<
+  T,
+  K1 extends ValidKey,
+  K2 extends ValidKey,
+  K3 extends ValidKey,
+  K4 extends ValidKey
+> = Get<Drill3Get<T, K1, K2, K3>, K4>;
+
 /**
  *  1. immutable.js allows any type as keys but we're not dealing with that
  *  2. Prevents widening https://github.com/Microsoft/TypeScript/pull/10676
- *  3. Numbers are coerced to strings to sue me.
+ *  3. Numbers technically can't be keys but are coerced to strings
  */
 type ValidKey = string | number | Symbol;
 
@@ -88,40 +106,33 @@ type ValidKey = string | number | Symbol;
  *
  */
 export interface TypedCollectionMethods<TProps> {
-  // TODO: Write tests. Probably trivial based on Get above
   /**
    * Returns the value associated with the provided key.
    *
    * If the requested key is undefined, then
    * notSetValue will be returned if provided.
    */
-  get<K extends keyof TProps>(field: K): DeepImmutable<TProps[K]>;
-  get<K extends keyof TProps, NSV>(
+  get<K extends ValidKey>(field: K): DeepImmutable<Get<TProps, K>>;
+  get<K extends ValidKey, NSV>(
     field: K,
     notSetValue: NSV
-  ): NonNullable<DeepImmutable<TProps[K]>> | NSV;
-  get<K extends keyof TProps>(key: K): TProps[K];
-  get<K extends keyof TProps, NSV>(
-    key: K,
-    notSetValue: NSV
-  ): NonNullable<TProps[K]> | NSV;
-  get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
+  ): NonNullable<DeepImmutable<Get<TProps, K>>> | NSV;
 
   // Only works 4 levels deep.
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
-  getIn<K1 extends ValidKey>(path: [K1]): DeepImmutable<Get<TProps, K1>>; // TProps is anything else.
+  getIn<K1 extends ValidKey>(path: [K1]): DeepImmutable<Get<TProps, K1>>;
   getIn<K1 extends ValidKey, K2 extends ValidKey>(
     path: [K1, K2]
-  ): DeepImmutable<CopyMaybe<Get<TProps, K1>, Get<Get<TProps, K1>, K2>>>;
+  ): DeepImmutable<CopyMaybe<Get<TProps, K1>, Drill2Get<TProps, K1, K2>>>;
   getIn<K1 extends ValidKey, K2 extends ValidKey, K3 extends ValidKey>(
     path: [K1, K2, K3]
   ): DeepImmutable<
     Copy2Maybes<
       Get<TProps, K1>,
-      Get<Get<TProps, K1>, K2>,
-      Get<Get<Get<TProps, K1>, K2>, K3>
+      Drill2Get<TProps, K1, K2>,
+      Drill3Get<TProps, K1, K2, K3>
     >
   >;
   getIn<
@@ -134,9 +145,9 @@ export interface TypedCollectionMethods<TProps> {
   ): DeepImmutable<
     Copy3Maybes<
       Get<TProps, K1>,
-      Get<Get<TProps, K1>, K2>,
-      Get<Get<Get<TProps, K1>, K2>, K3>,
-      Get<Get<Get<Get<TProps, K1>, K2>, K3>, K4>
+      Drill2Get<TProps, K1, K2>,
+      Drill3Get<TProps, K1, K2, K3>,
+      Drill4Get<TProps, K1, K2, K3, K4>
     >
   >;
   getIn<K1 extends ValidKey, NSV>(
@@ -146,11 +157,11 @@ export interface TypedCollectionMethods<TProps> {
   getIn<K1 extends ValidKey, K2 extends ValidKey, NSV>(
     path: [K1, K2],
     notSetValue: NSV
-  ): NonNullable<DeepImmutable<Get<Get<TProps, K1>, K2>>> | NSV;
+  ): NonNullable<DeepImmutable<Drill2Get<TProps, K1, K2>>> | NSV;
   getIn<K1 extends ValidKey, K2 extends ValidKey, K3 extends ValidKey, NSV>(
     path: [K1, K2, K3],
     notSetValue: NSV
-  ): NonNullable<DeepImmutable<Get<Get<Get<TProps, K1>, K2>, K3>>> | NSV;
+  ): NonNullable<DeepImmutable<Drill3Get<TProps, K1, K2, K3>>> | NSV;
   getIn<
     K1 extends ValidKey,
     K2 extends ValidKey,
@@ -160,7 +171,5 @@ export interface TypedCollectionMethods<TProps> {
   >(
     path: [K1, K2, K3, K4],
     notSetValue: NSV
-  ):
-    | NonNullable<DeepImmutable<Get<Get<Get<Get<TProps, K1>, K2>, K3>, K4>>>
-    | NSV;
+  ): NonNullable<DeepImmutable<Drill4Get<TProps, K1, K2, K3, K4>>> | NSV;
 }
