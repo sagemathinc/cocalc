@@ -88,6 +88,8 @@ const codemirror_associations: { [ext: string]: string } = {
   cml: "xml", // http://www.xml-cml.org/, e.g. used by avogadro
   kml: "xml", // https://de.wikipedia.org/wiki/Keyhole_Markup_Language
   xsl: "xsl",
+  v: "verilog",
+  vh: "verilog",
   "": "text"
 };
 
@@ -274,6 +276,14 @@ file_associations["ipynb"] = {
   icon: "cc-icon-ipynb",
   opts: {},
   name: "Jupyter Notebook"
+};
+
+// verilog files
+file_associations["v"] = file_associations["vh"] = {
+  editor: "codemirror",
+  icon: "fa-microchip",
+  opts: { mode: "verilog", indent_unit: 2, tab_size: 2 },
+  name: "Verilog"
 };
 
 for (let ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
