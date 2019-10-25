@@ -12,10 +12,11 @@
   "author": "",
   "license": "AGPLv3+",
   "dependencies": {
-    "ansi-to-react": "^1.1.1",
+    "ansi-to-react": "^2.0.6",
     "expect": "^1.20.2",
     "json-stable-stringify": "^1.0.1",
     "mocha": "^5.2.0",
+    "node-cleanup": "^2.1.2",
     "prop-types": "^15.7.2"
   },
   "devDependencies": {}
