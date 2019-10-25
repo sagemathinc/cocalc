@@ -226,7 +226,10 @@ export class SyncTable extends EventEmitter {
       for (let k of arg) {
         const key: string | undefined = to_key(k);
         if (key != null) {
-          x = x.set(key, this.value.get(key));
+          const val = this.value.get(key);
+          if (val != null) {
+            x = x.set(key, val);
+          }
         }
       }
       return x;
@@ -803,9 +806,7 @@ export class SyncTable extends EventEmitter {
     for (let primary_key of this.primary_keys) {
       if (this.query[this.table][0][primary_key] === undefined) {
         throw Error(
-          `must include each primary key in query of table '${
-            this.table
-          }', but you missed '${primary_key}'`
+          `must include each primary key in query of table '${this.table}', but you missed '${primary_key}'`
         );
       }
     }
@@ -1401,11 +1402,16 @@ export class SyncTable extends EventEmitter {
         if (this.value == null) {
           throw Error("value must not be null");
         }
-        let obj = this.value.get(key);
-        if (obj == null) {
+        const obj_imm = this.value.get(key);
+        if (obj_imm == null) {
           throw Error(`there must be an object in this.value with key ${key}`);
         }
-        obj = obj.toJS();
+        const obj = obj_imm.toJS();
+        if (obj == null) {
+          throw Error(
+            `there must be an object in this.value with key ${key} after converting via .toJS()`
+          );
+        }
         const version = this.versions[key];
         if (version == null) {
           throw Error(`object with key ${key} must have a version`);
@@ -1539,6 +1545,9 @@ export class SyncTable extends EventEmitter {
       // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
+    if (cur_val == null) {
+      throw Error(`cur_val of key "${key}" must not be null`);
+    }
     if (action === "update") {
       // For update actions, we shallow *merge* in the change.
       // For insert action, we just replace the whole thing.
