@@ -10,6 +10,11 @@ type Copy3Maybes<T0, T1, T2, V> =
   | CopyMaybe<T0, V>
   | CopyMaybe<T1, V>
   | CopyMaybe<T2, V>;
+type Copy4Maybes<T0, T1, T2, T3, V> =
+  | CopyMaybe<T0, V>
+  | CopyMaybe<T1, V>
+  | CopyMaybe<T2, V>
+  | CopyMaybe<T3, V>;
 
 type CoveredJSBuiltInTypes =
   | Date
@@ -82,6 +87,14 @@ type Drill4Get<
   K3 extends ValidKey,
   K4 extends ValidKey
 > = Get<Drill3Get<T, K1, K2, K3>, K4>;
+type Drill5Get<
+  T,
+  K1 extends ValidKey,
+  K2 extends ValidKey,
+  K3 extends ValidKey,
+  K4 extends ValidKey,
+  K5 extends ValidKey
+> = Get<Drill4Get<T, K1, K2, K3, K4>, K5>;
 
 /**
  *  1. immutable.js allows any type as keys but we're not dealing with that
@@ -118,10 +131,21 @@ export interface TypedCollectionMethods<TProps> {
     notSetValue: NSV
   ): NonNullable<DeepImmutable<Get<TProps, K>>> | NSV;
 
-  // Only works 4 levels deep.
-  // It's probably advisable to normalize your data if you find yourself that deep
+  /**
+   * Returns the value associated with the provided keypath in TProps
+   *
+   * If any part of the path returns undefined, then
+   * notSetValue will be returned if provided. Note this
+   * returns notSetValue even if the target is allowed to be undefined by
+   * its type.
+   *
+   * @param path: key[] max length: 5
+   * @param notSetValue?: any
+   */
+  // Only works 5 levels deep.
+  // It's probably advisable to normalize your data if you find yourself any deeper
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
-  // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
+  // Recurse data structure such as a binary tree are currently not supported
   getIn<K1 extends ValidKey>(path: [K1]): DeepImmutable<Get<TProps, K1>>;
   getIn<K1 extends ValidKey, K2 extends ValidKey>(
     path: [K1, K2]
@@ -150,6 +174,23 @@ export interface TypedCollectionMethods<TProps> {
       Drill4Get<TProps, K1, K2, K3, K4>
     >
   >;
+  getIn<
+    K1 extends ValidKey,
+    K2 extends ValidKey,
+    K3 extends ValidKey,
+    K4 extends ValidKey,
+    K5 extends ValidKey
+  >(
+    path: [K1, K2, K3, K4, K5]
+  ): DeepImmutable<
+    Copy4Maybes<
+      Get<TProps, K1>,
+      Drill2Get<TProps, K1, K2>,
+      Drill3Get<TProps, K1, K2, K3>,
+      Drill4Get<TProps, K1, K2, K3, K4>,
+      Drill5Get<TProps, K1, K2, K3, K4, K5>
+    >
+  >;
   getIn<K1 extends ValidKey, NSV>(
     path: [K1],
     notSetValue: NSV
@@ -172,4 +213,15 @@ export interface TypedCollectionMethods<TProps> {
     path: [K1, K2, K3, K4],
     notSetValue: NSV
   ): NonNullable<DeepImmutable<Drill4Get<TProps, K1, K2, K3, K4>>> | NSV;
+  getIn<
+    K1 extends ValidKey,
+    K2 extends ValidKey,
+    K3 extends ValidKey,
+    K4 extends ValidKey,
+    K5 extends ValidKey,
+    NSV
+  >(
+    path: [K1, K2, K3, K4, K5],
+    notSetValue: NSV
+  ): NonNullable<DeepImmutable<Drill5Get<TProps, K1, K2, K3, K4, K5>>> | NSV;
 }
