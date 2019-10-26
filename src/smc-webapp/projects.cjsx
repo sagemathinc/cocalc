@@ -193,6 +193,7 @@ class ProjectsActions extends Actions
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
     # configurable by the user.
+    # **THIS IS AN ASYNC FUNCTION!**
     apply_default_upgrades: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -207,7 +208,7 @@ class ProjectsActions extends Actions
             if avail > 0
                 to_upgrade[quota] = 1
         if misc.len(to_upgrade) > 0
-            @apply_upgrades_to_project(opts.project_id, to_upgrade)
+            await @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
     ###
     # See comment in db-schema.ts about projects_owner table.
@@ -263,6 +264,7 @@ class ProjectsActions extends Actions
             title       : 'No Title'
             description : 'No Description'
             image       : undefined  # if given, sets the compute image (the ID string)
+            start       : false      # immediately start on create
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token

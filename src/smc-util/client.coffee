@@ -1055,9 +1055,10 @@ class exports.Connection extends EventEmitter
             title       : required
             description : required
             image       : undefined
+            start       : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, image:opts.image)
+            message: message.create_project(title:opts.title, description:opts.description, image:opts.image, start:opts.start)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
