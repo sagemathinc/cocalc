@@ -535,10 +535,11 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
-    # Throws on project_id not UUID
+    # Throws on project_id is not a valid UUID (why? I don't remember)
+    # **THIS IS AN ASYNC FUNCTION!**
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
-        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+        await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
@@ -604,7 +605,7 @@ class ProjectsActions extends Actions
     toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
-            @clear_project_upgrades(project_id)
+            await @clear_project_upgrades(project_id)
 
         await @projects_table_set
             project_id : project_id
