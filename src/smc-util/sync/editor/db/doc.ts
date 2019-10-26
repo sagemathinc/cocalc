@@ -549,7 +549,7 @@ export class DBDocument implements Document {
         continue;
       }
       remove.forEach(n => {
-        if (n == null) {
+        if (n == null || index == null) {
           return;
         }
         const record = this.records.get(n);
@@ -561,7 +561,12 @@ export class DBDocument implements Document {
           return;
         }
         const k = to_key(val);
-        const matches = index.get(k).delete(n);
+        const v = index.get(k);
+        if (v == null) {
+          // this should never happen
+          return;
+        }
+        const matches = v.delete(n);
         if (matches.size === 0) {
           index = index.delete(k);
         } else {
@@ -619,7 +624,9 @@ export class DBDocument implements Document {
     if (matches == null) {
       return;
     }
-    return this.records.get(matches.min());
+    const min = matches.min();
+    if (min == null) return;
+    return this.records.get(min);
   }
 
   // x = javascript object
