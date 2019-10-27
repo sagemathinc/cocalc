@@ -489,14 +489,25 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!s) {
       return;
     }
-    if (typeof s == "string" && s.indexOf("output-directory") == -1) {
-      // we aren't going to go so far as to
-      // parse a changed output-directory option...
-      // At least if there is no option, we just
-      // assume no output directory.
-      return undefined;
+    if (typeof s == "string") {
+      if (s.indexOf("-output-directory") == -1) {
+        // we aren't going to go so far as to
+        // parse a changed output-directory option...
+        // At least if there is no option, we just
+        // assume no output directory.
+        return;
+      } else {
+        return this.output_directory;
+      }
+    } else {
+      // s is a List<string>
+      for (let x of s.toJS()) {
+        if (x.startsWith("-output-directory")) {
+          return this.output_directory;
+        }
+      }
+      return;
     }
-    return this.output_directory;
   }
 
   async run_latex(
