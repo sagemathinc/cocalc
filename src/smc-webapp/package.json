@@ -127,9 +127,9 @@
   "devDependencies": {
     "cjsx-register": "^1.1.0",
     "coffeelint": "^2.1.0",
-    "coffeescript": "^2.3.2",
+    "coffeescript": "^2.4.1",
     "jsdom": "^7.0.2",
-    "mocha": "^5.2.0",
+    "mocha": "^6.2.2",
     "react-addons-perf": "^15.4.2"
   },
   "scripts": {

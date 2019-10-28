@@ -57,7 +57,7 @@
     "ws": "^6.0.0"
   },
   "devDependencies": {
-    "coffeelint": "^2.0.7"
+    "coffeelint": "^2.1.0"
   },
   "scripts": {
     "test": "npm run testproj && npm run testjup",

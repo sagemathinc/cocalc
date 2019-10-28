@@ -40,9 +40,9 @@
   "devDependencies": {
     "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
-    "mocha": "^5.2.0",
-    "should": "^7.1.1",
+    "mocha": "^6.2.2",
+    "should": "^13.2.3",
     "should-sinon": "0.0.3",
-    "sinon": "^1.17.2"
+    "sinon": "^7.5.0"
   }
 }
