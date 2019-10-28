@@ -43,6 +43,8 @@ export interface InvoiceLine {
   period: Period;
 }
 
+export type InvoiceLineMap = TypedMap<InvoiceLine>
+
 export interface Invoice {
   date: number;
   id: string;
