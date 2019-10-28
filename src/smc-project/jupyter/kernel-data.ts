@@ -12,10 +12,10 @@ import { findAll } from "kernelspecs";
 const { field_cmp } = require("smc-util/misc");
 import * as LRU from "lru-cache";
 
-const cache = LRU({ maxAge: 5000 });
+const cache = new LRU({ maxAge: 5000 });
 
 export async function get_kernel_data(): Promise<any> {
-  let kernel_data = cache.get("kernel_data");
+  let kernel_data : any = cache.get("kernel_data");
   if (kernel_data != null) {
     return kernel_data;
   }
