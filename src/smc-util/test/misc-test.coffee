@@ -569,7 +569,7 @@ describe "copy flavours:", =>
             d = new Date(2015,1,1)
             # TODO not sure if those regexp modes are copied correctly
             # this is just a working case, probably not relevant
-            r = new RegExp("x", "gim")
+            r = new RegExp("x", "gimy")
             o = [1, 2, {ref: [d, r]}]
             co = misc.deep_copy(o)
 
