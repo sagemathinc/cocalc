@@ -2190,4 +2190,64 @@ export class Actions<
       return id;
     }
   }
+
+  /*
+  Open a file for editing with the code editor.  This is typically used for
+  opening a path other than this.path for editing.  E.g., this would be useful
+  for editing a tex or bib file associated to a master latex document, or editing
+  some .py code related to a Jupyter notebook.
+
+  - Will show and focus an existing frame if there already is one for this path.
+  - Otherwise, will create a new frame open to edit (using codemirror) the given path.
+
+  Returns the id of the frame with the code editor in it.
+  */
+  public open_code_editor_frame(
+    path: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    console.log("open_code_editor_frame", path);
+    // See if there is already a frame for path, and if so show
+    // display and focus it.
+    for (let id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "cm" &&
+        ((this.path === path && leaf.get("path") == null) || // default
+          leaf.get("path") === path) // existing frame
+      ) {
+        // got it!
+        this.set_active_id(id);
+        return id;
+      }
+    }
+
+    // There is no frame for path, so we create one.
+    // First the easy special case:
+    if (this.path === path) {
+      return this.show_focused_frame_of_type("cm", dir, first, pos);
+    }
+
+    // More difficult case - no such frame and different path
+    // no such frame, so make one
+    const active_id = this._get_active_id();
+    const id = this.split_frame(dir, active_id, "cm", undefined, first, true);
+    if (id == null) {
+      throw Error("BUG -- failed to make frame");
+    }
+    if (pos != null) {
+      const parent_id = this.get_parent_id(id);
+      if (parent_id != null) {
+        this.set_frame_tree({ id: parent_id, pos });
+      }
+    }
+    // Set the path part field the description of this frame, which
+    // causes the cm editor to edit that file instead of this.path.
+    this.set_frame_tree({ id, path });
+    this.set_active_id(id);
+    return id;
+  }
 }

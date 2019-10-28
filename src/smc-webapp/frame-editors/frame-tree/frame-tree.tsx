@@ -223,6 +223,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     if (spec.path != null) {
       path = spec.path(path);
     }
+
+    // show_path = hint that the frame should show the name of the path;
+    // spec might be set to always show this, e.g., for latex it could be
+    // confusing to not always show.
+    const show_path = path != this.props.path;
+
     let fullscreen_style: any = undefined;
     if (spec.fullscreen_style != null) {
       // this is set via jquery's .css...
@@ -249,7 +255,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         );
         if (editor == null) throw Error("bug -- editor must exist");
         name = editor.init(path, redux, project_id);
-        const actions2 : TimeTravelActions = redux.getActions(name);
+        const actions2: TimeTravelActions = redux.getActions(name);
         actions2.ambient_actions = actions;
         actions = actions2;
         is_subframe = true;
@@ -275,6 +281,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           is_public={this.props.is_public}
           font_size={desc.get("font_size", this.props.font_size)}
           path={path}
+          show_path={show_path}
           fullscreen_style={fullscreen_style}
           project_id={project_id}
           editor_state={this.props.editor_state.get(desc.get("id"), Map())}

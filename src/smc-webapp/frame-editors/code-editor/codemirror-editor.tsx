@@ -40,6 +40,7 @@ interface Props {
   id: string;
   actions: any;
   path: string;
+  show_path: boolean;
   project_id: string;
   font_size: number;
   cursors: Map<string, any>;
@@ -81,7 +82,9 @@ export class CodemirrorEditor extends Component<Props, State> {
         "is_public",
         "resize",
         "editor_state",
-        "gutter_markers"
+        "gutter_markers",
+        "path",
+        "show_path"
       ])
     );
   }
@@ -224,14 +227,14 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     this.safari_hack();
 
-    const options : any = cm_options(
+    const options: any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
       props.actions,
       props.id
     );
-    if (options == null) throw Error("bug");   // make typescript happy.
+    if (options == null) throw Error("bug"); // make typescript happy.
 
     // we will explicitly enable and disable styleActiveLine depending focus
     this.style_active_line = options.styleActiveLine;
@@ -468,11 +471,27 @@ export class CodemirrorEditor extends Component<Props, State> {
     );
   }
 
+  render_path(): Rendered {
+    if (!this.props.show_path) return;
+    return (
+      <div
+        style={{
+          textAlign: "right",
+          borderBottom: "1px solid lightgrey",
+          padding: "0 5px"
+        }}
+      >
+        {this.props.path}
+      </div>
+    );
+  }
+
   render(): Rendered {
     const style = misc.copy(STYLE);
     style.fontSize = `${this.props.font_size}px`;
     return (
       <div style={style} className="smc-vfill cocalc-editor-div">
+        {this.render_path()}
         {this.render_cursors()}
         {this.render_gutter_markers()}
         <textarea ref="textarea" style={{ display: "none" }} />
