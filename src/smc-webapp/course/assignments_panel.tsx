@@ -40,7 +40,8 @@ import {
   rtypes,
   redux,
   AppRedux,
-  Rendered
+  Rendered,
+  UNSAFE_NONNULLABLE
 } from "../app-framework";
 
 import {
@@ -1709,7 +1710,7 @@ class StudentListForAssignment extends Component<
   private render_student_info(student_id: string): Rendered {
     const store = this.get_store();
     const student = store.get_student(student_id);
-    const key = util.assignment_identifier(this.props.assignment, student);
+    const key = util.assignment_identifier(this.props.assignment, UNSAFE_NONNULLABLE(student));
     const edited_feedback = this.props.active_feedback_edits.get(key);
     let edited_comments: string | undefined;
     let edited_grade: string | undefined;
@@ -1722,7 +1723,7 @@ class StudentListForAssignment extends Component<
         key={student_id}
         title={misc.trunc_middle(store.get_student_name(student_id), 40)}
         name={this.props.name}
-        student={student}
+        student={UNSAFE_NONNULLABLE(student)}
         assignment={this.props.assignment}
         grade={store.get_grade(this.props.assignment, student_id)}
         comments={store.get_comments(this.props.assignment, student_id)}

@@ -12,14 +12,17 @@ test("Mapping with maybes in state", () => {
   const one_maybes = new Store<State>("", redux);
 
   let withMaybeValues1 = one_maybes.getIn(["deep"]);
+  withMaybeValues1 = undefined; // Expect Assignable
   expectType<DeepImmutable<{ values: { cake: string } } | undefined>>(
     withMaybeValues1
   );
 
   let withMaybeValues2 = one_maybes.getIn(["deep", "values"]);
+  withMaybeValues2 = undefined; // Expect Assignable
   expectType<DeepImmutable<{ cake: string } | undefined>>(withMaybeValues2);
 
   let withMaybeValues3 = one_maybes.getIn(["deep", "values", "cake"]);
+  withMaybeValues3 = undefined; // Expect Assignable
   expectType<string | undefined>(withMaybeValues3);
 });
 

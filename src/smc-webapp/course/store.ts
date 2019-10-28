@@ -57,6 +57,7 @@ export type StudentRecord = TypedMap<{
   deleted: boolean;
   note: string;
   terminal_command: Map<string, any>;
+  last_email_invite: number;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
@@ -66,16 +67,19 @@ export type AssignmentRecord = TypedMap<{
   deleted: boolean;
   due_date: Date;
   path: string;
-  peer_grade?: TypedMap<{ enabled: boolean }>;
+  peer_grade?: { enabled: boolean; due_date: number };
   note: string;
-  last_assignment: TypedMap<{
+  last_assignment: {
     time?: number;
     error?: string;
     start?: number;
-  }>;
+  };
   skip_assignment: boolean;
   skip_collect: boolean;
   skip_grading: boolean;
+  target_path: string;
+  collect_path: string;
+  graded_path: string;
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -371,11 +375,14 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  get_student(student) {
+  get_student(student?: string | StudentRecord ): StudentRecord | undefined {
     // return student with given id if a string; otherwise, just return student (the input)
     if (typeof student !== "string") {
       // it is already a StudentRecord, but maybe outdated.
       student = student != null ? student.get("student_id") : undefined;
+    }
+    if (student == undefined) {
+      return;
     }
     return this.getIn(["students", student]);
   }
@@ -475,7 +482,7 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  _num_nondeleted(a) : number {
+  _num_nondeleted(a): number {
     if (a == null) {
       return 0;
     }

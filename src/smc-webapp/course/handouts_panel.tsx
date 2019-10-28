@@ -838,7 +838,7 @@ Select "Replace student files!" in case you do not want to create any backups an
   private get_store(): CourseStore {
     const store = redux.getStore(this.props.name);
     if (store == null) throw Error("store must be defined");
-    return store as CourseStore;
+    return (store as unknown) as CourseStore;
   }
 
   private render_handout_heading(): Rendered {
@@ -928,7 +928,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
   private get_store(): CourseStore {
     const store = redux.getStore(this.props.name);
     if (store == null) throw Error("store must be defined");
-    return store as CourseStore;
+    return (store as unknown) as CourseStore;
   }
 
   private render_students(): Rendered {
