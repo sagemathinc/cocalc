@@ -624,13 +624,13 @@ run_jQuery = (cb) ->
     if _jQuery_cached != null
         cb(_jQuery_cached)
     else
-        jquery_file = fs.readFileSync("../#{exports.WEBAPP_LIB}/jquery/jquery.min.js", "utf-8")
-        require("jsdom").env
-            html: "<html></html>",
-            src: [jquery_file],
-            done: (err, window) ->
-                _jQuery_cached = window.$
-                cb(_jQuery_cached)
+        # credits go to https://medium.com/@asimmittal/using-jquery-nodejs-to-scrape-the-web-9bb5d439413b
+        JSDOM = require("jsdom").JSDOM
+        JQuery = require('jquery')
+        dom = new JSDOM("",  { runScripts: "dangerously" })
+        _jQuery_cached = JQuery(dom.window);
+        cb(_jQuery_cached)
+
 
 # http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
 exports.sanitize_html = (html, cb, keepScripts = true, keepUnsafeAttributes = true) ->
