@@ -16,34 +16,16 @@ let sale2 = sale1.set("name", "Mocha");
 For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
-import { DeepImmutable } from "./immutable-types";
+import { TypedCollectionMethods } from "./immutable-types";
 
-export interface TypedMap<TProps extends Object> {
+export interface TypedMap<TProps extends Object> extends TypedCollectionMethods<TProps> {
   size: number;
 
   // Reading values
   has(key: string): boolean;
 
-  /**
-   * Returns the value associated with the provided key, which may be the
-   * default value defined when creating the Record factory function.
-   *
-   * If the requested key is not defined by this Record type, then
-   * notSetValue will be returned if provided. Note that this scenario would
-   * produce an error when using Flow or TypeScript.
-   */
-  get<K extends keyof TProps>(field: K): DeepImmutable<TProps[K]>;
-  get<K extends keyof TProps, NSV>(
-    field: K,
-    notSetValue: NSV
-  ): DeepImmutable<TProps[K]> | NSV;
-  get<K extends keyof TProps>(key: K): TProps[K];
-  get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
-  get<K extends keyof TProps, NSV>(key: K, notSetValue?: NSV): TProps[K] | NSV;
-
   // Reading deep values
   hasIn(keyPath: Iterable<any>): boolean;
-  getIn<NSV>(keyPath: Iterable<any>, notSetValue?: NSV): any;
 
   // Value equality
   equals(other: any): boolean;
@@ -124,10 +106,21 @@ export interface TypedMap<TProps extends Object> {
    * @see `Map#asImmutable`
    */
   asImmutable(): this;
+
+  [Symbol.iterator](): IterableIterator<[keyof TProps, TProps[keyof TProps]]>;
+
+  filter(fn: (predicate) => boolean): this;
+  some: Map<string, any>["some"]
 }
 
 interface TypedMapFactory<TProps extends Object> {
   new (values: TProps): TypedMap<TProps>;
+}
+
+export function typedMap<TProps extends object>(
+  defaults: Partial<TProps> = {}
+): TypedMap<TProps> { // Add `& readonly TProps` to enable property access?
+  return Map(defaults) as any;
 }
 
 export function createTypedMap<OuterProps extends Object>(

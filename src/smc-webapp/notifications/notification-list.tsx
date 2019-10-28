@@ -1,10 +1,10 @@
 import * as React from "react";
-import { Map } from "immutable";
 
 import { MentionsMap, MentionFilter } from "./mentions/types";
 import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
+import { typedMap } from "../app-framework/TypedMap";
 
 const { ProjectTitleAuto } = require("../projects");
 
@@ -39,7 +39,7 @@ export function NotificationList({
     .filter(notification => {
       const status =
         notification.getIn(["users", account_id]) ||
-        Map({ read: false, saved: false });
+        typedMap({ read: false, saved: false });
 
       switch (filter) {
         case "unread":

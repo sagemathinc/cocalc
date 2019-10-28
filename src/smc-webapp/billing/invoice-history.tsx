@@ -2,11 +2,11 @@ const { Panel } = require("react-bootstrap");
 import { Component, React, Rendered } from "../app-framework";
 import { Icon, Loading } from "../r_misc";
 import { Invoice } from "./invoice";
-import { Invoices } from "./types";
+import { InvoicesMap, InvoiceMap } from "./types";
 import { WindowedList } from "../r_misc/windowed-list";
 
 interface Props {
-  invoices?: Invoices;
+  invoices?: InvoicesMap;
 }
 
 export class InvoiceHistory extends Component<Props> {
@@ -20,11 +20,16 @@ export class InvoiceHistory extends Component<Props> {
     );
   }
 
-  private render_invoice({ index: idx }): Rendered | undefined {
+  private render_invoice({
+    index: idx
+  }: {
+    index: number;
+  }): Rendered | undefined {
     if (this.props.invoices == null) return;
-    const invoice = this.props.invoices.data[idx];
+    const invoice = this.props.invoices.getIn(["data", idx]);
     if (invoice == null) return;
-    return <Invoice key={invoice.id} invoice={invoice} />;
+    // LHS and RHS agree on type tooltip yet it errors without "as"
+    return <Invoice key={invoice.get("id")} invoice={invoice as InvoiceMap} />;
   }
 
   private render_invoices(): Rendered[] | Rendered {
@@ -32,7 +37,7 @@ export class InvoiceHistory extends Component<Props> {
       return <Loading />;
     }
 
-    const size = this.props.invoices.data.length;
+    const size = this.props.invoices.get("data").size;
 
     return (
       <div className={"smc-vfill"} style={{ height: "300px" }}>
