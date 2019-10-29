@@ -1949,7 +1949,7 @@ export class SyncDoc extends EventEmitter {
     const data = this.syncstring_table_get_one();
     const x =
       data != null
-        ? (data.toJS() as { save?: { state: any; time: any }, users?: any })
+        ? (data.toJS() as { save?: { state: any; time: any }; users?: any })
         : undefined;
 
     if (x != null && x.save != null) {

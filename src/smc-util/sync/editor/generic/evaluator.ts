@@ -12,7 +12,6 @@ to a syncdoc editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
-
 const stringify = require("json-stable-stringify");
 
 import { callback } from "awaiting";
@@ -312,9 +311,7 @@ export class Evaluator {
 
       dbg("browser client didn't maintain sync promptly. fixing");
       dbg(
-        `sage_execute_code: i=${i}, n=${n}, output_line.length=${
-          output_line.length
-        }`
+        `sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`
       );
       dbg(`output_line='${output_line}', sync_line='${content.slice(i, n)}'`);
       const x = content.slice(0, i);
@@ -475,7 +472,7 @@ export class Evaluator {
     this.sage_session = (this.client as any).sage_session({
       path: this.syncdoc.get_path()
     });
-    await callback(this.sage_session.init_socket)
+    await callback(this.sage_session.init_socket);
   }
 
   // Runs only in the project
