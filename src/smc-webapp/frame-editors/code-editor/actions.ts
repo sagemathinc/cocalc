@@ -55,7 +55,7 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 import {
   ext2parser,
   parser2tool,
@@ -1054,11 +1054,15 @@ export class Actions<
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(path?: string): void {
-    this._get_project_actions().open_file({
-      path: history_path(path || this.path),
-      foreground: true
-    });
+  time_travel(opts: { path?: string; frame?: boolean }): void {
+    if (opts.frame) {
+      this.show_focused_frame_of_type("time_travel");
+    } else {
+      this._get_project_actions().open_file({
+        path: history_path(opts.path || this.path),
+        foreground: true
+      });
+    }
   }
 
   help(type: string): void {
@@ -1726,24 +1730,31 @@ export class Actions<
     available_features: AvailableFeatures,
     ext: string
   ): false | string {
-    const formatting = available_features.formatting;
-    // there is no formatting available at all
-    if (!formatting) return false;
+    const formatting = available_features.get("formatting");
+    if (formatting == null || formatting == false) return false;
+    // Now formatting is either "true" or a map itself.
     const parser = ext2parser[ext];
     if (parser == null) return false;
     const tool = parser2tool[parser];
     if (tool == null) return false;
-    if (!formatting[tool]) return false;
+    if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
   }
 
   // Not an action, but works to make code clean
   has_format_support(
     id: string,
-    available_features?: AvailableFeatures
+    available_features?: AvailableFeatures // is in project store
   ): false | string {
-    const cm = this._get_cm(id);
-    if (!cm || available_features == null) return false; // not a code editor or no features
+    if (available_features == null) return false;
+    const leaf = this._get_frame_node(id);
+    if (leaf != null) {
+      // Our default format support is only for
+      // normal code editors.  This can be
+      // overloaded in derived actions, e.g.,
+      // it is in the Jupyter notebook actions.
+      if (leaf.get("type") != "cm") return false;
+    }
     const ext = filename_extension(this.path).toLowerCase();
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
@@ -1753,7 +1764,7 @@ export class Actions<
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
-  async format(id?: string): Promise<void> {
+  async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
 
@@ -1761,6 +1772,16 @@ export class Actions<
       return;
     }
 
+    // Important: this function may be called even if there is no format support,
+    // because it can be called via a keyboard shortcut.  That's why we gracefully
+    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
+    const s = this.redux.getProjectStore(this.project_id);
+    if (s == null) return;
+    // TODO: Using any here since TypeMap is just not working right...
+    const af: any = s.get("available_features");
+    if (!this.has_format_support(id, af)) return;
+
+    // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
     const parser: FormatterParser = format_parser_for_extension(ext);

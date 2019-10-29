@@ -489,14 +489,25 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!s) {
       return;
     }
-    if (typeof s == "string" && s.indexOf("output-directory") == -1) {
-      // we aren't going to go so far as to
-      // parse a changed output-directory option...
-      // At least if there is no option, we just
-      // assume no output directory.
-      return undefined;
+    if (typeof s == "string") {
+      if (s.indexOf("-output-directory") == -1) {
+        // we aren't going to go so far as to
+        // parse a changed output-directory option...
+        // At least if there is no option, we just
+        // assume no output directory.
+        return;
+      } else {
+        return this.output_directory;
+      }
+    } else {
+      // s is a List<string>
+      for (let x of s.toJS()) {
+        if (x.startsWith("-output-directory")) {
+          return this.output_directory;
+        }
+      }
+      return;
     }
-    return this.output_directory;
   }
 
   async run_latex(
@@ -902,13 +913,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.synctex_tex_to_pdf(line, ch, this.path);
   }
 
-  time_travel(): void {
+  time_travel(opts: { path?: string; frame?: boolean }): void {
     // knitr case: point to editor file, not the generated tex
     // https://github.com/sagemathinc/cocalc/issues/3336
     if (this.knitr) {
-      super.time_travel(this.filename_knitr);
+      super.time_travel({ path: this.filename_knitr, frame: opts.frame });
     } else {
-      super.time_travel();
+      super.time_travel(opts);
     }
   }
 

@@ -3,18 +3,13 @@ const this_file:string = path.basename(__filename, '.js');
 const debuglog = require('util').debuglog('cc-' + this_file);
 
 import chalk from 'chalk';
-import { Creds, Opts, ApiGetString } from './types';
+import { Creds, ApiGetString } from './types';
 import { time_log } from './time_log';
 import axios from 'axios';
 import { expect } from 'chai';
 
-const get_project_id = async function (creds: Creds, opts: Opts, api_key: string): Promise<ApiGetString> {
+export const get_project_id = async function (creds: Creds, api_key: string): Promise<ApiGetString> {
   let ags: ApiGetString = new ApiGetString();
-  if (opts.skip && opts.skip.test(this_file)) {
-    debuglog('skipping test: ' + this_file);
-    ags.skip += 1;
-    return ags;
-  }
   try {
     const tm_start = process.hrtime.bigint();
     const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/query";
@@ -53,5 +48,3 @@ const get_project_id = async function (creds: Creds, opts: Opts, api_key: string
   debuglog(this_file + ' done');
   return ags;
 }
-
-export default get_project_id;

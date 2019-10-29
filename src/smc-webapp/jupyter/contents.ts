@@ -55,7 +55,10 @@ export function parse_headings(
 
     if (cell.get("cell_type") != "markdown") return;
 
-    const { level, value } = parse_cell_heading(cell.get("input"));
+    const input = cell.get("input");
+    if (input == null) return; // this is only needed since in types we don't impose any structure on cell yet.
+    const { level, value } = parse_cell_heading(input);
+
     if (level > 0) {
       if (last_level != level) {
         // reset section numbers

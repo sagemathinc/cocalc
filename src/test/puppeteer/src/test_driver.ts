@@ -8,11 +8,12 @@ const program = require('commander');
 import chalk     from 'chalk';
 import * as fs   from 'fs';
 import * as yaml from 'js-yaml';
-import { Creds, Opts, PassFail } from './types';
+import { Creds, Opts, ExtChromePath, PassFail } from './types';
 import { pf_log } from './time_log';
 
 import { login_tests } from './login_session';
-const {api_session} = require('./api_session');
+import { api_session } from './api_session';
+import { expect } from 'chai';
 
 // provide program version for "-V" | "--version" arg
 program.version('1.0.0');
@@ -21,13 +22,13 @@ const cli_parse = function() {
   try {
     // command line processing
     // -p option without arg uses the following path
-    const ext_chrome_path: string = '/usr/bin/chromium-browser';
     program
       .option('-c, --creds <file>', 'credentials file', "./creds")
       .option('-H, --no-headless', 'show browser (requires X11)', false)
       .option('-s, --screenshot', 'take screenshots', false)
       .option('-p, --path-to-chrome [chromepath]')
       .option('-k, --skip <pattern>', 'skip tests matching pattern')
+      .option('-x, --xprj <cmd>', 'delete|undelete|hide|unhide project')
       .parse(process.argv);
     let creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -36,17 +37,19 @@ const cli_parse = function() {
     let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, 'utf8'));
     let cpath: string;
     if (program.pathToChrome == true) {
-      cpath = ext_chrome_path;
+      cpath = ExtChromePath;
     } else {
       cpath = program.pathToChrome;
     }
     let skip: RegExp|undefined = undefined;
     if (program.skip) skip = new RegExp(program.skip);
+    if (program.xprj) expect(['delete','undelete','hide','unhide'], 'bad xprj value').to.include(program.xprj);
     const opts: Opts = {
       headless: program.headless,
       screenshot: program.screenshot,
+      xprj: program.xprj,
       path: cpath,
-      skip: skip
+      skip: skip,
     }
     debuglog("opts", opts);
     debuglog('site:', creds.sitename);
@@ -67,10 +70,13 @@ const run_tests = async function() {
   let pfcounts: PassFail = new PassFail();
   if (cp){
     // edit 'true' to 'false' to skip tests
-    let x = await login_tests(cp.c, cp.o);
+    let x: PassFail = await login_tests(cp.c, cp.o);
     pfcounts.add(x);
-    x = await api_session(cp.c, cp.o);
-    pfcounts.add(x);
+    // skip api tests if project was just deleted
+    if (cp.o.xprj && cp.o.xprj !== 'delete') {
+      x = await api_session(cp.c, cp.o);
+      pfcounts.add(x);
+    }
   }
   pf_log(pfcounts);
 }

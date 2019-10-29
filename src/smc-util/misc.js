@@ -745,16 +745,9 @@ exports.path_to_file = function(path, file, line_number) {
   return path;
 };
 
+const { hidden_meta_file } = require("./misc2");
 exports.meta_file = function(path, ext) {
-  if (path == null) {
-    return;
-  }
-  const p = exports.path_split(path);
-  path = p.head;
-  if (p.head !== "") {
-    path += "/";
-  }
-  return path + "." + p.tail + ".sage-" + ext;
+  return hidden_meta_file(path, "sage-" + ext);
 };
 
 // Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.

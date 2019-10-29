@@ -4,6 +4,9 @@ export interface Creds {
   readonly email: string;
   readonly passw: string;
   readonly project: string;
+  readonly token?: string;
+  readonly firstname?: string;
+  readonly lastname?: string;
 }
 
 export interface Opts {
@@ -11,11 +14,17 @@ export interface Opts {
   screenshot?: string;
   path?: string|boolean;
   skip?: RegExp;
+  xprj?: string;
 }
 
-export interface InstallOpts extends Opts {
+export interface InstallOpts {
   install_folder: string;
+  create_project: boolean;
+  headless?: string;
+  path?: string|boolean;
 }
+
+export const ExtChromePath: string = '/usr/bin/chromium-browser';
 
 export class PassFail {
   pass: number;

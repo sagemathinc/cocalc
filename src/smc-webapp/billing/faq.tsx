@@ -1,29 +1,21 @@
 import { Component, React, Rendered } from "../app-framework";
+import { A } from "smc-webapp/r_misc";
 
 export class FAQ extends Component {
   public render(): Rendered {
     return (
       <div>
         <a id="faq" />
-        <h2>Frequently asked questions</h2>
-        <ul>
+        <ul style={{ paddingLeft: "20px" }}>
           <li>
-            <a
-              href="https://doc.cocalc.com/billing.html"
-              rel="noopener"
-              target="_blank"
-            >
-              Billing, quotas, and upgrades
-            </a>
+            <A href={"https://doc.cocalc.com/billing.html"}>
+              Billing, quotas, and upgrades FAQ
+            </A>
           </li>
           <li>
-            <a
-              href="https://doc.cocalc.com/project-faq.html"
-              rel="noopener"
-              target="_blank"
-            >
-              Projects
-            </a>
+            <A href="https://doc.cocalc.com/project-faq.html">
+              Questions about projects
+            </A>
           </li>
         </ul>
       </div>

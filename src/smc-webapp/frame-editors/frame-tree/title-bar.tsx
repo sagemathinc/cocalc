@@ -35,7 +35,7 @@ import { ConnectionStatus, EditorSpec } from "./types";
 // TODO:
 // import { Actions } from "../code-editor/actions";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
@@ -774,7 +774,16 @@ export class FrameTitleBar extends Component<Props, State> {
         title={"Show complete edit history"}
         bsStyle={"info"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.time_travel()}
+        onClick={event => {
+          // If a time_travel frame type is available and the
+          // user does NOT shift+click, then open as a frame.
+          // Otherwise, it opens as a new tab.
+          const frame =
+            !event.shiftKey && this.props.editor_spec["time_travel"] != null;
+          this.props.actions.time_travel({
+            frame
+          });
+        }}
       >
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>

@@ -47,7 +47,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
       this.props.project.get("project_id")
     );
     const user = this.props.project.getIn(["users", webapp_client.account_id]);
-    if (user.get("hide")) {
+    if (user && user.get("hide")) {
       analytics_event("project_settings", "unhide project");
     } else {
       analytics_event("project_settings", "hide project");
@@ -55,7 +55,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
   };
 
   user_has_applied_upgrades(account_id: string, project: Project) {
-    const upgrades = project.getIn(["users", account_id, "upgrades"]);
+    const upgrades = project.getIn(["users", account_id]);
     return upgrades ? upgrades.some(val => val > 0) : undefined;
   }
 
@@ -108,6 +108,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
         style={{ float: "right" }}
         onClick={onClick}
         disabled={disabled}
+        cocalc-test={is_deleted ? "undelete-project" : "delete-project"}
       >
         <Icon name="trash" /> {text}
       </Button>
@@ -138,7 +139,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
           undefined
         )}
         <ButtonToolbar>
-          <Button bsStyle="danger" onClick={this.toggle_delete_project}>
+          <Button bsStyle="danger" onClick={this.toggle_delete_project} cocalc-test="please-delete-project">
             Yes, please delete this project
           </Button>
           <Button onClick={this.hide_delete_conf}>Cancel</Button>
@@ -162,6 +163,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
               bsStyle="warning"
               onClick={this.toggle_hide_project}
               style={{ float: "right" }}
+              cocalc-test={hidden ? "unhide-project" : "hide-project"}
             >
               <Icon name="eye-slash" /> {hidden ? "Unhide" : "Hide"} Project
             </Button>
