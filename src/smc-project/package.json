@@ -11,7 +11,7 @@
     "@types/lru-cache": "^5.1.0",
     "@types/mocha": "^5.2.5",
     "@types/node": "^12.11.7",
-    "async": "^3.1.0",
+    "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^4.1.0",
