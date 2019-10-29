@@ -1,10 +1,11 @@
 /**
  * Sets up some hooks for webapp_client
- * This file all side effects.
+ * This file is all side effects.
  * Should be imported ONCE at the top level of the app
  */
 import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
+import * as misc from "smc-util/misc";
 
 const { webapp_client } = require("./webapp_client");
 const {
@@ -13,7 +14,6 @@ const {
   should_load_target_url,
   get_cookie
 } = require("./misc_page");
-const misc = require("misc");
 const { reset_password_key } = require("./password-reset");
 
 let first_login = true;

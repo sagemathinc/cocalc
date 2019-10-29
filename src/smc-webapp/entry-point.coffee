@@ -31,7 +31,7 @@ require('./jquery_plugins')
 ###
 require('./init_app')
 require('./account').init(redux)
-require('./webapp-hooks.ts')
+require('./webapp-hooks')
 
 if not fullscreen.COCALC_MINIMAL
     notifications = require('./notifications')

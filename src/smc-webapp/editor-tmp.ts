@@ -1,12 +1,5 @@
-/*
- * decaffeinate suggestions:
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
-const misc = require("smc-util/misc");
-const { file_associations } = require("./file-associations");
+import * as  misc from "smc-util/misc";
+import { file_associations } from "./file-associations";
 
 // Given a text file (defined by content), try to guess
 // what the extension should be.
@@ -36,9 +29,10 @@ const guess_file_extension_type = function(content) {
 export function file_options(filename, content) {
   // content may be undefined
   let x;
-  let ext = __guard__(misc.filename_extension_notilde(filename), x1 =>
-    x1.toLowerCase()
-  );
+  let ext = misc.filename_extension_notilde(filename);
+  if (ext != undefined) {
+    ext = ext.toLowerCase()
+  }
   if (ext == null && content != null) {
     // no recognized extension, but have contents
     ext = guess_file_extension_type(content);
@@ -64,10 +58,4 @@ export function file_options(filename, content) {
     }
   }
   return x;
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
