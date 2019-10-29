@@ -117,8 +117,9 @@ Page = rclass
     getInitialState: ->
         show_label : true
 
-    @getDerivedStateFromProps: (props) ->
-        return show_label : props.open_projects.size <= HIDE_LABEL_THOLD
+    # TODO: Change to static getDerivedStateFromProps when converted to TS.
+    UNSAFE_componentWillReceiveProps: (next_props) ->
+        @setState(show_label : next_props.open_projects.size <= HIDE_LABEL_THOLD)
 
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()

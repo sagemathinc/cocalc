@@ -441,9 +441,10 @@ exports.SearchInput = rclass
     get_opts: ->
         ctrl_down : @state.ctrl_down
 
-    @getDerivedStateFromProps: (props) ->
-        if props.value?
-            return value : props.value
+    # TODO: Change to static getDerivedStateFromProps when converted to TS.
+    UNSAFE_componentWillReceiveProps: (next_props) ->
+        if next_props.value?
+            this.setState(value : next_props.value)
 
     componentDidMount: ->
         if @props.autoSelect
