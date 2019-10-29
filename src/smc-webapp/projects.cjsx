@@ -1009,6 +1009,9 @@ if not COCALC_MINIMAL
 _project_tables = {}
 _previous_project_id = undefined
 
+# This function makes it possible to switch between projects in kiosk mode.
+# If the project changes, it also recreates the users table.
+# Warning: https://github.com/sagemathinc/cocalc/pull/3985#discussion_r336828374
 load_single_project = (project_id) =>
     redux.getActions('page').setState({kiosk_project_id:project_id})
     if _previous_project_id != project_id
