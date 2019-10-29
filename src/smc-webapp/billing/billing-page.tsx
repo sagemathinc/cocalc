@@ -107,6 +107,18 @@ export const BillingPage = rclass<ReactProps>(
       );
     }
 
+    private render_on_prem(): Rendered {
+      return (
+        <p>
+          <b>Commercial on Premises:</b> Contact us at <HelpEmailLink /> for{" "}
+          questions about our{" "}
+          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/README.md">
+            commercial on premises offering.
+          </A>
+        </p>
+      );
+    }
+
     private render_help_suggestion(): Rendered {
       return (
         <span>
@@ -123,6 +135,7 @@ export const BillingPage = rclass<ReactProps>(
             <Space />
           </b>
           {this.render_enterprise_support()}
+          {this.render_on_prem()}
         </span>
       );
     }
@@ -137,7 +150,9 @@ export const BillingPage = rclass<ReactProps>(
           ? 0
           : this.props.customer.subscriptions.total_count;
       const invoices =
-        this.props.invoices == null ? 0 : this.props.invoices.get('total_count');
+        this.props.invoices == null
+          ? 0
+          : this.props.invoices.get("total_count");
       return { cards, subs, invoices };
     }
 
