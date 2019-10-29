@@ -42,6 +42,7 @@ const { Loading } = require("smc-webapp/r_misc");
 import { AvailableFeatures } from "../../project_configuration";
 
 import { TimeTravelActions } from "../time-travel-editor/actions";
+import { Actions as CodeEditorActions } from "../code-editor/actions";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -224,11 +225,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       path = spec.path(path);
     }
 
-    // show_path = hint that the frame should show the name of the path;
-    // spec might be set to always show this, e.g., for latex it could be
-    // confusing to not always show.
-    const show_path = path != this.props.path;
-
     let fullscreen_style: any = undefined;
     if (spec.fullscreen_style != null) {
       // this is set via jquery's .css...
@@ -247,6 +243,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
 
     let is_subframe: boolean = false; // this name sucks...
     if (spec.name === "TimeTravel" && !(actions instanceof TimeTravelActions)) {
+      // Time travel inside some other editor frame tree
       if (path.slice(path.length - 12) != ".time-travel") {
         path = hidden_meta_file(path, "time-travel");
         const editor = require("./register").get_file_editor(
@@ -261,6 +258,16 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_subframe = true;
         actions2.init_frame_tree(); // this is particularly hacky for now...
       }
+    } else if (type == "cm" && path != this.props.path) {
+      // A code editor inside some other editor frame tree
+      console.log("codemirror frame editor...");
+      const editor = require("./register").get_file_editor("txt", false);
+      if (editor == null) throw Error("bug -- editor must exist");
+      name = editor.init(path, redux, project_id);
+      const actions2: CodeEditorActions = redux.getActions(name);
+      actions2.ambient_actions = actions;
+      actions = actions2;
+      is_subframe = true;
     }
 
     return (
@@ -281,7 +288,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           is_public={this.props.is_public}
           font_size={desc.get("font_size", this.props.font_size)}
           path={path}
-          show_path={show_path}
           fullscreen_style={fullscreen_style}
           project_id={project_id}
           editor_state={this.props.editor_state.get(desc.get("id"), Map())}

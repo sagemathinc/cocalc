@@ -40,7 +40,6 @@ interface Props {
   id: string;
   actions: any;
   path: string;
-  show_path: boolean;
   project_id: string;
   font_size: number;
   cursors: Map<string, any>;
@@ -54,6 +53,7 @@ interface Props {
   gutters: string[];
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  is_subframe: boolean;
 }
 
 interface State {
@@ -70,6 +70,16 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.state = { has_cm: false };
   }
 
+  private get_ambient_actions(): any {
+    if (this.props.actions == null) {
+      throw Error("actions must not be null");
+    }
+    if (this.props.actions.ambient_actions != null) {
+      return this.props.actions.ambient_actions;
+    }
+    return this.props.actions;
+  }
+
   shouldComponentUpdate(props, state): boolean {
     return (
       misc.is_different(this.state, state, ["has_cm"]) ||
@@ -84,7 +94,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         "editor_state",
         "gutter_markers",
         "path",
-        "show_path"
+        "is_subframe"
       ])
     );
   }
@@ -190,7 +200,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       // cursor movement is a side effect of upstream change, so ignore.
       return;
     }
-    this.props.actions.set_cursor_locs(locs);
+    this.get_ambient_actions().set_cursor_locs(locs);
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
@@ -200,7 +210,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
     const state = codemirror_state.get_state(this.cm);
     if (state != null) {
-      this.props.actions.save_editor_state(this.props.id, state);
+      this.get_ambient_actions().save_editor_state(this.props.id, state);
     }
   }
 
@@ -266,7 +276,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       };
     }
 
-    let cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
+    let cm: CodeMirror.Editor = (this.props.actions as any)._cm[this.props.id];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
@@ -346,7 +356,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     });
 
     this.cm.on("focus", () => {
-      this.props.actions.set_active_id(this.props.id);
+      this.get_ambient_actions().set_active_id(this.props.id);
       if (this.style_active_line && this.cm) {
         this.cm.setOption("styleActiveLine", true);
       }
@@ -465,14 +475,14 @@ export class CodemirrorEditor extends Component<Props, State> {
         gutter_markers={this.props.gutter_markers}
         codemirror={this.cm}
         set_handle={(id, handle) =>
-          this.props.actions._set_gutter_handle(id, handle)
+          this.get_ambient_actions()._set_gutter_handle(id, handle)
         }
       />
     );
   }
 
   render_path(): Rendered {
-    if (!this.props.show_path) return;
+    if (!this.props.is_subframe) return;
     return (
       <div
         style={{

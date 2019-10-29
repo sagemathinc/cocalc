@@ -24,7 +24,7 @@ import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
-import { callback_opts } from "smc-util/async-utils";
+import { callback_opts, once } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
@@ -140,6 +140,7 @@ export class Actions<
   public path: string;
   public store: Store<T>;
   public is_public: boolean;
+  public ambient_actions?: Actions;
 
   private _save_local_view_state: () => void;
   private _cm_selections: any;
@@ -1313,11 +1314,20 @@ export class Actions<
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring(): void {
-    if (this._syncstring == null) {
+  async set_codemirror_to_syncstring(): Promise<void> {
+    if (
+      this._syncstring == null ||
+      this._state == "closed" ||
+      this._syncstring.get_state() == "closed"
+    ) {
       // no point in doing anything further.
       return;
     }
+
+    if (this._syncstring.get_state() != "ready") {
+      await once(this._syncstring, "ready");
+    }
+
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     const cm: CodeMirror.Editor | undefined = this._get_cm(undefined, true);

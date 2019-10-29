@@ -50,7 +50,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   private syncpath: string;
   public syncdoc?: SyncDoc;
   private first_load: boolean = true;
-  public ambient_actions?: CodeEditorActions;
 
   public _init2(): void {
     const { head, tail } = path_split(this.path);

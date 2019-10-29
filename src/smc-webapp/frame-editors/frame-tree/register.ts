@@ -13,7 +13,7 @@ interface Register {
   icon?: string;
   ext:
     | string
-    | string[] /* the filename extension or extentions that this editor should handle. */;
+    | string[] /* the filename extension or extensions that this editor should handle. */;
   component: any /* the renderable react component used for this editor */;
   Actions: any /* the class that defines the actions. */;
   is_public?: boolean /* if given, only register public or not public editors (not both) */;

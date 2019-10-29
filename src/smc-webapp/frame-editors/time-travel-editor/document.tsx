@@ -38,6 +38,7 @@ export class Document extends Component<Props> {
         gutters={[]}
         gutter_markers={fromJS({})}
         editor_settings={this.props.editor_settings}
+        is_subframe={false}
       />
     );
   }
