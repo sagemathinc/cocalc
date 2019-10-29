@@ -1545,10 +1545,10 @@ export class SyncTable extends EventEmitter {
       // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
-    if (cur_val == null) {
-      throw Error(`cur_val of key "${key}" must not be null`);
-    }
     if (action === "update") {
+      if (cur_val == null) {
+        throw Error(`cur_val of key "${key}" must not be null`);
+      }
       // For update actions, we shallow *merge* in the change.
       // For insert action, we just replace the whole thing.
       new_val = cur_val.merge(new_val);
