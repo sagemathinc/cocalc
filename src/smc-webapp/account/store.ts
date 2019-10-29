@@ -12,20 +12,22 @@ export class AccountStore extends Store<AccountState> {
   //   - 'signed_in'  : user has successfully authenticated and has an id
   constructor(name, redux) {
     super(name, redux);
-    this.get_user_type = this.get_user_type.bind(this);
-    this.get_account_id = this.get_account_id.bind(this);
-    this.is_admin = this.is_admin.bind(this);
-    this.get_terminal_settings = this.get_terminal_settings.bind(this);
-    this.get_editor_settings = this.get_editor_settings.bind(this);
-    this.get_fullname = this.get_fullname.bind(this);
-    this.get_first_name = this.get_first_name.bind(this);
-    this.get_color = this.get_color.bind(this);
-    this.get_username = this.get_username.bind(this);
-    this.get_email_address = this.get_email_address.bind(this);
-    this.get_confirm_close = this.get_confirm_close.bind(this);
-    this.get_total_upgrades = this.get_total_upgrades.bind(this);
-    this.is_paying_member = this.is_paying_member.bind(this);
-    this.get_page_size = this.get_page_size.bind(this);
+    misc.bind_methods(this, [
+      "get_user_type",
+      "get_account_id",
+      "is_admin",
+      "get_terminal_settings",
+      "get_editor_settings",
+      "get_fullname",
+      "get_first_name",
+      "get_color",
+      "get_username",
+      "get_email_address",
+      "get_confirm_close",
+      "get_total_upgrades",
+      "is_paying_member",
+      "get_page_size"
+    ]);
   }
 
   get_user_type() {
@@ -37,7 +39,7 @@ export class AccountStore extends Store<AccountState> {
   }
 
   is_admin(): boolean {
-    const groups = this.get("groups")
+    const groups = this.get("groups");
     return !!groups && groups.includes("admin");
   }
 

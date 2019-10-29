@@ -61,7 +61,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
-import { Actions , UNSAFE_NONNULLABLE } from "../app-framework";
+import { Actions, UNSAFE_NONNULLABLE } from "../app-framework";
 
 const PARALLEL_LIMIT = 5; // number of async things to do in parallel
 
@@ -889,7 +889,9 @@ export class CourseActions extends Actions<CourseState> {
       this.set_error("BUG: attempt to create when stores not yet initialized");
       return;
     }
-    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get("student_id");
+    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get(
+      "student_id"
+    );
     this._set({
       create_project: webapp_client.server_time(),
       table: "students",
@@ -980,7 +982,9 @@ export class CourseActions extends Actions<CourseState> {
     if (student_account_id == null) {
       // No known account yet, so invite by email.  That said,
       // we only do this at most once every few days.
-      const last_email_invite = UNSAFE_NONNULLABLE(student).get("last_email_invite");
+      const last_email_invite = UNSAFE_NONNULLABLE(student).get(
+        "last_email_invite"
+      );
       if (
         force_send_invite_by_email ||
         (!last_email_invite ||
@@ -1457,10 +1461,8 @@ export class CourseActions extends Actions<CourseState> {
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
   public async admin_upgrade_all_student_projects(quotas): Promise<void> {
     const account_store = this.redux.getStore("account");
-    if (
-      account_store &&
-      account_store.get("groups", { includes: _ => false }).includes("admin")
-    ) {
+    const groups = account_store.get("groups");
+    if (groups && groups.includes("admin")) {
       throw Error("must be an admin to upgrade");
       return;
     }
@@ -2678,7 +2680,10 @@ You can find the comments they made in the folders below.\
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path = UNSAFE_NONNULLABLE(assignment).get("collect_path") + "/" + UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
+        path =
+          UNSAFE_NONNULLABLE(assignment).get("collect_path") +
+          "/" +
+          UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)

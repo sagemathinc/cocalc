@@ -10,7 +10,7 @@ import { show_announce_start, show_announce_end } from "./dates";
 import { AccountState } from "./types";
 
 import * as misc from "smc-util/misc2";
-const { server_days_ago } = require("smc-util/misc");
+import { server_days_ago } from "smc-util/misc";
 import { define, required } from "smc-util/fill";
 
 // Define account actions
@@ -19,37 +19,40 @@ export class AccountActions extends Actions<AccountState> {
 
   constructor(name, redux) {
     super(name, redux);
-    this._init = this._init.bind(this);
-    this.derive_show_global_info = this.derive_show_global_info.bind(this);
-    this.set_user_type = this.set_user_type.bind(this);
-    this.sign_in = this.sign_in.bind(this);
-    this.create_account = this.create_account.bind(this);
-    this.delete_account = this.delete_account.bind(this);
-    this.forgot_password = this.forgot_password.bind(this);
-    this.reset_password = this.reset_password.bind(this);
-    this.sign_out = this.sign_out.bind(this);
-    this.push_state = this.push_state.bind(this);
-    this.set_active_tab = this.set_active_tab.bind(this);
-    this.add_ssh_key = this.add_ssh_key.bind(this);
-    this.delete_ssh_key = this.delete_ssh_key.bind(this);
+    misc.bind_methods(this, [
+      "_init",
+      "derive_show_global_info",
+      "set_user_type",
+      "sign_in",
+      "create_account",
+      "delete_account",
+      "forgot_password",
+      "reset_password",
+      "sign_out",
+      "push_state",
+      "set_active_tab",
+      "add_ssh_key",
+      "delete_ssh_key",
+      "help"
+    ]);
   }
 
-  _init(store) {
+  _init(store): void {
     store.on("change", this.derive_show_global_info);
   }
 
-  private help = () => {
-    this.redux.getStore("customize").get("help_email");
+  private help(): string {
+    return this.redux.getStore("customize").get("help_email");
   };
 
-  derive_show_global_info(store) {
+  derive_show_global_info(store): void {
     // TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
     // for now, we use the existence of a timestamp value to indicate that the banner is not shown
-    let show;
+    let show_global_info;
     const sgi2 = store.getIn(["other_settings", "show_global_info2"]);
     // unknown state, right after opening the application
     if (sgi2 === "loading") {
-      show = false;
+      show_global_info = false;
       // value not set means there is no timestamp → show banner
     } else {
       // ... if it is inside the scheduling window
@@ -60,27 +63,27 @@ export class AccountActions extends Actions<AccountState> {
         start < (middle = webapp_client.server_time()) && middle < end;
 
       if (sgi2 == null) {
-        show = in_window;
+        show_global_info = in_window;
         // 3rd case: a timestamp is set
         // show the banner only if its start_dt timetstamp is earlier than now
         // *and* when the last "dismiss time" by the user is prior to it.
       } else {
         const sgi2_dt = new Date(sgi2);
         const dismissed_before_start = sgi2_dt < start;
-        show = in_window && dismissed_before_start;
+        show_global_info = in_window && dismissed_before_start;
       }
     }
-    this.setState({ show_global_info: show });
+    this.setState({ show_global_info });
   }
 
-  set_user_type(user_type) {
+  set_user_type(user_type): void {
     this.setState({
       user_type,
       is_logged_in: user_type === "signed_in"
     });
   }
 
-  sign_in(email, password) {
+  sign_in(email: string, password: string): void {
     const doc_conn =
       "[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)";
     const err_help = `\
@@ -127,7 +130,14 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
 
-  create_account(first_name, last_name, email, password, token, usage_intent?) {
+  create_account(
+    first_name: string,
+    last_name: string,
+    email: string,
+    password: string,
+    token?: string,
+    usage_intent?: string
+  ): void {
     this.setState({ signing_up: true });
     webapp_client.create_account({
       first_name,
@@ -163,7 +173,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
   // deletes the account and then signs out everywhere
-  delete_account() {
+  delete_account(): void {
     async.series(
       [
         async cb => {
@@ -183,7 +193,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         },
         cb => {
           // actually request to delete the account
-          return webapp_client.delete_account({
+          webapp_client.delete_account({
             account_id: this.redux.getStore("account").get_account_id(),
             timeout: 40,
             cb
@@ -202,8 +212,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     );
   }
 
-  forgot_password(email) {
-    return webapp_client.forgot_password({
+  forgot_password(email: string): void {
+    webapp_client.forgot_password({
       email_address: email,
       cb: (err, mesg) => {
         if (mesg != null ? mesg.error : undefined) {
@@ -226,8 +236,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
 
-  reset_password(code, new_password) {
-    return webapp_client.reset_forgot_password({
+  reset_password(code: string, new_password: string): void {
+    webapp_client.reset_forgot_password({
       reset_code: code,
       new_password,
       cb: (error, mesg) => {
@@ -253,7 +263,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
 
-  sign_out(everywhere) {
+  sign_out(everywhere: boolean): void {
     misc.delete_local_storage(remember_me);
 
     // disable redirection from main index page to landing page
@@ -274,7 +284,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources
     // and *invalidate* the remember_me cookie for this client.
-    return webapp_client.sign_out({
+    webapp_client.sign_out({
       everywhere,
       cb: error => {
         if (error) {
@@ -305,7 +315,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     }); // redirect to sign in page
   }
 
-  push_state(url) {
+  push_state(url: string): void {
     const { set_url } = require("../history");
     if (url == null) {
       url = this._last_history_state;
@@ -322,7 +332,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   // Add an ssh key for this user, with the given fingerprint, title, and value
-  add_ssh_key(unsafe_opts: unknown) {
+  add_ssh_key(unsafe_opts: unknown): void {
     const opts = define<{
       fingerprint: string;
       title: string;
@@ -344,7 +354,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   // Delete the ssh key with given fingerprint for this user.
-  delete_ssh_key(fingerprint) {
+  delete_ssh_key(fingerprint): void {
     this.redux.getTable("account").set({
       ssh_keys: {
         [fingerprint]: null

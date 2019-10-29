@@ -578,14 +578,14 @@ export function contains_url(str: string): boolean {
 }
 
 /**
- * Deletes ket from local storage
+ * Deletes key from local storage
  * FRONT END ONLY
  */
 export function delete_local_storage(key) {
   try {
-    return delete localStorage[key];
+    delete localStorage[key];
   } catch (e) {
-    return console.warn(`localStorage delete error -- ${e}`);
+    console.warn(`localStorage delete error -- ${e}`);
   }
 }
 
