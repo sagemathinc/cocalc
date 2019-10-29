@@ -24,8 +24,8 @@ exports.Find = rclass
                @props.counts           != next.counts or \
                !!next.focus_find_box and not @props.focus_find_box
 
-    componentWillReceiveProps: (next) ->
-        if next.focus_find_box and (@props.focus_find_box != next.focus_find_box)
+    componentDidUpdate: (prev) ->
+        if @props.focus_find_box and (prev.focus_find_box != @props.focus_find_box)
             ReactDOM.findDOMNode(@refs.search).focus()
 
     render_toggle: (type) ->

@@ -74,13 +74,13 @@ export class QuotaConsole extends React.Component<Props, State> {
     this.state = state as any;
   }
 
-  public componentWillReceiveProps(next_props: Props): void {
-    const settings = next_props.project_settings;
-    if (!immutable.is(this.props.project_settings, settings)) {
+  public componentDidUpdate(prev: Props): void {
+    const settings = this.props.project_settings;
+    if (!immutable.is(settings, this.props.project_settings)) {
       if (settings != undefined) {
         const new_state = {};
-        for (let name in this.props.quota_params) {
-          const data = this.props.quota_params[name];
+        for (let name in prev.quota_params) {
+          const data = prev.quota_params[name];
           new_state[name] = misc.round2(
             settings.get(name) * data.display_factor
           );

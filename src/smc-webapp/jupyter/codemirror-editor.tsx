@@ -536,30 +536,30 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   }
 
-  async componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
+  async componentDidUpdate(prev: CodeMirrorEditorProps) {
     if (this.cm == null) {
-      this.init_codemirror(nextProps.options, nextProps.value);
+      this.init_codemirror(this.props.options, this.props.value);
       return;
     }
-    if (!this.props.options.equals(nextProps.options)) {
-      this.update_codemirror_options(nextProps.options, this.props.options);
+    if (!this.props.options.equals(prev.options)) {
+      this.update_codemirror_options(this.props.options, prev.options);
     }
     if (
-      this.props.font_size !== nextProps.font_size ||
-      (this.props.is_scrolling && !nextProps.is_scrolling)
+      this.props.font_size !== prev.font_size ||
+      (prev.is_scrolling && !this.props.is_scrolling)
     ) {
       this._cm_refresh();
     }
-    if (nextProps.value !== this.props.value) {
-      this._cm_merge_remote(nextProps.value);
+    if (prev.value !== this.props.value) {
+      this._cm_merge_remote(this.props.value);
     }
-    if (nextProps.is_focused && !this.props.is_focused) {
+    if (this.props.is_focused && !prev.is_focused) {
       // gain focus
       if (this.cm != null) {
         this.focus_cm();
       }
     }
-    if (!nextProps.is_focused && this._cm_is_focused) {
+    if (!this.props.is_focused && this._cm_is_focused) {
       // controlled loss of focus from store; we have to force
       // this somehow.  Note that codemirror has no .blur().
       // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
@@ -568,7 +568,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         this.cm.getInputField().blur();
       }
     }
-    if (this._vim_mode && !nextProps.is_focused && this.props.is_focused) {
+    if (this._vim_mode && !this.props.is_focused && prev.is_focused) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });
     }
   }

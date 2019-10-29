@@ -1400,24 +1400,24 @@ exports.ProjectsPage = ProjectsPage = rclass
         search            : ''
         selected_hashtags : {}
 
-    componentWillReceiveProps: (next) ->
+    componentDidUpdate: (prev) ->
         if not @props.project_map?
             return
         # Only update project_list if the project_map actually changed.  Other
         # props such as the filter or search string might have been set,
         # but not the project_map.  This avoids recomputing any hashtag, search,
         # or possibly other derived cached data.
-        if not immutable.is(@props.project_map, next.project_map)
-            @update_project_list(@props.project_map, next.project_map, next.user_map)
+        if not immutable.is(@props.project_map, prev.project_map)
+            @update_project_list(prev.project_map, @props.project_map, @props.user_map)
             projects_changed = true
         # Update the hashtag list if the project_map changes *or* either
         # of the filters change.
-        if projects_changed or @props.hidden != next.hidden or @props.deleted != next.deleted
-            @update_hashtags(next.hidden, next.deleted)
+        if projects_changed or prev.hidden != @props.hidden or prev.deleted != @props.deleted
+            @update_hashtags(@props.hidden, @props.deleted)
         # If the user map changes, update the search info for the projects with
         # users that changed.
-        if not immutable.is(@props.user_map, next.user_map)
-            @update_user_search_info(@props.user_map, next.user_map)
+        if not immutable.is(prev.user_map, @props.user_map)
+            @update_user_search_info(prev.user_map, @props.user_map)
 
     _compute_project_derived_data: (project, user_map) ->
         #console.log("computing derived data of #{project.project_id}")

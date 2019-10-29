@@ -182,20 +182,20 @@ export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
     this.cm.redo = this._cm_redo;
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (!this.props.cm_options.equals(nextProps.cm_options)) {
+  componentDidUpdate(prev) {
+    if (!this.props.cm_options.equals(prev.cm_options)) {
       this.update_codemirror_options(
-        nextProps.cm_options,
-        this.props.cm_options
+        this.props.cm_options,
+        prev.cm_options
       );
     }
-    if (this.props.font_size !== nextProps.font_size) {
+    if (this.props.font_size !== prev.font_size) {
       if (this.cm != null) {
         this.cm.refresh();
       }
     }
-    if (!nextProps.value.equals(this.props.value)) {
-      this._cm_merge_remote(nextProps.value);
+    if (!this.props.value.equals(prev.value)) {
+      this._cm_merge_remote(this.props.value);
     }
   }
 

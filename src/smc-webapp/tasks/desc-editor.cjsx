@@ -51,14 +51,14 @@ exports.DescriptionEditor = rclass
     componentDidMount: ->
         @init_codemirror(@props.desc)
 
-    componentWillReceiveProps: (next) ->
+    componentDidUpdate: (prev) ->
         if not @cm?
-            @init_codemirror(next.desc)
+            @init_codemirror(@props.desc)
             return
-        if @props.font_size != next.font_size
+        if prev.font_size != @props.font_size
             @cm_refresh()
-        if @props.desc != next.desc
-            @_cm_merge_remote(next.desc)
+        if prev.desc != @props.desc
+            @_cm_merge_remote(@props.desc)
 
     cm_refresh: ->
         @cm?.refresh()

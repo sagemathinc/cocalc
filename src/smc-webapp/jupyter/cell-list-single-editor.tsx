@@ -176,23 +176,23 @@ export class CellList extends Component<CellListProps> {
     this.cm.redo = this.cm_redo;
   }
 
-  public componentWillReceiveProps(nextProps): void {
+  public componentDidUpdate(prev): void {
     if (
       this.cm == null ||
       !(
         this.props.cm_options &&
-        this.props.cm_options.equals(nextProps.cm_options)
+        this.props.cm_options.equals(prev.cm_options)
       ) ||
-      this.props.font_size !== nextProps.font_size
+      this.props.font_size !== prev.font_size
     ) {
       this.init_codemirror();
       return;
     }
     if (
-      nextProps.cells !== this.props.cells ||
-      nextProps.cell_list !== this.props.cell_list
+      prev.cells !== this.props.cells ||
+      prev.cell_list !== this.props.cell_list
     ) {
-      return this.cm_merge_remote(nextProps.cell_list, nextProps.cells);
+      return this.cm_merge_remote(this.props.cell_list, this.props.cells);
     }
   }
 

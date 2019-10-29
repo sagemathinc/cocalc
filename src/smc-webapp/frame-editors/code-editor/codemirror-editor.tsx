@@ -90,30 +90,30 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.init_codemirror(this.props);
   }
 
-  componentWillReceiveProps(next: Props): void {
+  componentDidUpdate(prev: Props): void {
     if (this.cm == null) {
       return;
     }
-    if (this.props.font_size !== next.font_size) {
+    if (this.props.font_size !== prev.font_size) {
       this.cm_update_font_size();
     }
-    if (this.props.read_only !== next.read_only) {
-      this.cm.setOption("readOnly", next.read_only);
+    if (this.props.read_only !== prev.read_only) {
+      this.cm.setOption("readOnly", this.props.read_only);
     }
-    if (this.props.is_public && this.props.value !== next.value) {
-      if (next.value !== undefined) {
+    if (this.props.is_public && this.props.value !== prev.value) {
+      if (this.props.value !== undefined) {
         // we really know that this will be undefined.
-        this.cm.setValueNoJump(next.value);
+        this.cm.setValueNoJump(this.props.value);
       }
     }
-    if (this.props.misspelled_words !== next.misspelled_words) {
-      this.cm_highlight_misspelled_words(next.misspelled_words);
+    if (this.props.misspelled_words !== prev.misspelled_words) {
+      this.cm_highlight_misspelled_words(this.props.misspelled_words);
     }
-    if (this.props.resize !== next.resize) {
+    if (this.props.resize !== prev.resize) {
       this.cm_refresh();
     }
-    if (this.props.editor_settings != next.editor_settings) {
-      this.update_codemirror(next);
+    if (this.props.editor_settings != prev.editor_settings) {
+      this.update_codemirror(this.props);
     }
   }
 

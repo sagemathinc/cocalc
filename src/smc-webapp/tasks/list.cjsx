@@ -55,8 +55,8 @@ exports.TaskList = SortableContainer rclass
     componentWillUnmount: ->
         @save_scroll_position()
 
-    componentWillReceiveProps: (next) ->
-        if next.scroll_into_view
+    componentDidUpdate: () ->
+        if @props.scroll_into_view
             @scroll_into_view()
 
     scroll_into_view: ->

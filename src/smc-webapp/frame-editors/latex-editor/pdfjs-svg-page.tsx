@@ -45,8 +45,8 @@ export class SVGPage extends Component<Props, {}> {
     }
   }
 
-  componentWillReceiveProps(next_props: Props): void {
-    this.render_page(next_props.page, next_props.scale);
+  componentDidUpdate(): void {
+    this.render_page(this.props.page, this.props.scale);
   }
 
   componentWillUnmount(): void {

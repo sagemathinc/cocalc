@@ -99,8 +99,8 @@ EmailVerification = rclass
     getInitialState: ->
         disabled_button : false
 
-    componentWillReceiveProps: (next) ->
-        if next.email_address != @props.email_address
+    componentDidUpdate: (prev) ->
+        if @props.email_address != prev.email_address
             @setState(disabled_button: false)
 
     verify : ->

@@ -224,16 +224,16 @@ class PositionedCursor extends Component<PositionedCursorProps> {
     }
   }
 
-  public componentWillReceiveProps(next: PositionedCursorProps): void {
+  public componentDidUpdate(prev: PositionedCursorProps): void {
     if (this._elt == null) {
       return;
     }
-    if (this.props.line !== next.line || this.props.ch !== next.ch) {
-      this._pos = { line: next.line, ch: next.ch };
+    if (this.props.line !== prev.line || this.props.ch !== prev.ch) {
+      this._pos = { line: this.props.line, ch: this.props.ch };
       this._position_cursor();
     }
     // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
-    this._render_cursor(next);
+    this._render_cursor(this.props);
   }
 
   public componentWillUnmount(): void {

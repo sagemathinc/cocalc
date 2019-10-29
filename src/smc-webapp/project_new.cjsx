@@ -298,9 +298,9 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     getDefaultProps: ->
         show_header        : true
 
-    componentWillReceiveProps: (newProps) ->
-        if newProps.default_filename != @props.default_filename
-            @setState(filename: newProps.default_filename)
+    componentDidUpdate: (prev) ->
+        if @props.default_filename != prev.default_filename
+            @setState(filename: @props.default_filename)
 
     default_filename: ->
         return require('./account').default_filename(undefined, @props.project_id)

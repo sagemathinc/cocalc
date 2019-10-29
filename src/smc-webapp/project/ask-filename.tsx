@@ -32,10 +32,10 @@ export class AskNewFilename extends Component<Props, State> {
     this.searchRef = React.createRef<HTMLInputElement>();
   }
 
-  componentWillReceiveProps(next): void {
+  componentDidUpdate(prev): void {
     const curr_rfn = this.props.other_settings.get(NEW_FILENAMES);
-    const next_rfn = next.other_settings.get(NEW_FILENAMES);
-    if (curr_rfn != next_rfn) {
+    const prev_rfn = prev.other_settings.get(NEW_FILENAMES);
+    if (curr_rfn != prev_rfn) {
       this.shuffle();
     }
   }

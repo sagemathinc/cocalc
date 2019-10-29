@@ -1011,19 +1011,19 @@ class Student extends Component<StudentProps, StudentState> {
     );
   }
 
-  componentWillReceiveProps(next) {
-    if (this.props.student_name.first !== next.student_name.first) {
-      this.setState({ edited_first_name: next.student_name.first });
+  componentDidUpdate(prev) {
+    if (this.props.student_name.first !== prev.student_name.first) {
+      this.setState({ edited_first_name: this.props.student_name.first });
     }
-    if (this.props.student_name.last !== next.student_name.last) {
-      this.setState({ edited_last_name: next.student_name.last });
+    if (this.props.student_name.last !== prev.student_name.last) {
+      this.setState({ edited_last_name: this.props.student_name.last });
     }
     if (
       this.props.student.get("email_address") !==
-      next.student.get("email_address")
+      prev.student.get("email_address")
     ) {
       return this.setState({
-        edited_email_address: next.student.get("email_address")
+        edited_email_address: this.props.student.get("email_address")
       });
     }
   }

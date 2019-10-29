@@ -54,8 +54,8 @@ export class CanvasPage extends Component<Props, {}> {
     }
   }
 
-  componentWillReceiveProps(next_props: Props): void {
-    this.render_page(next_props.page, next_props.scale);
+  componentDidUpdate(): void {
+    this.render_page(this.props.page, this.props.scale);
   }
 
   componentDidMount(): void {

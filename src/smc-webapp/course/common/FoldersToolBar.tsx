@@ -92,11 +92,11 @@ class MultipleAddSearch extends Component<
     );
   }
 
-  componentWillReceiveProps(newProps) {
-    return this.setState({
+  static getDerivedStateFromProps(newProps) {
+    return {
       show_selector:
         newProps.search_results != null && newProps.search_results.size > 0
-    });
+    };
   }
 
   clear_and_focus_search_input = () => {

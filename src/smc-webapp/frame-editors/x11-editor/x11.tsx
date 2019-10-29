@@ -57,8 +57,8 @@ class X11Component extends Component<Props, {}> {
     };
   }
 
-  componentWillReceiveProps(next: Props): void {
-    if (this.props.resize != next.resize) {
+  componentDidUpdate(prev: Props): void {
+    if (prev.resize != this.props.resize) {
       this.measure_size();
     }
   }

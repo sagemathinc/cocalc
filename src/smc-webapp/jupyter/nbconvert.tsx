@@ -39,12 +39,12 @@ class Error extends Component<ErrorProps> {
     setTimeout(() => this.scroll(), 10); // TODO: cancel timeout in componentWillUnmount
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentDidUpdate(prev) {
     if (
+      prev.nbconvert != null &&
+      !misc.is_string(prev.nbconvert.get("error")) &&
       this.props.nbconvert != null &&
-      !misc.is_string(this.props.nbconvert.get("error")) &&
-      nextProps.nbconvert != null &&
-      misc.is_string(nextProps.nbconvert.get("error"))
+      misc.is_string(this.props.nbconvert.get("error"))
     ) {
       setTimeout(() => this.scroll(), 10);
     }

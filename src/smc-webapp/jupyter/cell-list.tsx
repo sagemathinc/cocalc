@@ -167,18 +167,19 @@ export class CellList extends Component<CellListProps> {
     }
   };
 
-  public componentWillReceiveProps(nextProps): void {
+  public componentDidUpdate(prev): void {
     if (this.props.frame_actions == null) return;
-    if (nextProps.is_focused !== this.props.is_focused) {
+    if (prev.is_focused !== this.props.is_focused) {
       // the focus state changed.
-      if (nextProps.is_focused) {
+      if (this.props.is_focused) {
         this.props.frame_actions.enable_key_handler();
       } else {
         this.props.frame_actions.disable_key_handler();
       }
     }
-    if (nextProps.scroll != null) {
-      this.scroll_cell_list(nextProps.scroll);
+    if (this.props.scroll != null) {
+      this.scroll_cell_list(this.props.scroll);
+      // TODO: Does this cause an infinite loop now?
       this.props.frame_actions.scroll(); // reset scroll request state
     }
   }

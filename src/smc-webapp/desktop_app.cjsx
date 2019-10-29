@@ -117,8 +117,8 @@ Page = rclass
     getInitialState: ->
         show_label : true
 
-    componentWillReceiveProps: (next) ->
-        @setState(show_label : next.open_projects.size <= HIDE_LABEL_THOLD)
+    @getDerivedStateFromProps: (props) ->
+        return show_label : props.open_projects.size <= HIDE_LABEL_THOLD
 
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()

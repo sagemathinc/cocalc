@@ -576,8 +576,8 @@ exports.Support = rclass
             email_err    : rtypes.string
             valid        : rtypes.bool
 
-    componentWillReceiveProps: (newProps) ->
-        newProps.actions.check_valid()
+    componentDidUpdate: () ->
+        @props.actions.check_valid()
 
     open: ->
         @props.actions.show(true)

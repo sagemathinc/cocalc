@@ -161,31 +161,36 @@ export class Message extends Component<MessageProps, MessageState> {
     );
   }
 
-  componentWillReceiveProps(newProps) {
-    if (this.state.history_size !== this.props.message.get("history").size) {
-      this.setState({ history_size: this.props.message.get("history").size });
-    }
-    let changes = false;
-    if (this.state.edited_message === newest_content(this.props.message)) {
-      let edited_message = "";
-      const history = newProps.message.get("history");
-      if (history != null && history.first() != null) {
-        edited_message = history.first().get("content") || "";
-      }
-      this.setState({ edited_message });
-    } else {
-      changes = true;
-    }
-    this.setState({ new_changes: changes });
-  }
-
   componentDidMount() {
     if (this.refs.editedMessage) {
       this.setState({ edited_message: this.props.saved_mesg });
     }
   }
 
-  componentDidUpdate() {
+  // TODO: Test this. Very uncertain
+  componentDidUpdate(prev: MessageProps, prev_state: MessageState) {
+    let state_change: Partial<MessageState> = {};
+    if (prev_state.history_size !== prev.message.get("history").size) {
+      state_change.history_size = prev.message.get("history").size;
+    }
+    state_change.new_changes = false;
+    if (prev_state.edited_message === newest_content(prev.message)) {
+      let edited_message = "";
+      const history = this.props.message.get("history");
+      if (history != null && history.first() != null) {
+        edited_message = history.first().get("content") || "";
+      }
+      state_change.edited_message = edited_message;
+    } else {
+      state_change.new_changes = true;
+    }
+    if (
+      // Check if object isn't empty
+      !(Object.entries(state_change).length === 0)
+    ) {
+      this.setState(state_change as any);
+    }
+
     if (this.refs.editedMessage) {
       this.props.actions.saved_message(
         ReactDOM.findDOMNode(this.refs.editedMessage).value
@@ -262,9 +267,7 @@ export class Message extends Component<MessageProps, MessageState> {
         this.state.history_size !== this.props.message.get("history").size &&
         this.state.new_changes
       ) {
-        text = `${
-          this.props.editor_name
-        } has updated this message. Esc to discard your changes and see theirs`;
+        text = `${this.props.editor_name} has updated this message. Esc to discard your changes and see theirs`;
         // color = "#E55435";
       } else {
         if (IS_TOUCH) {
@@ -939,9 +942,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   append_file = file => {
     let final_insertion_text;
     if (file.type.indexOf("image") !== -1) {
-      final_insertion_text = `<img src=\".chat-images/${
-        file.name
-      }\" style="max-width:100%">`;
+      final_insertion_text = `<img src=\".chat-images/${file.name}\" style="max-width:100%">`;
     } else {
       final_insertion_text = `[${file.name}](${file.name})`;
     }

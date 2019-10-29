@@ -44,12 +44,12 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     ]);
   }
 
-  componentWillReceiveProps(next): void {
-    if (this.props.reload !== next.reload) {
+  componentDidUpdate(prev): void {
+    if (this.props.reload !== prev.reload) {
       this.reload_iframe();
     }
-    if (this.props.font_size !== next.font_size) {
-      this.set_iframe_style(next.font_size);
+    if (this.props.font_size !== prev.font_size) {
+      this.set_iframe_style(this.props.font_size);
     }
   }
 

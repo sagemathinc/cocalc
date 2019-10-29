@@ -50,14 +50,14 @@ export class BuildCommand extends Component<Props, State> {
     };
   }
 
-  componentWillReceiveProps(next: Props): void {
+  componentDidUpdate(prev: Props): void {
     if (this.state.focus) {
       return;
     }
-    if (next.build_command != this.props.build_command) {
+    if (prev.build_command != this.props.build_command) {
       // set by another user or menu selection.
       this.setState({
-        build_command: this.build_command_string(next.build_command)
+        build_command: this.build_command_string(this.props.build_command)
       });
     }
   }

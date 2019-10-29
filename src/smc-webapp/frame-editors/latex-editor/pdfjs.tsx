@@ -291,29 +291,29 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     this.props.actions.setState({ scroll_pdf_into_view: undefined });
   }
 
-  componentWillReceiveProps(next_props: PDFJSProps): void {
-    if (next_props.zoom_page_width == next_props.id) {
+  componentDidUpdate(prev: PDFJSProps): void {
+    if (this.props.zoom_page_width == this.props.id) {
       this.zoom_page_width();
     }
-    if (next_props.zoom_page_height == next_props.id) {
+    if (this.props.zoom_page_height == this.props.id) {
       this.zoom_page_height();
     }
-    if (next_props.sync == next_props.id) {
+    if (this.props.sync == this.props.id) {
       this.sync();
     }
-    if (this.props.reload != next_props.reload) {
-      this.load_doc(next_props.reload);
+    if (prev.reload != this.props.reload) {
+      this.load_doc(this.props.reload);
     }
     if (
-      this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view &&
-      next_props.scroll_pdf_into_view
+      prev.scroll_pdf_into_view !== this.props.scroll_pdf_into_view &&
+      this.props.scroll_pdf_into_view
     ) {
-      let { page, y, id } = next_props.scroll_pdf_into_view;
+      let { page, y, id } = this.props.scroll_pdf_into_view;
       this.scroll_pdf_into_view(page, y, id);
     }
     if (
-      this.props.is_current != next_props.is_current &&
-      next_props.is_current
+      prev.is_current != this.props.is_current &&
+      this.props.is_current
     ) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
       ($ as any)(document.activeElement).blur();

@@ -80,12 +80,12 @@ export const ProjectControl = rclass<ReactProps>(
       };
     }
 
-    componentWillReceiveProps(props) {
-      if (this.state.compute_image_focused) {
+    componentDidUpdate(_prev_props, prev_state) {
+      if (prev_state.compute_image_focused) {
         return;
       }
-      const new_image = props.project.get("compute_image");
-      if (new_image !== this.state.compute_image) {
+      const new_image = this.props.project.get("compute_image");
+      if (new_image !== prev_state.compute_image) {
         return this.setState({
           compute_image: new_image,
           compute_image_changing: false
@@ -296,7 +296,7 @@ export const ProjectControl = rclass<ReactProps>(
     };
 
     save_compute_image = async current_image => {
-      // image is reset to the previous name and componentWillReceiveProps will set it when new
+      // image is reset to the previous name and componentWillUpdate will set it when new
       this.setState({
         compute_image: current_image,
         compute_image_changing: true,

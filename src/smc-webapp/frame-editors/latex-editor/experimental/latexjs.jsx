@@ -114,9 +114,9 @@ export let LaTeXJS = rclass({
     elt.append(dom);
   },
 
-  componentWillReceiveProps(next) {
-    if (next.value !== this.props.value) {
-      this.update_latexjs(next.value);
+  componentDidUpdate(prev) {
+    if (prev.value !== this.props.value) {
+      this.update_latexjs(this.props.value);
     }
   },
 

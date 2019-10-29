@@ -157,11 +157,11 @@ CodemirrorEditor = rclass ({name}) ->
         #window.c = @
         @init_codemirror(@props.options, @props.style, @props.value)
 
-    componentWillReceiveProps: (newProps) ->
-        if not @cm? or not underscore.isEqual(@props.options, newProps.options) or not underscore.isEqual(@props.style, newProps.style)
-            @init_codemirror(newProps.options, newProps.style, newProps.value)
-        else if newProps.value != @props.value and newProps.value != @_cm_set_value
-            @cm?.setValueNoJump(newProps.value)
+    componentDidUpdate: (prevProps) ->
+        if not @cm? or not underscore.isEqual(prevProps.options, @props.options) or not underscore.isEqual(prevProps.style, @props.style)
+            @init_codemirror(@props.options, @props.style, @props.value)
+        else if @props.value != prevProps.value and @props.value != @_cm_set_value
+            @cm?.setValueNoJump(@props.value)
 
     componentWillUnmount: ->
         # console.log("componentWillUnmount")

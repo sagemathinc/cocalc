@@ -20,9 +20,9 @@ export class NumberInput extends React.Component<Props, State> {
     this.state = { number: this.props.number };
   }
 
-  componentWillReceiveProps(next_props) {
-    if (this.props.number !== next_props.number) {
-      this.setState({ number: next_props.number });
+  componentDidUpdate(prev) {
+    if (prev.number !== this.props.number) {
+      this.setState({ number: this.props.number });
     }
   }
 

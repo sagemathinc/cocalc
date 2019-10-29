@@ -86,9 +86,7 @@ export class AnnotationLayer extends Component<Props, State> {
 
       let border = "";
       if (annotation.borderStyle.width) {
-        border = `0.5px solid rgb(${annotation.color[0]}, ${
-          annotation.color[1]
-        }, ${annotation.color[2]})`;
+        border = `0.5px solid rgb(${annotation.color[0]}, ${annotation.color[1]}, ${annotation.color[2]})`;
       }
 
       // Note: this "annotation" in the onClick below is the right one because we use "let"
@@ -152,15 +150,22 @@ export class AnnotationLayer extends Component<Props, State> {
     );
   }
 
-  componentWillReceiveProps(next_props: Props): void {
-    if (this.props.page.version != next_props.page.version) {
-      this.update_annotations(next_props.page);
+  componentDidUpdate(prev: Props): void {
+    if (this.props.page.version != prev.page.version) {
+      this.update_annotations(this.props.page);
     }
-    if (next_props.sync_highlight !== undefined) {
-      this.setState({ sync_highlight: next_props.sync_highlight });
+    if (this.props.sync_highlight != undefined) {
       this.remove_sync_highlight(
-        next_props.sync_highlight.until.valueOf() - new Date().valueOf()
+        this.props.sync_highlight.until.valueOf() - new Date().valueOf()
       );
+    }
+  }
+
+  // @William Stein
+  // Does this and the above make sense?
+  static getDerivedStateFromProps(props) {
+    if (props.sync_highlight != undefined) {
+      return { sync_highlight: props.sync_highlight };
     }
   }
 

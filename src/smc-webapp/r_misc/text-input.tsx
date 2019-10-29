@@ -20,10 +20,10 @@ export class TextInput extends React.Component<Props, State> {
     this.state = { text: props.text };
   }
 
-  componentWillReceiveProps(next_props) {
-    if (this.props.text !== next_props.text) {
+  componentDidUpdate(prev) {
+    if (prev.text !== this.props.text) {
       // so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-      this.setState({ text: next_props.text });
+      this.setState({ text: this.props.text });
     }
   }
 

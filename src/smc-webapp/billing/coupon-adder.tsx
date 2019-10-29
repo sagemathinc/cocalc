@@ -51,9 +51,9 @@ export class CouponAdder extends Component<Props, State> {
   }
 
   // Remove typed coupon if it got successfully added to the list
-  componentWillReceiveProps(next_props) {
-    if (next_props.applied_coupons.has(this.state.coupon_id)) {
-      this.setState({ coupon_id: "" });
+  static getDerivedStateFromProps(props: Props, state: State) {
+    if (props.applied_coupons.has(state.coupon_id)) {
+      return { coupon_id: "" };
     }
   }
 

@@ -421,10 +421,10 @@ exports.ProjectLog = rclass ({name}) ->
             return not nextProps.project_log_all.equals(@props.project_log_all)
         return false
 
-    componentWillReceiveProps: (next, next_state) ->
-        if not next.user_map? or (not next.project_log? and not next.project_log_all?)
+    componentDidUpdate: (prev) ->
+        if not @props.user_map? or (not @props.project_log? and not @props.project_log_all?)
             return
-        if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.project_log_all, next.project_log_all) or @props.search != next.search
+        if not immutable.is(prev.project_log, @props.project_log) or not immutable.is(prev.project_log_all, @props.project_log_all) or prev.search != @props.search
             delete @_log
 
     get_log: () ->

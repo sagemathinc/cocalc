@@ -231,9 +231,9 @@ exports.TerminalEditor = rclass ({name}) ->
         if @props.value
             @_terminal.value = @props.value
 
-    componentWillReceiveProps: (newProps) ->
-        console.log("NEW PROPS: ", newProps)
-        console.log("OLD PROPS: ", @props)
+    componentDidUpdate: (oldProps) ->
+        console.log("OLD PROPS: ", oldProps)
+        console.log("NEW PROPS: ", @props)
 
     componentWillUnmount: ->
         console.log("terminal willUnmount")

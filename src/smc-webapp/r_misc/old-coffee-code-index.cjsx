@@ -441,9 +441,9 @@ exports.SearchInput = rclass
     get_opts: ->
         ctrl_down : @state.ctrl_down
 
-    componentWillReceiveProps: (new_props) ->
-        if new_props.value?
-            @setState(value : new_props.value)
+    @getDerivedStateFromProps: (props) ->
+        if props.value?
+            return value : props.value
 
     componentDidMount: ->
         if @props.autoSelect
