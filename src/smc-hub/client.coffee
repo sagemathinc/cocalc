@@ -978,7 +978,7 @@ class exports.Client extends EventEmitter
                         project_id = _project_id; cb(err)
             (cb) =>
                 dbg("open project...")
-                # We do the open/state below so that when user tries to open it in a moment it opens more quickly;
+                # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
                 # also, in single dev mode, this ensures that project path is created, so can copy
                 # files to the project, etc.
                 # Also, if mesg.start is set, the project gets started below.

@@ -100,7 +100,8 @@ export class NewProjectCreator extends Component<Props, State> {
     actions.create_project({
       title: this.state.title_text,
       image: compute_image,
-      token
+      token,
+      start: false // definitely do NOT want to start, due to apply_default_upgrades
     });
     redux
       .getStore("projects")
@@ -116,13 +117,15 @@ export class NewProjectCreator extends Component<Props, State> {
           if (billing_actions != null) {
             try {
               await billing_actions.update_customer();
+              await actions.apply_default_upgrades({ project_id });   // see issue #4192
             } catch (err) {
-              // ignore error coming from this -- really doesn't matter.
+              // Ignore error coming from this -- it's merely a convenience to
+              // upgrade the project on creation; user could always do it manually,
+              // and nothing in the UI suggests it will happen.
             }
           }
-          actions.apply_default_upgrades({ project_id });
-          actions.set_add_collab(project_id, true);
-          actions.open_project({ project_id, switch_to: false });
+          // switch_to=true is perhaps suggested by #4088
+          actions.open_project({ project_id, switch_to: true });
           this.cancel_editing();
         }
       });

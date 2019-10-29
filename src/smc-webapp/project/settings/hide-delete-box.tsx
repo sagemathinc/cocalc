@@ -47,7 +47,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
       this.props.project.get("project_id")
     );
     const user = this.props.project.getIn(["users", webapp_client.account_id]);
-    if (user.get("hide")) {
+    if (user && user.get("hide")) {
       analytics_event("project_settings", "unhide project");
     } else {
       analytics_event("project_settings", "hide project");
@@ -55,7 +55,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
   };
 
   user_has_applied_upgrades(account_id: string, project: Project) {
-    const upgrades = project.getIn(["users", account_id, "upgrades"]);
+    const upgrades = project.getIn(["users", account_id]);
     return upgrades ? upgrades.some(val => val > 0) : undefined;
   }
 

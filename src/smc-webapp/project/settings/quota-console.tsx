@@ -6,6 +6,7 @@ import { Rendered } from "../../app-framework";
 import { Assign } from "utility-types";
 import { LabeledRow, Tip, Icon, Space, Loading } from "../../r_misc";
 import { alert_message } from "../../alerts";
+import { ProjectSettings, ProjectStatus } from "./types";
 const misc = require("smc-util/misc");
 const { User } = require("../../users");
 const { webapp_client } = require("../../webapp_client");
@@ -20,8 +21,8 @@ const {
 
 interface Props {
   project_id: string;
-  project_settings: immutable.Map<string, any>; // settings contains the base values for quotas
-  project_status?: immutable.Map<string, any>;
+  project_settings: ProjectSettings; // settings contains the base values for quotas
+  project_status?: ProjectStatus;
   project_state?: "opened" | "running" | "starting" | "stopping"; //  -- only show memory usage when project_state == 'running'
   user_map: object;
   quota_params: object; // from the schema

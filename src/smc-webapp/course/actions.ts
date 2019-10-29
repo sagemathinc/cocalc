@@ -61,7 +61,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
-import { Actions } from "../app-framework";
+import { Actions , UNSAFE_NONNULLABLE } from "../app-framework";
 
 const PARALLEL_LIMIT = 5; // number of async things to do in parallel
 
@@ -698,7 +698,7 @@ export class CourseActions extends Actions<CourseState> {
       this.syncdb.set(x);
     }
     this.syncdb.commit();
-    const f = (student_id, cb) => {
+    const f = (student_id: string, cb) => {
       return async.series(
         [
           cb => {
@@ -722,7 +722,7 @@ export class CourseActions extends Actions<CourseState> {
             }
             return store.wait({
               until: (store: CourseStore) =>
-                store.get_student(student_id).get("project_id"),
+                store.getIn(["students", student_id, "project_id"]),
               timeout: 60,
               cb
             });
@@ -888,7 +888,7 @@ export class CourseActions extends Actions<CourseState> {
       this.set_error("BUG: attempt to create when stores not yet initialized");
       return;
     }
-    const student_id = store.get_student(student).get("student_id");
+    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get("student_id");
     this._set({
       create_project: webapp_client.server_time(),
       table: "students",
@@ -975,17 +975,17 @@ export class CourseActions extends Actions<CourseState> {
       }
     };
     // Make sure the student is on the student's project:
-    const student_account_id = student.get("account_id");
+    const student_account_id = UNSAFE_NONNULLABLE(student).get("account_id");
     if (student_account_id == null) {
       // No known account yet, so invite by email.  That said,
       // we only do this at most once every few days.
-      const last_email_invite = student.get("last_email_invite");
+      const last_email_invite = UNSAFE_NONNULLABLE(student).get("last_email_invite");
       if (
         force_send_invite_by_email ||
         (!last_email_invite ||
           new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS))
       ) {
-        await invite(student.get("email_address"));
+        await invite(UNSAFE_NONNULLABLE(student).get("email_address"));
         this._set({
           table: "students",
           student_id,
@@ -2582,7 +2582,7 @@ You can find the comments they made in the folders below.\
 
     const f = (student_id, cb) => {
       const s = store.get_student(student_id);
-      if (s.get("deleted")) {
+      if (UNSAFE_NONNULLABLE(s).get("deleted")) {
         // ignore deleted students
         cb();
         return;
@@ -2597,7 +2597,7 @@ You can find the comments they made in the folders below.\
           cb => {
             // copy the files over from the student who did the peer grading
             return webapp_client.copy_path_between_projects({
-              src_project_id: s.get("project_id"),
+              src_project_id: UNSAFE_NONNULLABLE(s).get("project_id"),
               src_path,
               target_project_id: store.get("course_project_id"),
               target_path,
@@ -2668,7 +2668,7 @@ You can find the comments they made in the folders below.\
     }
     const assignment = store.get_assignment(assignment_id);
     const student = store.get_student(student_id);
-    const student_project_id = student.get("project_id");
+    const student_project_id = UNSAFE_NONNULLABLE(student).get("project_id");
     if (student_project_id == null) {
       this.set_error("open_assignment: student project not yet created");
       return;
@@ -2676,26 +2676,26 @@ You can find the comments they made in the folders below.\
     // Figure out what to open
     switch (type) {
       case "assigned": // where project was copied in the student's project.
-        path = assignment.get("target_path");
+        path = UNSAFE_NONNULLABLE(assignment).get("target_path");
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path = assignment.get("collect_path") + "/" + student.get("student_id"); // TODO: refactor
+        path = UNSAFE_NONNULLABLE(assignment).get("collect_path") + "/" + UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)
         proj = student_project_id;
-        path = assignment.get("path") + "-peer-grade";
+        path = UNSAFE_NONNULLABLE(assignment).get("path") + "-peer-grade";
         break;
       case "peer-collected": // where collected peer-graded work (in our project)
         path =
-          assignment.get("collect_path") +
+          UNSAFE_NONNULLABLE(assignment).get("collect_path") +
           "-peer-grade/" +
-          student.get("student_id");
+          UNSAFE_NONNULLABLE(student).get("student_id");
         proj = store.get("course_project_id");
         break;
       case "graded": // where project returned
-        path = assignment.get("graded_path"); // refactor
+        path = UNSAFE_NONNULLABLE(assignment).get("graded_path"); // refactor
         proj = student_project_id;
         break;
       default:
@@ -3000,7 +3000,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     const student = store.get_student(student_id);
-    const student_project_id = student.get("project_id");
+    const student_project_id = UNSAFE_NONNULLABLE(student).get("project_id");
     if (student_project_id == null) {
       this.set_error("open_handout: student project not yet created");
       return;

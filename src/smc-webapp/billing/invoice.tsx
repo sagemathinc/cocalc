@@ -5,10 +5,13 @@ const { download_file } = require("../misc_page");
 import { stripe_date } from "smc-util/misc";
 import { render_amount } from "./util";
 require("./types");
-import { Invoice as StripeInvoice, InvoiceLine } from "./types";
+import {
+  InvoiceMap,
+  InvoiceLineMap
+} from "./types";
 
 interface Props {
-  invoice: StripeInvoice;
+  invoice: InvoiceMap;
 }
 
 interface State {
@@ -28,14 +31,14 @@ export class Invoice extends Component<Props, State> {
     download_file(
       `${
         (window as any).app_base_url
-      }/invoice/cocalc-${username}-receipt-${new Date(invoice.date * 1000)
+      }/invoice/cocalc-${username}-receipt-${new Date(invoice.get("date") * 1000)
         .toISOString()
-        .slice(0, 10)}-${invoice.id}.pdf`
+        .slice(0, 10)}-${invoice.get("id")}.pdf`
     );
   }
 
   private render_paid_status(): Rendered {
-    if (this.props.invoice.paid) {
+    if (this.props.invoice.get("paid")) {
       return <span>PAID {this.state.hide_line_items ? "" : " Thanks!"}</span>;
     } else {
       return <span style={{ color: "red" }}>UNPAID</span>;
@@ -45,43 +48,41 @@ export class Invoice extends Component<Props, State> {
   private render_description(): Rendered {
     if (
       this.state.hide_line_items &&
-      this.props.invoice.lines != null &&
-      this.props.invoice.lines.data != null &&
-      this.props.invoice.lines.data.length == 1
+      this.props.invoice.getIn(["lines", "data", "size"]) == 1
     ) {
       // This is much more useful as a summary than the totally generic description we usually have...
-      return <span>{this.props.invoice.lines.data[0].description}</span>;
+      return <span>{this.props.invoice.getIn(["lines", "data", 0, "description"])}</span>;
     }
-    if (this.props.invoice.description) {
-      return <span>{this.props.invoice.description}</span>;
+    if (this.props.invoice.get("description")) {
+      return <span>{this.props.invoice.get("description")}</span>;
     } else {
       // This is what the description always is when it is non-empty, and it seems useful enough...
       return <span>Thank you for using CoCalc by Sagemath, Inc.</span>;
     }
   }
 
-  private render_line_description(line: InvoiceLine): string[] {
+  private render_line_description(line: InvoiceLineMap): string[] {
     const v: string[] = [];
-    if (line.quantity > 1) {
-      v.push(`${line.quantity} × `);
+    if (line.get("quantity") > 1) {
+      v.push(`${line.get("quantity")} × `);
     }
-    if (line.description != null) {
-      v.push(line.description);
+    if (line.get("description") != null) {
+      v.push(line.get("description"));
     }
-    if (line.plan != null) {
-      v.push(line.plan.name);
-      v.push(` (start: ${stripe_date(line.period.start)})`);
+    if (line.get("plan") != null) {
+      v.push(line.getIn(["plan", "name"]));
+      v.push(` (start: ${stripe_date(line.getIn(["period", "start"]))})`);
     }
     return v;
   }
 
-  private render_line_item(line, n): Rendered {
+  private render_line_item(line: InvoiceLineMap, n): Rendered {
     return (
-      <Row key={line.id} style={{ borderBottom: "1px solid #aaa" }}>
+      <Row key={line.get("id")} style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1}>{n}.</Col>
         <Col sm={9}>{this.render_line_description(line)}</Col>
         <Col sm={2}>
-          {render_amount(line.amount, this.props.invoice.currency)}
+          {render_amount(line.get("amount"), this.props.invoice.get("currency"))}
         </Col>
       </Row>
     );
@@ -91,16 +92,16 @@ export class Invoice extends Component<Props, State> {
     return (
       <Row key="tax" style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1} />
-        <Col sm={9}>WA State Sales Tax ({this.props.invoice.tax_percent}%)</Col>
+        <Col sm={9}>WA State Sales Tax ({this.props.invoice.get("tax_percent")}%)</Col>
         <Col sm={2}>
-          {render_amount(this.props.invoice.tax, this.props.invoice.currency)}
+          {render_amount(this.props.invoice.get("tax"), this.props.invoice.get("currency"))}
         </Col>
       </Row>
     );
   }
 
   private render_line_items(): Rendered | Rendered[] {
-    if (this.props.invoice.lines == null) return;
+    if (this.props.invoice.get("lines") == null) return;
     if (this.state.hide_line_items) {
       return (
         <a
@@ -128,11 +129,11 @@ export class Invoice extends Component<Props, State> {
         </a>
       );
       let n = 1;
-      for (let line of this.props.invoice.lines.data) {
+      for (let line of this.props.invoice.getIn(["lines", "data"], [] as any)) {
         v.push(this.render_line_item(line, n));
         n += 1;
       }
-      if (this.props.invoice.tax) {
+      if (this.props.invoice.get("tax")) {
         v.push(this.render_tax());
       }
       return v;
@@ -149,12 +150,12 @@ export class Invoice extends Component<Props, State> {
       <Row style={style}>
         <Col md={1}>
           {render_amount(
-            this.props.invoice.amount_due,
-            this.props.invoice.currency
+            this.props.invoice.get("amount_due"),
+            this.props.invoice.get("currency")
           )}
         </Col>
         <Col md={1}>{this.render_paid_status()}</Col>
-        <Col md={2}>{stripe_date(this.props.invoice.date)}</Col>
+        <Col md={2}>{stripe_date(this.props.invoice.get("date"))}</Col>
         <Col md={6}>
           {this.render_description()} {this.render_line_items()}
         </Col>
