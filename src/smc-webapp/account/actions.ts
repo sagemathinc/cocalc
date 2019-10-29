@@ -180,14 +180,14 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           // cancel any subscriptions
           try {
             await this.redux.getActions("billing").cancel_everything();
-            return cb();
+            cb();
           } catch (error) {
             const err = error;
             if (this.redux.getStore("billing").get("no_stripe")) {
               // stripe not configured on backend, so no this err is expected
-              return cb();
+              cb();
             } else {
-              return cb(err);
+              cb(err);
             }
           }
         },
