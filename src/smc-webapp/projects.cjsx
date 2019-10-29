@@ -193,6 +193,7 @@ class ProjectsActions extends Actions
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
     # configurable by the user.
+    # **THIS IS AN ASYNC FUNCTION!**
     apply_default_upgrades: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -207,7 +208,7 @@ class ProjectsActions extends Actions
             if avail > 0
                 to_upgrade[quota] = 1
         if misc.len(to_upgrade) > 0
-            @apply_upgrades_to_project(opts.project_id, to_upgrade)
+            await @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
     ###
     # See comment in db-schema.ts about projects_owner table.
@@ -263,6 +264,7 @@ class ProjectsActions extends Actions
             title       : 'No Title'
             description : 'No Description'
             image       : undefined  # if given, sets the compute image (the ID string)
+            start       : false      # immediately start on create
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token
@@ -535,10 +537,11 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
-    # Throws on project_id not UUID
+    # Throws on project_id is not a valid UUID (why? I don't remember)
+    # **THIS IS AN ASYNC FUNCTION!**
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
-        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+        await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
@@ -604,7 +607,7 @@ class ProjectsActions extends Actions
     toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
-            @clear_project_upgrades(project_id)
+            await @clear_project_upgrades(project_id)
 
         await @projects_table_set
             project_id : project_id
