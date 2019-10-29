@@ -13,7 +13,7 @@ import { merge } from "smc-util/misc2";
 
 export function extra_alt_keys(
   extraKeys: any,
-  actions: any,
+  editor_actions: any,
   frame_id: string,
   opts: any
 ): void {
@@ -38,10 +38,10 @@ export function extra_alt_keys(
     "Alt-P": cm => cm.execCommand("goLineUp"),
     "Alt-N": cm => cm.execCommand("goLineDown"),
     "Alt-L": cm => cm.execCommand("jumpToLine"),
-    "Alt-C": () => actions.copy(frame_id), // gets overwritten for vim mode, of course
-    "Alt-X": () => actions.cut(frame_id),
-    "Alt-V": () => actions.paste(frame_id),
-    "Alt-S": () => actions.save(true)
+    "Alt-C": () => editor_actions.copy(frame_id), // gets overwritten for vim mode, of course
+    "Alt-X": () => editor_actions.cut(frame_id),
+    "Alt-V": () => editor_actions.paste(frame_id),
+    "Alt-S": () => editor_actions.save(true)
   });
 
   if (opts.bindings === "vim") {

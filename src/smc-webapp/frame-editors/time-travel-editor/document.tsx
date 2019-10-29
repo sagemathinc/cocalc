@@ -23,7 +23,8 @@ export class Document extends Component<Props> {
     return (
       <CodemirrorEditor
         id={this.props.id}
-        actions={this.props.actions}
+        frame_tree_actions={this.props.actions}
+        editor_actions={this.props.actions}
         path={this.props.path}
         project_id={this.props.project_id}
         font_size={this.props.font_size}

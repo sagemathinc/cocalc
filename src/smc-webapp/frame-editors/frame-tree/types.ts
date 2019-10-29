@@ -43,6 +43,7 @@ interface EditorDescription {
   customize_buttons?: { [button_name: string]: ButtonCustomize };
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
   subframe_init?: Function;
+  style?: object;
 }
 
 export interface EditorSpec {

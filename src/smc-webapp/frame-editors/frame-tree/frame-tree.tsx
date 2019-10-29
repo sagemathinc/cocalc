@@ -28,21 +28,27 @@ or
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
 import { hidden_meta_file, is_different } from "smc-util/misc2";
-import { React, ReactDOM, Component, redux } from "../../app-framework";
+import {
+  React,
+  ReactDOM,
+  Component,
+  redux,
+  Rendered
+} from "../../app-framework";
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
 const misc = require("smc-util/misc");
 const misc_page = require("smc-webapp/misc_page");
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor"); // todo should just spec all editors.
 const feature = require("smc-webapp/feature");
 const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
 const { Loading } = require("smc-webapp/r_misc");
 import { AvailableFeatures } from "../../project_configuration";
 
+import { EditorSpec } from "./types";
+
 import { TimeTravelActions } from "../time-travel-editor/actions";
-import { Actions as CodeEditorActions } from "../code-editor/actions";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -87,7 +93,7 @@ interface FrameTreeProps {
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   is_public: boolean;
   value: string;
-  editor_spec: any;
+  editor_spec: EditorSpec;
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
   misspelled_words: Set<string>;
@@ -187,12 +193,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
-  render_titlebar(desc) {
+  render_titlebar(desc, actions) {
     let id = desc.get("id");
     let left, left1, left2;
     return (
       <FrameTitleBar
-        actions={this.props.actions}
+        actions={actions}
         active_id={this.props.active_id}
         project_id={
           (left = desc.get("project_id")) != null ? left : this.props.project_id
@@ -219,7 +225,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
-  render_leaf(type: string, desc: Map<string, any>, Leaf: any, spec: any) {
+  render_leaf(
+    type: string,
+    desc: Map<string, any>,
+    Leaf: any,
+    spec: any
+  ): { child: Rendered; actions: any } {
     let path: string = desc.get("path", this.props.path);
     if (spec.path != null) {
       path = spec.path(path);
@@ -235,6 +246,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     const project_id = desc.get("project_id", this.props.project_id);
     let name = this.props.name;
     let actions = this.props.actions;
+    let frame_tree_actions = actions;
+    let editor_actions = actions;
 
     // This approach to TimeTravel as a frame is not sufficiently
     // generic and is a **temporary** hack.  It'll be rewritten
@@ -260,17 +273,14 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       }
     } else if (type == "cm" && path != this.props.path) {
       // A code editor inside some other editor frame tree
-      console.log("codemirror frame editor...");
       const editor = require("./register").get_file_editor("txt", false);
       if (editor == null) throw Error("bug -- editor must exist");
       name = editor.init(path, redux, project_id);
-      const actions2: CodeEditorActions = redux.getActions(name);
-      actions2.ambient_actions = actions;
-      actions = actions2;
+      editor_actions = redux.getActions(name);
       is_subframe = true;
     }
 
-    return (
+    const child = (
       <div
         id={`frame-${id}`}
         className="smc-vfill"
@@ -279,7 +289,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         <Leaf
           id={id}
           name={name}
-          actions={actions}
+          actions={actions /* backward compatible */}
+          frame_tree_actions={frame_tree_actions}
+          editor_actions={editor_actions}
           mode={spec.mode}
           read_only={desc.get(
             "read_only",
@@ -316,6 +328,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         />
       </div>
     );
+    return { child, actions };
   }
 
   async reset_frame_tree(): Promise<void> {
@@ -325,30 +338,24 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
   }
 
-  render_one(desc) {
-    let child;
-    const type = desc != null ? desc.get("type") : undefined;
+  render_one(desc: Map<string, any>): Rendered {
+    const type = desc.get("type");
+    if (!type) return; // bug?
     if (type === "node") {
       return this.render_frame_tree(desc);
     }
-    const spec =
-      this.props.editor_spec != null ? this.props.editor_spec[type] : undefined;
-    const C = spec != null ? spec.component : undefined;
-    if (C != null) {
-      child = this.render_leaf(type, desc, C, spec);
-    } else if (type === "cm") {
-      // minimal support -- TODO: instead should just fully spec all editors!
-      child = this.render_leaf(type, desc, CodemirrorEditor, {});
-    } else {
+    const spec = this.props.editor_spec[type];
+    if (spec == null) {
       // fix this disaster next time around.
       this.reset_frame_tree();
       return (
         <div>
-          Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}
-          '.
+          Invalid frame {JSON.stringify(desc)}; unknown type '{type}'.
         </div>
       );
     }
+    const C = spec.component;
+    const { actions, child } = this.render_leaf(type, desc, C, spec);
     return (
       <div
         className={"smc-vfill"}
@@ -356,7 +363,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
         style={spec != null ? spec.style : undefined}
       >
-        {this.render_titlebar(desc)}
+        {this.render_titlebar(desc, actions)}
         {child}
       </div>
     );
