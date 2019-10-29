@@ -15,7 +15,7 @@
     "@types/jest": "^24.0.18",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/node": "^12.11.7",
-    "async": "^3.1.0",
+    "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "coffee-cache": "^1.0.2",
