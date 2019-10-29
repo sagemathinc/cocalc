@@ -43,7 +43,7 @@ export class AccountStore extends Store<AccountState> {
     return !!groups && groups.includes("admin");
   }
 
-  get_terminal_settings(): Object | undefined {
+  get_terminal_settings(): {[key: string]: any} | undefined {
     return this.get("terminal") ? this.get("terminal").toJS() : undefined;
   }
 
@@ -91,7 +91,7 @@ export class AccountStore extends Store<AccountState> {
   }
 
   // Total ugprades this user is paying for (sum of all upgrades from subscriptions)
-  get_total_upgrades(): number[] {
+  get_total_upgrades(): { [key: string]: number } {
     const stripe_data = this.getIn([
       "stripe_customer",
       "subscriptions",
