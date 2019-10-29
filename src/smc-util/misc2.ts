@@ -13,6 +13,10 @@ export { sha1 };
 import * as lodash from "lodash";
 export const keys = lodash.keys;
 
+// TODO: Move this to front end misc or something
+// TS rightfully complains about this missing on back end systems
+declare var localStorage;
+
 interface SplittedPath {
   head: string;
   tail: string;
@@ -578,7 +582,6 @@ export function contains_url(str: string): boolean {
  * FRONT END ONLY
  */
 export function delete_local_storage(key) {
-  declare var localStorage;
   try {
     return delete localStorage[key];
   } catch (e) {
