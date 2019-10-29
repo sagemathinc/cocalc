@@ -36,6 +36,7 @@ misc = require('smc-util/misc')
 {show_announce_end} = require('./redux_account')
 {analytics_event} = require('./tracker')
 {user_tracking} = require('./user-tracking')
+{KioskModeBanner} = require('./app_shared2')
 {Connecting} = require('./landing_page')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
@@ -44,16 +45,16 @@ feature = require('./feature')
 # same as nav bar height?
 exports.announce_bar_offset = announce_bar_offset = 40
 
-exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
+exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_mode}) ->
     v = []
     if open_projects?
         open_projects.forEach (project_id) ->
             is_active = project_id == active_top_tab
             project_name = redux.getProjectStore(project_id).name
             if render_small
-                x = <MobileProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
+                x = <MobileProjectPage name={project_name} project_id={project_id} is_active={is_active} />
             else
-                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
+                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active} />
             cls = 'smc-vfill'
             if project_id != active_top_tab
                 cls += ' hide'
@@ -63,28 +64,32 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
             project_id = active_top_tab
             project_name = redux.getProjectStore(project_id).name
             if render_small
-                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
+                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true} />
             else
-                x = <ProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
+                x = <ProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true} />
             v.push(x)
 
-    switch active_top_tab
-        when 'projects'
-            v.push <ProjectsPage key={'projects'}/>
-        when 'account'
-            v.push <AccountPage key={'account'}/>
-        when 'about'
-            v.push <HelpPage key={'about'}/>
-        when 'help'
-            v.push <div key={'help'}>To be implemented</div>
-        when 'file-use'
-            v.push <FileUsePage redux={redux} key={'file-use'}/>
-        when 'notifications'
-            v.push <NotificationPage key={'notifications'} />
-        when 'admin'
-            v.push <AdminPage redux={redux} key={'admin'}/>
-        when undefined
-            v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+    # in kiosk mode: if no file is opened show a banner
+    if kiosk_mode and v.length == 0
+        v.push <KioskModeBanner key={'kiosk'} />
+    else
+        switch active_top_tab
+            when 'projects'
+                v.push <ProjectsPage key={'projects'}/>
+            when 'account'
+                v.push <AccountPage key={'account'}/>
+            when 'about'
+                v.push <HelpPage key={'about'}/>
+            when 'help'
+                v.push <div key={'help'}>To be implemented</div>
+            when 'file-use'
+                v.push <FileUsePage redux={redux} key={'file-use'}/>
+            when 'notifications'
+                v.push <NotificationPage key={'notifications'} />
+            when 'admin'
+                v.push <AdminPage redux={redux} key={'admin'}/>
+            when undefined
+                v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
 
     if v.length == 0
         # this happens upon loading a URL for a project, but the project isn't open yet.

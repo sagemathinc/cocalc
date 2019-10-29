@@ -218,6 +218,9 @@ class PageActions extends Actions
         if time > (redux.getStore('page').get('last_status_time') ? 0)
             @setState(connection_status : val, last_status_time : time)
 
+    set_connection_quality: (val) =>
+        @setState(connection_quality: val)
+
     set_new_version: (version) =>
         @setState(new_version : version)
 
@@ -300,6 +303,7 @@ redux.createActions('page', PageActions)
         ping                  : rtypes.number
         avgping               : rtypes.number
         connection_status     : rtypes.string
+        connection_quality    : rtypes.oneOf(["good", "bad", "flaky"])
         new_version           : rtypes.immutable.Map
         fullscreen            : rtypes.oneOf(['default', 'kiosk'])
         test                  : rtypes.string  # test query in the URL
@@ -424,17 +428,20 @@ webapp_client.on "connecting", () ->
             else
                 extra = ''
             if num_recent_disconnects() >= 7 or attempt >= 20
+                redux.getActions('page').set_connection_quality("bad")
                 reconnect
                     type: "error"
                     timeout: 10
                     message: "Your connection is unstable or #{SiteName} is temporarily not available." + extra
             else if attempt >= 10
+                redux.getActions('page').set_connection_quality("flaky")
                 reconnect
                     type: "info"
                     timeout: 10
                     message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution." + extra
     else
         reconnection_warning = null
+        redux.getActions('page').set_connection_quality("good")
 
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
@@ -483,4 +490,4 @@ redux.getActions('page').set_session(session)
 get_api_key_query_value = QueryParams.get('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
-    redux.getActions('page').set_fullscreen('kiosk')
+    redux.getActions('page').set_fullscreen('default')
