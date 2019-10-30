@@ -42,9 +42,9 @@ const cli_parse = function() {
       .option("-j, --create-project", "create project for tests")
       .option("-p, --path-to-chrome [chromepath]")
       .parse(process.argv);
-    let creds_file: string = program.creds;
+    const creds_file: string = program.creds;
     debuglog("creds file:", creds_file);
-    let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, "utf8"));
+    const creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, "utf8"));
     let cpath: string;
     if (program.pathToChrome == true) {
       cpath = ExtChromePath;
@@ -71,7 +71,7 @@ const install_api_session = async function(
   creds: Creds,
   iopts: InstallOpts
 ): Promise<PassFail> {
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   try {
     const tm_start = process.hrtime.bigint();
     const opts: Opts = {
@@ -94,10 +94,10 @@ const install_api_session = async function(
     debuglog("project_id", project_id.substr(0, 7) + "...");
 
     // iterate over test files
-    for (let key in TestFiles) {
+    for (const key in TestFiles) {
       const file_name: string = TestFiles[key];
-      let file_path: string = path.join(iopts.install_folder, file_name);
-      let text: string = fs.readFileSync(file_path, "utf8");
+      const file_path: string = path.join(iopts.install_folder, file_name);
+      const text: string = fs.readFileSync(file_path, "utf8");
       pfcounts.add(
         await api_create_file(creds, file_name, api_key, project_id, text)
       );
@@ -122,9 +122,9 @@ const run_tests = async function() {
   // UNLESS the following setting is used
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   const cp = cli_parse();
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   if (cp) {
-    let x: PassFail = await install_api_session(cp.c, cp.o);
+    const x: PassFail = await install_api_session(cp.c, cp.o);
     pfcounts.add(x);
   }
   num_log("files written", Math.max(0, pfcounts.pass - 2));

@@ -13,7 +13,7 @@ const test_sage_ker = async function(
   opts: Opts,
   page: Page
 ): Promise<PassFail> {
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     pfcounts.skip += 1;
@@ -38,7 +38,7 @@ const test_sage_ker = async function(
     const tfbase = TestFiles.sageipynbfile.slice(0, z);
     const tfext = TestFiles.sageipynbfile.slice(z);
 
-    let xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
+    const xpt = `//a[@cocalc-test="file-line"][//span[text()="${tfbase}"]][//span[text()="${tfext}"]]`;
     await page.waitForXPath(xpt);
     sel = '*[cocalc-test="file-line"]';
     await page.click(sel);

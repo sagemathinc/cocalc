@@ -223,7 +223,7 @@ export class SyncTable extends EventEmitter {
 
     if (is_array(arg)) {
       let x: Map<string, Map<string, any>> = Map();
-      for (let k of arg) {
+      for (const k of arg) {
         const key: string | undefined = to_key(k);
         if (key != null) {
           x = x.set(key, this.value.get(key));
@@ -383,7 +383,7 @@ export class SyncTable extends EventEmitter {
           throw Error("bug -- computed primary key must be an array");
         }
         let i = 0;
-        for (let pk of this.primary_keys) {
+        for (const pk of this.primary_keys) {
           changes = changes.set(pk, key0[i]);
           i += 1;
         }
@@ -399,7 +399,7 @@ export class SyncTable extends EventEmitter {
       // all the this.required_set_fields are specified, or
       // it will become impossible to sync this table to
       // the backend.
-      for (let k in this.required_set_fields) {
+      for (const k in this.required_set_fields) {
         if (changes.get(k) == null) {
           throw Error(`must specify field '${k}' for new records`);
         }
@@ -429,7 +429,7 @@ export class SyncTable extends EventEmitter {
       return new_val;
     }
 
-    for (let field in this.required_set_fields) {
+    for (const field in this.required_set_fields) {
       if (!new_val.has(field)) {
         throw Error(
           `missing required set field ${field} of table ${this.table}`
@@ -569,7 +569,7 @@ export class SyncTable extends EventEmitter {
 
     // throttle emitting of change events
     let all_changed_keys = {};
-    let do_emit_changes = () => {
+    const do_emit_changes = () => {
       //console.log("#{this.table} -- emitting changes", keys(all_changed_keys))
       // CRITICAL: some code depends on emitting change even
       // for the *empty* list of keys!
@@ -587,7 +587,7 @@ export class SyncTable extends EventEmitter {
       //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
       //console.log("#{this.table} -- queue changes", changed_keys)
-      for (let key of changed_keys) {
+      for (const key of changed_keys) {
         all_changed_keys[key] = true;
       }
       this.emit("change-no-throttle", changed_keys);
@@ -800,7 +800,7 @@ export class SyncTable extends EventEmitter {
     }
     this.primary_keys = schema.client_db.primary_keys(this.table);
     // Check that all primary keys are in the query.
-    for (let primary_key of this.primary_keys) {
+    for (const primary_key of this.primary_keys) {
       if (this.query[this.table][0][primary_key] === undefined) {
         throw Error(
           `must include each primary key in query of table '${this.table}', but you missed '${primary_key}'`
@@ -808,7 +808,7 @@ export class SyncTable extends EventEmitter {
       }
     }
     // Check that all keys in the query are allowed by the schema.
-    for (let query_key of keys(this.query[this.table][0])) {
+    for (const query_key of keys(this.query[this.table][0])) {
       if (this.client_query.get.fields[query_key] === undefined) {
         throw Error(
           `every key in query of table '${this.table}' must` +
@@ -839,7 +839,7 @@ export class SyncTable extends EventEmitter {
         }
         const v: string[] = [];
         if (Map.isMap(obj)) {
-          for (let pk of this.primary_keys) {
+          for (const pk of this.primary_keys) {
             const a = obj.get(pk);
             if (a == null) {
               return;
@@ -847,7 +847,7 @@ export class SyncTable extends EventEmitter {
             v.push(a);
           }
         } else {
-          for (let pk of this.primary_keys) {
+          for (const pk of this.primary_keys) {
             const a = obj[pk];
             if (a == null) {
               return;
@@ -862,7 +862,7 @@ export class SyncTable extends EventEmitter {
     if (this.client_query != null && this.client_query.set != null) {
       // Initialize set_fields and required_set_fields.
       const set = this.client_query.set;
-      for (let field of keys(this.query[this.table][0])) {
+      for (const field of keys(this.query[this.table][0])) {
         if (set.fields != null && set.fields[field]) {
           this.set_fields.push(field);
         }
@@ -909,7 +909,7 @@ export class SyncTable extends EventEmitter {
     const proposed_keys: { [key: string]: boolean } = {};
     const changes = copy(this.changes);
     //console.log("_save: send ", changes);
-    for (let key in this.changes) {
+    for (const key in this.changes) {
       if (this.versions[key] === 0) {
         proposed_keys[key] = true;
       }
@@ -928,9 +928,9 @@ export class SyncTable extends EventEmitter {
           qobj[this.primary_keys[0]] = key;
         } else {
           // unwrap compound primary key
-          let v = JSON.parse(key);
+          const v = JSON.parse(key);
           let i = 0;
-          for (let primary_key of this.primary_keys) {
+          for (const primary_key of this.primary_keys) {
             qobj[primary_key] = v[i];
             i += 1;
           }
@@ -938,7 +938,7 @@ export class SyncTable extends EventEmitter {
         // Can only send set_field sets to the database.  Of these,
         // only send what actually changed.
         const prev = this.last_save.get(key);
-        for (let k of this.set_fields) {
+        for (const k of this.set_fields) {
           if (!x.has(k)) continue;
           if (prev == null) {
             qobj[k] = obj[k];
@@ -954,7 +954,7 @@ export class SyncTable extends EventEmitter {
           }
         }
 
-        for (let k in this.required_set_fields) {
+        for (const k in this.required_set_fields) {
           if (qobj[k] == null) {
             qobj[k] = obj[k];
           }
@@ -1015,7 +1015,7 @@ export class SyncTable extends EventEmitter {
     }
 
     dbg("Record that we successfully sent these changes");
-    for (let key in changes) {
+    for (const key in changes) {
       if (changes[key] == this.changes[key]) {
         delete this.changes[key];
       }
@@ -1033,7 +1033,7 @@ export class SyncTable extends EventEmitter {
   ): Promise<void> {
     const start_ms = new Date().valueOf();
     while (len(proposed_keys) > 0) {
-      for (let key in proposed_keys) {
+      for (const key in proposed_keys) {
         if (this.versions[key] > 0) {
           delete proposed_keys[key];
         }
@@ -1045,7 +1045,7 @@ export class SyncTable extends EventEmitter {
           "increased-versions",
           timeout_ms - elapsed_ms
         );
-        for (let key of keys) {
+        for (const key of keys) {
           delete proposed_keys[key];
         }
       }
@@ -1087,7 +1087,7 @@ export class SyncTable extends EventEmitter {
       if (is_array(x)) {
         x = x[0];
       }
-      for (let k in fields) {
+      for (const k in fields) {
         if (x[k] === undefined) {
           delete fields[k];
         }
@@ -1200,8 +1200,8 @@ export class SyncTable extends EventEmitter {
     // Restructure the array of records in v as a mapping
     // from the primary key to the corresponding record.
     const x = {};
-    for (let y of v) {
-      let key = this.obj_to_key(y);
+    for (const y of v) {
+      const key = this.obj_to_key(y);
       if (key != null) {
         x[key] = y;
         // initialize all version numbers
@@ -1344,7 +1344,7 @@ export class SyncTable extends EventEmitter {
     const changed_keys: string[] = [];
     const increased_versions: string[] = [];
     const received_keys: { [key: string]: boolean } = {};
-    for (let change of changes) {
+    for (const change of changes) {
       const { obj, version } = change;
       const new_val = this.do_coerce_types(fromJS(obj));
       const key = this.obj_to_key(new_val);
@@ -1381,7 +1381,7 @@ export class SyncTable extends EventEmitter {
     dbg("project <-- changes -- client", JSON.stringify(changes));
     const changed_keys: string[] = [];
     const versioned_changes: VersionedChange[] = [];
-    for (let change of changes) {
+    for (const change of changes) {
       const { obj, time } = change;
       if (obj == null) {
         throw Error("obj must not be null");
@@ -1536,7 +1536,7 @@ export class SyncTable extends EventEmitter {
       return undefined;
       // throw Error("key must not be null");
     }
-    let cur_val = this.value.get(key);
+    const cur_val = this.value.get(key);
     if (action === "update") {
       // For update actions, we shallow *merge* in the change.
       // For insert action, we just replace the whole thing.
@@ -1567,7 +1567,7 @@ export class SyncTable extends EventEmitter {
       }
     } else {
       const v: string[] = [];
-      for (let pk of this.primary_keys) {
+      for (const pk of this.primary_keys) {
         f = this.client_query.set.fields[pk];
         if (typeof f === "function") {
           v.push(f(obj.toJS(), schema.client_db));

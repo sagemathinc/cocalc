@@ -15,7 +15,7 @@ export const get_api_key = async function(
   opts: Opts
 ): Promise<ApiGetString> {
   let browser;
-  let ags: ApiGetString = new ApiGetString();
+  const ags: ApiGetString = new ApiGetString();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     ags.skip += 1;

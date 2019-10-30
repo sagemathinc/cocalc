@@ -11,7 +11,7 @@ test("Defaulted value should be defined", () => {
   interface Defaults {
     baz: string;
   }
-  let A = define<Input, Defaults>({ foo: 0, bar: "" }, {
+  const A = define<Input, Defaults>({ foo: 0, bar: "" }, {
     foo: required,
     bar: required,
     baz: "defaulted"

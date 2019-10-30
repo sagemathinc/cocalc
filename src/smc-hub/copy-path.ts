@@ -269,7 +269,7 @@ export class CopyPath {
           "Can't find copy operations for given src_project_id/target_project_id"
         );
       }
-      for (let row of Array.from(status_data.rows)) {
+      for (const row of Array.from(status_data.rows)) {
         // be explicit about what we return
         copy_ops.push(row_to_copy_op(row));
       }

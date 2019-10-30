@@ -14,7 +14,7 @@ export const del_hide_project = async function(
   page: Page
 ): Promise<PassFail> {
   // assume puppeteer has opened the project specified in creds before this is called
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     pfcounts.skip += 1;

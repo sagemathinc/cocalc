@@ -28,7 +28,7 @@ export async function latex_format(
     // read data as it is produced.
     latexindent.stdout.on("data", data => (output += data.toString()));
     // wait for subprocess to close.
-    let code = await callback(close, latexindent);
+    const code = await callback(close, latexindent);
     if (code) {
       throw Error(`latexindent exited with code ${code}`);
     }

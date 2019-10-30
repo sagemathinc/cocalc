@@ -25,7 +25,7 @@ export async function add_collaborators_to_projects(
   // will happen and the client gets an error.  This should result in minimal
   // load given that it's one at a time, and the server and db are a ms from
   // each other.
-  for (let i in projects) {
+  for (const i in projects) {
     const project_id: string = projects[i];
     const account_id: string = accounts[i];
     await callback2(db.add_user_to_project, { project_id, account_id });
@@ -42,7 +42,7 @@ async function verify_write_access_to_projects(
 
   // Note that projects are likely to repeated, so we use a Set.
   const groups = ["owner", "collaborator"];
-  for (let project_id of new Set(projects)) {
+  for (const project_id of new Set(projects)) {
     if (
       !(await callback2(db.user_is_in_project_group, {
         project_id,
@@ -77,11 +77,11 @@ function verify_types(
       `accounts (of length ${accounts.length}) and projects (of length ${projects.length}) must be arrays of the same length`
     );
   }
-  for (let x of accounts) {
+  for (const x of accounts) {
     if (!is_valid_uuid_string(x))
       throw Error(`all account id's must be valid uuid's, but "${x}" is not`);
   }
-  for (let x of projects) {
+  for (const x of projects) {
     if (!is_valid_uuid_string(x))
       throw Error(`all project id's must be valid uuid's, but "${x}" is not`);
   }

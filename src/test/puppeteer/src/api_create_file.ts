@@ -19,7 +19,7 @@ export const api_create_file = async function(
   project_id: string,
   content: string
 ): Promise<PassFail> {
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   try {
     const tm_start = process.hrtime.bigint();
     const url: string =

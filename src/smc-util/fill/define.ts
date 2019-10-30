@@ -57,7 +57,7 @@ export function define<T extends object, U extends Optionals<T>>(
     );
   }
   const result: Assign<U, Requireds<T>> = {} as any;
-  for (let key in definition) {
+  for (const key in definition) {
     if (props.hasOwnProperty(key) && props[key] != undefined) {
       if (definition[key] === required && props[key] == undefined) {
         return maybe_error(
@@ -77,7 +77,7 @@ export function define<T extends object, U extends Optionals<T>>(
   }
 
   if (!allow_extra) {
-    for (let key in props) {
+    for (const key in props) {
       if (!definition.hasOwnProperty(key)) {
         return maybe_error(
           `misc.defaults -- TypeError: got an unexpected argument '${key}'`

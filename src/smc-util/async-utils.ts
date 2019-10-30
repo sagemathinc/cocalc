@@ -58,7 +58,7 @@ export async function retry_until_success<T>(
 
   let next_delay: number = opts.start_delay;
   let tries: number = 0;
-  let start_time: number = new Date().valueOf();
+  const start_time: number = new Date().valueOf();
   let last_exc: Error | undefined;
 
   // Return nonempty string if time or tries exceeded.
@@ -87,7 +87,7 @@ export async function retry_until_success<T>(
       tries += 1;
       next_delay = Math.min(opts.max_delay, opts.factor * next_delay);
       // check if too long or too many tries
-      let err = check_done();
+      const err = check_done();
       if (err) {
         // yep -- game over, throw an error
         let e;
@@ -169,7 +169,7 @@ export function reuse_in_flight_methods(
   obj: any,
   method_names: string[]
 ): void {
-  for (let method_name of method_names) {
+  for (const method_name of method_names) {
     obj[method_name] = reuseInFlight(obj[method_name].bind(obj));
   }
 }

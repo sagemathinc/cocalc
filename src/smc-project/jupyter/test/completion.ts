@@ -15,14 +15,14 @@ function check(obj: { code: string; cursor_pos: any }, matches?: string[]) {
   it(`checks that ${JSON.stringify(obj)} includes ${
     matches ? JSON.stringify(matches) : "nothing"
   }`, async function() {
-    let resp = await kernel.complete({
+    const resp = await kernel.complete({
       code: obj.code,
       cursor_pos: obj.cursor_pos != null ? obj.cursor_pos : obj.code.length
     });
     if (matches === undefined) {
       expect(resp.matches.length).toBe(0);
     } else {
-      for (let m of matches) {
+      for (const m of matches) {
         expect(resp.matches).toContain(m);
       }
     }

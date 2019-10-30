@@ -166,8 +166,8 @@ function is_different_verbose(
 // includes all values in objs and returns dest
 // Rightmost object overwrites left.
 export function merge(dest, ...objs) {
-  for (let obj of objs) {
-    for (let k in obj) {
+  for (const obj of objs) {
+    for (const k in obj) {
       dest[k] = obj[k];
     }
   }
@@ -180,7 +180,7 @@ export function copy_with(obj: object, w: string | string[]): object {
   if (typeof w === "string") {
     w = [w];
   }
-  let obj2: any = {};
+  const obj2: any = {};
   let key: string;
   for (key of w) {
     const y = obj[key];
@@ -197,7 +197,7 @@ export const deep_copy = cloneDeep;
 // Very poor man's set.
 export function set(v: string[]): { [key: string]: true } {
   const s: { [key: string]: true } = {};
-  for (let x of v) {
+  for (const x of v) {
     s[x] = true;
   }
   return s;
@@ -250,7 +250,7 @@ export function startswith(s: string, x: string | string[]): boolean {
   if (typeof x === "string") {
     return s.indexOf(x) === 0;
   }
-  for (let v of x) {
+  for (const v of x) {
     if (s.indexOf(v) === 0) {
       return true;
     }
@@ -425,7 +425,7 @@ Like the immutable.js getIn, but on the thing x.
 */
 
 export function getIn(x: any, path: string[], default_value?: any): any {
-  for (let key of path) {
+  for (const key of path) {
     if (x !== undefined) {
       try {
         x = x[key];
@@ -449,7 +449,7 @@ export function replace_all(
 }
 
 export function path_to_title(path: string): string {
-  let subtitle = separate_file_extension(path_split(path).tail).name;
+  const subtitle = separate_file_extension(path_split(path).tail).name;
   return capitalize(replace_all(replace_all(subtitle, "-", " "), "_", " "));
 }
 
@@ -515,7 +515,7 @@ export function is_date(obj: any): boolean {
 
 // delete any null fields, to avoid wasting space.
 export function delete_null_fields(obj: object): void {
-  for (let k in obj) {
+  for (const k in obj) {
     if (obj[k] == null) {
       delete obj[k];
     }
@@ -528,7 +528,7 @@ export function unreachable(x: never) {
 }
 
 export function bind_methods(obj: any, method_names: string[]): void {
-  for (let method_name of method_names) {
+  for (const method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
 }

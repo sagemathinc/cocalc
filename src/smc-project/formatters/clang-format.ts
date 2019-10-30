@@ -66,9 +66,9 @@ export async function clang_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
+    const output: Buffer = await callback(readFile, input_path);
 
-    let s: string = output.toString("utf-8");
+    const s: string = output.toString("utf-8");
     // logger.debug(`clang_format output s ${s}`);
 
     return s;

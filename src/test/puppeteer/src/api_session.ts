@@ -15,7 +15,7 @@ export const api_session = async function(
   creds: Creds,
   opts: Opts
 ): Promise<PassFail> {
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     pfcounts.skip += 1;

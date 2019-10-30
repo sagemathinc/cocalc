@@ -81,7 +81,7 @@ export function uuids_of_linked_files(doc): string[] {
       j = doc.length;
     }
     const line = doc.slice(i, j);
-    for (let m of line.split(MARKERS.output).slice(1)) {
+    for (const m of line.split(MARKERS.output).slice(1)) {
       // Only bother to run the possibly slow JSON.parse on file messages; since
       // this function would block the global hub server, this is important.
       if (m.slice(0, 8) === '{"file":') {

@@ -13,7 +13,7 @@ const get_account_id = async function(
   opts: Opts,
   api_key: string
 ): Promise<ApiGetString> {
-  let ags: ApiGetString = new ApiGetString();
+  const ags: ApiGetString = new ApiGetString();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     ags.skip += 1;

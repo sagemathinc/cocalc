@@ -25,7 +25,7 @@ export function fill<T extends object, U extends Optionals<T>>(
   defaults: Restrict<U, Optionals<T>, "Defaults cannot contain required values">
 ): Assign<T, U> {
   const ret: U = {} as any;
-  for (let key in defaults) {
+  for (const key in defaults) {
     if (!props.hasOwnProperty(key) || props[key] == undefined) {
       ret[key] = defaults[key];
     }

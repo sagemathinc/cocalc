@@ -57,7 +57,7 @@ test("strings", () => {
     // This should not end up narrowing to the fixed value
     return fill(props, { highlight: "fixed_string" });
   }
-  let a = filled({ name: "foo", direction: "up" });
+  const a = filled({ name: "foo", direction: "up" });
   expectType<string>(a.name);
   expectType<"up" | "down" | "left" | "right">(a.direction);
   expectType<string>(a.highlight);

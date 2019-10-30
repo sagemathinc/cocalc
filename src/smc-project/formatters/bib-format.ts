@@ -68,8 +68,8 @@ export async function bib_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, output_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, output_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     // logger.debug(`bibtex formatter done, unlinking ${input_path}`);

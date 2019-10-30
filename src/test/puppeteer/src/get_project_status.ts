@@ -13,7 +13,7 @@ export const get_project_status = async function(
   api_key: string,
   project_id: string
 ): Promise<ApiGetString> {
-  let ags: ApiGetString = new ApiGetString();
+  const ags: ApiGetString = new ApiGetString();
   try {
     const tm_start = process.hrtime.bigint();
     const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/query";

@@ -27,11 +27,11 @@ const cli_parse = function() {
       .option("-p, --path-to-chrome [chromepath]")
       .option("-k, --skip <pattern>", "skip tests matching pattern")
       .parse(process.argv);
-    let creds_file = program.creds;
+    const creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
     debuglog("creds file:", creds_file);
     //let creds = require(creds_file);
-    let creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, "utf8"));
+    const creds: Creds = yaml.safeLoad(fs.readFileSync(creds_file, "utf8"));
     let cpath: string;
     if (program.pathToChrome == true) {
       cpath = ExtChromePath;
@@ -62,10 +62,10 @@ const run_tests = async function() {
   // UNLESS the following setting is used
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   const cp = cli_parse();
-  let pfcounts: PassFail = new PassFail();
+  const pfcounts: PassFail = new PassFail();
   if (cp) {
     // edit 'true' to 'false' to skip tests
-    let x: PassFail = await sign_up(cp.c, cp.o);
+    const x: PassFail = await sign_up(cp.c, cp.o);
     pfcounts.add(x);
   }
   pf_log(pfcounts);

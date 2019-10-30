@@ -225,7 +225,7 @@ export class SyncDoc extends EventEmitter {
       this.string_id = opts.string_id;
     }
 
-    for (let field of [
+    for (const field of [
       "project_id",
       "path",
       "client",
@@ -358,7 +358,7 @@ export class SyncDoc extends EventEmitter {
         // edited if there was an actual change record in the
         // patches log, by this user, since last time.
         let user_is_active: boolean = false;
-        for (let tm in this.my_patches) {
+        for (const tm in this.my_patches) {
           if (new Date(parseInt(tm)) > this.last_user_change) {
             user_is_active = true;
             break;
@@ -756,7 +756,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private init_table_close_handlers(): void {
-    for (let x of ["syncstring", "patches", "cursors"]) {
+    for (const x of ["syncstring", "patches", "cursors"]) {
       const t = this[`${x}_table`];
       if (t != null) {
         t.on("close", () => this.close());
@@ -1477,7 +1477,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state === "closed") {
       return;
     }
-    for (let k of keys) {
+    for (const k of keys) {
       const u = JSON.parse(k);
       if (u == null) {
         continue;
@@ -1871,7 +1871,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("handle_offline");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
-    for (let obj of data) {
+    for (const obj of data) {
       if (obj.sent) {
         // CRITICAL: ignore anything already processed! (otherwise, infinite loop)
         continue;
@@ -1889,7 +1889,7 @@ export class SyncDoc extends EventEmitter {
     }
     if (oldest) {
       //dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
-      for (let snapshot_time of this.patch_list.snapshot_times()) {
+      for (const snapshot_time of this.patch_list.snapshot_times()) {
         if (snapshot_time >= oldest) {
           //console.log("recomputing snapshot #{snapshot_time}")
           await this.snapshot(snapshot_time, true);
@@ -2161,7 +2161,7 @@ export class SyncDoc extends EventEmitter {
     const path = this.path;
     const dbg = this.dbg("load_from_disk");
     dbg();
-    let exists: boolean = await callback2(this.client.path_exists, { path });
+    const exists: boolean = await callback2(this.client.path_exists, { path });
     let size: number;
     if (!exists) {
       dbg("file no longer exists -- setting to blank");
@@ -2573,7 +2573,7 @@ export class SyncDoc extends EventEmitter {
     if (this.patch_update_queue == null) {
       this.patch_update_queue = [];
     }
-    for (let key of changed_keys) {
+    for (const key of changed_keys) {
       this.patch_update_queue.push(key);
     }
 
@@ -2594,7 +2594,7 @@ export class SyncDoc extends EventEmitter {
       while (this.patch_update_queue.length > 0) {
         dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
-        for (let key of this.patch_update_queue) {
+        for (const key of this.patch_update_queue) {
           const x = this.patches_table.get(key);
           if (x != null) {
             // may be null, e.g., when deleted.

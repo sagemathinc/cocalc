@@ -59,7 +59,7 @@ export class PublicPaths extends EventEmitter {
   private add_vhost(info: HostInfo): void {
     const t = info.get("vhost");
     if (t == null) return;
-    for (let host of t.split(",")) {
+    for (const host of t.split(",")) {
       this.vhosts[host] = info;
     }
   }
@@ -67,7 +67,7 @@ export class PublicPaths extends EventEmitter {
   private delete_vhost(info: HostInfo): void {
     const t = info.get("vhost");
     if (t == null) return;
-    for (let host of t.split(",")) {
+    for (const host of t.split(",")) {
       delete this.vhosts[host];
     }
   }

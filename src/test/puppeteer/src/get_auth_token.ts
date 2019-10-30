@@ -14,7 +14,7 @@ const get_auth_token = async function(
   api_key: string,
   account_id: string
 ): Promise<ApiGetString> {
-  let ags: ApiGetString = new ApiGetString();
+  const ags: ApiGetString = new ApiGetString();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     ags.skip += 1;

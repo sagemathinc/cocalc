@@ -66,7 +66,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
   if (result == null || result.rows == null) {
     throw Error("invalid result"); // can't happen
   }
-  for (let row of result.rows) {
+  for (const row of result.rows) {
     const project_id: string = row.project_id;
     const path: string = row.path;
     const time: Date = row.time;

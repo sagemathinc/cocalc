@@ -407,7 +407,7 @@ export class JupyterKernel extends EventEmitter
       await delay(interval);
       try {
         const usage = await this.usage();
-        for (let x of ["cpu", "memory"]) {
+        for (const x of ["cpu", "memory"]) {
           if (
             usage[x] > last_usage[x] * (1 + thresh) ||
             usage[x] < last_usage[x] * (1 - thresh) ||
@@ -467,7 +467,7 @@ export class JupyterKernel extends EventEmitter
       delete this._channels;
     }
     if (this._execute_code_queue != null) {
-      for (let code_snippet of this._execute_code_queue) {
+      for (const code_snippet of this._execute_code_queue) {
         code_snippet.close();
       }
       delete this._execute_code_queue;
@@ -493,7 +493,7 @@ export class JupyterKernel extends EventEmitter
         console.log(channel, mesg)
       );
     };
-    for (let channel of ["shell", "iopub", "control", "stdin"]) {
+    for (const channel of ["shell", "iopub", "control", "stdin"]) {
       f(channel);
     }
   }
@@ -582,7 +582,7 @@ export class JupyterKernel extends EventEmitter
       this._execute_code_queue[0].go();
     } catch (err) {
       dbg(`error running kernel -- ${err}`);
-      for (let code of this._execute_code_queue) {
+      for (const code of this._execute_code_queue) {
         code.throw_error(err);
       }
       this._execute_code_queue = [];
@@ -599,7 +599,7 @@ export class JupyterKernel extends EventEmitter
       return;
     }
     const mesg = { done: true };
-    for (let code_execution_emitter of this._execute_code_queue.slice(1)) {
+    for (const code_execution_emitter of this._execute_code_queue.slice(1)) {
       code_execution_emitter.emit_output(mesg);
       code_execution_emitter.close();
     }

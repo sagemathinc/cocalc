@@ -151,12 +151,12 @@ class SyncTableChannel {
     if (options == null) {
       return;
     }
-    for (let option of deep_copy(options)) {
+    for (const option of deep_copy(options)) {
       // deep_copy so do not mutate input options.
       if (typeof option != "object" || option == null) {
         throw Error("invalid options");
       }
-      for (let x of ["ephemeral", "persistent"]) {
+      for (const x of ["ephemeral", "persistent"]) {
         // options that are only for project websocket tables.
         if (option[x] != null) {
           this[x] = option[x];
@@ -228,7 +228,9 @@ class SyncTableChannel {
   }
 
   private decrement_connection_count(spark: Spark): number {
-    let m: undefined | number = this.connections_from_one_client[spark.conn.id];
+    const m: undefined | number = this.connections_from_one_client[
+      spark.conn.id
+    ];
     if (m === undefined) {
       return 0;
     }
@@ -411,8 +413,8 @@ function channel_name(query: any, options: any[]): string {
   // project restart, etc.   We first make the options
   // as canonical as we can:
   const opts = {};
-  for (let x of options) {
-    for (let key in x) {
+  for (const x of options) {
+    for (const key in x) {
       opts[key] = x[key];
     }
   }

@@ -12,7 +12,7 @@ export const api_create_project = async function(
   creds: Creds,
   api_key: string
 ): Promise<ApiGetString> {
-  let ags: ApiGetString = new ApiGetString();
+  const ags: ApiGetString = new ApiGetString();
   try {
     const tm_start = process.hrtime.bigint();
     const url: string =
