@@ -4,16 +4,14 @@ Generic register function -- used by each frame tree editor to register itself w
 Basically, this is like register_file_editor, but much more specialized.
 */
 
-const general_register_file_editor = require("smc-webapp/file-editors")
-  .register_file_editor;
-
-const { redux_name } = require("smc-webapp/app-framework");
+import { register_file_editor as general_register_file_editor } from "../../file-editors";
+import { redux_name } from "../../app-framework";
 
 interface Register {
   icon?: string;
   ext:
     | string
-    | string[] /* the filename extension or extentions that this editor should handle. */;
+    | string[] /* the filename extension or extensions that this editor should handle. */;
   component: any /* the renderable react component used for this editor */;
   Actions: any /* the class that defines the actions. */;
   is_public?: boolean /* if given, only register public or not public editors (not both) */;
@@ -32,6 +30,11 @@ export function register_file_editor(opts: Register) {
   }
 }
 
+const reference_count: { [name: string]: number } = {};
+
+// uncomment for debugging
+(window as any).frame_editor_reference_count = reference_count;
+
 function register(
   icon: string | undefined,
   ext: string | string[],
@@ -46,6 +49,11 @@ function register(
     component,
     init(path: string, redux, project_id: string) {
       const name = redux_name(project_id, path, is_public);
+      if (reference_count[name] == undefined) {
+        reference_count[name] = 1;
+      } else {
+        reference_count[name] += 1;
+      }
       if (redux.getActions(name) != null) {
         return name; // already initialized
       }
@@ -60,8 +68,13 @@ function register(
       return name;
     },
 
-    remove(path: string, redux, project_id: string): void {
+    remove(path: string, redux, project_id: string): string {
       const name = redux_name(project_id, path, is_public);
+      if (reference_count[name] != undefined) {
+        reference_count[name] -= 1;
+        if (reference_count[name] > 0) return name;
+        delete reference_count[name];
+      }
       const actions = redux.getActions(name);
       if (actions != null) {
         actions.close();
@@ -93,7 +106,7 @@ function register(
   }
 }
 
-const REGISTRY : {[key:string]:any} = {};
+const REGISTRY: { [key: string]: any } = {};
 
 export function get_file_editor(ext: string, is_public: boolean) {
   return REGISTRY[key(ext, is_public)];

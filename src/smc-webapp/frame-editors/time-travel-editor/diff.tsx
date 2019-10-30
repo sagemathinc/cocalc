@@ -42,6 +42,7 @@ export class Diff extends Component<Props> {
       this.props.editor_settings,
       [],
       undefined,
+      undefined,
       ""
     );
     options.readOnly = true;

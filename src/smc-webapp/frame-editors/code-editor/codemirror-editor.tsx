@@ -27,6 +27,9 @@ import * as doc from "./doc";
 
 import { GutterMarkers } from "./codemirror-gutter-markers";
 
+import { CodeEditor } from "./code-editor-manager";
+import { Actions } from "./actions";
+
 const STYLE = {
   width: "100%",
   overflow: "auto",
@@ -53,6 +56,7 @@ interface Props {
   gutters: string[];
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  is_subframe?: boolean;
 }
 
 interface State {
@@ -63,10 +67,19 @@ export class CodemirrorEditor extends Component<Props, State> {
   private cm: CodeMirror.Editor;
   private style_active_line: boolean = false;
   static defaultProps = { value: "" };
+  private manager?: CodeEditor;
+  private editor_actions: Actions;
 
   constructor(props) {
     super(props);
     this.state = { has_cm: false };
+    if (props.is_subframe && this.props.actions != null) {
+      this.manager = this.props.actions.get_code_editor(this.props.id);
+      if (this.manager == null) throw Error("BUG");
+      this.editor_actions = this.manager.get_actions();
+    } else {
+      this.editor_actions = this.props.actions;
+    }
   }
 
   shouldComponentUpdate(props, state): boolean {
@@ -81,7 +94,8 @@ export class CodemirrorEditor extends Component<Props, State> {
         "is_public",
         "resize",
         "editor_state",
-        "gutter_markers"
+        "gutter_markers",
+        "is_subframe"
       ])
     );
   }
@@ -149,11 +163,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   _cm_undo(): void {
-    this.props.actions.undo(this.props.id);
+    this.editor_actions.undo(this.props.id);
   }
 
   _cm_redo(): void {
-    this.props.actions.redo(this.props.id);
+    this.editor_actions.redo(this.props.id);
   }
 
   _cm_destroy(): void {
@@ -162,7 +176,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
     delete (this.cm as any).undo;
     delete (this.cm as any).redo;
-    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in this.props.actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
+    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
     delete this.cm;
   }
 
@@ -206,8 +220,8 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.cm == null || this.props.is_public) {
       return;
     }
-    this.props.actions.set_syncstring_to_codemirror();
-    this.props.actions.syncstring_commit();
+    this.editor_actions.set_syncstring_to_codemirror();
+    this.editor_actions.syncstring_commit();
   }
 
   safari_hack(): void {
@@ -224,14 +238,15 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     this.safari_hack();
 
-    const options : any = cm_options(
+    const options: any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
+      this.editor_actions,
       props.actions,
       props.id
     );
-    if (options == null) throw Error("bug");   // make typescript happy.
+    if (options == null) throw Error("bug"); // make typescript happy.
 
     // we will explicitly enable and disable styleActiveLine depending focus
     this.style_active_line = options.styleActiveLine;
@@ -263,7 +278,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       };
     }
 
-    let cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
+    let cm: CodeMirror.Editor = (this.editor_actions as any)._cm[this.props.id];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
@@ -300,7 +315,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   init_new_codemirror(): void {
-    (this.cm as any)._actions = this.props.actions;
+    (this.cm as any)._actions = this.editor_actions;
 
     if (this.props.is_public) {
       if (this.props.value !== undefined) {
@@ -323,7 +338,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.on("scroll", save_editor_state);
     init_style_hacks(this.cm);
 
-    this.props.actions.set_cm(this.props.id, this.cm);
+    this.editor_actions.set_cm(this.props.id, this.cm);
 
     if (this.props.is_public) {
       return;
@@ -338,7 +353,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.on("change", (_, changeObj) => {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        this.props.actions.exit_undo_mode();
+        this.editor_actions.exit_undo_mode();
       }
     });
 
@@ -374,6 +389,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         props.path,
         props.editor_settings,
         props.gutters,
+        this.editor_actions,
         props.actions,
         props.id
       );
@@ -468,11 +484,26 @@ export class CodemirrorEditor extends Component<Props, State> {
     );
   }
 
+  render_path(): Rendered {
+    if (!this.props.is_subframe) return;
+    return (
+      <div
+        style={{
+          borderBottom: "1px solid lightgrey",
+          padding: "0 5px"
+        }}
+      >
+        {this.props.path}
+      </div>
+    );
+  }
+
   render(): Rendered {
     const style = misc.copy(STYLE);
     style.fontSize = `${this.props.font_size}px`;
     return (
       <div style={style} className="smc-vfill cocalc-editor-div">
+        {this.render_path()}
         {this.render_cursors()}
         {this.render_gutter_markers()}
         <textarea ref="textarea" style={{ display: "none" }} />

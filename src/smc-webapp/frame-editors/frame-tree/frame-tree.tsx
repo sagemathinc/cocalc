@@ -28,7 +28,13 @@ or
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
 import { hidden_meta_file, is_different } from "smc-util/misc2";
-import { React, ReactDOM, Component, redux } from "../../app-framework";
+import {
+  React,
+  ReactDOM,
+  Component,
+  redux,
+  Rendered
+} from "../../app-framework";
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
@@ -40,6 +46,7 @@ const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
 const { Loading } = require("smc-webapp/r_misc");
 import { AvailableFeatures } from "../../project_configuration";
+import { get_file_editor } from "./register";
 
 import { TimeTravelActions } from "../time-travel-editor/actions";
 
@@ -186,12 +193,20 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
-  render_titlebar(desc) {
+  render_titlebar(type: string, desc): Rendered {
     let id = desc.get("id");
+    let editor_actions;
+    if (type == "cm" && desc.get("path", this.props.path) != this.props.path) {
+      const manager = this.props.actions.get_code_editor(id);
+      editor_actions = manager.get_actions();
+    } else {
+      editor_actions = this.props.actions;
+    }
     let left, left1, left2;
     return (
       <FrameTitleBar
         actions={this.props.actions}
+        editor_actions={editor_actions}
         active_id={this.props.active_id}
         project_id={
           (left = desc.get("project_id")) != null ? left : this.props.project_id
@@ -238,23 +253,29 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     // generic and is a **temporary** hack.  It'll be rewritten
     // soon in a more generic way that also will support multifile
     // latex editing. See https://github.com/sagemathinc/cocalc/issues/904
-
+    // Note that this does NOT reference count the actions properly
+    // right now... We need to switch to something like we do with
+    // CodeEditorManager.
     let is_subframe: boolean = false; // this name sucks...
     if (spec.name === "TimeTravel" && !(actions instanceof TimeTravelActions)) {
       if (path.slice(path.length - 12) != ".time-travel") {
         path = hidden_meta_file(path, "time-travel");
-        const editor = require("./register").get_file_editor(
-          "time-travel",
-          false
-        );
+        const editor = get_file_editor("time-travel", false);
         if (editor == null) throw Error("bug -- editor must exist");
         name = editor.init(path, redux, project_id);
-        const actions2 : TimeTravelActions = redux.getActions(name);
+        const actions2: TimeTravelActions = redux.getActions(name);
         actions2.ambient_actions = actions;
         actions = actions2;
         is_subframe = true;
-        actions2.init_frame_tree(); // this is particularly hacky for now...
+        // this is particularly hacky for now:
+        // ensures time travel params are set.
+        // setTimeout is needed since this can change redux store,
+        // and we are in a render function.
+        setTimeout(() => actions2.init_frame_tree(), 50);
       }
+    } else if (type == "cm" && path != this.props.path) {
+      // A code editor inside some other editor frame tree
+      is_subframe = true;
     }
 
     return (
@@ -343,7 +364,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
         style={spec != null ? spec.style : undefined}
       >
-        {this.render_titlebar(desc)}
+        {this.render_titlebar(type, desc)}
         {child}
       </div>
     );

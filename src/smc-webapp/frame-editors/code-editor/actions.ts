@@ -24,7 +24,7 @@ import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
-import { callback_opts } from "smc-util/async-utils";
+import { callback_opts, once } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
@@ -54,6 +54,7 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
+import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
 import { AvailableFeatures } from "../../project_configuration";
 import {
@@ -131,6 +132,7 @@ export class Actions<
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
   protected terminals: TerminalManager<T>;
+  private code_editors: CodeEditorManager<T>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -163,6 +165,7 @@ export class Actions<
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<T>(this);
+    this.code_editors = new CodeEditorManager<T>(this);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -460,6 +463,8 @@ export class Actions<
     cm_doc_cache.close(this.project_id, this.path);
     // Free up any allocated terminals.
     this.terminals.close();
+    // Free up stuff related to code editors with different path
+    this.code_editors.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -770,6 +775,10 @@ export class Actions<
       this.terminals.close_terminal(id);
     }
 
+    if (type != "cm") {
+      this.code_editors.close_code_editor(id);
+    }
+
     // Reset the font size for the frame based on recent
     // pref for this type.
     let font_size: number = 0;
@@ -831,6 +840,7 @@ export class Actions<
       delete this._cm[id];
     }
     this.terminals.close_terminal(id);
+    this.code_editors.close_code_editor(id);
     this.close_frame_hook(id, type);
 
     // if id is the current active_id, change to most recent one.
@@ -1313,11 +1323,21 @@ export class Actions<
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring(): void {
-    if (this._syncstring == null) {
+  async set_codemirror_to_syncstring(): Promise<void> {
+    if (
+      this._syncstring == null ||
+      this._state == "closed" ||
+      this._syncstring.get_state() == "closed"
+    ) {
       // no point in doing anything further.
       return;
     }
+
+    if (this._syncstring.get_state() != "ready") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     const cm: CodeMirror.Editor | undefined = this._get_cm(undefined, true);
@@ -2189,5 +2209,64 @@ export class Actions<
       this.close_frame(id);
       return id;
     }
+  }
+
+  /*
+  Open a file for editing with the code editor.  This is typically used for
+  opening a path other than this.path for editing.  E.g., this would be useful
+  for editing a tex or bib file associated to a master latex document, or editing
+  some .py code related to a Jupyter notebook.
+
+  - Will show and focus an existing frame if there already is one for this path.
+  - Otherwise, will create a new frame open to edit (using codemirror) the given path.
+
+  Returns the id of the frame with the code editor in it.
+  */
+  public open_code_editor_frame(
+    path: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    // See if there is already a frame for path, and if so show
+    // display and focus it.
+    for (let id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "cm" &&
+        ((this.path === path && leaf.get("path") == null) || // default
+          leaf.get("path") === path) // existing frame
+      ) {
+        // got it!
+        this.set_active_id(id);
+        return id;
+      }
+    }
+
+    // There is no frame for path, so we create one.
+    // First the easy special case:
+    if (this.path === path) {
+      return this.show_focused_frame_of_type("cm", dir, first, pos);
+    }
+
+    // More difficult case - no such frame and different path
+    const active_id = this._get_active_id();
+    const id = this.split_frame(dir, active_id, "cm", { path }, first, true);
+    if (id == null) {
+      throw Error("BUG -- failed to make frame");
+    }
+    if (pos != null) {
+      const parent_id = this.get_parent_id(id);
+      if (parent_id != null) {
+        this.set_frame_tree({ id: parent_id, pos });
+      }
+    }
+    this.set_active_id(id);
+    return id;
+  }
+
+  public get_code_editor(id: string): CodeEditor {
+    return this.code_editors.get_code_editor(id);
   }
 }

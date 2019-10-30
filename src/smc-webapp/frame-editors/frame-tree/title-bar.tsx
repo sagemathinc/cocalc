@@ -109,6 +109,7 @@ const close_style: CSS.Properties | undefined = (function() {
 
 interface Props {
   actions: any; // TODO -- see above Actions;
+  editor_actions: any; // TODO -- see above Actions;
   path: string; // assumed to not change for now
   project_id: string; // assumed to not change for now
   active_id: string;
@@ -468,7 +469,10 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_download(): Rendered {
-    if (!this.is_visible("download") || this.props.actions.download == null) {
+    if (
+      !this.is_visible("download") ||
+      this.props.editor_actions.download == null
+    ) {
       return;
     }
     const labels = this.show_labels();
@@ -477,7 +481,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"download"}
         title={"Download this file"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.download(this.props.id)}
+        onClick={() => this.props.editor_actions.download(this.props.id)}
       >
         <Icon name={"cloud-download"} />{" "}
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
@@ -493,7 +497,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"replace"}
         title={"Replace text"}
-        onClick={() => this.props.actions.replace(this.props.id)}
+        onClick={() => this.props.editor_actions.replace(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -510,7 +514,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"find"}
         title={"Find text"}
-        onClick={() => this.props.actions.find(this.props.id)}
+        onClick={() => this.props.editor_actions.find(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name="search" />
@@ -526,7 +530,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"goto-line"}
         title={"Jump to line"}
-        onClick={() => this.props.actions.goto_line(this.props.id)}
+        onClick={() => this.props.editor_actions.goto_line(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name="bolt" />
@@ -564,7 +568,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"cut"}
         title={"Cut selected"}
-        onClick={() => this.props.actions.cut(this.props.id)}
+        onClick={() => this.props.editor_actions.cut(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -582,7 +586,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
-          () => this.props.actions.paste(this.props.id, true),
+          () => this.props.editor_actions.paste(this.props.id, true),
           200,
           true
         )}
@@ -602,7 +606,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"copy"}
         title={"Copy selected"}
-        onClick={() => this.props.actions.copy(this.props.id)}
+        onClick={() => this.props.editor_actions.copy(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name={"copy"} />
@@ -678,7 +682,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => this.props.actions.undo()}
+        onClick={() => this.props.editor_actions.undo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -695,7 +699,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => this.props.actions.redo()}
+        onClick={() => this.props.editor_actions.redo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -722,7 +726,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"auto-indent"}
         title={"Automatically format selected code"}
-        onClick={() => this.props.actions.auto_indent()}
+        onClick={() => this.props.editor_actions.auto_indent()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -775,6 +779,11 @@ export class FrameTitleBar extends Component<Props, State> {
         bsStyle={"info"}
         bsSize={this.button_size()}
         onClick={event => {
+          if (this.props.actions.name != this.props.editor_actions.name) {
+            // a subframe editor -- always open time travel in a name tab.
+            this.props.editor_actions.time_travel({ frame: false });
+            return;
+          }
           // If a time_travel frame type is available and the
           // user does NOT shift+click, then open as a frame.
           // Otherwise, it opens as a new tab.
