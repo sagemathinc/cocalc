@@ -27,6 +27,14 @@ export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// turn an arbitrary string into a nice clean identifier that can safely be used in an URL
+export function make_valid_name(s: string): string {
+  // for now we just delete anything that isn't alphanumeric.
+  // See http://stackoverflow.com/questions/9364400/remove-not-alphanumeric-characters-from-string-having-trouble-with-the-char/9364527#9364527
+  // whose existence surprised me!
+  return s.replace(/\W/g, "_").toLowerCase();
+}
+
 const filename_extension_re = /(?:\.([^.]+))?$/;
 export function filename_extension(filename: string): string {
   const match = filename_extension_re.exec(filename);
@@ -563,6 +571,21 @@ export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
+}
+
+// TODO: Move this var and the `delete_local_storage` to a new front-end-misc or something
+// TS rightfully complains about this missing when built on back end systems
+declare var localStorage;
+/**
+ * Deletes key from local storage
+ * FRONT END ONLY
+ */
+export function delete_local_storage(key) {
+  try {
+    delete localStorage[key];
+  } catch (e) {
+    console.warn(`localStorage delete error -- ${e}`);
+  }
 }
 
 // converts an array to a "human readable" array

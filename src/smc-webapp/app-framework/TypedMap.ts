@@ -166,7 +166,7 @@ export function createTypedMap<OuterProps extends Object>(
      * produce an error when using Flow or TypeScript.
      */
     get<K extends keyof TProps>(key: K): TProps[K];
-    get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): TProps[K] | NSV;
+    get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): NonNullable<TProps[K]> | NSV;
     get<K extends keyof TProps, NSV>(
       key: K,
       notSetValue?: NSV

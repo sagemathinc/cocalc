@@ -18,15 +18,22 @@ type Definition<T> = {
  *
  * @example
  *
- *     define<{name: string, 
+ *     define<{name: string,
  *              highlight?: boolean,
  *              last?: string},
  *           {highlight: boolean}>(unknown_prop, {highlight: false});
- * 
+ *
  * Unfortunately you must use both type annotations until this goes through
  * https://github.com/microsoft/TypeScript/issues/26242
  *
  **/
+export function define<T>(props: unknown, definition: Definition<T>): T;
+export function define<T extends object, U extends Optionals<T>>(
+  props: unknown,
+  definition: Assign<Definition<T>, U>,
+  allow_extra?: boolean,
+  strict?: boolean
+): Assign<U, Requireds<T>>;
 export function define<T extends object, U extends Optionals<T>>(
   props: unknown,
   definition: Assign<Definition<T>, U>,
