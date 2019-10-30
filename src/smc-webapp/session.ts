@@ -18,7 +18,7 @@ exports.session_manager = (name, redux) => {
     // we only need the session manager to open a target URL
     return undefined;
   } else {
-    sm;
+    return sm;
   }
 };
 
@@ -245,7 +245,7 @@ class SessionManager {
   }
 }
 
-const get_session_state = function(redux: AppRedux): State[] {
+function get_session_state(redux: AppRedux): State[] {
   const state: State[] = [];
   redux
     .getStore("projects")
@@ -260,7 +260,7 @@ const get_session_state = function(redux: AppRedux): State[] {
       return true;
     });
   return state;
-};
+}
 
 // reset_first is currently not used.  If true, then you get *exactly* the
 // saved session; if not set (the default) the current state and the session are merged.

@@ -47,9 +47,9 @@ export class AccountStore extends Store<AccountState> {
     return this.get("terminal") ? this.get("terminal").toJS() : undefined;
   }
 
-  get_editor_settings(): Object | undefined {
+  get_editor_settings(): {[key: string]: any} | undefined {
     return this.get("editor_settings")
-      ? this.get("terminal").toJS()
+      ? this.get("editor_settings").toJS()
       : undefined;
   }
 
