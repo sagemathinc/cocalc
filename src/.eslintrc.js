@@ -18,7 +18,8 @@ module.exports = {
     // e.g. "@typescript-eslint/explicit-function-return-type": "off",
     "camelcase": "off",
     "@typescript-eslint/camelcase": "off",
-    "@typescript-eslint/no-inferrable-types": "off"
+    "@typescript-eslint/no-inferrable-types": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   },
   settings: {
     react: {
