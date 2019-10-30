@@ -2,7 +2,14 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { React, Rendered, Component, redux } from "../../app-framework";
+import {
+  React,
+  Rendered,
+  Component,
+  redux,
+  rclass,
+  rtypes
+} from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
@@ -114,11 +121,6 @@ interface Props {
   project_id: string; // assumed to not change for now
   active_id: string;
   id: string;
-  deletable: boolean;
-  read_only: boolean;
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  is_saving: boolean;
   is_full: boolean;
   is_only: boolean; // is the only frame
   is_public: boolean; // public view of a file
@@ -132,21 +134,47 @@ interface Props {
   available_features?: AvailableFeatures;
 }
 
+// state that is associated with the file being edited, not the
+// frame tree/tab in which this sits.  Note some more should
+// probably be moved down here...
+interface ReduxProps {
+  read_only: boolean;
+  has_unsaved_changes: boolean;
+  has_uncommitted_changes: boolean;
+  is_saving: boolean;
+  is_public: boolean;
+}
+
 interface State {
   close_and_halt_confirm?: boolean;
 }
 
-export class FrameTitleBar extends Component<Props, State> {
+class FrameTitleBar extends Component<Props & ReduxProps, State> {
   constructor(props) {
     super(props);
     this.state = { close_and_halt_confirm: false };
   }
+
+  static reduxProps({ editor_actions }) {
+    if (editor_actions == null) throw Error("editor_actions must be specified");
+    const name = editor_actions.name;
+    if (name == null) throw Error("editor_actions must have name attribute");
+    return {
+      [name]: {
+        read_only: rtypes.bool,
+        has_unsaved_changes: rtypes.bool,
+        has_uncommitted_changes: rtypes.bool,
+        is_saving: rtypes.bool,
+        is_public: rtypes.bool
+      }
+    };
+  }
+
   shouldComponentUpdate(next, state): boolean {
     return (
       misc.is_different(this.props, next, [
         "active_id",
         "id",
-        "deletable",
         "is_full",
         "is_only",
         "read_only",
@@ -848,7 +876,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"restart"}
         title={"Restart service"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.restart()}
+        onClick={() => this.props.editor_actions.restart()}
       >
         <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
@@ -871,7 +899,7 @@ export class FrameTitleBar extends Component<Props, State> {
         no_labels={!labels}
         size={this.button_size()}
         onClick={() => {
-          this.props.actions.save(true);
+          this.props.editor_actions.save(true);
           this.props.actions.focus(this.props.id);
         }}
       />
@@ -894,7 +922,7 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     if (!this.is_visible("format")) return;
-    let desc: any = this.props.actions.has_format_support(
+    let desc: any = this.props.editor_actions.has_format_support(
       this.props.id,
       this.props.available_features
     );
@@ -906,7 +934,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"format"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.format(this.props.id)}
+        onClick={() => this.props.editor_actions.format(this.props.id)}
         title={desc}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
@@ -1088,7 +1116,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"print"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.print(this.props.id)}
+        onClick={() => this.props.editor_actions.print(this.props.id)}
         title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
@@ -1385,3 +1413,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 }
+
+const tmp = rclass(FrameTitleBar);
+export { tmp as FrameTitleBar };

@@ -17,7 +17,7 @@ export class CodeEditor {
     const editor = get_file_editor("txt", false);
     if (editor == null) throw Error("bug -- editor must exist");
     const name = editor.init(this.path, redux, this.project_id);
-    this.actions = redux.getActions(name);
+    this.actions = redux.getActions(name) as unknown as Actions; // definitely right
   }
 
   close(): void {

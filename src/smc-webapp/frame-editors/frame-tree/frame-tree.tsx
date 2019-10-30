@@ -202,25 +202,16 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     } else {
       editor_actions = this.props.actions;
     }
-    let left, left1, left2;
     return (
       <FrameTitleBar
         actions={this.props.actions}
         editor_actions={editor_actions}
         active_id={this.props.active_id}
-        project_id={
-          (left = desc.get("project_id")) != null ? left : this.props.project_id
-        }
-        path={(left1 = desc.get("path")) != null ? left1 : this.props.path}
+        project_id={desc.get("project_id", this.props.project_id)}
+        path={desc.get("path", this.props.path)}
         is_full={desc.get("id") === this.props.full_id && !this.props.is_only}
         is_only={this.props.is_only}
         id={id}
-        deletable={(left2 = desc.get("deletable")) != null ? left2 : true}
-        read_only={desc.get("read_only") || this.props.read_only}
-        has_unsaved_changes={this.props.has_unsaved_changes}
-        has_uncommitted_changes={this.props.has_uncommitted_changes}
-        is_saving={this.props.is_saving}
-        is_public={this.props.is_public}
         is_paused={desc.get("is_paused")}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
