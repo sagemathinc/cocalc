@@ -263,7 +263,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   // Selectors
-  selectors = {
+  // TODO [J3]: Fix Selectors. They are pretty broken.
+  selectors: any = {
     other_settings: {
       fn: () => {
         return (this.redux.getStore("account") as any).get("other_settings");
