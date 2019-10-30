@@ -300,12 +300,12 @@ Page = rclass
                 <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
-            {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
+            {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div> if not @props.fullscreen}
             {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
+                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} kiosk_mode={@props.fullscreen == 'kiosk'} />
             </ErrorBoundary>
         </div>
 
