@@ -60,7 +60,7 @@ export class FileUseInfo extends Component<Props, {}> {
         users.push(user.toJS());
       }
     });
-    for (let user of users.slice(0, MAX_USERS)) {
+    for (const user of users.slice(0, MAX_USERS)) {
       v.push(
         <User
           key={user.account_id}

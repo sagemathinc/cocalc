@@ -41,8 +41,8 @@ export function has_viewer(ext: string): boolean {
 
 // If the viewer isn't specified, definitely, always default
 // raw for these file types.
-export function default_to_raw(ext:string) : boolean {
-  if (ext === 'css' || ext == 'js') return true;
+export function default_to_raw(ext: string): boolean {
+  if (ext === "css" || ext == "js") return true;
   return false;
 }
 

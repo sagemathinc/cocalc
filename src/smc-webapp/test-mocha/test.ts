@@ -1,7 +1,7 @@
 const describe = (window as any).describe;
 const it = (window as any).it;
 
-var assert = require("assert");
+const assert = require("assert");
 
 describe("Array", function() {
   describe("#indexOf()", function() {

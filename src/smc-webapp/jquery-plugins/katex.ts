@@ -29,7 +29,7 @@ $.fn.katex = function() {
 const math_cache = new LRU({ max: CACHE_SIZE });
 
 function is_macro_definition(s: string): boolean {
-  for (let k of ["\\newcommand", "\\renewcommand", "\\providecommand"]) {
+  for (const k of ["\\newcommand", "\\renewcommand", "\\providecommand"]) {
     if (s.indexOf(k) != -1) return true;
   }
   return false;
@@ -46,7 +46,7 @@ function katex_plugin(): void {
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function() {
-    let node = $(this);
+    const node = $(this);
     if (
       (node[0] as any).type == "math/tex" ||
       (node[0] as any).type == "math/tex; mode=display"
@@ -57,7 +57,7 @@ function katex_plugin(): void {
         trust: true
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
-      let cached: any = math_cache.get(text);
+      const cached: any = math_cache.get(text);
       if (cached !== undefined) {
         node.replaceWith(cached.clone());
         return;
@@ -78,7 +78,7 @@ function katex_plugin(): void {
           });
         }
         // 2. Now define/display it using mathjax.
-        let node0: any = node;
+        const node0: any = node;
         if (node0.mathjax !== undefined) {
           node0.mathjax({
             cb: () => {
@@ -90,7 +90,7 @@ function katex_plugin(): void {
       } else {
         // Try to do it with katex.
         try {
-          let rendered = $(renderToString(text, katex_options));
+          const rendered = $(renderToString(text, katex_options));
           node.replaceWith(rendered);
           math_cache.set(text, rendered.clone());
         } catch (err) {
@@ -98,7 +98,7 @@ function katex_plugin(): void {
           console.log("WARNING -- ", err.toString()); // toString since the traceback has no real value.
           // fallback to using mathjax on this -- should be rare; not horrible if this happens...
           // Except for this, this katex pluging is synchronous and does not depend on MathJax at all.
-          let node0: any = node;
+          const node0: any = node;
           if (node0.mathjax !== undefined) {
             node0.mathjax({
               cb: () => {

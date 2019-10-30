@@ -155,7 +155,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
 
     private get_assignment(id: string): AssignmentRecord {
-      let assignment = this.props.assignments.get(id);
+      const assignment = this.props.assignments.get(id);
       if (assignment == undefined) {
         console.warn(`Tried to access undefined assignment ${id}`);
       }
@@ -653,7 +653,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       );
     };
 
-    for (let name of STEPS(peer)) {
+    for (const name of STEPS(peer)) {
       const b = this[`render_${name}_button`](status);
       // squeeze in the skip grading button (don't add it to STEPS!)
       if (!peer && name === "return_graded") {
@@ -786,7 +786,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_copy_confirms(status) {
     const steps = STEPS(this.is_peer_graded());
     const result: (ReactElement<any> | undefined)[] = [];
-    for (let step of steps) {
+    for (const step of steps) {
       if (this.state[`copy_confirm_${step}`]) {
         result.push(this.render_copy_confirm(step, status));
       } else {
@@ -1449,7 +1449,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   peer_due_change = date => {
-    let due_date = this._peer_due(date);
+    const due_date = this._peer_due(date);
     let due_date_string: string | undefined;
     if (due_date != undefined) {
       due_date_string = due_date.toISOString();
@@ -1710,7 +1710,10 @@ class StudentListForAssignment extends Component<
   private render_student_info(student_id: string): Rendered {
     const store = this.get_store();
     const student = store.get_student(student_id);
-    const key = util.assignment_identifier(this.props.assignment, UNSAFE_NONNULLABLE(student));
+    const key = util.assignment_identifier(
+      this.props.assignment,
+      UNSAFE_NONNULLABLE(student)
+    );
     const edited_feedback = this.props.active_feedback_edits.get(key);
     let edited_comments: string | undefined;
     let edited_grade: string | undefined;
@@ -1748,7 +1751,7 @@ class StudentListForAssignment extends Component<
 
     // Remove deleted students
     const v1: any[] = [];
-    for (let x of v0) {
+    for (const x of v0) {
       if (!x.deleted) v1.push(x);
     }
 
@@ -1759,7 +1762,7 @@ class StudentListForAssignment extends Component<
     }
 
     this.student_list = [];
-    for (let x of v1) {
+    for (const x of v1) {
       this.student_list.push(x.student_id);
     }
 

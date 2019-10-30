@@ -30,9 +30,9 @@ export function NotificationList({
   if (mentions == undefined || mentions.size == 0) {
     return <NoMentions filter={filter} style={style} />;
   }
-  let mentions_per_project: any = {};
-  let project_panels: any = [];
-  let project_id_order: string[] = [];
+  const mentions_per_project: any = {};
+  const project_panels: any = [];
+  const project_id_order: string[] = [];
 
   mentions
     .filter(notification => notification.get("target") === account_id)

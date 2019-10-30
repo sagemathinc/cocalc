@@ -42,7 +42,7 @@ export class Settings extends Component<Props, {}> {
             <SpellCheck
               key={key}
               value={value}
-              available={af.get('spellcheck')}
+              available={af.get("spellcheck")}
               set={value => this.props.actions.set_settings({ [key]: value })}
             />
           );

@@ -29,7 +29,7 @@ function test_commercial(c) {
 }
 
 const result: any[] = [];
-for (let k in schema.site_settings_conf) {
+for (const k in schema.site_settings_conf) {
   const v = schema.site_settings_conf[k];
   result.push([k, v.default]);
 }

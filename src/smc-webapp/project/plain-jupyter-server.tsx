@@ -31,15 +31,15 @@ export class JupyterServerPanel extends Component<Props, {}> {
     return (
       <SettingBox title="Plain Jupyter Classic Server" icon="list-alt">
         <span style={{ color: "#444" }}>
-          The Jupyter Classic notebook server runs in your project and provides support
-          for classical Jupyter notebooks. You can also use the plain classical
-          Jupyter notebook server directly via the link below. This does not
-          support multiple users or TimeTravel, but fully supports all classical
-          Jupyter notebook features and extensions.
+          The Jupyter Classic notebook server runs in your project and provides
+          support for classical Jupyter notebooks. You can also use the plain
+          classical Jupyter notebook server directly via the link below. This
+          does not support multiple users or TimeTravel, but fully supports all
+          classical Jupyter notebook features and extensions.
           <br />
           <br />
-          Click the link below to start your Jupyter Classic notebook server and open it
-          in a new browser tab.
+          Click the link below to start your Jupyter Classic notebook server and
+          open it in a new browser tab.
         </span>
         <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
           {this.render_jupyter_link()}

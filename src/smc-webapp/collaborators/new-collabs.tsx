@@ -52,10 +52,10 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
     }))
   });
   const users: any = {};
-  for (let u of select) {
+  for (const u of select) {
     users[u.account_id] = u;
   }
-  for (let u of profiles.query) {
+  for (const u of profiles.query) {
     if (users[u.account_profiles.account_id]) {
       users[u.account_profiles.account_id].profile = u.account_profiles.profile;
     }
@@ -209,7 +209,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
           // put users who are collaborators on other projects at the top of the list
           const are_collaborators: UserAndProfile[] = [];
           const not_collaborators: UserAndProfile[] = [];
-          for (let u of results) {
+          for (const u of results) {
             if (this.props.user_map.has(u.account_id)) {
               u.is_collaborator = true;
               are_collaborators.push(u);

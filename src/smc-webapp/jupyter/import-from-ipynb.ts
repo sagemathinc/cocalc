@@ -109,8 +109,8 @@ export class IPynbImporter {
     if (ipynb.cells == null) {
       ipynb.cells = [];
     }
-    for (let worksheet of ipynb.worksheets || []) {
-      for (let cell of worksheet.cells || []) {
+    for (const worksheet of ipynb.worksheets || []) {
+      for (const cell of worksheet.cells || []) {
         if (cell.input != null) {
           cell.source = cell.input;
           delete cell.input;
@@ -123,13 +123,13 @@ export class IPynbImporter {
           cell.source = `# ${cell.source}`;
         }
         if (cell.outputs) {
-          for (let mesg of cell.outputs) {
+          for (const mesg of cell.outputs) {
             if (mesg.output_type === "pyout") {
-              for (let type of JUPYTER_MIMETYPES) {
+              for (const type of JUPYTER_MIMETYPES) {
                 const b = type.split("/")[1];
                 if (mesg[b] != null) {
                   const data = { [type]: mesg[b] };
-                  for (let k in mesg) {
+                  for (const k in mesg) {
                     delete mesg[k];
                   }
                   mesg.data = data;
@@ -138,7 +138,7 @@ export class IPynbImporter {
               }
               if (mesg.text != null) {
                 const data = { "text/plain": mesg.text.join("") };
-                for (let k in mesg) {
+                for (const k in mesg) {
                   delete mesg[k];
                 }
                 mesg.data = data;
@@ -165,7 +165,7 @@ export class IPynbImporter {
       return;
     }
     const metadata: any = {};
-    for (let k in m) {
+    for (const k in m) {
       const v = m[k];
       if (k === "kernelspec") {
         continue;
@@ -203,7 +203,7 @@ export class IPynbImporter {
       }
       content.name = content.stream;
     } else {
-      for (let t of JUPYTER_MIMETYPES) {
+      for (const t of JUPYTER_MIMETYPES) {
         const b = t.split("/")[1];
         if (content[b] != null) {
           content = { data: { [t]: content[b] } };
@@ -222,7 +222,7 @@ export class IPynbImporter {
 
   _join_array_strings_obj = (obj: any) => {
     if (obj != null) {
-      for (let key in obj) {
+      for (const key in obj) {
         const val = obj[key];
         if (misc.is_array(val)) {
           obj[key] = val.join("");
@@ -346,7 +346,7 @@ export class IPynbImporter {
     };
 
     if (cell.metadata != null) {
-      for (let k of ["collapsed", "scrolled"]) {
+      for (const k of ["collapsed", "scrolled"]) {
         if (cell.metadata[k]) {
           obj[k] = !!(cell.metadata != null ? cell.metadata[k] : undefined);
         }
@@ -377,9 +377,9 @@ export class IPynbImporter {
     }
     if (cell.attachments != null) {
       obj.attachments = {};
-      for (let name in cell.attachments) {
+      for (const name in cell.attachments) {
         const val = cell.attachments[name];
-        for (let mime in val) {
+        for (const mime in val) {
           const base64 = val[mime];
           if (this._process_attachment != null) {
             const sha1 = this._process_attachment(base64, mime);
@@ -405,14 +405,14 @@ export function remove_redundant_reps(data?: any) {
   // This means opening and closing an ipynb file may lose information, which
   // no client currently cares about (?) -- maybe nbconvert does.
   let keep;
-  for (let type of JUPYTER_MIMETYPES) {
+  for (const type of JUPYTER_MIMETYPES) {
     if (data[type] != null) {
       keep = type;
       break;
     }
   }
   if (keep != null) {
-    for (let type in data) {
+    for (const type in data) {
       // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
       // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
       // not removed, e.g., application/vnd.jupyter.widget-view+json and

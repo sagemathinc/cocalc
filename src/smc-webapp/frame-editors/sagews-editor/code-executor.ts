@@ -16,7 +16,7 @@ export interface CodeExecutor {
   close(): void;
 }
 
-let MOCK = true;
+const MOCK = true;
 
 export function code_executor(req: ExecutionRequest): CodeExecutor {
   if (MOCK) {

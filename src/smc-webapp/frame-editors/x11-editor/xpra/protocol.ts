@@ -72,11 +72,11 @@ function inflate(
 
 // Decodes a packet
 function decode(inflated: Uint8Array, rawQueue: Uint8Array[]): any[] {
-  let packet = bdecode(inflated);
+  const packet = bdecode(inflated);
   if (packet == null) {
     throw Error("unable to decode packet");
   }
-  for (let index in rawQueue) {
+  for (const index in rawQueue) {
     packet[index] = rawQueue[index];
   }
 

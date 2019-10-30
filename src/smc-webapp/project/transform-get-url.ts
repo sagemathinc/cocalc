@@ -54,7 +54,7 @@ export function transform_get_url(
     args = ["clone", url];
   } else {
     // fall back
-    for (let a in URL_TRANSFORMS) {
+    for (const a in URL_TRANSFORMS) {
       const b = URL_TRANSFORMS[a];
       url = url.replace(a, b);
     } // only replaces first instance, unlike python.  ok for us.

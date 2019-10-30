@@ -54,7 +54,7 @@ interface PrintOptions {
 
 export function print_html(opts: PrintOptions): void {
   if (!opts.src) opts.src = "";
-  let w: any = popup(opts.src);
+  const w: any = popup(opts.src);
   if (opts.src == "") {
     if (!opts.project_id || !opts.path) {
       throw Error(

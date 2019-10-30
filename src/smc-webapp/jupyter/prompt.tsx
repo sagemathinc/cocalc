@@ -115,12 +115,8 @@ export class OutputPrompt extends Component<OutputPromptProps> {
       n = this.props.exec_count != null ? this.props.exec_count : " ";
     }
     if (n == null) {
-      return <div style={OUTPUT_STYLE}/>;
+      return <div style={OUTPUT_STYLE} />;
     }
-    return (
-      <div style={OUTPUT_STYLE}>
-        Out[{n}]:
-      </div>
-    );
+    return <div style={OUTPUT_STYLE}>Out[{n}]:</div>;
   }
 }

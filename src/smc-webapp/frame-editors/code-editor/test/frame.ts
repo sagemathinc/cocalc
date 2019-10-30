@@ -22,7 +22,7 @@ describe("CodeEditor - frame splitting tests", function() {
 
   describe("split frame in various ways", function() {
     it("verifies that there is only one frame", function() {
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("cm");
@@ -33,7 +33,7 @@ describe("CodeEditor - frame splitting tests", function() {
 
     it("splits in the row direction (so draws a horizontal split line) with default options", function() {
       editor.actions.split_frame("row");
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("node");
@@ -44,7 +44,7 @@ describe("CodeEditor - frame splitting tests", function() {
 
     it("resets to default state", function() {
       editor.actions.reset_frame_tree();
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("cm");
@@ -54,7 +54,7 @@ describe("CodeEditor - frame splitting tests", function() {
 
     it("splits in the col direction", function() {
       editor.actions.split_frame("col");
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.type).to.equal("node");
@@ -69,7 +69,7 @@ describe("CodeEditor - frame splitting tests", function() {
         "id"
       ]);
       editor.actions.split_frame("row", id);
-      let frame_tree = editor.store
+      const frame_tree = editor.store
         .getIn(["local_view_state", "frame_tree"])
         .toJS();
       expect(frame_tree.first.direction).to.equal("row");
@@ -90,7 +90,7 @@ describe("CodeEditor - frame splitting tests", function() {
         tree.second.id
       ];
       // Then set each in turn to be the active_id.
-      for (let id of leaf_ids) {
+      for (const id of leaf_ids) {
         await editor.actions.set_active_id(id);
         expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
           id
@@ -178,7 +178,7 @@ describe("CodeEditor - frame splitting tests", function() {
       it("splits the frame along a row", () =>
         editor.actions.split_frame("row"));
       it("verifies that the new bottom frame is active (not the top)", function() {
-        let t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+        const t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
         expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
           t.second.id
         );
@@ -190,11 +190,13 @@ describe("CodeEditor - frame splitting tests", function() {
       it("splits the frame along a row", () =>
         editor.actions.split_frame("row"));
       it("clicks the close button on the TOP frame", function() {
-        let t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+        const t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
         const elt = editor.actions._get_titlebar_jquery(t.first.id);
         const close_button = elt.find('button[title="Close this frame"]');
         close_button.click();
-        let t2 = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+        const t2 = editor.store
+          .getIn(["local_view_state", "frame_tree"])
+          .toJS();
         expect(t2).to.contain({ id: t.second.id, type: "cm" });
       });
     });

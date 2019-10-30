@@ -18,7 +18,7 @@ export class NotebookFrameStore {
     // We have to fix some data types, since the frame tree data gets
     // JSON'd and de-JSON'd to local storage.  This also ensures sel_ids
     // and md_edit_ids are both defined.
-    for (let key of ["sel_ids", "md_edit_ids"]) {
+    for (const key of ["sel_ids", "md_edit_ids"]) {
       this.setState({ [key]: this.get(key, Set()).toSet() });
     }
   }

@@ -397,7 +397,7 @@ export class JupyterActions extends JupyterActions0 {
       // Next verify that every cell actually running is still in the document
       // and listed as running.  TimeTravel, deleting cells, etc., can
       // certainly lead to this being necessary.
-      for (let id in this._running_cells) {
+      for (const id in this._running_cells) {
         const state = cells.getIn([id, "state"]);
         if (state == null || state === "done") {
           // cell no longer exists or isn't in a running state
@@ -444,7 +444,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const v: any[] = [];
-    for (let id in this._manager_run_cell_queue) {
+    for (const id in this._manager_run_cell_queue) {
       if (
         !(this._running_cells != null ? this._running_cells[id] : undefined)
       ) {
@@ -459,7 +459,7 @@ export class JupyterActions extends JupyterActions0 {
     );
     // dbg = @dbg("manager_run_cell_process_queue")
     // dbg("running: #{misc.to_json( ([a?.get('start'), a?.get('id')] for a in v) )}")
-    for (let cell of v) {
+    for (const cell of v) {
       if (cell != null) {
         this.manager_run_cell(cell.get("id"));
       }
@@ -543,7 +543,7 @@ export class JupyterActions extends JupyterActions0 {
       input = input.trim();
     }
 
-    let halt_on_error: boolean = !orig_cell.get("no_halt", false);
+    const halt_on_error: boolean = !orig_cell.get("no_halt", false);
 
     if (this.jupyter_kernel == null) {
       throw Error("bug -- this is guaranteed by the above");
@@ -620,7 +620,7 @@ export class JupyterActions extends JupyterActions0 {
 
       if (mesg == null) {
         // can't possibly happen, of course.
-        let err = "empty mesg";
+        const err = "empty mesg";
         dbg(`got error='${err}'`);
         handler.error(err);
         return;
@@ -727,7 +727,7 @@ export class JupyterActions extends JupyterActions0 {
 
       // check if there is a text/plain field, which we can thus also safely truncate
       if (!did_truncate && output.messages[0].data != null) {
-        for (let field in output.messages[0].data) {
+        for (const field in output.messages[0].data) {
           if (field === "text/plain") {
             const val = output.messages[0].data[field];
             len = val.length;
@@ -1173,7 +1173,7 @@ export class JupyterActions extends JupyterActions0 {
     if (this.syncdb.ipywidgets_state == null) {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
-    for (let key of keys) {
+    for (const key of keys) {
       dbg("key = ", key);
       const [, model_id, type] = JSON.parse(key);
       let data: any;

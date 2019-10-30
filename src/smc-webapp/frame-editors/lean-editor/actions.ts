@@ -123,7 +123,7 @@ export class Actions extends BaseActions<LeanEditorState> {
     if (this.data_queue.length === 0) {
       return;
     }
-    for (let x of this.data_queue) {
+    for (const x of this.data_queue) {
       if (x.messages !== undefined) {
         this.setState({ messages: x.messages });
       }

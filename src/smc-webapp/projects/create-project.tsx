@@ -117,7 +117,7 @@ export class NewProjectCreator extends Component<Props, State> {
           if (billing_actions != null) {
             try {
               await billing_actions.update_customer();
-              await actions.apply_default_upgrades({ project_id });   // see issue #4192
+              await actions.apply_default_upgrades({ project_id }); // see issue #4192
             } catch (err) {
               // Ignore error coming from this -- it's merely a convenience to
               // upgrade the project on creation; user could always do it manually,

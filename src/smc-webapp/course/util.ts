@@ -62,7 +62,7 @@ export function STEPS(peer: boolean) {
 // Returns undefined if no previous step
 export function previous_step(step: Step, peer: boolean): Step | undefined {
   let prev: Step | undefined;
-  for (let s of STEPS(peer)) {
+  for (const s of STEPS(peer)) {
     if (step === s) {
       return prev;
     }
@@ -239,7 +239,7 @@ export function compute_match_list(opts) {
     } else {
       k = x[search_key];
     }
-    for (let w of words) {
+    for (const w of words) {
       if (k.indexOf(w) === -1) {
         // no match
         num_omitted += 1;

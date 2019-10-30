@@ -74,7 +74,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
     let scroll: number = 0;
     if (this.props.editor_state) {
-      let x = this.props.editor_state.getIn(["scroll", "top"]);
+      const x = this.props.editor_state.getIn(["scroll", "top"]);
       if (x) scroll = x;
     }
 
@@ -159,7 +159,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
   on_scroll(): void {
     if (!this.state.restored_scroll) return;
-    let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     const scroll = { top: elt.scrollTop(), left: elt.scrollLeft() };
     this.props.actions.save_editor_state(this.props.id, { scroll });
     if (scroll.top !== undefined) {
@@ -179,7 +179,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     if (!this.mounted || !this.props.editor_state) return;
     const scroll: Map<string, number> = this.props.editor_state.get("scroll");
     if (!scroll) return;
-    let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     elt.scrollTop(scroll.get("top", 0));
     elt.scrollLeft(scroll.get("left", 0));
   }
@@ -191,11 +191,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       );
       if (!this.mounted) return;
       this.setState({ missing: false });
-      let v: Promise<PDFPageProxy>[] = [];
+      const v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
         v.push(doc.getPage(n));
       }
-      let pages: PDFPageProxy[] = await Promise.all(v);
+      const pages: PDFPageProxy[] = await Promise.all(v);
       if (!this.mounted) return;
       this.setState({
         doc: doc,
@@ -231,7 +231,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       // not set to *this* viewer, so ignore.
       return;
     }
-    let is_ready = () => {
+    const is_ready = () => {
       return this.state.doc != null && this.state.doc.getPage != null;
     };
     let i = 0;
@@ -254,7 +254,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         we then just add y.  We then scroll the containing div down to that position.
         */
     // Get all pages before page we are scrolling to in parallel.
-    let page_promises: PDFPageProxy[] = [];
+    const page_promises: PDFPageProxy[] = [];
     for (let n = 1; n <= page; n++) {
       page_promises.push(doc.getPage(n));
     }
@@ -273,11 +273,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
     const scale = this.scale();
     let s: number = PAGE_GAP + y * scale;
-    for (let page of pages.slice(0, pages.length - 1)) {
+    for (const page of pages.slice(0, pages.length - 1)) {
       s += scale * page.view[3] + PAGE_GAP;
     }
-    let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-    let height = elt.height();
+    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    const height = elt.height();
     if (!height) return;
     s -= height / 2;
     elt.scrollTop(s);
@@ -308,7 +308,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view &&
       next_props.scroll_pdf_into_view
     ) {
-      let { page, y, id } = next_props.scroll_pdf_into_view;
+      const { page, y, id } = next_props.scroll_pdf_into_view;
       this.scroll_pdf_into_view(page, y, id);
     }
     if (
@@ -342,7 +342,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
   }
 
   focus_on_click(): void {
-    let scroll = $(ReactDOM.findDOMNode(this.refs.scroll));
+    const scroll = $(ReactDOM.findDOMNode(this.refs.scroll));
     scroll.on("click", evt => this.scroll_click(evt, scroll));
   }
 
@@ -355,9 +355,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     } catch (err) {
       return; // Can't load, maybe there is no page 1, etc...
     }
-    let width = $(ReactDOM.findDOMNode(this.refs.scroll)).width();
+    const width = $(ReactDOM.findDOMNode(this.refs.scroll)).width();
     if (width === undefined) return;
-    let scale = (width - 10) / page.view[2];
+    const scale = (width - 10) / page.view[2];
     this.props.actions.set_font_size(this.props.id, this.font_size(scale));
   }
 
@@ -370,16 +370,16 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     } catch (err) {
       return;
     }
-    let height = $(ReactDOM.findDOMNode(this.refs.scroll)).height();
+    const height = $(ReactDOM.findDOMNode(this.refs.scroll)).height();
     if (height === undefined) return;
-    let scale = (height - 10) / page.view[3];
+    const scale = (height - 10) / page.view[3];
     this.props.actions.set_font_size(this.props.id, this.font_size(scale));
   }
 
   sync(): void {
     this.props.actions.setState({ sync: undefined });
-    let e = $(ReactDOM.findDOMNode(this.refs.scroll));
-    let offset = e.offset(),
+    const e = $(ReactDOM.findDOMNode(this.refs.scroll));
+    const offset = e.offset(),
       height = e.height();
     if (!offset || !height) return;
     dblclick(offset.left, offset.top + height / 2);
@@ -395,10 +395,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
   render_pages(): Rendered[] {
     const pages: Rendered[] = [];
     const scale = this.scale();
-    let scrollTop: number = this.state.scrollTop;
+    const scrollTop: number = this.state.scrollTop;
     let top: number = 0;
     for (let n = 1; n <= this.state.doc.numPages; n++) {
-      let page = this.state.pages[n - 1];
+      const page = this.state.pages[n - 1];
       let renderer: string = "none";
       if (
         top >= scrollTop - WINDOW_SIZE * scale &&

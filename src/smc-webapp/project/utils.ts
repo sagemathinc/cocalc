@@ -162,7 +162,7 @@ export class NewFilenames {
   // some superb words contain characters we want to avoid
   private get_superb(): string {
     while (true) {
-      let ret = superb.random();
+      const ret = superb.random();
       if (ret.match(/^[a-zA-Z0-9]+$/)) return ret;
     }
   }

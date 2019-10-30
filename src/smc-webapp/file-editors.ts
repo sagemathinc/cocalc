@@ -10,7 +10,7 @@ import { React } from "./app-framework";
 
 import { delay } from "awaiting";
 
-declare var DEBUG: boolean;
+declare let DEBUG: boolean;
 
 type Elt = any;
 
@@ -91,7 +91,7 @@ export function register_file_editor(opts: FileEditorInfo): void {
   }
 
   // Assign to the extension(s)
-  for (let ext of opts.ext) {
+  for (const ext of opts.ext) {
     const pub: string = `${!!opts.is_public}`;
     if (DEBUG && file_editors[pub] && file_editors[pub][ext] != null) {
       console.warn(

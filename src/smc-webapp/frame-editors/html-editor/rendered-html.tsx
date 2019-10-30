@@ -44,7 +44,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
   }
 
   componentDidMount(): void {
-    for (let wait of [0, 200, 500]) {
+    for (const wait of [0, 200, 500]) {
       this.restore_scroll(wait);
     }
   }

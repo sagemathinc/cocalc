@@ -221,7 +221,7 @@ class SessionManager {
     this._state = [];
     this._state_closed = {};
     {
-      let ss: State[] | undefined = LS.get<State[]>(this._local_storage_name);
+      const ss: State[] | undefined = LS.get<State[]>(this._local_storage_name);
       if (ss != null && ss) {
         try {
           this._state = ss;
@@ -232,7 +232,7 @@ class SessionManager {
       }
     }
     {
-      let sc = LS.get<State>(this._local_storage_name_closed);
+      const sc = LS.get<State>(this._local_storage_name_closed);
       if (sc != null && sc) {
         try {
           this._state_closed = sc;

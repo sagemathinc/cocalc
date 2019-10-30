@@ -43,7 +43,7 @@ export function default_ext(
   disabled_ext: { includes: (s: string) => boolean } | undefined
 ): Extension {
   if (disabled_ext != null) {
-    for (let ext of EXTs) {
+    for (const ext of EXTs) {
       if (disabled_ext.includes(ext)) continue;
       return ext;
     }

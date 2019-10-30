@@ -546,7 +546,7 @@ export class Actions<
     }
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
-    for (let key in obj) {
+    for (const key in obj) {
       const coerced_key = key as keyof LocalViewParams;
       const value = obj[coerced_key];
       local = local.set(coerced_key, fromJS(value));
@@ -709,7 +709,7 @@ export class Actions<
   // like 'type' or 'font_size'.
   public set_frame_data(obj: object): void {
     const x: any = obj["id"] != null ? { id: obj["id"] } : {};
-    for (let key in obj) {
+    for (const key in obj) {
       if (key === "id") continue;
       x["data-" + key] = obj[key];
     }
@@ -737,7 +737,7 @@ export class Actions<
     // And save this new state to localStorage.
     this._save_local_view_state();
     // Emit new-frame events
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(id);
       if (leaf != null) {
         const type = leaf.get("type");
@@ -861,7 +861,7 @@ export class Actions<
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
-    for (let new_id in after) {
+    for (const new_id in after) {
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
         if (!no_focus) {
@@ -1272,7 +1272,7 @@ export class Actions<
       id = this._get_active_id();
     }
 
-    let cm: CodeMirror.Editor | undefined = this._cm[id];
+    const cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
       // Save that it was focused just now; this is just a quick solution to
       // "give me last active cm" -- we will switch to something
@@ -1472,7 +1472,7 @@ export class Actions<
   cut(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      let doc = cm.getDoc();
+      const doc = cm.getDoc();
       copypaste.set_buffer(doc.getSelection());
       doc.replaceSelection("");
       cm.focus();
@@ -1522,7 +1522,7 @@ export class Actions<
       this.setState({ error });
     } else {
       if (typeof error == "object") {
-        let e = (error as any).message;
+        const e = (error as any).message;
         if (e === undefined) {
           let e = JSON.stringify(error);
           if (e === "{}") {
@@ -1562,7 +1562,7 @@ export class Actions<
     if (!cm) {
       return; // nothing to print...
     }
-    let node = this._get_frame_node(id);
+    const node = this._get_frame_node(id);
     if (!node) {
       return; // this won't happen but it ensures node is defined for typescript.
     }
@@ -1819,9 +1819,9 @@ export class Actions<
   // in arbitrary order.
   _get_most_recent_active_frame_id(f?: Function): string | undefined {
     if (this._state === "closed") return;
-    let tree = this._get_tree();
+    const tree = this._get_tree();
     for (let i = this._active_id_history.length - 1; i >= 0; i--) {
-      let id = this._active_id_history[i];
+      const id = this._active_id_history[i];
       if (tree_ops.is_leaf_id(tree, id)) {
         if (f === undefined || f(tree_ops.get_node(tree, id))) {
           return id;
@@ -1829,7 +1829,7 @@ export class Actions<
       }
     }
     // now just check for any frame at all.
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       if (f === undefined || f(tree_ops.get_node(tree, id))) {
         return id;
       }
@@ -2042,7 +2042,7 @@ export class Actions<
     if (full_id != null) {
       this.refresh(full_id);
     } else {
-      for (let id in this._get_leaf_ids()) {
+      for (const id in this._get_leaf_ids()) {
         this.refresh(id);
       }
     }
@@ -2158,7 +2158,7 @@ export class Actions<
     if (id == null) {
       throw Error("bug creating frame");
     }
-    let local_view_state = this.store.get("local_view_state");
+    const local_view_state = this.store.get("local_view_state");
     if (local_view_state != null && local_view_state.get("full_id") != id) {
       this.unset_frame_full();
     }
@@ -2173,7 +2173,7 @@ export class Actions<
     first: boolean = false,
     pos: number | undefined = undefined
   ): string {
-    let id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
+    const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
   }
@@ -2182,9 +2182,9 @@ export class Actions<
   public close_recently_focused_frame_of_type(
     type: string
   ): string | undefined {
-    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
-      type
-    );
+    const id:
+      | string
+      | undefined = this._get_most_recent_active_frame_id_of_type(type);
     if (id != null) {
       this.close_frame(id);
       return id;

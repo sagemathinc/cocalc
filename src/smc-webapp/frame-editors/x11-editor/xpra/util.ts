@@ -69,7 +69,7 @@ export function keyboardLayout(): string {
   v = v.toLowerCase();
   //e.g.: v="en-gb";
   v = v.split(",")[0];
-  let l = v.split("-", 2);
+  const l = v.split("-", 2);
   if (l.length === 1) {
     // note: upstream, this returns an empty string, but imagine v="de"
     return l[0];

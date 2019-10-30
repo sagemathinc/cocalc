@@ -4,7 +4,7 @@ describe("Testing inputs", () => {
   test("projects", () => {
     const matched_paths = ["projects/", "projects"];
     const account_settings_descriptor = { page: "projects" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -59,7 +59,7 @@ describe("Testing inputs", () => {
       undefined
     ];
     const account_settings_descriptor = { page: "account", tab: "account" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -67,7 +67,7 @@ describe("Testing inputs", () => {
   test("settings billing", () => {
     const matched_paths = ["settings/billing/", "settings/billing/"];
     const account_settings_descriptor = { page: "account", tab: "billing" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -75,7 +75,7 @@ describe("Testing inputs", () => {
   test("settings upgrades", () => {
     const matched_paths = ["settings/upgrades/", "settings/upgrades/"];
     const account_settings_descriptor = { page: "account", tab: "upgrades" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -83,7 +83,7 @@ describe("Testing inputs", () => {
   test("settings support", () => {
     const matched_paths = ["settings/support/", "settings/support/"];
     const account_settings_descriptor = { page: "account", tab: "support" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -91,7 +91,7 @@ describe("Testing inputs", () => {
   test("settings ssh-keys", () => {
     const matched_paths = ["settings/ssh-keys/", "settings/ssh-keys/"];
     const account_settings_descriptor = { page: "account", tab: "ssh-keys" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -99,7 +99,7 @@ describe("Testing inputs", () => {
   test("notifications", () => {
     const matched_paths = ["notifications/", "notifications"];
     const account_settings_descriptor = { page: "notifications" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -107,7 +107,7 @@ describe("Testing inputs", () => {
   test("help", () => {
     const matched_paths = ["help/", "help"];
     const account_settings_descriptor = { page: "help" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -115,7 +115,7 @@ describe("Testing inputs", () => {
   test("file-use", () => {
     const matched_paths = ["file-use/", "file-use"];
     const account_settings_descriptor = { page: "file-use" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });
@@ -123,7 +123,7 @@ describe("Testing inputs", () => {
   test("admin", () => {
     const matched_paths = ["admin/", "admin"];
     const account_settings_descriptor = { page: "admin" };
-    for (let path of matched_paths) {
+    for (const path of matched_paths) {
       expect(parse_target(path)).toEqual(account_settings_descriptor);
     }
   });

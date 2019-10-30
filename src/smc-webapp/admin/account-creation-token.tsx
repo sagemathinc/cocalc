@@ -127,7 +127,8 @@ export class AccountCreationToken extends Component<{}, State> {
       return <div>Account store not defined -- refresh your browser.</div>;
     }
     const strategies: any = account_store.get("strategies");
-    if (strategies == null) {  // I hit this in production once and it crashed my browser.
+    if (strategies == null) {
+      // I hit this in production once and it crashed my browser.
       return <div>strategies not loaded -- refresh your browser.</div>;
     }
     if (strategies.size > 1) {
