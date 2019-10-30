@@ -224,14 +224,14 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     this.safari_hack();
 
-    const options : any = cm_options(
+    const options: any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
       props.actions,
       props.id
     );
-    if (options == null) throw Error("bug");   // make typescript happy.
+    if (options == null) throw Error("bug"); // make typescript happy.
 
     // we will explicitly enable and disable styleActiveLine depending focus
     this.style_active_line = options.styleActiveLine;
@@ -263,7 +263,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       };
     }
 
-    let cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
+    const cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
@@ -379,7 +379,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       );
     }
 
-    let cm = this.cm;
+    const cm = this.cm;
     let key: string;
     for (key of [
       "lineNumbers",

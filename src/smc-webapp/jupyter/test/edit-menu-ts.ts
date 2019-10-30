@@ -129,7 +129,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
   });
   it("put content in the 5 cells", () => {
     const object = store.get("cell_list").toJS();
-    for (let k in object) {
+    for (const k in object) {
       const id = object[k];
       actions.set_cell_input(id, `${k}`);
     }

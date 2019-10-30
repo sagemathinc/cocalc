@@ -31,7 +31,7 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
 
     this._syncstring.on("change", keys => {
       keys.forEach(value => {
-        let id = value.get("id");
+        const id = value.get("id");
         if (id) {
           let cells = this.store.get("cells");
           cells = cells.set(id, this._get_cell(id));

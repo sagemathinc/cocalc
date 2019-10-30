@@ -11,7 +11,7 @@ import { Actions } from "./actions";
 import { register_file_editor } from "../frame-tree/register";
 
 const extensions: string[] = [];
-for (let ext in file_associations) {
+for (const ext in file_associations) {
   if (file_associations[ext].editor === "codemirror") {
     extensions.push(ext);
   }

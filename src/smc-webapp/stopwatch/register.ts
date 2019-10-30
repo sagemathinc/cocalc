@@ -4,11 +4,11 @@ Register the time editor -- stopwatch
     and how to init and remove the actions/store
 */
 
-let { register_file_editor } = require("../project_file");
+const { register_file_editor } = require("../project_file");
 import { redux_name, Store, AppRedux } from "../app-framework";
 import { alert_message } from "../alerts";
 
-let { EditorTime } = require("./editor");
+const { EditorTime } = require("./editor");
 import { TimeActions, StopwatchEditorState } from "./actions";
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";

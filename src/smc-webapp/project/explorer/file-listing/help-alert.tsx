@@ -56,7 +56,7 @@ function CreationHelpAlert({
 }: {
   last_folder_index: number;
   file_search: string;
-  actual_new_filename:string;
+  actual_new_filename: string;
 }) {
   // Ends with a '/' ie. only folders
   if (last_folder_index === file_search.length - 1) {

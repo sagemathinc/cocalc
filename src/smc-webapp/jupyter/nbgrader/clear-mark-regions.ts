@@ -23,7 +23,7 @@ function replace_mark_region(input: string): string | undefined {
   let in_region: boolean = false;
   let replaced_region: boolean = false;
 
-  for (let line of lines) {
+  for (const line of lines) {
     // begin the test area
     if (line.indexOf(begin_delimiter) != -1) {
       // check to make sure this isn't a nested BEGIN MARK SCHEME region

@@ -53,7 +53,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.get_frame_actions(id);
     });
 
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");

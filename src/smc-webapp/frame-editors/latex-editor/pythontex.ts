@@ -71,7 +71,7 @@ export function pythontex_errors(
 
   let err: Error | undefined = undefined;
 
-  for (let line of output.stdout.split("\n")) {
+  for (const line of output.stdout.split("\n")) {
     if (line.search("PythonTeX stderr") > 0) {
       const hit = line.match(/line (\d+):/);
       let line_no: number | null = null;

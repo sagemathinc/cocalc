@@ -58,7 +58,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async handle_table_state_change(keys): Promise<void> {
     // console.log("handle_table_state_change", keys);
-    for (let key of keys) {
+    for (const key of keys) {
       const [, model_id, type] = JSON.parse(key);
       // console.log("handle_table_state_change - one key", key, model_id, type);
       switch (type) {
@@ -77,7 +77,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
     while (this.incomplete_model_ids.size > 0) {
       const size_before = this.incomplete_model_ids.size;
-      for (let model_id of this.incomplete_model_ids) {
+      for (const model_id of this.incomplete_model_ids) {
         await this.handle_table_model_state_change(model_id);
       }
       if (this.incomplete_model_ids.size >= size_before) {
@@ -162,7 +162,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (buffer_paths.length == 0) return; // nothing to do
     // convert each buffer in buffers to a DataView.
     let i: number = 0;
-    for (let buffer of buffers) {
+    for (const buffer of buffers) {
       buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
       i += 1;
     }
@@ -196,7 +196,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     delete serializers.target;
 
     const deserialized: ModelState = {};
-    for (let k in state) {
+    for (const k in state) {
       // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
       // the layout and style deserializers are unpack_model, which
       // blows up everything and leads to an infinite loop, since
@@ -349,10 +349,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       );*/
       return;
     }
-    let changed: any = copy(model.serialize(model.changed));
+    const changed: any = copy(model.serialize(model.changed));
     delete changed.children; // sometimes they are in there, but shouldn't be sync'ed.
     // console.log("handle_model_change (frontend)", changed);
-    let last_changed = changed.last_changed;
+    const last_changed = changed.last_changed;
     delete changed.last_changed;
     if (len(changed) == 0) {
       // console.log("handle_model_change (frontend) -- NOTHING changed");
@@ -452,7 +452,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async dereference_model_links(state): Promise<boolean> {
-    for (let key in state) {
+    for (const key in state) {
       const val = state[key];
       if (typeof val === "string") {
         // single string
@@ -467,7 +467,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         }
       } else if (is_array(val)) {
         // array of stuff
-        for (let i in val) {
+        for (const i in val) {
           if (
             typeof val[i] === "string" &&
             val[i].slice(0, 10) === "IPY_MODEL_"

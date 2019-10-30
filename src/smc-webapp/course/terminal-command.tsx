@@ -12,7 +12,8 @@ const {
   FormControl,
   FormGroup,
   InputGroup,
-  Button} = require("react-bootstrap");
+  Button
+} = require("react-bootstrap");
 
 import { Card } from "cocalc-ui";
 
@@ -115,7 +116,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
   render_output(): Rendered {
     const c = this.props.terminal_command;
     if (c == null) return;
-    let output = c.get("output");
+    const output = c.get("output");
     if (!output) return;
     const v: Rendered[] = [];
     output.forEach(result => {

@@ -59,7 +59,7 @@ function auto_close_latex(cm): void {
     selections.push({ head: new_pos, anchor: new_pos });
   };
 
-  for (let range of cm.listSelections()) {
+  for (const range of cm.listSelections()) {
     if (!range.empty()) {
       // if any range is non-empty do nothing.
       return CodeMirror.Pass;

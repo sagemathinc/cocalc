@@ -79,7 +79,7 @@ export const ProjectSettings = rclass<ReactProps>(
       // try to load it directly for future use
       this._admin_project = "loading";
       const query = {};
-      for (let k of misc.keys(SCHEMA.projects.user_query.get.fields)) {
+      for (const k of misc.keys(SCHEMA.projects.user_query.get.fields)) {
         // Do **not** change the null here to undefined, which means something
         // completely different. See
         // https://github.com/sagemathinc/cocalc/issues/4137

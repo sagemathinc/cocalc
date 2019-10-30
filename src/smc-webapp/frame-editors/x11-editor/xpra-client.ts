@@ -274,10 +274,10 @@ export class XpraClient extends EventEmitter {
       return;
     }
     const doc = $(document);
-    for (let name of KEY_EVENTS) {
+    for (const name of KEY_EVENTS) {
       doc.on(name, this[`event_${name}`]);
     }
-    for (let name of MOUSE_EVENTS) {
+    for (const name of MOUSE_EVENTS) {
       doc.on(name, (this.client as any).mouse_inject);
     }
   }
@@ -287,10 +287,10 @@ export class XpraClient extends EventEmitter {
       return;
     }
     const doc = $(document);
-    for (let name of KEY_EVENTS) {
+    for (const name of KEY_EVENTS) {
       doc.off(name, this[`event_${name}`]);
     }
-    for (let name of MOUSE_EVENTS) {
+    for (const name of MOUSE_EVENTS) {
       doc.off(name, (this.client as any).mouse_inject);
     }
   }

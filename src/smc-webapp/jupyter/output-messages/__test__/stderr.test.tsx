@@ -29,7 +29,6 @@ describe("test ANSI rendering by Stderr", () => {
 describe("Stderr style test", () => {
   const wrapper = render(<Stderr message={fromJS({ text: "Hello World" })} />);
   it("checks the style -- has a red background.", () => {
-    expect(wrapper.attr('style')).toContain("background-color:#fdd");
+    expect(wrapper.attr("style")).toContain("background-color:#fdd");
   });
 });
-

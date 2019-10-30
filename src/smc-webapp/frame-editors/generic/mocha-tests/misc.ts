@@ -4,7 +4,7 @@ import * as expect from "expect";
 import * as misc from "../misc";
 
 describe("test the getIn function", function() {
-  let obj = { a: { b: { c: 5 } } };
+  const obj = { a: { b: { c: 5 } } };
   it("a first test - trivial path", function() {
     expect(misc.getIn(obj, [])).toBe(obj);
   });

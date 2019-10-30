@@ -113,7 +113,7 @@ export class Surface {
     if (this._close_on_click === undefined) {
       return;
     }
-    for (let wid of this._close_on_click) {
+    for (const wid of this._close_on_click) {
       this.send("close-window", wid);
     }
     delete this._close_on_click;
@@ -155,7 +155,7 @@ export class Surface {
 
     //console.log("updateGeometry", this.wid, swidth, sheight, scale);
     const size_constraints = this.metadata["size-constraints"];
-    let maximized = !(size_constraints && size_constraints["maximum-size"]);
+    const maximized = !(size_constraints && size_constraints["maximum-size"]);
     if (this.parent == null && maximized) {
       this.jq_canvas.css("width", "100%");
     } else {

@@ -7,8 +7,8 @@ import { path_split, separate_file_extension } from "smc-util/misc2";
 export function parse_path(
   path: string
 ): { directory: string; base: string; filename: string } {
-  let x = path_split(path);
-  let y = separate_file_extension(x.tail);
+  const x = path_split(path);
+  const y = separate_file_extension(x.tail);
   return { directory: x.head, base: y.name, filename: x.tail };
 }
 
@@ -25,7 +25,7 @@ export function raw_url(project_id: string, path: string): string {
 }
 
 export function aux_file(path: string, ext: string): string {
-  let s = path_split(path);
+  const s = path_split(path);
   s.tail += "." + ext;
   if (s.head) {
     return s.head + "/." + s.tail;

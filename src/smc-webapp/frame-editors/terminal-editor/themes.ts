@@ -5,7 +5,7 @@ Our predefined terminal color themes.
 import { ITheme, Terminal } from "xterm";
 
 export function background_color(theme_name: string): string {
-  let t = color_themes[theme_name];
+  const t = color_themes[theme_name];
   if (t == null) {
     // should never happen
     return "white";
@@ -266,6 +266,6 @@ const color_themes = {
 // Use theme_desc for UI to select a theme.
 
 export const theme_desc = {};
-for (let name in color_themes) {
+for (const name in color_themes) {
   theme_desc[name] = color_themes[name].comment;
 }

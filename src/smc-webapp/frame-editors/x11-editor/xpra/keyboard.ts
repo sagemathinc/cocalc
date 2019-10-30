@@ -76,10 +76,10 @@ export class Keyboard {
 
   process_modifier_keycodes(modifier_keycodes): void {
     // figure out "alt" and "meta" keys and altgr keys.
-    for (let mod in modifier_keycodes) {
-      let keys = modifier_keycodes[mod];
+    for (const mod in modifier_keycodes) {
+      const keys = modifier_keycodes[mod];
       for (let i = 0; i < keys.length; i++) {
-        let key = keys[i];
+        const key = keys[i];
         //the first value is usually the integer keycode,
         //the second one is the actual key name,
         //doesn't hurt to test both:
@@ -119,7 +119,7 @@ export class Keyboard {
 
   getEventModifiers(ev: KeyboardEvent | MouseEvent): string[] {
     const modifiers: string[] = [];
-    for (let key in modifierMap) {
+    for (const key in modifierMap) {
       if (ev[key]) {
         modifiers.push(modifierMap[key]);
       }

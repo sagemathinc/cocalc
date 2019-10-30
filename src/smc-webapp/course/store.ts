@@ -228,7 +228,7 @@ export class CourseStore extends Store<CourseState> {
     return (() => {
       const result: string[] = [];
       const object = map.toJS();
-      for (let student_id in object) {
+      for (const student_id in object) {
         const who_grading = object[student_id];
         if (who_grading.includes(id)) {
           result.push(student_id);

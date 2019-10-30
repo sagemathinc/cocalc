@@ -44,7 +44,7 @@ interface Path {
 
 // todo: move to generic util if this works.
 function bind(that: any, v: string[]): void {
-  for (let f of v) {
+  for (const f of v) {
     that[f] = that[f].bind(that);
   }
 }
@@ -287,7 +287,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (endswith(this.path, ".term")) {
       touch_path(this.project_id, this.path); // no need to await
     }
-    for (let data of this.conn_write_buffer) {
+    for (const data of this.conn_write_buffer) {
       this.conn.write(data);
     }
     this.conn_write_buffer = [];
@@ -561,7 +561,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const project_actions = this.actions._get_project_actions();
     let i = 0;
     let foreground = false;
-    for (let x of paths) {
+    for (const x of paths) {
       i += 1;
       if (i === paths.length) {
         foreground = true;
@@ -585,7 +585,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (!this.is_mounted) {
       return;
     }
-    for (let x of paths) {
+    for (const x of paths) {
       if (x.file != null) {
         this._close_path(x.file);
       }

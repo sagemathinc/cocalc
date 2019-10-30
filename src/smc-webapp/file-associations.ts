@@ -121,7 +121,7 @@ const MODE_TO_ICON: { [mode: string]: string } = {
   rmd: "cc-icon-r"
 };
 
-for (let ext in codemirror_associations) {
+for (const ext in codemirror_associations) {
   const mode: string = codemirror_associations[ext];
   let name: string = mode;
   const i: number = name.indexOf("x-");
@@ -242,7 +242,7 @@ file_associations["css"] = {
   name: "CSS"
 };
 
-for (let m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
+for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
   file_associations[m] = {
     editor: "codemirror",
     icon: "fa-cogs",
@@ -286,7 +286,7 @@ file_associations["v"] = file_associations["vh"] = {
   name: "Verilog"
 };
 
-for (let ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
+for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
   file_associations[ext] = {
     editor: "media",
     icon: "fa-file-image-o",
@@ -388,7 +388,7 @@ file_associations[""] = {
   name: ""
 };
 
-for (let ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
+for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
   " "
 )) {
   file_associations[ext] = archive_association;

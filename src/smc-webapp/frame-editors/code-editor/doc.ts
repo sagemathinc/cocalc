@@ -14,7 +14,7 @@ export function get_linked_doc(
   project_id: string,
   path: string
 ): CodeMirror.Doc {
-  let doc = cache[key(project_id, path)];
+  const doc = cache[key(project_id, path)];
   if (doc != undefined) {
     return doc.linkedDoc();
   } else {
@@ -35,7 +35,7 @@ export function set_doc(
 }
 
 export function get_doc(project_id: string, path: string): CodeMirror.Doc {
-  let doc = cache[key(project_id, path)];
+  const doc = cache[key(project_id, path)];
   if (doc != undefined) {
     return doc;
   } else {

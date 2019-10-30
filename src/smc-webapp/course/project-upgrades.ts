@@ -66,7 +66,7 @@ export function current_student_project_upgrades(opts: {
     actual upgrades are included.
     */
   const other = {};
-  for (let project_id in opts.student_project_ids) {
+  for (const project_id in opts.student_project_ids) {
     const users = opts.project_map.getIn([project_id, "users"]);
     if (users == null) {
       continue;
@@ -136,7 +136,7 @@ export function upgrade_plan(opts: {
   const ids = misc.keys(opts.student_project_ids);
   ids.sort();
   const plan = {};
-  for (let project_id of ids) {
+  for (const project_id of ids) {
     var left;
     if (opts.deleted_project_ids[project_id]) {
       // give this project NOTHING
