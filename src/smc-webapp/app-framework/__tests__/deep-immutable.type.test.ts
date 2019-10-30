@@ -20,7 +20,7 @@ test("Successfully converts a complex object", () => {
       ArrayBuffer: ArrayBuffer;
     };
   }
-  let result: DeepImmutable<State> = "" as any;
+  const result: DeepImmutable<State> = "" as any;
 
   type FullConvert = TypedMap<{
     foo: TypedMap<{

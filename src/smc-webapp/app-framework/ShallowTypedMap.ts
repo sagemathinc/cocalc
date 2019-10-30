@@ -1,4 +1,4 @@
-export interface ShallowTypedMap<TProps extends Object> {
+export interface ShallowTypedMap<TProps extends Record<string, any>> {
   size: number;
 
   // Reading values

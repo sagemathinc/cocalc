@@ -101,7 +101,7 @@ type Drill5Get<
  *  2. Prevents widening https://github.com/Microsoft/TypeScript/pull/10676
  *  3. Numbers technically can't be keys but are coerced to strings
  */
-type ValidKey = string | number | Symbol;
+type ValidKey = string | number | symbol;
 
 /**
  * Provides an interface for immutable methods on a structure defined by
