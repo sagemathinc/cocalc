@@ -95,7 +95,7 @@
     ]
   },
   "scripts": {
-    "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",
+    "lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
     "webpack-watch": "cd $SALVUS_ROOT; scripts/check_npm_packages.py; scripts/update_color_scheme.coffee; webapp-lib/primus/update_primus; unset CC_STATICPAGES; CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --debug --output-pathinfo --progress --colors --watch --watch-poll=1000",
