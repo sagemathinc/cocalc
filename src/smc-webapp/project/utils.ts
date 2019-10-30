@@ -9,7 +9,7 @@ import { generate as heroku } from "project-name-generator";
 const superb = require("superb");
 const catNames = require("cat-names");
 const dogNames = require("dog-names");
-const { file_options } = require("../editor");
+const { file_options } = require("../editor-tmp");
 import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
 
 export type NewFilenameTypes =

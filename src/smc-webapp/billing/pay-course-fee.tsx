@@ -12,6 +12,7 @@ import { AppliedCoupons, CoursePay } from "./types";
 import { STUDENT_COURSE_PRICE } from "./data";
 import { alert_message } from "../alerts";
 import { CouponAdder } from "./coupon-adder";
+import { AccountStore } from "../account";
 
 interface Props {
   project_id: string;
@@ -62,7 +63,7 @@ class PayCourseFee extends Component<Props, State> {
     // Wait until a members-only upgrade and network upgrade are available, due to buying it
     this.setState({ confirm: false });
     redux.getStore("account").wait({
-      until: store => {
+      until: (store: AccountStore) => {
         const upgrades = store.get_total_upgrades();
         // NOTE! If you make one available due to changing what is allocated it won't cause this function
         // we're in here to update, since we *ONLY* listen to changes on the account store.

@@ -314,7 +314,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const account = this.redux.getStore("account");
     if (account != null) {
       // TODO: getIn types
-      return account.getIn(["editor_settings", "jupyter", "kernel"] as any);
+      return account.getIn(["editor_settings", "jupyter", "kernel"]);
     } else {
       return undefined;
     }
