@@ -109,7 +109,21 @@ lastname: Jones
 
 Commands
 ```
+# create test account
 npm run create_account_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -s -p
-npm run install_files_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -j -i test_files/
+# create test project and upload test files
+npm run install_files_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -j -i test_files/ -p
+# run GUI and API tests
 npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p
+# delete test project just created
+npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p -x delete -s
 ```
+
+## eslint
+
+Just starting with this. Here's an example running eslint with `test_driver.ts`.
+
+```
+npm run eslint -- src/test_driver.ts
+```
+
