@@ -82,7 +82,7 @@ describe("complete some things using python2 kernel -- ", function() {
 });
 
 describe("complete some things using sage kernel -- ", function() {
-  this.timeout(30000);  // sage can be very slow to start.
+  this.timeout(30000); // sage can be very slow to start.
 
   it("creates a sage kernel", function() {
     kernel = common.kernel("test-sagemath");

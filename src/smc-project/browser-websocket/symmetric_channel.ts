@@ -96,4 +96,3 @@ export function symmetric_channel(name: string): SymmetricChannel {
   sync_tables[name] = { local };
   return local;
 }
-

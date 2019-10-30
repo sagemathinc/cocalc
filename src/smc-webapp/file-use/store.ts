@@ -66,7 +66,7 @@ export class FileUseStore extends Store<FileUseState> {
     return true;
   }
 
-  public clear_cache() : void {
+  public clear_cache(): void {
     delete this._cache;
   }
 

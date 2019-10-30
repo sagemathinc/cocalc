@@ -31,7 +31,7 @@ export class JupyterActions extends JupyterActions0 {
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
 
-  private set_backend_state(state: BackendState) : void {
+  private set_backend_state(state: BackendState): void {
     /*
         The backend states, which are put in the syncdb so clients
         can display this:
@@ -67,7 +67,7 @@ export class JupyterActions extends JupyterActions0 {
       backend_state: state
     });
     this.save_asap();
-  };
+  }
 
   set_kernel_state = (state: any, save = false) => {
     this._kernel_state = state;
@@ -183,9 +183,7 @@ export class JupyterActions extends JupyterActions0 {
               ) {
                 this.set_kernel_state(this._kernel_state, true);
               }
-              if (
-                record.get("backend_state") !== this._backend_state
-              ) {
+              if (record.get("backend_state") !== this._backend_state) {
                 this.set_backend_state(this._backend_state);
               }
             }

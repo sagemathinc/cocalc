@@ -333,9 +333,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       this.ipywidgets_state.save();
     } else {
       throw Error(
-        `TODO: process_comm_message_from_browser with method '${
-          data.method
-        }' not implemented`
+        `TODO: process_comm_message_from_browser with method '${data.method}' not implemented`
       );
     }
     return uuid();

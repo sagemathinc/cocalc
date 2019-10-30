@@ -40,7 +40,7 @@ export function bencode(obj: any): string {
   }
 }
 
-function uintToString(uintArray : Uint8Array): string {
+function uintToString(uintArray: Uint8Array): string {
   // apply in chunks of 10400 to avoid call stack overflow
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
   let s = "";

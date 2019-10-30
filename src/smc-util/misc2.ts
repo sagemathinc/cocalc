@@ -587,5 +587,5 @@ export function hidden_meta_file(path: string, ext: string): string {
 }
 
 export function history_path(path: string): string {
-  return hidden_meta_file(path, 'time-travel');
+  return hidden_meta_file(path, "time-travel");
 }

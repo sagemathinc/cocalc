@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra Client
  */

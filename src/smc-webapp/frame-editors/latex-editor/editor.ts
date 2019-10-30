@@ -104,7 +104,7 @@ const EDITOR_SPEC = {
 
   settings: SETTINGS_SPEC,
 
-  time_travel,
+  time_travel
 
   /*
   pdfjs_svg: {

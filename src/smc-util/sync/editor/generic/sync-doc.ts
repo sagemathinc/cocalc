@@ -1016,7 +1016,7 @@ export class SyncDoc extends EventEmitter {
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator(),
-      this.init_ipywidgets(),
+      this.init_ipywidgets()
     ]);
     this.assert_not_closed("init_all -- after init patch_list");
 
@@ -1381,7 +1381,7 @@ export class SyncDoc extends EventEmitter {
 
   private async init_evaluator(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path)
+    const ext = filename_extension(this.path);
     if (ext !== "sagews") {
       dbg("done -- only use init_evaluator for sagews");
       return;
@@ -1398,8 +1398,8 @@ export class SyncDoc extends EventEmitter {
 
   private async init_ipywidgets(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path)
-    if (ext != 'sage-jupyter2') {
+    const ext = filename_extension(this.path);
+    if (ext != "sage-jupyter2") {
       dbg("done -- only use ipywidgets for jupyter");
       return;
     }
@@ -1411,7 +1411,6 @@ export class SyncDoc extends EventEmitter {
     );
     await this.ipywidgets_state.init();
     dbg("done");
-
   }
 
   private async init_cursors(): Promise<void> {
@@ -2125,9 +2124,7 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
-      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${
-        this.save_to_disk_start_ctime
-      }, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
+      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${this.save_to_disk_start_ctime}, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
     );
     if (
       this.save_to_disk_start_ctime == null ||

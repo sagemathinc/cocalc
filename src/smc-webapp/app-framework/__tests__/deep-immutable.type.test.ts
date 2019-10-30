@@ -5,7 +5,7 @@ import { DeepImmutable } from "../immutable-types";
 
 test("Successfully converts a complex object", () => {
   interface State {
-    foo: { 
+    foo: {
       bar: string[];
       bar2?: { a?: number[]; b: number; c: number };
       map: immutable.Map<string, any>;
@@ -21,7 +21,7 @@ test("Successfully converts a complex object", () => {
     };
   }
   let result: DeepImmutable<State> = "" as any;
-  
+
   type FullConvert = TypedMap<{
     foo: TypedMap<{
       bar: immutable.List<string>;
@@ -37,7 +37,7 @@ test("Successfully converts a complex object", () => {
       Promise: Promise<any>;
       ArrayBuffer: ArrayBuffer;
     }>;
-  }>
-  
+  }>;
+
   expectType<FullConvert>(result);
-})
+});

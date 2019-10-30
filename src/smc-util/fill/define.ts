@@ -18,11 +18,11 @@ type Definition<T> = {
  *
  * @example
  *
- *     define<{name: string, 
+ *     define<{name: string,
  *              highlight?: boolean,
  *              last?: string},
  *           {highlight: boolean}>(unknown_prop, {highlight: false});
- * 
+ *
  * Unfortunately you must use both type annotations until this goes through
  * https://github.com/microsoft/TypeScript/issues/26242
  *

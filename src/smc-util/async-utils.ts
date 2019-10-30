@@ -183,7 +183,6 @@ export function cancel_scheduled(f: any): void {
   }
 }
 
-
 // WARNING -- not tested
 export async function async_as_callback(
   f: Function,

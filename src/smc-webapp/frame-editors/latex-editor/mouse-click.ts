@@ -7,7 +7,7 @@ export function dblclick(x: number, y: number): void {
     cancelable: true,
     clientX: x,
     clientY: y
-  })
+  });
 
   var element = document.elementFromPoint(x, y);
   if (element != undefined) {

@@ -63,7 +63,9 @@ function verify_types(
   projects: string[]
 ) {
   if (!is_valid_uuid_string(account_id))
-    throw Error(`account_id (="${account_id}") must be a valid uuid string (type=${typeof account_id})`);
+    throw Error(
+      `account_id (="${account_id}") must be a valid uuid string (type=${typeof account_id})`
+    );
   if (!is_array(accounts)) {
     throw Error("accounts must be an array");
   }
@@ -72,9 +74,7 @@ function verify_types(
   }
   if (accounts.length != projects.length) {
     throw Error(
-      `accounts (of length ${accounts.length}) and projects (of length ${
-        projects.length
-      }) must be arrays of the same length`
+      `accounts (of length ${accounts.length}) and projects (of length ${projects.length}) must be arrays of the same length`
     );
   }
   for (let x of accounts) {

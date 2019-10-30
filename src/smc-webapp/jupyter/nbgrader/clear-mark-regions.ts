@@ -1,5 +1,5 @@
 /* Similar to clear-hidden-tests.
-*/
+ */
 
 import { Map } from "immutable";
 
@@ -17,9 +17,7 @@ Remove that region depending the cell type.
 Returns undefined if nothing changed; otherwise, returns the new input.
 */
 // TODO: common code with hidden-tests...
-function replace_mark_region(
-  input: string
-): string | undefined {
+function replace_mark_region(input: string): string | undefined {
   const lines: string[] = input.split("\n");
   const new_lines: string[] = [];
   let in_region: boolean = false;

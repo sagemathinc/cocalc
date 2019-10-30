@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 // Never resize beyond this (since it's the backend size)
 export const MAX_WIDTH = 4000;
 export const MAX_HEIGHT = 3000;
@@ -41,7 +41,18 @@ export class Surface {
   public rescale_params: { scale: number; width?: number; height?: number };
   public _close_on_click?: Set<number>;
 
-  constructor({ parent, wid, x, y, w, h, metadata, properties, send, is_overlay }) {
+  constructor({
+    parent,
+    wid,
+    x,
+    y,
+    w,
+    h,
+    metadata,
+    properties,
+    send,
+    is_overlay
+  }) {
     this.parent = parent;
     this.is_overlay = is_overlay;
     this.send = send;

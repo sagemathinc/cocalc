@@ -33,5 +33,3 @@ export function aux_file(path: string, ext: string): string {
     return "." + s.tail;
   }
 }
-
-

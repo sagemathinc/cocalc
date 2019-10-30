@@ -93,7 +93,7 @@ function register(
   }
 }
 
-const REGISTRY : {[key:string]:any} = {};
+const REGISTRY: { [key: string]: any } = {};
 
 export function get_file_editor(ext: string, is_public: boolean) {
   return REGISTRY[key(ext, is_public)];

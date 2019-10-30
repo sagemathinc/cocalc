@@ -312,9 +312,7 @@ export class CopyPath {
         if (x == null) {
           if (mesg.not_yet_done) {
             this.throw(
-              `Copy operation '${
-                mesg.copy_path_id
-              }' either does not exist or already finished`
+              `Copy operation '${mesg.copy_path_id}' either does not exist or already finished`
             );
           } else {
             this.throw(

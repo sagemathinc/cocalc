@@ -61,7 +61,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
-import { Actions , UNSAFE_NONNULLABLE } from "../app-framework";
+import { Actions, UNSAFE_NONNULLABLE } from "../app-framework";
 
 const PARALLEL_LIMIT = 5; // number of async things to do in parallel
 
@@ -732,9 +732,7 @@ export class CourseActions extends Actions<CourseState> {
       );
     };
     const id = this.set_activity({
-      desc: `Creating ${
-        students.length
-      } student projects (do not close the course until done)`
+      desc: `Creating ${students.length} student projects (do not close the course until done)`
     });
     return async.mapLimit(student_ids, PARALLEL_LIMIT, f, err => {
       this.set_activity({ id });
@@ -775,8 +773,11 @@ export class CourseActions extends Actions<CourseState> {
     if (store == undefined) {
       return;
     }
-    const students = store.get_students().valueSeq().toArray();
-    await amap(students, PARALLEL_LIMIT, this._delete_student)
+    const students = store
+      .get_students()
+      .valueSeq()
+      .toArray();
+    await amap(students, PARALLEL_LIMIT, this._delete_student);
     this.configure_all_projects();
   }
 
@@ -888,7 +889,9 @@ export class CourseActions extends Actions<CourseState> {
       this.set_error("BUG: attempt to create when stores not yet initialized");
       return;
     }
-    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get("student_id");
+    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get(
+      "student_id"
+    );
     this._set({
       create_project: webapp_client.server_time(),
       table: "students",
@@ -979,7 +982,9 @@ export class CourseActions extends Actions<CourseState> {
     if (student_account_id == null) {
       // No known account yet, so invite by email.  That said,
       // we only do this at most once every few days.
-      const last_email_invite = UNSAFE_NONNULLABLE(student).get("last_email_invite");
+      const last_email_invite = UNSAFE_NONNULLABLE(student).get(
+        "last_email_invite"
+      );
       if (
         force_send_invite_by_email ||
         (!last_email_invite ||
@@ -2612,9 +2617,7 @@ You can find the comments they made in the folders below.\
             return webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: target_path + `/GRADER - ${name.simple}.txt`,
-              content: `The student who did the peer grading is named ${
-                name.full
-              }.`,
+              content: `The student who did the peer grading is named ${name.full}.`,
               cb
             });
           },
@@ -2680,7 +2683,10 @@ You can find the comments they made in the folders below.\
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path = UNSAFE_NONNULLABLE(assignment).get("collect_path") + "/" + UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
+        path =
+          UNSAFE_NONNULLABLE(assignment).get("collect_path") +
+          "/" +
+          UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)

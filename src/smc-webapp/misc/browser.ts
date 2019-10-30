@@ -5,7 +5,7 @@ Get browser name *and* version:
 https://stackoverflow.com/questions/5916900/how-can-you-detect-the-version-of-a-browser
 */
 
-export function get_browser() : {name:string, version:string} {
+export function get_browser(): { name: string; version: string } {
   var ua = navigator.userAgent,
     tem,
     M =

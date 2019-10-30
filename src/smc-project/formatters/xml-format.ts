@@ -67,9 +67,7 @@ export async function xml_format(
     } catch (e) {
       logger.debug(`Calling XML formatter raised ${e}`);
       throw new Error(
-        `XML formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `XML formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -78,9 +76,7 @@ export async function xml_format(
 
     const problem = options.parser === "xml-tidy" ? code >= 2 : code >= 1;
     if (problem) {
-      const msg = `XML formatter "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const msg = `XML formatter "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       throw Error(msg);
     }
 

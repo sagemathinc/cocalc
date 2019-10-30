@@ -137,10 +137,7 @@ export class SageWS {
   public remove_cell_flag(id, flag): void {
     const s = this.get_cell_flagstring(id);
     if (s != null && s.includes(flag)) {
-      this.set_cell_flagstring(
-        id,
-        s.replace(new RegExp(flag, "g"), "")
-      );
+      this.set_cell_flagstring(id, s.replace(new RegExp(flag, "g"), ""));
     }
   }
 

@@ -45,9 +45,8 @@ export const EDITOR_SPEC = {
     name: "PDF - Native",
     icon: "file-pdf-o",
     buttons: set(["reload", "print", "download"]),
-    component: PDFEmbed,
-  },
-
+    component: PDFEmbed
+  }
 };
 
 export const Editor = createEditor({

@@ -1,4 +1,4 @@
-const {  writeFile, unlink } = require("fs");
+const { writeFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");

@@ -153,19 +153,19 @@ export const DICTS: string[] = [
 
 // Slightly more human readable discription of dict.
 export function dict_desc(dict: string): string {
-  if (dict == 'default') {
+  if (dict == "default") {
     let lang = language();
-    if (lang == 'default') {
+    if (lang == "default") {
       return lang;
     }
     return dict_desc(lang);
   }
-  if (dict == 'disabled') {
+  if (dict == "disabled") {
     return "Disabled (no spell check)";
   }
   let country = dict.slice(0, 2);
   let other = dict.slice(3);
-  if(!langs.has("1", country)) {
+  if (!langs.has("1", country)) {
     return dict;
   }
   let s: string = langs.where("1", country).name;

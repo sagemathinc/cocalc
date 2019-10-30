@@ -289,7 +289,7 @@ export const tex2jax = {
         span = [slashes.substr(1).replace(/\\\\/g, "\\"), "$"];
         n = 0;
       }
-      span = $("<span>").text(span.join(''))[0];
+      span = $("<span>").text(span.join(""))[0];
       var text = document.createTextNode(
         element.nodeValue.substr(0, match.index)
       );

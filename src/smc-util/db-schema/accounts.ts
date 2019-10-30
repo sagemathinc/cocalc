@@ -3,7 +3,7 @@ import { create } from "./types";
 import {
   DEFAULT_FONT_SIZE,
   NEW_FILENAMES,
-  DEFAULT_NEW_FILENAMES,
+  DEFAULT_NEW_FILENAMES
 } from "./defaults";
 
 export const accounts = create({

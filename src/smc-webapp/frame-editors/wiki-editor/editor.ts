@@ -60,7 +60,7 @@ const EDITOR_SPEC = {
 
   terminal,
 
-  settings : SETTINGS_SPEC,
+  settings: SETTINGS_SPEC,
 
   time_travel
 };

@@ -718,9 +718,7 @@ export class JupyterKernel extends EventEmitter
   }): Promise<any> {
     const dbg = this.dbg("introspect");
     dbg(
-      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${
-        opts.detail_level
-      }`
+      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`
     );
     return await this.call("inspect_request", opts);
   }

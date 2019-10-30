@@ -138,9 +138,7 @@ class SyncTableChannel {
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
-      `creating new sync channel (persistent=${this.persistent}, ephemeral=${
-        this.ephemeral
-      })`
+      `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`
     );
   }
 
@@ -248,9 +246,7 @@ class SyncTableChannel {
     const m = this.increment_connection_count(spark);
 
     this.log(
-      `new connection from (address=${spark.address.ip}, conn=${
-        spark.conn.id
-      }) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
+      `new connection from (address=${spark.address.ip}, conn=${spark.conn.id}) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
     );
 
     if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
@@ -287,7 +283,10 @@ class SyncTableChannel {
       spark.end();
       return;
     }
-    if (this.synctable != null && this.synctable.get_state() == "disconnected") {
+    if (
+      this.synctable != null &&
+      this.synctable.get_state() == "disconnected"
+    ) {
       // Because synctable is being initialized for the first time,
       // or it temporarily disconnected (e.g., lost hub), and is
       // trying to reconnect.  So just wait for it to connect.

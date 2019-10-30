@@ -65,6 +65,6 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
     preparse?: boolean
   ): CodeExecutor {
     // todo: if cell_id is given, ensure is valid.
-    return code_executor({path: this.path, code, data, cell_id, preparse});
+    return code_executor({ path: this.path, code, data, cell_id, preparse });
   }
 }

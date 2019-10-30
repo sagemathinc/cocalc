@@ -278,7 +278,7 @@ describe("merge cell with cell above", () => {
     actions.set_cursor_locs([{ id, x: 3, y: 0 }]);
     actions.split_current_cell();
   });
-/*  it("now merge cells back together above", () => {
+  /*  it("now merge cells back together above", () => {
     actions.merge_cell_above();
     const list = store.get("cell_list");
     expect(list.size).to.equal(1);

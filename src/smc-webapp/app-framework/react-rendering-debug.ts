@@ -10,7 +10,7 @@ export enum MODES {
 
 export function debug_transform(rclass: any, mode = MODES.default) {
   if (typeof smc === "undefined" || smc === null) {
-    return rclass // do not enable debugging in prod
+    return rclass; // do not enable debugging in prod
   }
 
   if (mode !== "default") {

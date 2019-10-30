@@ -288,5 +288,4 @@ describe("Test inserting missing patches (thus changing history)", () => {
   it("list of versions", () => {
     expect(patches.versions()).toEqual(v.map(x => x.time));
   });
-
 });

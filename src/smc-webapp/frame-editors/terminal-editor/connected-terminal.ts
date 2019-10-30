@@ -540,9 +540,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_request(): void {
-    this.actions.set_error(
-      "You were removed from a terminal."
-    );
+    this.actions.set_error("You were removed from a terminal.");
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
     // this frame.

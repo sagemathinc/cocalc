@@ -80,9 +80,7 @@ export async function html_format(
     } catch (e) {
       logger.debug(`Calling formatter raised ${e}`);
       throw new Error(
-        `HTML formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `HTML formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 

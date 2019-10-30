@@ -803,9 +803,7 @@ export class SyncTable extends EventEmitter {
     for (let primary_key of this.primary_keys) {
       if (this.query[this.table][0][primary_key] === undefined) {
         throw Error(
-          `must include each primary key in query of table '${
-            this.table
-          }', but you missed '${primary_key}'`
+          `must include each primary key in query of table '${this.table}', but you missed '${primary_key}'`
         );
       }
     }

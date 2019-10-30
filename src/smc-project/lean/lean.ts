@@ -155,7 +155,8 @@ export class Lean extends EventEmitter {
     }
     // get the syncstring and start updating based on content
     let syncstring: any = undefined;
-    while (syncstring == null) { // todo change to be event driven!
+    while (syncstring == null) {
+      // todo change to be event driven!
       syncstring = this.client.syncdoc({ path });
       if (syncstring == null) {
         await delay(1000);

@@ -104,7 +104,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   public init_frame_tree(versions?: List<Date>): void {
     if (versions == null) {
-      if (this.syncdoc == null || this.syncdoc.get_state() != 'ready') return;
+      if (this.syncdoc == null || this.syncdoc.get_state() != "ready") return;
       versions = List<Date>(this.syncdoc.all_versions());
     }
     // make sure all the version and version ranges are valid...

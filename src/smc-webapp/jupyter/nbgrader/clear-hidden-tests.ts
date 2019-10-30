@@ -15,9 +15,7 @@ Remove that region depending the cell type.
 
 Returns undefined if nothing changed; otherwise, returns the new input.
 */
-function replace_hidden_tests_region(
-  input: string
-): string | undefined {
+function replace_hidden_tests_region(input: string): string | undefined {
   const lines: string[] = input.split("\n");
   const new_lines: string[] = [];
   let in_test: boolean = false;

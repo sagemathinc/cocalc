@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra Client
  */
@@ -117,8 +117,8 @@ function getMouseButton(ev: MouseEvent): number {
   let button: number = ev.which
     ? Math.max(0, ev.which)
     : ev.button
-      ? Math.max(0, ev.button) + 1
-      : 0;
+    ? Math.max(0, ev.button) + 1
+    : 0;
 
   if (button === 4) {
     button = 8;
@@ -266,8 +266,8 @@ export class Mouse {
 
     const INCREMENT = 120;
     //clamp to prevent event floods:
-    let px = Math.min(INCREMENT*10, wheel.pixelX);
-    let py = Math.min(INCREMENT*10, wheel.pixelY);
+    let px = Math.min(INCREMENT * 10, wheel.pixelX);
+    let py = Math.min(INCREMENT * 10, wheel.pixelY);
     let apx = Math.abs(px);
     let apy = Math.abs(py);
 

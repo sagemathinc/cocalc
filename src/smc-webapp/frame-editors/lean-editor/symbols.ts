@@ -35,7 +35,7 @@ export function substitute_symbols(value: string, j: number = 0): Sub[] {
 }
 
 /* This is https://github.com/leanprover/vscode-lean/blob/master/translations.json
-*/
+ */
 const TRANSLATIONS = {
   note: "♩",
   notin: "∉",

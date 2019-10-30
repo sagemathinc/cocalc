@@ -34,10 +34,12 @@ describe("test the getIn function", function() {
   });
 
   it("a second test - null doesn't trigger the default", function() {
-    expect(misc.getIn({a:{b:null}}, ["a", "b"], 'default')).toBe(null);
-  })
+    expect(misc.getIn({ a: { b: null } }, ["a", "b"], "default")).toBe(null);
+  });
 
   it("a second test - undefined triggers the default", function() {
-    expect(misc.getIn({a:{b:undefined}}, ["a", "b"], 'default')).toBe('default');
-  })
+    expect(misc.getIn({ a: { b: undefined } }, ["a", "b"], "default")).toBe(
+      "default"
+    );
+  });
 });

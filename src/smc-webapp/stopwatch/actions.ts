@@ -73,7 +73,7 @@ export let TimeActions = class TimeActions extends Actions<
     this.syncdb.get().map(data => {
       id = Math.max(data.get("id"), id);
     });
-    id += 1;  // our new stopwatch has the largest id (so at the bottom)
+    id += 1; // our new stopwatch has the largest id (so at the bottom)
     this._set({
       id,
       label: "",

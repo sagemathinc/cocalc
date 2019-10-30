@@ -49,7 +49,5 @@ export function render_directory_listing(
     s.push(`<a style='text-decoration:none' href='${link}'>${name}</a>`);
   }
   const body = s.join("<br/>");
-  return `<body style='margin:40px'><h2>${info.project_id}:${
-    info.path
-  }</h2>${body}</body>`;
+  return `<body style='margin:40px'><h2>${info.project_id}:${info.path}</h2>${body}</body>`;
 }

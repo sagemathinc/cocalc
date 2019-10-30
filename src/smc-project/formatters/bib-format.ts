@@ -54,9 +54,7 @@ export async function bib_format(
     } catch (e) {
       logger.debug(`Calling Bibtex formatter raised ${e}`);
       throw new Error(
-        `Bibtex formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `Bibtex formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -65,9 +63,7 @@ export async function bib_format(
 
     const problem = code >= 1;
     if (problem) {
-      const msg = `Bibtex formatter "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const msg = `Bibtex formatter "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       throw Error(msg);
     }
 

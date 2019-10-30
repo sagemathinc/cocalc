@@ -13,4 +13,3 @@ register_file_editor({
   Actions: TimeTravelActions,
   is_public: false
 });
-

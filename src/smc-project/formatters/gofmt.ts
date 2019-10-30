@@ -62,9 +62,7 @@ export async function gofmt(
     if (code >= 1) {
       stdout = cleanup_error(stdout, input_path);
       stderr = cleanup_error(stderr, input_path);
-      const err_msg = `Gofmt code formatting utility "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const err_msg = `Gofmt code formatting utility "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       logger.debug(`gofmt error: ${err_msg}`);
       throw Error(err_msg);
     }

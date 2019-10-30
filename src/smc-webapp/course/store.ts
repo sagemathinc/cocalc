@@ -375,7 +375,7 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  get_student(student?: string | StudentRecord ): StudentRecord | undefined {
+  get_student(student?: string | StudentRecord): StudentRecord | undefined {
     // return student with given id if a string; otherwise, just return student (the input)
     if (typeof student !== "string") {
       // it is already a StudentRecord, but maybe outdated.

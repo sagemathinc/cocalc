@@ -1,8 +1,6 @@
 import { define, required } from "./define";
 import { expectType } from "tsd";
 
-
-
 test("Defaulted value should be defined", () => {
   interface Input {
     foo: number;

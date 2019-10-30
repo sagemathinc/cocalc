@@ -60,9 +60,7 @@ export async function clang_format(
     const code = await callback(close, formatter);
 
     if (code >= 1) {
-      const err_msg = `C/C++ code formatting utility "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const err_msg = `C/C++ code formatting utility "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       logger.debug(`clang-format error: ${err_msg}`);
       throw Error(err_msg);
     }

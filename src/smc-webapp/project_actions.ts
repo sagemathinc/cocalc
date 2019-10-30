@@ -722,7 +722,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // If embedded in an iframe, it is the embedding window.
       // If not in an iframe, seems to be the window itself.
       // I copied the {source:?,payload:?} format from react devtools.
-      window.parent.postMessage({ source: "cocalc-project-log", payload: query }, "*");
+      window.parent.postMessage(
+        { source: "cocalc-project-log", payload: query },
+        "*"
+      );
     }
 
     return id;
