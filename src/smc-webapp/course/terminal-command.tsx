@@ -12,7 +12,8 @@ const {
   FormControl,
   FormGroup,
   InputGroup,
-  Button} = require("react-bootstrap");
+  Button
+} = require("react-bootstrap");
 
 import { Card } from "cocalc-ui";
 

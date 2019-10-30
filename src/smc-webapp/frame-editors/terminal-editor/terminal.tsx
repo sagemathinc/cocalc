@@ -96,7 +96,7 @@ export class TerminalFrame extends Component<Props, {}> {
       console.log("init_terminal warning -- ", err);
       return; // not yet ready -- might be ok; will try again.
     }
-    if (this.terminal == null) return;  // should be impossible.
+    if (this.terminal == null) return; // should be impossible.
     this.set_font_size(this.props.font_size);
     this.measure_size();
     if (this.props.is_current) {

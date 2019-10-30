@@ -1,8 +1,4 @@
-import {
-  React,
-  Component,
-  Rendered
-} from "smc-webapp/app-framework";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 interface Props {
   account_id: string;

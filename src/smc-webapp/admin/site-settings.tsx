@@ -1,11 +1,6 @@
 import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
 
-import {
-  React,
-  Component,
-  Rendered,
-  ReactDOM
-} from "../app-framework";
+import { React, Component, Rendered, ReactDOM } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";

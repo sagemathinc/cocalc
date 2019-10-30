@@ -224,14 +224,14 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     this.safari_hack();
 
-    const options : any = cm_options(
+    const options: any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
       props.actions,
       props.id
     );
-    if (options == null) throw Error("bug");   // make typescript happy.
+    if (options == null) throw Error("bug"); // make typescript happy.
 
     // we will explicitly enable and disable styleActiveLine depending focus
     this.style_active_line = options.styleActiveLine;

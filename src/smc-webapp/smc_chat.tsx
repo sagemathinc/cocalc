@@ -262,9 +262,7 @@ export class Message extends Component<MessageProps, MessageState> {
         this.state.history_size !== this.props.message.get("history").size &&
         this.state.new_changes
       ) {
-        text = `${
-          this.props.editor_name
-        } has updated this message. Esc to discard your changes and see theirs`;
+        text = `${this.props.editor_name} has updated this message. Esc to discard your changes and see theirs`;
         // color = "#E55435";
       } else {
         if (IS_TOUCH) {
@@ -939,9 +937,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   append_file = file => {
     let final_insertion_text;
     if (file.type.indexOf("image") !== -1) {
-      final_insertion_text = `<img src=\".chat-images/${
-        file.name
-      }\" style="max-width:100%">`;
+      final_insertion_text = `<img src=\".chat-images/${file.name}\" style="max-width:100%">`;
     } else {
       final_insertion_text = `[${file.name}](${file.name})`;
     }

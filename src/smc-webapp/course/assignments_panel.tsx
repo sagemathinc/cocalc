@@ -1710,7 +1710,10 @@ class StudentListForAssignment extends Component<
   private render_student_info(student_id: string): Rendered {
     const store = this.get_store();
     const student = store.get_student(student_id);
-    const key = util.assignment_identifier(this.props.assignment, UNSAFE_NONNULLABLE(student));
+    const key = util.assignment_identifier(
+      this.props.assignment,
+      UNSAFE_NONNULLABLE(student)
+    );
     const edited_feedback = this.props.active_feedback_edits.get(key);
     let edited_comments: string | undefined;
     let edited_grade: string | undefined;

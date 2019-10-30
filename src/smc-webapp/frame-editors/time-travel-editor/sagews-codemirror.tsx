@@ -82,10 +82,7 @@ export class SagewsCodemirror extends Component<Props> {
 
   public render(): Rendered {
     return (
-      <div
-        className="smc-vfill"
-        style={{ overflow: "auto" }}
-      >
+      <div className="smc-vfill" style={{ overflow: "auto" }}>
         <div ref={this.div_ref} />
       </div>
     );

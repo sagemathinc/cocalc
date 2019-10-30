@@ -86,9 +86,7 @@ export class AnnotationLayer extends Component<Props, State> {
 
       let border = "";
       if (annotation.borderStyle.width) {
-        border = `0.5px solid rgb(${annotation.color[0]}, ${
-          annotation.color[1]
-        }, ${annotation.color[2]})`;
+        border = `0.5px solid rgb(${annotation.color[0]}, ${annotation.color[1]}, ${annotation.color[2]})`;
       }
 
       // Note: this "annotation" in the onClick below is the right one because we use "let"

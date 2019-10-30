@@ -139,7 +139,11 @@ export class HideDeleteBox extends React.Component<Props, State> {
           undefined
         )}
         <ButtonToolbar>
-          <Button bsStyle="danger" onClick={this.toggle_delete_project} cocalc-test="please-delete-project">
+          <Button
+            bsStyle="danger"
+            onClick={this.toggle_delete_project}
+            cocalc-test="please-delete-project"
+          >
             Yes, please delete this project
           </Button>
           <Button onClick={this.hide_delete_conf}>Cancel</Button>

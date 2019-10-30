@@ -62,7 +62,7 @@ export class ActionBar extends React.Component<Props, State> {
     if (this.state.select_entire_directory !== "hidden") {
       this.setState({ select_entire_directory: "hidden" });
     }
-  }
+  };
 
   check_all_click_handler = (): void => {
     if (this.props.checked_files.size === 0) {
@@ -82,7 +82,7 @@ export class ActionBar extends React.Component<Props, State> {
     } else {
       this.clear_selection();
     }
-  }
+  };
 
   render_check_all_button(): JSX.Element | undefined {
     let button_icon, button_text;
@@ -119,7 +119,7 @@ export class ActionBar extends React.Component<Props, State> {
         misc.path_to_file(this.props.current_path, file.name)
       )
     );
-  }
+  };
 
   render_select_entire_directory(): JSX.Element | undefined {
     switch (this.state.select_entire_directory) {

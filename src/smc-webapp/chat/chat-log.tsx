@@ -153,13 +153,13 @@ export class ChatLog extends Component<ChatLogProps> {
     );
   }
 
-  private on_scroll({scrollTop, scrollHeight, clientHeight}): void {
+  private on_scroll({ scrollTop, scrollHeight, clientHeight }): void {
     if (
       this.props.windowed_list_ref != null &&
       this.props.windowed_list_ref.current != null &&
       !(this.props.windowed_list_ref.current as any).chat_scroll_to_bottom
     ) {
-      if (scrollTop + clientHeight  + 30 >= scrollHeight) {
+      if (scrollTop + clientHeight + 30 >= scrollHeight) {
         delete (this.props.windowed_list_ref.current as any).chat_manual_scroll;
       } else {
         (this.props.windowed_list_ref.current as any).chat_manual_scroll = true;
