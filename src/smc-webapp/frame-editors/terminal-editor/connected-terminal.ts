@@ -21,10 +21,12 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 
-import { endswith, replace_all } from "smc-util/misc2";
+import { endswith, filename_extension, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
+
+import { file_associations } from "../../file-associations";
 
 declare const $: any;
 import { starts_with_cloud_url } from "smc-webapp/process-links";
@@ -540,9 +542,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_request(): void {
-    this.actions.set_error(
-      "You were removed from a terminal."
-    );
+    this.actions.set_error("You were removed from a terminal.");
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
     // this frame.
@@ -554,6 +554,20 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     } else {
       this.actions.close_frame(this.id);
     }
+  }
+
+  private use_subframe(path: string): boolean {
+    const this_path = filename_extension(this.actions.path);
+    if (this_path == "term") {
+      // This is a .term tab, so always open the path in a new tab.
+      return false;
+    }
+    const ext = filename_extension(path);
+    // Open file in this tab of it can be edited as source code.
+    const a = file_associations[ext];
+    if (a == null || a.editor == "codemirror") return true;
+    if (this_path == "tex" && a.editor == "latex") return true;
+    return false;
   }
 
   open_paths(paths: Path[]): void {
@@ -570,7 +584,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       if (x.file != null) {
         const path = x.file;
-        project_actions.open_file({ path, foreground });
+        if (this.use_subframe(path)) {
+          this.actions.open_code_editor_frame(path);
+        } else {
+          project_actions.open_file({ path, foreground });
+        }
       }
       if (x.directory != null && foreground) {
         project_actions.open_directory(x.directory);

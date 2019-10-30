@@ -38,7 +38,7 @@ import {
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
-const misc = require("smc-util/misc");
+import { merge, copy } from "smc-util/misc";
 const misc_page = require("smc-webapp/misc_page");
 const { CodemirrorEditor } = require("../code-editor/codemirror-editor"); // todo should just spec all editors.
 const feature = require("smc-webapp/feature");
@@ -49,6 +49,8 @@ import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
 
 import { TimeTravelActions } from "../time-travel-editor/actions";
+
+import { cm as cm_spec } from "../code-editor/editor";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -64,19 +66,13 @@ const drag_hover = {
   opacity: 0.8
 };
 
-const cols_drag_bar_drag_hover = misc.merge(
-  misc.copy(cols_drag_bar),
-  drag_hover
-);
+const cols_drag_bar_drag_hover = merge(copy(cols_drag_bar), drag_hover);
 
-const rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {
+const rows_drag_bar = merge(copy(cols_drag_bar), {
   cursor: "ns-resize"
 });
 
-const rows_drag_bar_drag_hover = misc.merge(
-  misc.copy(rows_drag_bar),
-  drag_hover
-);
+const rows_drag_bar_drag_hover = merge(copy(rows_drag_bar), drag_hover);
 
 interface FrameTreeProps {
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
@@ -195,10 +191,17 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
 
   render_titlebar(type: string, desc): Rendered {
     let id = desc.get("id");
+    const editor_spec = this.props.editor_spec;
     let editor_actions;
     if (type == "cm" && desc.get("path", this.props.path) != this.props.path) {
       const manager = this.props.actions.get_code_editor(id);
       editor_actions = manager.get_actions();
+      if (this.props.editor_spec.cm == null) {
+        // make it so the spec includes info about cm editor.
+        // TODO: we may change this to be a special spec just for
+        // cm subframes.
+        editor_spec.cm = cm_spec;
+      }
     } else {
       editor_actions = this.props.actions;
     }
@@ -214,7 +217,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         id={id}
         is_paused={desc.get("is_paused")}
         type={desc.get("type")}
-        editor_spec={this.props.editor_spec}
+        editor_spec={editor_spec}
         status={this.props.status}
         title={desc.get("title")}
         connection_status={desc.get("connection_status")}
