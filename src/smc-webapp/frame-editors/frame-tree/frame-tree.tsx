@@ -200,7 +200,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         // make it so the spec includes info about cm editor.
         // TODO: we may change this to be a special spec just for
         // cm subframes.
-        editor_spec.cm = cm_spec;
+        editor_spec.cm = copy(cm_spec);
+        editor_spec.cm.buttons = cm_spec.buttons(desc.get("path"));
       }
     } else {
       editor_actions = this.props.actions;

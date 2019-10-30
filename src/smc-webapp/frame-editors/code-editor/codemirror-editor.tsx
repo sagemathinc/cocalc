@@ -29,6 +29,8 @@ import { GutterMarkers } from "./codemirror-gutter-markers";
 
 import { CodeEditor } from "./code-editor-manager";
 import { Actions } from "./actions";
+import { Icon } from "../../r_misc";
+import { file_associations } from "../../file-associations";
 
 const STYLE = {
   width: "100%",
@@ -95,7 +97,8 @@ export class CodemirrorEditor extends Component<Props, State> {
         "resize",
         "editor_state",
         "gutter_markers",
-        "is_subframe"
+        "is_subframe",
+        "is_current"
       ])
     );
   }
@@ -201,7 +204,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       // cursor movement is a side effect of upstream change, so ignore.
       return;
     }
-    this.props.actions.set_cursor_locs(locs);
+    this.editor_actions.set_cursor_locs(locs);
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
@@ -486,14 +489,24 @@ export class CodemirrorEditor extends Component<Props, State> {
 
   render_path(): Rendered {
     if (!this.props.is_subframe) return;
+    const style: any = {
+      borderBottom: "1px solid lightgrey",
+      padding: "0 5px",
+      color: "#337ab7"
+    };
+    if (this.props.is_current) {
+      style.background = "#337ab7";
+      style.color = "white";
+    }
+    const ext = misc.filename_extension(this.props.path);
+    const x = file_associations[ext];
+    let icon: any = undefined;
+    if (x != null && x.icon != null) {
+      icon = <Icon name={x.icon} />;
+    }
     return (
-      <div
-        style={{
-          borderBottom: "1px solid lightgrey",
-          padding: "0 5px"
-        }}
-      >
-        {this.props.path}
+      <div style={style}>
+        {icon} {this.props.path}
       </div>
     );
   }
@@ -502,11 +515,13 @@ export class CodemirrorEditor extends Component<Props, State> {
     const style = misc.copy(STYLE);
     style.fontSize = `${this.props.font_size}px`;
     return (
-      <div style={style} className="smc-vfill cocalc-editor-div">
+      <div className="smc-vfill cocalc-editor-div">
         {this.render_path()}
-        {this.render_cursors()}
-        {this.render_gutter_markers()}
-        <textarea ref="textarea" style={{ display: "none" }} />
+        <div style={style} className="smc-vfill">
+          {this.render_cursors()}
+          {this.render_gutter_markers()}
+          <textarea ref="textarea" style={{ display: "none" }} />
+        </div>
       </div>
     );
   }
