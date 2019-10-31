@@ -487,12 +487,23 @@ export class CodemirrorEditor extends Component<Props, State> {
     );
   }
 
+  private click_on_path(evt): void {
+    if (!evt.shiftKey) return;
+    const project_actions = this.props.actions._get_project_actions();
+    project_actions.open_file({ path: this.props.path, foreground: true });
+  }
+
+  // todo: move this render_path to a component in a separate file.
   render_path(): Rendered {
     if (!this.props.is_subframe) return;
     const style: any = {
       borderBottom: "1px solid lightgrey",
       padding: "0 5px",
-      color: "#337ab7"
+      borderTopLeftRadius: "5px",
+      borderTopRightRadius: "5px",
+      color: "#337ab7",
+      cursor: "pointer",
+      maxWidth: "250px"
     };
     if (this.props.is_current) {
       style.background = "#337ab7";
@@ -505,7 +516,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       icon = <Icon name={x.icon} />;
     }
     return (
-      <div style={style}>
+      <div style={style} onClick={this.click_on_path.bind(this)}>
         {icon} {this.props.path}
       </div>
     );
