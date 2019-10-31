@@ -1890,9 +1890,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const mode = this.store.get_cm_mode();
     const account = this.redux.getStore("account");
     if (account == null) return;
-    let editor_settings = account.get("editor_settings");
-    if (editor_settings == null) return;
-    editor_settings = editor_settings.toJS();
+    const immutable_editor_settings = account.get("editor_settings");
+    if (immutable_editor_settings == null) return;
+    const editor_settings = immutable_editor_settings.toJS();
     const line_numbers = this.store.get_local_storage("line_numbers");
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
