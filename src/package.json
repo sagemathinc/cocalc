@@ -137,5 +137,8 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "devDependencies": {
+    "eslint-plugin-react-hooks": "^2.2.0"
+  }
 }
