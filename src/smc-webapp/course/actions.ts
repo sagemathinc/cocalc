@@ -1460,12 +1460,9 @@ export class CourseActions extends Actions<CourseState> {
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
   public async admin_upgrade_all_student_projects(quotas): Promise<void> {
-    if (
-      !this.redux
-        .getStore("account")
-        .get("groups", [])
-        .contains("admin")
-    ) {
+    const account_store = this.redux.getStore("account");
+    const groups = account_store.get("groups");
+    if (groups && groups.includes("admin")) {
       throw Error("must be an admin to upgrade");
       return;
     }

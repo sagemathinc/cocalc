@@ -27,6 +27,13 @@ type Definition<T> = {
  * https://github.com/microsoft/TypeScript/issues/26242
  *
  **/
+export function define<T>(props: unknown, definition: Definition<T>): T;
+export function define<T extends object, U extends Optionals<T>>(
+  props: unknown,
+  definition: Assign<Definition<T>, U>,
+  allow_extra?: boolean,
+  strict?: boolean
+): Assign<U, Requireds<T>>;
 export function define<T extends object, U extends Optionals<T>>(
   props: unknown,
   definition: Assign<Definition<T>, U>,
