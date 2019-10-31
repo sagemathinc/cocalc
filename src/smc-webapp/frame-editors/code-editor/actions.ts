@@ -131,8 +131,8 @@ export class Actions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager<T>;
-  private code_editors: CodeEditorManager<T>;
+  private terminals: TerminalManager<CodeEditorState>;
+  private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -164,8 +164,12 @@ export class Actions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager<T>(this);
-    this.code_editors = new CodeEditorManager<T>(this);
+    this.terminals = new TerminalManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
+    this.code_editors = new CodeEditorManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -1233,7 +1237,7 @@ export class Actions<
     return this._cm[this._active_id()];
   }
 
-  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(id: string, parent: HTMLElement): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
 
