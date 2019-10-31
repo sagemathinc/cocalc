@@ -162,28 +162,29 @@ export class FileRow extends React.Component<Props, State> {
   };
 
   handle_click = e => {
-    if (this.state == undefined) {
-      // see https://github.com/sagemathinc/cocalc/issues/3442
+    if (
+      this.state != null &&
+      (window.getSelection() || "").toString() !==
+        this.state.selection_at_last_mouse_down
+    ) {
+      // This is a trick so that you can select a filename without
+      // the click to do the selection triggering opening of the file.
       return;
     }
-    if (
-      (window.getSelection() || "").toString() ===
-      this.state.selection_at_last_mouse_down
-    ) {
-      const foreground = misc.should_open_in_foreground(e);
-      this.props.actions.open_file({
-        path: this.full_path(),
-        foreground
-      });
-      if (foreground) {
-        this.props.actions.set_file_search("");
-      }
-      analytics_event(
-        "project_file_listing",
-        "clicked_file_row",
-        misc.filename_extension(this.full_path())
-      );
+
+    const foreground = misc.should_open_in_foreground(e);
+    this.props.actions.open_file({
+      path: this.full_path(),
+      foreground
+    });
+    if (foreground) {
+      this.props.actions.set_file_search("");
     }
+    analytics_event(
+      "project_file_listing",
+      "clicked_file_row",
+      misc.filename_extension(this.full_path())
+    );
   };
 
   handle_download_click = e => {

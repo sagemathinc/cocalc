@@ -722,7 +722,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // If embedded in an iframe, it is the embedding window.
       // If not in an iframe, seems to be the window itself.
       // I copied the {source:?,payload:?} format from react devtools.
-      window.parent.postMessage({ source: "cocalc-project-log", payload: query }, "*");
+      window.parent.postMessage(
+        { source: "cocalc-project-log", payload: query },
+        "*"
+      );
     }
 
     return id;
@@ -971,20 +974,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     let store = this.get_store();
-    if (store == undefined) return;
-
-    const can_open_file = await store.can_open_file_ext(ext, this);
-    if (!can_open_file) {
-      const SiteName =
-        redux.getStore("customize").get("site_name") || SITE_NAME;
-      alert_message({
-        type: "error",
-        message: `This ${SiteName} project cannot open ${ext} files!`,
-        timeout: 20
-      });
-      // console.log(
-      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
-      // );
+    if (store == undefined) {
       return;
     }
 
@@ -1004,18 +994,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ open_files });
     }
 
-    // Wait for the project to start opening
-    try {
-      await callback(this._ensure_project_is_open);
-    } catch (err) {
-      this.set_activity({
-        id: misc.uuid(),
-        error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`
-      });
-      return;
-    }
-    if (this.get_store() == null) return;
-
     // Next get the group.
     let group: string;
     try {
@@ -1028,8 +1006,44 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
-
     const is_public = group === "public";
+
+    if (!is_public) {
+      // Check if have capability to open this file.  Important
+      // to only do this if not public, since again, if public we
+      // are not even using the project (it is all client side).
+      // NOTE: I think this is wrong; we should always open any file
+      // and instead of saying "can't open it", instead just fall
+      // back to a codemirror text editor...   After all, that's what
+      // we already do with all uknown file types.
+      const can_open_file = await store.can_open_file_ext(ext, this);
+      if (!can_open_file) {
+        const SiteName =
+          redux.getStore("customize").get("site_name") || SITE_NAME;
+        alert_message({
+          type: "error",
+          message: `This ${SiteName} project cannot open ${ext} files!`,
+          timeout: 20
+        });
+        // console.log(
+        //   `abort project_actions::open_file due to lack of support for "${ext}" files`
+        // );
+        return;
+      }
+
+      // Wait for the project to start opening (only do this if not public -- public users don't
+      // know anything about the state of the project).
+      try {
+        await callback(this._ensure_project_is_open);
+      } catch (err) {
+        this.set_activity({
+          id: misc.uuid(),
+          error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`
+        });
+        return;
+      }
+      if (this.get_store() == null) return;
+    }
 
     if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
       await this.open_sagenb_worksheet(opts);

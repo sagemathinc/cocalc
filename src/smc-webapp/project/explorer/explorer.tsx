@@ -506,10 +506,13 @@ export const Explorer = rclass<ReactProps>(
       project_state: ProjectStatus | undefined,
       public_view: boolean
     ) {
-      const needle = (project_state && project_state.get("state")) || "";
-      const running_or_saving = ["running", "saving"].includes(needle);
-      if (!running_or_saving) {
-        return this.render_project_state(project_state);
+      if (project_state != null) {
+        // NOTE: for public view of a projet, we do NOT know the state!
+        const state = project_state.get("state");
+        if (state != "running" && state != "saving") {
+          // Explain to user what is going on...
+          return this.render_project_state(project_state);
+        }
       }
 
       if (fetch_directory_error) {
@@ -581,10 +584,8 @@ export const Explorer = rclass<ReactProps>(
         );
       } else {
         return (
-          <div
-            style={{ fontSize: "40px", textAlign: "center", color: "#999999" }}
-          >
-            <Loading />
+          <div style={{ textAlign: "center" }}>
+            <Loading theme={"medium"} />
           </div>
         );
       }
