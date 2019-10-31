@@ -1,8 +1,8 @@
 module.exports = {
   parser: "@typescript-eslint/parser",
+  plugins: ["react-hooks"],
   extends: [
     "plugin:react/recommended",
-    "plugin:react-hooks",
     "plugin:@typescript-eslint/recommended",
     "prettier/@typescript-eslint", // Disables rules from @typescript-eslint that would conflict with Prettier
     "plugin:prettier/recommended" // Make sure this always the last config to be loaded.
