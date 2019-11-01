@@ -1587,21 +1587,25 @@ export class Actions<
     }
   }
 
-  print(id): void {
+  print(id: string): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return; // nothing to print...
     }
     let node = this._get_frame_node(id);
-    if (!node) {
-      return; // this won't happen but it ensures node is defined for typescript.
-    }
+    // NOTE/TODO: There is an "on-purpose" bug right now
+    // where node isn't defined, namely when you make
+    // a subframe code editor.  Then the node would be
+    // in a completely different store (the original frame
+    // for the tab) than where the codemirror editor is.
+    // Thus in case of a subframe code editor, the font size
+    // is always the default when printing.
     try {
       print_code({
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: node.get("font_size")
+        font_size: node != null ? node.get("font_size") : undefined
       });
     } catch (err) {
       this.set_error(err);
