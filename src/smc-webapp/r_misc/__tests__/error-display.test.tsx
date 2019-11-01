@@ -8,5 +8,3 @@ test("smoke test", () => {
   );
   expect(rendered).toMatchSnapshot();
 });
-
-

@@ -72,7 +72,7 @@ export class Renderer {
       // e.g., when this is a background tab or nothing happening on this surface.
       // NOTE: in upstream client this is called ASAP, which wastes a lot
       // of resources.
-      this.delay = Math.min(1000, this.delay*1.3);
+      this.delay = Math.min(1000, this.delay * 1.3);
       await delay(this.delay);
       window.requestAnimationFrame(this.render);
       return;

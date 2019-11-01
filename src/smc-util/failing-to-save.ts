@@ -16,8 +16,8 @@ interface PathState {
 
 function is_failing(x: PathState): boolean {
   const cutoff = new Date().getTime() - THRESHOLD.interval_s * 1000;
-  const failures : number[] = []
-  let t : number;
+  const failures: number[] = [];
+  let t: number;
   for (t of x.failures) {
     if (t >= cutoff) {
       failures.push(t);
@@ -32,7 +32,7 @@ function is_failing(x: PathState): boolean {
   }
 }
 
-const state: { [key:string]: PathState } = {};
+const state: { [key: string]: PathState } = {};
 
 export function failing_to_save(
   path: string,

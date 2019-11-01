@@ -80,9 +80,7 @@ export class API {
     }
     if (formatting[tool] !== true) {
       throw new Error(
-        `For this project, the code formatter '${tool}' for language '${
-          options.parser
-        }' is not available.`
+        `For this project, the code formatter '${tool}' for language '${options.parser}' is not available.`
       );
     }
 

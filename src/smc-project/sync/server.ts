@@ -138,9 +138,7 @@ class SyncTableChannel {
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
-      `creating new sync channel (persistent=${this.persistent}, ephemeral=${
-        this.ephemeral
-      })`
+      `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`
     );
   }
 
@@ -153,12 +151,12 @@ class SyncTableChannel {
     if (options == null) {
       return;
     }
-    for (let option of deep_copy(options)) {
+    for (const option of deep_copy(options)) {
       // deep_copy so do not mutate input options.
       if (typeof option != "object" || option == null) {
         throw Error("invalid options");
       }
-      for (let x of ["ephemeral", "persistent"]) {
+      for (const x of ["ephemeral", "persistent"]) {
         // options that are only for project websocket tables.
         if (option[x] != null) {
           this[x] = option[x];
@@ -230,7 +228,9 @@ class SyncTableChannel {
   }
 
   private decrement_connection_count(spark: Spark): number {
-    let m: undefined | number = this.connections_from_one_client[spark.conn.id];
+    const m: undefined | number = this.connections_from_one_client[
+      spark.conn.id
+    ];
     if (m === undefined) {
       return 0;
     }
@@ -248,9 +248,7 @@ class SyncTableChannel {
     const m = this.increment_connection_count(spark);
 
     this.log(
-      `new connection from (address=${spark.address.ip}, conn=${
-        spark.conn.id
-      }) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
+      `new connection from (address=${spark.address.ip}, conn=${spark.conn.id}) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
     );
 
     if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
@@ -287,7 +285,10 @@ class SyncTableChannel {
       spark.end();
       return;
     }
-    if (this.synctable != null && this.synctable.get_state() == "disconnected") {
+    if (
+      this.synctable != null &&
+      this.synctable.get_state() == "disconnected"
+    ) {
       // Because synctable is being initialized for the first time,
       // or it temporarily disconnected (e.g., lost hub), and is
       // trying to reconnect.  So just wait for it to connect.
@@ -412,8 +413,8 @@ function channel_name(query: any, options: any[]): string {
   // project restart, etc.   We first make the options
   // as canonical as we can:
   const opts = {};
-  for (let x of options) {
-    for (let key in x) {
+  for (const x of options) {
+    for (const key in x) {
       opts[key] = x[key];
     }
   }

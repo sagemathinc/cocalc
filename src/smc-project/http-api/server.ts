@@ -161,7 +161,7 @@ async function get_syncdoc_history(body, client: Client): Promise<any> {
   // transform jupyter path -- TODO: this should
   // be more centralized... since this is brittle.
   if (endswith(path, ".ipynb")) {
-    path = meta_file(path, 'jupyter2')
+    path = meta_file(path, "jupyter2");
   }
 
   // compute the string_id

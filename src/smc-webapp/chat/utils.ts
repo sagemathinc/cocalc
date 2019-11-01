@@ -10,8 +10,7 @@ export const USER_MENTION_MARKUP =
 const USER_MENTION_MARKUP_WITHOUT_PLACEHOLDERS =
   '<span class="user-mention" account-id= ></span>';
 
-const SINGLE_MENTION_OFFSET =
-  USER_MENTION_MARKUP_WITHOUT_PLACEHOLDERS.length;
+const SINGLE_MENTION_OFFSET = USER_MENTION_MARKUP_WITHOUT_PLACEHOLDERS.length;
 
 /*
   Given plain text which looks like

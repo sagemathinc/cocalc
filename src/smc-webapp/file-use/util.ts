@@ -19,7 +19,7 @@ export async function open_file_use_entry(
   // Start the project opening. This may trigger a session restore.
   redux.getActions("projects").open_project({ project_id, switch_to: true });
   // Now open the file.
-  let a = redux.getProjectActions(project_id);
+  const a = redux.getProjectActions(project_id);
   if (a == null) return;
   // We wait until the next render loop before actually opening
   // the file.  The reason is because opening the project restores

@@ -17,7 +17,7 @@ const Diff = diff_match_patch.Diff;
 
 function diffs_to_arrays(diffs: any[]): any[] {
   const v: any[] = [];
-  for (let d of diffs) {
+  for (const d of diffs) {
     v.push([d[0], d[1]]);
   }
   return v;
@@ -25,7 +25,7 @@ function diffs_to_arrays(diffs: any[]): any[] {
 
 function arrays_to_diffs(arrays: any[]): any[] {
   const v: any[] = [];
-  for (let x of arrays) {
+  for (const x of arrays) {
     v.push(new Diff(x[0], x[1]));
   }
   return v;
@@ -73,7 +73,7 @@ export function apply_patch(
     return [s, false];
   }
   let clean = true;
-  for (let a of x[1]) {
+  for (const a of x[1]) {
     if (!a) {
       clean = false;
       break;

@@ -13,5 +13,5 @@ export class MarkdownWidgetStore extends Store<MarkdownWidgetStoreState> {
     return {
       open_inputs: immutable.Map({})
     };
-  }
+  };
 }

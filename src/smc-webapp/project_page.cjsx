@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -42,6 +42,7 @@ Draggable = require('react-draggable')
 {ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
 {DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
+{KioskModeBanner} = require('./app_shared2')
 
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
@@ -240,6 +241,7 @@ ProjectContentViewer = rclass
         group           : rtypes.string
         save_scroll     : rtypes.func
         show_new        : rtypes.bool
+        fullscreen      : rtypes.oneOf(['default', 'kiosk'])
 
     getInitialState: -> # just for forcing updates sometimes
         counter : 0
@@ -353,7 +355,7 @@ ProjectContentViewer = rclass
         editor  = @render_editor(@props.file_path)
 
         # WARNING: every CSS style below is hard won.  Don't f!$k with them without knowing what
-        # you are doing and testing on all supported browser.  - wstein
+        # you are doing and testing on all supported browsers.  - wstein
         if is_chat_open
             # 2 column layout with chat
             content =\
@@ -381,6 +383,10 @@ ProjectContentViewer = rclass
         return content
 
     render_tab_content : ->
+        # show the kiosk mode banner instead of anything besides a file editor
+        if @props.fullscreen == 'kiosk' and not @props.active_tab_name.startsWith('editor-')
+            return <KioskModeBanner />
+
         switch @props.active_tab_name
             when 'files'
                 <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
@@ -568,6 +574,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 file_path       = {path}
                 group           = {group}
                 save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
+                fullscreen      = {@props.fullscreen}
             />
         return v
 
@@ -594,6 +601,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 file_path       = {active_path}
                 group           = {group}
                 save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                fullscreen      = {@props.fullscreen}
                 />
         return v.concat(@render_editor_tabs(active_path, group))
 
@@ -753,6 +761,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                     file_path       = {active_path}
                     group           = {group}
                     save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                    fullscreen      = {@props.fullscreen}
                 />
             </ErrorBoundary>
         </div>

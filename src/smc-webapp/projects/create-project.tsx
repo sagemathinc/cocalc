@@ -62,12 +62,21 @@ const INIT_STATE: Readonly<State> = Object.freeze({
 });
 
 export class NewProjectCreator extends Component<Props, State> {
+  private is_mounted: boolean = false;
+
   constructor(props) {
     super(props);
     this.state = Object.assign({}, INIT_STATE, {
       // view --> edit --> saving --> view
       state: props.start_in_edit_mode ? "edit" : "view"
     });
+  }
+
+  componentDidMount() {
+    this.is_mounted = true;
+  }
+  componentWillUnmount() {
+    this.is_mounted = false;
   }
 
   start_editing() {
@@ -78,6 +87,7 @@ export class NewProjectCreator extends Component<Props, State> {
   }
 
   cancel_editing = () => {
+    if (!this.is_mounted) return;
     this.setState(Object.assign({}, INIT_STATE, { state: "view" }));
   };
 
@@ -107,17 +117,19 @@ export class NewProjectCreator extends Component<Props, State> {
       .getStore("projects")
       .wait_until_project_created(token, 30, async (err, project_id) => {
         if (err != undefined) {
-          this.setState({
-            state: "edit",
-            error: `Error creating project -- ${err}`
-          });
+          if (this.is_mounted) {
+            this.setState({
+              state: "edit",
+              error: `Error creating project -- ${err}`
+            });
+          }
         } else {
           // We also update the customer billing information so apply_default_upgrades works.
           const billing_actions = redux.getActions("billing");
           if (billing_actions != null) {
             try {
               await billing_actions.update_customer();
-              await actions.apply_default_upgrades({ project_id });   // see issue #4192
+              await actions.apply_default_upgrades({ project_id }); // see issue #4192
             } catch (err) {
               // Ignore error coming from this -- it's merely a convenience to
               // upgrade the project on creation; user could always do it manually,
@@ -126,7 +138,9 @@ export class NewProjectCreator extends Component<Props, State> {
           }
           // switch_to=true is perhaps suggested by #4088
           actions.open_project({ project_id, switch_to: true });
-          this.cancel_editing();
+          if (this.is_mounted) {
+            this.cancel_editing();
+          }
         }
       });
     analytics_event("create_project", "created_new_project");

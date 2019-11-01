@@ -194,9 +194,9 @@ export class SearchBar extends React.Component<Props, State> {
 
   dismiss_alert = (): void => {
     this.props.actions.setState({ file_creation_error: "" });
-  }
+  };
 
-  search_submit = (value: string, opts: {ctrl_down: boolean}): void => {
+  search_submit = (value: string, opts: { ctrl_down: boolean }): void => {
     if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
       const command = value.slice(1, value.length);
       this.execute_command(command);
@@ -227,29 +227,29 @@ export class SearchBar extends React.Component<Props, State> {
       }
       this.props.actions.clear_selected_file_index();
     }
-  }
+  };
 
   on_up_press = (): void => {
     if (this.props.selected_file_index > 0) {
       this.props.actions.decrement_selected_file_index();
     }
-  }
+  };
 
   on_down_press = (): void => {
     if (this.props.selected_file_index < this.props.num_files_displayed - 1) {
       this.props.actions.increment_selected_file_index();
     }
-  }
+  };
 
   on_change = (search: string): void => {
     this.props.actions.zero_selected_file_index();
     this.props.actions.set_file_search(search);
-  }
+  };
 
   on_clear = (): void => {
     this.props.actions.clear_selected_file_index();
     this.setState({ input: "", stdout: "", error: "" });
-  }
+  };
 
   render(): JSX.Element {
     return (

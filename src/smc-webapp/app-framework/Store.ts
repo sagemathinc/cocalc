@@ -21,7 +21,7 @@ export type StoreConstructorType<T, C = Store<T>> = new (
   store_def?: T
 ) => C;
 
-export interface selector<State, K extends keyof State> {
+export interface Selector<State, K extends keyof State> {
   dependencies?: (keyof State)[];
   fn: () => State[K];
 }
@@ -33,7 +33,7 @@ export class Store<State> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
   protected redux: AppRedux;
-  protected selectors: { [K in keyof Partial<State>]: selector<State, K> };
+  protected selectors: { [K in keyof Partial<State>]: Selector<State, K> };
   private _last_state: State;
 
   constructor(name: string, redux: AppRedux) {
@@ -48,22 +48,22 @@ export class Store<State> extends EventEmitter {
     this.setMaxListeners(150);
     if (this.selectors) {
       type selector = Selector<State, any>;
-      let created_selectors: { [K in keyof State]: selector } = {} as any;
+      const created_selectors: { [K in keyof State]: selector } = {} as any;
 
-      let dependency_graph: any = {}; // Used to check for cycles
+      const dependency_graph: any = {}; // Used to check for cycles
 
-      for (let selector_name of Object.getOwnPropertyNames(this.selectors)) {
+      for (const selector_name of Object.getOwnPropertyNames(this.selectors)) {
         // List of dependent selectors for this prop_name
-        let dependent_selectors: selector[] = [];
+        const dependent_selectors: selector[] = [];
 
         // Names of dependencies
-        let dependencies = this.selectors[selector_name].dependencies;
+        const dependencies = this.selectors[selector_name].dependencies;
         dependency_graph[selector_name] = dependencies || [];
 
         if (dependencies) {
-          for (let dep_name of dependencies) {
+          for (const dep_name of dependencies) {
             if (created_selectors[dep_name] == undefined) {
-              created_selectors[dep_name] = () => this.get(dep_name);
+              created_selectors[dep_name] = (): any => this.get(dep_name);
             }
             dependent_selectors.push(created_selectors[dep_name]);
 
@@ -146,12 +146,14 @@ export class Store<State> extends EventEmitter {
       timeout: 30
     });
     */
-    let { until, cb, throttle_ms, timeout } = defaults(opts, {
+    opts = defaults(opts, {
       until: required,
       throttle_ms: undefined,
       timeout: 30,
       cb: required
     });
+    let { until } = opts;
+    const { cb, throttle_ms, timeout } = opts;
     if (throttle_ms != undefined) {
       until = throttle(until, throttle_ms);
     }
@@ -161,17 +163,8 @@ export class Store<State> extends EventEmitter {
       cb(undefined, x);
       return;
     }
-    // If we want a timeout (the default), setup a timeout
-    if (timeout) {
-      const timeout_error = () => {
-        this.removeListener("change", listener);
-        cb("timeout");
-        return;
-      };
-      timeout_ref = setTimeout(timeout_error, timeout * 1000);
-    }
     // Setup a listener
-    var listener = () => {
+    const listener = (): unknown => {
       x = until(this);
       if (x) {
         if (timeout_ref) {
@@ -181,6 +174,15 @@ export class Store<State> extends EventEmitter {
         return async.nextTick(() => cb(undefined, x));
       }
     };
+    // If we want a timeout (the default), setup a timeout
+    if (timeout) {
+      const timeout_error = (): void => {
+        this.removeListener("change", listener);
+        cb("timeout");
+        return;
+      };
+      timeout_ref = setTimeout(timeout_error, timeout * 1000);
+    }
     return this.on("change", listener);
   }
 }

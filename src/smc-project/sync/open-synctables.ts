@@ -13,7 +13,7 @@ const open_synctables: { [key: string]: SyncTable } = {};
 const wait_for: { [key: string]: Function[] } = {};
 
 export function key(query): string {
-  let table: string = Object.keys(query)[0];
+  const table: string = Object.keys(query)[0];
   if (!table) {
     throw Error("no table in query");
   }
@@ -81,7 +81,7 @@ function handle_wait_for(k: string, synctable: SyncTable): void {
   }
   const v: Function[] = wait_for[k];
   delete wait_for[k];
-  for (let cb of v) {
+  for (const cb of v) {
     cb(undefined, synctable);
   }
 }

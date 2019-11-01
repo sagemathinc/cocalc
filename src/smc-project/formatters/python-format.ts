@@ -72,7 +72,7 @@ export async function python_format(
     py_formatter.stdout.on("data", data => (stdout += data.toString()));
     py_formatter.stderr.on("data", data => (stderr += data.toString()));
     // wait for subprocess to close.
-    let code = await callback(close, py_formatter);
+    const code = await callback(close, py_formatter);
     // only last line
     // stdout = last_line(stdout);
     if (code) {
@@ -87,8 +87,8 @@ export async function python_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     unlink(input_path, () => {});

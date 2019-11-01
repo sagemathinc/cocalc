@@ -24,15 +24,15 @@ export const image = new Set([
 ]);
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
-export let video = new Set(VIDEO_EXTS);
-export let audio = new Set(AUDIO_EXTS);
+export const video = new Set(VIDEO_EXTS);
+export const audio = new Set(AUDIO_EXTS);
 
-export let pdf = new Set(["pdf"]);
+export const pdf = new Set(["pdf"]);
 
-export let html = new Set(["html", "htm"]);
+export const html = new Set(["html", "htm"]);
 
 const cm = {};
-for (let ext in file_associations) {
+for (const ext in file_associations) {
   // TODO: more?
   const info = file_associations[ext];
   if (info && (info.editor === "codemirror" || info.editor === "latex")) {

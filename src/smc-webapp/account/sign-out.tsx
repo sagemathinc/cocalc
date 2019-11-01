@@ -5,7 +5,7 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
   private sign_out(): void {
     const account = redux.getActions("account");
     if (account != null) {
-      account.sign_out(this.props.everywhere);
+      account.sign_out(!!this.props.everywhere);
     }
   }
 

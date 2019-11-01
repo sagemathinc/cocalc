@@ -58,7 +58,7 @@ export class UserResult extends Component<Props, State> {
   constructor(props, state) {
     super(props, state);
     const x: any = {};
-    for (let name of MORE) {
+    for (const name of MORE) {
       x[name] = false;
     }
     this.state = x as State;

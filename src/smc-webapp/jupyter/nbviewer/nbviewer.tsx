@@ -77,10 +77,7 @@ export class NBViewer0 extends Component<NBViewerProps> {
         cells={this.props.cells}
         font_size={this.props.font_size}
         mode="escape"
-        cm_options={
-          this.props.cm_options
-            ? this.props.cm_options
-            : Map() }
+        cm_options={this.props.cm_options ? this.props.cm_options : Map()}
         project_id={this.props.project_id}
         directory={directory}
         trust={false}

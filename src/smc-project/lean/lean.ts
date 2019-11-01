@@ -74,7 +74,7 @@ export class Lean extends EventEmitter {
       this.dbg("messages: ", allMessages);
 
       const new_messages = {};
-      for (let x of allMessages.msgs) {
+      for (const x of allMessages.msgs) {
         const path: string = x.file_name;
         delete x.file_name;
         if (new_messages[path] === undefined) {
@@ -84,7 +84,7 @@ export class Lean extends EventEmitter {
         }
       }
 
-      for (let path in this._state.paths) {
+      for (const path in this._state.paths) {
         this.dbg("messages for ", path, new_messages[path]);
         if (new_messages[path] === undefined) {
           new_messages[path] = [];
@@ -108,15 +108,15 @@ export class Lean extends EventEmitter {
     });
 
     this._server.tasks.on(currentTasks => {
-      let { tasks } = currentTasks;
+      const { tasks } = currentTasks;
       this.dbg("tasks: ", tasks);
       const running = {};
-      for (let task of tasks) {
+      for (const task of tasks) {
         running[task.file_name] = true;
       }
-      for (let path in running) {
+      for (const path in running) {
         const v: any[] = [];
-        for (let task of tasks) {
+        for (const task of tasks) {
           if (task.file_name === path) {
             delete task.file_name; // no longer needed
             v.push(task);
@@ -124,7 +124,7 @@ export class Lean extends EventEmitter {
         }
         this.emit("tasks", path, v);
       }
-      for (let path in this.running) {
+      for (const path in this.running) {
         if (!running[path]) {
           this.dbg("server", path, " done; no longer running");
           this.running[path] = 0;
@@ -155,7 +155,8 @@ export class Lean extends EventEmitter {
     }
     // get the syncstring and start updating based on content
     let syncstring: any = undefined;
-    while (syncstring == null) { // todo change to be event driven!
+    while (syncstring == null) {
+      // todo change to be event driven!
       syncstring = this.client.syncdoc({ path });
       if (syncstring == null) {
         await delay(1000);
@@ -229,7 +230,7 @@ export class Lean extends EventEmitter {
   kill(): void {
     this.dbg("kill");
     if (this._server != undefined) {
-      for (let path in this.paths) {
+      for (const path in this.paths) {
         this.unregister(path);
       }
       this._server.dispose();
@@ -240,7 +241,7 @@ export class Lean extends EventEmitter {
   async restart(): Promise<void> {
     this.dbg("restart");
     if (this._server != undefined) {
-      for (let path in this.paths) {
+      for (const path in this.paths) {
         this.unregister(path);
       }
       await this._server.restart();
@@ -291,7 +292,7 @@ export class Lean extends EventEmitter {
   }
 
   messages(path: string): any[] {
-    let x = this._state.paths[path];
+    const x = this._state.paths[path];
     if (x !== undefined) {
       return x;
     }

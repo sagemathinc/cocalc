@@ -5,10 +5,7 @@ const { download_file } = require("../misc_page");
 import { stripe_date } from "smc-util/misc";
 import { render_amount } from "./util";
 require("./types");
-import {
-  InvoiceMap,
-  InvoiceLineMap
-} from "./types";
+import { InvoiceMap, InvoiceLineMap } from "./types";
 
 interface Props {
   invoice: InvoiceMap;
@@ -31,7 +28,9 @@ export class Invoice extends Component<Props, State> {
     download_file(
       `${
         (window as any).app_base_url
-      }/invoice/cocalc-${username}-receipt-${new Date(invoice.get("date") * 1000)
+      }/invoice/cocalc-${username}-receipt-${new Date(
+        invoice.get("date") * 1000
+      )
         .toISOString()
         .slice(0, 10)}-${invoice.get("id")}.pdf`
     );
@@ -51,7 +50,11 @@ export class Invoice extends Component<Props, State> {
       this.props.invoice.getIn(["lines", "data", "size"]) == 1
     ) {
       // This is much more useful as a summary than the totally generic description we usually have...
-      return <span>{this.props.invoice.getIn(["lines", "data", 0, "description"])}</span>;
+      return (
+        <span>
+          {this.props.invoice.getIn(["lines", "data", 0, "description"])}
+        </span>
+      );
     }
     if (this.props.invoice.get("description")) {
       return <span>{this.props.invoice.get("description")}</span>;
@@ -82,7 +85,10 @@ export class Invoice extends Component<Props, State> {
         <Col sm={1}>{n}.</Col>
         <Col sm={9}>{this.render_line_description(line)}</Col>
         <Col sm={2}>
-          {render_amount(line.get("amount"), this.props.invoice.get("currency"))}
+          {render_amount(
+            line.get("amount"),
+            this.props.invoice.get("currency")
+          )}
         </Col>
       </Row>
     );
@@ -92,9 +98,14 @@ export class Invoice extends Component<Props, State> {
     return (
       <Row key="tax" style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1} />
-        <Col sm={9}>WA State Sales Tax ({this.props.invoice.get("tax_percent")}%)</Col>
+        <Col sm={9}>
+          WA State Sales Tax ({this.props.invoice.get("tax_percent")}%)
+        </Col>
         <Col sm={2}>
-          {render_amount(this.props.invoice.get("tax"), this.props.invoice.get("currency"))}
+          {render_amount(
+            this.props.invoice.get("tax"),
+            this.props.invoice.get("currency")
+          )}
         </Col>
       </Row>
     );
@@ -129,7 +140,10 @@ export class Invoice extends Component<Props, State> {
         </a>
       );
       let n = 1;
-      for (let line of this.props.invoice.getIn(["lines", "data"], [] as any)) {
+      for (const line of this.props.invoice.getIn(
+        ["lines", "data"],
+        [] as any
+      )) {
         v.push(this.render_line_item(line, n));
         n += 1;
       }

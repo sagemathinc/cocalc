@@ -24,7 +24,7 @@ import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
-import { callback_opts } from "smc-util/async-utils";
+import { callback_opts, once } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
@@ -54,6 +54,7 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
+import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
 import { AvailableFeatures } from "../../project_configuration";
 import {
@@ -109,7 +110,7 @@ export interface CodeEditorState {
   cursors: Map<any, any>;
   value?: string;
   load_time_estimate: number;
-  error: any;
+  error: string;
   errorstyle?: ErrorStyles;
   status: any;
   read_only: boolean;
@@ -130,7 +131,8 @@ export class Actions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager<T>;
+  private terminals: TerminalManager<CodeEditorState>;
+  private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -162,7 +164,12 @@ export class Actions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager<T>(this);
+    this.terminals = new TerminalManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
+    this.code_editors = new CodeEditorManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -460,6 +467,8 @@ export class Actions<
     cm_doc_cache.close(this.project_id, this.path);
     // Free up any allocated terminals.
     this.terminals.close();
+    // Free up stuff related to code editors with different path
+    this.code_editors.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -546,7 +555,7 @@ export class Actions<
     }
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
-    for (let key in obj) {
+    for (const key in obj) {
       const coerced_key = key as keyof LocalViewParams;
       const value = obj[coerced_key];
       local = local.set(coerced_key, fromJS(value));
@@ -709,7 +718,7 @@ export class Actions<
   // like 'type' or 'font_size'.
   public set_frame_data(obj: object): void {
     const x: any = obj["id"] != null ? { id: obj["id"] } : {};
-    for (let key in obj) {
+    for (const key in obj) {
       if (key === "id") continue;
       x["data-" + key] = obj[key];
     }
@@ -737,7 +746,7 @@ export class Actions<
     // And save this new state to localStorage.
     this._save_local_view_state();
     // Emit new-frame events
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(id);
       if (leaf != null) {
         const type = leaf.get("type");
@@ -751,13 +760,15 @@ export class Actions<
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
-  // NOTE: This is only meant to be used in derived classes right now,
-  // though we have a unit test of it at this level.
+  // NOTE: This is only meant to be used in derived classes right now.
   set_frame_type(id: string, type: string): void {
     // save what is currently the most recent frame of this type.
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
 
-    this.set_frame_tree({ id, type });
+    // default path
+    let path = this.path;
+
+    this.set_frame_tree({ id, type, path });
 
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
@@ -768,6 +779,10 @@ export class Actions<
 
     if (type != "terminal") {
       this.terminals.close_terminal(id);
+    }
+
+    if (type != "cm") {
+      this.code_editors.close_code_editor(id);
     }
 
     // Reset the font size for the frame based on recent
@@ -831,6 +846,7 @@ export class Actions<
       delete this._cm[id];
     }
     this.terminals.close_terminal(id);
+    this.code_editors.close_code_editor(id);
     this.close_frame_hook(id, type);
 
     // if id is the current active_id, change to most recent one.
@@ -861,7 +877,7 @@ export class Actions<
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
-    for (let new_id in after) {
+    for (const new_id in after) {
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
         if (!no_focus) {
@@ -1223,7 +1239,10 @@ export class Actions<
     return this._cm[this._active_id()];
   }
 
-  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(
+    id: string,
+    parent: HTMLElement
+  ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1272,7 +1291,7 @@ export class Actions<
       id = this._get_active_id();
     }
 
-    let cm: CodeMirror.Editor | undefined = this._cm[id];
+    const cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
       // Save that it was focused just now; this is just a quick solution to
       // "give me last active cm" -- we will switch to something
@@ -1313,11 +1332,21 @@ export class Actions<
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring(): void {
-    if (this._syncstring == null) {
+  async set_codemirror_to_syncstring(): Promise<void> {
+    if (
+      this._syncstring == null ||
+      this._state == "closed" ||
+      this._syncstring.get_state() == "closed"
+    ) {
       // no point in doing anything further.
       return;
     }
+
+    if (this._syncstring.get_state() != "ready") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     const cm: CodeMirror.Editor | undefined = this._get_cm(undefined, true);
@@ -1472,7 +1501,7 @@ export class Actions<
   cut(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      let doc = cm.getDoc();
+      const doc = cm.getDoc();
       copypaste.set_buffer(doc.getSelection());
       doc.replaceSelection("");
       cm.focus();
@@ -1522,13 +1551,14 @@ export class Actions<
       this.setState({ error });
     } else {
       if (typeof error == "object") {
-        let e = (error as any).message;
+        const e = (error as any).message;
         if (e === undefined) {
           let e = JSON.stringify(error);
           if (e === "{}") {
             e = `${error}`;
           }
         }
+        if (typeof e != "string") throw Error("bug"); // make typescript happy
         error = e;
       }
       this.setState({ error });
@@ -1557,21 +1587,25 @@ export class Actions<
     }
   }
 
-  print(id): void {
+  print(id: string): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return; // nothing to print...
     }
-    let node = this._get_frame_node(id);
-    if (!node) {
-      return; // this won't happen but it ensures node is defined for typescript.
-    }
+    const node = this._get_frame_node(id);
+    // NOTE/TODO: There is an "on-purpose" bug right now
+    // where node isn't defined, namely when you make
+    // a subframe code editor.  Then the node would be
+    // in a completely different store (the original frame
+    // for the tab) than where the codemirror editor is.
+    // Thus in case of a subframe code editor, the font size
+    // is always the default when printing.
     try {
       print_code({
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: node.get("font_size")
+        font_size: node != null ? node.get("font_size") : undefined
       });
     } catch (err) {
       this.set_error(err);
@@ -1819,9 +1853,9 @@ export class Actions<
   // in arbitrary order.
   _get_most_recent_active_frame_id(f?: Function): string | undefined {
     if (this._state === "closed") return;
-    let tree = this._get_tree();
+    const tree = this._get_tree();
     for (let i = this._active_id_history.length - 1; i >= 0; i--) {
-      let id = this._active_id_history[i];
+      const id = this._active_id_history[i];
       if (tree_ops.is_leaf_id(tree, id)) {
         if (f === undefined || f(tree_ops.get_node(tree, id))) {
           return id;
@@ -1829,7 +1863,7 @@ export class Actions<
       }
     }
     // now just check for any frame at all.
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       if (f === undefined || f(tree_ops.get_node(tree, id))) {
         return id;
       }
@@ -2042,7 +2076,7 @@ export class Actions<
     if (full_id != null) {
       this.refresh(full_id);
     } else {
-      for (let id in this._get_leaf_ids()) {
+      for (const id in this._get_leaf_ids()) {
         this.refresh(id);
       }
     }
@@ -2158,7 +2192,7 @@ export class Actions<
     if (id == null) {
       throw Error("bug creating frame");
     }
-    let local_view_state = this.store.get("local_view_state");
+    const local_view_state = this.store.get("local_view_state");
     if (local_view_state != null && local_view_state.get("full_id") != id) {
       this.unset_frame_full();
     }
@@ -2173,7 +2207,7 @@ export class Actions<
     first: boolean = false,
     pos: number | undefined = undefined
   ): string {
-    let id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
+    const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
   }
@@ -2182,12 +2216,71 @@ export class Actions<
   public close_recently_focused_frame_of_type(
     type: string
   ): string | undefined {
-    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
-      type
-    );
+    const id:
+      | string
+      | undefined = this._get_most_recent_active_frame_id_of_type(type);
     if (id != null) {
       this.close_frame(id);
       return id;
     }
+  }
+
+  /*
+  Open a file for editing with the code editor.  This is typically used for
+  opening a path other than this.path for editing.  E.g., this would be useful
+  for editing a tex or bib file associated to a master latex document, or editing
+  some .py code related to a Jupyter notebook.
+
+  - Will show and focus an existing frame if there already is one for this path.
+  - Otherwise, will create a new frame open to edit (using codemirror) the given path.
+
+  Returns the id of the frame with the code editor in it.
+  */
+  public open_code_editor_frame(
+    path: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    // See if there is already a frame for path, and if so show
+    // display and focus it.
+    for (let id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "cm" &&
+        ((this.path === path && leaf.get("path") == null) || // default
+          leaf.get("path") === path) // existing frame
+      ) {
+        // got it!
+        this.set_active_id(id);
+        return id;
+      }
+    }
+
+    // There is no frame for path, so we create one.
+    // First the easy special case:
+    if (this.path === path) {
+      return this.show_focused_frame_of_type("cm", dir, first, pos);
+    }
+
+    // More difficult case - no such frame and different path
+    const active_id = this._get_active_id();
+    const id = this.split_frame(dir, active_id, "cm", { path }, first, true);
+    if (id == null) {
+      throw Error("BUG -- failed to make frame");
+    }
+    if (pos != null) {
+      const parent_id = this.get_parent_id(id);
+      if (parent_id != null) {
+        this.set_frame_tree({ id: parent_id, pos });
+      }
+    }
+    this.set_active_id(id);
+    return id;
+  }
+
+  public get_code_editor(id: string): CodeEditor {
+    return this.code_editors.get_code_editor(id);
   }
 }

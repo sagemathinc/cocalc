@@ -206,7 +206,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
     const cell_list = this.get("cell_list");
     const more_output: { [id: string]: any } = {};
-    for (let id of cell_list.toJS()) {
+    for (const id of cell_list.toJS()) {
       const x = this.get_more_output(id);
       if (x != null) {
         more_output[id] = x;
@@ -225,7 +225,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   public get_language_info(): object | undefined {
-    for (let key of ["backend_kernel_info", "metadata"]) {
+    for (const key of ["backend_kernel_info", "metadata"]) {
       const language_info = this.unsafe_getIn([key, "language_info"]);
       if (language_info != null) return language_info;
     }
@@ -282,7 +282,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
       let { messages } = output;
 
-      for (let x of ["discarded", "truncated"]) {
+      for (const x of ["discarded", "truncated"]) {
         if (output[x]) {
           var text;
           if (x === "truncated") {
@@ -314,7 +314,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const account = this.redux.getStore("account");
     if (account != null) {
       // TODO: getIn types
-      return account.getIn(["editor_settings", "jupyter", "kernel"] as any);
+      return account.getIn(["editor_settings", "jupyter", "kernel"]);
     } else {
       return undefined;
     }
@@ -367,7 +367,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     OrderedMap<string, Map<string, string>>,
     OrderedMap<string, List<string>>
   ] => {
-    let data_name: any = {};
+    const data_name: any = {};
     let data_lang: any = {};
     const add_lang = (lang, entry) => {
       if (data_lang[lang] == null) data_lang[lang] = [];

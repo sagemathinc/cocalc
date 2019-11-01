@@ -135,13 +135,13 @@ class Build extends Component<Props, {}> {
 
   render_log(stage): Rendered {
     if (this.props.build_logs == null) return;
-    let x = this.props.build_logs.get(stage);
+    const x = this.props.build_logs.get(stage);
     if (!x) return;
     const value: string | undefined = x.get("stdout") + x.get("stderr");
     if (!value) {
       return;
     }
-    let time: number | undefined = x.get("time");
+    const time: number | undefined = x.get("time");
     let time_str: string = "";
     if (time) {
       time_str = `(${(time / 1000).toFixed(1)} seconds)`;
@@ -235,8 +235,8 @@ class Build extends Component<Props, {}> {
   }
 
   render_buttons() {
-    let v: Rendered[] = [];
-    for (let action in BUILD_SPECS) {
+    const v: Rendered[] = [];
+    for (const action in BUILD_SPECS) {
       const spec: IBuildSpec = BUILD_SPECS[action];
       if (spec.button) {
         v.push(this.render_build_action_button(action, spec));

@@ -22,7 +22,7 @@ export async function project_has_network_access(
     return true;
   }
   if (x.users != null) {
-    for (let account_id in x.users) {
+    for (const account_id in x.users) {
       if (
         x.users[account_id] != null &&
         x.users[account_id].upgrades != null &&

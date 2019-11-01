@@ -12,7 +12,7 @@ export interface Creds {
 export interface Opts {
   headless?: string;
   screenshot?: string;
-  path?: string|boolean;
+  path?: string | boolean;
   skip?: RegExp;
   xprj?: string;
 }
@@ -21,10 +21,10 @@ export interface InstallOpts {
   install_folder: string;
   create_project: boolean;
   headless?: string;
-  path?: string|boolean;
+  path?: string | boolean;
 }
 
-export const ExtChromePath: string = '/usr/bin/chromium-browser';
+export const ExtChromePath: string = "/usr/bin/chromium-browser";
 
 export class PassFail {
   pass: number;
@@ -33,9 +33,9 @@ export class PassFail {
   constructor(p: number = 0, f: number = 0, s: number = 0) {
     this.pass = p;
     this.fail = f;
-    this.skip = s
+    this.skip = s;
   }
-  add (pf: PassFail): PassFail {
+  add(pf: PassFail): PassFail {
     this.pass += pf.pass;
     this.fail += pf.fail;
     this.skip += pf.skip;
@@ -51,8 +51,8 @@ export class ApiGetString extends PassFail {
   }
 }
 
-export const TestFiles: { [key: string]: string }  = {
+export const TestFiles: { [key: string]: string } = {
   texfile: "latex-sample.tex",
   widgetfile: "widgets-sample.ipynb",
   sageipynbfile: "sage-sample.ipynb"
-}
+};

@@ -66,7 +66,6 @@ describe("Test a cache with some contents", () => {
     expect(cache.size()).toEqual(times.length);
   });
 
-
   it("gets newest value after some point", () => {
     for (let n = 0; n <= 2; n++) {
       const v = cache.newest_value_at_most(times[n]);

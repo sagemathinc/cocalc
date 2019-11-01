@@ -33,7 +33,7 @@ const conf: { [key in ConfigurationAspect]?: Configuration } = {};
 async function x11_apps(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
   const KEYS = Object.keys(APPS);
-  for (let key of KEYS) {
+  for (const key of KEYS) {
     const app = APPS[key];
     status.push(have(app.command != null ? app.command : key));
   }
@@ -112,7 +112,7 @@ async function formatting(): Promise<Capabilities> {
     ...new Set(Object.keys(parser2tool).map(k => parser2tool[k]))
   );
   tools.push("yapf3", "black", "autopep8");
-  for (let tool of tools) {
+  for (const tool of tools) {
     if (tool === ("formatR" as FormatTool)) {
       // TODO special case. must check for package "formatR" in "R" -- for now just test for R
       status.push(have("R"));

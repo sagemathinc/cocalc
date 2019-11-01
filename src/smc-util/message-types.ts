@@ -3,7 +3,7 @@ export interface SignedIn {
   event?: "signed_in";
   account_id: "string";
   id: "string";
-  remember_me?:  boolean;
+  remember_me?: boolean;
   hub?: "string";
   email_address?: "string";
   first_name?: "string";

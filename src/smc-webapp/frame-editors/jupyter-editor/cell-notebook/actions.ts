@@ -17,7 +17,7 @@ import { EditorFunctions } from "../../../jupyter/codemirror-editor";
 
 import { isEqual } from "lodash";
 
-declare var DEBUG: boolean;
+declare let DEBUG: boolean;
 
 export class NotebookFrameActions {
   private frame_tree_actions: JupyterEditorActions;
@@ -99,7 +99,7 @@ export class NotebookFrameActions {
     const cell_list = this.jupyter_actions.store.get("cell_list").toArray();
     let computed: number = 0;
     let index: number = 0;
-    for (let id0 of cell_list) {
+    for (const id0 of cell_list) {
       if (id0 == id) break;
       computed += windowed_list.row_height(index);
       index += 1;
@@ -278,7 +278,7 @@ export class NotebookFrameActions {
     // for whatever reason, any running of a cell deselects
     // in official jupyter
     this.unselect_all_cells();
-    for (let id of v) {
+    for (const id of v) {
       const save = id === v[v.length - 1]; // save only last one.
       this.run_cell(id, save);
     }
@@ -639,7 +639,7 @@ export class NotebookFrameActions {
     if (selected.length === 0) {
       return;
     }
-    let id: string = this.store.get("cur_id");
+    const id: string = this.store.get("cur_id");
     this.move_cursor_after(selected[selected.length - 1]);
     if (this.store.get("cur_id") === id) {
       this.move_cursor_before(selected[0]);
@@ -709,13 +709,13 @@ export class NotebookFrameActions {
   }
 
   public toggle_source_hidden(): void {
-    for (let id in this.store.get_selected_cell_ids()) {
+    for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(id, "source_hidden");
     }
   }
 
   public toggle_outputs_hidden(): void {
-    for (let id in this.store.get_selected_cell_ids()) {
+    for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(
         id,
         "outputs_hidden"
@@ -897,7 +897,7 @@ export class NotebookFrameActions {
   }
 
   public refresh(): void {
-    for (let id in this.input_editors) {
+    for (const id in this.input_editors) {
       this.input_editors[id].refresh();
     }
   }
