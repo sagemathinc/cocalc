@@ -39,6 +39,7 @@ export async function pythontex(
     bash: true, // timeout is enforced by ulimit
     command: "pythontex3",
     args: args.concat(base),
+    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
