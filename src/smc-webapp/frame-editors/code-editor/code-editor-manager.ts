@@ -11,7 +11,7 @@ export class CodeEditor {
   private path: string;
   private actions: Actions;
 
-  constructor(project_id: string, path: string): void {
+  constructor(project_id: string, path: string) {
     this.project_id = project_id;
     this.path = path;
     const editor = get_file_editor("txt", false);
