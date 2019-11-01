@@ -7,7 +7,7 @@ const misc_node = require("smc-util-node/misc_node");
 import { blob_store } from "../jupyter-blobs-sqlite";
 
 describe("very basic tests of the blob store -- ", function() {
-  blob_store.delete_all_blobs()
+  blob_store.delete_all_blobs();
 
   it("gets a list of blobs (which should be empty)", () =>
     expect(blob_store.keys()).toEqual([]));
@@ -25,6 +25,4 @@ describe("very basic tests of the blob store -- ", function() {
   });
 
   it("reads a blob", () => expect(blob_store.get(sha1)).toEqual(buffer));
-
-
 });

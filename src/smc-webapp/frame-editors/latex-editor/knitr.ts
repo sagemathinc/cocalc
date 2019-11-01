@@ -71,7 +71,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
   const warnmsg = "Warning message:";
   const errline = "Quitting from lines ";
 
-  for (let line of output.stderr.split("\n")) {
+  for (const line of output.stderr.split("\n")) {
     if (line.search("Error") == 0) {
       err = {
         line: null,

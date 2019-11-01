@@ -9,7 +9,7 @@ import { createEditor } from "../frame-tree/editor";
 import { PDFJS } from "../latex-editor/pdfjs";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
 
-let pdfjs_buttons = set([
+const pdfjs_buttons = set([
   "reload",
   "print",
   "download",
@@ -45,9 +45,8 @@ export const EDITOR_SPEC = {
     name: "PDF - Native",
     icon: "file-pdf-o",
     buttons: set(["reload", "print", "download"]),
-    component: PDFEmbed,
-  },
-
+    component: PDFEmbed
+  }
 };
 
 export const Editor = createEditor({

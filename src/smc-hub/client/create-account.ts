@@ -123,9 +123,7 @@ export async function create_account(
 
       if (n >= m) {
         throw Error(
-          `Too many accounts are being created from the ip address ${
-            opts.client.ip_address
-          }; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
+          `Too many accounts are being created from the ip address ${opts.client.ip_address}; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
         );
       }
     }

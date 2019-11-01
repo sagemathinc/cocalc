@@ -249,7 +249,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     let selected_icon = "";
     let selected_short = "";
     const items: Rendered[] = [];
-    for (let type in this.props.editor_spec) {
+    for (const type in this.props.editor_spec) {
       const spec = this.props.editor_spec[type];
       if (selected_type === type) {
         selected_icon = spec.icon;
@@ -870,7 +870,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     if (!this.is_visible("restart", true)) {
       return;
     }
-    let labels = this.show_labels();
+    const labels = this.show_labels();
     return (
       <Button
         key={"restart"}
@@ -1209,7 +1209,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     v.push(this.render_help(labels));
 
     const w: Rendered[] = [];
-    for (let c of v) {
+    for (const c of v) {
       if (c != null) {
         w.push(c);
       }

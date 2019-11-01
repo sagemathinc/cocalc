@@ -16,7 +16,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   }
 
   close(): void {
-    for (let id in this.terminals) {
+    for (const id in this.terminals) {
       this.close_terminal(id);
     }
     delete this.actions;
@@ -26,14 +26,14 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   _node_number(id: string, command: string | undefined): number {
     /* All this complicated code starting here is just to get
        a stable number for this frame. Sorry it is so complicated! */
-    let node = this.actions._get_frame_node(id);
+    const node = this.actions._get_frame_node(id);
     if (node === undefined) {
       throw Error(`no node with id ${id}`);
     }
     let number = node.get("number");
 
     const numbers = {};
-    for (let id0 in this.actions._get_leaf_ids()) {
+    for (const id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
       if (
         node0 == null ||
@@ -42,7 +42,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
       ) {
         continue;
       }
-      let n = node0.get("number");
+      const n = node0.get("number");
       if (n !== undefined) {
         if (numbers[n] && n === number) {
           number = undefined;
@@ -65,7 +65,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   }
 
   get_terminal(id: string, parent: HTMLElement): Terminal<T> {
-    let node = this.actions._get_frame_node(id);
+    const node = this.actions._get_frame_node(id);
 
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);

@@ -191,7 +191,7 @@ export class JupyterActions extends JupyterActions0 {
       this.set_cell_input(id, descr);
       this.set_cell_type(id, "markdown");
     }
-    for (let c of code) {
+    for (const c of code) {
       id = this.insert_cell_adjacent(id, +1);
       this.set_cell_input(id, c);
       this.run_code_cell(id);
@@ -259,7 +259,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const v = k[name] != null ? k[name] : [];
-    for (let x of v) {
+    for (const x of v) {
       if (isEqual(x, shortcut)) {
         return;
       }
@@ -283,7 +283,7 @@ export class JupyterActions extends JupyterActions0 {
     const v = k[name] != null ? k[name] : [];
     const w = (() => {
       const result: any = [];
-      for (let x of v) {
+      for (const x of v) {
         if (!isEqual(x, shortcut)) {
           result.push(x);
         }

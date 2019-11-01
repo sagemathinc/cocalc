@@ -16,7 +16,7 @@ const memoizeOne =
     ? memoizeOneModule.default
     : memoizeOneModule;
 
-var initialized = false;
+let initialized = false;
 
 // all replies are of this format
 interface Reply {

@@ -5,7 +5,7 @@ import { SelectorInput } from "../selector-input";
 describe("Smoke test:", () => {
   test("it renders a list of strings", () => {
     const names = ["Susan", "Harry", "Steve"];
-    let tree = shallow(<SelectorInput options={names} />);
+    const tree = shallow(<SelectorInput options={names} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -14,7 +14,7 @@ describe("Smoke test:", () => {
       { value: "value_1", display: <div>Susan</div> },
       { value: "value_2", display: <div>Harry</div> }
     ];
-    let tree = shallow(<SelectorInput options={display_objects} />)
+    const tree = shallow(<SelectorInput options={display_objects} />)
       .children()
       .children();
     expect(tree).toMatchSnapshot();
@@ -25,7 +25,7 @@ describe("Smoke test:", () => {
       value_1: <div>Susan</div>,
       value_2: <div>Harry</div>
     };
-    let tree = shallow(<SelectorInput options={options_map} />)
+    const tree = shallow(<SelectorInput options={options_map} />)
       .children()
       .children();
     expect(tree).toMatchSnapshot();
@@ -39,7 +39,7 @@ describe("Interactions:", () => {
     const names = ["Susan", "Harry", "Steve"];
     const selection_mock = jest.fn();
 
-    let tree = shallow(
+    const tree = shallow(
       <SelectorInput options={names} on_change={selection_mock} />
     );
     tree.children().simulate("change", { target: { value: "Susan" } });

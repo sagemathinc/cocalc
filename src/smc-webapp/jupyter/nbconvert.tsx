@@ -339,9 +339,7 @@ export class NBConvert extends Component<NBConvertProps> {
   };
 
   slides_command = () => {
-    return `jupyter nbconvert --to slides --ServePostProcessor.port=18080 --ServePostProcessor.ip='*' --ServePostProcessor.open_in_browser=False ~/'${
-      this.props.path
-    }' --post serve`;
+    return `jupyter nbconvert --to slides --ServePostProcessor.port=18080 --ServePostProcessor.ip='*' --ServePostProcessor.open_in_browser=False ~/'${this.props.path}' --post serve`;
   };
 
   slides_url = () => {

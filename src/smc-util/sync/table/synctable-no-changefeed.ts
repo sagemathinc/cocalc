@@ -65,7 +65,7 @@ class ClientNoChangefeed extends EventEmitter {
     return this.client.is_project();
   }
 
-  public touch_project(opts) : void {
+  public touch_project(opts): void {
     this.client.touch_project(opts);
   }
 

@@ -96,7 +96,7 @@ describe("test cursors positions (a minimal not very good test) -- ", () => {
       })
     );
     // hack so cursor saving enabled (add two fake users...)
-    const doc = (actions.syncdb as any).doc;  // doc is private
+    const doc = (actions.syncdb as any).doc; // doc is private
     doc._users.push(doc._users[0]);
     doc._users.push(doc._users[0]);
     actions.set_cursor_locs([

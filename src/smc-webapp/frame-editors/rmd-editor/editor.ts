@@ -93,7 +93,6 @@ const EDITOR_SPEC = {
   time_travel,
 
   settings: SETTINGS_SPEC
-
 };
 
 export const Editor = createEditor({

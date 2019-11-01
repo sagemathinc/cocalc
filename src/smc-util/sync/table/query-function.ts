@@ -2,7 +2,7 @@
 Determine function that does query.
 */
 
-const DISABLE_STANDBY : boolean = true; // if true, never use standby server at all.
+const DISABLE_STANDBY: boolean = true; // if true, never use standby server at all.
 
 const async = require("async");
 
@@ -38,7 +38,7 @@ export function query_function(
       const opts2 = copy(opts);
       opts2.standby = true;
       opts2.changes = false;
-      let cb_called : boolean = false;
+      let cb_called: boolean = false;
       opts2.cb = async function(err, resp): Promise<void> {
         opts.cb(err, resp);
         if (!err) {

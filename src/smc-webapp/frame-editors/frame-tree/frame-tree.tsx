@@ -215,7 +215,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     spec: EditorDescription,
     editor_actions: Actions
   ): Rendered {
-    let id = desc.get("id");
+    const id = desc.get("id");
     return (
       <FrameTitleBar
         actions={this.props.actions}

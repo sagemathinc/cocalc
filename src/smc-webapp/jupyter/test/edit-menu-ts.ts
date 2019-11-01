@@ -129,7 +129,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
   });
   it("put content in the 5 cells", () => {
     const object = store.get("cell_list").toJS();
-    for (let k in object) {
+    for (const k in object) {
       const id = object[k];
       actions.set_cell_input(id, `${k}`);
     }
@@ -278,7 +278,7 @@ describe("merge cell with cell above", () => {
     actions.set_cursor_locs([{ id, x: 3, y: 0 }]);
     actions.split_current_cell();
   });
-/*  it("now merge cells back together above", () => {
+  /*  it("now merge cells back together above", () => {
     actions.merge_cell_above();
     const list = store.get("cell_list");
     expect(list.size).to.equal(1);

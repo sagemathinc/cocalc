@@ -13,4 +13,4 @@ literal(["asdf", "other"])
 Returns the type you want
 */
 // TODO: Move to util/misc.ts
-export const literal = <T extends string>(val: T[]) => val;
+export const literal = <T extends string>(val: T[]): T[] => val;

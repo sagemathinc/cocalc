@@ -70,7 +70,7 @@ function halt_and_catch_fire(msg: string): void {
           </div>
          </div>`;
   // clean page
-  for (let eid of ["smc-startup-banner-status", "smc-startup-banner"]) {
+  for (const eid of ["smc-startup-banner-status", "smc-startup-banner"]) {
     const banner = document.getElementById(eid);
     if (banner != null && banner.parentNode != null) {
       banner.parentNode.removeChild(banner);

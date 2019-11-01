@@ -16,7 +16,6 @@ export interface Message {
   text: string;
 }
 
-
 export interface Completion {
   text: string;
   type: string;

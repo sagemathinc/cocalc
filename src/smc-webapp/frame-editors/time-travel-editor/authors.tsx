@@ -74,7 +74,7 @@ class Authors extends Component<Props> {
       return <Loading />;
     }
     const v: Rendered[] = [];
-    for (let account_id of this.props.actions.get_account_ids(
+    for (const account_id of this.props.actions.get_account_ids(
       this.props.version0,
       this.props.version1
     )) {

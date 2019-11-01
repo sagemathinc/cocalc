@@ -19,4 +19,3 @@ export async function readFile(path: string): Promise<Buffer> {
 export async function unlink(path: string): Promise<void> {
   return await callback(fs.unlink, path);
 }
-

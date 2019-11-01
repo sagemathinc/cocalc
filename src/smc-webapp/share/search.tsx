@@ -43,6 +43,11 @@ function cocalc_do_search(event) {
   }
 
   public render(): Rendered {
-    return <div style={{padding:'5px'}} dangerouslySetInnerHTML={{ __html: this.html() }} />;
+    return (
+      <div
+        style={{ padding: "5px" }}
+        dangerouslySetInnerHTML={{ __html: this.html() }}
+      />
+    );
   }
 }

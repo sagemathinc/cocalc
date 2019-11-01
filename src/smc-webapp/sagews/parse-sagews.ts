@@ -59,7 +59,7 @@ export function parse_sagews(sagews: string): Cell[] {
     const input: string = sagews.slice(meta_end + 2, output_start - 1);
     let n: number = 0;
     const output: OutputMessages = {};
-    for (let s of sagews
+    for (const s of sagews
       .slice(output_start + 38, output_end)
       .split(MARKERS.output)) {
       if (!s) {

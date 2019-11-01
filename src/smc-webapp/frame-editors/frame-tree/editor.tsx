@@ -67,7 +67,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     // Copy the editor spec we will use for all future rendering
     // into our private state variable, and also do some function
     // evaluation (e.g,. if buttons is a function of the path).
-    for (let type in props.editor_spec) {
+    for (const type in props.editor_spec) {
       let spec = props.editor_spec[type];
       this.editor_spec[type] = spec;
     }
@@ -216,7 +216,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (!this.props.error) {
       return;
     }
-    let style: any = {
+    const style: any = {
       maxWidth: "100%",
       margin: "1ex",
       maxHeight: "30%",

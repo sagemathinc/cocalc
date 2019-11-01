@@ -39,7 +39,7 @@ export function render_directory_listing(
   info: { project_id: string; path: string }
 ): string {
   const s = ["<a href='..'>..</a>"];
-  for (let obj of data) {
+  for (const obj of data) {
     let { name } = obj;
     let link = encodeURIComponent(name);
     if (obj.isdir) {
@@ -49,7 +49,5 @@ export function render_directory_listing(
     s.push(`<a style='text-decoration:none' href='${link}'>${name}</a>`);
   }
   const body = s.join("<br/>");
-  return `<body style='margin:40px'><h2>${info.project_id}:${
-    info.path
-  }</h2>${body}</body>`;
+  return `<body style='margin:40px'><h2>${info.project_id}:${info.path}</h2>${body}</body>`;
 }

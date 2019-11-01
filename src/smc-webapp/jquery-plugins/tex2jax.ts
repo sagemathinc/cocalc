@@ -98,7 +98,7 @@ export const tex2jax = {
   },
 
   createPatterns: function() {
-    var starts: string[] = [],
+    let starts: string[] = [],
       parts: string[] = [],
       i,
       m,
@@ -134,7 +134,7 @@ export const tex2jax = {
     }
     this.start = new RegExp(parts.join("|"), "g");
     this.skipTags = new RegExp("^(" + config.skipTags.join("|") + ")$", "i");
-    var ignore: string[] = [];
+    const ignore: string[] = [];
     if (config.ignoreClass) {
       ignore.push(config.ignoreClass);
     }
@@ -161,7 +161,7 @@ export const tex2jax = {
   },
 
   scanElement: function(element, stop, ignore) {
-    var cname, tname, ignoreChild, process;
+    let cname, tname, ignoreChild, process;
     while (element && element != stop) {
       if (element.nodeName.toLowerCase() === "#text") {
         if (!ignore) {
@@ -194,7 +194,7 @@ export const tex2jax = {
     if (element.nodeValue.replace(/\s+/, "") == "") {
       return element;
     }
-    var match,
+    let match,
       prev,
       pos = 0,
       rescan;
@@ -238,7 +238,7 @@ export const tex2jax = {
   },
 
   startMatch: function(match, element) {
-    var delim = this.match[match[0]];
+    const delim = this.match[match[0]];
     if (delim != null) {
       // a start delimiter
       this.search = {
@@ -279,7 +279,7 @@ export const tex2jax = {
     } else {
       // put $ in a span so it doesn't get processed again
       // split off backslashes so they don't get removed later
-      var slashes = match[0].substr(0, match[0].length - 1),
+      let slashes = match[0].substr(0, match[0].length - 1),
         n,
         span;
       if (slashes.length % 2 === 0) {
@@ -289,8 +289,8 @@ export const tex2jax = {
         span = [slashes.substr(1).replace(/\\\\/g, "\\"), "$"];
         n = 0;
       }
-      span = $("<span>").text(span.join(''))[0];
-      var text = document.createTextNode(
+      span = $("<span>").text(span.join(""))[0];
+      const text = document.createTextNode(
         element.nodeValue.substr(0, match.index)
       );
       element.nodeValue = element.nodeValue.substr(
@@ -304,7 +304,7 @@ export const tex2jax = {
   },
 
   endMatch: function(match, element) {
-    var search = this.search;
+    const search = this.search;
     if (match[0] == search.end) {
       if (!search.close || search.pcount === 0) {
         search.close = element;
@@ -325,7 +325,7 @@ export const tex2jax = {
   },
   prevEndMatch: function() {
     this.search.matched = true;
-    var element = this.encloseMath();
+    const element = this.encloseMath();
     this.switchPattern(this.start);
     return element;
   },
@@ -337,7 +337,7 @@ export const tex2jax = {
   },
 
   encloseMath: function() {
-    var search = this.search,
+    let search = this.search,
       close = search.close,
       CLOSE,
       math,
@@ -365,12 +365,12 @@ export const tex2jax = {
           math.nodeValue += next.nodeValue;
         }
       } else {
-        var ignore = this.ignoreTags[next.nodeName.toLowerCase()];
+        const ignore = this.ignoreTags[next.nodeName.toLowerCase()];
         math.nodeValue += ignore == null ? " " : ignore;
       }
       math.parentNode.removeChild(next);
     }
-    var TeX = math.nodeValue.substr(
+    const TeX = math.nodeValue.substr(
       search.olen,
       math.nodeValue.length - search.olen - search.clen
     );
@@ -385,12 +385,12 @@ export const tex2jax = {
   },
 
   insertNode: function(node) {
-    var search = this.search;
+    const search = this.search;
     search.close.parentNode.insertBefore(node, search.close);
   },
 
   createMathTag: function(mode, tex) {
-    let script = $("<script>");
+    const script = $("<script>");
     script.attr("type", "math/tex" + mode);
     script.text(tex);
     this.insertNode(script[0]);

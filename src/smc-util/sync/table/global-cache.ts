@@ -13,8 +13,8 @@ export function synctable(
   query,
   options,
   client,
-  throttle_changes : undefined | number,
-  use_cache : boolean = true
+  throttle_changes: undefined | number,
+  use_cache: boolean = true
 ): SyncTable {
   if (options == null) {
     options = [];

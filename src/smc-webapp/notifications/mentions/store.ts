@@ -12,7 +12,8 @@ export class MentionsStore extends Store<MentionsState> {
   }
 
   get_unseen_size = (mentions?: MentionsMap): number => {
-    if (mentions == null) { // e.g., happens with a brand new account.
+    if (mentions == null) {
+      // e.g., happens with a brand new account.
       return 0;
     }
     const account_store = this.redux.getStore("account");

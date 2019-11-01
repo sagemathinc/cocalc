@@ -80,7 +80,7 @@ export function sagetex_errors(
     return pll;
   }
 
-  for (let line of output.stderr.split("\n")) {
+  for (const line of output.stderr.split("\n")) {
     if (line.trim().length > 0) {
       // we create an error and then we collect lines
       if (err == null) {

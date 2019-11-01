@@ -19,26 +19,26 @@ export class MiscSideButtons extends React.Component<Props> {
   handle_refresh = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.fetch_directory_listing();
-  }
+  };
 
   handle_hidden_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     return this.props.actions.setState({
       show_hidden: !this.props.show_hidden
     });
-  }
+  };
 
   handle_masked_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.setState({
       show_masked: !this.props.show_masked
     });
-  }
+  };
 
   handle_backup = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.open_directory(".snapshots");
-  }
+  };
 
   render_refresh(): JSX.Element {
     return (
@@ -96,7 +96,7 @@ export class MiscSideButtons extends React.Component<Props> {
   handle_library_click = (_e: React.MouseEvent): void => {
     this.props.actions.toggle_library();
     analytics_event("project_file_listing", "toggle library");
-  }
+  };
 
   render_library_button(): JSX.Element | undefined {
     // library only exists on kucalc, for now.
@@ -112,7 +112,7 @@ export class MiscSideButtons extends React.Component<Props> {
 
   handle_upload_click = (_e: React.MouseEvent): void => {
     analytics_event("project_file_listing", "clicked upload");
-  }
+  };
 
   render_upload_button(): JSX.Element {
     return (

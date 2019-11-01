@@ -25,7 +25,7 @@ export function register_file_editor(opts: Register) {
     v.push(true);
     v.push(false);
   }
-  for (let is_public of v) {
+  for (const is_public of v) {
     register(opts.icon, opts.ext, opts.component, opts.Actions, is_public);
   }
 }
@@ -101,7 +101,7 @@ function register(
   if (typeof ext == "string") {
     ext = [ext];
   }
-  for (let e of ext) {
+  for (const e of ext) {
     REGISTRY[key(e, is_public)] = data;
   }
 }

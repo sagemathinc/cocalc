@@ -281,7 +281,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       };
     }
 
-    let cm: CodeMirror.Editor = (this.editor_actions as any)._cm[this.props.id];
+    const cm: CodeMirror.Editor = (this.editor_actions as any)._cm[this.props.id];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
@@ -398,7 +398,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       );
     }
 
-    let cm = this.cm;
+    const cm = this.cm;
     let key: string;
     for (key of [
       "lineNumbers",
