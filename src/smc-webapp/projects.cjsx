@@ -1673,9 +1673,17 @@ LoadAllProjects = rclass
         done  : rtypes.bool
         redux : rtypes.object
 
+    componentDidMount: ->
+        @mounted = true
+
+    componentWillUnmount: ->
+        @mounted = false
+
     load: ->
         @setState(loading : true)
         await @props.redux.getActions('projects').load_all_projects()
+        if not @mounted
+            return
         @setState(loading : false)
 
     render_loading: ->
