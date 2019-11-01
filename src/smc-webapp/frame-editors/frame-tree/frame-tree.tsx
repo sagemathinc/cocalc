@@ -194,12 +194,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   private get_editor_actions(desc: NodeDesc): Actions {
-    if (desc.get("type") == "cm" && this.props.editor_spec.cm == null) {
+    if (desc.get("type") == "cm" && this.props.editor_spec["cm"] == null) {
       // make it so the spec includes info about cm editor.
       this.props.editor_spec.cm = copy(cm_spec);
-      this.props.editor_spec.cm.buttons = cm_spec.buttons(
-        desc.get("path", this.props.path)
-      );
     }
 
     if (
@@ -213,7 +210,11 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
   }
 
-  render_titlebar(desc: NodeDesc, editor_actions: Actions): Rendered {
+  render_titlebar(
+    desc: NodeDesc,
+    spec: EditorDescription,
+    editor_actions: Actions
+  ): Rendered {
     let id = desc.get("id");
     return (
       <FrameTitleBar
@@ -228,6 +229,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_paused={desc.get("is_paused")}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
+        spec={spec}
         status={this.props.status}
         title={desc.get("title")}
         connection_status={desc.get("connection_status")}
@@ -347,7 +349,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
         style={spec != null ? spec.style : undefined}
       >
-        {this.render_titlebar(desc, editor_actions)}
+        {this.render_titlebar(desc, spec, editor_actions)}
         {this.render_leaf(desc, component, spec, editor_actions)}
       </div>
     );

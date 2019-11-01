@@ -14,7 +14,7 @@ import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 import { EditorSpec, ErrorStyles } from "./types";
 
-import { copy, is_different, filename_extension } from "smc-util/misc2";
+import { is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
@@ -69,10 +69,6 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     // evaluation (e.g,. if buttons is a function of the path).
     for (let type in props.editor_spec) {
       let spec = props.editor_spec[type];
-      if (typeof spec.buttons === "function") {
-        spec = copy(spec);
-        spec.buttons = spec.buttons(props.path);
-      }
       this.editor_spec[type] = spec;
     }
   }

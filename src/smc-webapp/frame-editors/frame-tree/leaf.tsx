@@ -7,7 +7,7 @@ import {
   rclass,
   rtypes
 } from "../../app-framework";
-import { Loading } from "../../r_misc";
+import { ErrorDisplay, Loading } from "../../r_misc";
 import { AvailableFeatures } from "../../project_configuration";
 
 import { Actions } from "../code-editor/actions";
@@ -47,10 +47,11 @@ interface ReduxProps {
   misspelled_words?: Set<string>;
   complete?: Map<string, any>;
   is_loaded?: boolean;
+  error?: string;
 }
 
 class FrameTreeLeaf extends Component<Props & ReduxProps> {
-  static reduxProps({ editor_actions }): object {
+  static reduxProps({ editor_actions, is_subframe }): object {
     if (editor_actions == null) {
       throw Error("bug -- editor_actions must not be null");
     }
@@ -58,15 +59,22 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
     if (name == null) {
       throw Error("bug -- name must not be null");
     }
+    const redux_props = {
+      read_only: rtypes.bool,
+      cursors: rtypes.immutable.Map,
+      value: rtypes.string,
+      misspelled_words: rtypes.immutable.Set,
+      complete: rtypes.immutable.Map,
+      is_loaded: rtypes.bool,
+      error: rtypes.string
+    };
+    if (!is_subframe) {
+      // This is used for showing the error message right with this frame,
+      // since otherwise it wouldn't be visible at all.
+      delete redux_props.error;
+    }
     return {
-      [name]: {
-        read_only: rtypes.bool,
-        cursors: rtypes.immutable.Map,
-        value: rtypes.string,
-        misspelled_words: rtypes.immutable.Set,
-        complete: rtypes.immutable.Map,
-        is_loaded: rtypes.bool
-      }
+      [name]: redux_props
     };
   }
 
@@ -117,6 +125,33 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
     );
   }
 
+  private render_error(): Rendered {
+    if (
+      !this.props.error ||
+      this.props.desc.get("id") !== this.props.active_id
+    ) {
+      // either no error or not the currently selected frame (otherwise,
+      // it's cluttery and there could be a bunch of the same frame all
+      // showing the same error.)
+      return;
+    }
+    return (
+      <ErrorDisplay
+        error={this.props.error}
+        onClose={() => this.props.editor_actions.set_error("")}
+        style={{
+          maxWidth: "100%",
+          margin: "1ex",
+          maxHeight: "30%",
+          overflowY: "scroll",
+          fontFamily: "monospace",
+          fontSize: "85%",
+          whiteSpace: "pre-wrap"
+        }}
+      />
+    );
+  }
+
   public render(): Rendered {
     return (
       <div
@@ -124,6 +159,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
         className="smc-vfill"
         style={{ background: "white", zIndex: 1 }}
       >
+        {this.render_error()}
         {this.render_leaf()}
       </div>
     );

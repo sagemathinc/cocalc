@@ -110,7 +110,7 @@ export interface CodeEditorState {
   cursors: Map<any, any>;
   value?: string;
   load_time_estimate: number;
-  error: any;
+  error: string;
   errorstyle?: ErrorStyles;
   status: any;
   read_only: boolean;
@@ -1558,6 +1558,7 @@ export class Actions<
             e = `${error}`;
           }
         }
+        if (typeof e != "string") throw Error("bug"); // make typescript happy
         error = e;
       }
       this.setState({ error });

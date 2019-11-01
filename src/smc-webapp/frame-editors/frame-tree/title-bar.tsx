@@ -37,7 +37,7 @@ import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
 import { trunc_middle } from "smc-util/misc2";
 
-import { ConnectionStatus, EditorSpec } from "./types";
+import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 
 // TODO:
 // import { Actions } from "../code-editor/actions";
@@ -126,6 +126,7 @@ interface Props {
   is_public: boolean; // public view of a file
   is_paused: boolean;
   type: string;
+  spec: EditorDescription;
   editor_spec: EditorSpec;
   status: string;
   title?: string;
@@ -150,6 +151,8 @@ interface State {
 }
 
 class FrameTitleBar extends Component<Props & ReduxProps, State> {
+  private buttons?: { [button_name: string]: true };
+
   constructor(props) {
     super(props);
     this.state = { close_and_halt_confirm: false };
@@ -194,18 +197,19 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
-    const spec = this.props.editor_spec[this.props.type];
-    if (spec == null) {
+    if (this.props.editor_actions[action_name] == null) {
       return false;
     }
-    const buttons = spec.buttons;
-    if (!explicit && buttons == null) {
-      return true;
+
+    if (this.buttons == null) {
+      let buttons = this.props.spec.buttons;
+      if (!explicit && buttons == null) {
+        return true;
+      }
+      this.buttons =
+        typeof buttons == "function" ? buttons(this.props.path) : buttons;
     }
-    if (!this.props.actions[action_name]) {
-      return false;
-    }
-    return buttons != null ? !!buttons[action_name] : false;
+    return this.buttons != null ? !!this.buttons[action_name] : false;
   }
 
   click_close(): void {
@@ -241,10 +245,6 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   render_types(): Rendered {
-    if (this.props.editor_spec == null) {
-      return;
-    }
-
     const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
