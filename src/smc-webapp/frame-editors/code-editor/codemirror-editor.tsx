@@ -498,6 +498,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (!this.props.is_subframe) return;
     const style: any = {
       borderBottom: "1px solid lightgrey",
+      borderRight: "1px solid lightgrey",
       padding: "0 5px",
       borderTopLeftRadius: "5px",
       borderTopRightRadius: "5px",

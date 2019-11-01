@@ -7,6 +7,7 @@ import {
   rclass,
   rtypes
 } from "../../app-framework";
+import { Loading } from "../../r_misc";
 import { AvailableFeatures } from "../../project_configuration";
 
 import { Actions } from "../code-editor/actions";
@@ -45,6 +46,7 @@ interface ReduxProps {
   value?: string;
   misspelled_words?: Set<string>;
   complete?: Map<string, any>;
+  is_loaded?: boolean;
 }
 
 class FrameTreeLeaf extends Component<Props & ReduxProps> {
@@ -62,12 +64,14 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
         cursors: rtypes.immutable.Map,
         value: rtypes.string,
         misspelled_words: rtypes.immutable.Set,
-        complete: rtypes.immutable.Map
+        complete: rtypes.immutable.Map,
+        is_loaded: rtypes.bool
       }
     };
   }
 
   private render_leaf(): Rendered {
+    if (!this.props.is_loaded) return <Loading theme="medium" />;
     const { desc, component, spec } = this.props;
     if (component == null) throw Error("component must not be null");
     return (
