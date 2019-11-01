@@ -251,6 +251,10 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     const items: Rendered[] = [];
     for (const type in this.props.editor_spec) {
       const spec = this.props.editor_spec[type];
+      if (this.props.is_public && spec.hide_public) {
+        // editor that is explicitly excluded from public view for file, e.g., settings or terminal might use this.
+        continue;
+      }
       if (selected_type === type) {
         selected_icon = spec.icon;
         selected_short = spec.short;

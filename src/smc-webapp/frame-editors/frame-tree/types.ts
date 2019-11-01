@@ -52,6 +52,7 @@ export interface EditorDescription {
   reload_images?: boolean;
   gutters?: string[]; // I think it's cm gutters
   renderer?: string;  // e.g., "canvas" or "svg"
+  hide_public?: boolean;  // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
 }
 
 export interface EditorSpec {

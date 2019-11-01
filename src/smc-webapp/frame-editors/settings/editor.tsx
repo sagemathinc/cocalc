@@ -84,5 +84,6 @@ export const SETTINGS_SPEC = {
   name: "Editor Settings",
   icon: "wrench",
   buttons: {},
-  component: Settings
+  component: Settings,
+  hide_public: true
 };
