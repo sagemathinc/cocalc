@@ -8,7 +8,8 @@ import { Creds, Opts, PassFail } from './types';
 import { time_log }  from './time_log';
 import test_tex from './test_tex';
 import test_widget from './test_widget';
-import test_sage_ker from './test_sage_ker';
+import { test_sage_ker } from './test_sage_ker';
+import { test_sagews } from './test_sagews';
 import { del_hide_project } from './del_hide_project';
 import { Page } from 'puppeteer';
 
@@ -88,9 +89,13 @@ export const login_tests = async function (creds: Creds, opts: Opts): Promise<Pa
 
     if (opts.xprj) pfcounts.add(await del_hide_project(opts, page));
     if ((opts.xprj === undefined) || (opts.xprj !== "delete")) {
-      pfcounts.add(await test_tex(opts, page));
-      pfcounts.add(await test_widget(opts, page));
-      pfcounts.add(await test_sage_ker(opts, page));
+      if (true) {
+        pfcounts.add(await test_tex(opts, page));
+        pfcounts.add(await test_widget(opts, page));
+        pfcounts.add(await test_sage_ker(opts, page));
+      } else {
+        pfcounts.add(await test_sagews(opts, page));
+      }
     }
 
     time_log("login session total", tm_launch_browser);
