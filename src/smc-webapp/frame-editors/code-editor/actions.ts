@@ -760,13 +760,15 @@ export class Actions<
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
-  // NOTE: This is only meant to be used in derived classes right now,
-  // though we have a unit test of it at this level.
+  // NOTE: This is only meant to be used in derived classes right now.
   set_frame_type(id: string, type: string): void {
     // save what is currently the most recent frame of this type.
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
 
-    this.set_frame_tree({ id, type });
+    // default path
+    let path = this.path;
+
+    this.set_frame_tree({ id, type, path });
 
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
@@ -1237,7 +1239,10 @@ export class Actions<
     return this._cm[this._active_id()];
   }
 
-  public _get_terminal(id: string, parent: HTMLElement): Terminal<CodeEditorState> {
+  public _get_terminal(
+    id: string,
+    parent: HTMLElement
+  ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
 

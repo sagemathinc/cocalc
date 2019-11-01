@@ -83,7 +83,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
         )}
         is_public={this.props.is_public}
         font_size={desc.get("font_size", this.props.font_size)}
-        path={desc.get("path", this.props.path)}
+        path={this.props.path}
         fullscreen_style={spec.fullscreen_style}
         project_id={this.props.project_id}
         editor_state={this.props.editor_state.get(desc.get("id"), Map())}

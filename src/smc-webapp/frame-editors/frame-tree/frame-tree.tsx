@@ -327,13 +327,14 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
     // NOTE: get_editor_actions may mutate props.editor_spec
     // if necessary for subframe, etc. So we call it first!
-    const editor_actions = this.get_editor_actions(desc);
-    const spec: EditorDescription = this.props.editor_spec[type];
-    let component: any = spec != null ? spec.component : undefined;
-    if (component == null) {
-      const mesg = `Invalid frame tree ${JSON.stringify(
-        desc
-      )}; unknown type '${type}'.`;
+    let editor_actions: Actions, spec: EditorDescription, component: any;
+    try {
+      editor_actions = this.get_editor_actions(desc);
+      spec = this.props.editor_spec[type];
+      component = spec != null ? spec.component : undefined;
+      if (component == null) throw Error(`unknown type '${type}'`);
+    } catch (err) {
+      const mesg = `Invalid frame tree ${JSON.stringify(desc)} -- ${err}`;
       console.log(mesg);
       // reset -- fix this disaster next time around.
       this.reset_frame_tree();
