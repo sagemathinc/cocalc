@@ -523,7 +523,7 @@ export class ConfigurationPanel extends Component<
       })().join(",") + "\n";
     for (var student of store.get_sorted_students()) {
       var left2;
-      let grades = (() => {
+      const grades = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
           let grade = store.get_grade(assignment, student);
@@ -534,7 +534,7 @@ export class ConfigurationPanel extends Component<
         return result2;
       })().join(",");
 
-      let comments = (() => {
+      const comments = (() => {
         const result3: any[] = [];
         for (assignment of assignments) {
           let comment = store.get_comments(assignment, student);
@@ -1077,30 +1077,30 @@ export class ConfigurationPanel extends Component<
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}
-            <br/>
+            <br />
             {this.render_require_institute_pay()}
-            <br/>
+            <br />
             {this.render_save_grades()}
-            <br/>
+            <br />
             {this.render_start_all_projects()}
-            <br/>
+            <br />
             {this.render_terminal_command()}
-            <br/>
+            <br />
             {this.render_delete_student_projects()}
-            <br/>
+            <br />
             {this.render_delete_all_students()}
-            <br/>
+            <br />
             {this.render_delete_shared_project()}
           </Col>
           <Col md={6}>
             <HelpBox />
-            <br/>
+            <br />
             {this.render_title_description()}
-            <br/>
+            <br />
             {this.render_email_invite_body()}
-            <br/>
+            <br />
             {this.render_disable_students()}
-            <br/>
+            <br />
             {this.render_configure_all_projects()}
           </Col>
         </Row>

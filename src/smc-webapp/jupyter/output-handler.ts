@@ -162,7 +162,7 @@ export class OutputHandler extends EventEmitter {
     delete mesg.code;
     delete mesg.status;
     delete mesg.source;
-    for (let k in mesg) {
+    for (const k in mesg) {
       const v = mesg[k];
       if (misc.is_object(v) && misc.len(v) === 0) {
         delete mesg[k];

@@ -16,7 +16,7 @@ export async function export_to_json(
 
   const x = syncdoc.export_history({ patches: false, patch_lengths: true });
   // Replace account_id's by user names:
-  for (let entry of x) {
+  for (const entry of x) {
     entry.user = account_id_to_username(entry.account_id, project_id);
   }
 

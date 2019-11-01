@@ -130,10 +130,10 @@ export class ProjectAndUserTracker extends EventEmitter {
 
     if (this.register_todo != null) {
       // clear any outstanding callbacks
-      for (let account_id in this.register_todo) {
+      for (const account_id in this.register_todo) {
         const callbacks = this.register_todo[account_id];
         if (callbacks != null) {
-          for (let cb of callbacks) {
+          for (const cb of callbacks) {
             cb("closed");
           }
         }
@@ -149,7 +149,7 @@ export class ProjectAndUserTracker extends EventEmitter {
       // no users, so nothing to worry about.
       return;
     }
-    for (let account_id in this.users[project_id]) {
+    for (const account_id in this.users[project_id]) {
       this.remove_user_from_project(account_id, project_id);
     }
     return;
@@ -185,7 +185,7 @@ export class ProjectAndUserTracker extends EventEmitter {
     if (this.users[project_id] == null) {
       // we are not already watching this project
       let any = false;
-      for (let { account_id } of users) {
+      for (const { account_id } of users) {
         if (this.accounts[account_id]) {
           any = true;
           break;
@@ -199,17 +199,17 @@ export class ProjectAndUserTracker extends EventEmitter {
 
     // first add any users who got added, and record which accounts are relevant
     const users_now: SetOfAccounts = {};
-    for (let { account_id } of users) {
+    for (const { account_id } of users) {
       users_now[account_id] = true;
     }
     const users_before: SetOfAccounts =
       this.users[project_id] != null ? this.users[project_id] : {};
-    for (let account_id in users_now) {
+    for (const account_id in users_now) {
       if (!users_before[account_id]) {
         this.add_user_to_project(account_id, project_id);
       }
     }
-    for (let account_id in users_before) {
+    for (const account_id in users_before) {
       if (!users_now[account_id]) {
         this.remove_user_from_project(account_id, project_id);
       }
@@ -244,7 +244,7 @@ export class ProjectAndUserTracker extends EventEmitter {
     }
     const collabs = this.collabs[account_id];
 
-    for (let other_account_id in users) {
+    for (const other_account_id in users) {
       if (collabs[other_account_id] != null) {
         collabs[other_account_id] += 1;
       } else {
@@ -286,7 +286,7 @@ export class ProjectAndUserTracker extends EventEmitter {
     if (this.collabs[account_id] == null) {
       this.collabs[account_id] = {};
     }
-    for (let other_account_id in this.users[project_id]) {
+    for (const other_account_id in this.users[project_id]) {
       this.collabs[account_id][other_account_id] -= 1;
       if (this.collabs[account_id][other_account_id] === 0) {
         delete this.collabs[account_id][other_account_id];
@@ -381,12 +381,12 @@ export class ProjectAndUserTracker extends EventEmitter {
       this.accounts[account_id] = true;
 
       dbg("now adding all users to project tracker -- start");
-      for (let project of projects) {
+      for (const project of projects) {
         if (this.users[project.project_id] != null) {
           // already have data about this project
           continue;
         } else {
-          for (let collab_account_id of project.users) {
+          for (const collab_account_id of project.users) {
             if (collab_account_id == null) {
               continue; // just skip; evidently rarely this isn't defined, maybe due to db error?
             }
@@ -399,7 +399,7 @@ export class ProjectAndUserTracker extends EventEmitter {
       // call the callbacks
       const callbacks = this.register_todo[account_id];
       if (callbacks != null) {
-        for (let cb of callbacks) {
+        for (const cb of callbacks) {
           cb();
         }
         // We are done (trying to) register account_id.
@@ -420,23 +420,23 @@ export class ProjectAndUserTracker extends EventEmitter {
     if (!this.accounts[account_id]) return; // nothing to do
 
     const v: string[] = [];
-    for (let project_id in this.projects[account_id]) {
+    for (const project_id in this.projects[account_id]) {
       v.push(project_id);
     }
     delete this.accounts[account_id];
 
     // Forget about any projects they account_id is on that are no longer
     // necessary to watch...
-    for (let project_id of v) {
+    for (const project_id of v) {
       let need: boolean = false;
-      for (let other_account_id in this.users[project_id]) {
+      for (const other_account_id in this.users[project_id]) {
         if (this.accounts[other_account_id] != null) {
           need = true;
           break;
         }
       }
       if (!need) {
-        for (let other_account_id in this.users[project_id]) {
+        for (const other_account_id in this.users[project_id]) {
           this.remove_user_from_project(other_account_id, project_id, true);
         }
         delete this.users[project_id];
@@ -467,7 +467,7 @@ export class ProjectAndUserTracker extends EventEmitter {
 
   private listener_counts(account_id: string): object {
     const x: any = {};
-    for (let e of [
+    for (const e of [
       "add_user_to_project",
       "remove_user_from_project",
       "add_collaborator",

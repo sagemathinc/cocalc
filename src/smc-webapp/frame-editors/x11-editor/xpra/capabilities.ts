@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * CoCalc Xpra HTML Client
  */
@@ -182,13 +182,13 @@ function getClientCapabilities(config) {
       "decorations",
       "override-redirect",
       //"tray",
-      "modal",
+      "modal"
       //"opacity"
       // 'shadow', 'desktop',
     ],
 
     // Sound
-    "sound.receive": false,  // TODO: not implemented at all right now.
+    "sound.receive": false, // TODO: not implemented at all right now.
     "sound.send": false,
     "sound.server_driven": true,
     "sound.bundle-metadata": true,

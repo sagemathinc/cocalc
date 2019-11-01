@@ -110,7 +110,7 @@ gtag('config', '${this.props.google_analytics}');\
 
   private render_cdn_links(): Rendered[] {
     const v: Rendered[] = [];
-    for (let x of CDN_LINKS) {
+    for (const x of CDN_LINKS) {
       v.push(
         <link
           rel="stylesheet"

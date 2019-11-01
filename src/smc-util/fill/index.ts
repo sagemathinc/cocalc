@@ -1,2 +1,2 @@
 export { fill } from "./fill";
-export { define, required } from "./define"
+export { define, required } from "./define";

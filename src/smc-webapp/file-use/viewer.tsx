@@ -202,9 +202,7 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   render_see_mentions_link(): Rendered {
-    let notifications_page_text = `See mentions (${
-      this.props.unseen_mentions_size
-    })`;
+    const notifications_page_text = `See mentions (${this.props.unseen_mentions_size})`;
     return (
       <Link
         on_click={() => {

@@ -205,7 +205,7 @@ class BillingActions extends Actions<BillingStoreState> {
     // delete payment methods
     const payment_methods = this.store.getIn(["customer", "sources", "data"]);
     if (payment_methods != null) {
-      for (let x of payment_methods.toJS()) {
+      for (const x of payment_methods.toJS()) {
         await this.delete_payment_method(x.id);
       }
     }
@@ -215,7 +215,7 @@ class BillingActions extends Actions<BillingStoreState> {
       "data"
     ]);
     if (subscriptions != null) {
-      for (let x of subscriptions.toJS()) {
+      for (const x of subscriptions.toJS()) {
         await this.cancel_subscription(x.id);
       }
     }

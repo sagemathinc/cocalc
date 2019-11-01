@@ -33,7 +33,7 @@ interface Props {
   title: string | JSX.Element | JSX.Element[]; // not checked for update
   placement?: TooltipPlacement;
   tip?: string | JSX.Element | JSX.Element[]; // not checked for update
-  size?: Size;   // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
+  size?: Size; // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
   delayShow?: number;
   delayHide?: number;
   rootClose?: boolean;

@@ -98,9 +98,7 @@ export class CodeExecutionEmitter extends EventEmitter
     dbg(`STDIN kernel --> server: ${JSON.stringify(mesg)}`);
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       dbg(
-        `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${
-          this._message.header.msg_id
-        }`
+        `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${this._message.header.msg_id}`
       );
       return;
     }

@@ -42,7 +42,7 @@ export class DedicatedVM extends Component {
 
   private render_dedicated_plans(): Rendered[] {
     const v: Rendered[] = [];
-    for (let i in PROJECT_UPGRADES.dedicated_vms) {
+    for (const i in PROJECT_UPGRADES.dedicated_vms) {
       const plan = PROJECT_UPGRADES.dedicated_vms[i];
       v.push(
         <Col key={i} sm={4}>

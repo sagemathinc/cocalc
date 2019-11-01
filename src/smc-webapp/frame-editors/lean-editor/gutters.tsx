@@ -23,7 +23,7 @@ export function update_gutters(opts: {
   messages: List<any>;
   tasks: List<any>;
 }): void {
-  for (let message of opts.messages.toJS()) {
+  for (const message of opts.messages.toJS()) {
     opts.set_gutter(
       message.pos_line - 1,
       message_component(

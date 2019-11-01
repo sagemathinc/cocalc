@@ -46,7 +46,7 @@ export function cm_options(
     theme = "default";
   }
 
-  let opts = defaults(default_opts, {
+  const opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
     mode: "txt",
     show_trailing_whitespace: editor_settings.get(
@@ -183,7 +183,7 @@ export function cm_options(
         build();
       }
     };
-    for (let k in actionKeys) {
+    for (const k in actionKeys) {
       const v = actionKeys[k];
       extraKeys[k] = v;
     }
@@ -217,7 +217,7 @@ export function cm_options(
         return actions.set_syncstring_to_codemirror();
       });
 
-    for (let cmd in keybindings) {
+    for (const cmd in keybindings) {
       const keys = keybindings[cmd];
       for (key of keys.split(" ")) {
         f(key, cmd);
@@ -312,7 +312,7 @@ export function cm_options(
   }
 
   if (gutters) {
-    for (let gutter_id of gutters) {
+    for (const gutter_id of gutters) {
       options.gutters.push(gutter_id);
     }
   }

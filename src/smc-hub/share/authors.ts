@@ -41,13 +41,13 @@ export class AuthorInfo {
     }
 
     // Get accounts that have edited these paths, if they have edited them using sync.
-    for (let path of paths) {
+    for (const path of paths) {
       const id: string = this.database.sha1(project_id, path);
       const result = await callback2(this.database._query, {
         query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
       });
       if (result == null || result.rowCount < 1) continue;
-      for (let account_id of result.rows[0].users) {
+      for (const account_id of result.rows[0].users) {
         if (account_id != project_id && !known_account_ids.has(account_id)) {
           account_ids.push(account_id);
           known_account_ids.add(account_id);
@@ -61,7 +61,7 @@ export class AuthorInfo {
         query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`
       });
       if (result != null && result.rowCount >= 1) {
-        for (let v of result.rows) {
+        for (const v of result.rows) {
           account_ids.push(v.jsonb_object_keys);
         }
       }
@@ -73,7 +73,7 @@ export class AuthorInfo {
       account_ids,
       cache_time_s: 60 * 5
     });
-    for (let account_id in names) {
+    for (const account_id in names) {
       // todo really need to sort by last name
       const { first_name, last_name } = names[account_id];
       const name = `${first_name} ${last_name}`;
@@ -110,7 +110,7 @@ export class AuthorInfo {
     const result = await callback2(this.database._query, { query });
     const ids: string[] = [];
     if (result == null) return [];
-    for (let x of result.rows) {
+    for (const x of result.rows) {
       ids.push(x.id);
     }
     return ids;

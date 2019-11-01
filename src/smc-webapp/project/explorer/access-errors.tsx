@@ -7,7 +7,10 @@ interface Props {
   is_logged_in: boolean;
 }
 
-export function AccessErrors({ public_view, is_logged_in }: Props): JSX.Element {
+export function AccessErrors({
+  public_view,
+  is_logged_in
+}: Props): JSX.Element {
   if (public_view) {
     if (is_logged_in) {
       return (

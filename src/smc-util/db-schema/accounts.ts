@@ -3,7 +3,7 @@ import { create } from "./types";
 import {
   DEFAULT_FONT_SIZE,
   NEW_FILENAMES,
-  DEFAULT_NEW_FILENAMES,
+  DEFAULT_NEW_FILENAMES
 } from "./defaults";
 
 export const accounts = create({
@@ -258,7 +258,7 @@ export const accounts = create({
         check_hook(_db, obj, _account_id, _project_id, cb) {
           // Hook to truncate some text fields to at most 254 characters, to avoid
           // further trouble down the line.
-          for (let field of ["first_name", "last_name", "email_address"]) {
+          for (const field of ["first_name", "last_name", "email_address"]) {
             if (obj[field] != null) {
               obj[field] = obj[field].slice(0, 254);
             }

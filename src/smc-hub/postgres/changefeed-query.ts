@@ -78,7 +78,7 @@ class ThrottledTableQueue extends EventEmitter {
     if (this.process_timer != null) {
       clearTimeout(this.process_timer);
     }
-    for (let k in this.queue) {
+    for (const k in this.queue) {
       this.emit(k, "closed");
     }
     this.emit("closed");
@@ -124,7 +124,7 @@ class ThrottledTableQueue extends EventEmitter {
     const queue = copy(this.queue);
     this.queue = {};
 
-    for (let k in queue) {
+    for (const k in queue) {
       dbg(k);
       const { select, where } = queue[k];
 

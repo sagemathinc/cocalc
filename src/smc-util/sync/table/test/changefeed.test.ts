@@ -7,7 +7,7 @@ describe("first test of the public API of the Changefeed class", () => {
   };
   const table = "system_notifications";
 
-  let got: any = {};
+  const got: any = {};
   const init_val = [
     { id: "0", time: new Date(0), text: "foo", priority: "low" }
   ];

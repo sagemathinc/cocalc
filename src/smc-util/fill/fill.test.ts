@@ -7,24 +7,24 @@ test("Supplied default should be merged in to target even if marked undefined", 
     height: undefined
   };
   const actual = fill(opts, { height: 20 });
-  expect(actual).toStrictEqual({name: "jack", height: 20})
+  expect(actual).toStrictEqual({ name: "jack", height: 20 });
 });
 
 test("Defaults should not overwrite already defined optional params", () => {
-  const opts: { name: string; height?: number, weight?: number } = {
+  const opts: { name: string; height?: number; weight?: number } = {
     name: "jack",
     height: 20
   };
   const actual = fill(opts, { height: 30 });
-  expect(actual).toStrictEqual({name: "jack", height: 20})
+  expect(actual).toStrictEqual({ name: "jack", height: 20 });
 });
 
 test("Missing optional params should not appear if not given defaults", () => {
-  const opts: { name: string; height?: number, weight?: number } = {
+  const opts: { name: string; height?: number; weight?: number } = {
     name: "jack"
   };
   const actual = fill(opts, { height: 20 });
-  expect(actual).toStrictEqual({name: "jack", height: 20})
+  expect(actual).toStrictEqual({ name: "jack", height: 20 });
 });
 
 test("Supplied default should guarantee type existance", () => {
@@ -57,7 +57,7 @@ test("strings", () => {
     // This should not end up narrowing to the fixed value
     return fill(props, { highlight: "fixed_string" });
   }
-  let a = filled({ name: "foo", direction: "up" });
+  const a = filled({ name: "foo", direction: "up" });
   expectType<string>(a.name);
   expectType<"up" | "down" | "left" | "right">(a.direction);
   expectType<string>(a.highlight);

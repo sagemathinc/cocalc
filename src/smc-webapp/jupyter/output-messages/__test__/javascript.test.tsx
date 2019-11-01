@@ -13,4 +13,3 @@ describe("test a single string of javascript", () => {
     expect((window as any).value).toBe(5);
   });
 });
-

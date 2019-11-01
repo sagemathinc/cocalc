@@ -18,7 +18,8 @@ For more information see "app-framework/examples/"
 import { Map } from "immutable";
 import { TypedCollectionMethods } from "./immutable-types";
 
-export interface TypedMap<TProps extends Object> extends TypedCollectionMethods<TProps> {
+export interface TypedMap<TProps extends Record<string, any>>
+  extends TypedCollectionMethods<TProps> {
   size: number;
 
   // Reading values
@@ -110,20 +111,21 @@ export interface TypedMap<TProps extends Object> extends TypedCollectionMethods<
   [Symbol.iterator](): IterableIterator<[keyof TProps, TProps[keyof TProps]]>;
 
   filter(fn: (predicate) => boolean): this;
-  some: Map<string, any>["some"]
+  some: Map<string, any>["some"];
 }
 
-interface TypedMapFactory<TProps extends Object> {
+interface TypedMapFactory<TProps extends Record<string, any>> {
   new (values: TProps): TypedMap<TProps>;
 }
 
 export function typedMap<TProps extends object>(
   defaults: Partial<TProps> = {}
-): TypedMap<TProps> { // Add `& readonly TProps` to enable property access?
+): TypedMap<TProps> {
+  // Add `& readonly TProps` to enable property access?
   return Map(defaults) as any;
 }
 
-export function createTypedMap<OuterProps extends Object>(
+export function createTypedMap<OuterProps extends Record<string, any>>(
   defaults?: Partial<
     OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps
   >
@@ -139,7 +141,7 @@ export function createTypedMap<OuterProps extends Object>(
     ? InnerProps
     : OuterProps;
 
-  class _TypedMap {
+  class OldTypedMap {
     private data: any;
 
     constructor(TProps: TProps) {
@@ -313,5 +315,5 @@ export function createTypedMap<OuterProps extends Object>(
     }
   }
 
-  return _TypedMap as any;
+  return OldTypedMap as any;
 }

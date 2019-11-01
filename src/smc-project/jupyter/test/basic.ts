@@ -1,4 +1,4 @@
-import { } from "mocha";
+import {} from "mocha";
 
 const expect = require("expect");
 
@@ -6,7 +6,7 @@ import { kernel, exec, JupyterKernel } from "./common";
 
 describe("compute 2+3 using python2", function() {
   this.timeout(10000);
-  let k: JupyterKernel ;
+  let k: JupyterKernel;
 
   it("creates a python2 kernel", function() {
     k = kernel("test-python2");
@@ -29,7 +29,7 @@ describe("compute 2+3 using python2", function() {
 
 describe("compute 2/3 using python3", function() {
   this.timeout(10000);
-  let k: JupyterKernel ;
+  let k: JupyterKernel;
 
   it("creates a python3 kernel", function() {
     k = kernel("test-python3");

@@ -94,7 +94,7 @@ export class UserSearch extends Component<UserSearchProps> {
     if (this.props.result.size == 0) {
       return <div>No results</div>;
     }
-    let v: Rendered[] = [this.render_user_header()];
+    const v: Rendered[] = [this.render_user_header()];
     this.props.result.forEach(user => {
       v.push(this.render_user(user.toJS()));
     });

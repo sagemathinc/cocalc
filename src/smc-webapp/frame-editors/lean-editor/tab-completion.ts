@@ -19,13 +19,13 @@ interface CMCompletion {
 async function leanHint(
   cm: CodeMirror.Editor
 ): Promise<{ list: CMCompletion[]; from: any; to: any } | void> {
-  var cur = cm.getDoc().getCursor(),
+  const cur = cm.getDoc().getCursor(),
     token = cm.getTokenAt(cur);
 
   const set: any = {};
   const list: CMCompletion[] = [];
   function include(words: string[]): void {
-    for (let word of words) {
+    for (const word of words) {
       if (!set[word]) {
         set[word] = true;
         list.push({ text: word, displayText: `◇ ${word}` });

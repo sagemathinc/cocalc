@@ -42,7 +42,7 @@ const entity_map = {
 };
 
 var unescape = function(s: string) {
-  for (let k in entity_map) {
+  for (const k in entity_map) {
     const v = entity_map[k];
     s = misc.replace_all(s, v, k);
   }

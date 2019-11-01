@@ -58,7 +58,7 @@ export class SagewsControl extends React.Component<Props, State> {
         }
       }
     });
-  }
+  };
 
   render_message() {
     if (this.state.message) {

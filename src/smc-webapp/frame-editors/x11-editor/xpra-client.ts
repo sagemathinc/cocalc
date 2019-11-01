@@ -167,9 +167,7 @@ export class XpraClient extends EventEmitter {
     const i = origin.indexOf(":");
     origin = origin.slice(i);
 
-    const uri = `wss${origin}${window.app_base_url}/${
-      this.options.project_id
-    }/server/${port}/`;
+    const uri = `wss${origin}${window.app_base_url}/${this.options.project_id}/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
     return { uri, dpi };
   }
@@ -276,10 +274,10 @@ export class XpraClient extends EventEmitter {
       return;
     }
     const doc = $(document);
-    for (let name of KEY_EVENTS) {
+    for (const name of KEY_EVENTS) {
       doc.on(name, this[`event_${name}`]);
     }
-    for (let name of MOUSE_EVENTS) {
+    for (const name of MOUSE_EVENTS) {
       doc.on(name, (this.client as any).mouse_inject);
     }
   }
@@ -289,10 +287,10 @@ export class XpraClient extends EventEmitter {
       return;
     }
     const doc = $(document);
-    for (let name of KEY_EVENTS) {
+    for (const name of KEY_EVENTS) {
       doc.off(name, this[`event_${name}`]);
     }
-    for (let name of MOUSE_EVENTS) {
+    for (const name of MOUSE_EVENTS) {
       doc.off(name, (this.client as any).mouse_inject);
     }
   }

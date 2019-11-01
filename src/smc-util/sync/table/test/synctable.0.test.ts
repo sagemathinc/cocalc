@@ -149,7 +149,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
     );
     expect(() => synctable.get()).toThrow("closed");
     expect(() => synctable.get_one()).toThrow("table not yet initialized");
-    expect(synctable.has_uncommitted_changes()).toBe(false) // does not throw
+    expect(synctable.has_uncommitted_changes()).toBe(false); // does not throw
     await synctable.close();
     try {
       await synctable.wait(() => true);

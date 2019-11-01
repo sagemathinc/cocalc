@@ -20,7 +20,7 @@ export class NavigationSlider extends Component<Props> {
     if (version == null) return <div />;
     return (
       <input
-        style={{cursor:'pointer'}}
+        style={{ cursor: "pointer" }}
         type="range"
         min={0}
         max={max}

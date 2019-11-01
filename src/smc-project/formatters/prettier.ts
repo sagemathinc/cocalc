@@ -12,7 +12,7 @@ something that is not supported on the frontend anyway.
 NOTE: for tex files, we use latexformat, rather than prettier.
 */
 
-declare var require: any;
+declare let require: any;
 
 const { math_escape, math_unescape } = require("../smc-util/markdown-utils");
 const prettier = require("prettier");

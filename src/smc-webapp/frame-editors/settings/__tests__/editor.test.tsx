@@ -10,7 +10,7 @@ test("renders a list of languages", () => {
 
   const settings = Map({ spell: "Value" });
 
-  const available_features = Map(ALL_AVAIL) as unknown as AvailableFeatures;
+  const available_features = (Map(ALL_AVAIL) as unknown) as AvailableFeatures;
 
   const render = shallow(
     <Settings

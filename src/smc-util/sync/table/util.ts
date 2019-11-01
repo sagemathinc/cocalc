@@ -17,7 +17,7 @@ export function parse_query(query) {
     if (s.user_query.get == null)
       throw Error(`user_query.get not defined for query "${query}"`);
     const v = copy(s.user_query.get.fields);
-    for (let k in v) {
+    for (const k in v) {
       v[k] = null;
     }
     return { [query]: [v] };

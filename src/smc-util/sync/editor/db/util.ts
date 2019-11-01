@@ -69,9 +69,9 @@ export function map_merge_patch(obj1, obj2) {
 //  - we set the other vals of obj, accordingly.
 // So this is a shallow merge with the ability to *delete* keys.
 export function merge_set(
-  obj: immutable.Map<any,any>,
-  change: immutable.Map<any,any>
-): immutable.Map<any,any> {
+  obj: immutable.Map<any, any>,
+  change: immutable.Map<any, any>
+): immutable.Map<any, any> {
   change.forEach(function(v, k) {
     if (v === null || v == null) {
       obj = obj.delete(k);
@@ -83,8 +83,8 @@ export function merge_set(
 }
 
 export function nonnull_cols(
-  f: immutable.Map<any,any>
-): immutable.Map<any,any> {
+  f: immutable.Map<any, any>
+): immutable.Map<any, any> {
   // Yes, "!==" not "!=" below!
   return immutable.Map(f.filter((v, _) => v !== null));
 }

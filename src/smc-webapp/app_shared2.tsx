@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Rendered } from "./app-framework";
-const {SiteName} = require('./customize')
+const { SiteName } = require("./customize");
 
 const cocalc_logo_white = require("!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg");
 

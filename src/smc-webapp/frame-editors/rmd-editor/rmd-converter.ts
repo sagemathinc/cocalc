@@ -16,7 +16,7 @@ export async function convert(
   time?: number
 ): Promise<ExecOutput> {
   const x = path_split(path);
-  let infile = x.tail;
+  const infile = x.tail;
 
   // console.log("frontmatter", frontmatter);
   let cmd: string;
