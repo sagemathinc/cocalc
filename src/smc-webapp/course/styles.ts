@@ -3,8 +3,7 @@ import { CSSProperties } from "react";
 const misc = require("smc-util/misc");
 const { types } = misc;
 
-export const entry_style: CSSProperties = {
-};
+export const entry_style: CSSProperties = {};
 
 export const selected_entry: CSSProperties = misc.merge(
   {

@@ -11,6 +11,7 @@ import { IFrameHTML } from "../html-editor/iframe-html";
 import { PDFJS } from "../latex-editor/pdfjs";
 import { pdfjs_buttons } from "../latex-editor/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -89,8 +90,9 @@ const EDITOR_SPEC = {
 
   terminal,
 
-  settings: SETTINGS_SPEC
+  time_travel,
 
+  settings: SETTINGS_SPEC
 };
 
 export const Editor = createEditor({

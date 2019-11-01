@@ -218,6 +218,9 @@ class PageActions extends Actions
         if time > (redux.getStore('page').get('last_status_time') ? 0)
             @setState(connection_status : val, last_status_time : time)
 
+    set_connection_quality: (val) =>
+        @setState(connection_quality: val)
+
     set_new_version: (version) =>
         @setState(new_version : version)
 
@@ -300,6 +303,7 @@ redux.createActions('page', PageActions)
         ping                  : rtypes.number
         avgping               : rtypes.number
         connection_status     : rtypes.string
+        connection_quality    : rtypes.oneOf(["good", "bad", "flaky"])
         new_version           : rtypes.immutable.Map
         fullscreen            : rtypes.oneOf(['default', 'kiosk'])
         test                  : rtypes.string  # test query in the URL
@@ -418,22 +422,26 @@ webapp_client.on "connecting", () ->
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            if get_browser() == 'chrome'
-                extra = " If your network is fine, close this browser tab and open a new tab (or use any browser besides Chrome v77, e.g., Firefox or Chrome 78 beta).  There is a major bug in Chrome v77; opening a new tab works around this bug."
+            # This "extra" crap will get deleted -- see https://github.com/sagemathinc/cocalc/issues/4136
+            if window.buggyCh77
+                extra = " If your network is fine, close this browser tab and open a new tab, or upgrade to Chrome version at least 77.3865.114.  There was a major bug in Chrome v77; opening a new tab works around this bug."
             else
                 extra = ''
             if num_recent_disconnects() >= 7 or attempt >= 20
+                redux.getActions('page').set_connection_quality("bad")
                 reconnect
                     type: "error"
                     timeout: 10
                     message: "Your connection is unstable or #{SiteName} is temporarily not available." + extra
             else if attempt >= 10
+                redux.getActions('page').set_connection_quality("flaky")
                 reconnect
                     type: "info"
                     timeout: 10
                     message: "Your connection could be weak or the #{SiteName} service is temporarily unstable. Proceed with caution." + extra
     else
         reconnection_warning = null
+        redux.getActions('page').set_connection_quality("good")
 
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
@@ -482,4 +490,4 @@ redux.getActions('page').set_session(session)
 get_api_key_query_value = QueryParams.get('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
-    redux.getActions('page').set_fullscreen('kiosk')
+    redux.getActions('page').set_fullscreen('default')

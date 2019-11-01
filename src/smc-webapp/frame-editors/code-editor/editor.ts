@@ -6,6 +6,7 @@ import { CodemirrorEditor } from "./codemirror-editor";
 import { filename_extension, set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 const FORMAT = set([
   "js",
@@ -81,7 +82,8 @@ export const cm = {
 
 const EDITOR_SPEC = {
   cm,
-  terminal
+  terminal,
+  time_travel
 };
 
 export const Editor = createEditor({

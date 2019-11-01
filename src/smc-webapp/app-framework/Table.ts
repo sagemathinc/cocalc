@@ -1,5 +1,5 @@
 import { AppRedux } from "../app-framework";
-declare var Primus;
+declare let Primus;
 
 export type TableConstructor<T extends Table> = new (name, redux) => T;
 

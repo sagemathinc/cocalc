@@ -21,7 +21,7 @@
 async = require('async')
 
 {Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('../app-framework')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
 {UpgradeRestartWarning} = require('../upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
@@ -882,7 +882,7 @@ exports.Calendar = rclass
             onChange     = {@props.on_change}
         />
 
-# NOTE: This component does *NOT* all the update_directory_tree action.  That is currently necessary
+# NOTE: This component calls the fetch_directory_tree action.  That is currently necessary
 # to update the tree as of July 31, 2015, though when there is a sync'd filetree it won't be.
 exports.DirectoryInput = rclass
     displayName : 'DirectoryInput'
@@ -901,10 +901,16 @@ exports.DirectoryInput = rclass
         on_key_up     : rtypes.func
         exclusions    : rtypes.array
 
+    update_soon: ->
+        do_update = => redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions)
+        # This must happen in a later render loop, since fetch_directory_tree will change state, and you should not
+        # change state in a render method (this is called below).
+        setTimeout(do_update, 1)
+
     render: ->
         x = @props.directory_trees?.get(@props.project_id)?.toJS()
         if not x? or new Date() - x.updated >= 15000
-            redux.getActions('projects').fetch_directory_tree(@props.project_id, exclusions:@props.exclusions)
+            @update_soon()
         tree = x?.tree
         if tree?
             group = (s) ->
@@ -1063,7 +1069,7 @@ exports.ProjectState = rclass
         show_desc : rtypes.bool
 
     getDefaultProps: ->
-        state     : 'unknown'
+        state     : immutable.Map()
         show_desc : false
 
     render_spinner:  ->
@@ -1086,8 +1092,6 @@ exports.ProjectState = rclass
             return <span><Space/> (<exports.TimeAgo date={time} />)</span>
 
     render: ->
-        # In production I hit a traceback in which @props.state was defined
-        # but did not have a get attribute.  No clue why.
         s = COMPUTE_STATES[@props.state?.get?('state')]
         if not s?
             return <Loading />

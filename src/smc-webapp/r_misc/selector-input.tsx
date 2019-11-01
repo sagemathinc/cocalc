@@ -26,7 +26,7 @@ export class SelectorInput extends React.Component<Props> {
   };
 
   render_options(): JSX.Element[] {
-    let result: JSX.Element[] = [];
+    const result: JSX.Element[] = [];
     if (Array.isArray(this.props.options)) {
       let x: any;
       if (isStringArrayHeuristic(this.props.options)) {
@@ -51,9 +51,9 @@ export class SelectorInput extends React.Component<Props> {
         return result;
       }
     } else {
-      let v = misc.keys(this.props.options);
+      const v = misc.keys(this.props.options);
       v.sort();
-      for (let value of v) {
+      for (const value of v) {
         const display = this.props.options[value];
         result.push(
           <option key={value} value={value}>

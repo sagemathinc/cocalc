@@ -1,9 +1,4 @@
-import {
-  TestEditor,
-  describe,
-  it,
-  expect
-} from "../../generic/test/util";
+import { TestEditor, describe, it, expect } from "../../generic/test/util";
 
 describe("CodeEditor - tests related to the format bar", function() {
   this.timeout(10000);
@@ -15,7 +10,9 @@ describe("CodeEditor - tests related to the format bar", function() {
       await editor.wait_until_loaded();
     });
     it("checks that there is no format bar", function() {
-      expect($(".cc-frame-tree-editor").find(".cc-frame-tree-format-bar").length).to.equal(0);
+      expect(
+        $(".cc-frame-tree-editor").find(".cc-frame-tree-format-bar").length
+      ).to.equal(0);
     });
     it("deletes the editor", function() {
       editor.delete();
@@ -29,12 +26,12 @@ describe("CodeEditor - tests related to the format bar", function() {
       await editor.wait_until_loaded();
     });
     it("checks that there is a format bar", function() {
-      expect($(".cc-frame-tree-editor").find(".cc-frame-tree-format-bar").length).to.equal(1);
+      expect(
+        $(".cc-frame-tree-editor").find(".cc-frame-tree-format-bar").length
+      ).to.equal(1);
     });
     it("deletes the editor", function() {
       editor.delete();
     });
   });
-
-
 });

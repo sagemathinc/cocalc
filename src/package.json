@@ -17,6 +17,8 @@
     "@types/katex": "^0.10.2",
     "@types/node": "^12.7.5",
     "@types/react": "^16.9.2",
+    "@typescript-eslint/eslint-plugin": "^2.6.0",
+    "@typescript-eslint/parser": "^2.6.0",
     "assets-webpack-plugin": "^3.5",
     "autoprefixer": "^9.6.1",
     "babel-loader": "^8.0.0-beta.2",
@@ -32,9 +34,14 @@
     "enzyme": "^3.7.0",
     "enzyme-adapter-react-16": "^1.6.0",
     "enzyme-to-json": "^3.3.4",
+    "eslint": "^6.6.0",
+    "eslint-config-prettier": "^6.5.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "eslint-plugin-react": "^7.16.0",
     "extract-text-webpack-plugin": "^3.0.2",
     "file-loader": "^1.1.11",
     "forever": "^0.15.3",
+    "fork-ts-checker-webpack-plugin": "^1.5.1",
     "handlebars": "^4.4.2",
     "handlebars-loader": "^1.1.4",
     "html-loader": "^0.5.1",
@@ -65,7 +72,7 @@
     "ts-loader": "^4.4.1",
     "ts-node": "^7.0.0",
     "tsd": "^0.7.4",
-    "typescript": "^3.6.2",
+    "typescript": "^3.6.4",
     "uglify-js": "^2.6.2",
     "uglifyjs-webpack-plugin": "^1.2.4",
     "url-loader": "^0.6",
@@ -88,10 +95,10 @@
     ]
   },
   "scripts": {
-    "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",
+    "lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
-    "webpack-watch": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webapp-lib/primus/update_primus; unset CC_STATICPAGES; CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --debug --output-pathinfo --progress --colors --watch --watch-poll=1000",
+    "webpack-watch": "cd $SALVUS_ROOT; scripts/check_npm_packages.py; scripts/update_color_scheme.coffee; webapp-lib/primus/update_primus; unset CC_STATICPAGES; CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --debug --output-pathinfo --progress --colors --watch --watch-poll=1000",
     "webpack-debug": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webapp-lib/primus/update_primus; SOURCE_MAP=true NODE_ENV=development webpack --debug --progress --colors",
     "webpack-production": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; webapp-lib/primus/update_primus; NODE_ENV=production node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --progress --colors",
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
@@ -130,5 +137,8 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "devDependencies": {
+    "eslint-plugin-react-hooks": "^2.2.0"
+  }
 }

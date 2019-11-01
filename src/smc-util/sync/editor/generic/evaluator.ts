@@ -12,7 +12,6 @@ to a syncdoc editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
-
 const stringify = require("json-stable-stringify");
 
 import { callback } from "awaiting";
@@ -175,7 +174,7 @@ export class Evaluator {
     // make time be congruent to our uid
     this.last_call_time = time;
 
-    let user_id: number = this.syncdoc.get_my_user_id();
+    const user_id: number = this.syncdoc.get_my_user_id();
     const obj = {
       string_id: this.syncdoc.get_string_id(),
       time,
@@ -214,7 +213,7 @@ export class Evaluator {
       // console.log("handle_output #{to_json(keys)}")
       dbg("handle_output", keys);
       this.assert_not_closed();
-      for (let key of keys) {
+      for (const key of keys) {
         const t = from_json(key);
         if (t[1].valueOf() != time.valueOf()) {
           dbg("not our eval", t[1].valueOf(), time.valueOf());
@@ -284,7 +283,7 @@ export class Evaluator {
     // connected... maybe we could use that instead?
     let output_line = MARKERS.output;
 
-    let hook = mesg => {
+    const hook = mesg => {
       dbg(`processing mesg '${to_json(mesg)}'`);
       let content = this.syncdoc.to_str();
       let i = content.indexOf(MARKERS.output + output_uuid);
@@ -312,9 +311,7 @@ export class Evaluator {
 
       dbg("browser client didn't maintain sync promptly. fixing");
       dbg(
-        `sage_execute_code: i=${i}, n=${n}, output_line.length=${
-          output_line.length
-        }`
+        `sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`
       );
       dbg(`output_line='${output_line}', sync_line='${content.slice(i, n)}'`);
       const x = content.slice(0, i);
@@ -442,7 +439,7 @@ export class Evaluator {
     const dbg = this.dbg("init_project_evaluator");
     dbg("init");
     this.inputs_table.on("change", keys => {
-      for (let key of keys) {
+      for (const key of keys) {
         this.handle_input_change(key);
       }
     });
@@ -475,7 +472,7 @@ export class Evaluator {
     this.sage_session = (this.client as any).sage_session({
       path: this.syncdoc.get_path()
     });
-    await callback(this.sage_session.init_socket)
+    await callback(this.sage_session.init_socket);
   }
 
   // Runs only in the project

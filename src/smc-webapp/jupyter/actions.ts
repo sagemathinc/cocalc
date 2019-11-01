@@ -25,7 +25,7 @@ const { required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
-import { KernelInfo } from "./types";
+import { Cell, KernelInfo } from "./types";
 import {
   Parser,
   format_parser_for_extension
@@ -145,7 +145,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     let directory: any;
-    let split_path = misc.path_split(path);
+    const split_path = misc.path_split(path);
     if (split_path != null) {
       directory = split_path.head;
     }
@@ -339,7 +339,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cells = this.store.get("cells");
     if (cells == null) return; // nothing to do
     let not_editable: number = 0;
-    for (let id of cell_ids) {
+    for (const id of cell_ids) {
       const cell = cells.get(id);
       if (!this.store.is_cell_editable(id)) {
         not_editable += 1;
@@ -388,7 +388,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cells == null) {
       throw Error("cells not defined");
     }
-    for (let id of cell_ids) {
+    for (const id of cell_ids) {
       const cell = cells.get(id);
       if (cell == null) {
         throw Error(`no cell with id ${id}`);
@@ -543,7 +543,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // in the syncdb database.   These look like, e.g.,
       //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
-      let cells = immutable.Map();
+      let cells: immutable.Map<string, Cell> = immutable.Map();
       this.syncdb.get().forEach(record => {
         switch (record.get("type")) {
           case "cell":
@@ -553,9 +553,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             if (record == null) {
               return;
             }
-            let orig_kernel = this.store.get("kernel");
-            let kernel = record.get("kernel");
-            let obj: any = {
+            const orig_kernel = this.store.get("kernel");
+            const kernel = record.get("kernel");
+            const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
@@ -596,7 +596,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             break;
           case "fatal":
-            let error = record != null ? record.get("error") : undefined;
+            const error = record != null ? record.get("error") : undefined;
             this.setState({ fatal: error });
             // This check can be deleted in a few weeks:
             if (
@@ -620,9 +620,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             if (record == null) {
               return;
             }
-            let orig_kernel = this.store.get("kernel");
-            let kernel = record.get("kernel");
-            let obj: any = {
+            const orig_kernel = this.store.get("kernel");
+            const kernel = record.get("kernel");
+            const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
@@ -729,7 +729,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       obj.id != null &&
       !this.store.is_cell_editable(obj.id)
     ) {
-      for (let protected_key of ["input", "cell_type", "attachments"]) {
+      for (const protected_key of ["input", "cell_type", "attachments"]) {
         if (misc.has_key(protected_key)) {
           throw CellWriteProtectedException;
         }
@@ -875,7 +875,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   delete_cells(cells: string[], sync: boolean = true): void {
     let not_deletable: number = 0;
-    for (let id of cells) {
+    for (const id of cells) {
       if (this.store.is_cell_deletable(id)) {
         this._delete({ type: "cell", id }, false);
       } else {
@@ -1042,7 +1042,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   run_all_above_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    for (let id of v.slice(0, i)) {
+    for (const id of v.slice(0, i)) {
       this.run_cell(id, false);
     }
     this.save_asap();
@@ -1052,7 +1052,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public run_all_below_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    for (let id of v.slice(i)) {
+    for (const id of v.slice(i)) {
       this.run_cell(id, false);
     }
     this.save_asap();
@@ -1125,7 +1125,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // no cell below given cell, so trivial.
       return;
     }
-    for (let id of [cell_id, next_id]) {
+    for (const id of [cell_id, next_id]) {
       if (this.check_edit_protection(id)) return;
     }
     if (this.check_delete_protection(next_id)) return;
@@ -1188,7 +1188,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public copy_cells(cell_ids: string[]): void {
     const cells = this.store.get("cells");
     let global_clipboard = immutable.List();
-    for (let id of cell_ids) {
+    for (const id of cell_ids) {
       global_clipboard = global_clipboard.push(cells.get(id));
     }
     this.store.set_global_clipboard(global_clipboard);
@@ -1224,7 +1224,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     default_value: boolean, // default metadata value, if the metadata field is not set.
     save: boolean = true
   ): void {
-    for (let id of cell_ids) {
+    for (const id of cell_ids) {
       this.set_cell_metadata({
         id,
         metadata: {
@@ -1247,7 +1247,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     key: string,
     save: boolean = true
   ): void {
-    let jupyter = this.store
+    const jupyter = this.store
       .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
       .toJS();
     jupyter[key] = !jupyter[key];
@@ -1265,7 +1265,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     value: any,
     save: boolean = true
   ): void {
-    let jupyter = this.store
+    const jupyter = this.store
       .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
       .toJS();
     if (value == null && jupyter[key] == null) return; // nothing to do.
@@ -1634,7 +1634,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
     complete.matches = (() => {
       const result: any = [];
-      for (let x of complete.matches) {
+      for (const x of complete.matches) {
         if (misc.startswith(x, target)) {
           result.push(x);
         }
@@ -1891,9 +1891,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const mode = this.store.get_cm_mode();
     const account = this.redux.getStore("account");
     if (account == null) return;
-    let editor_settings = account.get("editor_settings");
-    if (editor_settings == null) return;
-    editor_settings = editor_settings.toJS();
+    const immutable_editor_settings = account.get("editor_settings");
+    if (immutable_editor_settings == null) return;
+    const editor_settings = immutable_editor_settings.toJS();
     const line_numbers = this.store.get_local_storage("line_numbers");
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
@@ -2067,7 +2067,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     // Set all the cells
     const object = importer.cells();
-    for (let _ in object) {
+    for (const _ in object) {
       const cell = object[_];
       set(cell);
     }
@@ -2110,7 +2110,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.store.get("cells")
     );
     if (changes != null) {
-      for (let id in changes) {
+      for (const id in changes) {
         const pos = changes[id];
         this.set_cell_pos(id, pos, false);
       }
@@ -2320,13 +2320,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // special fields
     // "collapsed", "scrolled", "slideshow", and "tags"
     if (metadata.tags != null) {
-      for (let tag of metadata.tags) {
+      for (const tag of metadata.tags) {
         this.add_tag(id, tag, false);
       }
       delete metadata.tags;
     }
     // important to not store redundant inconsistent fields:
-    for (let field of ["collapsed", "scrolled", "slideshow"]) {
+    for (const field of ["collapsed", "scrolled", "slideshow"]) {
       if (metadata[field] != null) {
         delete metadata[field];
       }
@@ -2436,8 +2436,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     sync: boolean = true
   ): Promise<void> {
     this.set_error(null);
-    let jobs: string[] = [];
-    for (let id of cell_ids) {
+    const jobs: string[] = [];
+    for (const id of cell_ids) {
       if (!this.store.is_cell_editable(id)) {
         continue;
       }

@@ -42,7 +42,7 @@ export function cm_options(
     showTrailingSpace:
       editor_settings.show_trailing_whitespace ||
       (mode && mode.name) === "gfm2",
-    indentUnit: valid_indent(editor_settings.tab_size),  // TODO! indent_unit just isn't implemented -- see #2847.  same comment is in frame editors' cm-options.ts
+    indentUnit: valid_indent(editor_settings.tab_size), // TODO! indent_unit just isn't implemented -- see #2847.  same comment is in frame editors' cm-options.ts
     tabSize: valid_indent(editor_settings.tab_size),
     smartIndent: editor_settings.smart_indent,
     electricChars: editor_settings.electric_chars,

@@ -44,6 +44,7 @@ markdown = require('./markdown')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {UsersViewing} = require('./other-users')
+{recreate_users_table} = require('./users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {fromPairs} = require('lodash')
 ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
@@ -193,6 +194,7 @@ class ProjectsActions extends Actions
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
     # configurable by the user.
+    # **THIS IS AN ASYNC FUNCTION!**
     apply_default_upgrades: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -207,7 +209,7 @@ class ProjectsActions extends Actions
             if avail > 0
                 to_upgrade[quota] = 1
         if misc.len(to_upgrade) > 0
-            @apply_upgrades_to_project(opts.project_id, to_upgrade)
+            await @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
     ###
     # See comment in db-schema.ts about projects_owner table.
@@ -263,6 +265,7 @@ class ProjectsActions extends Actions
             title       : 'No Title'
             description : 'No Description'
             image       : undefined  # if given, sets the compute image (the ID string)
+            start       : false      # immediately start on create
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token
@@ -298,10 +301,14 @@ class ProjectsActions extends Actions
             ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
             change_history  : true      # bool    Whether or not to alter browser history
             restore_session : true      # bool    Opens up previously closed editor tabs
+
         if not store.get_project(opts.project_id)?
-            # trying to open a not-known project -- maybe
-            # we have not yet loaded the full project list?
-            await @load_all_projects()
+            if COCALC_MINIMAL
+                await switch_to_project(opts.project_id)
+            else
+                # trying to open a not-known project -- maybe
+                # we have not yet loaded the full project list?
+                await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -535,10 +542,11 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
-    # Throws on project_id not UUID
+    # Throws on project_id is not a valid UUID (why? I don't remember)
+    # **THIS IS AN ASYNC FUNCTION!**
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
-        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+        await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
@@ -604,7 +612,7 @@ class ProjectsActions extends Actions
     toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
-            @clear_project_upgrades(project_id)
+            await @clear_project_upgrades(project_id)
 
         await @projects_table_set
             project_id : project_id
@@ -948,7 +956,17 @@ class ProjectsTable extends Table
             return 'projects'
 
     _change: (table, keys) =>
-        actions.setState(project_map: table.get())
+        # in kiosk mode, merge in the new project table into the known project map
+        project_id = redux.getStore('page').get('kiosk_project_id')
+        if project_id?
+            project_map = redux.getStore("projects")?.get("project_map")
+            if project_map?
+                new_project_map = project_map.merge(table.get())
+            else
+                new_project_map = table.get()
+            actions.setState(project_map: new_project_map)
+        else
+            actions.setState(project_map: table.get())
 
 class ProjectsAllTable extends Table
     query: ->
@@ -967,7 +985,9 @@ class ProjectsAllTable extends Table
 
 all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
-    if all_projects_have_been_loaded # or COCALC_MINIMAL
+    if DEBUG and COCALC_MINIMAL
+        console.error("projects/load_all_projects was called in kiosk/minimal mode")
+    if all_projects_have_been_loaded
         return
     all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
@@ -981,8 +1001,30 @@ load_recent_projects = =>
     if redux.getTable('projects')._table.get().size == 0
         await load_all_projects()
 
-#if not COCALC_MINIMAL
-load_recent_projects()
+
+if not COCALC_MINIMAL
+    load_recent_projects()
+
+
+_project_tables = {}
+_previous_project_id = undefined
+
+# This function makes it possible to switch between projects in kiosk mode.
+# If the project changes, it also recreates the users table.
+# Warning: https://github.com/sagemathinc/cocalc/pull/3985#discussion_r336828374
+switch_to_project = (project_id) =>
+    redux.getActions('page').setState({kiosk_project_id:project_id})
+    if _previous_project_id != project_id
+        recreate_users_table()
+        _previous_project_id = project_id
+    pt_cached = _project_tables[project_id]
+    if pt_cached
+        redux._tables[project_id] = pt_cached
+    else
+        redux.removeTable('projects')
+        pt = redux.createTable('projects', ProjectsTable)
+        _project_tables[project_id] = pt
+        await once(redux.getTable('projects')._table, "connected")
 
 
 ProjectsSearch = rclass
@@ -1631,9 +1673,17 @@ LoadAllProjects = rclass
         done  : rtypes.bool
         redux : rtypes.object
 
+    componentDidMount: ->
+        @mounted = true
+
+    componentWillUnmount: ->
+        @mounted = false
+
     load: ->
         @setState(loading : true)
         await @props.redux.getActions('projects').load_all_projects()
+        if not @mounted
+            return
         @setState(loading : false)
 
     render_loading: ->

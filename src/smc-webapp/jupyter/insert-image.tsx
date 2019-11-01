@@ -42,8 +42,8 @@ export class InsertImage extends Component<InsertImageProps> {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            <Icon name="image" /> Pick image files to attach to this
-            markdown cell
+            <Icon name="image" /> Pick image files to attach to this markdown
+            cell
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>

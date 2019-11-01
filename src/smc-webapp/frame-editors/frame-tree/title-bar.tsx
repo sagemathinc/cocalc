@@ -2,7 +2,14 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { React, Rendered, Component, redux } from "../../app-framework";
+import {
+  React,
+  Rendered,
+  Component,
+  redux,
+  rclass,
+  rtypes
+} from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
@@ -30,12 +37,12 @@ import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
 import { trunc_middle } from "smc-util/misc2";
 
-import { ConnectionStatus, EditorSpec } from "./types";
+import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 
 // TODO:
 // import { Actions } from "../code-editor/actions";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
@@ -109,20 +116,17 @@ const close_style: CSS.Properties | undefined = (function() {
 
 interface Props {
   actions: any; // TODO -- see above Actions;
+  editor_actions: any; // TODO -- see above Actions;
   path: string; // assumed to not change for now
   project_id: string; // assumed to not change for now
   active_id: string;
   id: string;
-  deletable: boolean;
-  read_only: boolean;
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  is_saving: boolean;
   is_full: boolean;
   is_only: boolean; // is the only frame
   is_public: boolean; // public view of a file
   is_paused: boolean;
   type: string;
+  spec: EditorDescription;
   editor_spec: EditorSpec;
   status: string;
   title?: string;
@@ -131,21 +135,49 @@ interface Props {
   available_features?: AvailableFeatures;
 }
 
+// state that is associated with the file being edited, not the
+// frame tree/tab in which this sits.  Note some more should
+// probably be moved down here...
+interface ReduxProps {
+  read_only: boolean;
+  has_unsaved_changes: boolean;
+  has_uncommitted_changes: boolean;
+  is_saving: boolean;
+  is_public: boolean;
+}
+
 interface State {
   close_and_halt_confirm?: boolean;
 }
 
-export class FrameTitleBar extends Component<Props, State> {
+class FrameTitleBar extends Component<Props & ReduxProps, State> {
+  private buttons?: { [button_name: string]: true };
+
   constructor(props) {
     super(props);
     this.state = { close_and_halt_confirm: false };
   }
+
+  static reduxProps({ editor_actions }) {
+    if (editor_actions == null) throw Error("editor_actions must be specified");
+    const name = editor_actions.name;
+    if (name == null) throw Error("editor_actions must have name attribute");
+    return {
+      [name]: {
+        read_only: rtypes.bool,
+        has_unsaved_changes: rtypes.bool,
+        has_uncommitted_changes: rtypes.bool,
+        is_saving: rtypes.bool,
+        is_public: rtypes.bool
+      }
+    };
+  }
+
   shouldComponentUpdate(next, state): boolean {
     return (
       misc.is_different(this.props, next, [
         "active_id",
         "id",
-        "deletable",
         "is_full",
         "is_only",
         "read_only",
@@ -165,18 +197,19 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
-    const spec = this.props.editor_spec[this.props.type];
-    if (spec == null) {
+    if (this.props.editor_actions[action_name] == null) {
       return false;
     }
-    const buttons = spec.buttons;
-    if (!explicit && buttons == null) {
-      return true;
+
+    if (this.buttons == null) {
+      let buttons = this.props.spec.buttons;
+      if (!explicit && buttons == null) {
+        return true;
+      }
+      this.buttons =
+        typeof buttons == "function" ? buttons(this.props.path) : buttons;
     }
-    if (!this.props.actions[action_name]) {
-      return false;
-    }
-    return buttons != null ? !!buttons[action_name] : false;
+    return this.buttons != null ? !!this.buttons[action_name] : false;
   }
 
   click_close(): void {
@@ -212,16 +245,16 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_types(): Rendered {
-    if (this.props.editor_spec == null) {
-      return;
-    }
-
     const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
     const items: Rendered[] = [];
-    for (let type in this.props.editor_spec) {
+    for (const type in this.props.editor_spec) {
       const spec = this.props.editor_spec[type];
+      if (this.props.is_public && spec.hide_public) {
+        // editor that is explicitly excluded from public view for file, e.g., settings or terminal might use this.
+        continue;
+      }
       if (selected_type === type) {
         selected_icon = spec.icon;
         selected_short = spec.short;
@@ -468,7 +501,10 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_download(): Rendered {
-    if (!this.is_visible("download") || this.props.actions.download == null) {
+    if (
+      !this.is_visible("download") ||
+      this.props.editor_actions.download == null
+    ) {
       return;
     }
     const labels = this.show_labels();
@@ -477,7 +513,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"download"}
         title={"Download this file"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.download(this.props.id)}
+        onClick={() => this.props.editor_actions.download(this.props.id)}
       >
         <Icon name={"cloud-download"} />{" "}
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
@@ -493,7 +529,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"replace"}
         title={"Replace text"}
-        onClick={() => this.props.actions.replace(this.props.id)}
+        onClick={() => this.props.editor_actions.replace(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -510,7 +546,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"find"}
         title={"Find text"}
-        onClick={() => this.props.actions.find(this.props.id)}
+        onClick={() => this.props.editor_actions.find(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name="search" />
@@ -526,7 +562,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"goto-line"}
         title={"Jump to line"}
-        onClick={() => this.props.actions.goto_line(this.props.id)}
+        onClick={() => this.props.editor_actions.goto_line(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name="bolt" />
@@ -564,7 +600,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"cut"}
         title={"Cut selected"}
-        onClick={() => this.props.actions.cut(this.props.id)}
+        onClick={() => this.props.editor_actions.cut(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -582,7 +618,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
-          () => this.props.actions.paste(this.props.id, true),
+          () => this.props.editor_actions.paste(this.props.id, true),
           200,
           true
         )}
@@ -602,7 +638,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"copy"}
         title={"Copy selected"}
-        onClick={() => this.props.actions.copy(this.props.id)}
+        onClick={() => this.props.editor_actions.copy(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name={"copy"} />
@@ -678,7 +714,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => this.props.actions.undo()}
+        onClick={() => this.props.editor_actions.undo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -695,7 +731,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => this.props.actions.redo()}
+        onClick={() => this.props.editor_actions.redo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -722,7 +758,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"auto-indent"}
         title={"Automatically format selected code"}
-        onClick={() => this.props.actions.auto_indent()}
+        onClick={() => this.props.editor_actions.auto_indent()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -774,7 +810,21 @@ export class FrameTitleBar extends Component<Props, State> {
         title={"Show complete edit history"}
         bsStyle={"info"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.time_travel()}
+        onClick={event => {
+          if (this.props.actions.name != this.props.editor_actions.name) {
+            // a subframe editor -- always open time travel in a name tab.
+            this.props.editor_actions.time_travel({ frame: false });
+            return;
+          }
+          // If a time_travel frame type is available and the
+          // user does NOT shift+click, then open as a frame.
+          // Otherwise, it opens as a new tab.
+          const frame =
+            !event.shiftKey && this.props.editor_spec["time_travel"] != null;
+          this.props.actions.time_travel({
+            frame
+          });
+        }}
       >
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
@@ -824,13 +874,13 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!this.is_visible("restart", true)) {
       return;
     }
-    let labels = this.show_labels();
+    const labels = this.show_labels();
     return (
       <Button
         key={"restart"}
         title={"Restart service"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.restart()}
+        onClick={() => this.props.editor_actions.restart()}
       >
         <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
@@ -853,7 +903,7 @@ export class FrameTitleBar extends Component<Props, State> {
         no_labels={!labels}
         size={this.button_size()}
         onClick={() => {
-          this.props.actions.save(true);
+          this.props.editor_actions.save(true);
           this.props.actions.focus(this.props.id);
         }}
       />
@@ -876,7 +926,7 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     if (!this.is_visible("format")) return;
-    let desc: any = this.props.actions.has_format_support(
+    let desc: any = this.props.editor_actions.has_format_support(
       this.props.id,
       this.props.available_features
     );
@@ -888,7 +938,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"format"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.format(this.props.id)}
+        onClick={() => this.props.editor_actions.format(this.props.id)}
         title={desc}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
@@ -1070,7 +1120,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"print"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.print(this.props.id)}
+        onClick={() => this.props.editor_actions.print(this.props.id)}
         title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
@@ -1163,7 +1213,7 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_help(labels));
 
     const w: Rendered[] = [];
-    for (let c of v) {
+    for (const c of v) {
       if (c != null) {
         w.push(c);
       }
@@ -1367,3 +1417,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 }
+
+const tmp = rclass(FrameTitleBar);
+export { tmp as FrameTitleBar };

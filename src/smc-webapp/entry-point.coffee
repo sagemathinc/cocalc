@@ -1,7 +1,5 @@
 ###
-Complete 100% top-level react rewrite of CoCalc.
-
-Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
+# Global app initialization
 ###
 
 fullscreen = require('./fullscreen')
@@ -28,17 +26,22 @@ require('./landing-actions')
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
+###
 # Initialize app stores, actions, etc.
+###
 require('./init_app')
-
-# Initialize the account store.
-require('./account')
+require('./account').init(redux)
+require('./webapp-hooks')
 
 if not fullscreen.COCALC_MINIMAL
     notifications = require('./notifications')
     notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
+
+# only enable iframe comms in minimal kiosk mode
+if fullscreen.COCALC_MINIMAL
+    require('./iframe-communication').init()
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')

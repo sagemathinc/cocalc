@@ -1,5 +1,5 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
-declare var window, document, $;
+declare let window, document, $;
 
 import * as async from "async";
 import * as underscore from "underscore";
@@ -294,7 +294,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   destroy = (): void => {
     must_define(this.redux);
     this.close_all_files();
-    for (let table in QUERIES) {
+    for (const table in QUERIES) {
       this.remove_table(table);
     }
   };
@@ -457,7 +457,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // path not always defined, see #3440
   public close_tab(path: string | undefined): void {
     if (path == null) return;
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -503,7 +503,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history: true
     }
   ): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) return; // project closed
     const prev_active_project_tab = store.get("active_project_tab");
     if (!opts.change_history && prev_active_project_tab === key) {
@@ -603,7 +603,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   add_a_ghost_file_tab(): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -626,7 +626,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       stop: undefined, // activity is done  -- can pass a final status message in.
       error: undefined
     }); // describe an error that happened
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -722,7 +722,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // If embedded in an iframe, it is the embedding window.
       // If not in an iframe, seems to be the window itself.
       // I copied the {source:?,payload:?} format from react devtools.
-      window.parent.postMessage({ source: "cocalc-project-log", payload: query }, "*");
+      window.parent.postMessage(
+        { source: "cocalc-project-log", payload: query },
+        "*"
+      );
     }
 
     return id;
@@ -758,7 +761,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return; // nothing to do regarding save, since project isn't even open
     }
     // NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -779,7 +782,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (group == null || group === "public") {
       return; // no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
     }
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -810,7 +813,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private async get_my_group(): Promise<string> {
     return await retry_until_success({
       f: async () => {
-        let projects_store = this.redux.getStore("projects");
+        const projects_store = this.redux.getStore("projects");
         if (!projects_store) {
           throw Error("projects store not defined");
         }
@@ -971,20 +974,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     let store = this.get_store();
-    if (store == undefined) return;
-
-    const can_open_file = await store.can_open_file_ext(ext, this);
-    if (!can_open_file) {
-      const SiteName =
-        redux.getStore("customize").get("site_name") || SITE_NAME;
-      alert_message({
-        type: "error",
-        message: `This ${SiteName} project cannot open ${ext} files!`,
-        timeout: 20
-      });
-      // console.log(
-      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
-      // );
+    if (store == undefined) {
       return;
     }
 
@@ -1004,18 +994,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ open_files });
     }
 
-    // Wait for the project to start opening
-    try {
-      await callback(this._ensure_project_is_open);
-    } catch (err) {
-      this.set_activity({
-        id: misc.uuid(),
-        error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`
-      });
-      return;
-    }
-    if (this.get_store() == null) return;
-
     // Next get the group.
     let group: string;
     try {
@@ -1028,8 +1006,44 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
-
     const is_public = group === "public";
+
+    if (!is_public) {
+      // Check if have capability to open this file.  Important
+      // to only do this if not public, since again, if public we
+      // are not even using the project (it is all client side).
+      // NOTE: I think this is wrong; we should always open any file
+      // and instead of saying "can't open it", instead just fall
+      // back to a codemirror text editor...   After all, that's what
+      // we already do with all uknown file types.
+      const can_open_file = await store.can_open_file_ext(ext, this);
+      if (!can_open_file) {
+        const SiteName =
+          redux.getStore("customize").get("site_name") || SITE_NAME;
+        alert_message({
+          type: "error",
+          message: `This ${SiteName} project cannot open ${ext} files!`,
+          timeout: 20
+        });
+        // console.log(
+        //   `abort project_actions::open_file due to lack of support for "${ext}" files`
+        // );
+        return;
+      }
+
+      // Wait for the project to start opening (only do this if not public -- public users don't
+      // know anything about the state of the project).
+      try {
+        await callback(this._ensure_project_is_open);
+      } catch (err) {
+        this.set_activity({
+          id: misc.uuid(),
+          error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`
+        });
+        return;
+      }
+      if (this.get_store() == null) return;
+    }
 
     if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
       await this.open_sagenb_worksheet(opts);
@@ -1114,17 +1128,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const id = editor_id(this.project_id, opts.path);
         while (new Date().valueOf() - start <= 15000) {
           await delay(100);
-          let store = this.get_store();
+          const store = this.get_store();
           if (store == undefined) break;
           if (tab != store.get("active_project_tab")) break;
-          let e = $("#" + id).find("#" + opts.anchor);
+          const e = $("#" + id).find("#" + opts.anchor);
           if (e.length > 0) {
             // We iterate through all of them in this visible editor.
             // Because of easy editor splitting we could easily have multiple
             // copies of the same id, and we move them all into view.
             // Change this to break after the first one if this annoys people;
             // it's not clear what the "right" design is.
-            for (let x of e) {
+            for (const x of e) {
               x.scrollIntoView();
             }
             break;
@@ -1230,7 +1244,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Used by open/close chat below.
   _set_chat_state(path, is_chat_open): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1251,7 +1265,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.redux,
       this.project_id
     );
-    let editor = require("./editor");
+    const editor = require("./editor");
     editor
       ? editor.local_storage(this.project_id, opts.path, "is_chat_open", true)
       : undefined;
@@ -1261,7 +1275,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   close_chat(opts) {
     opts = defaults(opts, { path: required });
     this._set_chat_state(opts.path, false);
-    let editor = require("./editor");
+    const editor = require("./editor");
     editor
       ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false)
       : undefined;
@@ -1272,14 +1286,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: required,
       width: required
     }); // between 0 and 1
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
     const open_files = store.get("open_files");
     if (open_files != null) {
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
-      let editor = require("./editor");
+      const editor = require("./editor");
       editor
         ? editor.local_storage(this.project_id, opts.path, "chat_width", width)
         : undefined;
@@ -1301,7 +1315,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const set_inactive = () => {
-      let store = this.get_store();
+      const store = this.get_store();
       if (store == undefined) {
         return;
       }
@@ -1316,7 +1330,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       1000
     );
 
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1392,7 +1406,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes all files and removes all references
   close_all_files() {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1417,7 +1431,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Does not update tabs
   close_file(path): void {
     path = normalize(path);
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1472,7 +1486,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         this.foreground_project(change_history);
         this.set_current_path(path);
-        let store = this.get_store();
+        const store = this.get_store();
         if (store == undefined) {
           return;
         }
@@ -1502,7 +1516,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     // Set the current path for this project. path is either a string or array of segments.
 
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1598,7 +1612,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         },
 
         cb => {
-          let projects_store = this.redux.getStore("projects");
+          const projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
           if (projects_store == null) {
             cb("projects_store not yet initialized");
@@ -1652,7 +1666,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // done! releasing lock, then executing callback(s)
         const cbs = this._set_directory_files_lock[_key];
         delete this._set_directory_files_lock[_key];
-        for (let cb of cbs != null ? cbs : []) {
+        for (const cb of cbs != null ? cbs : []) {
           //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb from lock', cb)
           if (typeof cb === "function") {
             cb();
@@ -1686,7 +1700,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Increases the selected file index by 1
   // undefined increments to 0
   increment_selected_file_index(): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1699,7 +1713,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Guaranteed to never set below 0.
   // Does nothing when selected_file_index is undefined
   decrement_selected_file_index(): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1725,7 +1739,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Set the selected state of all files between the most_recent_file_click and the given file
   set_selected_file_range(file: string, checked: boolean): void {
     let range;
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1751,11 +1765,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // set the given file to the given checked state
   set_file_checked(file: string, checked: boolean) {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
-    let changes: {
+    const changes: {
       checked_files?: immutable.Set<string>;
       file_action?: string | undefined;
     } = {};
@@ -1781,7 +1795,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // check all files in the given file_list
   set_file_list_checked(file_list: immutable.List<string> | string[]): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1803,7 +1817,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // uncheck all files in the given file_list
   set_file_list_unchecked(file_list: immutable.List<string>): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1821,7 +1835,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // uncheck all files
   set_all_files_unchecked(): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1835,7 +1849,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public get_filenames_in_current_dir():
     | { [name: string]: boolean }
     | undefined {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1863,7 +1877,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private _suggest_duplicate_filename(name: string): string | undefined {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1880,7 +1894,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   set_file_action(action?: string, get_basename?: () => string): void {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -2024,10 +2038,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (path.slice(-1) === "/") {
       return path;
     } else {
-      let store = this.get_store();
-      let file_name = misc.path_split(path).tail;
+      const store = this.get_store();
+      const file_name = misc.path_split(path).tail;
       if (store !== undefined && store.get("displayed_listing")) {
-        let file_data = store.get("displayed_listing").file_map[file_name];
+        const file_data = store.get("displayed_listing").file_map[file_name];
         if (file_data !== undefined && file_data.isdir) {
           return path + "/";
         }
@@ -2151,7 +2165,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Deprecated: this only tests the existence
     const check = (v, k, cb) => {
       //if DEBUG then console.log("init_library.check", v, k)
-      let store = this.get_store();
+      const store = this.get_store();
       if (store == undefined) {
         cb("no store");
         return;
@@ -2176,7 +2190,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         path: ".",
         cb: (err, output) => {
           if (!err) {
-            let store = this.get_store();
+            const store = this.get_store();
             if (store == undefined) {
               cb("no store");
               return;
@@ -2220,7 +2234,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
 
     const fetch = cb => {
-      let store = this.get_store();
+      const store = this.get_store();
       if (store == undefined) {
         cb("no store");
         return;
@@ -2232,7 +2246,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           //if DEBUG then console.log("init_library/datadata
           data = immutable.fromJS(data);
 
-          let store = this.get_store();
+          const store = this.get_store();
           if (store == undefined) {
             cb("no store");
             return;
@@ -2375,7 +2389,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // We ensure the target copy is writable if *any* source path starts with .snapshots.
     // See https://github.com/sagemathinc/cocalc/issues/2497
     // This is a little lazy, but whatever.
-    for (let x of opts.src) {
+    for (const x of opts.src) {
       if (misc.startswith(x, ".snapshots")) {
         args = args.concat(["--perms", "--chmod", "u+w"]);
         break;
@@ -2492,8 +2506,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.include_chats) {
       if (opts.dest_is_folder) {
-        let chat_paths: string[] = [];
-        for (let path of opts.src) {
+        const chat_paths: string[] = [];
+        for (const path of opts.src) {
           const chat_path = get_chat_path(path);
           if (opts.src.indexOf(chat_path) == -1) {
             chat_paths.push(chat_path);
@@ -2516,8 +2530,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     delete opts.dest_is_folder;
 
     const check_existence_of = (path: string): boolean => {
-      let store = this.get_store();
-      let path_parts = misc.path_split(path);
+      const store = this.get_store();
+      const path_parts = misc.path_split(path);
       if (store == undefined) {
         return false;
       }
@@ -2573,7 +2587,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (opts.paths.length === 0) {
       return;
     }
-    for (let path of opts.paths) {
+    for (const path of opts.paths) {
       this.close_tab(path);
     }
     const id = misc.uuid();
@@ -2671,7 +2685,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (name.length === 0) {
       throw Error("Cannot use empty filename");
     }
-    for (let bad_char of BAD_FILENAME_CHARACTERS) {
+    for (const bad_char of BAD_FILENAME_CHARACTERS) {
       if (name.indexOf(bad_char) !== -1) {
         throw Error(`Cannot use '${bad_char}' in a filename`);
       }
@@ -2764,7 +2778,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (ext === "tex") {
       const filename = misc.path_split(name).tail;
-      for (let bad_char of BAD_LATEX_FILENAME_CHARACTERS) {
+      for (const bad_char of BAD_LATEX_FILENAME_CHARACTERS) {
         if (filename.indexOf(bad_char) !== -1) {
           this.setState({
             file_creation_error: `Cannot use '${bad_char}' in a LaTeX filename '${filename}'`
@@ -2837,7 +2851,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       disabled?: boolean;
     }
   ) {
-    let store = this.get_store();
+    const store = this.get_store();
     if (!store) {
       return;
     }
@@ -2864,7 +2878,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     obj = obj.set("last_edited", now);
 
-    for (let k in opts) {
+    for (const k in opts) {
       if (opts[k] != null) {
         obj = obj.set(k, opts[k]);
       }
@@ -2877,7 +2891,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
    */
 
   toggle_search_checkbox_subdirectories() {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -2885,7 +2899,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   toggle_search_checkbox_case_sensitive() {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -2893,7 +2907,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   toggle_search_checkbox_hidden_files() {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -2901,7 +2915,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   toggle_search_checkbox_git_grep() {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -2909,7 +2923,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   process_search_results(err, output, max_results, max_output, cmd) {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -2929,7 +2943,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
     let num_results = 0;
     const search_results: {}[] = [];
-    for (let line of results) {
+    for (const line of results) {
       if (line.trim() === "") {
         continue;
       }
@@ -2978,7 +2992,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   search() {
     let cmd, ins;
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -3083,7 +3097,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.open_directory(parent_path, change_history);
           return;
         }
-        let store = this.get_store();
+        const store = this.get_store();
         if (store == undefined) {
           return; // project closed already
         }
@@ -3094,7 +3108,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             await callback2(this.fetch_directory_listing, {
               path: parent_path
             });
-            let store = this.get_store();
+            const store = this.get_store();
             if (store == undefined) {
               // project closed
               return;
@@ -3177,7 +3191,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // called when project page is shown
   async show(): Promise<void> {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
     if (!startswith(a, "editor-")) return;
@@ -3187,7 +3201,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // called when project page is hidden
   async hide(): Promise<void> {
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
     if (!startswith(a, "editor-")) return;

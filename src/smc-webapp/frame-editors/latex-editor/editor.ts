@@ -14,10 +14,11 @@ import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { LatexWordCount } from "./latex-word-count";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 import { pdf_path } from "./util";
 
-export let pdfjs_buttons = set([
+export const pdfjs_buttons = set([
   "print",
   "download",
   "decrease_font_size",
@@ -101,7 +102,9 @@ const EDITOR_SPEC = {
 
   terminal,
 
-  settings: SETTINGS_SPEC
+  settings: SETTINGS_SPEC,
+
+  time_travel
 
   /*
   pdfjs_svg: {

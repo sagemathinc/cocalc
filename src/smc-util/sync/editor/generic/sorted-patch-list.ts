@@ -88,7 +88,7 @@ export class SortedPatchList extends EventEmitter {
     let oldest: Date | undefined = undefined;
     let x: Patch;
     for (x of patches) {
-      let t: number = x.time.valueOf();
+      const t: number = x.time.valueOf();
       const cur = this.times[t];
       if (cur != null) {
         // Hmm -- We already have a patch with this time.
@@ -136,7 +136,7 @@ export class SortedPatchList extends EventEmitter {
     let t0 = 0;
     let t: string;
     for (t in this.all_snapshot_times) {
-      let d: number = parseInt(t);
+      const d: number = parseInt(t);
       if (d > t0) {
         t0 = d;
       }
@@ -169,7 +169,7 @@ export class SortedPatchList extends EventEmitter {
     if (without_times != null) {
       // Process without_times to get a map from time numbers to true.
       if (without_times.length > 0) {
-        for (let x of without_times) {
+        for (const x of without_times) {
           // convert x to number (then string as key)
           without_times_set[x.valueOf()] = true;
           if (oldest_without_time == null || x < oldest_without_time) {
@@ -478,8 +478,8 @@ export class SortedPatchList extends EventEmitter {
     let x: Patch;
     let first_time: boolean = true;
     for (x of this.patches) {
-      let tm: Date = x.time;
-      let tm_show: number | string = milliseconds
+      const tm: Date = x.time;
+      const tm_show: number | string = milliseconds
         ? tm.valueOf()
         : tm.toLocaleString();
       log(
@@ -544,7 +544,7 @@ export class SortedPatchList extends EventEmitter {
     // No snapshot found at all -- maybe old ones were deleted.
     // We return the time at which we should have the *newest* snapshot.
     // This is the largest multiple i of interval that is <= n - interval
-    let i = Math.floor((n - interval) / interval) * interval;
+    const i = Math.floor((n - interval) / interval) * interval;
     if (this.patches[i] != null) {
       return this.patches[i].time;
     }

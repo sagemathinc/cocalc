@@ -16,7 +16,7 @@ export async function convert(
   time?: number
 ): Promise<ExecOutput> {
   const x = path_split(path);
-  let infile = x.tail;
+  const infile = x.tail;
 
   // console.log("frontmatter", frontmatter);
   let cmd: string;
@@ -39,6 +39,7 @@ export async function convert(
     bash: true, // so timeout is enforced by ulimit
     command: "Rscript",
     args: ["-e", cmd],
+    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
     project_id: project_id,
     path: x.head,
     err_on_exit: true,

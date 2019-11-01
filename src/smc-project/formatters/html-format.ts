@@ -80,9 +80,7 @@ export async function html_format(
     } catch (e) {
       logger.debug(`Calling formatter raised ${e}`);
       throw new Error(
-        `HTML formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `HTML formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -100,8 +98,8 @@ export async function html_format(
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     // logger.debug(`html formatter done, unlinking ${input_path}`);

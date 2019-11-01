@@ -83,10 +83,18 @@ ProjectTab = rclass
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    # middle mouse click closes
+    # middle mouse click closes (?) -- evidently too confusing??
     onMouseDown: (e) ->
         #if e.button == 1
         #    @close_tab(e)
+
+    render_websocket_indicator: ->
+        if not @props.project?
+            # public project, so we know nothing, so better not show an indicator (we can't connect anyways).
+            return
+        <span style={{paddingRight:'5px'}}>
+            <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
+        </span>
 
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
@@ -125,9 +133,7 @@ ProjectTab = rclass
             is_project     = {true}
         >
             <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
-                <span style={{paddingRight:'5px'}}>
-                    <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
-                </span>
+                {@render_websocket_indicator()}
                 <Icon
                     name        = 'times'
                     onClick     = {@close_tab}

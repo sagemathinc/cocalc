@@ -37,10 +37,10 @@ export async function pdf_to_tex(opts: {
   y: number; // y-coordinate on page,
   output_directory: string | undefined;
 }): Promise<SyncTex> {
-  let { head, tail } = path_split(opts.pdf_path);
+  const { head, tail } = path_split(opts.pdf_path);
   const path: string =
     opts.output_directory != null ? opts.output_directory : head;
-  let output = await exec_synctex(opts.project_id, path, [
+  const output = await exec_synctex(opts.project_id, path, [
     "edit",
     "-o",
     `${opts.page}:${opts.x}:${opts.y}:${tail}`
@@ -63,7 +63,7 @@ export async function tex_to_pdf(opts: {
   }
   const path: string =
     opts.output_directory != null ? opts.output_directory : head;
-  let output = await exec_synctex(opts.project_id, path, [
+  const output = await exec_synctex(opts.project_id, path, [
     "view",
     "-i",
     `${opts.line}:${opts.column}:${tail}`,
@@ -106,8 +106,8 @@ function parse_synctex_output(output: string): SyncTex {
   const content = output.slice(i + BEGIN.length + 1, j - 1);
   const lines = splitlines(content);
   const parsed: SyncTex = {};
-  for (let line of lines) {
-    let [key, value] = line.split(":");
+  for (const line of lines) {
+    const [key, value] = line.split(":");
     if (value.match(matchOnlyNumberRe)) {
       parsed[key] = parseFloat(value);
     } else {

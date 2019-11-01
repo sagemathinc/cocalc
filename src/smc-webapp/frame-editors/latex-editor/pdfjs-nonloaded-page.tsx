@@ -21,8 +21,8 @@ export class NonloadedPage extends Component<Props, {}> {
 
   render() {
     const viewport = this.props.page.getViewport(this.props.scale);
-    let width = viewport.width + "px";
-    let height = viewport.height + "px";
+    const width = viewport.width + "px";
+    const height = viewport.height + "px";
     return (
       <div
         style={{

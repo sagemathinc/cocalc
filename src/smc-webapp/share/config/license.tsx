@@ -45,7 +45,7 @@ export class License extends Component<Props, State> {
 
   public render(): Rendered {
     const v: Rendered[] = [];
-    for (let key in LICENSES) {
+    for (const key in LICENSES) {
       v.push(
         <MenuItem key={key} eventKey={key} active={key === this.state.license}>
           {LICENSES[key]}

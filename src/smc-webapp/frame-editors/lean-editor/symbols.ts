@@ -5,7 +5,7 @@ interface Sub {
 }
 
 export function substitute_symbols(value: string, j: number = 0): Sub[] {
-  let i = value.indexOf("\\", j);
+  const i = value.indexOf("\\", j);
   if (i === -1) {
     return [];
   }
@@ -15,7 +15,7 @@ export function substitute_symbols(value: string, j: number = 0): Sub[] {
     return substitute_symbols(value, i + 1);
   }
   let closest: string = "";
-  for (let m in TRANSLATIONS) {
+  for (const m in TRANSLATIONS) {
     if (s.slice(0, m.length) == m && m.length > closest.length) {
       closest = m;
     }
@@ -28,14 +28,14 @@ export function substitute_symbols(value: string, j: number = 0): Sub[] {
   const from = i,
     to = i + closest.length + 1;
   const result: Sub[] = [{ replacement, from, to }];
-  for (let x of substitute_symbols(value, i + 1)) {
+  for (const x of substitute_symbols(value, i + 1)) {
     result.push(x);
   }
   return result;
 }
 
 /* This is https://github.com/leanprover/vscode-lean/blob/master/translations.json
-*/
+ */
 const TRANSLATIONS = {
   note: "♩",
   notin: "∉",

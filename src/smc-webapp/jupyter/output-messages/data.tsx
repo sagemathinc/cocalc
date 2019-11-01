@@ -222,7 +222,7 @@ export class Data extends Component<DataProps> {
       // thing we know how to render that is not text/plain.
       // This is inefficient, since we rendered more than one, and then just
       // throw away all but one.
-      for (let x of v) {
+      for (const x of v) {
         if (x[0] != "text/plain") {
           return x[1];
         }

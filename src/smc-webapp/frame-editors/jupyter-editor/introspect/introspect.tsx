@@ -6,7 +6,7 @@ on the bottom half the of the screen for Jupyter classic.
 
 import { Map } from "immutable";
 
-import {merge} from "smc-util/misc2";
+import { merge } from "smc-util/misc2";
 
 import {
   Component,

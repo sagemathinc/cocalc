@@ -10,30 +10,55 @@ CoCalc: Collaborative Calculation in the Cloud
 Copyright (C) 2016, Sagemath Inc.
 ---
 
-Site Customize -- dynamically customize the look of SMC for the client.
+Site Customize -- dynamically customize the look of CoCalc for the client.
 */
 
-import { redux, Redux, rclass, rtypes } from "./app-framework";
+import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
 import { Loading } from "./r_misc";
 
+// import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
+import { callback2 } from "smc-util/async-utils";
 const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");
 const theme = require("smc-util/theme");
 
-const test_commercial = (
-  c // make it true if starts with y
-) => (c[0] != null ? c[0].toLowerCase() : undefined) === "y";
+// make it true if starts with y
+function test_commercial(c) {
+  return (c[0] != null ? c[0].toLowerCase() : undefined) === "y";
+}
 
 const result: any[] = [];
-for (let k in schema.site_settings_conf) {
+for (const k in schema.site_settings_conf) {
   const v = schema.site_settings_conf[k];
   result.push([k, v.default]);
 }
 const defaults = misc.dict(result);
 defaults.is_commercial = test_commercial(defaults.commercial);
+defaults._is_configured = false; // will be true after set via call to server
 
-redux.createStore("customize", defaults);
+// TODO type the store. it's an extension of what's in SiteSettings
+// type SiteSettings = { [k in keyof SiteSettingsConfig]: any  };
+//
+// interface CustomizeStoreState extends SiteSettings {
+//   _is_configured: any;
+// }
+
+class CustomizeStore extends Store<any> {
+  async until_configured(): Promise<void> {
+    if (this.get("_is_configured")) return;
+    await callback2(this.wait, { until: () => this.get("_is_configured") });
+  }
+
+  get_iframe_comm_hosts(): string[] {
+    const hosts = this.get("iframe_comm_hosts");
+    if (hosts == null) return [];
+    // ATTN: if you change this regex, also change smc-util/db-schema/site-defaults.ts
+    return hosts.match(/[a-zA-Z0-9.-]+/g) || [];
+  }
+}
+
+redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize");
 actions.setState({ is_commercial: true }); // really simple way to have a default value -- gets changed below once the $?.get returns.
 
@@ -46,6 +71,7 @@ if (typeof $ !== "undefined" && $ != undefined) {
       obj.commercial =
         obj.commercial != undefined ? obj.commercial : defaults.commercial;
       obj.is_commercial = commercial = test_commercial(obj.commercial);
+      obj._is_configured = true;
       actions.setState(obj);
     }
   });

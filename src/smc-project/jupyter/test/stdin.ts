@@ -48,7 +48,7 @@ describe("get input using the python2 kernel -- ", function() {
       code: "print(raw_input())",
       stdin: stdin_func("", false, "cocalc")
     });
-    expect(common.output(out)).toEqual("\"cocalc\"\n");
+    expect(common.output(out)).toEqual('"cocalc"\n');
   });
 
   it("reading input - prompt", async function() {
@@ -64,7 +64,7 @@ describe("get input using the python2 kernel -- ", function() {
       code: 'print(raw_input("prompt"))',
       stdin: stdin_func("prompt", false, "cocalc")
     });
-    expect(common.output(out)).toEqual("\"cocalc\"\n");
+    expect(common.output(out)).toEqual('"cocalc"\n');
   });
 
   it("reading a password", async function() {
@@ -72,7 +72,7 @@ describe("get input using the python2 kernel -- ", function() {
       code: 'import getpass; print(getpass.getpass("password?"))',
       stdin: stdin_func("password?", true, "cocalc")
     });
-    expect(common.output(out)).toEqual("\"cocalc\"\n");
+    expect(common.output(out)).toEqual('"cocalc"\n');
   });
 
   return it("closes the kernel", function() {

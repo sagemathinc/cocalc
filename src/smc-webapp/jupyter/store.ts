@@ -10,7 +10,7 @@ import { Set, Map, List, OrderedMap, fromJS } from "immutable";
 import { export_to_ipynb } from "./export-to-ipynb";
 import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
-import { KernelInfo, CellToolbarName } from "./types";
+import { KernelInfo, Cell, CellToolbarName } from "./types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -30,8 +30,8 @@ export interface JupyterStoreState {
   edit_cell_metadata: any;
   raw_ipynb: any;
   backend_kernel_info: KernelInfo;
-  cell_list: any;
-  cells: any;
+  cell_list: List<string>; // list of id's of the cells
+  cells: Map<string, Cell>; // map from string id to cell; the structure of a cell is complicated...
   cur_id: string;
   error?: string;
   fatal: string;
@@ -83,7 +83,9 @@ export const initial_jupyter_store_state: {
 } = {
   check_select_kernel_init: false,
   show_kernel_selector: false,
-  widget_model_ids: Set()
+  widget_model_ids: Set(),
+  cell_list: List(),
+  cells: Map()
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
@@ -113,7 +115,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // immutable List
   public get_cell_list = (): List<string> => {
-    return this.get("cell_list", List([]));
+    return this.get("cell_list");
   };
 
   // string[]
@@ -128,7 +130,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   public get_cell_type(id: string): "markdown" | "code" | "raw" {
     // NOTE: default cell_type is "code", which is common, to save space.
-    const type = this.getIn(["cells", id, "cell_type"], "code");
+    // TODO: We use unsafe_getIn because maybe the cell type isn't spelled out yet, or our typescript isn't good enough.
+    const type = this.unsafe_getIn(["cells", id, "cell_type"], "code");
     if (type != "markdown" && type != "code" && type != "raw") {
       throw Error(`invalid cell type ${type} for cell ${id}`);
     }
@@ -207,14 +210,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
       return;
     }
 
-    const more_output: any = {};
-    let cell_list = this.get("cell_list");
-    if (cell_list == null) {
-      cell_list = [];
-    } else {
-      cell_list = cell_list.toJS();
-    }
-    for (let id of cell_list) {
+    const cell_list = this.get("cell_list");
+    const more_output: { [id: string]: any } = {};
+    for (const id of cell_list.toJS()) {
       const x = this.get_more_output(id);
       if (x != null) {
         more_output[id] = x;
@@ -223,7 +221,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
     return export_to_ipynb({
       cells: this.get("cells"),
-      cell_list: this.get("cell_list"),
+      cell_list,
       metadata: this.get("metadata"), // custom metadata
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
@@ -233,7 +231,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   public get_language_info(): object | undefined {
-    for (let key of ["backend_kernel_info", "metadata"]) {
+    for (const key of ["backend_kernel_info", "metadata"]) {
       const language_info = this.unsafe_getIn([key, "language_info"]);
       if (language_info != null) return language_info;
     }
@@ -290,7 +288,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
       let { messages } = output;
 
-      for (let x of ["discarded", "truncated"]) {
+      for (const x of ["discarded", "truncated"]) {
         if (output[x]) {
           var text;
           if (x === "truncated") {
@@ -322,7 +320,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const account = this.redux.getStore("account");
     if (account != null) {
       // TODO: getIn types
-      return account.getIn(["editor_settings", "jupyter", "kernel"] as any);
+      return account.getIn(["editor_settings", "jupyter", "kernel"]);
     } else {
       return undefined;
     }
@@ -375,7 +373,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     OrderedMap<string, Map<string, string>>,
     OrderedMap<string, List<string>>
   ] => {
-    let data_name: any = {};
+    const data_name: any = {};
     let data_lang: any = {};
     const add_lang = (lang, entry) => {
       if (data_lang[lang] == null) data_lang[lang] = [];

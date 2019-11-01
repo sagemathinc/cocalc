@@ -243,7 +243,7 @@ class X11Component extends Component<Props, {}> {
     }
     const wids = this.props.windows.keySeq().toJS();
     wids.sort(cmp); // since sort uses string cmp by default
-    for (let wid of wids) {
+    for (const wid of wids) {
       if (this.props.windows.getIn([wid, "parent"])) {
         // don't render a tab for modal dialogs (or windows on top of others that block them).
         continue;

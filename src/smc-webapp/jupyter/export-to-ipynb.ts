@@ -82,7 +82,7 @@ function cell_to_ipynb(id: string, opts: any) {
   } else if (obj.outputs == null && obj.cell_type === "code") {
     obj.outputs = []; // annoying requirement of ipynb file format.
   }
-  for (let n in obj.outputs) {
+  for (const n in obj.outputs) {
     const x = obj.outputs[n];
     if (x.cocalc != null) {
       // alternative version of cell that official Jupyter doesn't support can only
@@ -162,7 +162,7 @@ function ipynb_outputs(
       // Before converting to ipynb, we remove that last message...
       output = output.delete(`${n}`);
       // Then we put in the known more output.
-      for (let mesg of more_output) {
+      for (const mesg of more_output) {
         output = output.set(`${n}`, immutable.fromJS(mesg));
         n += 1;
       }
