@@ -124,6 +124,7 @@ export class LatexParser {
   private openParens: number;
   private currentLine: string;
   private currentFilePath: string;
+  private files: Set<string> = new Set([]);
 
   constructor(text, options) {
     this.log = new LogText(text);
@@ -297,6 +298,7 @@ export class LatexParser {
             files: []
           };
           this.fileStack.push(newFile);
+          this.files.add(filePath);
 
           if (this.rootFileList.length == 0) {
             // this happens only once.
@@ -349,6 +351,9 @@ export class LatexParser {
 
   postProcess(data: Error[]): ProcessedLatexLog {
     const pll = new ProcessedLatexLog();
+    for (const path of this.files) {
+      pll.files.push(path);
+    }
     const hashes: string[] = [];
     const hashEntry: Function = entry => entry.raw;
 
