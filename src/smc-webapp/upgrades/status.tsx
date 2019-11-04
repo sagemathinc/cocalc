@@ -58,7 +58,7 @@ class UpgradeStatus extends Component<Props, {}> {
       f = this.open_account_upgrades_panel;
 
       const unused: string[] = [];
-      for (let quota in total) {
+      for (const quota in total) {
         if (total[quota] > (used[quota] ? used[quota] : 0)) {
           const info = PROJECT_UPGRADES.params[quota];
           if (info && info.display) {

@@ -489,14 +489,25 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!s) {
       return;
     }
-    if (typeof s == "string" && s.indexOf("output-directory") == -1) {
-      // we aren't going to go so far as to
-      // parse a changed output-directory option...
-      // At least if there is no option, we just
-      // assume no output directory.
-      return undefined;
+    if (typeof s == "string") {
+      if (s.indexOf("-output-directory") == -1) {
+        // we aren't going to go so far as to
+        // parse a changed output-directory option...
+        // At least if there is no option, we just
+        // assume no output directory.
+        return;
+      } else {
+        return this.output_directory;
+      }
+    } else {
+      // s is a List<string>
+      for (const x of s.toJS()) {
+        if (x.startsWith("-output-directory")) {
+          return this.output_directory;
+        }
+      }
+      return;
     }
-    return this.output_directory;
   }
 
   async run_latex(
@@ -507,7 +518,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     let output: BuildLog;
     let build_command: string | string[];
     const timestamp = this.make_timestamp(time, force);
-    let s: string | List<string> | undefined = this.store.get("build_command");
+    const s: string | List<string> | undefined = this.store.get(
+      "build_command"
+    );
     if (!s) {
       return;
     }
@@ -563,7 +576,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._forget_pdf_document();
     // ... before setting a new one for all the viewers,
     // which causes them to reload.
-    for (let x of VIEWERS) {
+    for (const x of VIEWERS) {
       this.set_reload(x, timestamp);
     }
   }
@@ -690,7 +703,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
     this.set_status("Running SyncTex...");
     try {
-      let info = await synctex.pdf_to_tex({
+      const info = await synctex.pdf_to_tex({
         x,
         y,
         page,
@@ -699,7 +712,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         output_directory: this.get_output_directory()
       });
       this.set_status("");
-      let line = info.Line;
+      const line = info.Line;
       if (typeof line != "number") {
         // TODO: would be nicer to handle this at the source...
         throw Error("invalid synctex output (Line must be a number).");
@@ -798,7 +811,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     const logger = (s: string): void => {
       log += s + "\n";
-      let build_logs: BuildLogs = this.store.get("build_logs");
+      const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
         build_logs: build_logs.set("clean", fromJS({ stdout: log }))
       });
@@ -823,7 +836,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (force === undefined) {
       force = false;
     }
-    let now: number = server_time().valueOf();
+    const now: number = server_time().valueOf();
     switch (action) {
       case "build":
         this.run_build(now, false);
@@ -885,7 +898,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   sync(id: string): void {
-    let cm = this._cm[id];
+    const cm = this._cm[id];
     if (cm) {
       // Clicked the sync button from within an editor
       this.forward_search(id);
@@ -896,9 +909,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   forward_search(id: string): void {
-    let cm = this._get_cm(id);
+    const cm = this._get_cm(id);
     if (!cm) return;
-    let { line, ch } = cm.getDoc().getCursor();
+    const { line, ch } = cm.getDoc().getCursor();
     this.synctex_tex_to_pdf(line, ch, this.path);
   }
 

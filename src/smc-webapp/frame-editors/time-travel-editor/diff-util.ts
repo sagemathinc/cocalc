@@ -42,15 +42,15 @@ function process_line_diff(
   const chunk_boundaries: number[] = [];
   const gutter: string[] = [];
   let len_diff: number = 0;
-  for (let x of patches) {
+  for (const x of patches) {
     let n1: number = x.start1;
     let n2: number = x.start2;
     n1 += len_diff;
     len_diff += x.length1 - x.length2;
     let sign: string;
     let line_nums;
-    for (let z of x.diffs) {
-      for (let c of z[1]) {
+    for (const z of x.diffs) {
+      for (const c of z[1]) {
         if (z[0] === -1) {
           sign = "-";
           n1 += 1;
@@ -121,7 +121,7 @@ export function set_cm_line_diff(
     cm.setGutterMarker(i, "cocalc-history-diff-gutter", elt);
   }
 
-  for (let i of chunk_boundaries) {
+  for (const i of chunk_boundaries) {
     cm.addLineClass(i, "wrap", "cocalc-history-diff-divide");
   }
 }

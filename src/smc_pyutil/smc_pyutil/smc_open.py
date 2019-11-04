@@ -5,6 +5,14 @@
 # via "open *" and killing their frontend.
 MAX_FILES = 15
 
+# ROOT_SYMLINK is a symlink to / from somehow in the user's home directory.
+# This symlink should get created as part  of project startup, so that we can
+# treat all paths in the filesystem as being contained in the user's home direoctory.
+# This may be dumb but simplifies our code and is assumed in some places.
+#     ~$ ls -ls .smc/root
+#      0 lrwxrwxrwx 1 user user 1 Oct 22 23:00 .smc/root -> /
+ROOT_SYMLINK = '.smc/root'
+
 import json, os, sys
 
 home = os.environ['HOME']
@@ -51,11 +59,12 @@ def process(paths):
             # no analogue of pwd directly in Python (getcwd is not it!).
             path = os.path.join(os.popen('pwd').read().strip(), path)
 
-        # determine name relative to home directory
+        # Make name be the path to the file, **relative to home directory**
         if path.startswith(home):
             name = path[len(home) + 1:]
         else:
-            name = path
+            # use the / symlink -- see https://github.com/sagemathinc/cocalc/issues/4188
+            name = ROOT_SYMLINK + path
 
         # Is it a file or directory?
         if os.path.isdir(path):

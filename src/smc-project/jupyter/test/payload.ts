@@ -14,10 +14,10 @@ describe("create python2 kernel and do evals with and without payloads -- ", asy
   const kernel: common.JupyterKernel = common.kernel("test-python2");
 
   it("does an eval with no payload", async function() {
-    let result: any[] = await kernel.execute_code_now({
+    const result: any[] = await kernel.execute_code_now({
       code: "2+3"
     });
-    for (let x of result) {
+    for (const x of result) {
       if (getIn(x, ["content", "payload"], []).length > 0) {
         throw Error("there should not be any payloads");
       }
@@ -25,11 +25,11 @@ describe("create python2 kernel and do evals with and without payloads -- ", asy
   });
 
   it("does an eval with a payload (requires internet)", async function() {
-    let result: any[] = await kernel.execute_code_now({
+    const result: any[] = await kernel.execute_code_now({
       code:
         "%load https://matplotlib.org/mpl_examples/showcase/integral_demo.py"
     });
-    for (let x of result) {
+    for (const x of result) {
       let v;
       if ((v = getIn(x, ["content", "payload"], [])).length > 0) {
         const s =

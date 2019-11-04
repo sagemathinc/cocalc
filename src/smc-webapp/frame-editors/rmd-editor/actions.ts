@@ -81,7 +81,7 @@ export class RmdActions extends Actions {
     }
 
     let existing = Set();
-    for (let ext of ["pdf", "html", "nb.html"]) {
+    for (const ext of ["pdf", "html", "nb.html"]) {
       // full path
       const expected_fn = change_filename_extension(this.path, ext);
       const fn_exists = listing.some(entry => {

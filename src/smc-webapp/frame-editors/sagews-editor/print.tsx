@@ -1,5 +1,11 @@
 import { Map } from "immutable";
-import { React, Component, Rendered, rtypes, rclass } from "../../app-framework";
+import {
+  React,
+  Component,
+  Rendered,
+  rtypes,
+  rclass
+} from "../../app-framework";
 
 import { InputCell } from "./input-cell";
 import { OutputCell } from "./output-cell";

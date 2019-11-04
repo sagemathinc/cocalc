@@ -244,7 +244,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     };
 
     const cell_toolbars: any = [];
-    for (let name of [
+    for (const name of [
       "none",
       "metadata",
       "slideshow",
@@ -458,7 +458,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     if (obj.k != null) {
       const v: Rendered[] = [];
       let i = 0;
-      for (let shortcut of obj.k) {
+      for (const shortcut of obj.k) {
         v.push(<KeyboardShortcut key={i} shortcut={shortcut} />);
         i += 1;
       }
@@ -483,7 +483,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
 
   private render_menu_items(names: MenuItemName[]): Rendered[] {
     const result: Rendered[] = [];
-    for (let key in names) {
+    for (const key in names) {
       const name = names[key];
       result.push(this.render_menu_item(key, name));
     }
@@ -535,7 +535,7 @@ render_widgets: -> # TODO: not supported in v1
     const lang = this.props.kernel_info.get("language");
     const links = get_help_links(lang);
     if (links == null) return v;
-    for (let name in links) {
+    for (const name in links) {
       const url = links[name];
       v.push(external_link(name, url));
     }

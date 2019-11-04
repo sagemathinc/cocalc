@@ -128,7 +128,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       return;
     }
     const outputs = {};
-    for (let i in state.outputs) {
+    for (const i in state.outputs) {
       outputs[i] = state.outputs[i];
     }
     this.setState({ outputs: fromJS(outputs) });
@@ -156,7 +156,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       return;
     }
     const react_view: string[] = [];
-    for (let child of state.children) {
+    for (const child of state.children) {
       react_view.push(child.model_id);
     }
     this.setState({ react_view: fromJS(react_view) });
@@ -344,7 +344,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
     const v: Rendered[] = [];
     let i = 0;
-    for (let model_id of this.state.react_view.toJS()) {
+    for (const model_id of this.state.react_view.toJS()) {
       v.push(
         <Tab eventKey={i} key={i} title={this.model.attributes._titles[i]}>
           <Widget
@@ -398,7 +398,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     if (typeof this.state.react_view == "string") return;
     const v: Rendered[] = [];
     let i = 0;
-    for (let model_id of this.state.react_view.toJS()) {
+    for (const model_id of this.state.react_view.toJS()) {
       v.push(
         <Widget
           key={i}

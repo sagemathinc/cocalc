@@ -129,6 +129,9 @@ export function build_command(
     head.push("-e");
     // yes, this is in one piece. in a shell it would be enclosed in '...'
     head.push("$pdflatex=q/pdflatex %O -shell-escape %S/");
+    // Don't want this since typically if shell-escape is needed, then
+    // the current directory is very relevant.
+    output_directory = undefined;
   }
 
   const tail = [

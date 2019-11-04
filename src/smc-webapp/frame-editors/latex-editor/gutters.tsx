@@ -20,7 +20,7 @@ export function update_gutters(opts: {
   log: IProcessedLatexLog;
   set_gutter: Function;
 }): void {
-  let path: string = path_split(opts.path).tail;
+  const path: string = path_split(opts.path).tail;
   let group: string;
   for (group of ["typesetting", "warnings", "errors"]) {
     // errors last so always shown if multiple issues on a single line!

@@ -18,7 +18,7 @@ import { time_travel } from "../time-travel-editor/editor";
 
 import { pdf_path } from "./util";
 
-export let pdfjs_buttons = set([
+export const pdfjs_buttons = set([
   "print",
   "download",
   "decrease_font_size",
@@ -104,7 +104,7 @@ const EDITOR_SPEC = {
 
   settings: SETTINGS_SPEC,
 
-  time_travel,
+  time_travel
 
   /*
   pdfjs_svg: {

@@ -36,7 +36,7 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
   });
 
   it("make and apply a patch", () => {
-    let doc2 = doc
+    const doc2 = doc
       .set([
         { key: "new", value: "value" },
         { key: "cloud", value: "computing" }

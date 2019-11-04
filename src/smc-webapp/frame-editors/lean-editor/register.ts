@@ -2,7 +2,7 @@
 Register the LEAN theorem prover editor
 */
 
-require('./_lean.sass')
+require("./_lean.sass");
 
 import { Editor } from "./editor";
 import { Actions } from "./actions";

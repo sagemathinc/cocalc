@@ -1,5 +1,5 @@
 /* Similar to clear-hidden-tests.
-*/
+ */
 
 import { Map } from "immutable";
 
@@ -17,15 +17,13 @@ Remove that region depending the cell type.
 Returns undefined if nothing changed; otherwise, returns the new input.
 */
 // TODO: common code with hidden-tests...
-function replace_mark_region(
-  input: string
-): string | undefined {
+function replace_mark_region(input: string): string | undefined {
   const lines: string[] = input.split("\n");
   const new_lines: string[] = [];
   let in_region: boolean = false;
   let replaced_region: boolean = false;
 
-  for (let line of lines) {
+  for (const line of lines) {
     // begin the test area
     if (line.indexOf(begin_delimiter) != -1) {
       // check to make sure this isn't a nested BEGIN MARK SCHEME region

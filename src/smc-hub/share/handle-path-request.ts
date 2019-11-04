@@ -68,7 +68,7 @@ export async function handle_path_request(opts: {
     // if it is not explicitly specified, take if from query param.
     viewer = req.query.viewer;
   }
-  let { token } = req.query;
+  const { token } = req.query;
 
   if (
     viewer != null &&

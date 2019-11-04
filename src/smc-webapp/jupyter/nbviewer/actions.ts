@@ -80,7 +80,7 @@ export class NBViewerActions extends Actions<NBViewerState> {
     if (content.data == null) {
       return;
     }
-    for (let type of JUPYTER_MIMETYPES) {
+    for (const type of JUPYTER_MIMETYPES) {
       if (
         content.data[type] != null &&
         (type.split("/")[0] === "image" || type === "application/pdf")

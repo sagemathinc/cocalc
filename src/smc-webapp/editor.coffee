@@ -111,45 +111,7 @@ exports.file_icon_class = file_icon_class = (ext) ->
 {sagews_decorator_modes} = require('./codemirror/custom-modes')
 misc_page.define_codemirror_extensions()
 
-# Given a text file (defined by content), try to guess
-# what the extension should be.
-guess_file_extension_type = (content) ->
-    content = $.trim(content)
-    i = content.indexOf('\n')
-    first_line = content.slice(0,i).toLowerCase()
-    if first_line.slice(0,2) == '#!'
-        # A script.  What kind?
-        if first_line.indexOf('python') != -1
-            return 'py'
-        if first_line.indexOf('bash') != -1 or first_line.indexOf('sh') != -1
-            return 'sh'
-    if first_line.indexOf('html') != -1
-        return 'html'
-    if first_line.indexOf('/*') != -1 or first_line.indexOf('//') != -1   # kind of a stretch
-        return 'c++'
-    return undefined
-
-exports.file_options = (filename, content) ->   # content may be undefined
-    ext = misc.filename_extension_notilde(filename)?.toLowerCase()
-    if not ext? and content?   # no recognized extension, but have contents
-        ext = guess_file_extension_type(content)
-    if ext == ''
-        x = file_associations["noext-#{misc.path_split(filename).tail}"]
-    else
-        x = file_associations[ext]
-    if not x?
-        x = file_associations['']
-        # Don't use the icon for this fallback, to give the icon selection below a chance to work;
-        # we do this so new react editors work.  All this code will go away someday.
-        delete x.icon
-    if not x.icon?
-        # Use the new react editor icons first, if they exist...
-        icon = require('./project_file').icon(ext)
-        if icon?
-            x.icon = 'fa-' + icon
-        else
-            x.icon = 'fa-file-code-o'
-    return x
+exports.file_options = require("./editor-tmp").file_options
 
 SEP = "\uFE10"
 

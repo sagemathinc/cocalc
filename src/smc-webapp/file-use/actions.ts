@@ -144,7 +144,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
       timestamp = new Date(timestamp);
     }
 
-    const obj : any = {
+    const obj: any = {
       id: sha1(project_id, path),
       project_id,
       path,

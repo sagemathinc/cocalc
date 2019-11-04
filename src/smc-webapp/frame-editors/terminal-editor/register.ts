@@ -3,7 +3,7 @@ Register the terminal editor
 */
 
 import { Editor } from "./editor";
-import { Actions } from "./actions";
+import { TerminalActions } from "./actions";
 import { register_file_editor } from "../frame-tree/register";
 
 let ext;
@@ -19,5 +19,5 @@ register_file_editor({
   icon: "terminal",
   ext,
   component: Editor,
-  Actions
+  Actions: TerminalActions
 });

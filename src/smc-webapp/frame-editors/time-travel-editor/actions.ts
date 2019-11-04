@@ -102,15 +102,19 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
   }
 
-  private init_frame_tree(versions): void {
+  public init_frame_tree(versions?: List<Date>): void {
+    if (versions == null) {
+      if (this.syncdoc == null || this.syncdoc.get_state() != "ready") return;
+      versions = List<Date>(this.syncdoc.all_versions());
+    }
     // make sure all the version and version ranges are valid...
     const max = versions.size - 1;
-    for (let actions of [this.ambient_actions, this]) {
+    for (const actions of [this.ambient_actions, this]) {
       if (actions == null) continue;
-      for (let id in actions._get_leaf_ids()) {
+      for (const id in actions._get_leaf_ids()) {
         const node = actions._get_frame_node(id);
         if (node == null || node.get("type") != "time_travel") continue;
-        for (let x of ["version", "version0", "version1"]) {
+        for (const x of ["version", "version0", "version1"]) {
           let n: number | undefined = node.get(x);
           if (n == null || n > max || n < 0) {
             // make it max except in the case of "version0"
@@ -178,7 +182,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   private get_frame_node_global(id: string) {
-    for (let actions of [this, this.ambient_actions]) {
+    for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
       if (node != null) return node;
@@ -187,7 +191,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   public set_version(id: string, version: number): void {
-    for (let actions of [this, this.ambient_actions]) {
+    for (const actions of [this, this.ambient_actions]) {
       if (actions == null || actions._get_frame_node(id) == null) continue;
       if (typeof version != "number") {
         // be extra careful
@@ -231,7 +235,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   public set_changes_mode(id: string, changes_mode: boolean): void {
-    for (let actions of [this, this.ambient_actions]) {
+    for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
       if (node == null) continue;
@@ -258,7 +262,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   public set_versions(id: string, version0: number, version1: number): void {
-    for (let actions of [this, this.ambient_actions]) {
+    for (const actions of [this, this.ambient_actions]) {
       if (actions == null || actions._get_frame_node(id) == null) continue;
       const versions = this.store.get("versions");
       if (version0 >= version1) {

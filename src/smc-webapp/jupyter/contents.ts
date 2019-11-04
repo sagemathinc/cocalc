@@ -86,7 +86,7 @@ export function parse_headings(
 }
 
 function parse_cell_heading(input: string): { level: number; value: string } {
-  for (let line of input.split("\n")) {
+  for (const line of input.split("\n")) {
     const x = line.trim();
     if (x[0] != "#") continue;
     for (let n = 1; n < x.length; n++) {

@@ -19,7 +19,9 @@ export class OpenSnapshots extends Component<Props> {
     return (
       <Button
         onClick={() => this.props.actions.open_snapshots()}
-        title={"Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."}
+        title={
+          "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+        }
       >
         <Icon name={"life-ring"} /> Backups
       </Button>

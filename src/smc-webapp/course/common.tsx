@@ -56,7 +56,7 @@ const {
   is_different_date
 } = require("../r_misc");
 
-export let { FoldersToolbar } = require("./common/FoldersToolBar");
+export const { FoldersToolbar } = require("./common/FoldersToolBar");
 
 interface BigTimeProps {
   date: string | number | object;
@@ -380,7 +380,7 @@ export class StudentAssignmentInfo extends Component<
   };
 
   render_grade_col() {
-    let grade = this.props.grade || "";
+    const grade = this.props.grade || "";
     const bsStyle = !grade.trim() ? "primary" : undefined;
     const text = grade.trim() ? "Edit grade" : "Enter grade";
 

@@ -39,7 +39,7 @@ export interface ExecOutput {
 
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  let msg = await callback2(webapp_client.exec, opts);
+  const msg = await callback2(webapp_client.exec, opts);
   if (msg.status && msg.status == "error") {
     throw new Error(msg.error);
   }
@@ -100,7 +100,7 @@ export async function exists_in_project(
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  let mesg = await callback2(webapp_client.read_text_file_from_project, opts);
+  const mesg = await callback2(webapp_client.read_text_file_from_project, opts);
   return mesg.content;
 }
 
@@ -133,13 +133,13 @@ export async function prettier(
   path: string,
   options: ParserOptions
 ): Promise<void> {
-  let resp = await callback2(webapp_client.prettier, {
+  const resp = await callback2(webapp_client.prettier, {
     project_id,
     path,
     options
   });
   if (resp.status === "error") {
-    let loc = resp.error.loc;
+    const loc = resp.error.loc;
     if (loc && loc.start) {
       throw Error(
         `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
@@ -250,7 +250,7 @@ export function get_default_font_size(): number {
 export function get_editor_settings(): Map<string, any> {
   const account: any = redux.getStore("account");
   if (account) {
-    let e = account.get("editor_settings");
+    const e = account.get("editor_settings");
     if (e) {
       return e;
     }

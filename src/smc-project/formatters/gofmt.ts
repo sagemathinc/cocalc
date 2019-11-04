@@ -20,7 +20,7 @@ function run_gofmt(input_path: string) {
 }
 
 function cleanup_error(err: string, tmpfn: string): string {
-  let ret: string[] = [];
+  const ret: string[] = [];
   for (let line of err.split("\n")) {
     if (line.startsWith(tmpfn)) {
       line = line.slice(tmpfn.length + 1);
@@ -58,20 +58,18 @@ export async function gofmt(
     formatter.stdout.on("data", data => (stdout += data.toString()));
     formatter.stderr.on("data", data => (stderr += data.toString()));
     // wait for subprocess to close.
-    let code = await callback(close, formatter);
+    const code = await callback(close, formatter);
     if (code >= 1) {
       stdout = cleanup_error(stdout, input_path);
       stderr = cleanup_error(stderr, input_path);
-      const err_msg = `Gofmt code formatting utility "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const err_msg = `Gofmt code formatting utility "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       logger.debug(`gofmt error: ${err_msg}`);
       throw Error(err_msg);
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     // logger.debug(`gofmt_format output s ${s}`);
 
     return s;

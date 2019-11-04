@@ -40,7 +40,7 @@ export class PublicPathInfo extends Component<Props> {
     }
 
     const v: Rendered[] = [];
-    for (let type of ["Download", "Raw", "Embed"]) {
+    for (const type of ["Download", "Raw", "Embed"]) {
       v.push(
         <a
           key={type}
@@ -61,11 +61,12 @@ export class PublicPathInfo extends Component<Props> {
 
   private render_desc(): Rendered {
     if (this.props.info == null) return;
-    let desc = this.props.info.get("description");
+    const desc = this.props.info.get("description");
     if (!desc) return;
     return (
       <div key={"desc"}>
-        <Field name="Description" />{desc}
+        <Field name="Description" />
+        {desc}
       </div>
     );
   }
@@ -77,13 +78,18 @@ export class PublicPathInfo extends Component<Props> {
     let desc: string | undefined = LICENSES[license];
     // fallback in case of weird license not listed in our table:
     if (desc == undefined) desc = license;
-    return <div key={"license"}><Field name="License"/>{desc}</div>;
+    return (
+      <div key={"license"}>
+        <Field name="License" />
+        {desc}
+      </div>
+    );
   }
 
   private render_authors(): Rendered {
     if (this.props.authors == null || this.props.authors.length == 0) return;
     const v: Rendered[] = [];
-    for (let author of this.props.authors) {
+    for (const author of this.props.authors) {
       v.push(
         <AuthorLink
           key={author.account_id}
@@ -106,7 +112,8 @@ export class PublicPathInfo extends Component<Props> {
     }
     return (
       <div key={"authors"}>
-        <Field name={plural(v.length, "Author")} />{r_join(v)}
+        <Field name={plural(v.length, "Author")} />
+        {r_join(v)}
       </div>
     );
   }
@@ -115,7 +122,12 @@ export class PublicPathInfo extends Component<Props> {
     if (this.props.views == null || this.props.views == 0) return;
     return (
       <div key="views">
-        <Field name={'Views ' + (this.props.isdir ? "of something in this directory" : "")}/>
+        <Field
+          name={
+            "Views " +
+            (this.props.isdir ? "of something in this directory" : "")
+          }
+        />
         {this.props.views}
       </div>
     );

@@ -47,7 +47,7 @@ export class ConfirmPaymentMethod extends Component<Props> {
       return;
     }
 
-    for (let card_data of this.props.customer.sources.data) {
+    for (const card_data of this.props.customer.sources.data) {
       if (card_data.id === this.props.customer.default_source) {
         return card_data;
       }
@@ -55,7 +55,7 @@ export class ConfirmPaymentMethod extends Component<Props> {
     //  Should not happen (there should always be a default), but
     // it did: https://github.com/sagemathinc/cocalc/issues/3468
     // We try again with whatever the first card is.
-    for (let card_data of this.props.customer.sources.data) {
+    for (const card_data of this.props.customer.sources.data) {
       return card_data;
     }
     // Still no card?  This should also never happen since we
@@ -65,7 +65,7 @@ export class ConfirmPaymentMethod extends Component<Props> {
   public render(): Rendered {
     const default_card: Source | undefined = this.default_card();
     if (default_card == null) {
-      return <AddPaymentMethod hide_cancel_button={true}/>;
+      return <AddPaymentMethod hide_cancel_button={true} />;
     }
     return (
       <Alert>

@@ -58,7 +58,7 @@ export class SubscriptionGrid extends Component<Props> {
 
   private render_rows(live_subscriptions: (string[])[], ncols): Rendered[] {
     const v: Rendered[] = [];
-    for (let i in live_subscriptions) {
+    for (const i in live_subscriptions) {
       const row: string[] = live_subscriptions[i];
       v.push(<Row key={i}>{this.render_cols(row, ncols)}</Row>);
     }
@@ -68,9 +68,9 @@ export class SubscriptionGrid extends Component<Props> {
   public render(): Rendered {
     const live_subscriptions: (string[])[] = [];
     let ncols: number = 0; // max number of columns in any row
-    for (let row of PROJECT_UPGRADES.live_subscriptions) {
+    for (const row of PROJECT_UPGRADES.live_subscriptions) {
       const v: string[] = [];
-      for (let x of row) {
+      for (const x of row) {
         const price_keys = keys(PROJECT_UPGRADES.subscription[x].price);
         if (intersection(this.props.periods, price_keys).length > 0) {
           ncols = Math.max(ncols, row.length); // this row matters.
