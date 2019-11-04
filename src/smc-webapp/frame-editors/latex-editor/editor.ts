@@ -51,7 +51,8 @@ const EDITOR_SPEC = {
       "redo",
       "sync",
       "help",
-      "format"
+      "format",
+      "switch_to_file"
     ]),
     gutters: ["Codemirror-latex-errors"]
   },

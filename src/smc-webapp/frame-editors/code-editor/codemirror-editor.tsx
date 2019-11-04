@@ -98,7 +98,8 @@ export class CodemirrorEditor extends Component<Props, State> {
         "editor_state",
         "gutter_markers",
         "is_subframe",
-        "is_current"
+        "is_current",
+        "path"
       ])
     );
   }

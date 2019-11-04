@@ -781,9 +781,9 @@ export class Actions<
       this.terminals.close_terminal(id);
     }
 
-    if (type != "cm") {
-      this.code_editors.close_code_editor(id);
-    }
+    // make sure there is no code editor manager for this frame (those
+    // are only for subframe code editors).
+    this.code_editors.close_code_editor(id);
 
     // Reset the font size for the frame based on recent
     // pref for this type.

@@ -500,6 +500,19 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     );
   }
 
+  render_switch_to_file(): Rendered {
+    if (
+      !this.is_visible("switch_to_file") ||
+      this.props.actions.switch_to_file == null
+    ) {
+      return;
+    }
+    const items: Rendered[] = [];
+    items.push(<MenuItem>a.tex</MenuItem>);
+    items.push(<MenuItem>../b.tex</MenuItem>);
+    return <DropdownButton>{items}</DropdownButton>;
+  }
+
   render_download(): Rendered {
     if (
       !this.is_visible("download") ||
@@ -1187,6 +1200,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     v.push(this.render_build());
     v.push(this.render_force_build());
     v.push(this.render_sync());
+    v.push(this.render_switch_to_file());
     v.push(this.render_clean());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());

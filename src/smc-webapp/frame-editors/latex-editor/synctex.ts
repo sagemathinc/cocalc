@@ -37,7 +37,6 @@ export async function pdf_to_tex(opts: {
   y: number; // y-coordinate on page,
   output_directory: string | undefined;
 }): Promise<SyncTex> {
-  console.log(opts);
   const { head, tail } = path_split(opts.pdf_path);
   const path: string =
     opts.output_directory != null ? opts.output_directory : head;

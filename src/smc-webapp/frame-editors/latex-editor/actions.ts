@@ -720,24 +720,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (typeof info.Input != "string") {
         throw Error("unable to determine source file");
       }
-      if (info.Input == this.path) {
-        // source is in the master file
-        this.programmatical_goto_line(line, true, true);
-      } else {
-        // Focus a cm frame so that we split a code editor below.
-        this.show_focused_frame_of_type("cm");
-        // focus/show/open the proper file, then go to the line.
-        const id = this.open_code_editor_frame(info.Input);
-        // TODO: go to appropriate line in this editor.
-        const actions = this.redux.getEditorActions(
-          this.project_id,
-          info.Input
-        );
-        if (actions == null) {
-          throw Error("actions must be defined");
-        }
-        (actions as BaseActions).programmatical_goto_line(line, true, true, id);
+      // Focus a cm frame so that we split a code editor below.
+      //this.show_focused_frame_of_type("cm");
+      // focus/show/open the proper file, then go to the line.
+      //const id = this.open_code_editor_frame(info.Input);
+      const id = this.switch_to_file(info.Input);
+      // TODO: go to appropriate line in this editor.
+      const actions = this.redux.getEditorActions(this.project_id, info.Input);
+      if (actions == null) {
+        throw Error(`actions for "${info.Input}" must be defined`);
       }
+      (actions as BaseActions).programmatical_goto_line(line, true, true, id);
     } catch (err) {
       console.warn("ERROR ", err);
       this.set_error(err);
@@ -985,5 +978,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncdb.set({ key: "build_command", value: command });
     this._syncdb.commit();
     this.setState({ build_command: fromJS(command) });
+  }
+
+  switch_to_file(path: string): string {
+    // Focus a cm frame so that we split a code editor below.
+    const id = this.show_focused_frame_of_type("cm");
+    // quick hack for now before moving this code to base class.  We need to close the editor for the id first;
+    // otherwise the old editor gets used.
+    (this as any).code_editors.close_code_editor(id);
+    this.set_frame_tree({ id, path });
+    return id;
   }
 }
