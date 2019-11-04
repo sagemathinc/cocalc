@@ -13,7 +13,8 @@
     "install_files": "node build/install_files.js",
     "install_files_dbg": "NODE_DEBUG='CC-*' node build/install_files.js",
     "create_account_dbg": "NODE_DEBUG='CC-*' node build/create_account.js",
-    "eslint": "node node_modules/.bin/eslint"
+    "eslint": "node node_modules/.bin/eslint --no-eslintrc -c .eslintrc.js",
+    "prettier": "node node_modules/.bin/prettier"
   },
   "author": "Hal Snyder",
   "license": "ISC",
@@ -35,6 +36,7 @@
     "fs": "0.0.1-security",
     "js-yaml": "^3.13.1",
     "path": "^0.12.7",
+    "prettier": "^1.18.2",
     "puppeteer": "^1.20.0",
     "sprintf-js": "^1.1.2",
     "type-of-is": "^3.5.1",
