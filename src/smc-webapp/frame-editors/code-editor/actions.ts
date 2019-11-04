@@ -1444,8 +1444,27 @@ export class Actions<
   async programmatical_goto_line(
     line: number,
     cursor?: boolean,
-    focus?: boolean
+    focus?: boolean,
+    id?: string // if given scroll this particular frame
   ): Promise<void> {
+
+    if (this._syncstring == null) {
+      // give up -- don't even have a syncstring...
+      // A derived class that doesn't use a syncstring
+      // might overload programmatical_goto_line to make
+      // sense for whatever it works with.
+      return;
+    }
+    const state = this._syncstring.get_state();
+    if (state == "closed") return;
+    if (state == "init") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+      // The syncstring finishing will trigger setting cm's, so let all that happen...
+      await delay(1);
+      if (this._state == "closed") return;
+    }
+
     if (line <= 0) {
       /* Lines <= 0 cause an exception in codemirror later.
          If the line number is much larger than the number of lines
@@ -1457,7 +1476,7 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined = this._get_most_recent_cm_id();
+    const cm_id: string | undefined = id == null ? this._get_most_recent_cm_id() : id;
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
       "full_id"

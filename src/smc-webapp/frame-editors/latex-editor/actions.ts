@@ -711,7 +711,6 @@ export class Actions extends BaseActions<LatexEditorState> {
         project_id: this.project_id,
         output_directory: this.get_output_directory()
       });
-      console.log("info = ", info);
       this.set_status("");
       const line = info.Line;
       if (typeof line != "number") {
@@ -726,11 +725,18 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.programmatical_goto_line(line, true, true);
       } else {
         // Focus a cm frame so that we split a code editor below.
-        this.show_focused_frame_of_type('cm');
+        this.show_focused_frame_of_type("cm");
         // focus/show/open the proper file, then go to the line.
         const id = this.open_code_editor_frame(info.Input);
         // TODO: go to appropriate line in this editor.
-        console.log(id);
+        const actions = this.redux.getEditorActions(
+          this.project_id,
+          info.Input
+        );
+        if (actions == null) {
+          throw Error("actions must be defined");
+        }
+        (actions as BaseActions).programmatical_goto_line(line, true, true, id);
       }
     } catch (err) {
       console.warn("ERROR ", err);
