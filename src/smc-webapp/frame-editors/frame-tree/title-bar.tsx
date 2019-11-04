@@ -144,6 +144,7 @@ interface ReduxProps {
   has_uncommitted_changes: boolean;
   is_saving: boolean;
   is_public: boolean;
+  switch_to_files: string[];
 }
 
 interface State {
@@ -168,7 +169,8 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         has_unsaved_changes: rtypes.bool,
         has_uncommitted_changes: rtypes.bool,
         is_saving: rtypes.bool,
-        is_public: rtypes.bool
+        is_public: rtypes.bool,
+        switch_to_files: rtypes.immutable.List
       }
     };
   }
@@ -191,7 +193,8 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "title",
         "connection_status",
         "font_size",
-        "available_features"
+        "available_features",
+        "switch_to_files"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -503,14 +506,16 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   render_switch_to_file(): Rendered {
     if (
       !this.is_visible("switch_to_file") ||
-      this.props.actions.switch_to_file == null
+      this.props.actions.switch_to_file == null ||
+      this.props.switch_to_files == null
     ) {
       return;
     }
     const items: Rendered[] = [];
-    items.push(<MenuItem>a.tex</MenuItem>);
-    items.push(<MenuItem>../b.tex</MenuItem>);
-    return <DropdownButton>{items}</DropdownButton>;
+    this.props.switch_to_files.forEach(path => {
+      items.push(<MenuItem>{path}</MenuItem>);
+    });
+    return <DropdownButton title={"Files"}>{items}</DropdownButton>;
   }
 
   render_download(): Rendered {

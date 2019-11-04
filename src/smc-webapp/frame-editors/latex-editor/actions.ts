@@ -79,6 +79,7 @@ interface LatexEditorState extends CodeEditorState {
   knitr: boolean;
   knitr_error: boolean; // true, if there is a knitr problem
   // pythontex_error: boolean;  // true, if pythontex processing had an issue
+  switch_to_files: string[];
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -551,6 +552,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       ignoreDuplicates: true
     }).parse();
     this.set_build_logs({ latex: output });
+    if (output.parse.files) {
+      this.setState({ switch_to_files: output.parse.files });
+    }
     this.check_for_fatal_error();
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
