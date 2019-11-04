@@ -504,7 +504,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       borderTopRightRadius: "5px",
       color: "#337ab7",
       cursor: "pointer",
-      maxWidth: "250px"
+      width: "100%"
     };
     if (this.props.is_current) {
       style.background = "#337ab7";
