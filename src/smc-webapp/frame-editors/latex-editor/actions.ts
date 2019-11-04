@@ -711,15 +711,27 @@ export class Actions extends BaseActions<LatexEditorState> {
         project_id: this.project_id,
         output_directory: this.get_output_directory()
       });
+      console.log("info = ", info);
       this.set_status("");
       const line = info.Line;
       if (typeof line != "number") {
         // TODO: would be nicer to handle this at the source...
         throw Error("invalid synctex output (Line must be a number).");
       }
-      // TODO #v1: info.Input="/home/user/projects/98e85b9b-51bb-4889-be47-f42698c37ed4/./a.tex", so
-      // go to the right file!
-      this.programmatical_goto_line(line, true, true);
+      if (typeof info.Input != "string") {
+        throw Error("unable to determine source file");
+      }
+      if (info.Input == this.path) {
+        // source is in the master file
+        this.programmatical_goto_line(line, true, true);
+      } else {
+        // Focus a cm frame so that we split a code editor below.
+        this.show_focused_frame_of_type('cm');
+        // focus/show/open the proper file, then go to the line.
+        const id = this.open_code_editor_frame(info.Input);
+        // TODO: go to appropriate line in this editor.
+        console.log(id);
+      }
     } catch (err) {
       console.warn("ERROR ", err);
       this.set_error(err);

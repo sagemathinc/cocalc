@@ -32,10 +32,16 @@ export class API {
   }
 
   async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call(
-      { cmd: "listing", path: path, hidden: hidden },
-      15000
-    );
+    return await this.call({ cmd: "listing", path, hidden }, 15000);
+  }
+
+  /* Normalize the given path relative to the HOME directory.
+     This takes any old weird looking mess of a path and makes
+     it one that can be opened properly with our file editor,
+     and the path appears to be to a file *in* the HOME directory.
+  */
+  async canonical_path(path: string): Promise<string> {
+    return await this.call({ cmd: "canonical_path", path }, 15000);
   }
 
   async configuration(aspect: ConfigurationAspect): Promise<object[]> {

@@ -7,7 +7,7 @@ import {
   splitlines,
   change_filename_extension
 } from "smc-util/misc2";
-import { exec, ExecOutput } from "../generic/client";
+import { exec, ExecOutput, project_api } from "../generic/client";
 
 interface SyncTex {
   [key: string]: string | number;
@@ -37,6 +37,7 @@ export async function pdf_to_tex(opts: {
   y: number; // y-coordinate on page,
   output_directory: string | undefined;
 }): Promise<SyncTex> {
+  console.log(opts);
   const { head, tail } = path_split(opts.pdf_path);
   const path: string =
     opts.output_directory != null ? opts.output_directory : head;
@@ -45,7 +46,15 @@ export async function pdf_to_tex(opts: {
     "-o",
     `${opts.page}:${opts.x}:${opts.y}:${tail}`
   ]);
-  return parse_synctex_output(output.stdout);
+  const info = parse_synctex_output(output.stdout);
+  if (info.Input != null) {
+    // Determine canonical path to source file
+    // Unfortunately, we use a roundtrip back to the project again for this (slightly more latency, but more robust).
+    info.Input = await (await project_api(opts.project_id)).canonical_path(
+      info.Input as string
+    );
+  }
+  return info;
 }
 
 export async function tex_to_pdf(opts: {
