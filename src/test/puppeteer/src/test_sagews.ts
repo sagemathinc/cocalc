@@ -1,13 +1,13 @@
-const path = require('path');
-const this_file:string = path.basename(__filename, '.js');
-const debuglog = require('util').debuglog('cc-' + this_file);
+const path = require("path");
+const this_file:string = path.basename(__filename, ".js");
+const debuglog = require("util").debuglog("cc-" + this_file);
 
-import chalk from 'chalk';
-import { Opts, PassFail, TestFiles } from './types';
-import { time_log } from './time_log';
-import screenshot from './screenshot';
-import { Page } from 'puppeteer';
-import { expect } from 'chai';
+import chalk from "chalk";
+import { Opts, PassFail, TestFiles } from "./types";
+import { time_log } from "./time_log";
+import screenshot from "./screenshot";
+import { Page } from "puppeteer";
+import { expect } from "chai";
 
 export const test_sagews = async function (opts: Opts, page: Page): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
@@ -17,7 +17,7 @@ export const test_sagews = async function (opts: Opts, page: Page): Promise<Pass
     return pfcounts;
   }
   try {
-    const tm_open_sage_ker = process.hrtime.bigint()
+    const tm_open_sagews = process.hrtime.bigint()
 
     // click the Files button
     let sel = '*[cocalc-test="Files"]';
@@ -41,69 +41,41 @@ export const test_sagews = async function (opts: Opts, page: Page): Promise<Pass
     await page.click(sel);
     debuglog('clicked file line');
 
-    time_log(`open ${TestFiles.sagewsfile}`, tm_open_sage_ker);
-    const tm_sage_ker_test = process.hrtime.bigint()
+    time_log(`open ${TestFiles.sagewsfile}`, tm_open_sagews);
+    const tm_sagews_test = process.hrtime.bigint()
 
-    sel = '*[cocalc-test="jupyter-cell"]';
+    sel = 'a[data-original-title="Execute current or selected cells (unless input hidden)."]';
+
     await page.waitForSelector(sel);
-    debuglog('got sage ipynb jupyter cell');
-
-    await screenshot(page, opts, 'wait-for-kernel-button.png');
-
-    // sage kernel takes longer to start than python 3 system kernel
-    //const dqs: string = 'document.querySelector("button[id=\'Kernel\']").innerText=="Kernel"';
-    //debuglog('dqs',dqs);
-    //await page.waitForFunction(dqs);
-    //debuglog('got kernel menu button');
-
-    sel = "button[id='Kernel']";
-    await page.waitForSelector(sel, {visible: true})
     await page.click(sel);
-    debuglog('clicked Kernel button');
+    debuglog('clicked sagews Run button');
 
-    let linkHandlers = await page.$x("//a[contains(., 'Restart and run all (do not stop on errors)...')]");
-    await linkHandlers[0].click();
-    debuglog("clicked Restart and run all no stop");
+    sel = 'span.sagews-output-stdout';
+    await page.waitForSelector(sel);
+    await screenshot(page, opts, 'cocalc-sagews-0.png');
 
-    linkHandlers = await page.$x("//button[contains(., 'Restart and run all')]");
-    await linkHandlers[0].click();
-    debuglog("clicked Restart and run all");
+    const banner = await page.$eval('span.sagews-output-stdout', e => e.innerHTML);
+    debuglog("sagews banner:\n" + chalk.cyan(banner));
+    const want: string = "SageMath version 8.9";
+    expect(banner, "missing text in sage banner").to.include(want);
 
-    // make sure restart happens
-    // document.querySelector("[cocalc-test='jupyter-cell']").innerText
-    // ==>
-    // "In [ ]:↵%display latex↵sum(1/x^2,x,1,oo)↵3.476 seconds1"
-
-    sel = "[cocalc-test='jupyter-cell']";
-    const empty_exec_str: string = "In []:";
-    const restart_max_tries = 300;
-    let text: string = "XX";
-    let step: number = 0;
-    for (; step < restart_max_tries; step++) {
-      text = await page.$eval(sel, function(e) {
-        return ((<HTMLElement>e).innerText).toString()
-      });
-      if (step > 0 && step % 10 == 0) debuglog(step, ': readout: ', text.substr(0,40));
-      if (text.startsWith(empty_exec_str)) break;
-      await page.waitFor(100);
-    }
-    const enpfx:string = text.substr(0, empty_exec_str.length);
-    debuglog('after ', step, 'tries, exec number starts with ', enpfx);
-    expect(enpfx).to.equal(empty_exec_str);
-
-    await page.$$('.myfrac');
-    debuglog('got fraction in sage ipynb');
-
-    sel = "button[title='Close and halt']";
+    sel = 'a[data-original-title="Delete output of selected cells (unless input hidden)."]';
+    await page.waitForSelector(sel);
     await page.click(sel);
-    debuglog('clicked halt button');
+    debuglog('clicked sagews delete output button');
+
+    // close the file tab
+    sel = '[cocalc-test="sagews-sample.sagews"] [data-icon="times"]';
+    await page.waitForSelector(sel);
+    await page.click(sel);
+    debuglog('clicked file close button');
 
     sel = '*[cocalc-test="search-input"][placeholder="Search or create file"]';
     await page.waitForSelector(sel);
     debuglog('got file search');
 
-    time_log("sage ipynb test", tm_sage_ker_test);
-    await screenshot(page, opts, 'cocalc-sage-ipynb.png');
+    time_log("sagews test", tm_sagews_test);
+    await screenshot(page, opts, 'cocalc-sagews-1.png');
     pfcounts.pass += 1;
 
   } catch (e) {

@@ -6,8 +6,8 @@ const puppeteer = require("puppeteer");
 import chalk from "chalk";
 import { Creds, Opts, PassFail } from "./types";
 import { time_log } from "./time_log";
-import test_tex from "./test_tex";
-import test_widget from "./test_widget";
+import { test_tex } from "./test_tex";
+import { test_widget } from "./test_widget";
 import { test_sage_ker } from "./test_sage_ker";
 import { test_sagews } from "./test_sagews";
 import { del_hide_project } from "./del_hide_project";
@@ -48,7 +48,8 @@ export const login_tests = async function(
     // use large viewport for .tex test until this issue is fixed:
     // https://github.com/sagemathinc/cocalc/issues/4000
     //await page.setViewport({ width: 1280, height: 1024});
-    //await page.setViewport({ width: 1024, height: 768});
+    // workaround for sagews, Run button doesn't show if window is narrower than 1000 px or so
+    await page.setViewport({ width: 1024, height: 768});
     //await page.setViewport({ width: 800, height: 600});
 
     await page.goto(creds.url);
@@ -92,13 +93,10 @@ export const login_tests = async function(
 
     if (opts.xprj) pfcounts.add(await del_hide_project(opts, page));
     if (opts.xprj === undefined || opts.xprj !== "delete") {
-      if (true) {
-        pfcounts.add(await test_tex(opts, page));
-        pfcounts.add(await test_widget(opts, page));
-        pfcounts.add(await test_sage_ker(opts, page));
-      } else {
-        pfcounts.add(await test_sagews(opts, page));
-      }
+      pfcounts.add(await test_tex(opts, page));
+      pfcounts.add(await test_widget(opts, page));
+      pfcounts.add(await test_sage_ker(opts, page));
+      pfcounts.add(await test_sagews(opts, page));
     }
 
     time_log("login session total", tm_launch_browser);
