@@ -99,7 +99,6 @@ interface FrameTreeProps {
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
-  gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
   terminal: Map<string, any>; // terminal settings from account
   status: string;
@@ -145,7 +144,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "reload",
         "resize",
         "is_saving",
-        "gutter_markers",
         "editor_settings",
         "terminal",
         "settings",
@@ -181,7 +179,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         has_unsaved_changes={this.props.has_unsaved_changes}
         has_uncommitted_changes={this.props.has_uncommitted_changes}
         is_saving={this.props.is_saving}
-        gutter_markers={this.props.gutter_markers}
         editor_settings={this.props.editor_settings}
         terminal={this.props.terminal}
         settings={this.props.settings}
@@ -293,7 +290,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         font_size={this.props.font_size}
         editor_state={this.props.editor_state}
         active_id={this.props.active_id}
-        gutter_markers={this.props.gutter_markers}
         editor_settings={this.props.editor_settings}
         terminal={this.props.terminal}
         settings={this.props.settings}

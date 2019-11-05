@@ -106,8 +106,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   public output_directory: string;
 
   private relative_paths: { [path: string]: string } = {};
+  private canonical_paths: { [path: string]: string } = {};
 
   _init2(): void {
+    this.set_gutter = this.set_gutter.bind(this);
     if (!this.is_public) {
       this.init_bad_filename();
       this.init_ext_filename(); // safe to set before syncstring init
@@ -494,15 +496,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_build_logs({ knitr: output });
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
-      path: this.filename_knitr,
       log: output.parse,
-      set_gutter: (line, component) => {
-        this.set_gutter_marker({
-          line,
-          component,
-          gutter_id: "Codemirror-latex-errors"
-        });
-      }
+      set_gutter: this.set_gutter
     });
     this.setState({ knitr_error: output.parse.all.length > 0 });
   }
@@ -607,20 +602,29 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.check_for_fatal_error();
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
-      path: this.path,
       log: output.parse,
-      set_gutter: (line, component) => {
-        this.set_gutter_marker({
-          line,
-          component,
-          gutter_id: "Codemirror-latex-errors"
-        });
-      }
+      set_gutter: this.set_gutter
     });
 
     if (update_pdf) {
       this.update_pdf(time, force);
     }
+  }
+
+  private set_gutter(path: string, line: number, component: any): void {
+    console.log(path, this.canonical_paths[path], JSON.stringify(this.canonical_paths));
+    if (this.canonical_paths[path] != null) {
+      path = this.canonical_paths[path];
+    }
+    const actions = this.redux.getEditorActions(this.project_id, path);
+    if (actions == null) {
+      return; // file not open
+    }
+    (actions as BaseActions<LatexEditorState>).set_gutter_marker({
+      line,
+      component,
+      gutter_id: "Codemirror-latex-errors"
+    });
   }
 
   private async set_switch_to_files(files: string[]): Promise<void> {
@@ -657,6 +661,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (!path.startsWith("/")) {
         switch_to_files.push(path);
         this.relative_paths[path] = files[i];
+        this.canonical_paths[files[i]] = path;
       }
     }
     // sort and make unique.
@@ -781,17 +786,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // this is similar to how knitr errors are processed
     output.parse = pythontex_errors(this.path, output).toJS();
     this.set_build_logs({ pythontex: output });
-    update_gutters({
-      path: this.path,
-      log: output.parse,
-      set_gutter: (line, component) => {
-        this.set_gutter_marker({
-          line,
-          component,
-          gutter_id: "Codemirror-latex-errors"
-        });
-      }
-    });
+    update_gutters({ log: output.parse, set_gutter: this.set_gutter });
     // this.setState({ pythontex_error: output.parse.all.length > 0 });
   }
 
