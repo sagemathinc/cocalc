@@ -501,13 +501,8 @@ rclass = function(x: any) {
     // using an ES6 class *and* reduxProps...
     const cache0 = {};
     return function C(props) {
-      if (cache0 == null) {
-        console.trace("WTF IS HAPPENING????")
-      }
       const reduxProps = x.reduxProps(props);
-      //reduxPropsCheck(reduxProps);
       const key = compute_cache_key(reduxProps);
-      // console.log("ES6 rclass render", key);
       if (cache0[key] == null) {
         cache0[key] = connect_component(reduxProps)(x);
       }
