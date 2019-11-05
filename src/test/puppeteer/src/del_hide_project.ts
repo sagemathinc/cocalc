@@ -9,6 +9,10 @@ import { Page } from "puppeteer";
 
 import screenshot from "./screenshot";
 
+function sleep(ms: number = 0): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export const del_hide_project = async function(
   opts: Opts,
   page: Page
@@ -38,8 +42,15 @@ export const del_hide_project = async function(
     if (opts.xprj === "delete") {
       sel = '*[cocalc-test="please-delete-project"]';
       await page.click(sel);
-      await screenshot(page, opts, "cocalc-delete-project0.png");
-      debuglog(`confirmed delete project`);
+      debuglog('confirmed delete project');
+    }
+
+    if (false) {
+      const sleep_sec: number = 5;
+      debuglog(`sleeping for ${sleep_sec} seconds`);
+      await sleep(sleep_sec * 1000);
+      await screenshot(page, opts, 'cocalc-delete-project.png');
+      debuglog('slept');
     }
 
     // to exit Settings, click the Files button and wait for search box

@@ -77,7 +77,7 @@ const run_tests = async function() {
     let x: PassFail = await login_tests(cp.c, cp.o);
     pfcounts.add(x);
     // skip api tests if project was just deleted
-    if (cp.o.xprj && cp.o.xprj !== "delete") {
+    if (!cp.o.xprj || cp.o.xprj !== "delete") {
       x = await api_session(cp.c, cp.o);
       pfcounts.add(x);
     }

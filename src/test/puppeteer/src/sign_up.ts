@@ -45,12 +45,12 @@ export const sign_up = async function(
 
     let sel: string;
 
-    sel = '*[cocalc-test="sign-up-tos';
+    sel = '*[cocalc-test="sign-up-tos"]';
     await page.click(sel);
     debuglog("checked ToS");
 
     if (creds.token) {
-      sel = '*[cocalc-test="sign-up-token';
+      sel = '*[cocalc-test="sign-up-token"]';
       await page.click(sel);
       await page.keyboard.type(creds.token);
       debuglog("entered token");

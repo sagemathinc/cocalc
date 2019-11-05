@@ -10,7 +10,7 @@ import { Page } from "puppeteer";
 
 import { expect } from "chai";
 
-const test_tex = async function(opts: Opts, page: Page): Promise<PassFail> {
+export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -100,5 +100,3 @@ const test_tex = async function(opts: Opts, page: Page): Promise<PassFail> {
   }
   return pfcounts;
 };
-
-export default test_tex;
