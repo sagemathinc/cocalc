@@ -9,7 +9,7 @@ import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-const test_sage_ker = async function(
+export const test_sage_ker = async function(
   opts: Opts,
   page: Page
 ): Promise<PassFail> {
@@ -118,6 +118,4 @@ const test_sage_ker = async function(
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   return pfcounts;
-};
-
-export default test_sage_ker;
+}

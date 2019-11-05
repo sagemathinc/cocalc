@@ -10,6 +10,7 @@ import get_account_id from "./get_account_id";
 import get_auth_token from "./get_auth_token";
 import { get_project_id } from "./get_project_id";
 import { get_project_status } from "./get_project_status";
+import { api_project_exec } from "./api_project_exec";
 
 export const api_session = async function(
   creds: Creds,
@@ -23,8 +24,9 @@ export const api_session = async function(
   }
   try {
     const tm_start = process.hrtime.bigint();
+    let ags: ApiGetString;
 
-    let ags: ApiGetString = await get_api_key(creds, opts);
+    ags = await get_api_key(creds, opts);
     const api_key = ags.result;
     pfcounts.add(ags);
 
@@ -43,6 +45,11 @@ export const api_session = async function(
     pfcounts.add(ags);
 
     ags = await get_project_status(creds, api_key, project_id);
+    pfcounts.add(ags);
+
+    const command: string = 'julia -v';
+    const wanted_output: string = 'julia version 1.2.0\n';
+    ags = await api_project_exec(creds, api_key, project_id, command, wanted_output);
     pfcounts.add(ags);
 
     time_log(this_file, tm_start);

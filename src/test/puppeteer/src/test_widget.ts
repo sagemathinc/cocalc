@@ -9,7 +9,7 @@ import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-const test_widget = async function(opts: Opts, page: Page): Promise<PassFail> {
+export const test_widget = async function(opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -164,5 +164,3 @@ const test_widget = async function(opts: Opts, page: Page): Promise<PassFail> {
   debuglog("widget test done");
   return pfcounts;
 };
-
-export default test_widget;
