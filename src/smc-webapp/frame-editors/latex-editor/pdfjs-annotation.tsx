@@ -161,8 +161,6 @@ export class AnnotationLayer extends Component<Props, State> {
     }
   }
 
-  // @William Stein
-  // Does this and the above make sense?
   static getDerivedStateFromProps(props) {
     if (props.sync_highlight != undefined) {
       return { sync_highlight: props.sync_highlight };
