@@ -201,6 +201,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
                         tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Linux terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
+                    {<Tip title='X11 desktop'   icon='window-restore'
+                        tip='Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.'>
+                        <NewFileButton icon='window-restore' name='X11 desktop' on_click={@props.create_file} ext='x11' />
+                    </Tip> if available.x11}
                 </Col>
             </Row>
             <Row style={row_style}>
@@ -237,10 +241,6 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    {<Tip title='X11 desktop'   icon='window-restore'
-                        tip='Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.'>
-                        <NewFileButton icon='window-restore' name='X11 desktop' on_click={@props.create_file} ext='x11' />
-                    </Tip> if available.x11}
                    {@props.children}
                 </Col>
             </Row>
