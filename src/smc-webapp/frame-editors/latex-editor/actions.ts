@@ -373,6 +373,23 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build(id, true);
   }
 
+  // Ensure that all files that are open on this client
+  // and needed for building the main file are saved to disk.
+  // TODO: this could get moved up to the base class, when
+  // switch_to_files is moved.
+  private async save_all(explicit: boolean): Promise<void> {
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      await this.save(explicit);
+      return;
+    }
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      await (actions as BaseActions<CodeEditorState>).save(explicit);
+    }
+  }
+
   // used by generic framework.
   async build(id?: string, force: boolean = false): Promise<void> {
     if (id) {
@@ -386,7 +403,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.is_building = true;
     try {
-      await this.save(false);
+      await this.save_all(false);
       await this.run_build(this._last_save_time, force);
     } finally {
       this.is_building = false;
