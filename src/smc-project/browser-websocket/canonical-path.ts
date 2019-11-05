@@ -8,15 +8,19 @@
 
 import { resolve } from "path";
 
-export function canonical_path(path: string): string {
-  path = resolve(path);
-  const { HOME } = process.env;
-  if (HOME == null) {
-    throw Error("HOME environment variable must be defined");
+export function canonical_paths(paths: string[]): string[] {
+  const v: string[] = [];
+  for (let path of paths) {
+    path = resolve(path);
+    const { HOME } = process.env;
+    if (HOME == null) {
+      throw Error("HOME environment variable must be defined");
+    }
+    if (path.startsWith(HOME)) {
+      v.push(path.slice(HOME.length + 1));
+    } else {
+      v.push(HOME + "/.smc/root" + path);
+    }
   }
-  if (path.startsWith(HOME)) {
-    return path.slice(HOME.length + 1);
-  } else {
-    return HOME + "/.smc/root" + path;
-  }
+  return v;
 }

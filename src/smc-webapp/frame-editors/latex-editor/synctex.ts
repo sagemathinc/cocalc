@@ -50,7 +50,7 @@ export async function pdf_to_tex(opts: {
     // Determine canonical path to source file
     // Unfortunately, we use a roundtrip back to the project again for this (slightly more latency, but more robust).
     info.Input = await (await project_api(opts.project_id)).canonical_path(
-      info.Input as string
+      `${info.Input}`
     );
   }
   return info;
@@ -62,19 +62,21 @@ export async function tex_to_pdf(opts: {
   tex_path: string; // source tex file with given line/column
   line: number; // 1-based line number
   column: number; // 1-based column
+  dir: string; // directory that contains the synctex file
   knitr: boolean;
-  output_directory: string | undefined;
+  source_dir:string;
 }): Promise<SyncTex> {
-  let { head, tail } = path_split(opts.tex_path);
   if (opts.knitr) {
-    tail = change_filename_extension(tail, "Rnw");
+    opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
   }
-  const path: string =
-    opts.output_directory != null ? opts.output_directory : head;
-  const output = await exec_synctex(opts.project_id, path, [
+  // TODO: obviously this should happen once -- not constantly!
+  const HOME = await (await project_api(opts.project_id)).eval_code(
+    "process.env.HOME"
+  );
+  const output = await exec_synctex(opts.project_id, opts.dir, [
     "view",
     "-i",
-    `${opts.line}:${opts.column}:${tail}`,
+    `${opts.line}:${opts.column}:${HOME}/${opts.source_dir}/${opts.tex_path}`,
     "-o",
     path_split(opts.pdf_path).tail
   ]);

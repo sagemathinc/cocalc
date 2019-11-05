@@ -2,6 +2,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+import { List } from "immutable";
 import {
   React,
   Rendered,
@@ -35,7 +36,7 @@ const misc = require("smc-util/misc");
 
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
-import { trunc_middle } from "smc-util/misc2";
+import { path_split, trunc_middle } from "smc-util/misc2";
 
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 
@@ -117,7 +118,7 @@ const close_style: CSS.Properties | undefined = (function() {
 interface Props {
   actions: any; // TODO -- see above Actions;
   editor_actions: any; // TODO -- see above Actions;
-  path: string; // assumed to not change for now
+  path: string;
   project_id: string; // assumed to not change for now
   active_id: string;
   id: string;
@@ -139,12 +140,14 @@ interface Props {
 // frame tree/tab in which this sits.  Note some more should
 // probably be moved down here...
 interface ReduxProps {
+  // These come from editor_actions's store:
   read_only: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
   is_public: boolean;
-  switch_to_files: string[];
+  // comes from actions's store:
+  switch_to_files: List<string>;
 }
 
 interface State {
@@ -159,17 +162,21 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     this.state = { close_and_halt_confirm: false };
   }
 
-  static reduxProps({ editor_actions }) {
+  static reduxProps({ editor_actions, actions }) {
     if (editor_actions == null) throw Error("editor_actions must be specified");
     const name = editor_actions.name;
     if (name == null) throw Error("editor_actions must have name attribute");
+    const name2 = actions.name;
+    if (name2 == null) throw Error("actions must have name attribute");
     return {
       [name]: {
         read_only: rtypes.bool,
         has_unsaved_changes: rtypes.bool,
         has_uncommitted_changes: rtypes.bool,
         is_saving: rtypes.bool,
-        is_public: rtypes.bool,
+        is_public: rtypes.bool
+      },
+      [name2]: {
         switch_to_files: rtypes.immutable.List
       }
     };
@@ -194,7 +201,8 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "connection_status",
         "font_size",
         "available_features",
-        "switch_to_files"
+        "switch_to_files",
+        "path"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -495,7 +503,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         key={"sync"}
         title={"Synchronize views (alt+enter)"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.sync(this.props.id)}
+        onClick={() => this.props.actions.sync(this.props.id, this.props.editor_actions)}
       >
         <Icon name={"fab fa-staylinked"} />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
@@ -507,15 +515,35 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     if (
       !this.is_visible("switch_to_file") ||
       this.props.actions.switch_to_file == null ||
-      this.props.switch_to_files == null
+      this.props.switch_to_files == null ||
+      this.props.switch_to_files.size <= 1
     ) {
       return;
     }
     const items: Rendered[] = [];
     this.props.switch_to_files.forEach(path => {
-      items.push(<MenuItem>{path}</MenuItem>);
+      items.push(
+        <MenuItem
+          key={path}
+          selected={this.props.path == path}
+          eventKey={path}
+          onSelect={() => this.props.actions.switch_to_file(path)}
+        >
+          {path}
+        </MenuItem>
+      );
     });
-    return <DropdownButton title={"Files"}>{items}</DropdownButton>;
+    const title = path_split(this.props.path).tail;
+    return (
+      <DropdownButton
+        key={"switch-to-file"}
+        id={"button-switch-to-file"}
+        title={title}
+        bsSize={this.button_size()}
+      >
+        {items}
+      </DropdownButton>
+    );
   }
 
   render_download(): Rendered {

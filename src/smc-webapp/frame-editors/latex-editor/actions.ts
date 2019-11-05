@@ -11,8 +11,11 @@ const VIEWERS: ReadonlyArray<string> = [
   "build"
 ];
 
+import * as CodeMirror from "codemirror";
+
 import { fromJS, List, Map } from "immutable";
 import { once } from "smc-util/async-utils";
+import { project_api } from "../generic/client";
 
 import {
   Actions as BaseActions,
@@ -103,6 +106,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   // be installed (say for docker...).  At least the size
   // should be relatively small.
   public output_directory: string;
+
+  private relative_paths: { [path: string]: string } = {};
 
   _init2(): void {
     if (!this.is_public) {
@@ -552,8 +557,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       ignoreDuplicates: true
     }).parse();
     this.set_build_logs({ latex: output });
-    if (output.parse.files) {
-      this.setState({ switch_to_files: output.parse.files });
+    if (output.parse.files != null) {
+      this.set_switch_to_files(output.parse.files);
     }
     this.check_for_fatal_error();
     this.clear_gutter("Codemirror-latex-errors");
@@ -572,6 +577,48 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (update_pdf) {
       this.update_pdf(time, force);
     }
+  }
+
+  private async set_switch_to_files(files: string[]): Promise<void> {
+    let switch_to_files: string[];
+    const cur = this.store.get("switch_to_files");
+    if (cur != null) {
+      // If there's anything already there during this session
+      // we keep it...
+      switch_to_files = cur.toJS();
+    } else {
+      switch_to_files = [];
+    }
+
+    let files1: string[];
+    const dir = path_split(this.path).head;
+    if (dir == "") {
+      files1 = files;
+    } else {
+      files1 = [];
+      for (let i = 0; i < files.length; i++) {
+        if (!files[i].startsWith("/")) {
+          files1.push(dir + "/" + files[i]);
+        } else {
+          files1.push(files[i]);
+        }
+      }
+    }
+
+    const files2 = await (await project_api(this.project_id)).canonical_paths(
+      files1
+    );
+    for (let i = 0; i < files2.length; i++) {
+      const path = files2[i];
+      if (!path.startsWith("/")) {
+        switch_to_files.push(path);
+        this.relative_paths[path] = files[i];
+      }
+    }
+    // sort and make unique.
+    this.setState({
+      switch_to_files: Array.from(new Set(switch_to_files)).sort()
+    });
   }
 
   update_pdf(time: number, force: boolean): void {
@@ -728,7 +775,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       //this.show_focused_frame_of_type("cm");
       // focus/show/open the proper file, then go to the line.
       //const id = this.open_code_editor_frame(info.Input);
-      const id = this.switch_to_file(info.Input);
+      const id = await this.switch_to_file(info.Input);
       // TODO: go to appropriate line in this editor.
       const actions = this.redux.getEditorActions(this.project_id, info.Input);
       if (actions == null) {
@@ -755,15 +802,21 @@ export class Actions extends BaseActions<LatexEditorState> {
     // First figure out where to jump to in the PDF.
     this.set_status("Running SyncTex from tex to pdf...");
     let info;
+    const source_dir: string = path_split(this.path).head;
+    let dir: string | undefined = this.get_output_directory();
+    if (dir === undefined) {
+      dir = source_dir;
+    }
     try {
       info = await synctex.tex_to_pdf({
         line,
         column,
+        dir,
         tex_path: filename,
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
         knitr: this.knitr,
-        output_directory: this.get_output_directory()
+        source_dir
       });
     } catch (err) {
       console.warn("ERROR ", err);
@@ -912,22 +965,24 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.setState({ zoom_page_height: id });
   }
 
-  sync(id: string): void {
-    const cm = this._cm[id];
-    if (cm) {
+  sync(id: string, editor_actions: Actions): void {
+    const cm = editor_actions._cm[id];
+    if (cm != null) {
       // Clicked the sync button from within an editor
-      this.forward_search(id);
+      this.forward_search(cm, editor_actions.path);
     } else {
-      // Clicked button associated to a a preview pane -- let the preview pane do the work.
+      // Clicked button associated to a a preview pane;
+      // let the preview pane do the work.
       this.setState({ sync: id });
     }
   }
 
-  forward_search(id: string): void {
-    const cm = this._get_cm(id);
-    if (!cm) return;
+  private forward_search(cm: CodeMirror.Editor, path: string): void {
     const { line, ch } = cm.getDoc().getCursor();
-    this.synctex_tex_to_pdf(line, ch, this.path);
+    if (this.relative_paths[path] != null) {
+      path = this.relative_paths[path];
+    }
+    this.synctex_tex_to_pdf(line, ch, path);
   }
 
   time_travel(opts: { path?: string; frame?: boolean }): void {
@@ -984,7 +1039,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.setState({ build_command: fromJS(command) });
   }
 
-  switch_to_file(path: string): string {
+  async switch_to_file(path: string): Promise<string> {
     // Focus a cm frame so that we split a code editor below.
     const id = this.show_focused_frame_of_type("cm");
     // quick hack for now before moving this code to base class.  We need to close the editor for the id first;

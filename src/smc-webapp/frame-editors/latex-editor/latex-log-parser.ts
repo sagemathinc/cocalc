@@ -352,6 +352,7 @@ export class LatexParser {
   postProcess(data: Error[]): ProcessedLatexLog {
     const pll = new ProcessedLatexLog();
     for (const path of this.files) {
+      if (path.indexOf(' [') != -1) continue; // HACK: sometimes this gets miss-parsed....
       pll.files.push(path);
     }
     const hashes: string[] = [];

@@ -2,6 +2,7 @@
 Manage a collection of code editors of various files in frame trees...
 */
 
+import { filename_extension } from "smc-util/misc2";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { get_file_editor } from "../frame-tree/register";
 import { redux } from "../../app-framework";
@@ -14,10 +15,11 @@ export class CodeEditor {
   constructor(project_id: string, path: string) {
     this.project_id = project_id;
     this.path = path;
-    const editor = get_file_editor("txt", false);
+    const ext = filename_extension(path);
+    const editor = get_file_editor(ext, false);
     if (editor == null) throw Error("bug -- editor must exist");
     const name = editor.init(this.path, redux, this.project_id);
-    this.actions = redux.getActions(name) as unknown as Actions; // definitely right
+    this.actions = (redux.getActions(name) as unknown) as Actions; // definitely right
   }
 
   close(): void {
