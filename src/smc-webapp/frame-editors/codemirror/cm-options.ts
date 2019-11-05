@@ -119,15 +119,19 @@ export function cm_options(
       }
     };
 
+    function save(cm) {
+      (CodeMirror as any).commands.save(cm);
+    }
+
     const actionKeys = {
-      "Cmd-S"() {
-        editor_actions.save(true);
+      "Cmd-S"(cm) {
+        save(cm);
       },
-      "Alt-S"() {
-        editor_actions.save(true);
+      "Alt-S"(cm) {
+        save(cm);
       },
-      "Ctrl-S"() {
-        editor_actions.save(true);
+      "Ctrl-S"(cm) {
+        save(cm);
       },
       "Cmd-P"() {
         editor_actions.print();
@@ -192,7 +196,8 @@ export function cm_options(
       extraKeys["Ctrl-P"] = () => editor_actions.print(frame_id);
     }
     if (frame_tree_actions.sync != null) {
-      extraKeys["Alt-Enter"] = () => frame_tree_actions.sync(frame_id, editor_actions);
+      extraKeys["Alt-Enter"] = () =>
+        frame_tree_actions.sync(frame_id, editor_actions);
     }
 
     if (!opts.read_only && opts.bindings !== "emacs") {

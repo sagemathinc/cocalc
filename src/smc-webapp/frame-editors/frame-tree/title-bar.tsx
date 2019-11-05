@@ -538,7 +538,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         <MenuItem
           key={path}
           eventKey={path}
-          onSelect={() => this.props.actions.switch_to_file(path, this.props.id)}
+          onSelect={() =>
+            this.props.actions.switch_to_file(path, this.props.id)
+          }
         >
           {this.props.path == path ? <b>{path}</b> : path}
           {this.props.actions.path == path ? " (main)" : ""}
@@ -961,7 +963,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         no_labels={!labels}
         size={this.button_size()}
         onClick={() => {
-          this.props.editor_actions.save(true);
+          if (!this.props.actions.explicit_save()) {
+            this.props.editor_actions.save(true);
+          }
           this.props.actions.focus(this.props.id);
         }}
       />

@@ -387,6 +387,19 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  public explicit_save(): boolean {
+    const account: any = this.redux.getStore("account");
+    if (
+      account == null ||
+      (!account.getIn(["editor_settings", "build_on_save"]) ||
+        !this.is_likely_master())
+    ) {
+      return false;
+    }
+    this.build(); // kicks off a save of all relevant files
+    return true;
+  }
+
   // used by generic framework.
   async build(id?: string, force: boolean = false): Promise<void> {
     if (id) {
