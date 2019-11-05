@@ -129,7 +129,7 @@ export class ProfileImageSelector extends Component<
     e.preventDefault();
     e.stopPropagation();
     const items = e.dataTransfer.files;
-    for (let item of items) {
+    for (const item of items) {
       if (item.type.startsWith("image/")) {
         this.handle_image_file(item);
         return;
@@ -144,7 +144,7 @@ export class ProfileImageSelector extends Component<
   handle_image_file_paste = (e: any) => {
     e.preventDefault();
     const items = e.clipboardData.items;
-    for (let item of items) {
+    for (const item of items) {
       if (item.type.startsWith("image/")) {
         this.handle_image_file(item.getAsFile());
         return;

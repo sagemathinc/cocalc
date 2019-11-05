@@ -104,7 +104,7 @@ export class PlanInfo extends Component<Props> {
 
     const { params } = PROJECT_UPGRADES;
     const prices: string[] = [];
-    for (let period of this.props.periods) {
+    for (const period of this.props.periods) {
       prices.push(plan_data.price[period]);
     }
     const { benefits } = plan_data;

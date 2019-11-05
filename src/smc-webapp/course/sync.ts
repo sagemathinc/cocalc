@@ -77,7 +77,7 @@ export function create_sync_db(
       handouts: {},
       loading: false
     };
-    for (let x of syncdb.get().toJS()) {
+    for (const x of syncdb.get().toJS()) {
       if (x.table === "settings") {
         misc.merge(t.settings, misc.copy_without(x, "table"));
       } else if (x.table === "students") {
@@ -88,7 +88,7 @@ export function create_sync_db(
         t.handouts[x.handout_id] = misc.copy_without(x, "table");
       }
     }
-    for (let k in t) {
+    for (const k in t) {
       const v = t[k];
       t[k] = fromJS(v);
     }

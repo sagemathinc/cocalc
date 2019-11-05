@@ -28,7 +28,7 @@ interface CellOutputProps {
 
 export class CellOutput extends Component<CellOutputProps> {
   public shouldComponentUpdate(nextProps: CellOutputProps): boolean {
-    for (let field of [
+    for (const field of [
       "collapsed",
       "scrolled",
       "exec_count",

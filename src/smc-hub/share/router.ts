@@ -73,7 +73,7 @@ export function share_router(opts: {
     dbg("got_public_paths - initialized");
     const v = ready_queue;
     ready_queue = [];
-    for (let cb of v) {
+    for (const cb of v) {
       cb();
     }
   }
@@ -90,7 +90,7 @@ export function share_router(opts: {
     throw Error("process.env.SMC_ROOT must be defined");
   }
   const router = express.Router();
-  for (let name of ["favicon-32x32.png", "cocalc-icon.svg"]) {
+  for (const name of ["favicon-32x32.png", "cocalc-icon.svg"]) {
     router.use(
       `/${name}`,
       express.static(os_path.join(process.env.SMC_ROOT, `webapp-lib/${name}`), {

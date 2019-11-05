@@ -118,12 +118,12 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   process_data_queue(): void {
-      // Can easily happen when closing, due to debounce.
+    // Can easily happen when closing, due to debounce.
     if (this._state === "closed") return;
     if (this.data_queue.length === 0) {
       return;
     }
-    for (let x of this.data_queue) {
+    for (const x of this.data_queue) {
       if (x.messages !== undefined) {
         this.setState({ messages: x.messages });
       }
@@ -165,7 +165,7 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   update_status_bar = (): void => {
-      // Can easily happen when closing, due to debounce.
+    // Can easily happen when closing, due to debounce.
     if (this._state === "closed") return;
     const synced =
       this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
@@ -185,7 +185,7 @@ export class Actions extends BaseActions<LeanEditorState> {
   };
 
   update_gutters = (): void => {
-      // Can easily happen when closing, due to debounce.
+    // Can easily happen when closing, due to debounce.
     if (this._state === "closed") return;
     const synced =
       this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");

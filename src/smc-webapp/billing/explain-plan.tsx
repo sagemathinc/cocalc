@@ -89,17 +89,17 @@ export class ExplainPlan extends Component<Props> {
                 <A href={TEACHER_PAYS}>You or your institution pays</A>
               </b>{" "}
               for one or more course plans. You distribute the quota upgrades to
-              all projects of the course via the configuration frame of the course
-              management file.
+              all projects of the course via the configuration frame of the
+              course management file.
             </li>
 
             <li>
               <b>
                 <A href={STUDENT_PAYS}>Students pay a one-time fee.</A>
               </b>{" "}
-              In the configuration frame of the course management file, you opt to
-              require all students to pay a one-time ${STUDENT_COURSE_PRICE} fee
-              to upgrade their projects.
+              In the configuration frame of the course management file, you opt
+              to require all students to pay a one-time ${STUDENT_COURSE_PRICE}{" "}
+              fee to upgrade their projects.
             </li>
           </ul>
           <h4>Basic, Standard or Premium?</h4>

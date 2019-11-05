@@ -4,7 +4,7 @@ underlying synchronized state.
 */
 
 const misc = require("smc-util/misc");
-let { webapp_client } = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 import { Actions, Store } from "../app-framework";
 import { TypedMap } from "../app-framework/TypedMap";
 import { List } from "immutable";
@@ -27,7 +27,7 @@ interface Timer {
 
 type TimerRecord = TypedMap<Timer>;
 
-export let TimeActions = class TimeActions extends Actions<
+export const TimeActions = class TimeActions extends Actions<
   StopwatchEditorState
 > {
   private project_id: string;
@@ -73,7 +73,7 @@ export let TimeActions = class TimeActions extends Actions<
     this.syncdb.get().map(data => {
       id = Math.max(data.get("id"), id);
     });
-    id += 1;  // our new stopwatch has the largest id (so at the bottom)
+    id += 1; // our new stopwatch has the largest id (so at the bottom)
     this._set({
       id,
       label: "",

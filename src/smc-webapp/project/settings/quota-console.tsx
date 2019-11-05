@@ -64,7 +64,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     };
     const settings = this.props.project_settings;
     if (settings != undefined) {
-      for (let name in this.props.quota_params) {
+      for (const name in this.props.quota_params) {
         const data = this.props.quota_params[name];
         const factor = data.display_factor;
         const base_value = settings.get(name) || 0;
@@ -79,7 +79,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     if (!immutable.is(settings, this.props.project_settings)) {
       if (settings != undefined) {
         const new_state = {};
-        for (let name in prev.quota_params) {
+        for (const name in this.props.quota_params) {
           const data = prev.quota_params[name];
           new_state[name] = misc.round2(
             settings.get(name) * data.display_factor
@@ -124,7 +124,7 @@ export class QuotaConsole extends React.Component<Props, State> {
 
     const upgrade_list: JSX.Element[] = [];
     if (upgrades != undefined) {
-      for (let id in upgrades) {
+      for (const id in upgrades) {
         const val = upgrades[id];
         const li = (
           <li key={id}>
@@ -195,7 +195,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     if (settings != undefined) {
       // reset user input states
       const state = {};
-      for (let name in this.props.quota_params) {
+      for (const name in this.props.quota_params) {
         const data = this.props.quota_params[name];
         const factor = data.display_factor;
         const base_value = settings.get(name) || 0;
@@ -217,7 +217,7 @@ export class QuotaConsole extends React.Component<Props, State> {
       return false;
     }
 
-    for (let name in this.props.quota_params) {
+    for (const name in this.props.quota_params) {
       const data = this.props.quota_params[name] || {};
       if (settings.get(name) == undefined) {
         continue;

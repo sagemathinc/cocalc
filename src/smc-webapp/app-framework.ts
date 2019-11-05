@@ -48,6 +48,7 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { AdminStore, AdminActions } from "./admin";
+import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
 import { FileUseStore } from "./file-use/store";
@@ -57,7 +58,7 @@ export { TypedMap } from "./app-framework/TypedMap";
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
 
-export let COLOR = {
+export const COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca" // blue used for text
@@ -90,7 +91,7 @@ const redux_app = function(state: redux_state, action): redux_state {
       // We merge in what is in action.change[name] to state[name] below.
       action.change.map(function(val, store) {
         let new_val;
-        let old_val = state.get(store);
+        const old_val = state.get(store);
         if (old_val !== undefined) {
           new_val = old_val.merge(val);
         }
@@ -156,7 +157,7 @@ export class AppRedux {
     if (this._last_state == null) {
       this._last_state = immutable.Map();
     }
-    for (let name in this._stores) {
+    for (const name in this._stores) {
       const store = this._stores[name];
       const s = state.get(name);
       if (this._last_state.get(name) !== s) {
@@ -201,9 +202,10 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
-  getActions(name: "account"): any;
+  getActions(name: "account"): AccountActions;
   getActions(name: "projects"): any;
   getActions(name: "billing"): any;
+  getActions(name: "page"): any;
   getActions(name: "admin-page"): AdminActions;
   getActions(name: "mentions"): MentionsActions;
   getActions(name: { project_id: string }): ProjectActions;
@@ -261,10 +263,12 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore(name: "account"): any;
+  getStore(name: "account"): AccountStore;
   getStore(name: "customize"): any;
   getStore(name: "projects"): any;
   getStore(name: "users"): any;
+  getStore(name: "page"): any;
+  getStore(name: "billing"): any;
   getStore(name: "mentions"): MentionsStore;
   getStore(name: "admin-page"): AdminStore;
   getStore(name: "file_use"): FileUseStore | undefined;
@@ -375,7 +379,7 @@ export class AppRedux {
       );
     }
     const name = project_redux_name(project_id);
-    let store = this.getStore(name);
+    const store = this.getStore(name);
     if (store && typeof store.destroy == "function") {
       store.destroy();
     }
@@ -427,7 +431,7 @@ const connect_component = spec => {
     if (state == null) {
       return props;
     }
-    for (let store_name in spec) {
+    for (const store_name in spec) {
       if (store_name === "undefined") {
         // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
@@ -438,7 +442,7 @@ const connect_component = spec => {
       }
       const info = spec[store_name];
       const store: Store<any> | undefined = redux.getStore(store_name);
-      for (let prop in info) {
+      for (const prop in info) {
         var val;
         const type = info[prop];
 
@@ -554,9 +558,9 @@ rclass = function(x: any) {
     if (x.reduxProps != null) {
       // Inject the propTypes based on the ones injected by reduxProps.
       const propTypes = x.propTypes != null ? x.propTypes : {};
-      for (let store_name in x.reduxProps) {
+      for (const store_name in x.reduxProps) {
         const info = x.reduxProps[store_name];
-        for (let prop in info) {
+        for (const prop in info) {
           const type = info[prop];
           if (type !== rtypes.immutable) {
             propTypes[prop] = type;
@@ -587,7 +591,7 @@ rclass = function(x: any) {
   return C;
 };
 
-let redux = new AppRedux();
+const redux = new AppRedux();
 
 // Public interface
 export function is_redux(obj) {
@@ -645,7 +649,7 @@ export { rclass }; // use rclass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
 export { React };
-export let { Fragment } = React;
+export const { Fragment } = React;
 export { Redux };
 export { redux }; // global redux singleton
 export { Actions };
@@ -655,7 +659,7 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
   return arg as any;
 }
 export { UNSAFE_NONNULLABLE };
-export let ReactDOM = require("react-dom");
+export const ReactDOM = require("react-dom");
 
 if (DEBUG) {
   if (typeof smc !== "undefined" && smc !== null) {
@@ -678,7 +682,7 @@ export function redux_fields(spec) {
   const v: any[] = [];
   for (let _ in spec) {
     const val = spec[_];
-    for (let key in val) {
+    for (const key in val) {
       _ = val[key];
       v.push(key);
     }

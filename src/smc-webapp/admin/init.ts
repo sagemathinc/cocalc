@@ -3,9 +3,7 @@ import { AdminStore, initial_state } from "./store";
 import { AdminActions } from "./actions";
 
 export function init(redux: AppRedux) {
-  if (
-    redux.getStore("admin-page") != undefined
-  ) {
+  if (redux.getStore("admin-page") != undefined) {
     return;
   }
 

@@ -59,7 +59,7 @@ export class AnnotationLayer extends Component<Props, State> {
 
   async update_annotations(page: PDFPageProxy): Promise<void> {
     try {
-      let annotations = await page.getAnnotations();
+      const annotations = await page.getAnnotations();
       if (!this.mounted) return;
       this.setState({ annotations: annotations });
     } catch (err) {
@@ -69,17 +69,17 @@ export class AnnotationLayer extends Component<Props, State> {
   }
 
   render_annotations(): Rendered {
-    let scale = this.props.scale;
-    let v: Rendered[] = [];
-    for (let annotation of this.state.annotations) {
+    const scale = this.props.scale;
+    const v: Rendered[] = [];
+    for (const annotation of this.state.annotations) {
       if (annotation.subtype != "Link") {
         // We only care about link annotations *right now*, for the purposes of the latex editor.
         console.log("Annotation not implemented", annotation);
         continue;
       }
-      let [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
-      let page_height = this.props.page.view[3];
-      let left = x1 - 1,
+      const [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
+      const page_height = this.props.page.view[3];
+      const left = x1 - 1,
         top = page_height - y2 - 1,
         width = x2 - x1 + 2,
         height = y2 - y1 + 1;
@@ -91,7 +91,7 @@ export class AnnotationLayer extends Component<Props, State> {
 
       // Note: this "annotation" in the onClick below is the right one because we use "let"
       // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
-      let elt = (
+      const elt = (
         <div
           onClick={() => this.props.click_annotation(annotation)}
           key={annotation.id}

@@ -29,7 +29,7 @@ let wrapped_editors;
 // in *this* file.  This very code (all the redux/store stuff) is used via node.js
 // in projects, so should not reference window or document.
 
-declare var window, document;
+declare let window, document;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   wrapped_editors = require("./editor_react_wrapper");
@@ -182,7 +182,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   destroy = (): void => {
-    let projects_store = this.redux.getStore("projects");
+    const projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
     }
@@ -263,7 +263,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   // Selectors
-  selectors = {
+  // TODO [J3]: Fix Selectors. They are pretty broken.
+  selectors: any = {
     other_settings: {
       fn: () => {
         return (this.redux.getStore("account") as any).get("other_settings");
@@ -388,7 +389,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         if (!this.get("show_hidden")) {
           listing = (() => {
             const result: string[] = [];
-            for (let l of listing) {
+            for (const l of listing) {
               if (!l.name.startsWith(".")) {
                 result.push(l);
               }
@@ -405,7 +406,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           }
 
           const filtered: string[] = [];
-          for (let f of listing) {
+          for (const f of listing) {
             if (!f.mask) filtered.push(f);
           }
           listing = filtered;
@@ -442,7 +443,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
             (() => {
               const result: any[] = [];
               const object = public_paths.toJS();
-              for (let _ in object) {
+              for (const _ in object) {
                 const x = object[_];
                 result.push(misc.copy_without(x, ["id", "project_id"]));
               }
@@ -537,7 +538,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
 function _match(words, s, is_dir) {
   s = s.toLowerCase();
-  for (let t of words) {
+  for (const t of words) {
     if (t[t.length - 1] === "/") {
       if (!is_dir) {
         return false;
@@ -558,7 +559,7 @@ function _matched_files(search, listing) {
   const words = search.split(" ");
   return (() => {
     const result: string[] = [];
-    for (let x of listing) {
+    for (const x of listing) {
       if (
         _match(words, x.display_name != null ? x.display_name : x.name, x.isdir)
       ) {
@@ -573,7 +574,7 @@ function _compute_file_masks(listing) {
   const filename_map = misc.dict(listing.map(item => [item.name, item])); // map filename to file
   return (() => {
     const result: any[] = [];
-    for (let file of listing) {
+    for (const file of listing) {
       // note: never skip already masked files, because of rnw/rtex->tex
       var filename = file.name;
 
@@ -623,7 +624,7 @@ function _compute_file_masks(listing) {
 function _compute_snapshot_display_names(listing) {
   return (() => {
     const result: number[] = [];
-    for (let item of listing) {
+    for (const item of listing) {
       const tm = misc.parse_bup_timestamp(item.name);
       item.display_name = `${tm}`;
       result.push((item.mtime = (tm - 0) / 1000));
@@ -727,7 +728,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
     const q = queries[table_name];
     if (q == null) return; // already done
     delete queries[table_name]; // so we do not init again.
-    for (let k in q) {
+    for (const k in q) {
       const v = q[k];
       if (typeof v === "function") {
         q[k] = v();

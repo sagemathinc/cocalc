@@ -37,7 +37,7 @@ export function open_new_tab(
 
   if (popup) {
     const x: string[] = [];
-    for (let k in opts) {
+    for (const k in opts) {
       const v = opts[k];
       if (v != null) {
         x.push(`${k}=${v}`);

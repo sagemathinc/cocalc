@@ -113,7 +113,7 @@ describe("input behavior", () => {
     expect(mock_change.mock.calls[0][0]).toBe(final_value);
 
     // When passed as prop
-    rendered.setProps({number: over_max});
+    rendered.setProps({ number: over_max });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(2);
     expect(mock_change.mock.calls[1][0]).toBe(final_value);
@@ -142,7 +142,7 @@ describe("input behavior", () => {
     expect(mock_change.mock.calls[0][0]).toBe(final_value);
 
     // When passed as prop
-    rendered.setProps({number: under_min});
+    rendered.setProps({ number: under_min });
     form.simulate("blur");
     expect(mock_change.mock.calls.length).toBe(2);
     expect(mock_change.mock.calls[1][0]).toBe(final_value);

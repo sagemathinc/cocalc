@@ -61,7 +61,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
-import { Actions , UNSAFE_NONNULLABLE } from "../app-framework";
+import { Actions, UNSAFE_NONNULLABLE } from "../app-framework";
 
 const PARALLEL_LIMIT = 5; // number of async things to do in parallel
 
@@ -589,7 +589,7 @@ export class CourseActions extends Actions<CourseState> {
       const actions = this.redux.getActions("projects");
       if (!store.get_allow_collabs()) {
         // Ensure the shared project users are all either course or students
-        for (let account_id in shared_project_users.toJS()) {
+        for (const account_id in shared_project_users.toJS()) {
           if (
             !course_project_users.get(account_id) &&
             !student_account_ids[account_id]
@@ -599,13 +599,13 @@ export class CourseActions extends Actions<CourseState> {
         }
       }
       // Ensure every course project user is on the shared project
-      for (let account_id in course_project_users.toJS()) {
+      for (const account_id in course_project_users.toJS()) {
         if (!shared_project_users.get(account_id)) {
           await actions.invite_collaborator(shared_project_id, account_id);
         }
       }
       // Ensure every student is on the shared project
-      for (let account_id in student_account_ids) {
+      for (const account_id in student_account_ids) {
         if (!shared_project_users.get(account_id)) {
           await actions.invite_collaborator(shared_project_id, account_id);
         }
@@ -632,7 +632,7 @@ export class CourseActions extends Actions<CourseState> {
     if (store.get_shared_project_id()) {
       return;
     }
-    let x: any = this.shared_project_settings();
+    const x: any = this.shared_project_settings();
     const id = this.set_activity({ desc: "Creating shared project..." });
     let project_id: string;
     try {
@@ -690,7 +690,7 @@ export class CourseActions extends Actions<CourseState> {
     // students = array of account_id or email_address
     // New student_id's will be constructed randomly for each student
     const student_ids: string[] = [];
-    for (let x of students) {
+    for (const x of students) {
       const student_id = misc.uuid();
       student_ids.push(student_id);
       x.table = "students";
@@ -732,9 +732,7 @@ export class CourseActions extends Actions<CourseState> {
       );
     };
     const id = this.set_activity({
-      desc: `Creating ${
-        students.length
-      } student projects (do not close the course until done)`
+      desc: `Creating ${students.length} student projects (do not close the course until done)`
     });
     return async.mapLimit(student_ids, PARALLEL_LIMIT, f, err => {
       this.set_activity({ id });
@@ -775,8 +773,11 @@ export class CourseActions extends Actions<CourseState> {
     if (store == undefined) {
       return;
     }
-    const students = store.get_students().valueSeq().toArray();
-    await amap(students, PARALLEL_LIMIT, this._delete_student)
+    const students = store
+      .get_students()
+      .valueSeq()
+      .toArray();
+    await amap(students, PARALLEL_LIMIT, this._delete_student);
     this.configure_all_projects();
   }
 
@@ -888,7 +889,9 @@ export class CourseActions extends Actions<CourseState> {
       this.set_error("BUG: attempt to create when stores not yet initialized");
       return;
     }
-    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get("student_id");
+    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get(
+      "student_id"
+    );
     this._set({
       create_project: webapp_client.server_time(),
       table: "students",
@@ -979,7 +982,9 @@ export class CourseActions extends Actions<CourseState> {
     if (student_account_id == null) {
       // No known account yet, so invite by email.  That said,
       // we only do this at most once every few days.
-      const last_email_invite = UNSAFE_NONNULLABLE(student).get("last_email_invite");
+      const last_email_invite = UNSAFE_NONNULLABLE(student).get(
+        "last_email_invite"
+      );
       if (
         force_send_invite_by_email ||
         (!last_email_invite ||
@@ -1006,7 +1011,7 @@ export class CourseActions extends Actions<CourseState> {
       // console.log("projects store isn't sufficiently initialized yet...");
       return;
     }
-    for (let account_id of course_collaborators.keys()) {
+    for (const account_id of course_collaborators.keys()) {
       if (!users.has(account_id)) {
         await invite(account_id);
       }
@@ -1023,7 +1028,7 @@ export class CourseActions extends Actions<CourseState> {
       student_account_id != undefined
     ) {
       // Remove anybody extra on the student project
-      for (let account_id of users.keys()) {
+      for (const account_id of users.keys()) {
         if (
           !course_collaborators.has(account_id) &&
           account_id !== student_account_id
@@ -1047,7 +1052,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     // Make project not visible to any collaborator on the course project.
-    let store = this.get_store();
+    const store = this.get_store();
     if (store == undefined) {
       return;
     }
@@ -1058,7 +1063,7 @@ export class CourseActions extends Actions<CourseState> {
       // TODO: should really wait until users is defined, which is a supported thing to do on stores!
       return;
     }
-    for (let account_id of users.keys()) {
+    for (const account_id of users.keys()) {
       const x = users_of_student_project.get(account_id);
       if (x != null && !x.get("hide")) {
         await this.redux
@@ -1170,7 +1175,7 @@ export class CourseActions extends Actions<CourseState> {
     const actions = this.redux.getActions("projects");
     const store = this.get_store();
     if (store == null) return;
-    for (let student of store
+    for (const student of store
       .get_students()
       .valueSeq()
       .toArray()) {
@@ -1204,7 +1209,7 @@ export class CourseActions extends Actions<CourseState> {
     const store = this.get_store();
     if (store == null) return;
     const actions = this.redux.getActions("projects");
-    for (let student of store
+    for (const student of store
       .get_students()
       .valueSeq()
       .toArray()) {
@@ -1239,7 +1244,7 @@ export class CourseActions extends Actions<CourseState> {
     const actions = this.redux.getActions("projects");
     const id = this.set_activity({ desc: "Updating project course info..." });
     try {
-      for (let student of store
+      for (const student of store
         .get_students()
         .valueSeq()
         .toArray()) {
@@ -1350,7 +1355,7 @@ export class CourseActions extends Actions<CourseState> {
         return;
       }
       let i = 0;
-      for (let student_id of ids) {
+      for (const student_id of ids) {
         if (this.is_closed()) return;
         i += 1;
         const id = this.set_activity({
@@ -1381,7 +1386,7 @@ export class CourseActions extends Actions<CourseState> {
     if (ids == undefined) {
       return;
     }
-    for (let student_id of ids) {
+    for (const student_id of ids) {
       this.delete_project(student_id);
     }
     return this.set_activity({ id });
@@ -1406,7 +1411,7 @@ export class CourseActions extends Actions<CourseState> {
     if (ids == undefined) {
       return;
     }
-    for (let student_id of ids) {
+    for (const student_id of ids) {
       const student_account_id = store.unsafe_getIn([
         "students",
         student_id,
@@ -1438,7 +1443,7 @@ export class CourseActions extends Actions<CourseState> {
     const id = this.set_activity({
       desc: `Adjusting upgrades on ${misc.len(plan)} student projects...`
     });
-    for (let project_id in plan) {
+    for (const project_id in plan) {
       const upgrades = plan[project_id];
       if (project_id != null) {
         // avoid race if projects are being created *right* when we try to upgrade them.
@@ -1455,12 +1460,9 @@ export class CourseActions extends Actions<CourseState> {
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
   public async admin_upgrade_all_student_projects(quotas): Promise<void> {
-    if (
-      !this.redux
-        .getStore("account")
-        .get("groups", [])
-        .contains("admin")
-    ) {
+    const account_store = this.redux.getStore("account");
+    const groups = account_store.get("groups");
+    if (groups && groups.includes("admin")) {
       throw Error("must be an admin to upgrade");
       return;
     }
@@ -1474,7 +1476,7 @@ export class CourseActions extends Actions<CourseState> {
       throw Error("student project ids not defined");
       return;
     }
-    for (let project_id of ids) {
+    for (const project_id of ids) {
       const x = misc.copy(quotas);
       x.project_id = project_id;
       await callback2(webapp_client.project_set_quotas, x);
@@ -1640,10 +1642,10 @@ export class CourseActions extends Actions<CourseState> {
     };
     const assignment_data = this._get_one(query);
 
-    let grades = assignment_data.grades || {};
+    const grades = assignment_data.grades || {};
     grades[student.get("student_id")] = edited_feedback.get("edited_grade");
 
-    let comments = assignment_data.comments || {};
+    const comments = assignment_data.comments || {};
     comments[student.get("student_id")] = edited_feedback.get(
       "edited_comments"
     );
@@ -1705,7 +1707,7 @@ export class CourseActions extends Actions<CourseState> {
       (left = __guard__(assignment.get("peer_grade"), x => x.toJS())) != null
         ? left
         : {};
-    for (let k in config) {
+    for (const k in config) {
       const v = config[k];
       cur[k] = v;
     }
@@ -1734,7 +1736,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     assignment = store.get_assignment(assignment);
-    let peers = assignment.getIn(["peer_grade", "map"]);
+    const peers = assignment.getIn(["peer_grade", "map"]);
     if (peers != null) {
       return peers.toJS();
     }
@@ -2612,9 +2614,7 @@ You can find the comments they made in the folders below.\
             return webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: target_path + `/GRADER - ${name.simple}.txt`,
-              content: `The student who did the peer grading is named ${
-                name.full
-              }.`,
+              content: `The student who did the peer grading is named ${name.full}.`,
               cb
             });
           },
@@ -2680,7 +2680,10 @@ You can find the comments they made in the folders below.\
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path = UNSAFE_NONNULLABLE(assignment).get("collect_path") + "/" + UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
+        path =
+          UNSAFE_NONNULLABLE(assignment).get("collect_path") +
+          "/" +
+          UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)

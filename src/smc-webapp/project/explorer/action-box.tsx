@@ -590,7 +590,10 @@ export const ActionBox = rclass<ReactProps>(
       if (this.state.copy_destination_project_id === "") {
         return false;
       }
-      if (input === this.props.current_path) {
+      if (
+        input === this.props.current_path &&
+        this.props.project_id === this.state.copy_destination_project_id
+      ) {
         return false;
       }
       if (misc.startswith(input, "/")) {

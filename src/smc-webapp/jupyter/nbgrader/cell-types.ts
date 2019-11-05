@@ -256,7 +256,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
 ];
 
 export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
-for (let x of CELLTYPE_INFO_LIST) {
+for (const x of CELLTYPE_INFO_LIST) {
   if (CELLTYPE_INFO_MAP[x.value] != null) {
     throw Error("bug -- values must be unique");
   }
@@ -280,7 +280,7 @@ export function state_to_value(state: Metadata): string {
   // other 7 possibilities for grade/solution/task state:
   const key = JSON.stringify({ grade, solution, task });
   if (value_cache[key] != undefined) return value_cache[key];
-  for (let x of CELLTYPE_INFO_LIST) {
+  for (const x of CELLTYPE_INFO_LIST) {
     if (x.grade == grade && x.solution == solution && x.task == task) {
       value_cache[key] = x.value;
       return x.value;

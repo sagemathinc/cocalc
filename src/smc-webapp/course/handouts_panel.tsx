@@ -130,7 +130,7 @@ interface HandoutsPanelState {
   search: string; // Search value for filtering handouts
 }
 
-export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
+export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
   class HandoutsPanel extends Component<
     HandoutsPanelReactProps & HandoutsPanelReduxProps,
     HandoutsPanelState
@@ -169,7 +169,7 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
     }
 
     private get_handout(id: string): HandoutRecord {
-      let handout = this.props.handouts.get(id);
+      const handout = this.props.handouts.get(id);
       if (handout == undefined) {
         console.warn(`Tried to access undefined handout ${id}`);
       }
@@ -457,7 +457,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
   private render_copy_all(status): Rendered[] {
     const steps = STEPS();
     const result: any[] = [];
-    for (let step of steps) {
+    for (const step of steps) {
       if (this.state[`copy_confirm_${step}`]) {
         result.push(this.render_copy_confirm(step, status));
       } else {
@@ -956,7 +956,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
 
     // Remove deleted students
     const v1: any[] = [];
-    for (let x of v0) {
+    for (const x of v0) {
       if (!x.deleted) v1.push(x);
       const user = this.props.user_map.get(x.account_id);
       if (user != null) {
@@ -971,7 +971,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
     v1.sort((a, b) => misc.cmp(a.sort, b.sort));
 
     this.student_list = [];
-    for (let x of v1) {
+    for (const x of v1) {
       this.student_list.push(x.student_id);
     }
 

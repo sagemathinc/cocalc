@@ -12,7 +12,8 @@ export class ProjectQuotaBoundsTable extends Component {
       <Panel
         header={
           <span>
-            Maximum possible quotas <strong>per project</strong> (if you need more, contact us at <HelpEmailLink />)
+            Maximum possible quotas <strong>per project</strong> (if you need
+            more, contact us at <HelpEmailLink />)
           </span>
         }
       >

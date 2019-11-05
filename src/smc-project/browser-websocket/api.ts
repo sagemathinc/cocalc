@@ -108,7 +108,10 @@ async function handle_api_call(
 /* implementation of the api calls */
 
 import { get_listing, ListingEntry } from "../directory-listing";
-async function listing(path: string, hidden?: boolean): Promise<ListingEntry[]> {
+async function listing(
+  path: string,
+  hidden?: boolean
+): Promise<ListingEntry[]> {
   return await get_listing(path, hidden);
 }
 

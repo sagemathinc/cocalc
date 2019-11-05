@@ -66,7 +66,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
   if (result == null || result.rows == null) {
     throw Error("invalid result"); // can't happen
   }
-  for (let row of result.rows) {
+  for (const row of result.rows) {
     const project_id: string = row.project_id;
     const path: string = row.path;
     const time: Date = row.time;
@@ -154,9 +154,7 @@ async function send_email_notification(
   const user_names = await callback2(db.account_ids_to_usernames, {
     account_ids: [source]
   });
-  const source_name = `${user_names[source].first_name} ${
-    user_names[source].last_name
-  }`;
+  const source_name = `${user_names[source].first_name} ${user_names[source].last_name}`;
   const project_title = await callback(
     db._get_project_column,
     "title",
@@ -168,9 +166,7 @@ async function send_email_notification(
       : "";
   const subject = `[${trunc(project_title, 40)}] ${key.path}`;
   const url = `https://cocalc.com/projects/${key.project_id}/files/${key.path}`;
-  const body = `${source_name} mentioned you in <a href="${url}">a chat at ${
-    key.path
-  } in ${project_title}</a>.${context}`;
+  const body = `${source_name} mentioned you in <a href="${url}">a chat at ${key.path} in ${project_title}</a>.${context}`;
   let from: string;
   from = `${source_name} <${NOTIFICATIONS_EMAIL}>`;
   const to = await callback(db.get_user_column, "email_address", key.target);

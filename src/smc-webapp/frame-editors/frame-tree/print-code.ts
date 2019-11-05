@@ -22,7 +22,7 @@ interface Options {
 export function print_code(opts: Options) {
   const w = popup("");
 
-  let options = fromJS(opts.options);
+  const options = fromJS(opts.options);
 
   // We add a trailing whitespace, since some printers grey the last line (e.g., chrome, but not firefox)
   const value = opts.value + "\n";

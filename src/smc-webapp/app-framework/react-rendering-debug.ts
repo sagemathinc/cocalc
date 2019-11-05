@@ -1,4 +1,4 @@
-declare var smc, performance;
+declare let smc, performance;
 
 export enum MODES {
   count = "count", // collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
@@ -8,9 +8,12 @@ export enum MODES {
   default = "default" // Do nothing extra
 }
 
-export function debug_transform(rclass: any, mode = MODES.default) {
+export function debug_transform<T extends (...args: any[]) => any>(
+  rclass: T,
+  mode = MODES.default
+): T {
   if (typeof smc === "undefined" || smc === null) {
-    return rclass // do not enable debugging in prod
+    return rclass; // do not enable debugging in prod
   }
 
   if (mode !== "default") {
@@ -23,10 +26,10 @@ export function debug_transform(rclass: any, mode = MODES.default) {
       // Use these in the console:
       //  smc.reset_render_count()
       //  JSON.stringify(smc.get_render_count())
-      var render_count = {};
-      composed_rclass = function(x: any) {
+      let render_count: { [key: string]: number } = {};
+      composed_rclass = function<T extends any>(x: T): T {
         x._render = x.render;
-        x.render = function() {
+        x.render = function(): ReturnType<T["render"]> {
           render_count[x.displayName] =
             (render_count[x.displayName] != null
               ? render_count[x.displayName]
@@ -35,21 +38,24 @@ export function debug_transform(rclass: any, mode = MODES.default) {
         };
         return rclass(x);
       };
-      smc.get_render_count = function() {
+      smc.get_render_count = function(): {
+        counts: { [key: string]: number };
+        total: number;
+      } {
         let total = 0;
-        for (let k in render_count) {
+        for (const k in render_count) {
           const v = render_count[k];
           total += v;
         }
 
         return { counts: render_count, total };
       };
-      smc.reset_render_count = function() {
+      smc.reset_render_count = function(): void {
         render_count = {};
       };
       break;
     case "time":
-      composed_rclass = x => {
+      composed_rclass = <T>(x: T): T => {
         const t0 = performance.now();
         const r = rclass(x);
         const t1 = performance.now();
@@ -60,9 +66,14 @@ export function debug_transform(rclass: any, mode = MODES.default) {
       };
       break;
     case "verbose":
-      composed_rclass = function(x: any) {
-        x._render = x.render;
-        x.render = function() {
+      composed_rclass = function<
+        T extends {
+          render: (...args: any[]) => JSX.Element;
+          displayName?: string;
+        }
+      >(x: T): T & { _render: T["render"] } {
+        (x as any)._render = x.render;
+        x.render = function(): JSX.Element {
           console.log(x.displayName);
           return this._render();
         };
@@ -70,7 +81,8 @@ export function debug_transform(rclass: any, mode = MODES.default) {
       };
       break;
     case "trace":
-      var { react_debug_trace } = require("../app-framework-debug");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { react_debug_trace } = require("../app-framework-debug");
       composed_rclass = react_debug_trace(rclass);
       break;
     case "default":

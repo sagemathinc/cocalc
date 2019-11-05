@@ -1,38 +1,38 @@
-const path = require('path');
-const this_file:string = path.basename(__filename, '.js');
-const debuglog = require('util').debuglog('cc-' + this_file);
+const path = require("path");
+const this_file: string = path.basename(__filename, ".js");
+const debuglog = require("util").debuglog("cc-" + this_file);
 
-import chalk from 'chalk';
-import { Creds, PassFail } from './types';
-import { time_log } from './time_log';
-import axios from 'axios';
-import { expect } from 'chai';
+import chalk from "chalk";
+import { Creds, PassFail } from "./types";
+import { time_log } from "./time_log";
+import axios from "axios";
+import { expect } from "chai";
 
 function sleep(ms: number = 0): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export const api_create_file = async function (
-    creds: Creds,
-    file_path: string,
-    api_key: string,
-    project_id: string,
-    content:string
-  ): Promise<PassFail> {
-
-  let pfcounts: PassFail = new PassFail();
+export const api_create_file = async function(
+  creds: Creds,
+  file_path: string,
+  api_key: string,
+  project_id: string,
+  content: string
+): Promise<PassFail> {
+  const pfcounts: PassFail = new PassFail();
   try {
     const tm_start = process.hrtime.bigint();
-    const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/write_text_file_to_project";
-    debuglog('url ', url);
-    debuglog('writing ', file_path);
+    const url: string =
+      creds.url.replace(/\/app.*/, "") + "/api/v1/write_text_file_to_project";
+    debuglog("url ", url);
+    debuglog("writing ", file_path);
 
     // use retry loop because project might not be started
     const write_max_tries = 60;
     let step: number = 0;
     for (; step < write_max_tries; step++) {
       const response = await axios({
-        method: 'post',
+        method: "post",
         url: url,
         auth: {
           username: api_key,
@@ -50,11 +50,11 @@ export const api_create_file = async function (
       //if (event === "error") console.log(chalk.red(`ERROR-A: ${JSON.stringify(response.data)}`));
       if (event === "error") {
         //console.log(chalk.red(`ERROR-A: ${response.data.error}`));
-        debuglog(`${response.data.error}, retrying...`);
+        debuglog(`${response.data.error}, retrying... ${step}`);
         await sleep(1000);
         continue;
       }
-      expect(response.data.event).to.equal('file_written_to_project');
+      expect(response.data.event).to.equal("file_written_to_project");
       break;
     }
     time_log(this_file, tm_start);
@@ -63,6 +63,6 @@ export const api_create_file = async function (
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR-B: ${e.message}`));
   }
-  debuglog(this_file + ' done');
+  debuglog(this_file + " done");
   return pfcounts;
-}
+};

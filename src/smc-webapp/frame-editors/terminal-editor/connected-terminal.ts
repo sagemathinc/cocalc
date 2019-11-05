@@ -21,10 +21,12 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 
-import { endswith, replace_all } from "smc-util/misc2";
+import { endswith, filename_extension, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
+
+import { file_associations } from "../../file-associations";
 
 declare const $: any;
 import { starts_with_cloud_url } from "smc-webapp/process-links";
@@ -44,7 +46,7 @@ interface Path {
 
 // todo: move to generic util if this works.
 function bind(that: any, v: string[]): void {
-  for (let f of v) {
+  for (const f of v) {
     that[f] = that[f].bind(that);
   }
 }
@@ -287,7 +289,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (endswith(this.path, ".term")) {
       touch_path(this.project_id, this.path); // no need to await
     }
-    for (let data of this.conn_write_buffer) {
+    for (const data of this.conn_write_buffer) {
       this.conn.write(data);
     }
     this.conn_write_buffer = [];
@@ -540,9 +542,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_request(): void {
-    this.actions.set_error(
-      "You were removed from a terminal."
-    );
+    this.actions.set_error("You were removed from a terminal.");
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
     // this frame.
@@ -556,6 +556,20 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   }
 
+  private use_subframe(path: string): boolean {
+    const this_path = filename_extension(this.actions.path);
+    if (this_path == "term") {
+      // This is a .term tab, so always open the path in a new tab.
+      return false;
+    }
+    const ext = filename_extension(path);
+    // Open file in this tab of it can be edited as source code.
+    const a = file_associations[ext];
+    if (a == null || a.editor == "codemirror") return true;
+    if (this_path == "tex" && a.editor == "latex") return true;
+    return false;
+  }
+
   open_paths(paths: Path[]): void {
     if (!this.is_mounted) {
       return;
@@ -563,14 +577,18 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const project_actions = this.actions._get_project_actions();
     let i = 0;
     let foreground = false;
-    for (let x of paths) {
+    for (const x of paths) {
       i += 1;
       if (i === paths.length) {
         foreground = true;
       }
       if (x.file != null) {
         const path = x.file;
-        project_actions.open_file({ path, foreground });
+        if (this.use_subframe(path)) {
+          this.actions.open_code_editor_frame(path);
+        } else {
+          project_actions.open_file({ path, foreground });
+        }
       }
       if (x.directory != null && foreground) {
         project_actions.open_directory(x.directory);
@@ -587,7 +605,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (!this.is_mounted) {
       return;
     }
-    for (let x of paths) {
+    for (const x of paths) {
       if (x.file != null) {
         this._close_path(x.file);
       }

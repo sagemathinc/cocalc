@@ -230,7 +230,7 @@ export class WindowedList extends Component<Props, State> {
   private cell_resized(entries: any[]): void {
     let num_changed: number = 0;
     let min_index: number = 999999;
-    for (let entry of entries) {
+    for (const entry of entries) {
       const elt = entry.target;
       const key = elt.getAttribute("data-key");
       if (key == null) continue;

@@ -96,8 +96,8 @@ export class Page extends Component<PageProps, {}> {
       // no support for synctex for whatever is using this.
       return;
     }
-    let x: number = event.nativeEvent.offsetX / this.props.scale;
-    let y: number = event.nativeEvent.offsetY / this.props.scale;
+    const x: number = event.nativeEvent.offsetX / this.props.scale;
+    const y: number = event.nativeEvent.offsetY / this.props.scale;
     this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
   }
 
@@ -105,7 +105,7 @@ export class Page extends Component<PageProps, {}> {
     if (annotation.url) {
       // Link to an external URL.
       // TODO: make it work for cocalc URL's, e.g., cocalc.com...
-      let win = window.open(annotation.url, "_blank");
+      const win = window.open(annotation.url, "_blank");
       if (win) {
         win.focus();
       }
@@ -113,9 +113,9 @@ export class Page extends Component<PageProps, {}> {
     }
     if (annotation.dest) {
       // Internal link within the document.
-      let dest = await this.props.doc.getDestination(annotation.dest);
-      let page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
-      let page_height = this.props.page.view[3];
+      const dest = await this.props.doc.getDestination(annotation.dest);
+      const page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
+      const page_height = this.props.page.view[3];
       this.props.actions.scroll_pdf_into_view(
         page,
         page_height - dest[3],

@@ -153,7 +153,7 @@ export async function lean(
         return [];
       }
       // delete the source fields -- they are LARGE and not used at all in the UI.
-      for (let c of complete.completions) {
+      for (const c of complete.completions) {
         delete (c as any).source; // cast because of mistake in upstream type def.  sigh.
       }
       /*

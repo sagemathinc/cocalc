@@ -21,7 +21,8 @@ export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
   gutters: string[], // array of extra gutters
-  actions: any,
+  editor_actions: any,
+  frame_tree_actions: any,
   frame_id: string
 ): object {
   let key = filename_extension_notilde(filename).toLowerCase();
@@ -46,7 +47,7 @@ export function cm_options(
     theme = "default";
   }
 
-  let opts = defaults(default_opts, {
+  const opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
     mode: "txt",
     show_trailing_whitespace: editor_settings.get(
@@ -102,16 +103,16 @@ export function cm_options(
   if (feature.IS_TOUCH) {
     // maybe should be IS_IPAD... ?
     // Better more external keyboard friendly shortcuts, motivated by iPad.
-    extra_alt_keys(extraKeys, actions, frame_id, opts);
+    extra_alt_keys(extraKeys, editor_actions, frame_id, opts);
   }
 
-  if (actions) {
+  if (frame_tree_actions != null && editor_actions != null) {
     const build = () => {
-      if (actions.build !== undefined) {
-        actions.build(frame_id);
+      if (frame_tree_actions.build !== undefined) {
+        frame_tree_actions.build(frame_id);
       } else {
         if (get_editor_settings().get("show_exec_warning")) {
-          actions.set_error(
+          frame_tree_actions.set_error(
             "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
           );
         }
@@ -120,28 +121,28 @@ export function cm_options(
 
     const actionKeys = {
       "Cmd-S"() {
-        actions.save(true);
+        editor_actions.save(true);
       },
       "Alt-S"() {
-        actions.save(true);
+        editor_actions.save(true);
       },
       "Ctrl-S"() {
-        actions.save(true);
+        editor_actions.save(true);
       },
       "Cmd-P"() {
-        actions.print();
+        editor_actions.print();
       },
       "Shift-Ctrl-."() {
-        actions.increase_font_size(frame_id);
+        frame_tree_actions.increase_font_size(frame_id);
       },
       "Shift-Ctrl-,"() {
-        actions.decrease_font_size(frame_id);
+        frame_tree_actions.decrease_font_size(frame_id);
       },
       "Shift-Cmd-."() {
-        actions.increase_font_size(frame_id);
+        frame_tree_actions.increase_font_size(frame_id);
       },
       "Shift-Cmd-,"() {
-        actions.decrease_font_size(frame_id);
+        frame_tree_actions.decrease_font_size(frame_id);
       },
       "Ctrl-L"(cm) {
         cm.execCommand("jumpToLine");
@@ -168,10 +169,10 @@ export function cm_options(
         cm.execCommand("findPrev");
       },
       "Shift-Cmd-F"() {
-        actions.format(frame_id);
+        editor_actions.format(frame_id);
       },
       "Shift-Ctrl-F"() {
-        actions.format(frame_id);
+        editor_actions.format(frame_id);
       },
       "Shift-Enter"() {
         build();
@@ -183,48 +184,46 @@ export function cm_options(
         build();
       }
     };
-    for (let k in actionKeys) {
+    for (const k in actionKeys) {
       const v = actionKeys[k];
       extraKeys[k] = v;
     }
     if (opts.bindings !== "emacs") {
-      extraKeys["Ctrl-P"] = () => actions.print(frame_id);
+      extraKeys["Ctrl-P"] = () => editor_actions.print(frame_id);
     }
-  }
+    if (frame_tree_actions.sync != null) {
+      extraKeys["Alt-Enter"] = () => frame_tree_actions.sync(frame_id);
+    }
 
-  if (actions != null && actions.sync != null) {
-    extraKeys["Alt-Enter"] = () => actions.sync(frame_id);
-  }
+    if (!opts.read_only && opts.bindings !== "emacs") {
+      // emacs bindings really conflict with these
+      // Extra codemirror keybindings -- for some of our plugins
+      // inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
+      const keybindings = {
+        bold: "Cmd-B Ctrl-B",
+        italic: "Cmd-I Ctrl-I",
+        underline: "Cmd-U Ctrl-U",
+        comment: "Shift-Ctrl-3",
+        strikethrough: "Shift-Cmd-X Shift-Ctrl-X",
+        subscript: "Cmd-= Ctrl-=",
+        superscript: "Shift-Cmd-= Shift-Ctrl-="
+      };
 
-  if (actions != null && !opts.read_only && opts.bindings !== "emacs") {
-    // emacs bindings really conflict with these
-    // Extra codemirror keybindings -- for some of our plugins
-    // inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
-    const keybindings = {
-      bold: "Cmd-B Ctrl-B",
-      italic: "Cmd-I Ctrl-I",
-      underline: "Cmd-U Ctrl-U",
-      comment: "Shift-Ctrl-3",
-      strikethrough: "Shift-Cmd-X Shift-Ctrl-X",
-      subscript: "Cmd-= Ctrl-=",
-      superscript: "Shift-Cmd-= Shift-Ctrl-="
-    };
+      // use a closure to bind cmd.
+      const f = (key, cmd) =>
+        (extraKeys[key] = cm => {
+          cm.edit_selection({ cmd });
+          return editor_actions.set_syncstring_to_codemirror();
+        });
 
-    // use a closure to bind cmd.
-    const f = (key, cmd) =>
-      (extraKeys[key] = cm => {
-        cm.edit_selection({ cmd });
-        return actions.set_syncstring_to_codemirror();
-      });
-
-    for (let cmd in keybindings) {
-      const keys = keybindings[cmd];
-      for (key of keys.split(" ")) {
-        f(key, cmd);
+      for (const cmd in keybindings) {
+        const keys = keybindings[cmd];
+        for (key of keys.split(" ")) {
+          f(key, cmd);
+        }
       }
     }
   }
-
   if (opts.match_xml_tags) {
     extraKeys["Ctrl-J"] = "toMatchingTag";
   }
@@ -312,7 +311,7 @@ export function cm_options(
   }
 
   if (gutters) {
-    for (let gutter_id of gutters) {
+    for (const gutter_id of gutters) {
       options.gutters.push(gutter_id);
     }
   }

@@ -10,7 +10,7 @@ import { TimerState } from "./actions";
 
 import { TextInput } from "../r_misc/text-input";
 
-let { webapp_client } = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 function assertNever(x: never): never {
   throw new Error("Unexpected object: " + x);

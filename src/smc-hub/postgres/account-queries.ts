@@ -25,5 +25,5 @@ export async function is_paying_customer(
   if (x.stripe_customer == null || x.stripe_customer.subscriptions == null) {
     return false;
   }
-  return  !!x.stripe_customer.subscriptions.total_count;
+  return !!x.stripe_customer.subscriptions.total_count;
 }

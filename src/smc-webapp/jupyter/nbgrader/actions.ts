@@ -33,7 +33,7 @@ export class NBGraderActions {
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
       if (cell == null) return;
-      let nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
       if (nbgrader == null || nbgrader.get("schema_version") === 3) return;
       // Doing this set
       // make the actual change via the syncdb mechanism (NOT updating cells directly; instead
@@ -65,7 +65,7 @@ export class NBGraderActions {
       if (nbgrader == null) throw Error("must not be null");
 
       // Merge in the requested changes.
-      for (let k in metadata) {
+      for (const k in metadata) {
         nbgrader[k] = metadata[k];
       }
 
@@ -77,7 +77,7 @@ export class NBGraderActions {
         // based on reading source code and actual ipynb files.
         nbgrader.schema_version = 3;
         // nbgrader schema_version=3 requires that all these are set:
-        for (let k of ["grade", "locked", "solution", "task"]) {
+        for (const k of ["grade", "locked", "solution", "task"]) {
           if (nbgrader[k] == null) {
             nbgrader[k] = false;
           }
@@ -274,7 +274,7 @@ export class NBGraderActions {
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
         return;
-      for (let key of ["editable", "deletable"]) {
+      for (const key of ["editable", "deletable"]) {
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
           metadata: { [key]: false },

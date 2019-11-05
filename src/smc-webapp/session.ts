@@ -18,7 +18,7 @@ exports.session_manager = (name, redux) => {
     // we only need the session manager to open a target URL
     return undefined;
   } else {
-    sm;
+    return sm;
   }
 };
 
@@ -221,7 +221,7 @@ class SessionManager {
     this._state = [];
     this._state_closed = {};
     {
-      let ss: State[] | undefined = LS.get<State[]>(this._local_storage_name);
+      const ss: State[] | undefined = LS.get<State[]>(this._local_storage_name);
       if (ss != null && ss) {
         try {
           this._state = ss;
@@ -232,7 +232,7 @@ class SessionManager {
       }
     }
     {
-      let sc = LS.get<State>(this._local_storage_name_closed);
+      const sc = LS.get<State>(this._local_storage_name_closed);
       if (sc != null && sc) {
         try {
           this._state_closed = sc;
@@ -245,7 +245,7 @@ class SessionManager {
   }
 }
 
-const get_session_state = function(redux: AppRedux): State[] {
+function get_session_state(redux: AppRedux): State[] {
   const state: State[] = [];
   redux
     .getStore("projects")
@@ -260,7 +260,7 @@ const get_session_state = function(redux: AppRedux): State[] {
       return true;
     });
   return state;
-};
+}
 
 // reset_first is currently not used.  If true, then you get *exactly* the
 // saved session; if not set (the default) the current state and the session are merged.

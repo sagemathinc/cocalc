@@ -143,7 +143,7 @@ class MultipleAddSearch extends Component<
 
   change_selection = e => {
     const v: string[] = [];
-    for (let option of e.target.selectedOptions) {
+    for (const option of e.target.selectedOptions) {
       v.push(option.label);
     }
     return this.setState({ selected_items: v });
@@ -230,9 +230,7 @@ class MultipleAddSearch extends Component<
           autoFocus={true}
           ref="search_input"
           default_value=""
-          placeholder={`Add ${
-            this.props.item_name
-          } by folder name (enter to see available folders)...`}
+          placeholder={`Add ${this.props.item_name} by folder name (enter to see available folders)...`}
           on_submit={this.props.do_search}
           on_clear={this.clear_and_focus_search_input}
           buttonAfter={this.search_button()}

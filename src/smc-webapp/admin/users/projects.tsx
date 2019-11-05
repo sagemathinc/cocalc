@@ -126,7 +126,7 @@ export class Projects extends Component<Props, State> {
   }
 
   open_project(project_id: string): void {
-    const projects : any = redux.getActions("projects"); // todo: any?
+    const projects: any = redux.getActions("projects"); // todo: any?
     projects.open_project({ project_id: project_id, switch_to: true });
   }
 
@@ -134,7 +134,10 @@ export class Projects extends Component<Props, State> {
     return (
       <Row key={project.project_id}>
         <Col md={2}>
-          <a style={{cursor:'pointer'}} onClick={() => this.open_project(project.project_id)}>
+          <a
+            style={{ cursor: "pointer" }}
+            onClick={() => this.open_project(project.project_id)}
+          >
             {project.title}
           </a>
         </Col>

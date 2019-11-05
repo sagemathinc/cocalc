@@ -179,7 +179,7 @@ const EXEC_TESTS: TestKernel[] = [
   }
 ];
 
-for (let test of EXEC_TESTS) {
+for (const test of EXEC_TESTS) {
   if (ONLY && ONLY != test.kernel) {
     continue;
   }
@@ -194,7 +194,7 @@ for (let test of EXEC_TESTS) {
       kernel = common.kernel(test.kernel);
     });
 
-    for (let { input, output } of test.tests) {
+    for (const { input, output } of test.tests) {
       it(`evaluates "${input}"`, async function() {
         expect(await common.exec(kernel, input)).toBe(output);
       });

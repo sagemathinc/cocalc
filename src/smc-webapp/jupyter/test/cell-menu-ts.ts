@@ -132,7 +132,7 @@ describe("test clearing output of cells -- ", () => {
   }); */
 
   return it("set output again and clear all", () => {
-    for (let i of [0, 1, 2]) {
+    for (const i of [0, 1, 2]) {
       actions.set_cell_output(list[i], [i]);
     }
     actions.clear_all_outputs();

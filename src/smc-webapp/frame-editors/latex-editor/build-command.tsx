@@ -71,7 +71,7 @@ export class BuildCommand extends Component<Props, State> {
     } else if (typeof cmd === "string") {
       s = cmd;
     } else {
-      let v: string[] = [];
+      const v: string[] = [];
       cmd.forEach(function(t: string) {
         if (split(t).length > 1) {
           // some minimal escape for now...
@@ -113,7 +113,7 @@ export class BuildCommand extends Component<Props, State> {
 
   render_items(): Rendered[] {
     const v: Rendered[] = [];
-    for (let engine of ENGINES) {
+    for (const engine of ENGINES) {
       v.push(this.render_item(engine));
     }
     return v;

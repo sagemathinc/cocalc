@@ -76,7 +76,7 @@ export async function get_listing_node10(
         } else {
           // only count non-hidden files
           entry.size = 0;
-          for (let x of v) {
+          for (const x of v) {
             if (x[0] != ".") {
               entry.size += 1;
             }
@@ -137,7 +137,7 @@ export async function get_listing(
           } else {
             // only count non-hidden files
             entry.size = 0;
-            for (let x of v) {
+            for (const x of v) {
               if (x[0] != ".") {
                 entry.size += 1;
               }

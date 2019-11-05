@@ -68,7 +68,8 @@ export class NumberInput extends React.Component<Props, State> {
                 }
                 onBlur={this.saveChange}
                 onKeyDown={e => {
-                  if (e.keyCode === 27) {  // async setState, since it depends on props.
+                  if (e.keyCode === 27) {
+                    // async setState, since it depends on props.
                     this.setState((_, props) => {
                       number: props.number;
                     });

@@ -27,7 +27,7 @@ export async function run_in_all_projects(
   log?: Function
 ): Promise<Result[]> {
   const v: Result[] = [];
-  for (let project_id of project_ids) {
+  for (const project_id of project_ids) {
     let result: Result;
     try {
       result = await run_in_project(project_id, command, args, timeout);
