@@ -120,9 +120,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   componentWillUnmount(): void {
-    const blur = this.props.actions["blur"];
-    if (blur != null && typeof blur === "function") {
-      blur();
+    const actions: any = this.props.actions;
+    if (actions.blur != null) {
+      actions.blur();
     }
   }
 

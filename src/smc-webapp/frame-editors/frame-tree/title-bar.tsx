@@ -168,18 +168,28 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     if (name == null) throw Error("editor_actions must have name attribute");
     const name2 = actions.name;
     if (name2 == null) throw Error("actions must have name attribute");
-    return {
+
+    // The code below is a bit confusing because name may or
+    // may not equal name2, and if they *are* equal and we were
+    // to just make an object with the same key twice, the values
+    // obviously wouldn't be merged.
+    const spec: any = {
       [name]: {
         read_only: rtypes.bool,
         has_unsaved_changes: rtypes.bool,
         has_uncommitted_changes: rtypes.bool,
         is_saving: rtypes.bool,
         is_public: rtypes.bool
-      },
-      [name2]: {
-        switch_to_files: rtypes.immutable.List
       }
     };
+    if (name == name2) {
+      spec[name2].switch_to_files = rtypes.immutable.List;
+    } else {
+      spec[name2] = {
+        switch_to_files: rtypes.immutable.List
+      };
+    }
+    return spec;
   }
 
   shouldComponentUpdate(next, state): boolean {
@@ -503,7 +513,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         key={"sync"}
         title={"Synchronize views (alt+enter)"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.sync(this.props.id, this.props.editor_actions)}
+        onClick={() =>
+          this.props.actions.sync(this.props.id, this.props.editor_actions)
+        }
       >
         <Icon name={"fab fa-staylinked"} />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
@@ -525,11 +537,11 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       items.push(
         <MenuItem
           key={path}
-          selected={this.props.path == path}
           eventKey={path}
           onSelect={() => this.props.actions.switch_to_file(path)}
         >
-          {path}
+          {this.props.path == path ? <b>{path}</b> : path}
+          {this.props.actions.path == path ? " (main)" : ""}
         </MenuItem>
       );
     });

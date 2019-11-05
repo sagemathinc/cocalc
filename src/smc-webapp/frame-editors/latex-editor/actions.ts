@@ -161,12 +161,26 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  private is_likely_master(): boolean {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
+      return false;
+    }
+    if (this.knitr) return true; // TODO
+    const s = this._syncstring.to_str();
+    return s && s.indexOf("\\document") != -1;
+  }
+
   private init_latexmk(): void {
     const account: any = this.redux.getStore("account");
 
     this._syncstring.on("save-to-disk", time => {
       this._last_save_time = time;
-      if (account && account.getIn(["editor_settings", "build_on_save"])) {
+      if (
+        account &&
+        account.getIn(["editor_settings", "build_on_save"]) &&
+        this.is_likely_master()
+      ) {
+        // Only autobuild on save if there is a \\document* command.
         this.build("", false);
       }
     });
@@ -268,9 +282,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     set_cmd();
     this._syncdb.on("change", set_cmd);
 
-    // We now definitely have the build command set and the document loaded,
-    // so let's kick off our initial build.
-    this.force_build();
+    if (this.is_likely_master()) {
+      // We now definitely have the build command set and the document loaded,
+      // and it is likely a master latex file, so let's kick off our initial build.
+      this.force_build();
+    }
   }
 
   private ensure_output_directory(cmd: List<string>): List<string> {
