@@ -353,6 +353,7 @@ export class LatexParser {
     const pll = new ProcessedLatexLog();
     for (const path of this.files) {
       if (path.indexOf(' [') != -1) continue; // HACK: sometimes this gets miss-parsed....
+      if (path.endsWith('.aux')) continue; // do not include this.
       pll.files.push(path);
     }
     const hashes: string[] = [];

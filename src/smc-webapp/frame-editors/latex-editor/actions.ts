@@ -165,7 +165,6 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._syncstring == null || this._syncstring.get_state() != "ready") {
       return false;
     }
-    if (this.knitr) return true; // TODO
     const s = this._syncstring.to_str();
     return s && s.indexOf("\\document") != -1;
   }
@@ -573,7 +572,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       ignoreDuplicates: true
     }).parse();
     this.set_build_logs({ latex: output });
-    if (output.parse.files != null) {
+    // TODO: knitr complicates multifile a lot, so we do
+    // not support it yet.
+    if (!this.knitr && output.parse.files != null) {
       this.set_switch_to_files(output.parse.files);
     }
     this.check_for_fatal_error();
@@ -787,10 +788,14 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (typeof info.Input != "string") {
         throw Error("unable to determine source file");
       }
+      if (this.knitr) {
+        // #v0 will not support multifile knitr.
+        this.programmatical_goto_line(line, true, true);
+        return;
+      }
       // Focus a cm frame so that we split a code editor below.
       //this.show_focused_frame_of_type("cm");
       // focus/show/open the proper file, then go to the line.
-      //const id = this.open_code_editor_frame(info.Input);
       const id = await this.switch_to_file(info.Input);
       // TODO: go to appropriate line in this editor.
       const actions = this.redux.getEditorActions(this.project_id, info.Input);
