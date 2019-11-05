@@ -1179,25 +1179,21 @@ export class Actions<
   }
 
   set_cm(id: string, cm: CodeMirror.Editor): void {
+    (cm as any).cocalc_actions = this;
+    this._cm[id] = cm;
+    // reference to this actions object, so codemirror plugins
+    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
+    if (len(this._cm) == 1) {
+      // Creating codemirror for the first time -- need to initialize it.
+      this.set_codemirror_to_syncstring();
+    }
+
     const sel =
       this._cm_selections != null ? this._cm_selections[id] : undefined;
     if (sel != null) {
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
-    // reference to this actions object, so codemirror plugins
-    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
-    (cm as any).cocalc_actions = this;
-
-    if (len(this._cm) > 0) {
-      // just making another cm
-      this._cm[id] = cm;
-      return;
-    }
-
-    this._cm[id] = cm;
-    // Creating codemirror for the first time -- need to initialize it.
-    this.set_codemirror_to_syncstring();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1484,9 +1480,6 @@ export class Actions<
     if (state == "init") {
       await once(this._syncstring, "ready");
       if (this._state == "closed") return;
-      // The syncstring finishing will trigger setting cm's, so let all that happen...
-      await delay(1);
-      if (this._state == "closed") return;
     }
 
     if (line <= 0) {
@@ -1502,18 +1495,35 @@ export class Actions<
     }
     const cm_id: string | undefined =
       id == null ? this._get_most_recent_cm_id() : id;
-    const full_id: string | undefined = this.store.getIn([
-      "local_view_state",
-      "full_id"
-    ]);
-    if (full_id && full_id != cm_id) {
-      this.unset_frame_full();
-      // have to wait for cm to get created and registered.
-      await delay(1);
-      if (this._state == "closed") return;
+    if (cm_id && this._get_frame_node(cm_id) != null) {
+      // cm_id defines a frame in the main frame tree associated
+      // to this file (rather than a frame in some other frame tree).
+      const full_id: string | undefined = this.store.getIn([
+        "local_view_state",
+        "full_id"
+      ]);
+      if (full_id && full_id != cm_id) {
+        this.unset_frame_full();
+        // have to wait for cm to get created and registered.
+        await delay(1);
+        if (this._state == "closed") return;
+      }
     }
 
     let cm = this._get_cm(cm_id);
+    // This is ugly -- react will render the frame with the
+    // editor in it, and after that happens the CodeMirror
+    // editor that was created gets registered, and finally
+    // this._get_cm will return it.  We thus keep trying until
+    // we find it (but for way less than a second).  This sort
+    // of crappy code is OK here, since it's just for moving the
+    // buffer to a line.
+    for (let i = 0; cm == null && i < 10; i++) {
+      cm = this._get_cm(cm_id);
+      await delay(50); // wait after, so cm gets state/value fully set.
+      if (this._state == "closed") return;
+    }
+
     if (cm == null) {
       // this case can only happen in derived classes with non-cm editors.
       this.split_frame("col", this._get_active_id(), "cm");
