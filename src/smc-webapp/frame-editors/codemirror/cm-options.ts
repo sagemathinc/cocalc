@@ -192,7 +192,7 @@ export function cm_options(
       extraKeys["Ctrl-P"] = () => editor_actions.print(frame_id);
     }
     if (frame_tree_actions.sync != null) {
-      extraKeys["Alt-Enter"] = () => frame_tree_actions.sync(frame_id);
+      extraKeys["Alt-Enter"] = () => frame_tree_actions.sync(frame_id, editor_actions);
     }
 
     if (!opts.read_only && opts.bindings !== "emacs") {

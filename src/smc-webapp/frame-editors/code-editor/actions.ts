@@ -118,6 +118,7 @@ export interface CodeEditorState {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   visible: boolean;
+  switch_to_files: string[];
 }
 
 export class Actions<
@@ -1066,6 +1067,30 @@ export class Actions<
     }
   }
 
+  // Gets the most recent time of a save; if self_only is false (the default),
+  // then includes any files listed in switch_to_files...
+  public last_save_time(self_only: boolean = false): number {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
+      return 0;
+    }
+    let n = this._syncstring.get_last_save_to_disk_time().valueOf();
+    if (self_only) {
+      return n;
+    }
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      return n;
+    }
+
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      const t = (actions as Actions).last_save_time(true);
+      n = Math.max(n, t);
+    }
+    return n;
+  }
+
   _get_project_actions() {
     return this.redux.getProjectActions(this.project_id);
   }
@@ -1447,7 +1472,6 @@ export class Actions<
     focus?: boolean,
     id?: string // if given scroll this particular frame
   ): Promise<void> {
-
     if (this._syncstring == null) {
       // give up -- don't even have a syncstring...
       // A derived class that doesn't use a syncstring
@@ -1476,7 +1500,8 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined = id == null ? this._get_most_recent_cm_id() : id;
+    const cm_id: string | undefined =
+      id == null ? this._get_most_recent_cm_id() : id;
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
       "full_id"
@@ -2301,5 +2326,21 @@ export class Actions<
 
   public get_code_editor(id: string): CodeEditor {
     return this.code_editors.get_code_editor(id);
+  }
+
+  public get_matching_frame(obj: object): string | undefined {
+    const tree = this._get_tree();
+    for (const id in this._get_leaf_ids()) {
+      const node = tree_ops.get_node(tree, id);
+      if (node == null) continue;
+      let match = true;
+      for (let key in obj) {
+        if (node.get(key) != obj[key]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return id;
+    }
   }
 }

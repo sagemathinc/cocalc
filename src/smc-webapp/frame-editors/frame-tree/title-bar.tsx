@@ -538,7 +538,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         <MenuItem
           key={path}
           eventKey={path}
-          onSelect={() => this.props.actions.switch_to_file(path)}
+          onSelect={() => this.props.actions.switch_to_file(path, this.props.id)}
         >
           {this.props.path == path ? <b>{path}</b> : path}
           {this.props.actions.path == path ? " (main)" : ""}

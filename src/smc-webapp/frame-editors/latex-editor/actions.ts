@@ -82,13 +82,11 @@ interface LatexEditorState extends CodeEditorState {
   knitr: boolean;
   knitr_error: boolean; // true, if there is a knitr problem
   // pythontex_error: boolean;  // true, if pythontex processing had an issue
-  switch_to_files: string[];
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
-  private _last_save_time: number = 0;
   private _last_sagetex_hash: string;
   private is_building: boolean = false;
   private ext: string = "tex";
@@ -172,8 +170,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   private init_latexmk(): void {
     const account: any = this.redux.getStore("account");
 
-    this._syncstring.on("save-to-disk", time => {
-      this._last_save_time = time;
+    this._syncstring.on("save-to-disk", () => {
       if (
         account &&
         account.getIn(["editor_settings", "build_on_save"]) &&
@@ -404,7 +401,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.is_building = true;
     try {
       await this.save_all(false);
-      await this.run_build(this._last_save_time, force);
+      await this.run_build(this.last_save_time(), force);
     } finally {
       this.is_building = false;
     }
@@ -912,7 +909,6 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_clean(): Promise<void> {
     let log: string = "";
-    delete this._last_save_time;
     this.setState({ build_logs: Map() });
 
     const logger = (s: string): void => {
@@ -967,8 +963,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  make_timestamp(time: number, force: boolean): number | undefined {
-    return force ? undefined : time || this._last_save_time;
+  make_timestamp(time: number, force: boolean): number {
+    return force ? new Date().valueOf() : time || this.last_save_time();
   }
 
   async word_count(time: number, force: boolean): Promise<void> {
@@ -1049,7 +1045,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   print(id: string): void {
     const node = this._get_frame_node(id);
-    if (!node) {
+    if (node == null) {
       throw Error(`BUG -- no node with id ${id}`);
     }
     const type: string = node.get("type");
@@ -1077,10 +1073,38 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.setState({ build_command: fromJS(command) });
   }
 
-  async switch_to_file(path: string): Promise<string> {
+  // if id is given, switch that frame to edit the given path;
+  // if not given, switch an existing cm editor (or find one if there
+  // is already one pointed at this path.)
+  async switch_to_file(path: string, id?: string): Promise<string> {
+    if (id != null) {
+      const node = this._get_frame_node(id);
+      if (node == null) return id;
+      if (node.get("path") == path) return id; // already done;
+      // Change it:
+      (this as any).code_editors.close_code_editor(id);
+      this.set_frame_tree({ id, path });
+      return id;
+    }
+
+    // Check if there is already a code editor frame with the given path.
+    id = this.get_matching_frame({ path, type: "cm" });
+    if (id) {
+      // found one
+      this.set_active_id(id);
+      return id;
+    }
+
     // Focus a cm frame so that we split a code editor below.
-    const id = this.show_focused_frame_of_type("cm");
-    // quick hack for now before moving this code to base class.  We need to close the editor for the id first;
+    id = this.show_focused_frame_of_type("cm");
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error("bug");
+    }
+    if (node.get("path") == path) return id; // already done.
+
+    // quick hack for now before moving this code to base class.
+    // We need to close the editor for the id first;
     // otherwise the old editor gets used.
     (this as any).code_editors.close_code_editor(id);
     this.set_frame_tree({ id, path });
