@@ -802,25 +802,33 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (typeof info.Input != "string") {
         throw Error("unable to determine source file");
       }
-      if (this.knitr) {
-        // #v0 will not support multifile knitr.
-        this.programmatical_goto_line(line, true, true);
-        return;
-      }
-      // Focus a cm frame so that we split a code editor below.
-      //this.show_focused_frame_of_type("cm");
-      // focus/show/open the proper file, then go to the line.
-      const id = await this.switch_to_file(info.Input);
-      // TODO: go to appropriate line in this editor.
-      const actions = this.redux.getEditorActions(this.project_id, info.Input);
-      if (actions == null) {
-        throw Error(`actions for "${info.Input}" must be defined`);
-      }
-      (actions as BaseActions).programmatical_goto_line(line, true, true, id);
+
+      this.goto_line_in_file(line, info.Input);
     } catch (err) {
       console.warn("ERROR ", err);
       this.set_error(err);
     }
+  }
+
+  public async goto_line_in_file(line: number, path: string): Promise<void> {
+    if (path.indexOf("/.") != -1 || path.indexOf("./") != -1) {
+      path = await (await project_api(this.project_id)).canonical_path(path);
+    }
+    if (this.knitr) {
+      // #v0 will not support multifile knitr.
+      this.programmatical_goto_line(line, true, true);
+      return;
+    }
+    // Focus a cm frame so that we split a code editor below.
+    //this.show_focused_frame_of_type("cm");
+    // focus/show/open the proper file, then go to the line.
+    const id = await this.switch_to_file(path);
+    // TODO: go to appropriate line in this editor.
+    const actions = this.redux.getEditorActions(this.project_id, path);
+    if (actions == null) {
+      throw Error(`actions for "${path}" must be defined`);
+    }
+    (actions as BaseActions).programmatical_goto_line(line, true, true, id);
   }
 
   _get_most_recent_pdfjs(): string | undefined {

@@ -1520,7 +1520,7 @@ export class Actions<
     // buffer to a line.
     for (let i = 0; cm == null && i < 10; i++) {
       cm = this._get_cm(cm_id);
-      await delay(50); // wait after, so cm gets state/value fully set.
+      await delay(25);
       if (this._state == "closed") return;
     }
 
@@ -1544,11 +1544,17 @@ export class Actions<
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
-    if (cursor) {
-      doc.setCursor(pos);
-    }
     if (focus) {
       cm.focus();
+    }
+    if (cursor) {
+      doc.setCursor(pos);
+      // TODO: this is VERY CRAPPY CODE -- wait after,
+      // so cm gets state/value fully set.
+      await delay(100);
+      if (this._state == "closed") return;
+      doc.setCursor(pos);
+      cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
   }
 
