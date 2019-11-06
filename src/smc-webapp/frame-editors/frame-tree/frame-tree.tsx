@@ -269,7 +269,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         const editor = get_file_editor("time-travel", false);
         if (editor == null) throw Error("bug -- editor must exist");
         name = editor.init(path, redux, project_id);
-        const actions2: TimeTravelActions = redux.getActions(name);
+        const actions2: TimeTravelActions = (redux.getActions(
+          name
+        ) as unknown) as any;
         actions2.ambient_actions = actions;
         actions = actions2 as Actions;
         is_subframe = true;
