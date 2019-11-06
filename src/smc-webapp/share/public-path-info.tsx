@@ -111,7 +111,7 @@ export class PublicPathInfo extends Component<Props> {
       }
     }
     return (
-      <div key={"authors"}>
+      <div key={"authors"} cocalc-test={"public-authors"}>
         <Field name={plural(v.length, "Author")} />
         {r_join(v)}
       </div>
@@ -121,7 +121,7 @@ export class PublicPathInfo extends Component<Props> {
   private render_views(): Rendered {
     if (this.props.views == null || this.props.views == 0) return;
     return (
-      <div key="views">
+      <div key="views" cocalc-test={"public-directory"}>
         <Field
           name={
             "Views " +
