@@ -43,7 +43,7 @@ export class PassFail {
   }
 }
 
-export class ApiGetString extends PassFail {
+export class TestGetString extends PassFail {
   result: string;
   constructor() {
     super();
@@ -51,9 +51,18 @@ export class ApiGetString extends PassFail {
   }
 }
 
+export class TestGetBoolean extends PassFail {
+  result: boolean;
+  constructor() {
+    super();
+    this.result = false;
+  }
+}
+
 export const TestFiles: { [key: string]: string } = {
   texfile: "latex-sample.tex",
   widgetfile: "widgets-sample.ipynb",
   sageipynbfile: "sage-sample.ipynb",
-  sagewsfile: "sagews-sample.sagews"
+  sagewsfile: "sagews-sample.sagews",
+  iripynbfile: "ir-sample.ipynb"
 };
