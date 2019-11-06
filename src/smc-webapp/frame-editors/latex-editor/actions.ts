@@ -398,16 +398,17 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  public explicit_save(): boolean {
+  public async explicit_save(): Promise<boolean> {
     const account: any = this.redux.getStore("account");
     if (
       account == null ||
       (!account.getIn(["editor_settings", "build_on_save"]) ||
         !this.is_likely_master())
     ) {
+      await this.save_all(true);
       return false;
     }
-    this.build(); // kicks off a save of all relevant files
+    await this.build(); // kicks off a save of all relevant files
     return true;
   }
 
@@ -617,6 +618,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._state == "closed") return;
     this.update_gutters();
   }
+
   private update_gutters(): void {
     if (this.parsed_output_log == null) return;
     this.clear_gutters();
@@ -1117,39 +1119,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   // if id is given, switch that frame to edit the given path;
   // if not given, switch an existing cm editor (or find one if there
   // is already one pointed at this path.)
-  async switch_to_file(path: string, id?: string): Promise<string> {
-    if (id != null) {
-      const node = this._get_frame_node(id);
-      if (node == null) return id;
-      if (node.get("path") == path) return id; // already done;
-      // Change it:
-      (this as any).code_editors.close_code_editor(id);
-      this.set_frame_tree({ id, path });
-      this.update_gutters_soon();
-      return id;
-    }
-
-    // Check if there is already a code editor frame with the given path.
-    id = this.get_matching_frame({ path, type: "cm" });
-    if (id) {
-      // found one
-      this.set_active_id(id);
-      return id;
-    }
-
-    // Focus a cm frame so that we split a code editor below.
-    id = this.show_focused_frame_of_type("cm");
-    const node = this._get_frame_node(id);
-    if (node == null) {
-      throw Error("bug");
-    }
-    if (node.get("path") == path) return id; // already done.
-
-    // quick hack for now before moving this code to base class.
-    // We need to close the editor for the id first;
-    // otherwise the old editor gets used.
-    (this as any).code_editors.close_code_editor(id);
-    this.set_frame_tree({ id, path });
+  public async switch_to_file(path: string, id?: string): Promise<string> {
+    id = await super.switch_to_file(path, id);
     this.update_gutters_soon();
     return id;
   }

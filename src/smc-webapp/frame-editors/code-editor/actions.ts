@@ -1032,14 +1032,14 @@ export class Actions<
   }
 
   // Will get called when this or any subfile is explicitly saved by the user.
-  // If returns false then normal save happens.  If true, then nothing further.
+  // If returns false then normal save happened.  If true, then nothing further.
   // This is used, e.g., by multifile latex so that explicit save triggers
   // save of all files and build... when a user option for "build on save"
   // is enabled.
-  public explicit_save(): boolean {
+  public async explicit_save(): Promise<boolean> {
+    await this.save(true);
     return false;
   }
-
 
   async save(explicit: boolean): Promise<void> {
     if (this.is_public || !this.store.get("is_loaded")) {
@@ -2336,10 +2336,12 @@ export class Actions<
 
     // More difficult case - no such frame and different path
     const active_id = this._get_active_id();
-    const id = this.split_frame(dir, active_id, "cm", { path }, first, true);
+    const id = this.split_frame(dir, active_id, "cm", undefined, first, true);
     if (id == null) {
       throw Error("BUG -- failed to make frame");
     }
+    this.set_frame_to_code_editor(id, path);
+
     if (pos != null) {
       const parent_id = this.get_parent_id(id);
       if (parent_id != null) {
@@ -2348,6 +2350,54 @@ export class Actions<
     }
     this.set_active_id(id);
     return id;
+  }
+
+  public async switch_to_file(path: string, id?: string): Promise<string> {
+    if (id != null) {
+      const node = this._get_frame_node(id);
+      if (node == null) return id;
+      if (node.get("path") == path) return id; // already done;
+      // Change it --
+      this.set_frame_to_code_editor(id, path);
+      return id;
+    }
+
+    // Check if there is already a code editor frame with the given path.
+    id = this.get_matching_frame({ path, type: "cm" });
+    if (id) {
+      // found one already
+      this.set_active_id(id);
+      return id;
+    }
+
+    // Focus a cm frame then change its path.
+    id = this.show_focused_frame_of_type("cm");
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error("bug");
+    }
+    if (node.get("path") == path) return id; // already done.
+
+    this.set_frame_to_code_editor(id, path);
+    return id;
+  }
+
+  // Init actions and set our new cm frame to the given path.
+  private set_frame_to_code_editor(id: string, path: string): void {
+    const node = this._get_frame_node(id);
+    if (node == null) throw Error(`no frame with id ${id}`);
+
+    // This call to get_code_editor ensures the
+    // actions/manager is already initialized.  We need
+    // to do this here rather than in the frame-tree render
+    // loop, in order to ensure that the actions aren't created
+    // while rendering, as that causes a state transition which
+    // react does NOT appreciate.
+    this.code_editors.get_code_editor(id, path);
+
+    // Now actually change the path field of the frame tree, which causes
+    // a render.
+    this.set_frame_tree({ id, path, type: "cm" });
   }
 
   public get_code_editor(id: string): CodeEditor {

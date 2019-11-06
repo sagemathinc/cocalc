@@ -8,8 +8,8 @@ import { get_file_editor } from "../frame-tree/register";
 import { redux } from "../../app-framework";
 
 export class CodeEditor {
-  private project_id: string;
-  private path: string;
+  public readonly project_id: string;
+  public readonly path: string;
   private actions: Actions;
 
   constructor(project_id: string, path: string) {
@@ -58,21 +58,31 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     delete this.code_editors[id];
   }
 
-  get_code_editor(id: string): CodeEditor {
-    const e = this.get(id);
-    if (e != null) return e;
-    let node = this.actions._get_frame_node(id);
-    if (node == null) {
-      throw Error("no such node");
+  get_code_editor(id: string, path?: string): CodeEditor {
+    if (path == null) {
+      let node = this.actions._get_frame_node(id);
+      if (node == null) {
+        throw Error("no such node");
+      }
+      path = node.get("path");
+      if (path == null || path == this.actions.path) {
+        throw Error(
+          "path must be set as attribute of node and different than main path"
+        );
+      }
     }
-    if (node.get("path") == null || node.get("path") == this.actions.path) {
-      throw Error(
-        "path must be set as attribute of node and different than main path"
-      );
+    let code_editor: CodeEditor | undefined = this.code_editors[id];
+    if (code_editor != null) {
+      if (code_editor.path == path) {
+        // It's already initialized.
+        return code_editor;
+      }
+      // It's initialized for this frame, but it's for a different path -- close that.
+      this.close_code_editor(id);
     }
     return (this.code_editors[id] = new CodeEditor(
       this.actions.project_id,
-      node.get("path")
+      path
     ));
   }
 
