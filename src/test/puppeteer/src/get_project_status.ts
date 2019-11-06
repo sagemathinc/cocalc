@@ -39,8 +39,8 @@ export const get_project_status = async function(
     const event: string = response.data.event;
     if (event === "error") console.log(chalk.red(`ERROR: ${response.data}`));
     expect(response.data.event).to.equal("query");
-    const status: string = response.data.query.projects.status;
-    debuglog("status", status);
+    const status: string = response.data.query.projects.status.state;
+    debuglog("status state", status);
     time_log(this_file, tm_start);
     ags.result = status;
     ags.pass += 1;
