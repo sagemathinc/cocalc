@@ -3,7 +3,7 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Creds, ApiGetString } from "./types";
+import { Creds, TestGetString } from "./types";
 import { time_log } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
@@ -11,8 +11,8 @@ import { expect } from "chai";
 export const get_project_id = async function(
   creds: Creds,
   api_key: string
-): Promise<ApiGetString> {
-  const ags: ApiGetString = new ApiGetString();
+): Promise<TestGetString> {
+  const ags: TestGetString = new TestGetString();
   try {
     const tm_start = process.hrtime.bigint();
     const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/query";

@@ -3,7 +3,7 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Creds, Opts, PassFail, ApiGetString } from "./types";
+import { Creds, Opts, PassFail, TestGetString } from "./types";
 import { time_log } from "./time_log";
 import { get_api_key } from "./get_api_key";
 import get_account_id from "./get_account_id";
@@ -24,7 +24,7 @@ export const api_session = async function(
   }
   try {
     const tm_start = process.hrtime.bigint();
-    let ags: ApiGetString;
+    let ags: TestGetString;
 
     ags = await get_api_key(creds, opts);
     const api_key = ags.result;
