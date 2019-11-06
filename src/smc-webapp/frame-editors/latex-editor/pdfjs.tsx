@@ -330,6 +330,14 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
   }
 
   async scroll_click(evt, scroll): Promise<void> {
+    /* This first delay is needed since otherwise react complains
+
+        backend.js:6 Warning: unstable_flushDiscreteUpdates: Cannot flush updates when React is already rendering.
+
+    whenever you click on the pdf to focus it.
+    */
+    await delay(0);
+
     scroll.focus();
     if (this.props.is_current) {
       return;
