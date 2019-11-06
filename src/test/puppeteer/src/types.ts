@@ -64,5 +64,5 @@ export const TestFiles: { [key: string]: string } = {
   widgetfile: "widgets-sample.ipynb",
   sageipynbfile: "sage-sample.ipynb",
   sagewsfile: "sagews-sample.sagews",
-  iripynbfile: "ir-sample.ipynb"
+  irfile: "ir-sample.ipynb"
 };

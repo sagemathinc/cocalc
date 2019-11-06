@@ -10,6 +10,7 @@ import { test_tex } from "./test_tex";
 import { test_widget } from "./test_widget";
 import { test_sage_ker } from "./test_sage_ker";
 import { test_sagews } from "./test_sagews";
+import { test_ir } from "./test_ir";
 import { del_hide_project } from "./del_hide_project";
 import { is_admin } from "./gui_is_admin";
 import { Page } from "puppeteer";
@@ -96,6 +97,7 @@ export const login_tests = async function(
     if (opts.xprj === undefined || opts.xprj !== "delete") {
       const tgb: TestGetBoolean = await is_admin(opts, page);
       pfcounts.add(tgb);
+      pfcounts.add(await test_ir(opts, page));
       pfcounts.add(await test_tex(opts, page));
       pfcounts.add(await test_widget(opts, page));
       pfcounts.add(await test_sage_ker(opts, page));
