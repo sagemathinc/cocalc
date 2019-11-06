@@ -11,6 +11,7 @@ const VIEWERS: ReadonlyArray<string> = [
   "build"
 ];
 
+import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 
 import { fromJS, List, Map } from "immutable";
@@ -107,6 +108,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private relative_paths: { [path: string]: string } = {};
   private canonical_paths: { [path: string]: string } = {};
+  private parsed_output_log?: IProcessedLatexLog;
 
   _init2(): void {
     this.set_gutter = this.set_gutter.bind(this);
@@ -372,20 +374,27 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build(id, true);
   }
 
+  private all_actions(): BaseActions<CodeEditorState>[] {
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      return [this as BaseActions<CodeEditorState>];
+    }
+    const v: BaseActions<CodeEditorState>[] = [];
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      v.push(actions as BaseActions<CodeEditorState>);
+    }
+    return v;
+  }
+
   // Ensure that all files that are open on this client
   // and needed for building the main file are saved to disk.
   // TODO: this could get moved up to the base class, when
   // switch_to_files is moved.
   private async save_all(explicit: boolean): Promise<void> {
-    const files = this.store.get("switch_to_files");
-    if (files == null || files.size <= 1) {
-      await this.save(explicit);
-      return;
-    }
-    for (const path of files) {
-      const actions = this.redux.getEditorActions(this.project_id, path);
-      if (actions == null) continue;
-      await (actions as BaseActions<CodeEditorState>).save(explicit);
+    for (const actions of this.all_actions()) {
+      await actions.save(explicit);
     }
   }
 
@@ -492,13 +501,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     } finally {
       this.set_status("");
     }
-    output.parse = knitr_errors(output).toJS();
+    this.parsed_output_log = output.parse = knitr_errors(output).toJS();
     this.set_build_logs({ knitr: output });
-    this.clear_gutter("Codemirror-latex-errors");
-    update_gutters({
-      log: output.parse,
-      set_gutter: this.set_gutter
-    });
+    this.update_gutters();
     this.setState({ knitr_error: output.parse.all.length > 0 });
   }
 
@@ -590,29 +595,44 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     this.set_status("");
-    output.parse = new LatexParser(output.stdout, {
+    this.parsed_output_log = new LatexParser(output.stdout, {
       ignoreDuplicates: true
     }).parse();
     this.set_build_logs({ latex: output });
     // TODO: knitr complicates multifile a lot, so we do
     // not support it yet.
-    if (!this.knitr && output.parse.files != null) {
-      this.set_switch_to_files(output.parse.files);
+    if (!this.knitr && this.parsed_output_log.files != null) {
+      this.set_switch_to_files(this.parsed_output_log.files);
     }
     this.check_for_fatal_error();
-    this.clear_gutter("Codemirror-latex-errors");
-    update_gutters({
-      log: output.parse,
-      set_gutter: this.set_gutter
-    });
+    this.update_gutters();
 
     if (update_pdf) {
       this.update_pdf(time, force);
     }
   }
 
+  private async update_gutters_soon(): Promise<void> {
+    await delay(500);
+    if (this._state == "closed") return;
+    this.update_gutters();
+  }
+  private update_gutters(): void {
+    if (this.parsed_output_log == null) return;
+    this.clear_gutters();
+    update_gutters({
+      log: this.parsed_output_log,
+      set_gutter: this.set_gutter
+    });
+  }
+
+  private clear_gutters(): void {
+    for (const actions of this.all_actions()) {
+      actions.clear_gutter("Codemirror-latex-errors");
+    }
+  }
+
   private set_gutter(path: string, line: number, component: any): void {
-    console.log(path, this.canonical_paths[path], JSON.stringify(this.canonical_paths));
     if (this.canonical_paths[path] != null) {
       path = this.canonical_paths[path];
     }
@@ -749,7 +769,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     if (output != null) {
       // process any errors
-      output.parse = sagetex_errors(this.path, output).toJS();
+      this.parsed_output_log = output.parse = sagetex_errors(
+        this.path,
+        output
+      ).toJS();
       this.set_build_logs({ sagetex: output });
       // there is no line information in the sagetex errors (and no concordance info either),
       // hence we can't update the gutters.
@@ -784,10 +807,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.set_status("");
     }
     // this is similar to how knitr errors are processed
-    output.parse = pythontex_errors(this.path, output).toJS();
+    this.parsed_output_log = output.parse = pythontex_errors(
+      this.path,
+      output
+    ).toJS();
     this.set_build_logs({ pythontex: output });
-    update_gutters({ log: output.parse, set_gutter: this.set_gutter });
-    // this.setState({ pythontex_error: output.parse.all.length > 0 });
+    this.update_gutters();
   }
 
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
@@ -1100,6 +1125,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       // Change it:
       (this as any).code_editors.close_code_editor(id);
       this.set_frame_tree({ id, path });
+      this.update_gutters_soon();
       return id;
     }
 
@@ -1124,6 +1150,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // otherwise the old editor gets used.
     (this as any).code_editors.close_code_editor(id);
     this.set_frame_tree({ id, path });
+    this.update_gutters_soon();
     return id;
   }
 }
