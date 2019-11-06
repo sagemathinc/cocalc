@@ -17,6 +17,10 @@ import { Map } from "immutable";
 
 import { valid_indent } from "./util";
 
+function save(cm) {
+  (CodeMirror as any).commands.save(cm);
+}
+
 export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
@@ -118,10 +122,6 @@ export function cm_options(
         }
       }
     };
-
-    function save(cm) {
-      (CodeMirror as any).commands.save(cm);
-    }
 
     const actionKeys = {
       "Cmd-S"(cm) {
