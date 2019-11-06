@@ -92,17 +92,16 @@ class Item extends Component<ItemProps, {}> {
 
   edit_source(e: React.SyntheticEvent<any>): void {
     e.stopPropagation();
+    if (!this.props.item.get("file")) return; // not known
     const line: number = parseInt(this.props.item.get("line"));
-    const filename = this.props.item.get("file");
-    if (!filename) return;
-    this.props.actions.open_code_editor({
-      line: line,
-      file: filename,
-      cursor: true,
-      focus: true,
-      direction: "col"
-    });
-    this.props.actions.synctex_tex_to_pdf(line, 0, filename);
+    let path = this.props.item.get("file");
+    const head = path_split(this.props.actions.path).head;
+    if (head != "") {
+      path = head + "/" + path;
+    }
+    if (!path) return;
+    this.props.actions.goto_line_in_file(line, path);
+    this.props.actions.synctex_tex_to_pdf(line, 0, this.props.item.get("file"));
   }
 
   render_location(): React.ReactElement<any> | undefined {
@@ -119,7 +118,7 @@ class Item extends Component<ItemProps, {}> {
             onClick={e => this.edit_source(e)}
             style={{ cursor: "pointer", float: "right" }}
           >
-            Line {this.props.item.get("line")} of {path_split(file).tail}
+            Line {this.props.item.get("line")} of {file}
           </a>
         </div>
       );

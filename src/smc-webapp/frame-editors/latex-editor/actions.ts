@@ -11,8 +11,12 @@ const VIEWERS: ReadonlyArray<string> = [
   "build"
 ];
 
+import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+
 import { fromJS, List, Map } from "immutable";
 import { once } from "smc-util/async-utils";
+import { project_api } from "../generic/client";
 
 import {
   Actions as BaseActions,
@@ -84,7 +88,6 @@ interface LatexEditorState extends CodeEditorState {
 export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
-  private _last_save_time: number = 0;
   private _last_sagetex_hash: string;
   private is_building: boolean = false;
   private ext: string = "tex";
@@ -103,7 +106,12 @@ export class Actions extends BaseActions<LatexEditorState> {
   // should be relatively small.
   public output_directory: string;
 
+  private relative_paths: { [path: string]: string } = {};
+  private canonical_paths: { [path: string]: string } = {};
+  private parsed_output_log?: IProcessedLatexLog;
+
   _init2(): void {
+    this.set_gutter = this.set_gutter.bind(this);
     if (!this.is_public) {
       this.init_bad_filename();
       this.init_ext_filename(); // safe to set before syncstring init
@@ -155,12 +163,24 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  private is_likely_master(): boolean {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
+      return false;
+    }
+    const s = this._syncstring.to_str();
+    return s && s.indexOf("\\document") != -1;
+  }
+
   private init_latexmk(): void {
     const account: any = this.redux.getStore("account");
 
-    this._syncstring.on("save-to-disk", time => {
-      this._last_save_time = time;
-      if (account && account.getIn(["editor_settings", "build_on_save"])) {
+    this._syncstring.on("save-to-disk", () => {
+      if (
+        account &&
+        account.getIn(["editor_settings", "build_on_save"]) &&
+        this.is_likely_master()
+      ) {
+        // Only autobuild on save if there is a \\document* command.
         this.build("", false);
       }
     });
@@ -262,9 +282,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     set_cmd();
     this._syncdb.on("change", set_cmd);
 
-    // We now definitely have the build command set and the document loaded,
-    // so let's kick off our initial build.
-    this.force_build();
+    if (this.is_likely_master()) {
+      // We now definitely have the build command set and the document loaded,
+      // and it is likely a master latex file, so let's kick off our initial build.
+      this.force_build();
+    }
   }
 
   private ensure_output_directory(cmd: List<string>): List<string> {
@@ -352,6 +374,44 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build(id, true);
   }
 
+  private all_actions(): BaseActions<CodeEditorState>[] {
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      return [this as BaseActions<CodeEditorState>];
+    }
+    const v: BaseActions<CodeEditorState>[] = [];
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      v.push(actions as BaseActions<CodeEditorState>);
+    }
+    return v;
+  }
+
+  // Ensure that all files that are open on this client
+  // and needed for building the main file are saved to disk.
+  // TODO: this could get moved up to the base class, when
+  // switch_to_files is moved.
+  private async save_all(explicit: boolean): Promise<void> {
+    for (const actions of this.all_actions()) {
+      await actions.save(explicit);
+    }
+  }
+
+  public async explicit_save(): Promise<boolean> {
+    const account: any = this.redux.getStore("account");
+    if (
+      account == null ||
+      (!account.getIn(["editor_settings", "build_on_save"]) ||
+        !this.is_likely_master())
+    ) {
+      await this.save_all(true);
+      return false;
+    }
+    await this.build(); // kicks off a save of all relevant files
+    return true;
+  }
+
   // used by generic framework.
   async build(id?: string, force: boolean = false): Promise<void> {
     if (id) {
@@ -365,8 +425,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.is_building = true;
     try {
-      await this.save(false);
-      await this.run_build(this._last_save_time, force);
+      await this.save_all(false);
+      await this.run_build(this.last_save_time(), force);
     } finally {
       this.is_building = false;
     }
@@ -442,20 +502,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     } finally {
       this.set_status("");
     }
-    output.parse = knitr_errors(output).toJS();
+    this.parsed_output_log = output.parse = knitr_errors(output).toJS();
     this.set_build_logs({ knitr: output });
-    this.clear_gutter("Codemirror-latex-errors");
-    update_gutters({
-      path: this.filename_knitr,
-      log: output.parse,
-      set_gutter: (line, component) => {
-        this.set_gutter_marker({
-          line,
-          component,
-          gutter_id: "Codemirror-latex-errors"
-        });
-      }
-    });
+    this.update_gutters();
     this.setState({ knitr_error: output.parse.all.length > 0 });
   }
 
@@ -547,27 +596,100 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     this.set_status("");
-    output.parse = new LatexParser(output.stdout, {
+    this.parsed_output_log = new LatexParser(output.stdout, {
       ignoreDuplicates: true
     }).parse();
     this.set_build_logs({ latex: output });
+    // TODO: knitr complicates multifile a lot, so we do
+    // not support it yet.
+    if (!this.knitr && this.parsed_output_log.files != null) {
+      this.set_switch_to_files(this.parsed_output_log.files);
+    }
     this.check_for_fatal_error();
-    this.clear_gutter("Codemirror-latex-errors");
-    update_gutters({
-      path: this.path,
-      log: output.parse,
-      set_gutter: (line, component) => {
-        this.set_gutter_marker({
-          line,
-          component,
-          gutter_id: "Codemirror-latex-errors"
-        });
-      }
-    });
+    this.update_gutters();
 
     if (update_pdf) {
       this.update_pdf(time, force);
     }
+  }
+
+  private async update_gutters_soon(): Promise<void> {
+    await delay(500);
+    if (this._state == "closed") return;
+    this.update_gutters();
+  }
+
+  private update_gutters(): void {
+    if (this.parsed_output_log == null) return;
+    this.clear_gutters();
+    update_gutters({
+      log: this.parsed_output_log,
+      set_gutter: this.set_gutter
+    });
+  }
+
+  private clear_gutters(): void {
+    for (const actions of this.all_actions()) {
+      actions.clear_gutter("Codemirror-latex-errors");
+    }
+  }
+
+  private set_gutter(path: string, line: number, component: any): void {
+    if (this.canonical_paths[path] != null) {
+      path = this.canonical_paths[path];
+    }
+    const actions = this.redux.getEditorActions(this.project_id, path);
+    if (actions == null) {
+      return; // file not open
+    }
+    (actions as BaseActions<LatexEditorState>).set_gutter_marker({
+      line,
+      component,
+      gutter_id: "Codemirror-latex-errors"
+    });
+  }
+
+  private async set_switch_to_files(files: string[]): Promise<void> {
+    let switch_to_files: string[];
+    const cur = this.store.get("switch_to_files");
+    if (cur != null) {
+      // If there's anything already there during this session
+      // we keep it...
+      switch_to_files = cur.toJS();
+    } else {
+      switch_to_files = [];
+    }
+
+    let files1: string[];
+    const dir = path_split(this.path).head;
+    if (dir == "") {
+      files1 = files;
+    } else {
+      files1 = [];
+      for (let i = 0; i < files.length; i++) {
+        if (!files[i].startsWith("/")) {
+          files1.push(dir + "/" + files[i]);
+        } else {
+          files1.push(files[i]);
+        }
+      }
+    }
+
+    const files2 = await (await project_api(this.project_id)).canonical_paths(
+      files1
+    );
+    for (let i = 0; i < files2.length; i++) {
+      const path = files2[i];
+      if (!path.startsWith("/")) {
+        switch_to_files.push(path);
+        this.relative_paths[path] = files[i];
+        this.canonical_paths[files[i]] = path;
+      }
+    }
+    // sort and make unique.
+    this.setState({
+      switch_to_files: Array.from(new Set(switch_to_files)).sort()
+    });
   }
 
   update_pdf(time: number, force: boolean): void {
@@ -649,7 +771,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     if (output != null) {
       // process any errors
-      output.parse = sagetex_errors(this.path, output).toJS();
+      this.parsed_output_log = output.parse = sagetex_errors(
+        this.path,
+        output
+      ).toJS();
       this.set_build_logs({ sagetex: output });
       // there is no line information in the sagetex errors (and no concordance info either),
       // hence we can't update the gutters.
@@ -684,20 +809,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.set_status("");
     }
     // this is similar to how knitr errors are processed
-    output.parse = pythontex_errors(this.path, output).toJS();
+    this.parsed_output_log = output.parse = pythontex_errors(
+      this.path,
+      output
+    ).toJS();
     this.set_build_logs({ pythontex: output });
-    update_gutters({
-      path: this.path,
-      log: output.parse,
-      set_gutter: (line, component) => {
-        this.set_gutter_marker({
-          line,
-          component,
-          gutter_id: "Codemirror-latex-errors"
-        });
-      }
-    });
-    // this.setState({ pythontex_error: output.parse.all.length > 0 });
+    this.update_gutters();
   }
 
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
@@ -717,13 +834,36 @@ export class Actions extends BaseActions<LatexEditorState> {
         // TODO: would be nicer to handle this at the source...
         throw Error("invalid synctex output (Line must be a number).");
       }
-      // TODO #v1: info.Input="/home/user/projects/98e85b9b-51bb-4889-be47-f42698c37ed4/./a.tex", so
-      // go to the right file!
-      this.programmatical_goto_line(line, true, true);
+      if (typeof info.Input != "string") {
+        throw Error("unable to determine source file");
+      }
+
+      this.goto_line_in_file(line, info.Input);
     } catch (err) {
       console.warn("ERROR ", err);
       this.set_error(err);
     }
+  }
+
+  public async goto_line_in_file(line: number, path: string): Promise<void> {
+    if (path.indexOf("/.") != -1 || path.indexOf("./") != -1) {
+      path = await (await project_api(this.project_id)).canonical_path(path);
+    }
+    if (this.knitr) {
+      // #v0 will not support multifile knitr.
+      this.programmatical_goto_line(line, true, true);
+      return;
+    }
+    // Focus a cm frame so that we split a code editor below.
+    //this.show_focused_frame_of_type("cm");
+    // focus/show/open the proper file, then go to the line.
+    const id = await this.switch_to_file(path);
+    // TODO: go to appropriate line in this editor.
+    const actions = this.redux.getEditorActions(this.project_id, path);
+    if (actions == null) {
+      throw Error(`actions for "${path}" must be defined`);
+    }
+    (actions as BaseActions).programmatical_goto_line(line, true, true, id);
   }
 
   _get_most_recent_pdfjs(): string | undefined {
@@ -740,15 +880,21 @@ export class Actions extends BaseActions<LatexEditorState> {
     // First figure out where to jump to in the PDF.
     this.set_status("Running SyncTex from tex to pdf...");
     let info;
+    const source_dir: string = path_split(this.path).head;
+    let dir: string | undefined = this.get_output_directory();
+    if (dir === undefined) {
+      dir = source_dir;
+    }
     try {
       info = await synctex.tex_to_pdf({
         line,
         column,
+        dir,
         tex_path: filename,
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
         knitr: this.knitr,
-        output_directory: this.get_output_directory()
+        source_dir
       });
     } catch (err) {
       console.warn("ERROR ", err);
@@ -806,7 +952,6 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_clean(): Promise<void> {
     let log: string = "";
-    delete this._last_save_time;
     this.setState({ build_logs: Map() });
 
     const logger = (s: string): void => {
@@ -861,8 +1006,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  make_timestamp(time: number, force: boolean): number | undefined {
-    return force ? undefined : time || this._last_save_time;
+  make_timestamp(time: number, force: boolean): number {
+    return force ? new Date().valueOf() : time || this.last_save_time();
   }
 
   async word_count(time: number, force: boolean): Promise<void> {
@@ -897,22 +1042,24 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.setState({ zoom_page_height: id });
   }
 
-  sync(id: string): void {
-    const cm = this._cm[id];
-    if (cm) {
+  sync(id: string, editor_actions: Actions): void {
+    const cm = editor_actions._cm[id];
+    if (cm != null) {
       // Clicked the sync button from within an editor
-      this.forward_search(id);
+      this.forward_search(cm, editor_actions.path);
     } else {
-      // Clicked button associated to a a preview pane -- let the preview pane do the work.
+      // Clicked button associated to a a preview pane;
+      // let the preview pane do the work.
       this.setState({ sync: id });
     }
   }
 
-  forward_search(id: string): void {
-    const cm = this._get_cm(id);
-    if (!cm) return;
+  private forward_search(cm: CodeMirror.Editor, path: string): void {
     const { line, ch } = cm.getDoc().getCursor();
-    this.synctex_tex_to_pdf(line, ch, this.path);
+    if (this.relative_paths[path] != null) {
+      path = this.relative_paths[path];
+    }
+    this.synctex_tex_to_pdf(line, ch, path);
   }
 
   time_travel(opts: { path?: string; frame?: boolean }): void {
@@ -941,7 +1088,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   print(id: string): void {
     const node = this._get_frame_node(id);
-    if (!node) {
+    if (node == null) {
       throw Error(`BUG -- no node with id ${id}`);
     }
     const type: string = node.get("type");
@@ -967,5 +1114,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncdb.set({ key: "build_command", value: command });
     this._syncdb.commit();
     this.setState({ build_command: fromJS(command) });
+  }
+
+  // if id is given, switch that frame to edit the given path;
+  // if not given, switch an existing cm editor (or find one if there
+  // is already one pointed at this path.)
+  public async switch_to_file(path: string, id?: string): Promise<string> {
+    id = await super.switch_to_file(path, id);
+    this.update_gutters_soon();
+    return id;
   }
 }

@@ -51,7 +51,8 @@ const EDITOR_SPEC = {
       "redo",
       "sync",
       "help",
-      "format"
+      "format",
+      "switch_to_file"
     ]),
     gutters: ["Codemirror-latex-errors"]
   },
@@ -107,16 +108,6 @@ const EDITOR_SPEC = {
   time_travel
 
   /*
-  pdfjs_svg: {
-    short: "PDF (svg)",
-    name: "PDF - SVG",
-    icon: "file-pdf-o",
-    component: PDFJS,
-    buttons: pdfjs_buttons,
-    path: pdf_path,
-    style: { background: "#525659" },
-    renderer: "svg"
-  }
 
     latexjs: {
         short: "Preview 1",

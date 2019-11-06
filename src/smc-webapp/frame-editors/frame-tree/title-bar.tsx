@@ -2,6 +2,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+import { List } from "immutable";
 import {
   React,
   Rendered,
@@ -35,7 +36,7 @@ const misc = require("smc-util/misc");
 
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
-import { trunc_middle } from "smc-util/misc2";
+import { path_split, trunc_middle } from "smc-util/misc2";
 
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 
@@ -117,7 +118,7 @@ const close_style: CSS.Properties | undefined = (function() {
 interface Props {
   actions: any; // TODO -- see above Actions;
   editor_actions: any; // TODO -- see above Actions;
-  path: string; // assumed to not change for now
+  path: string;
   project_id: string; // assumed to not change for now
   active_id: string;
   id: string;
@@ -139,11 +140,14 @@ interface Props {
 // frame tree/tab in which this sits.  Note some more should
 // probably be moved down here...
 interface ReduxProps {
+  // These come from editor_actions's store:
   read_only: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
   is_public: boolean;
+  // comes from actions's store:
+  switch_to_files: List<string>;
 }
 
 interface State {
@@ -158,11 +162,18 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     this.state = { close_and_halt_confirm: false };
   }
 
-  static reduxProps({ editor_actions }) {
+  static reduxProps({ editor_actions, actions }) {
     if (editor_actions == null) throw Error("editor_actions must be specified");
     const name = editor_actions.name;
     if (name == null) throw Error("editor_actions must have name attribute");
-    return {
+    const name2 = actions.name;
+    if (name2 == null) throw Error("actions must have name attribute");
+
+    // The code below is a bit confusing because name may or
+    // may not equal name2, and if they *are* equal and we were
+    // to just make an object with the same key twice, the values
+    // obviously wouldn't be merged.
+    const spec: any = {
       [name]: {
         read_only: rtypes.bool,
         has_unsaved_changes: rtypes.bool,
@@ -171,6 +182,14 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         is_public: rtypes.bool
       }
     };
+    if (name == name2) {
+      spec[name2].switch_to_files = rtypes.immutable.List;
+    } else {
+      spec[name2] = {
+        switch_to_files: rtypes.immutable.List
+      };
+    }
+    return spec;
   }
 
   shouldComponentUpdate(next, state): boolean {
@@ -191,7 +210,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "title",
         "connection_status",
         "font_size",
-        "available_features"
+        "available_features",
+        "switch_to_files",
+        "path"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -492,11 +513,50 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         key={"sync"}
         title={"Synchronize views (alt+enter)"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.sync(this.props.id)}
+        onClick={() =>
+          this.props.actions.sync(this.props.id, this.props.editor_actions)
+        }
       >
         <Icon name={"fab fa-staylinked"} />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
       </Button>
+    );
+  }
+
+  render_switch_to_file(): Rendered {
+    if (
+      !this.is_visible("switch_to_file") ||
+      this.props.actions.switch_to_file == null ||
+      this.props.switch_to_files == null ||
+      this.props.switch_to_files.size <= 1
+    ) {
+      return;
+    }
+    const items: Rendered[] = [];
+    this.props.switch_to_files.forEach(path => {
+      items.push(
+        <MenuItem
+          key={path}
+          eventKey={path}
+          onSelect={() =>
+            this.props.actions.switch_to_file(path, this.props.id)
+          }
+        >
+          {this.props.path == path ? <b>{path}</b> : path}
+          {this.props.actions.path == path ? " (main)" : ""}
+        </MenuItem>
+      );
+    });
+    const title = path_split(this.props.path).tail;
+    return (
+      <DropdownButton
+        key={"switch-to-file"}
+        id={"button-switch-to-file"}
+        title={title}
+        bsSize={this.button_size()}
+      >
+        {items}
+      </DropdownButton>
     );
   }
 
@@ -903,7 +963,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         no_labels={!labels}
         size={this.button_size()}
         onClick={() => {
-          this.props.editor_actions.save(true);
+          if (!this.props.actions.explicit_save()) {
+            this.props.editor_actions.save(true);
+          }
           this.props.actions.focus(this.props.id);
         }}
       />
@@ -1187,6 +1249,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     v.push(this.render_build());
     v.push(this.render_force_build());
     v.push(this.render_sync());
+    v.push(this.render_switch_to_file());
     v.push(this.render_clean());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());
