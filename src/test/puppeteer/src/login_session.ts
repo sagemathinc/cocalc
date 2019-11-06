@@ -11,9 +11,11 @@ import { test_widget } from "./test_widget";
 import { test_sage_ker } from "./test_sage_ker";
 import { test_sagews } from "./test_sagews";
 import { test_ir } from "./test_ir";
+import { test_shared_file } from "./test_shared_file";
 import { del_hide_project } from "./del_hide_project";
 import { is_admin } from "./gui_is_admin";
-import { Page } from "puppeteer";
+import { Page, Browser } from "puppeteer";
+import screenshot from "./screenshot";
 
 const LONG_TIMEOUT = 70000; // msec
 
@@ -21,13 +23,13 @@ export const login_tests = async function(
   creds: Creds,
   opts: Opts
 ): Promise<PassFail> {
-  let browser;
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     pfcounts.skip += 1;
     return pfcounts;
   }
+  let browser: Browser|undefined;
   try {
     const tm_launch_browser = process.hrtime.bigint();
     browser = await puppeteer.launch({
@@ -37,7 +39,7 @@ export const login_tests = async function(
       slowMo: 50 // without this sometimes the wrong project is selected
     });
 
-    const page: Page = (await browser.pages())[0];
+    const page: Page = (await browser!.pages())[0];
     //var Type = require('type-of-is');
     //console.log(Type.string(page));
     const version: string = await page.browser().version();
@@ -75,6 +77,7 @@ export const login_tests = async function(
     sel = '*[cocalc-test="project-button"]';
     await page.waitForSelector(sel);
     await page.click(sel);
+    await screenshot(page, opts, "cocalc-projects.png");
 
     // type into the project search blank
     sel = '*[cocalc-test="search-input"][placeholder="Search for projects..."]';
@@ -95,13 +98,14 @@ export const login_tests = async function(
 
     if (opts.xprj) pfcounts.add(await del_hide_project(opts, page));
     if (opts.xprj === undefined || opts.xprj !== "delete") {
-      const tgb: TestGetBoolean = await is_admin(opts, page);
-      pfcounts.add(tgb);
-      pfcounts.add(await test_ir(opts, page));
       pfcounts.add(await test_tex(opts, page));
+      pfcounts.add(await test_ir(opts, page));
       pfcounts.add(await test_widget(opts, page));
       pfcounts.add(await test_sage_ker(opts, page));
       pfcounts.add(await test_sagews(opts, page));
+      const tgb: TestGetBoolean = await is_admin(opts, page);
+      pfcounts.add(tgb);
+      pfcounts.add(await test_shared_file(opts, browser!));
     }
 
     time_log("login session total", tm_launch_browser);
@@ -110,6 +114,6 @@ export const login_tests = async function(
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   debuglog("login session done - closing browser");
-  browser.close();
+  if (browser) browser.close();
   return pfcounts;
 };
