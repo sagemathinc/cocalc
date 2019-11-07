@@ -21,7 +21,7 @@
     "commander": "^2.6.0",
     "compression": "^1.7.1",
     "cookie-parser": "^1.4.3",
-    "cookies": "^0.5.0",
+    "cookies": "^0.8.0",
     "cors": "^2.8.5",
     "engine.io": "^3.3.2",
     "expiring-lru-cache": "^2.1.0",
