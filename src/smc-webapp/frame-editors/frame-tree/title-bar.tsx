@@ -963,9 +963,8 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         no_labels={!labels}
         size={this.button_size()}
         onClick={() => {
-          if (!this.props.actions.explicit_save()) {
-            this.props.editor_actions.save(true);
-          }
+          this.props.editor_actions.save(true);
+          this.props.actions.explicit_save();
           this.props.actions.focus(this.props.id);
         }}
       />

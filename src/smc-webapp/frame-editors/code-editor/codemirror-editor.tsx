@@ -275,10 +275,10 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = async (cm: any) => {
-        if (await this.props.actions.explicit_save()) return;
+      (CodeMirror as any).commands.save = (cm: any) => {
+        this.props.actions.explicit_save();
         if (cm._actions) {
-          await cm._actions.save(true);
+          cm._actions.save(true);
         }
       };
     }
