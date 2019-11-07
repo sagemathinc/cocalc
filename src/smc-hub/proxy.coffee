@@ -78,14 +78,20 @@ exports.version_check = (req, res, base_url) ->
 
 # In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
 # passing anything along via the proxy.
+# Nov'19: actually two cookies due to same-site changes. See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+#         also, there was no base_url support. no clue why...
 exports.strip_remember_me_cookie = (cookie) ->
     if not cookie?
         return {cookie: cookie, remember_me:undefined}
     else
         v = []
+        remember_me = undefined
         for c in cookie.split(';')
             z = c.split('=')
-            if z[0].trim() == 'remember_me'
+            if z[0].trim() == auth.remember_me_cookie_name('', false)
+                remember_me = z[1].trim()
+            # fallback, "true" for legacy variant
+            else if (not remember_me?) and (z[0].trim() == auth.remember_me_cookie_name('', true))
                 remember_me = z[1].trim()
             else
                 v.push(c)

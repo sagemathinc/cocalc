@@ -430,12 +430,9 @@ exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
     winston.debug("dev = #{program.dev}")
-    if program.dev
-        # So cookies work over http, which dev mode can allow (e.g., on localhost).
-        client.COOKIE_OPTIONS.secure = false
-    else
-        # Be very sure cookies do NOT work unless over https.  IMPORTANT.
-        client.COOKIE_OPTIONS.secure = true
+    # Be very sure cookies do NOT work unless over https.  IMPORTANT.
+    if not client.COOKIE_OPTIONS.secure
+        throw Error("client cookie options are not secure")
 
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")

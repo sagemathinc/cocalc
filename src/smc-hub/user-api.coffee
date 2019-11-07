@@ -15,11 +15,13 @@ misc = require('smc-util/misc')
 
 {get_account_id} = require('./user-remember-me')
 
+{remember_me_cookie_name} = require('./auth')
+
 exports.init = (opts) ->
     opts = defaults opts,
         router         : required
-        cookie_name    : required
         database       : required
+        base_url       : required
         compute_server : required
         logger         : undefined
     opts.router.post '/user_api', (req, res) ->
@@ -43,12 +45,32 @@ exports.init = (opts) ->
             return
 
         async.series([
+            # check for two cookies, the new one and then a legacy fallback
+            # https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
             (cb) ->
-                get_account_id opts.database, req.cookies[opts.cookie_name], (err, account_id) ->
-                    locals.account_id = account_id
-                    if not account_id and not err
-                        err ='user must be signed in'
+                remme = remember_me_cookie_name(opts.base_url, false)
+                get_account_id opts.database, req.cookies[remme], (err, account_id) ->
+                    if account_id
+                        locals.account_id = account_id
                     cb(err)
+
+            (cb) ->
+                if locals.account_id
+                    cb()
+                    return
+
+                # like above, but "legacy=true"
+                remme = remember_me_cookie_name(opts.base_url, true)
+                get_account_id opts.database, req.cookies[remme], (err, account_id) ->
+                    if account_id
+                        locals.account_id = account_id
+                    cb(err)
+
+            (cb) ->
+                    if locals.account_id
+                        cb()
+                    else
+                        cb('user must be signed in')
             (cb) ->
                 user_api_call
                     account_id     : locals.account_id
