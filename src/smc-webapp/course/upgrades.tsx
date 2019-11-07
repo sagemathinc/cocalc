@@ -48,6 +48,7 @@ import { CourseStore } from "./store";
 import { Map } from "immutable";
 
 const {
+  A,
   Icon,
   Loading,
   NoUpgrades,
@@ -613,12 +614,9 @@ class StudentProjectUpgrades extends Component<
             Add or remove upgrades to student projects associated to this
             course, adding to what is provided for free and what students may
             have purchased.{" "}
-            <a
-              href="https://github.com/sagemathinc/cocalc/wiki/prof-pay"
-              target="_blank"
-            >
+            <A href="https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgradespay">
               Help...
-            </a>
+            </A>
           </p>
         </div>
       </div>

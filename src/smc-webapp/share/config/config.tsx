@@ -14,7 +14,7 @@ simultaneously edit this and have it be synced properly
 between them.
 */
 
-const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
+const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import {
   Alert,
@@ -359,7 +359,7 @@ class Configure extends Component<Props, State> {
     const server = share_server_url();
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
-        <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">
+        <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
           You share
         </a>{" "}
         files or directories{" "}
