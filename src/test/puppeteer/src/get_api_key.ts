@@ -4,7 +4,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 
 const puppeteer = require("puppeteer");
 import chalk from "chalk";
-import { Creds, Opts, ApiGetString } from "./types";
+import { Creds, Opts, TestGetString } from "./types";
 import { time_log } from "./time_log";
 import { expect } from "chai";
 
@@ -13,9 +13,9 @@ const LONG_TIMEOUT = 70000; // msec
 export const get_api_key = async function(
   creds: Creds,
   opts: Opts
-): Promise<ApiGetString> {
+): Promise<TestGetString> {
   let browser;
-  const ags: ApiGetString = new ApiGetString();
+  const ags: TestGetString = new TestGetString();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     ags.skip += 1;

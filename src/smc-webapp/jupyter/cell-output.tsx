@@ -175,6 +175,7 @@ export class CellOutput extends Component<CellOutputProps> {
           alignItems: "stretch",
           minHeight
         }}
+        cocalc-test="cell-output"
       >
         {this.render_output_prompt()}
         {this.render_output_value()}

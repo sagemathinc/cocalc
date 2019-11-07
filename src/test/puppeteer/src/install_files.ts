@@ -15,7 +15,7 @@ import {
   InstallOpts,
   ExtChromePath,
   PassFail,
-  ApiGetString,
+  TestGetString,
   TestFiles
 } from "./types";
 import { time_log, num_log } from "./time_log";
@@ -78,7 +78,7 @@ const install_api_session = async function(
       headless: iopts.headless,
       path: iopts.path
     };
-    let ags: ApiGetString = await get_api_key(creds, opts);
+    let ags: TestGetString = await get_api_key(creds, opts);
     const api_key = ags.result;
     pfcounts.add(ags);
     debuglog("api_key", api_key.substr(0, 7) + "...");
