@@ -271,7 +271,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         name = editor.init(path, redux, project_id);
         const actions2: TimeTravelActions = redux.getActions(name);
         actions2.ambient_actions = actions;
-        actions = actions2 as Actions;
+        // [j3] Assuming this is part of the hackiness above
+        // Or just that Actions in the frame tree are confusing
+        actions = (actions2 as unknown) as Actions;
         is_subframe = true;
         // this is particularly hacky for now:
         // ensures time travel params are set.

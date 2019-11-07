@@ -167,7 +167,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   safari_hack(): void {
-    if (is_safari) {
+    if (is_safari()) {
       $(ReactDOM.findDOMNode(this)).make_height_defined();
     }
   }
