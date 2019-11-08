@@ -63,15 +63,19 @@ exports.version_check = (req, res, base_url) ->
     # The arbitrary name of the cookie 'cocalc_version' is
     # also used in the frontend code file
     #     smc-webapp/set-version-cookie.js
-    # The encodeURIComponent below is because js-cookie does
-    # the same in order to *properly* deal with / characters.
+    # pre Nov'19: The encodeURIComponent below is because js-cookie does
+    #             the same in order to *properly* deal with / characters.
+    # post Nov'19: switching to universal-cookie in the client, because it supports
+    #              SameSite=none. Now, the client explicitly encodes the base_url.
     version = parseInt(c.get(encodeURIComponent(base_url) + 'cocalc_version'))
     min_version = server_settings.version.version_min_browser
     winston.debug('client version_check', version, min_version)
     if isNaN(version) or version < min_version
         if res?
-            res.writeHead(500, {'Content-Type':'text/html'})
-            res.end("REFRESH YOUR BROWSER -- version=#{version} < required_version=#{min_version}")
+            # status code 4xx to indicate this is a client problem and not 5xx, a server problem
+            # 426 means "upgrade required"
+            res.writeHead(426, {'Content-Type':'text/html'})
+            res.end("RELOAD COCALC TAB OR RESTART BROWSER -- version=#{version} < required_version=#{min_version}")
         return true
     else
         return false

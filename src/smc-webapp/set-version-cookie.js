@@ -9,10 +9,16 @@ Basically, we do not want to allow ancient buggy clients to connect in any
 way at all.
 */
 
-const Cookies = require("js-cookie");
+// https://github.com/reactivestack/cookies/tree/master/packages/universal-cookie#readme
+import Cookies from "universal-cookie";
+const cookies = new Cookies();
+
 const { version } = require("smc-util/smc-version");
 const { APP_BASE_URL } = require("./misc_page");
 
-// We don't want this cookie to expire.  All it does is record the version of
+// We don't really want this cookie to expire.  All it does is record the version of
 // the code the client has loaded, and the version only goes up.
-Cookies.set(`${APP_BASE_URL}cocalc_version`, version, { expires: 10000 });
+const days = 300;
+const future = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000);
+const opts = { expires: future, path: "/", secure: true, sameSite: "none" };
+cookies.set(`${encodeURIComponent(APP_BASE_URL)}cocalc_version`, version, opts);
