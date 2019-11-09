@@ -17,12 +17,7 @@ import * as CSS from "csstype";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
-const {
-  ButtonGroup,
-  Button,
-  DropdownButton,
-  MenuItem
-} = require("react-bootstrap");
+const { ButtonGroup, Button } = require("react-bootstrap");
 
 import * as antd from "cocalc-ui";
 
@@ -269,6 +264,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   render_types(): Rendered {
+    const { Menu, Dropdown, Button } = antd;
     const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
@@ -284,16 +280,10 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         selected_short = spec.short;
       }
       const item = (
-        <MenuItem
-          cocalc-test={type}
-          selected={selected_type === type}
-          key={type}
-          eventKey={type}
-          onSelect={type => this.select_type(type)}
-        >
+        <Menu.Item cocalc-test={type} key={type}>
           <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
           {spec.name}
-        </MenuItem>
+        </Menu.Item>
       );
       items.push(item);
     }
@@ -306,16 +296,21 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         </span>
       );
     }
-    return (
-      <DropdownButton
-        cocalc-test={"latex-dropdown"}
-        title={title}
-        key={"types"}
-        id={"types"}
-        bsSize={this.button_size()}
+    const menu = (
+      <Menu
+        onClick={e => this.select_type(e.key)}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {items}
-      </DropdownButton>
+      </Menu>
+    );
+
+    return (
+      <Dropdown cocalc-test={"types-dropdown"} overlay={menu} key={"types"}>
+        <Button style={{ height: "30px" }}>
+          {title} <antd.Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 
@@ -447,18 +442,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       return;
     }
 
-    const zooms: Rendered[] = [100, 125, 150, 200].map(zoom => {
-      return (
-        <MenuItem
-          key={`zoom-${zoom}`}
-          eventKey={`zoom-${zoom}`}
-          onSelect={() =>
-            this.props.actions.set_zoom(zoom / 100, this.props.id)
-          }
-        >
-          {`${zoom}%`}
-        </MenuItem>
-      );
+    const { Menu, Dropdown, Button, Icon } = antd;
+    const items: Rendered[] = [100, 125, 150, 200].map(zoom => {
+      return <Menu.Item key={zoom}>{`${zoom}%`}</Menu.Item>;
     });
 
     const title =
@@ -468,15 +454,23 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
             (100 * this.props.font_size) / get_default_font_size()
           )}%`;
 
-    return (
-      <DropdownButton
-        title={title}
-        key={"zoom-levels"}
-        id={"zoom-levels"}
-        bsSize={this.button_size()}
+    const menu = (
+      <Menu
+        onClick={e => {
+          this.props.actions.set_zoom(parseInt(e.key) / 100, this.props.id);
+        }}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
-        {zooms}
-      </DropdownButton>
+        {items}
+      </Menu>
+    );
+
+    return (
+      <Dropdown overlay={menu} key={"zoom-levels"}>
+        <Button style={{ height: "30px" }}>
+          {title} <Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 
