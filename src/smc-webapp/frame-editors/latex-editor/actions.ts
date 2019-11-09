@@ -828,7 +828,6 @@ export class Actions extends BaseActions<LatexEditorState> {
         project_id: this.project_id,
         output_directory: this.get_output_directory()
       });
-      this.set_status("");
       const line = info.Line;
       if (typeof line != "number") {
         // TODO: would be nicer to handle this at the source...
@@ -840,8 +839,22 @@ export class Actions extends BaseActions<LatexEditorState> {
 
       this.goto_line_in_file(line, info.Input);
     } catch (err) {
+      if (err.message.indexOf("ENOENT") != -1) {
+        console.log("err", err);
+        // err is just a string exception, and I'm nervous trying
+        // to JSON.parse it, so we'll do something less robust,
+        // which should have a sufficiently vague message that
+        // it is OK.  When you try to run synctex and the synctex
+        // file is missing, you get an error with ENOENT in it...
+        this.set_error(
+          "Synctex failed to run.  Force Rebuild your project (use the Build frame)o r retry once the build is complete."
+        );
+        return;
+      }
       console.warn("ERROR ", err);
       this.set_error(err);
+    } finally {
+      this.set_status("");
     }
   }
 
