@@ -215,6 +215,10 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     );
   }
 
+  private antd_button_height(): string {
+    return this.props.is_full ? "34px" : "30px";
+  }
+
   is_visible(action_name: string, explicit?: boolean): boolean {
     if (this.props.editor_actions[action_name] == null) {
       return false;
@@ -305,9 +309,12 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       </Menu>
     );
 
+    // TODO: The "float: left" below is just an ugly hack to workaround
+    // that this is still in a bootstrap button group.  Will go away
+    // when we switch entirely to Antd.
     return (
       <Dropdown cocalc-test={"types-dropdown"} overlay={menu} key={"types"}>
-        <Button style={{ height: "30px" }}>
+        <Button style={{ float: "left", height: this.antd_button_height() }}>
           {title} <antd.Icon type="down" />
         </Button>
       </Dropdown>
@@ -318,11 +325,12 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     const is_active = this.props.active_id === this.props.id;
     const style: CSS.Properties = {
       padding: 0,
+      paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
     };
     if (is_active) {
       style.position = "absolute";
-      style.boxShadow = "#ccc -3px 0";
+      style.boxShadow = "#ccc -2px 0";
       style.right = 0;
       style.zIndex = 10; // so can click see buttons when flow around
     }
@@ -467,7 +475,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
 
     return (
       <Dropdown overlay={menu} key={"zoom-levels"}>
-        <Button style={{ height: "30px" }}>
+        <Button style={{ height: this.antd_button_height() }}>
           {title} <Icon type="down" />
         </Button>
       </Dropdown>
@@ -552,7 +560,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     const title = path_split(this.props.path).tail;
     return (
       <Dropdown overlay={menu} key={"switch-to-file"}>
-        <Button style={{ top: "-9px", height: "30px" }}>
+        <Button style={{ top: "-9px", height: this.antd_button_height() }}>
           {title} <Icon type="down" />
         </Button>
       </Dropdown>
