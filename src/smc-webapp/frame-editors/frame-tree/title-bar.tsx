@@ -23,6 +23,9 @@ const {
   DropdownButton,
   MenuItem
 } = require("react-bootstrap");
+
+import * as antd from "cocalc-ui";
+
 import { get_default_font_size } from "../generic/client";
 const { VisibleMDLG, EditorFileInfoDropdown } = require("smc-webapp/r_misc");
 
@@ -532,31 +535,33 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     ) {
       return;
     }
+    const { Menu, Dropdown, Button, Icon } = antd;
     const items: Rendered[] = [];
     this.props.switch_to_files.forEach(path => {
       items.push(
-        <MenuItem
-          key={path}
-          eventKey={path}
-          onSelect={() =>
-            this.props.actions.switch_to_file(path, this.props.id)
-          }
-        >
+        <Menu.Item key={path}>
           {this.props.path == path ? <b>{path}</b> : path}
           {this.props.actions.path == path ? " (main)" : ""}
-        </MenuItem>
+        </Menu.Item>
       );
     });
-    const title = path_split(this.props.path).tail;
-    return (
-      <DropdownButton
-        key={"switch-to-file"}
-        id={"button-switch-to-file"}
-        title={title}
-        bsSize={this.button_size()}
+    const menu = (
+      <Menu
+        onClick={e => {
+          this.props.actions.switch_to_file(e.key, this.props.id);
+        }}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {items}
-      </DropdownButton>
+      </Menu>
+    );
+    const title = path_split(this.props.path).tail;
+    return (
+      <Dropdown overlay={menu} key={"switch-to-file"}>
+        <Button style={{ top: "-9px", height: "30px" }}>
+          {title} <Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 
