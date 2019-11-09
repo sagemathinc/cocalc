@@ -596,7 +596,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     this.set_status("");
-    this.parsed_output_log = new LatexParser(output.stdout, {
+    this.parsed_output_log = output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true
     }).parse();
     this.set_build_logs({ latex: output });
