@@ -2,6 +2,9 @@
 Upload form handler
 ###
 
+# Make sure this is consistent with src/smc-webapp/smc-dropzone.cjsx
+MAX_FILE_SIZE_MB = 10000
+
 fs         = require('fs')
 async      = require('async')
 mkdirp     = require('mkdirp')
@@ -27,9 +30,9 @@ exports.upload_endpoint = (express, logger) ->
             uploadDir      : process.env.HOME + '/' + req.query.dest_dir
             keepExtensions : true
         form = new formidable.IncomingForm(options)
-        # ADD THIS LINE to increase file size limit to 10 GB; default is 200 MB
+        # Important to set this, since the default is a measly 2MB!
         # See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
-        form.maxFileSize = 10 * 1024 * 1024 * 1024;
+        form.maxFileSize = MAX_FILE_SIZE_MB * 1024*1024;
         async.series([
             (cb) ->
                 # ensure target path exists

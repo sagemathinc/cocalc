@@ -2,12 +2,21 @@
 Drag'n'Drop dropzone area
 ###
 
-# This limit is mainly to show a nice error message.
-# The actual limit is imposed somewhere else mysteriously
-# along the chain of proxies (e.g., cloudflare?), and
-# is about 200MB.  I completely failed to figure out
-# how to raise this.  See https://github.com/sagemathinc/cocalc/issues/3716
-MAX_FILE_SIZE_MB    = 200 # 200MB
+
+# TODO: make it so that whenever we mount this component, the max size is set based
+# on known info about free disk space...
+
+MAX_FILE_SIZE_MB    = 3000 # 3GB for now, since that's the default filesystem quota.
+CHUNK_SIZE_MB       = 32   # critical for cloudlare to work -- want this to be as big
+                           # as possible, but MUST be smaller than 200MB, and also
+                           # must be uploadable in less than 100 seconds.
+###
+The internet says "The average U.S. fixed broadband download speed was 64.17 Mbps (15th in the world) in the first
+half of 2017, while the average upload speed was 22.79 Mbps (24th in the world), according to data released
+today from internet speed test company Ookla". 23 Mbps is about 4MB/s.  If a user can do 1MB/s, then they can
+upload 100MB in 100 seconds, hence 32MB in 100 seconds seems a reasonable assumption....  If it really takes over
+a minute to upload 32MB, then the user isn't going to upload a very big file anyways, given TIMEOUT_M.
+###
 
 ReactDOMServer      = require('react-dom/server')   # for dropzone below
 Dropzone            = require('dropzone')
@@ -119,11 +128,17 @@ exports.SMC_Dropwrapper = rclass
         files : []
 
     get_djs_config: ->
+        # NOTE: Chunking is absolutely critical to get around hard limits in cloudflare!!
+        # See https://github.com/sagemathinc/cocalc/issues/3716
         with_defaults = misc.defaults @props.config,
-            url : @postUrl()
-            previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
-            previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
-            maxFilesize       : MAX_FILE_SIZE_MB
+            url                  : @postUrl()
+            previewsContainer    : ReactDOM.findDOMNode(@refs.preview_container) ? ""
+            previewTemplate      : ReactDOMServer.renderToStaticMarkup(@preview_template())
+            maxFilesize          : MAX_FILE_SIZE_MB
+            chunkSize            : CHUNK_SIZE_MB*1000*1000
+            retryChunks          : true  # might as well since it's a little more robust.
+            timeout              : 1000*100  # matches what cloudflare imposes on us; this is *per chunk*, so much longer uploads will still work.
+            chunking             : true
         , true
         return misc.merge(with_defaults, @props.config)
 
