@@ -135,10 +135,10 @@ exports.SMC_Dropwrapper = rclass
             previewsContainer    : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate      : ReactDOMServer.renderToStaticMarkup(@preview_template())
             maxFilesize          : MAX_FILE_SIZE_MB
-            chunkSize            : CHUNK_SIZE_MB*1000*1000
-            retryChunks          : true  # might as well since it's a little more robust.
+            #chunking             : true
+            #chunkSize            : CHUNK_SIZE_MB*1000*1000
+            #retryChunks          : true  # might as well since it's a little more robust.
             timeout              : 1000*100  # matches what cloudflare imposes on us; this is *per chunk*, so much longer uploads will still work.
-            chunking             : true
         , true
         return misc.merge(with_defaults, @props.config)
 

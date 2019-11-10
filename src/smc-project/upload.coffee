@@ -2,7 +2,8 @@
 Upload form handler
 ###
 
-# Make sure this is consistent with src/smc-webapp/smc-dropzone.cjsx
+# This is a limit on the size of each *chunk* that the frontend sends,
+# not the total size of the file...
 MAX_FILE_SIZE_MB = 10000
 
 fs         = require('fs')
