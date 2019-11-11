@@ -69,7 +69,11 @@ exports.version_check = (req, res, base_url) ->
     # post Nov'19: switching to universal-cookie in the client, because it supports
     #              SameSite=none. Now, the client explicitly encodes the base_url.
     #              The cookie name is set in smc-util/misc2
-    version = parseInt(c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME))
+    raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME)
+    if not raw_val?
+        # try legacy cookie fallback
+        raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME + "-legacy")
+    version = parseInt(raw_val)
     min_version = server_settings.version.version_min_browser
     winston.debug('client version_check', version, min_version)
     if isNaN(version) or version < min_version
