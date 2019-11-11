@@ -303,7 +303,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     const menu = (
       <Menu
         onClick={e => this.select_type(e.key)}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
+        style={{ maxHeight: "100vH", overflow: "auto" }}
       >
         {items}
       </Menu>
@@ -467,7 +467,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         onClick={e => {
           this.props.actions.set_zoom(parseInt(e.key) / 100, this.props.id);
         }}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
+        style={{ maxHeight: "100vH", overflow: "auto" }}
       >
         {items}
       </Menu>
@@ -552,7 +552,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         onClick={e => {
           this.props.actions.switch_to_file(e.key, this.props.id);
         }}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
+        style={{ maxHeight: "100vH", overflow: "auto" }}
       >
         {items}
       </Menu>
