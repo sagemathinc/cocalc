@@ -17,12 +17,10 @@ import * as CSS from "csstype";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
-const {
-  ButtonGroup,
-  Button,
-  DropdownButton,
-  MenuItem
-} = require("react-bootstrap");
+const { ButtonGroup, Button } = require("react-bootstrap");
+
+import * as antd from "cocalc-ui";
+
 import { get_default_font_size } from "../generic/client";
 const { VisibleMDLG, EditorFileInfoDropdown } = require("smc-webapp/r_misc");
 
@@ -217,6 +215,10 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     );
   }
 
+  private antd_button_height(): string {
+    return this.props.is_only ? "34px" : "30px";
+  }
+
   is_visible(action_name: string, explicit?: boolean): boolean {
     if (this.props.editor_actions[action_name] == null) {
       return false;
@@ -266,6 +268,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   render_types(): Rendered {
+    const { Menu, Dropdown, Button } = antd;
     const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
@@ -281,16 +284,10 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         selected_short = spec.short;
       }
       const item = (
-        <MenuItem
-          cocalc-test={type}
-          selected={selected_type === type}
-          key={type}
-          eventKey={type}
-          onSelect={type => this.select_type(type)}
-        >
+        <Menu.Item cocalc-test={type} key={type}>
           <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
           {spec.name}
-        </MenuItem>
+        </Menu.Item>
       );
       items.push(item);
     }
@@ -303,16 +300,24 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         </span>
       );
     }
-    return (
-      <DropdownButton
-        cocalc-test={"latex-dropdown"}
-        title={title}
-        key={"types"}
-        id={"types"}
-        bsSize={this.button_size()}
+    const menu = (
+      <Menu
+        onClick={e => this.select_type(e.key)}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {items}
-      </DropdownButton>
+      </Menu>
+    );
+
+    // TODO: The "float: left" below is just an ugly hack to workaround
+    // that this is still in a bootstrap button group.  Will go away
+    // when we switch entirely to Antd.
+    return (
+      <Dropdown cocalc-test={"types-dropdown"} overlay={menu} key={"types"}>
+        <Button style={{ float: "left", height: this.antd_button_height() }}>
+          {title} <antd.Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 
@@ -320,11 +325,12 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     const is_active = this.props.active_id === this.props.id;
     const style: CSS.Properties = {
       padding: 0,
+      paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
     };
     if (is_active) {
       style.position = "absolute";
-      style.boxShadow = "#ccc -3px 0";
+      style.boxShadow = "#ccc -2px 0";
       style.right = 0;
       style.zIndex = 10; // so can click see buttons when flow around
     }
@@ -444,18 +450,9 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       return;
     }
 
-    const zooms: Rendered[] = [100, 125, 150, 200].map(zoom => {
-      return (
-        <MenuItem
-          key={`zoom-${zoom}`}
-          eventKey={`zoom-${zoom}`}
-          onSelect={() =>
-            this.props.actions.set_zoom(zoom / 100, this.props.id)
-          }
-        >
-          {`${zoom}%`}
-        </MenuItem>
-      );
+    const { Menu, Dropdown, Button, Icon } = antd;
+    const items: Rendered[] = [100, 125, 150, 200].map(zoom => {
+      return <Menu.Item key={zoom}>{`${zoom}%`}</Menu.Item>;
     });
 
     const title =
@@ -465,15 +462,23 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
             (100 * this.props.font_size) / get_default_font_size()
           )}%`;
 
-    return (
-      <DropdownButton
-        title={title}
-        key={"zoom-levels"}
-        id={"zoom-levels"}
-        bsSize={this.button_size()}
+    const menu = (
+      <Menu
+        onClick={e => {
+          this.props.actions.set_zoom(parseInt(e.key) / 100, this.props.id);
+        }}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
-        {zooms}
-      </DropdownButton>
+        {items}
+      </Menu>
+    );
+
+    return (
+      <Dropdown overlay={menu} key={"zoom-levels"}>
+        <Button style={{ height: this.antd_button_height() }}>
+          {title} <Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 
@@ -532,31 +537,33 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     ) {
       return;
     }
+    const { Menu, Dropdown, Button, Icon } = antd;
     const items: Rendered[] = [];
     this.props.switch_to_files.forEach(path => {
       items.push(
-        <MenuItem
-          key={path}
-          eventKey={path}
-          onSelect={() =>
-            this.props.actions.switch_to_file(path, this.props.id)
-          }
-        >
+        <Menu.Item key={path}>
           {this.props.path == path ? <b>{path}</b> : path}
           {this.props.actions.path == path ? " (main)" : ""}
-        </MenuItem>
+        </Menu.Item>
       );
     });
-    const title = path_split(this.props.path).tail;
-    return (
-      <DropdownButton
-        key={"switch-to-file"}
-        id={"button-switch-to-file"}
-        title={title}
-        bsSize={this.button_size()}
+    const menu = (
+      <Menu
+        onClick={e => {
+          this.props.actions.switch_to_file(e.key, this.props.id);
+        }}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {items}
-      </DropdownButton>
+      </Menu>
+    );
+    const title = path_split(this.props.path).tail;
+    return (
+      <Dropdown overlay={menu} key={"switch-to-file"}>
+        <Button style={{ top: "-9px", height: this.antd_button_height() }}>
+          {title} <Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 
