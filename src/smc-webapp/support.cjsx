@@ -1,5 +1,5 @@
 
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -28,7 +28,7 @@ misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
-{HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
+{HelpEmailLink, SiteName} = require('./customize')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
