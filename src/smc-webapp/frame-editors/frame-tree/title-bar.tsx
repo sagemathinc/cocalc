@@ -216,7 +216,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   private antd_button_height(): string {
-    return this.props.is_only ? "34px" : "30px";
+    return this.props.is_only || this.props.is_full ? "34px" : "30px";
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
