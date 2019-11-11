@@ -37,6 +37,7 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 theme   = require('smc-util/theme')
 {DOMAIN_NAME} = theme
+{VERSION_COOKIE_NAME} = require('smc-util/misc2')
 
 hub_projects = require('./projects')
 auth = require('./auth')
@@ -60,14 +61,15 @@ exports.init_smc_version = init_smc_version = (db) ->
 
 exports.version_check = (req, res, base_url) ->
     c = new Cookies(req)
-    # The arbitrary name of the cookie 'cocalc_version' is
+    # The arbitrary name of the cookie $VERSION_COOKIE_NAME ('cocalc_version') is
     # also used in the frontend code file
     #     smc-webapp/set-version-cookie.js
     # pre Nov'19: The encodeURIComponent below is because js-cookie does
     #             the same in order to *properly* deal with / characters.
     # post Nov'19: switching to universal-cookie in the client, because it supports
     #              SameSite=none. Now, the client explicitly encodes the base_url.
-    version = parseInt(c.get(encodeURIComponent(base_url) + 'cocalc_version'))
+    #              The cookie name is set in smc-util/misc2
+    version = parseInt(c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME))
     min_version = server_settings.version.version_min_browser
     winston.debug('client version_check', version, min_version)
     if isNaN(version) or version < min_version

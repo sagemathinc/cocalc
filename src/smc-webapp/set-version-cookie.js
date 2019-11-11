@@ -15,10 +15,15 @@ const cookies = new Cookies();
 
 const { version } = require("smc-util/smc-version");
 const { APP_BASE_URL } = require("./misc_page");
+import { VERSION_COOKIE_NAME } from "smc-util/misc2";
 
 // We don't really want this cookie to expire.  All it does is record the version of
 // the code the client has loaded, and the version only goes up.
 const days = 300;
 const future = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000);
 const opts = { expires: future, path: "/", secure: true, sameSite: "none" };
-cookies.set(`${encodeURIComponent(APP_BASE_URL)}cocalc_version`, version, opts);
+const NAME = `${encodeURIComponent(APP_BASE_URL)}${VERSION_COOKIE_NAME}`;
+cookies.set(`${NAME}`, version, opts);
+// fallback legacy cookie -- https://web.dev/samesite-cookie-recipes/
+const opts_leg = { expires: future, path: "/", secure: true };
+cookies.set(`${NAME}-legacy`, version, opts_leg);
