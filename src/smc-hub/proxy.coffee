@@ -75,7 +75,7 @@ exports.version_check = (req, res, base_url) ->
             # status code 4xx to indicate this is a client problem and not 5xx, a server problem
             # 426 means "upgrade required"
             res.writeHead(426, {'Content-Type':'text/html'})
-            res.end("RELOAD COCALC TAB OR RESTART BROWSER -- version=#{version} < required_version=#{min_version}")
+            res.end("426 (UPGRADE REQUIRED): reload CoCalc tab or restart your browser -- version=#{version} < required_version=#{min_version}")
         return true
     else
         return false
