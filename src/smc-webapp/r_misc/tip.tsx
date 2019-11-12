@@ -4,23 +4,7 @@ import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 //import { unreachable } from "smc-util/misc2";
 import * as feature from "../feature";
-
-let Tooltip: any, Popover: any;
-import { TooltipPlacement } from "cocalc-ui";
-
-// This ugly hack is needed because of a problem when starting the share server
-try {
-  Tooltip = require("cocalc-ui").Tooltip;
-  Popover = require("cocalc-ui").Popover;
-} catch (err) {
-  console.log(`Tooltip&Popover cannot be imported -- ${err}`);
-  class Idempotent extends React.Component {
-    render() {
-      return this.props.children;
-    }
-  }
-  Tooltip = Popover = Idempotent;
-}
+import { Tooltip, TooltipPlacement, Popover } from "cocalc-ui";
 
 const TIP_STYLE: React.CSSProperties = {
   wordWrap: "break-word",
