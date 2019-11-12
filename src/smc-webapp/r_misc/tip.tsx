@@ -4,6 +4,7 @@ import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 //import { unreachable } from "smc-util/misc2";
 import * as feature from "../feature";
+import { Dummy } from "./dummy";
 
 let Tooltip: any, Popover: any;
 import { TooltipPlacement } from "cocalc-ui";
@@ -14,12 +15,7 @@ try {
   Popover = require("cocalc-ui").Popover;
 } catch (err) {
   console.log(`Tooltip&Popover cannot be imported -- ${err}`);
-  class Idempotent extends React.Component {
-    render() {
-      return this.props.children;
-    }
-  }
-  Tooltip = Popover = Idempotent;
+  Tooltip = Popover = Dummy;
 }
 
 const TIP_STYLE: React.CSSProperties = {

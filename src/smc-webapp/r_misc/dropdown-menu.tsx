@@ -1,6 +1,21 @@
-import { Menu, Dropdown, Button, Icon } from "cocalc-ui";
-
 import { Component, React } from "../app-framework";
+import { Dummy } from "./dummy";
+
+// This ugly hack is needed because of a problem when rendering static pages (and probably also starting share server)
+let Dropdown: any;
+let Menu: any;
+let Button: any;
+let Icon: any;
+try {
+  const ui = require("cocalc-ui");
+  Dropdown = ui.Dropdown;
+  Menu = ui.Menu;
+  Button = ui.Button;
+  Icon = ui.Icon;
+} catch (err) {
+  console.log(`couple of Antd components cannot be imported -- ${err}`);
+  Dropdown = Menu = Button = Icon = Dummy;
+}
 
 interface Props {
   title?: JSX.Element | string;

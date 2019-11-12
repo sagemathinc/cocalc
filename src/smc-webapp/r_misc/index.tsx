@@ -19,6 +19,7 @@ export { TimeElapsed } from "./time-elapsed";
 export { SettingBox } from "./setting-box";
 export { ProfileIcon } from "./profile-icon";
 export { DropdownMenu, MenuItem } from "./dropdown-menu";
+export { Dummy } from "./dummy";
 
 export const {
   MarkdownInput,
