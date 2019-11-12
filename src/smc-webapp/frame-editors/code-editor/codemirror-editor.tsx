@@ -141,7 +141,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   async cm_refresh(): Promise<void> {
-    await delay(0);
+    await delay(1);
     this._cm_refresh();
   }
 
