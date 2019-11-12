@@ -593,7 +593,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         style={{
           backgroundColor: "rgb(247,247,247)",
           border: "1px solid #e7e7e7",
-          height: "34px",
+          minHeight: "34px",
           paddingTop: "4px"
         }}
       >
