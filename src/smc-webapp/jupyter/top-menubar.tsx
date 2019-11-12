@@ -409,13 +409,16 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     };
   };
 
-  private render_menu_item(key: string, name: MenuItemName): Rendered {
+  private render_menu_item(
+    key: string,
+    name: MenuItemName
+  ): { item: Rendered; command_name: string } {
     if (name === "") {
-      return <MenuDivider key={key} />;
+      return { item: <MenuDivider key={key} />, command_name: "" };
     }
 
     if (name != null && (name as any).props != null) {
-      return name as Rendered; // it's already a MenuItem components
+      return { item: name as Rendered, command_name: "" }; // it's already a MenuItem components
     }
 
     let display: undefined | string;
@@ -453,11 +456,12 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     }
     const obj = this.props.frame_actions.commands[name];
     if (obj == null) {
-      return (
+      const item = (
         <MenuItem disabled={disabled} key={key}>
           <span style={style}>{display != null ? display : name}</span>
         </MenuItem>
       );
+      return { item, command_name: "" };
     }
 
     let s: Rendered;
@@ -481,7 +485,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     if (!display) display = obj.m;
     if (!display) display = name;
 
-    return (
+    const item = (
       <MenuItem key={key} disabled={disabled}>
         <span style={style}>
           {s} {display}{" "}
@@ -489,14 +493,20 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         </span>
       </MenuItem>
     );
+    return { item, command_name: name };
   }
 
-  private render_menu_items(names: MenuItemName[]): Rendered[] {
-    const result: Rendered[] = [];
+  private render_menu_items(
+    names: MenuItemName[]
+  ): { items: Rendered[]; command_names: { [key: string]: string } } {
+    const items: Rendered[] = [];
+    const command_names: { [key: string]: string } = {};
     for (const key in names) {
-      result.push(this.render_menu_item(key, names[key]));
+      const { item, command_name } = this.render_menu_item(key, names[key]);
+      items.push(item);
+      command_names[key] = command_name;
     }
-    return result;
+    return { items, command_names };
   }
 
   private render_menu(opts: {
@@ -506,6 +516,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   }): Rendered {
     let { heading, names, disabled } = opts;
     if (disabled == null) disabled = false;
+    const { items, command_names } = this.render_menu_items(names);
     return (
       <DropdownMenu
         title={heading}
@@ -513,15 +524,12 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         id={heading}
         disabled={opts.disabled}
         onClick={key => {
-          let name = names[key];
+          const name = command_names[key];
           if (name == null) return;
-          if (name[0] === "<" || name[0] === ">") {
-            name = name.slice(1);
-          }
           this.handle_command(name);
         }}
       >
-        {this.render_menu_items(names)}
+        {items}
       </DropdownMenu>
     );
   }
