@@ -310,9 +310,13 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     return (
       <DropdownMenu
         cocalc-test={"types-dropdown"}
+        button={true}
         style={{ float: "left", height: this.button_height() }}
         key={"types"}
         title={title}
+        onClick={key => {
+          this.select_type(key);
+        }}
       >
         {items}
       </DropdownMenu>
@@ -462,10 +466,11 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     return (
       <DropdownMenu
         key={"zoom-levels"}
+        button={true}
         title={title}
         style={{ height: this.button_height() }}
-        onClick={e => {
-          this.props.actions.set_zoom(parseInt(e.key) / 100, this.props.id);
+        onClick={key => {
+          this.props.actions.set_zoom(parseInt(key) / 100, this.props.id);
         }}
       >
         {items}
@@ -532,10 +537,11 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     return (
       <DropdownMenu
         key={"switch-to-file"}
+        button={true}
         style={{ top: "-9px", height: this.button_height() }}
         title={path_split(this.props.path).tail}
-        onClick={e => {
-          this.props.actions.switch_to_file(e.key, this.props.id);
+        onClick={key => {
+          this.props.actions.switch_to_file(key, this.props.id);
         }}
       >
         {this.props.switch_to_files.toJS().map(path => (
