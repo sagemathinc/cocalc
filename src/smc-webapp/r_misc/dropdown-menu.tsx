@@ -9,6 +9,7 @@ interface Props {
   style?: React.CSSProperties;
   disabled?: boolean;
   button?: boolean;
+  maxHeight?: string;
 }
 
 export class DropdownMenu extends Component<Props> {
@@ -67,7 +68,10 @@ export class DropdownMenu extends Component<Props> {
     const menu = (
       <Menu
         onClick={this.on_click.bind(this)}
-        style={{ maxHeight: "100vH", overflow: "auto" }}
+        style={{
+          maxHeight: this.props.maxHeight ? this.props.maxHeight : "70vH",
+          overflow: "auto"
+        }}
       >
         {this.props.children}
       </Menu>
@@ -76,6 +80,7 @@ export class DropdownMenu extends Component<Props> {
       <Dropdown
         overlay={menu}
         trigger={!this.props.button ? ["click"] : undefined}
+        placement={"bottomLeft"}
       >
         {body}
       </Dropdown>
@@ -97,10 +102,4 @@ export function MenuItem(props) {
   );
 }
 
-export function MenuDivider() {
-  return (
-    <MenuItem>
-      <hr style={{ margin: 0 }} />
-    </MenuItem>
-  );
-}
+export const MenuDivider = Menu.Divider;

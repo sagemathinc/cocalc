@@ -339,7 +339,12 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       style.fontWeight = "bold";
     }
     return (
-      <MenuItem key={kernel.name}>
+      <MenuItem
+        key={kernel.name}
+        onClick={() => {
+          this.handle_kernel_select(kernel.name);
+        }}
+      >
         <span style={style}> {kernel.display_name} </span>
       </MenuItem>
     );
@@ -371,8 +376,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     return this.render_menu({
       heading: "Kernel",
       names,
-      disabled: this.props.read_only,
-      onClick: this.handle_kernel_select.bind(this)
+      disabled: this.props.read_only
     });
   }
 
@@ -381,18 +385,15 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     this.props.frame_actions.focus(true);
   }
 
-  // returns true if handled
-  private handle_command(name: string): boolean {
-    const c = this.props.frame_actions.commands[name];
-    if (!c) return false;
+  private handle_command(name: string): void {
     this.props.frame_actions.command(name);
     $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-    if (c.m && endswith(c.m, "...")) {
+    const c = this.props.frame_actions.commands[name];
+    if (c && c.m && endswith(c.m, "...")) {
       this.props.frame_actions.blur();
     } else {
       this.focus();
     }
-    return true;
   }
 
   private command = (name: string): SelectCallback => {
@@ -502,7 +503,6 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     heading: string;
     names: MenuItemName[];
     disabled?: boolean;
-    onClick?: any;
   }): Rendered {
     let { heading, names, disabled } = opts;
     if (disabled == null) disabled = false;
@@ -513,9 +513,12 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         id={heading}
         disabled={opts.disabled}
         onClick={key => {
-          console.log(key);
-          if (this.handle_command(names[key])) return;
-          this.handle_kernel_select(key);
+          let name = names[key];
+          if (name == null) return;
+          if (name[0] === "<" || name[0] === ">") {
+            name = name.slice(1);
+          }
+          this.handle_command(name);
         }}
       >
         {this.render_menu_items(names)}
@@ -543,9 +546,6 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         id="menu-help"
         title={"Help"}
         style={TITLE_STYLE}
-        onClick={key => {
-          console.log(key);
-        }}
       >
         <MenuItem
           key="help-about"
