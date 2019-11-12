@@ -6,8 +6,6 @@ This is a wrapper around a single codemirror editor view.
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-import { delay } from "awaiting";
-
 import { Map, Set } from "immutable";
 
 import { is_safari } from "../generic/browser";
@@ -135,14 +133,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   }
 
-  _cm_refresh(): void {
+  private cm_refresh(): void {
     if (!this.cm) return;
     this.cm.refresh();
-  }
-
-  async cm_refresh(): Promise<void> {
-    await delay(1);
-    this._cm_refresh();
   }
 
   cm_highlight_misspelled_words(words: Set<string>): void {
