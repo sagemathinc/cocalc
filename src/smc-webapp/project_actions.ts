@@ -24,10 +24,12 @@ import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 
-import { editor_id, NewFilenames } from "smc-webapp/project/utils";
+import { editor_id, NewFilenames } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
 import { transform_get_url } from "./project/transform-get-url";
+
+import { OpenFiles } from "./project/open-files";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -181,6 +183,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _set_directory_files_lock: { [key: string]: Function[] };
   private _init_done = false;
   private new_filename_generator;
+  private open_files: OpenFiles;
 
   constructor(a, b) {
     super(a, b);
@@ -289,6 +292,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     this._log_open_time = {};
     this._activity_indicator_timers = {};
+
+    this.open_files = new OpenFiles(this);
   }
 
   destroy = (): void => {
@@ -297,7 +302,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     for (const table in QUERIES) {
       this.remove_table(table);
     }
+    this.open_files.close();
+    delete this.open_files;
   };
+
+  private save_session(): void {
+    (this.redux.getActions("page") as any).save_session();
+  }
 
   remove_table = (table: string): void => {
     this.redux.removeTable(project_redux_name(this.project_id, table));
@@ -437,19 +448,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     set_url(this._url_in_project(local_url));
   }
 
-  move_file_tab(opts): void {
-    const { old_index, new_index, open_files_order } = defaults(opts, {
-      old_index: required,
-      new_index: required,
-      open_files_order: required
-    }); // immutable
-
-    const x = open_files_order;
-    const item = x.get(old_index);
-    const temp_list = x.delete(old_index);
-    const new_list = temp_list.splice(new_index, 0, item);
-    this.setState({ open_files_order: new_list });
-    (this.redux.getActions("page") as any).save_session();
+  move_file_tab(opts: { old_index: number; new_index: number }): void {
+    this.open_files.move(opts);
+    this.save_session();
   }
 
   // Closes a file tab
@@ -592,9 +593,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           const { name, Editor } = this.init_file_react_redux(path, is_public);
           info.redux_name = name;
           info.Editor = Editor;
-          let open_files = store.get("open_files");
-          open_files = open_files.setIn([path, "component"], info);
-          change.open_files = open_files;
+          this.open_files.set(path, 'component', info);
         }
 
         this.show_file(path);
@@ -987,11 +986,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     store = this.get_store();
     if (store == undefined) return;
+
     let open_files = store.get("open_files");
     if (!open_files.has(opts.path)) {
-      // Make the tab appear ASAP
-      open_files = open_files.setIn([opts.path, "component"], {});
-      this.setState({ open_files });
+      // Make the visible tab appear ASAP, even though
+      // some stuff that may await below needs to happen...
+      this.open_files.set(opts.path, 'component', {});
     }
 
     // Next get the group.
@@ -1064,7 +1064,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) return;
 
     // Only generate the editor component if we don't have it already
-    // Also regenerate if view type (public/not-public) changes
+    // Also regenerate if view type (public/not-public) changes.
+    open_files = store.get("open_files");
     const file_info = open_files.getIn([opts.path, "component"], {
       is_public: false
     });
@@ -1072,23 +1073,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const was_public = file_info.is_public;
 
       if (was_public != null && was_public !== is_public) {
-        this.setState({
-          open_files: open_files.delete(opts.path)
-        });
+        this.open_files.delete(opts.path);
         project_file.remove(opts.path, this.redux, this.project_id, was_public);
       }
 
-      const open_files_order = store.get("open_files_order");
-
       // Add it to open files
-      // IMPORTANT: info can't be a full immutable.js object, since Editor will
-      // get stored in it later, and Editor can't be converted to immutable,
-      // so don't try to do that!
-      const info = { is_public };
-      open_files = open_files.setIn([opts.path, "component"], info);
-      open_files = open_files.setIn([opts.path, "is_chat_open"], opts.chat);
-      open_files = open_files.setIn([opts.path, "chat_width"], opts.chat_width);
-      let index: number = open_files_order.indexOf(opts.path);
+      this.open_files.set(opts.path, 'component', {is_public});
+      this.open_files.set(opts.path, 'is_chat_open', opts.chat);
+      this.open_files.set(opts.path, 'chat_width', opts.chat_width);
+
       if (opts.chat) {
         require("./chat/register").init(
           misc.meta_file(opts.path, "chat"),
@@ -1097,15 +1090,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         );
       }
       // Closed by require('./project_file').remove
-
-      if (index === -1) {
-        index = open_files_order.size;
-      }
-      this.setState({
-        open_files,
-        open_files_order: open_files_order.set(index, opts.path)
-      });
-      (this.redux.getActions("page") as any).save_session();
+      this.save_session();
     }
 
     if (opts.foreground) {
@@ -1243,17 +1228,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Used by open/close chat below.
-  _set_chat_state(path, is_chat_open): void {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const open_files = store.get("open_files");
-    if (open_files != null && path != null) {
-      this.setState({
-        open_files: open_files.setIn([path, "is_chat_open"], is_chat_open)
-      });
-    }
+  _set_chat_state(path: string, is_chat_open: boolean): void {
+    this.open_files.set(path, "is_chat_open", is_chat_open);
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
@@ -1297,15 +1273,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       editor
         ? editor.local_storage(this.project_id, opts.path, "chat_width", width)
         : undefined;
-      this.setState({
-        open_files: open_files.setIn([opts.path, "chat_width"], width)
-      });
+      this.open_files.set(opts.path, "chat_width", width);
     }
   }
 
   // OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
   flag_file_activity(filename: string): void {
-    if (filename == null) {
+    if (filename == null || this.open_files == null) {
       return;
     }
 
@@ -1315,14 +1289,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const set_inactive = () => {
-      const store = this.get_store();
-      if (store == undefined) {
-        return;
-      }
-      const current_files = store.get("open_files");
-      this.setState({
-        open_files: current_files.setIn([filename, "has_activity"], false)
-      });
+      if (this.open_files == null) return;
+      this.open_files.set(filename, "has_activity", false);
     };
 
     this._activity_indicator_timers[filename] = window.setTimeout(
@@ -1330,13 +1298,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       1000
     );
 
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const open_files = store.get("open_files");
-    const new_files_data = open_files.setIn([filename, "has_activity"], true);
-    this.setState({ open_files: new_files_data });
+    this.open_files.set(filename, "has_activity", true);
   }
 
   convert_sagenb_worksheet(filename, cb) {
@@ -1411,43 +1373,34 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const file_paths = store.get("open_files");
-    if (file_paths.isEmpty()) {
-      return;
-    }
-
     file_paths.map((obj, path) => {
       const component_data = obj.getIn(["component"]);
       const is_public = component_data ? component_data.is_public : undefined;
       project_file.remove(path, this.redux, this.project_id, is_public);
     });
 
-    this.setState({
-      open_files_order: immutable.List([]),
-      open_files: immutable.Map({})
-    });
+    this.open_files.close_all();
   }
 
   // Closes the file and removes all references.
   // Does not update tabs
-  close_file(path): void {
+  close_file(path: string): void {
     path = normalize(path);
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
-    const x = store.get("open_files_order");
-    const index = x.indexOf(path);
-    if (index !== -1) {
-      const open_files = store.get("open_files");
-      const component_data = open_files.getIn([path, "component"]);
-      const is_public = component_data ? component_data.is_public : undefined;
-      this.setState({
-        open_files_order: x.delete(index),
-        open_files: open_files.delete(path)
-      });
-      project_file.remove(path, this.redux, this.project_id, is_public);
-      (this.redux.getActions("page") as any).save_session();
-    }
+    const open_files = store.get("open_files");
+    const component_data = open_files.getIn([path, "component"]);
+    if (component_data == null) return; // nothing to do since already closed.
+    this.open_files.delete(path);
+    project_file.remove(
+      path,
+      this.redux,
+      this.project_id,
+      component_data.is_public
+    );
+    this.save_session();
   }
 
   // Makes this project the active project tab

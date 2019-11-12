@@ -442,15 +442,17 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         is_active : rtypes.bool
 
     on_sort_end : ({oldIndex, newIndex}) ->
-        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
+        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex})
 
     file_tabs: ->
         if not @props.open_files_order?
             return
         tabs = []
         @props.open_files_order.map (path, index) =>
-            if path?  # see https://github.com/sagemathinc/cocalc/issues/3450
-                tabs.push(@file_tab(path, index))
+            if not path?  # see https://github.com/sagemathinc/cocalc/issues/3450
+                # **This should never fail** so be loud if it does.
+                throw Error("BUG -- each entry in open_files_order must be defined -- " + JSON.stringify(@props.open_files_order.toJS()))
+            tabs.push(@file_tab(path, index))
         if @props.num_ghost_file_tabs == 0
             return tabs
 
