@@ -83,40 +83,24 @@ export class DropdownMenu extends Component<Props> {
   }
 }
 
-interface MenuItemProps {
-  key?: string | number;
-  disabled?: boolean;
-  onClick?: Function;
-  onSelect?: Function;
+// NOTE: we wrap and put in a fake onItemHover to work around this bug:
+//     https://github.com/react-component/menu/issues/142
+export function MenuItem(props) {
+  const M: any = Menu.Item;
+  return (
+    <M
+      {...props}
+      onItemHover={props.onItemHover != null ? props.onItemHover : () => {}}
+    >
+      {props.children}
+    </M>
+  );
 }
 
-// Wrapping and putting in fake onItemHover is to get
-// around this bug that the antd devs are confused about:
-// https://github.com/react-component/menu/issues/142
-
-export class MenuItem extends Component<MenuItemProps, {}> {
-  render() {
-    const M: any = Menu.Item;
-    return (
-      <M
-        key={this.props.key}
-        disabled={this.props.disabled}
-        onItemHover={() => {}}
-        className={"ant-dropdown-menu-item"}
-        onClick={this.props.onClick}
-      >
-        {this.props.children}
-      </M>
-    );
-  }
-}
-
-export class MenuDivider extends Component<> {
-  render() {
-    return (
-      <MenuItem>
-        <hr style={{ margin: 0 }} />
-      </MenuItem>
-    );
-  }
+export function MenuDivider() {
+  return (
+    <MenuItem>
+      <hr style={{ margin: 0 }} />
+    </MenuItem>
+  );
 }

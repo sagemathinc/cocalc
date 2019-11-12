@@ -467,7 +467,11 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         v.push(<KeyboardShortcut key={i} shortcut={shortcut} />);
         i += 1;
       }
-      s = <span className="pull-right">{r_join(v, ", ")}</span>;
+      s = (
+        <span className="pull-right" style={{ marginLeft: "1em" }}>
+          {r_join(v, ", ")}
+        </span>
+      );
     } else {
       s = <span />;
     }
