@@ -33,7 +33,8 @@ import {
 } from "smc-webapp/r_misc";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
-const misc = require("smc-util/misc");
+
+import { is_different, capitalize, copy } from "smc-util/misc";
 
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
@@ -194,8 +195,16 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   shouldComponentUpdate(next, state): boolean {
+    if (this.props.type != next.type) {
+      // clear button cache whenever type changes; otherwise,
+      // the buttons at the top wouldn't change.
+      delete this.buttons;
+      return true;
+    }
+
+    // note 'type' field dealt with above.
     return (
-      misc.is_different(this.props, next, [
+      is_different(this.props, next, [
         "active_id",
         "id",
         "is_full",
@@ -206,7 +215,6 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "is_public",
         "is_saving",
         "is_paused",
-        "type",
         "status",
         "title",
         "connection_status",
@@ -214,7 +222,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "available_features",
         "switch_to_files",
         "path"
-      ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+      ]) || is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
 
@@ -837,7 +845,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     if (def != undefined) {
       return def;
     }
-    return misc.capitalize(button_name);
+    return capitalize(button_name);
   }
 
   private button_title(button_name: string, def?: string): string | undefined {
@@ -1290,7 +1298,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     return (
       <span style={path_style}>
         <Tip placement={"bottom"} title={this.props.path}>
-          {misc.path_split(this.props.path).tail}
+          {path_split(this.props.path).tail}
         </Tip>
       </span>
     );
@@ -1427,7 +1435,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     let style;
     const is_active = this.props.id === this.props.active_id;
     if (is_active) {
-      style = misc.copy(title_bar_style);
+      style = copy(title_bar_style);
       style.background = COL_BAR_BACKGROUND;
       if (!this.props.is_only && !this.props.is_full) {
         style.maxHeight = "34px";
@@ -1444,7 +1452,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       // for some reason this is really necessary on safari, but
       // breaks on everything else!
       if (!is_active) {
-        style = misc.copy(style);
+        style = copy(style);
       }
       if (this.props.is_only || this.props.is_full) {
         style.minHeight = "36px";
