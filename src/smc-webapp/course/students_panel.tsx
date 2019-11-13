@@ -646,7 +646,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
       // student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
       // last_active    : 2357025
-      // create_project : True
+      // create_project : number -- server timestamp of when create started
       // deleted        : False
       // note           : "Is younger sister of Abby Florence (TA)"
       if (this.student_list != null) return this.student_list;
