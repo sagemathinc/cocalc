@@ -1,5 +1,3 @@
-
-
 import { React, Component, Rendered } from "../app-framework";
 
 export class CoCalcLogo extends Component<{ base_url: string }> {

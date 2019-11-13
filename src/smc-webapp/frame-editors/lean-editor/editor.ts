@@ -8,6 +8,7 @@ import { LeanCodemirrorEditor } from "./lean-codemirror";
 import { LeanMessages } from "./lean-messages";
 import { LeanInfo } from "./lean-info";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   "cm-lean": {
@@ -48,7 +49,8 @@ const EDITOR_SPEC = {
     component: LeanMessages,
     buttons: set(["decrease_font_size", "increase_font_size"])
   },
-  terminal
+  terminal,
+  time_travel
 };
 
 export const Editor = createEditor({

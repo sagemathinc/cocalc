@@ -33,7 +33,7 @@ interface TestLineOptions1 {
 const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export async function test_line(opts0: TestLineOptions): Promise<void> {
-  const opts : TestLineOptions1 = merge(
+  const opts: TestLineOptions1 = merge(
     {
       length: 48,
       line: 1,
@@ -43,7 +43,7 @@ export async function test_line(opts0: TestLineOptions): Promise<void> {
     },
     opts0
   );
-  if (opts.length===undefined) opts.length = 48;
+  if (opts.length === undefined) opts.length = 48;
 
   // as any due to this being basically an evil hack.
   if ((opts.cm as any).__test_line) {

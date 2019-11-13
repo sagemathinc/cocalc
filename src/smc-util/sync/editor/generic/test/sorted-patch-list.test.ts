@@ -189,19 +189,19 @@ describe("Test sorted patch list with several patches", () => {
   });
 
   it("gets id of user who made edit at time", () => {
-    for (let patch of v) {
+    for (const patch of v) {
       expect(patches.user_id(patch.time)).toBe(patch.user_id);
     }
   });
 
   it("gets time sent of patches", () => {
-    for (let patch of v) {
+    for (const patch of v) {
       expect(patches.user_id(patch.time)).toEqual(patch.user_id);
     }
   });
 
   it("gets patch at time", () => {
-    for (let patch of v) {
+    for (const patch of v) {
       expect(patches.patch(patch.time)).toEqual(patch);
     }
   });
@@ -288,5 +288,4 @@ describe("Test inserting missing patches (thus changing history)", () => {
   it("list of versions", () => {
     expect(patches.versions()).toEqual(v.map(x => x.time));
   });
-
 });

@@ -10,8 +10,9 @@ import { Icon } from "../r_misc/icon";
 import { Button, ButtonToolbar, Col, Row, Well } from "react-bootstrap";
 import { AppliedCoupons, CoursePay } from "./types";
 import { STUDENT_COURSE_PRICE } from "./data";
-const { alert_message } = require("../alerts");
+import { alert_message } from "../alerts";
 import { CouponAdder } from "./coupon-adder";
+import { AccountStore } from "../account";
 
 interface Props {
   project_id: string;
@@ -55,14 +56,14 @@ class PayCourseFee extends Component<Props, State> {
     try {
       await actions.create_subscription("student_course");
     } catch (error) {
-      alert_message({ type: "error", error });
+      alert_message({ type: "error", message: error });
       actions.set_is_paying_for_course(this.props.project_id, false);
       return;
     }
     // Wait until a members-only upgrade and network upgrade are available, due to buying it
     this.setState({ confirm: false });
     redux.getStore("account").wait({
-      until: store => {
+      until: (store: AccountStore) => {
         const upgrades = store.get_total_upgrades();
         // NOTE! If you make one available due to changing what is allocated it won't cause this function
         // we're in here to update, since we *ONLY* listen to changes on the account store.

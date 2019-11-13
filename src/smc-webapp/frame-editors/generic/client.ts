@@ -39,7 +39,7 @@ export interface ExecOutput {
 
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  let msg = await callback2(webapp_client.exec, opts);
+  const msg = await callback2(webapp_client.exec, opts);
   if (msg.status && msg.status == "error") {
     throw new Error(msg.error);
   }
@@ -59,7 +59,11 @@ export async function touch(project_id: string, path: string): Promise<void> {
 
 // Resets the idle timeout timer and makes it known we are using the project.
 export async function touch_project(project_id: string): Promise<void> {
-  return await callback2(webapp_client.touch_project, { project_id });
+  try {
+    return await callback2(webapp_client.touch_project, { project_id });
+  } catch (err) {
+    console.warn(`unable to touch '${project_id}' -- ${err}`);
+  }
 }
 
 export async function start_project(
@@ -96,7 +100,7 @@ export async function exists_in_project(
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  let mesg = await callback2(webapp_client.read_text_file_from_project, opts);
+  const mesg = await callback2(webapp_client.read_text_file_from_project, opts);
   return mesg.content;
 }
 
@@ -129,18 +133,16 @@ export async function prettier(
   path: string,
   options: ParserOptions
 ): Promise<void> {
-  let resp = await callback2(webapp_client.prettier, {
+  const resp = await callback2(webapp_client.prettier, {
     project_id,
     path,
     options
   });
   if (resp.status === "error") {
-    let loc = resp.error.loc;
+    const loc = resp.error.loc;
     if (loc && loc.start) {
       throw Error(
-        `Syntax error prevented formatting code (possibly on line ${
-          loc.start.line
-        } column ${loc.start.column}) -- fix and run again.`
+        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
       );
     } else if (resp.error) {
       throw Error(resp.error);
@@ -209,6 +211,7 @@ export interface SyncDBOpts {
   patch_interval?: number;
   persistent?: boolean;
   data_server?: DataServer;
+  file_use_interval?: number;
 }
 
 export function syncdb(opts: SyncDBOpts): any {
@@ -247,7 +250,7 @@ export function get_default_font_size(): number {
 export function get_editor_settings(): Map<string, any> {
   const account: any = redux.getStore("account");
   if (account) {
-    let e = account.get("editor_settings");
+    const e = account.get("editor_settings");
     if (e) {
       return e;
     }
@@ -297,3 +300,4 @@ export async function project_api(project_id: string): Promise<API> {
 export function raw_url_of_file(project_id: string, path: string): string {
   return webapp_client.read_file_from_project({ project_id, path });
 }
+

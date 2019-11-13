@@ -7,7 +7,7 @@ one gets a gutter mark, with pref to errors.  The main error log shows everythin
 
 import * as React from "react";
 
-import { path_split, capitalize } from "smc-util/misc2";
+import { capitalize } from "smc-util/misc2";
 
 const { Icon, Tip } = require("smc-webapp/r_misc");
 
@@ -16,26 +16,20 @@ import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";
 
 export function update_gutters(opts: {
-  path: string;
   log: IProcessedLatexLog;
   set_gutter: Function;
 }): void {
-  let path: string = path_split(opts.path).tail;
-  let group: string;
-  for (group of ["typesetting", "warnings", "errors"]) {
+  for (const group of ["typesetting", "warnings", "errors"]) {
     // errors last so always shown if multiple issues on a single line!
     let item: Error;
     for (item of opts.log[group]) {
       if (!item.file) continue;
-      if (path_split(item.file).tail != path) {
-        /* for now only show gutter marks in the master file. */
-        continue;
-      }
       if (item.line === null) {
         /* no gutter mark in a line if there is no line number, e.g., "there were missing refs" */
         continue;
       }
       opts.set_gutter(
+        item.file,
         item.line - 1,
         component(item.level, item.message, item.content)
       );

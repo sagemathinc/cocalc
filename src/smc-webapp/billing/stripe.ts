@@ -24,7 +24,7 @@ export async function load_stripe(): Promise<Stripe> {
       );
   }
   await callback(f);
-  const store : BillingStore = redux.getStore("billing");
+  const store: BillingStore = redux.getStore("billing");
   if (store == null) {
     throw Error("billing store not initialized");
   }

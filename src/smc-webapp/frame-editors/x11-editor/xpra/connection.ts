@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /*
 CoCalc Xpra HTML Client
 
@@ -63,7 +63,8 @@ export class Connection {
   }
 
   send(...packet): void {
-    if (packet.length <= 1) {  // TODO: check only need for debug dev mode.
+    if (packet.length <= 1) {
+      // TODO: check only need for debug dev mode.
       throw Error(
         `x11: send takes at least 2 arguments  -- ${JSON.stringify(packet)}`
       );

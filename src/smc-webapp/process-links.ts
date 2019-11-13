@@ -140,7 +140,7 @@ function process_anchor_tag(y: any, opts: Options): void {
 }
 
 function process_anchor_tags(e: any, opts: Options): void {
-  for (let x of e.find("a")) {
+  for (const x of e.find("a")) {
     process_anchor_tag($(x), opts);
   }
 }
@@ -195,13 +195,14 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
 }
 
 function process_media_tags(e, opts: Options2) {
-  for (let [tag, attr] of [
+  for (const [tag, attr] of [
     ["img", "src"],
     ["object", "data"],
     ["video", "src"],
-    ["source", "src"]
+    ["source", "src"],
+    ["audio", "src"]
   ]) {
-    for (let x of e.find(tag)) {
+    for (const x of e.find(tag)) {
       process_media_tag($(x), attr, opts);
     }
   }

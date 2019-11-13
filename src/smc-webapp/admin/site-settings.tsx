@@ -1,11 +1,6 @@
 import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
 
-import {
-  React,
-  Component,
-  Rendered,
-  ReactDOM
-} from "../app-framework";
+import { React, Component, Rendered, ReactDOM } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";
@@ -56,7 +51,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       return;
     }
     const data = {};
-    for (let x of result.query.site_settings) {
+    for (const x of result.query.site_settings) {
       data[x.name] = x.value;
     }
     this.setState({
@@ -73,7 +68,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
   async save(): Promise<void> {
     this.setState({ state: "save" });
-    for (let name in this.state.edited) {
+    for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (!isEqual(value, this.state.data[name])) {
         try {
@@ -97,7 +92,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
   render_save_button(): Rendered {
     let disabled: boolean = true;
-    for (let name in this.state.edited) {
+    for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (!isEqual(value, this.state.data[name])) {
         disabled = false;

@@ -40,7 +40,7 @@ export function bencode(obj: any): string {
   }
 }
 
-function uintToString(uintArray : Uint8Array): string {
+function uintToString(uintArray: Uint8Array): string {
   // apply in chunks of 10400 to avoid call stack overflow
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
   let s = "";
@@ -69,7 +69,7 @@ export function bdecode(buf: string | Uint8Array): any[] | null {
     // thing into a string at once
     buf = uintToString(buf);
   }
-  let dec = bparse(buf);
+  const dec = bparse(buf);
   if (dec == null) {
     return null;
   } else {
@@ -95,9 +95,9 @@ function bparse(str: string): [any, string] | null {
 
 // parse a bencoded string
 function bparseString(str: string): [any, string] | null {
-  let str2 = str.split(":", 1)[0];
+  const str2 = str.split(":", 1)[0];
   if (isNum(str2)) {
-    let len = parseInt(str2, 10);
+    const len = parseInt(str2, 10);
     return [
       str.substr(str2.length + 1, len),
       str.substr(str2.length + 1 + len)
@@ -108,7 +108,7 @@ function bparseString(str: string): [any, string] | null {
 
 // parse a bencoded integer
 function bparseInt(str: string): [any, string] | null {
-  let str2 = str.split("e", 1)[0];
+  const str2 = str.split("e", 1)[0];
   if (!isNum(str2)) {
     return null;
   }
@@ -163,7 +163,7 @@ function isNum(str: string): boolean {
 
 // returns the bencoding type of the given object
 function btypeof(obj): string {
-  let type = typeof obj;
+  const type = typeof obj;
   if (type === "object") {
     if (typeof obj.length === "undefined") {
       return "dictionary";
@@ -187,7 +187,7 @@ function bint(num: number): string {
 function blist(list: any[]): string {
   let str;
   str = "l";
-  for (let key in list) {
+  for (const key in list) {
     str += bencode(list[key]);
   }
   return str + "e";
@@ -197,7 +197,7 @@ function blist(list: any[]): string {
 function bdict(dict: any): string {
   let str;
   str = "d";
-  for (let key in dict) {
+  for (const key in dict) {
     str += bencode(key) + bencode(dict[key]);
   }
   return str + "e";

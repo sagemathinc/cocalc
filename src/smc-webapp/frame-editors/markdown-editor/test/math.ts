@@ -1,6 +1,12 @@
 /* Test rendering of math */
 
-import { TestEditor, describe, it, expect, eventually } from "../../generic/test/util";
+import {
+  TestEditor,
+  describe,
+  it,
+  expect,
+  eventually
+} from "../../generic/test/util";
 
 describe("Markdown - test rendering of math", function() {
   this.timeout(5000);
@@ -29,12 +35,16 @@ describe("Markdown - test rendering of math", function() {
 
     it("inspect rendered markdown", async function() {
       // This is just a partial test that katex maybe worked.
-      await eventually(function() {
-        const rendered: string = editor.actions._get_frame_jquery(id).html();
-        expect(rendered).to.have.string(
-          '<math><semantics><mrow><msup><mi>x</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">x^2</annotation></semantics></math>'
-        );
-      }, 5000, "waiting for rendered markdown");
+      await eventually(
+        function() {
+          const rendered: string = editor.actions._get_frame_jquery(id).html();
+          expect(rendered).to.have.string(
+            '<math><semantics><mrow><msup><mi>x</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">x^2</annotation></semantics></math>'
+          );
+        },
+        5000,
+        "waiting for rendered markdown"
+      );
     });
 
     it("deletes the file", function() {

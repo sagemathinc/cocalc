@@ -9,6 +9,7 @@ import {
 } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
 import { PROJECT_UPGRADES } from "smc-util/schema";
+import { COLORS } from "smc-util/theme";
 import { capitalize, endswith } from "smc-util/misc2";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer, PeriodName } from "./types";
@@ -281,6 +282,12 @@ export class AddSubscription extends Component<Props, State> {
                 applied_coupons={this.props.applied_coupons}
                 coupon_error={this.props.coupon_error}
               />
+            </Col>
+            <Col sm={12} style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
+              <hr />
+              Listed prices are in <strong>US dollars</strong>. When charging in
+              local currency, the prices are converted into local currency using
+              the conversion rates published by leading financial institutions.
             </Col>
           </Row>
         </Well>

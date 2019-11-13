@@ -1,7 +1,5 @@
 ###
-Complete 100% top-level react rewrite of CoCalc.
-
-Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
+# Global app initialization
 ###
 
 fullscreen = require('./fullscreen')
@@ -20,7 +18,7 @@ init_buttonbars()
 # Initialize server stats redux store
 require('./redux_server_stats')
 
-# Systemwide notifications that are broadcast to all users (or set by admins)
+# Systemwide notifications that are broadcast to all users (and set by admins)
 require('./system_notifications')
 
 require('./landing-actions')
@@ -28,17 +26,22 @@ require('./landing-actions')
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
+###
 # Initialize app stores, actions, etc.
+###
 require('./init_app')
+require('./account').init(redux)
+require('./webapp-hooks')
 
-# Initialize the account store.
-require('./account')
-
-notifications = require('./notifications')
 if not fullscreen.COCALC_MINIMAL
+    notifications = require('./notifications')
     notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
+
+# only enable iframe comms in minimal kiosk mode
+if fullscreen.COCALC_MINIMAL
+    require('./iframe-communication').init()
 
 mobile = require('./mobile_app')
 desktop = require('./desktop_app')
@@ -56,7 +59,7 @@ else
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 
-# Should be loaded last -- this checks the url and opens up the relevant page, etc.
+# Should be loaded last
 require('./last')
 
 # adding a banner in case react crashes (it will be revealed)

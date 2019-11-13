@@ -23,9 +23,6 @@ node_modules
 err
 log
 
-# When we use CI we'll want this
-*package-lock.json
-
 src/cocalc-testcafe/package-lock.json
 
 src/static/
@@ -142,3 +139,5 @@ src/smc-util/schema-validate.js
 src/smc-util/schema-validate.map
 src/smc-util/upgrades.js
 src/smc-util/upgrades.map
+
+.mypy_cache/

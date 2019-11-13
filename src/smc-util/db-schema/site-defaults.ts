@@ -1,5 +1,26 @@
-// Default settings to customize a given site, typically a private install of SMC.
-export const site_settings_conf = {
+// Default settings to customize a given site, typically a private install of CoCalc.
+
+interface Config {
+  name: string;
+  desc: string;
+  default: string;
+}
+
+export interface SiteSettings {
+  site_name: Config;
+  site_description: Config;
+  terms_of_service: Config;
+  account_creation_email_instructions: Config;
+  help_email: Config;
+  commercial: Config;
+  kucalc: Config;
+  version_min_project: Config;
+  version_min_browser: Config;
+  version_recommended_browser: Config;
+  iframe_comm_hosts: Config;
+}
+
+export const site_settings_conf: SiteSettings = {
   site_name: {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
@@ -56,5 +77,11 @@ export const site_settings_conf = {
     name: "Recommended version",
     desc: "Older clients receive an upgrade warning.",
     default: "0"
+  },
+  iframe_comm_hosts: {
+    name: "IFrame communication hosts",
+    desc:
+      "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
+    default: ""
   }
 };

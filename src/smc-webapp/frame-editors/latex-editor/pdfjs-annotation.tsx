@@ -36,7 +36,7 @@ interface Props {
 }
 
 interface State {
-  annotations?: PDFAnnotationData;
+  annotations?: PDFAnnotationData[];
   sync_highlight?: SyncHighlight;
 }
 
@@ -52,14 +52,13 @@ export class AnnotationLayer extends Component<Props, State> {
   shouldComponentUpdate(next_props: Props, next_state: State): boolean {
     return (
       is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
-      this.props.page.version !== next_props.page.version ||
       is_different(this.state, next_state, ["annotations", "sync_highlight"])
     );
   }
 
   async update_annotations(page: PDFPageProxy): Promise<void> {
     try {
-      let annotations = await page.getAnnotations();
+      const annotations = ((await page.getAnnotations()) as unknown) as PDFAnnotationData[];
       if (!this.mounted) return;
       this.setState({ annotations: annotations });
     } catch (err) {
@@ -69,31 +68,33 @@ export class AnnotationLayer extends Component<Props, State> {
   }
 
   render_annotations(): Rendered {
-    let scale = this.props.scale;
-    let v: Rendered[] = [];
-    for (let annotation of this.state.annotations) {
+    if (this.state.annotations == null) return;
+    const scale = this.props.scale;
+    const v: Rendered[] = [];
+    for (const annotation0 of this.state.annotations) {
+      // NOTE: We have to do this ugly cast to any because the @types for pdfjs are
+      // incomplete/wrong for annotations.
+      const annotation: any = annotation0 as any;
       if (annotation.subtype != "Link") {
         // We only care about link annotations *right now*, for the purposes of the latex editor.
         console.log("Annotation not implemented", annotation);
         continue;
       }
-      let [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
-      let page_height = this.props.page.view[3];
-      let left = x1 - 1,
+      const [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
+      const page_height = this.props.page.view[3];
+      const left = x1 - 1,
         top = page_height - y2 - 1,
         width = x2 - x1 + 2,
         height = y2 - y1 + 1;
 
       let border = "";
       if (annotation.borderStyle.width) {
-        border = `0.5px solid rgb(${annotation.color[0]}, ${
-          annotation.color[1]
-        }, ${annotation.color[2]})`;
+        border = `0.5px solid rgb(${annotation.color[0]}, ${annotation.color[1]}, ${annotation.color[2]})`;
       }
 
       // Note: this "annotation" in the onClick below is the right one because we use "let"
       // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
-      let elt = (
+      const elt = (
         <div
           onClick={() => this.props.click_annotation(annotation)}
           key={annotation.id}
@@ -153,9 +154,7 @@ export class AnnotationLayer extends Component<Props, State> {
   }
 
   componentWillReceiveProps(next_props: Props): void {
-    if (this.props.page.version != next_props.page.version) {
-      this.update_annotations(next_props.page);
-    }
+    this.update_annotations(next_props.page);
     if (next_props.sync_highlight !== undefined) {
       this.setState({ sync_highlight: next_props.sync_highlight });
       this.remove_sync_highlight(

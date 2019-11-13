@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -35,13 +35,14 @@ Draggable = require('react-draggable')
 
 # CoCalc Libraries
 {SideChat}         = require('./side_chat')
-{ProjectFiles}     = require('./project_files')
+{Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project_new')
 {ProjectLog}       = require('./project_log')
 {ProjectSearch}    = require('./project_search')
-{ProjectSettings}  = require('./project_settings')
+{ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
 {DiskSpaceWarning, RamWarning, OOMWarning} = require('./project_warnings')
+{KioskModeBanner} = require('./app_shared2')
 
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
@@ -227,6 +228,9 @@ fixed_project_pages =
 ProjectContentViewer = rclass
     displayName: 'ProjectContentViewer'
 
+    shouldComponentUpdate: (nextProps) ->
+        return @props.is_visible or nextProps.is_visible
+
     propTypes :
         is_visible      : rtypes.bool.isRequired
         project_id      : rtypes.string.isRequired
@@ -237,6 +241,7 @@ ProjectContentViewer = rclass
         group           : rtypes.string
         save_scroll     : rtypes.func
         show_new        : rtypes.bool
+        fullscreen      : rtypes.oneOf(['default', 'kiosk'])
 
     getInitialState: -> # just for forcing updates sometimes
         counter : 0
@@ -350,7 +355,7 @@ ProjectContentViewer = rclass
         editor  = @render_editor(@props.file_path)
 
         # WARNING: every CSS style below is hard won.  Don't f!$k with them without knowing what
-        # you are doing and testing on all supported browser.  - wstein
+        # you are doing and testing on all supported browsers.  - wstein
         if is_chat_open
             # 2 column layout with chat
             content =\
@@ -378,9 +383,13 @@ ProjectContentViewer = rclass
         return content
 
     render_tab_content : ->
+        # show the kiosk mode banner instead of anything besides a file editor
+        if @props.fullscreen == 'kiosk' and not @props.active_tab_name.startsWith('editor-')
+            return <KioskModeBanner />
+
         switch @props.active_tab_name
             when 'files'
-                <ProjectFiles name={@props.project_name} project_id={@props.project_id} />
+                <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
             when 'new'
                 <ProjectNew name={@props.project_name} project_id={@props.project_id} />
             when 'log'
@@ -433,15 +442,17 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         is_active : rtypes.bool
 
     on_sort_end : ({oldIndex, newIndex}) ->
-        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
+        @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex})
 
     file_tabs: ->
         if not @props.open_files_order?
             return
         tabs = []
         @props.open_files_order.map (path, index) =>
-            if path?  # see https://github.com/sagemathinc/cocalc/issues/3450
-                tabs.push(@file_tab(path, index))
+            if not path?  # see https://github.com/sagemathinc/cocalc/issues/3450
+                # **This should never fail** so be loud if it does.
+                throw Error("BUG -- each entry in open_files_order must be defined -- " + JSON.stringify(@props.open_files_order.toJS()))
+            tabs.push(@file_tab(path, index))
         if @props.num_ghost_file_tabs == 0
             return tabs
 
@@ -565,6 +576,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 file_path       = {path}
                 group           = {group}
                 save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
+                fullscreen      = {@props.fullscreen}
             />
         return v
 
@@ -591,6 +603,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 file_path       = {active_path}
                 group           = {group}
                 save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                fullscreen      = {@props.fullscreen}
                 />
         return v.concat(@render_editor_tabs(active_path, group))
 
@@ -750,6 +763,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                     file_path       = {active_path}
                     group           = {group}
                     save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                    fullscreen      = {@props.fullscreen}
                 />
             </ErrorBoundary>
         </div>

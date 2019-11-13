@@ -17,6 +17,7 @@
     "coffeescript": "^2.1.0",
     "jsdom": "^7.2.2",
     "node-memwatch": "^1.0.1",
+    "nyc": "^14.1.1",
     "shell-escape": "^0.2.0",
     "sqlite3": "^4.0.4",
     "temp": "^0.8.3",
@@ -29,7 +30,6 @@
   "devDependencies": {
     "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
-    "istanbul": "^0.4.0",
     "mocha": "^5.2.0"
   }
 }

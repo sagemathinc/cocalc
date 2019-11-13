@@ -20,8 +20,8 @@ const CDN_LINKS = [
     integrity: "sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
   },
   {
-    href: "https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css",
-    integrity: "sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG"
+    href: "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css",
+    integrity: "sha256-V8SV2MO1FUb63Bwht5Wx9x6PVHNa02gv8BgH/uH3ung="
   }
 ];
 
@@ -96,9 +96,7 @@ gtag('config', '${this.props.google_analytics}');\
         key={0}
         async={true}
         defer={true}
-        src={`https://www.googletagmanager.com/gtag/js?id=${
-          this.props.google_analytics
-        }`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${this.props.google_analytics}`}
       />,
       <script key={1} dangerouslySetInnerHTML={{ __html: ga }} />
     ];
@@ -112,7 +110,7 @@ gtag('config', '${this.props.google_analytics}');\
 
   private render_cdn_links(): Rendered[] {
     const v: Rendered[] = [];
-    for (let x of CDN_LINKS) {
+    for (const x of CDN_LINKS) {
       v.push(
         <link
           rel="stylesheet"

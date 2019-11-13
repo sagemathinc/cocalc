@@ -12,9 +12,11 @@ const {
   FormControl,
   FormGroup,
   InputGroup,
-  Button,
-  Panel
+  Button
 } = require("react-bootstrap");
+
+import { Card } from "cocalc-ui";
+
 const { Icon } = require("../r_misc");
 
 import { Result } from "./run-in-all-projects";
@@ -114,7 +116,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
   render_output(): Rendered {
     const c = this.props.terminal_command;
     if (c == null) return;
-    let output = c.get("output");
+    const output = c.get("output");
     if (!output) return;
     const v: Rendered[] = [];
     output.forEach(result => {
@@ -197,21 +199,21 @@ class TerminalCommandPanel extends Component<Props, {}> {
 
   render_header(): Rendered {
     return (
-      <h4>
+      <>
         <Icon name="terminal" /> Run Terminal command in all student projects
-      </h4>
+      </>
     );
   }
 
   render() {
     return (
-      <Panel header={this.render_header()}>
+      <Card title={this.render_header()}>
         {this.render_terminal()}
         <hr />
         <span style={{ color: "#666" }}>
           Run a terminal command in the home directory of all student projects.
         </span>
-      </Panel>
+      </Card>
     );
   }
 }

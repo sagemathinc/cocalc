@@ -17,3 +17,14 @@ export function is_valid_username(str: string): string | undefined {
 
   return;
 }
+
+// integer from process environment variable, with fallback
+export function process_env_int(name: string, fallback: number): number {
+  const val = process.env[name];
+  if (val == null) return fallback;
+  try {
+    return parseInt(val);
+  } catch {
+    return fallback;
+  }
+}

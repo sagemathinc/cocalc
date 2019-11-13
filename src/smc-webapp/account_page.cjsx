@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -21,9 +21,6 @@
 
 misc = require('smc-util/misc')
 immutable = require('immutable')
-
-# Import redux_account, so the account store is initialized.
-require('./redux_account')
 
 {React, ReactDOM, rclass, rtypes, redux} = require('./app-framework')
 {Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
@@ -154,7 +151,8 @@ exports.AccountPage = rclass
             reset_password_error    = {@props.reset_password_error}
             remember_me             = {@props.remember_me}
             has_remember_me         = {@props.has_remember_me}
-            has_account             = {misc.local_storage_length() > 0} />
+            has_account             = {misc.local_storage_length() > 0}
+        />
 
     render_commercial_tabs: ->
         if not require('./customize').commercial

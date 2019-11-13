@@ -203,13 +203,21 @@ class BillingActions extends Actions<BillingStoreState> {
     await this.update_customer();
     // delete stuff
     // delete payment methods
-    for (let x of this.store.getIn(["customer", "sources", "data"]).toJS()) {
-      await this.delete_payment_method(x.id);
+    const payment_methods = this.store.getIn(["customer", "sources", "data"]);
+    if (payment_methods != null) {
+      for (const x of payment_methods.toJS()) {
+        await this.delete_payment_method(x.id);
+      }
     }
-    for (let x of this.store
-      .getIn(["customer", "subscriptions", "data"])
-      .toJS()) {
-      await this.cancel_subscription(x.id);
+    const subscriptions = this.store.getIn([
+      "customer",
+      "subscriptions",
+      "data"
+    ]);
+    if (subscriptions != null) {
+      for (const x of subscriptions.toJS()) {
+        await this.cancel_subscription(x.id);
+      }
     }
   }
 

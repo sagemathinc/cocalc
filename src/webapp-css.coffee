@@ -14,10 +14,7 @@ require("@fortawesome/fontawesome-free/js/brands.js")
 # explained here: https://fontawesome.com/how-to-use/upgrading-from-4#upgrade-steps
 require("@fortawesome/fontawesome-free/js/v4-shims.js")
 
-
 require("jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css")
-require("pnotify/jquery.pnotify.default.css")
-require("pnotify/jquery.pnotify.default.icons.css")
 
 # Dropzone in file/new
 require("dropzone/css/dropzone.css")
@@ -33,6 +30,9 @@ require('octicons/octicons/octicons.css')
 
 # custom cocalc icon font
 require('webapp-lib/cocalc-icons-font/style.css')
+
+# cocalc-ui
+require('cocalc-ui/index-css.ts')
 
 # info at the bottom about the next step in startup sequence
 if window.smcLoadStatus?

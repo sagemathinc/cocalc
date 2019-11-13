@@ -1,7 +1,6 @@
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS202: Simplify dynamic range loops
  * DS205: Consider reworking code to avoid use of IIFEs
@@ -746,16 +745,9 @@ exports.path_to_file = function(path, file, line_number) {
   return path;
 };
 
+const { hidden_meta_file } = require("./misc2");
 exports.meta_file = function(path, ext) {
-  if (path == null) {
-    return;
-  }
-  const p = exports.path_split(path);
-  path = p.head;
-  if (p.head !== "") {
-    path += "/";
-  }
-  return path + "." + p.tail + ".sage-" + ext;
+  return hidden_meta_file(path, "sage-" + ext);
 };
 
 // Given a path of the form foo/bar/.baz.ext.something returns foo/bar/baz.ext.
@@ -1224,9 +1216,7 @@ class RetryUntilSuccess {
             this.opts.max_time != null &&
             new Date() - start_time + retry_delay > this.opts.max_time
           ) {
-            err = `maximum time (=${
-              this.opts.max_time
-            }ms) exceeded - last error ${err}`;
+            err = `maximum time (=${this.opts.max_time}ms) exceeded - last error ${err}`;
             while (this._cb_stack.length > 0) {
               this._cb_stack.pop()(err);
             }
@@ -2587,12 +2577,20 @@ exports.to_human_list = function(arr) {
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings());
 
-exports.history_path = function(path) {
+exports.history_path = function(path, old = false) {
   const p = exports.path_split(path);
-  if (p.head) {
-    return `${p.head}/.${p.tail}.sage-history`;
+  if (old) {
+    if (p.head) {
+      return `${p.head}/.${p.tail}.sage-history`;
+    } else {
+      return `.${p.tail}.sage-history`;
+    }
   } else {
-    return `.${p.tail}.sage-history`;
+    if (p.head) {
+      return `${p.head}/.${p.tail}.time-travel`;
+    } else {
+      return `.${p.tail}.time-travel`;
+    }
   }
 };
 
@@ -3147,6 +3145,7 @@ exports.closest_kernel_match = function(name, kernel_list) {
     asc ? i++ : i--
   ) {
     const k = kernel_list.get(i);
+    if (k == null) continue; // This happened to Harald once when using the "mod sim py" custom image.
     // filter out kernels with negative priority (using the priority would be great, though)
     if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
     const kernel_name = k.get("name").toLowerCase();
@@ -3222,9 +3221,4 @@ function __range__(left, right, inclusive) {
     range.push(i);
   }
   return range;
-}
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

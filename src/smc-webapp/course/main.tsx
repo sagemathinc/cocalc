@@ -48,7 +48,7 @@ import {
 
 import { Button, ButtonGroup, Nav, NavItem, Tab } from "react-bootstrap";
 
-let {
+const {
   ActivityDisplay,
   ErrorDisplay,
   Icon,
@@ -60,7 +60,6 @@ let {
 // Course components
 import {
   CourseStore,
-  CourseState,
   StudentsMap,
   AssignmentsMap,
   HandoutsMap,
@@ -68,7 +67,7 @@ import {
   AssignmentRecord
 } from "./store";
 import { CourseActions } from "./actions";
-import * as CourseSync from "./sync";
+import { create_sync_db } from "./sync";
 import { CSSProperties } from "react";
 
 import { StudentsPanel, StudentsPanelHeader } from "./students_panel";
@@ -89,14 +88,16 @@ const redux_name = (project_id, course_filename) =>
 
 const syncdbs = {};
 
-function init_redux(
-  course_filename,
+export function init_redux(
+  course_filename: string,
   redux: AppRedux,
-  course_project_id
+  course_project_id: string,
+  the_redux_name?: string
 ): string {
-  const the_redux_name = redux_name(course_project_id, course_filename);
-  const get_actions = () => redux.getActions(the_redux_name);
-  if (get_actions() != null) {
+  if (the_redux_name == null) {
+    the_redux_name = redux_name(course_project_id, course_filename);
+  }
+  if (redux.getActions(the_redux_name) != null) {
     // already initalized
     return the_redux_name;
   }
@@ -126,13 +127,16 @@ function init_redux(
     action_all_projects_state: "any"
   };
 
-  const store = redux.createStore(
+  const store: CourseStore = redux.createStore(
     the_redux_name,
     CourseStore as any,
     initial_store_state
+  ) as CourseStore;
+  const actions: CourseActions = redux.createActions(
+    the_redux_name,
+    CourseActions
   );
-  const actions = redux.createActions(the_redux_name, CourseActions);
-  actions.syncdb = syncdbs[the_redux_name] = CourseSync.create_sync_db(
+  actions.syncdb = syncdbs[the_redux_name] = create_sync_db(
     redux,
     actions,
     store,
@@ -142,11 +146,18 @@ function init_redux(
   return the_redux_name;
 }
 
-const remove_redux = function(course_filename, redux, course_project_id) {
-  const the_redux_name = redux_name(course_project_id, course_filename);
+export function remove_redux(
+  course_filename: string,
+  redux: AppRedux,
+  course_project_id: string,
+  the_redux_name?: string
+) {
+  if (the_redux_name == null) {
+    the_redux_name = redux_name(course_project_id, course_filename);
+  }
 
   // Remove the listener for changes in the collaborators on this project.
-  const actions = redux.getActions(the_redux_name);
+  const actions: CourseActions = redux.getActions(the_redux_name);
   if (actions == null) {
     // already cleaned up and removed.
     return;
@@ -163,7 +174,7 @@ const remove_redux = function(course_filename, redux, course_project_id) {
   }
   delete syncdbs[the_redux_name];
   return the_redux_name;
-};
+}
 
 const COURSE_EDITOR_STYLE: CSSProperties = {
   height: "100%",
@@ -406,7 +417,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           <AssignmentsPanel
             actions={this.props.redux.getActions(this.props.name)}
             redux={this.props.redux}
-            all_assignments={this.props.assignments}
+            assignments={this.props.assignments}
             name={this.props.name}
             project_id={this.props.project_id}
             user_map={this.props.user_map}
@@ -429,14 +440,10 @@ export const CourseEditor = rclass<CourseReactProps>(
         return (
           <HandoutsPanel
             actions={this.props.redux.getActions(this.props.name)}
-            all_handouts={this.props.handouts}
+            handouts={this.props.handouts}
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
-            store_object={this.props.redux.getStore<CourseState, CourseStore>(this.props.name)}
-            project_actions={this.props.redux.getProjectActions(
-              this.props.project_id
-            )}
             name={this.props.name}
           />
         );
@@ -451,22 +458,13 @@ export const CourseEditor = rclass<CourseReactProps>(
         this.props.redux != null &&
         this.props.settings != null
       ) {
-        const allow_urls = redux
-          .getStore("projects")
-          .allow_urls_in_emails(this.props.project_id);
         return (
           <ConfigurationPanel
             redux={this.props.redux}
             settings={this.props.settings}
             name={this.props.name}
             project_id={this.props.project_id}
-            allow_urls={allow_urls}
             path={this.props.path}
-            shared_project_id={
-              this.props.settings != null
-                ? this.props.settings.get("shared_project_id")
-                : undefined
-            }
             project_map={this.props.project_map}
             configuring_projects={this.props.configuring_projects}
           />
@@ -486,11 +484,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           <SharedProjectPanel
             redux={this.props.redux}
             name={this.props.name}
-            shared_project_id={
-              this.props.settings != null
-                ? this.props.settings.get("shared_project_id")
-                : undefined
-            }
+            settings={this.props.settings}
           />
         );
       } else {
@@ -631,7 +625,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 );
 
 require("project_file").register_file_editor({
-  ext: "course",
+  ext: "course2", // temparily in case some hideous bug is discovered in new frame editor version, so trivial to revert/test.
   icon: "graduation-cap",
   init: init_redux,
   component: CourseEditor,

@@ -11,7 +11,8 @@ export class SubscriptionManager extends Component {
     return (
       <div>
         <h4>Subscription Manager</h4>
-        Not yet implemented.  This will make it easy for admins to make trials for specific users...
+        Not yet implemented. This will make it easy for admins to make trials
+        for specific users...
       </div>
     );
   }

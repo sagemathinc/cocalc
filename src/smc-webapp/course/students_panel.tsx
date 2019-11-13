@@ -55,10 +55,11 @@ const {
   Row,
   Col,
   Grid,
-  Panel,
   Well,
   Form
 } = require("react-bootstrap");
+
+import { Card } from "cocalc-ui";
 
 // CoCalc components
 import { WindowedList } from "../r_misc/windowed-list";
@@ -93,6 +94,7 @@ interface StudentNameDescription {
 }
 
 interface StudentsPanelReactProps {
+  frame_id?: string; // used for state caching
   name: string;
   redux: AppRedux;
   project_id: string;
@@ -104,7 +106,7 @@ interface StudentsPanelReactProps {
 
 interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
-  active_student_sort: SortDescription;
+  active_student_sort?: SortDescription;
   get_student_name: (id: string) => string;
   active_feedback_edits: IsGradingMap;
 }
@@ -246,7 +248,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           this.props.students.map(val => {
             return (() => {
               const result: any[] = [];
-              for (let n of literal(["account_id", "email_address"])) {
+              for (const n of literal(["account_id", "email_address"])) {
                 if (val.get(n) != null) {
                   result.push((already_added[val.get(n)] = true));
                 } else {
@@ -326,7 +328,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     add_selected_students = options => {
       const emails = {};
-      for (let x of this.state.add_select) {
+      for (const x of this.state.add_select) {
         if (x.account_id != null) {
           emails[x.account_id] = x.email_address;
         }
@@ -344,12 +346,12 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       ) {
         selections.push(options[0].key);
       } else {
-        for (let option of this.state.selected_option_nodes) {
+        for (const option of this.state.selected_option_nodes) {
           selections.push(option.getAttribute("value"));
         }
       }
 
-      for (let y of selections) {
+      for (const y of selections) {
         if (misc.is_valid_uuid_string(y)) {
           students.push({
             account_id: y,
@@ -370,7 +372,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     add_all_students = () => {
       const students: any[] = [];
-      for (let entry of this.state.add_select) {
+      for (const entry of this.state.add_select) {
         const { account_id } = entry;
         if (misc.is_valid_uuid_string(account_id)) {
           students.push({
@@ -393,7 +395,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     get_add_selector_options() {
       const v: any[] = [];
       const seen = {};
-      for (let x of this.state.add_select) {
+      for (const x of this.state.add_select) {
         const key = x.account_id != null ? x.account_id : x.email_address;
         if (seen[key]) {
           continue;
@@ -518,10 +520,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         );
       } else if (this.state.existing_students != null) {
         const existing: any[] = [];
-        for (let email in this.state.existing_students.email) {
+        for (const email in this.state.existing_students.email) {
           existing.push(email);
         }
-        for (let account_id in this.state.existing_students.account) {
+        for (const account_id in this.state.existing_students.account) {
           const user = this.props.user_map.get(account_id);
           existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
         }
@@ -654,22 +656,19 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         this.props.user_map,
         this.props.redux
       );
-      students.sort(
-        util.pick_student_sorter(
-          this.props.active_student_sort != null
-            ? this.props.active_student_sort.toJS()
-            : (undefined as any)
-        )
-      );
-
-      if (this.props.active_student_sort.get("is_descending")) {
-        students.reverse();
+      if (this.props.active_student_sort != null) {
+        students.sort(
+          util.pick_student_sorter(this.props.active_student_sort.toJS())
+        );
+        if (this.props.active_student_sort.get("is_descending")) {
+          students.reverse();
+        }
       }
 
       // Deleted and non-deleted students
       const deleted: any[] = [];
       const non_deleted: any[] = [];
-      for (let x of students) {
+      for (const x of students) {
         if (x.deleted) {
           deleted.push(x);
         } else {
@@ -694,7 +693,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             (a.email_address != null ? a.email_address : "")
           ).toLowerCase();
         const match = function(s) {
-          for (let word of words) {
+          for (const word of words) {
             if (s.indexOf(word) === -1) {
               num_omitted += 1;
               return false;
@@ -703,7 +702,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           return true;
         };
         const w3: any[] = [];
-        for (let x of students) {
+        for (const x of students) {
           if (match(search(x))) {
             w3.push(x);
           }
@@ -715,7 +714,28 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return this.student_list;
     }
 
-    render_sort_link(column_name, display_name) {
+    private render_sort_icon(column_name: string): Rendered {
+      if (
+        this.props.active_student_sort == null ||
+        this.props.active_student_sort.get("column_name") != column_name
+      )
+        return;
+      return (
+        <Icon
+          style={{ marginRight: "10px" }}
+          name={
+            this.props.active_student_sort.get("is_descending")
+              ? "caret-up"
+              : "caret-down"
+          }
+        />
+      );
+    }
+
+    private render_sort_link(
+      column_name: string,
+      display_name: string
+    ): Rendered {
       return (
         <a
           href=""
@@ -726,23 +746,12 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         >
           {display_name}
           <Space />
-          {this.props.active_student_sort.get("column_name") === column_name ? (
-            <Icon
-              style={{ marginRight: "10px" }}
-              name={
-                this.props.active_student_sort.get("is_descending")
-                  ? "caret-up"
-                  : "caret-down"
-              }
-            />
-          ) : (
-            undefined
-          )}
+          {this.render_sort_icon(column_name)}
         </a>
       );
     }
 
-    render_student_table_header() {
+    private render_student_table_header(): Rendered {
       // HACK: that marginRight is to get things to line up with students.
       // This is done all wrong due to using react-window...  We need
       // to make an extension to our WindowedList that supports explicit
@@ -769,7 +778,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
 
     get_student(id: string): StudentRecord {
-      let student = this.props.students.get(id);
+      const student = this.props.students.get(id);
       if (student == undefined) {
         console.warn(`Tried to access undefined student ${id}`);
       }
@@ -779,7 +788,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     private render_student(student_id: string, index: number): Rendered {
       const x = this.get_student_list().students[index];
       if (x == null) return;
-      let name: StudentNameDescription = {
+      const name: StudentNameDescription = {
         full: this.props.get_student_name(x.student_id),
         first: x.first_name,
         last: x.last_name
@@ -816,7 +825,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           row_key={index =>
             students[index] != null ? students[index].student_id : undefined
           }
-          cache_id={"course-student-" + this.props.name}
+          cache_id={`course-student-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
@@ -1348,7 +1357,7 @@ class Student extends Component<StudentProps, StudentState> {
   render_assignments_info_rows() {
     const store = this.get_store();
     const result: any[] = [];
-    for (let assignment of store.get_sorted_assignments()) {
+    for (const assignment of store.get_sorted_assignments()) {
       const grade = store.get_grade(assignment, this.props.student);
       const comments = store.get_comments(assignment, this.props.student);
       const info = store.student_assignment_info(
@@ -1545,9 +1554,9 @@ class Student extends Component<StudentProps, StudentState> {
   render_more_panel() {
     return (
       <Row>
-        <Panel header={this.render_panel_header()}>
+        <Card title={this.render_panel_header()}>
           {this.render_more_info()}
-        </Panel>
+        </Card>
       </Row>
     );
   }

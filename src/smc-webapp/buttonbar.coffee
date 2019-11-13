@@ -905,7 +905,7 @@ exports.commands =
         sagesyntaxerrors:
             url: 'https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors'
         cocalcwiki:
-            url: 'https://github.com/sagemathinc/cocalc/wiki/sagews'
+            url: 'https://doc.cocalc.com/sagews.html'
         sagequestion:
             url: 'https://github.com/sagemathinc/cocalc/wiki/SageQuestion'
         help:
@@ -1719,7 +1719,10 @@ initialize_sage_python_r_toolbar = () ->
     cythonbar.append(cythonbar)
 
     # -- sage specific --
-    sagebar  = make_bar("webapp-editor-codeedit-buttonbar-sage")
+    # we hide this bar on smaller screens to avoid the linebreak but still show the assistant
+    # https://github.com/sagemathinc/cocalc/issues/4068
+    # don't worry about xs, because then the whole bar is not visible (and replaced by one for mobile)
+    sagebar  = make_bar("webapp-editor-codeedit-buttonbar-sage hidden-md hidden-sm")
 
     sage_calculus = ["Calculus", "Calculus",
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],

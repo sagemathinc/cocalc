@@ -1,10 +1,10 @@
 import * as React from "react";
-import { Map } from "immutable";
 
 import { MentionsMap, MentionFilter } from "./mentions/types";
 import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
+import { typedMap } from "../app-framework/TypedMap";
 
 const { ProjectTitleAuto } = require("../projects");
 
@@ -30,16 +30,16 @@ export function NotificationList({
   if (mentions == undefined || mentions.size == 0) {
     return <NoMentions filter={filter} style={style} />;
   }
-  let mentions_per_project: any = {};
-  let project_panels: any = [];
-  let project_id_order: string[] = [];
+  const mentions_per_project: any = {};
+  const project_panels: any = [];
+  const project_id_order: string[] = [];
 
   mentions
     .filter(notification => notification.get("target") === account_id)
     .filter(notification => {
       const status =
         notification.getIn(["users", account_id]) ||
-        Map({ read: false, saved: false });
+        typedMap({ read: false, saved: false });
 
       switch (filter) {
         case "unread":

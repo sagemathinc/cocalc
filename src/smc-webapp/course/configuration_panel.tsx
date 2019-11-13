@@ -37,6 +37,7 @@ import { debounce } from "lodash";
 import {
   React,
   rclass,
+  redux,
   rtypes,
   Component,
   AppRedux,
@@ -48,10 +49,11 @@ const {
   ButtonToolbar,
   Row,
   Col,
-  Panel,
   Checkbox,
   Grid
 } = require("react-bootstrap");
+
+import { Card } from "cocalc-ui";
 
 // CoCalc Components
 const {
@@ -70,13 +72,15 @@ const {
 
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "./actions";
-import { redux } from "../frame-editors/generic/test/util";
 import { ProjectMap } from "../todo-types";
 import { CourseSettingsRecord, CourseStore } from "./store";
-const { HelpBox } = require("./help_box");
-const { DeleteStudentsPanel } = require("./delete_students");
-const { DeleteSharedProjectPanel } = require("./delete_shared_project");
-const { TerminalCommandPanel } = require("./terminal-command");
+import { HelpBox } from "./help_box";
+import {
+  DeleteAllStudents,
+  DeleteAllStudentProjects
+} from "./configuration-components";
+import { DeleteSharedProjectPanel } from "./delete_shared_project";
+import { TerminalCommandPanel } from "./terminal-command";
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -214,11 +218,11 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
       const r = this.props.num_running_projects;
       const n = this.props.num_students;
       return (
-        <Panel
-          header={
-            <h4>
+        <Card
+          title={
+            <>
               <Icon name="flash" /> Start or stop all student projects
-            </h4>
+            </>
           }
         >
           <Row>
@@ -279,7 +283,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
             order to ensure that they do not waste resources or are properly
             upgraded when next used by students.
           </span>
-        </Panel>
+        </Card>
       );
     }
   }
@@ -301,11 +305,11 @@ class DisableStudentCollaboratorsPanel extends Component<
 
   render() {
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="envelope" /> Collaborator policy
-          </h4>
+          </>
         }
       >
         <div
@@ -324,15 +328,17 @@ class DisableStudentCollaboratorsPanel extends Component<
         </div>
         <hr />
         <span style={{ color: "#666" }}>
-          Every collaborator on the project that contains this course is
-          automatically added to every student project (and the shared project).
-          In addition, each student is a collaborator on their project. If
-          students add additional collaborators, by default they will be
-          allowed. If you uncheck the above box, then collaborators will be
-          automatically removed from projects; in particular, students may not
-          add arbitrary collaborators to their projects.
+          If this box is checked (this is the default), the owner and any
+          collaborator on this student project may add collaborators to this
+          project. If this box is not checked, any collaborators on this student
+          project will be removed, with the exception of the student,
+          instructor, and TAs. Here "instructor and TAs" means any user who is
+          an owner or collaborator on the teaching project, i.e. the project
+          containing the course file. After "Allow arbitrary collaborators" is
+          checked, collaborators to be excluded are removed when opening the
+          course file or upon clicking "Reconfigure all projects".
         </span>
-      </Panel>
+      </Card>
     );
   }
 }
@@ -342,10 +348,8 @@ interface ConfigurationPanelProps {
   name: string;
   path: string;
   project_id: string;
-  allow_urls: boolean;
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
-  shared_project_id?: string;
   configuring_projects?: boolean;
 }
 
@@ -382,7 +386,6 @@ export class ConfigurationPanel extends Component<
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "shared_project_id",
         "configuring_projects"
       ])
     );
@@ -401,9 +404,9 @@ export class ConfigurationPanel extends Component<
    */
   render_title_desc_header() {
     return (
-      <h4>
+      <>
         <Icon name="header" /> Title and description
-      </h4>
+      </>
     );
   }
 
@@ -413,7 +416,7 @@ export class ConfigurationPanel extends Component<
       return <Loading />;
     }
     return (
-      <Panel header={this.render_title_desc_header()}>
+      <Card title={this.render_title_desc_header()}>
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
@@ -439,7 +442,7 @@ export class ConfigurationPanel extends Component<
           title. Use the description to provide additional information about the
           course, e.g., a link to the main course website.
         </span>
-      </Panel>
+      </Card>
     );
   }
 
@@ -448,9 +451,9 @@ export class ConfigurationPanel extends Component<
    */
   render_grades_header() {
     return (
-      <h4>
+      <>
         <Icon name="table" /> Export grades
-      </h4>
+      </>
     );
   }
 
@@ -520,7 +523,7 @@ export class ConfigurationPanel extends Component<
       })().join(",") + "\n";
     for (var student of store.get_sorted_students()) {
       var left2;
-      let grades = (() => {
+      const grades = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
           let grade = store.get_grade(assignment, student);
@@ -531,7 +534,7 @@ export class ConfigurationPanel extends Component<
         return result2;
       })().join(",");
 
-      let comments = (() => {
+      const comments = (() => {
         const result3: any[] = [];
         for (assignment of assignments) {
           let comment = store.get_comments(assignment, student);
@@ -625,7 +628,7 @@ export class ConfigurationPanel extends Component<
 
   render_save_grades() {
     return (
-      <Panel header={this.render_grades_header()}>
+      <Card title={this.render_grades_header()}>
         <div style={{ marginBottom: "10px" }}>Save grades to... </div>
         <ButtonToolbar>
           <Button onClick={this.save_grades_to_csv}>
@@ -649,7 +652,7 @@ export class ConfigurationPanel extends Component<
           </a>
           .
         </div>
-      </Panel>
+      </Card>
     );
   }
 
@@ -658,7 +661,10 @@ export class ConfigurationPanel extends Component<
    */
 
   check_email_body(value) {
-    if (!this.props.allow_urls && contains_url(value)) {
+    const allow_urls: boolean = redux
+      .getStore("projects")
+      .allow_urls_in_emails(this.props.project_id);
+    if (!allow_urls && contains_url(value)) {
       this.setState({
         email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
       });
@@ -676,11 +682,11 @@ export class ConfigurationPanel extends Component<
     const template_instr =
       " Also, {title} will be replaced by the title of the course and {name} by your name.";
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="envelope" /> Email invitation
-          </h4>
+          </>
         }
       >
         <div
@@ -709,17 +715,17 @@ export class ConfigurationPanel extends Component<
           they do not have a CoCalc account, then they will receive this email
           invitation. {template_instr}
         </span>
-      </Panel>
+      </Card>
     );
   }
 
   render_configure_all_projects(): Rendered {
     return (
-      <Panel
-        header={
-          <h4>
+      <Card
+        title={
+          <>
             <Icon name="envelope" /> Reconfigure all projects
-          </h4>
+          </>
         }
       >
         Ensure all projects have the correct students and TA's, titles and
@@ -737,7 +743,7 @@ export class ConfigurationPanel extends Component<
           )}{" "}
           Reconfigure all projects
         </Button>
-      </Panel>
+      </Card>
     );
   }
 
@@ -978,12 +984,12 @@ export class ConfigurationPanel extends Component<
       bg = "#fcf8e3";
     }
     return (
-      <Panel
+      <Card
         style={{ background: bg }}
-        header={
-          <h4 style={style}>
+        title={
+          <div style={style}>
             <Icon name="dashboard" /> Require students to upgrade (students pay)
-          </h4>
+          </div>
         }
       >
         {this.render_student_pay_choice_checkbox()}
@@ -992,7 +998,7 @@ export class ConfigurationPanel extends Component<
         : undefined)
           ? this.render_student_pay_details()
           : undefined}
-      </Panel>
+      </Card>
     );
   }
 
@@ -1021,7 +1027,7 @@ export class ConfigurationPanel extends Component<
   }
 
   render_delete_shared_project() {
-    if (this.props.shared_project_id) {
+    if (this.props.settings.get("shared_project_id")) {
       return (
         <DeleteSharedProjectPanel
           delete={this.get_actions().delete_shared_project}
@@ -1030,10 +1036,18 @@ export class ConfigurationPanel extends Component<
     }
   }
 
-  render_delete_students() {
+  render_delete_student_projects() {
     return (
-      <DeleteStudentsPanel
-        delete={this.get_actions().delete_all_student_projects}
+      <DeleteAllStudentProjects
+        delete_projects={this.get_actions().delete_all_student_projects}
+      />
+    );
+  }
+
+  render_delete_all_students() {
+    return (
+      <DeleteAllStudents
+        delete_all_students={this.get_actions().delete_all_students}
       />
     );
   }
@@ -1055,22 +1069,38 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%", overflowY: "scroll" }}>
+      <Grid
+        fluid={true}
+        className="smc-vfill"
+        style={{ width: "100%", overflowY: "scroll" }}
+      >
         <Row>
           <Col md={6}>
             {this.render_require_students_pay()}
+            <br />
             {this.render_require_institute_pay()}
+            <br />
             {this.render_save_grades()}
+            <br />
             {this.render_start_all_projects()}
+            <br />
             {this.render_terminal_command()}
-            {this.render_delete_students()}
+            <br />
+            {this.render_delete_student_projects()}
+            <br />
+            {this.render_delete_all_students()}
+            <br />
             {this.render_delete_shared_project()}
           </Col>
           <Col md={6}>
             <HelpBox />
+            <br />
             {this.render_title_description()}
+            <br />
             {this.render_email_invite_body()}
+            <br />
             {this.render_disable_students()}
+            <br />
             {this.render_configure_all_projects()}
           </Col>
         </Row>

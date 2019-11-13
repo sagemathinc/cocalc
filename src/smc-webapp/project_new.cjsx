@@ -26,13 +26,12 @@ underscore = require('underscore')
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2, SettingBox} = require('./r_misc')
 {User} = require('./users')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
 {SMC_Dropzone} = require('./smc-dropzone')
-{ProjectSettingsPanel} = require('./project/project-settings-support')
 
 {JupyterServerPanel} = require('./project/plain-jupyter-server')
 {JupyterLabServerPanel} = require('./project/jupyterlab-server')
@@ -202,6 +201,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
                         tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Linux terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
+                    {<Tip title='X11 desktop'   icon='window-restore'
+                        tip='Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.'>
+                        <NewFileButton icon='window-restore' name='X11 desktop' on_click={@props.create_file} ext='x11' />
+                    </Tip> if available.x11}
                 </Col>
             </Row>
             <Row style={row_style}>
@@ -238,10 +241,6 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    {<Tip title='X11 desktop'   icon='window-restore'
-                        tip='Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.'>
-                        <NewFileButton icon='window-restore' name='X11 desktop' on_click={@props.create_file} ext='x11' />
-                    </Tip> if available.x11}
                    {@props.children}
                 </Col>
             </Row>
@@ -386,7 +385,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         <Row>
             <Col sm={9}>
                 <div style={color: "#666"}>
-                    <em>Drag and drop uploads are <a href="https://doc.cocalc.com/howto/upload.html" target="_blank">limited to 200MB</a>.  You can also drag & drop onto the file listing.</em>
+                    <em>Read about <a href="https://doc.cocalc.com/howto/upload.html" target="_blank">other ways to upload files.</a>  You can also drag & drop files on the file listing.</em>
                 </div>
             </Col>
             <Col sm={3}>
@@ -475,7 +474,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </span>
 
     render: ->
-        <ProjectSettingsPanel
+        <SettingBox
             show_header = {@props.show_header}
             icon = {'plus-circle'}
             title_el = {@render_title()}
@@ -518,7 +517,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                 </Col>
             </Row>
             {@render_upload()}
-        </ProjectSettingsPanel>
+        </SettingBox>
 
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)

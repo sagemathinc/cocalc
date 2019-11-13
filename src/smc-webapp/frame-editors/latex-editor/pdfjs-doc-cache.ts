@@ -53,10 +53,10 @@ export const getDocument: (
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
     doc = await pdfjs_getDocument({
-      url: url,
+      url,
       disableStream: true,
       disableAutoFetch: true
-    });
+    }).promise;
     doc_cache.set(url, doc);
   }
   return doc;
