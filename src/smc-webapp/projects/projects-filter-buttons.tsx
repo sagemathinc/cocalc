@@ -30,6 +30,7 @@ export class ProjectsFilterButtons extends Component<Props> {
             analytics_event("projects_page", "clicked_deleted_filter");
           }}
           bsStyle={style}
+          cocalc-test={"deleted-filter"}
         >
           <Icon
             name={this.props.deleted ? "check-square-o" : "square-o"}
@@ -55,6 +56,7 @@ export class ProjectsFilterButtons extends Component<Props> {
             analytics_event("projects_page", "clicked_hidden_filter");
           }}
           bsStyle={style}
+          cocalc-test={"hidden-filter"}
         >
           <Icon
             name={this.props.hidden ? "check-square-o" : "square-o"}

@@ -80,7 +80,7 @@ export class XpraServer {
     if (exit_code !== 0) {
       return;
     }
-    for (let line of splitlines(stdout)) {
+    for (const line of splitlines(stdout)) {
       if (line.indexOf(`Xvfb-for-Xpra-:${this.display}`) !== -1) {
         const pid = line.split(" ")[0];
         await this.exec({
@@ -157,7 +157,7 @@ export class XpraServer {
     if (exit_code !== 0) {
       return "";
     }
-    for (let line of splitlines(stdout)) {
+    for (const line of splitlines(stdout)) {
       if (line.indexOf(`start :${this.display}`) !== -1) {
         return line;
       }

@@ -51,6 +51,7 @@ interface Props {
   editor_settings: Map<string, any>;
   resize: number;
   is_current: boolean;
+  is_subframe: boolean;
 
   // reduxProps
   versions?: List<Date>;
@@ -128,9 +129,9 @@ class TimeTravel extends Component<Props> {
       return;
     }
     const version = this.get_version();
-    if (version == null) return this.render_loading();
+    if (version == null) return; // no versions yet, so nothing to render
     const syncdoc = this.props.actions.syncdoc;
-    if (syncdoc == null) return this.render_loading();
+    if (syncdoc == null) return; // no syncdoc yet so again nothing to render.
     switch (this.props.docext) {
       case "tasks":
         return this.render_document_tasks(syncdoc, version);
@@ -360,10 +361,12 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_open_file(): Rendered {
+    if (this.props.is_subframe) return;
     return <OpenFile actions={this.props.actions} />;
   }
 
   private render_open_snapshots(): Rendered {
+    if (this.props.is_subframe) return;
     return <OpenSnapshots actions={this.props.actions} />;
   }
 

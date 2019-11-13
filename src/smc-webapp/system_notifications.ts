@@ -46,7 +46,7 @@ function sort_messages(messages: Messages): Messages {
   return messages.sortBy(a => -a.get("time").getTime());
 }
 
-interface NotificationsState {
+export interface NotificationsState {
   loading: boolean;
   notifications?: Messages;
   announcements?: Messages;

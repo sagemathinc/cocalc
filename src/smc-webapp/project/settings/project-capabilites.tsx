@@ -9,7 +9,7 @@ import * as misc from "smc-util/misc2";
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
 
-declare var DEBUG;
+declare let DEBUG;
 
 interface ReactProps {
   name: string;
@@ -23,9 +23,7 @@ interface ReduxProps {
 }
 
 export const ProjectCapabilities = rclass<ReactProps>(
-  class ProjectCapabilities extends React.Component<
-    ReactProps & ReduxProps
-  > {
+  class ProjectCapabilities extends React.Component<ReactProps & ReduxProps> {
     public static reduxProps({ name }) {
       return {
         [name]: {
@@ -58,7 +56,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;
-      for (let [key, display] of Array.from(sortBy(feature_map, f => f[1]))) {
+      for (const [key, display] of Array.from(sortBy(feature_map, f => f[1]))) {
         const available = avail[key];
         any_nonavail = !available;
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
@@ -95,7 +93,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
 
       const r_formatters: JSX.Element[] = [];
       let any_nonavail = false;
-      for (let tool of sortBy(keys(formatter), x => x)) {
+      for (const tool of sortBy(keys(formatter), x => x)) {
         const available = formatter[tool];
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
         const icon = available ? "check-square" : "minus-square";
@@ -137,9 +135,9 @@ export const ProjectCapabilities = rclass<ReactProps>(
           <hr />
           <div style={{ color: COLORS.GRAY }}>
             Some features are not available, because this project runs a small{" "}
-            {A(CUSTOM_SOFTWARE_HELP_URL, "customized stack of software")}. To
-            enable all features, please create a new project using the default
-            software environment.
+            <A href={CUSTOM_SOFTWARE_HELP_URL}>customized stack of software</A>.
+            To enable all features, please create a new project using the
+            default software environment.
           </div>
         </>
       );

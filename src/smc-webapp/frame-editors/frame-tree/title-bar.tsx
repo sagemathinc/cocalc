@@ -2,40 +2,50 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { React, Rendered, Component, redux } from "../../app-framework";
+import { List } from "immutable";
+import {
+  React,
+  Rendered,
+  Component,
+  redux,
+  rclass,
+  rtypes
+} from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
-const {
-  ButtonGroup,
-  Button,
-  DropdownButton,
-  MenuItem
-} = require("react-bootstrap");
-import { get_default_font_size } from "../generic/client";
-const { VisibleMDLG, EditorFileInfoDropdown } = require("smc-webapp/r_misc");
+const { ButtonGroup, Button } = require("react-bootstrap");
 
-import { r_join } from "smc-webapp/r_misc/r_join";
-import { Icon } from "smc-webapp/r_misc/icon";
-import { Space } from "smc-webapp/r_misc/space";
-import { Tip } from "smc-webapp/r_misc/tip";
+import { get_default_font_size } from "../generic/client";
+
+import {
+  r_join,
+  Icon,
+  VisibleMDLG,
+  EditorFileInfoDropdown,
+  Space,
+  Tip,
+  DropdownMenu,
+  MenuItem
+} from "smc-webapp/r_misc";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
-const misc = require("smc-util/misc");
+
+import { is_different, capitalize, copy } from "smc-util/misc";
 
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
-import { trunc_middle } from "smc-util/misc2";
+import { path_split, trunc_middle } from "smc-util/misc2";
 
-import { ConnectionStatus, EditorSpec } from "./types";
+import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 
 // TODO:
 // import { Actions } from "../code-editor/actions";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
@@ -109,20 +119,17 @@ const close_style: CSS.Properties | undefined = (function() {
 
 interface Props {
   actions: any; // TODO -- see above Actions;
-  path: string; // assumed to not change for now
+  editor_actions: any; // TODO -- see above Actions;
+  path: string;
   project_id: string; // assumed to not change for now
   active_id: string;
   id: string;
-  deletable: boolean;
-  read_only: boolean;
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  is_saving: boolean;
   is_full: boolean;
   is_only: boolean; // is the only frame
   is_public: boolean; // public view of a file
   is_paused: boolean;
   type: string;
+  spec: EditorDescription;
   editor_spec: EditorSpec;
   status: string;
   title?: string;
@@ -131,21 +138,75 @@ interface Props {
   available_features?: AvailableFeatures;
 }
 
+// state that is associated with the file being edited, not the
+// frame tree/tab in which this sits.  Note some more should
+// probably be moved down here...
+interface ReduxProps {
+  // These come from editor_actions's store:
+  read_only: boolean;
+  has_unsaved_changes: boolean;
+  has_uncommitted_changes: boolean;
+  is_saving: boolean;
+  is_public: boolean;
+  // comes from actions's store:
+  switch_to_files: List<string>;
+}
+
 interface State {
   close_and_halt_confirm?: boolean;
 }
 
-export class FrameTitleBar extends Component<Props, State> {
+class FrameTitleBar extends Component<Props & ReduxProps, State> {
+  private buttons?: { [button_name: string]: true };
+
   constructor(props) {
     super(props);
     this.state = { close_and_halt_confirm: false };
   }
+
+  static reduxProps({ editor_actions, actions }) {
+    if (editor_actions == null) throw Error("editor_actions must be specified");
+    const name = editor_actions.name;
+    if (name == null) throw Error("editor_actions must have name attribute");
+    const name2 = actions.name;
+    if (name2 == null) throw Error("actions must have name attribute");
+
+    // The code below is a bit confusing because name may or
+    // may not equal name2, and if they *are* equal and we were
+    // to just make an object with the same key twice, the values
+    // obviously wouldn't be merged.
+    const spec: any = {
+      [name]: {
+        read_only: rtypes.bool,
+        has_unsaved_changes: rtypes.bool,
+        has_uncommitted_changes: rtypes.bool,
+        is_saving: rtypes.bool,
+        is_public: rtypes.bool
+      }
+    };
+    if (name == name2) {
+      spec[name2].switch_to_files = rtypes.immutable.List;
+    } else {
+      spec[name2] = {
+        switch_to_files: rtypes.immutable.List
+      };
+    }
+    return spec;
+  }
+
   shouldComponentUpdate(next, state): boolean {
+    if (this.props.type != next.type) {
+      // clear button cache whenever type changes; otherwise,
+      // the buttons at the top wouldn't change.
+      delete this.buttons;
+      return true;
+    }
+
+    // note 'type' field dealt with above.
     return (
-      misc.is_different(this.props, next, [
+      is_different(this.props, next, [
         "active_id",
         "id",
-        "deletable",
         "is_full",
         "is_only",
         "read_only",
@@ -154,29 +215,35 @@ export class FrameTitleBar extends Component<Props, State> {
         "is_public",
         "is_saving",
         "is_paused",
-        "type",
         "status",
         "title",
         "connection_status",
         "font_size",
-        "available_features"
-      ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+        "available_features",
+        "switch_to_files",
+        "path"
+      ]) || is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
 
+  private button_height(): string {
+    return this.props.is_only || this.props.is_full ? "34px" : "30px";
+  }
+
   is_visible(action_name: string, explicit?: boolean): boolean {
-    const spec = this.props.editor_spec[this.props.type];
-    if (spec == null) {
+    if (this.props.editor_actions[action_name] == null) {
       return false;
     }
-    const buttons = spec.buttons;
-    if (!explicit && buttons == null) {
-      return true;
+
+    if (this.buttons == null) {
+      let buttons = this.props.spec.buttons;
+      if (!explicit && buttons == null) {
+        return true;
+      }
+      this.buttons =
+        typeof buttons == "function" ? buttons(this.props.path) : buttons;
     }
-    if (!this.props.actions[action_name]) {
-      return false;
-    }
-    return buttons != null ? !!buttons[action_name] : false;
+    return this.buttons != null ? !!this.buttons[action_name] : false;
   }
 
   click_close(): void {
@@ -212,28 +279,22 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_types(): Rendered {
-    if (this.props.editor_spec == null) {
-      return;
-    }
-
     const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
     const items: Rendered[] = [];
-    for (let type in this.props.editor_spec) {
+    for (const type in this.props.editor_spec) {
       const spec = this.props.editor_spec[type];
+      if (this.props.is_public && spec.hide_public) {
+        // editor that is explicitly excluded from public view for file, e.g., settings or terminal might use this.
+        continue;
+      }
       if (selected_type === type) {
         selected_icon = spec.icon;
         selected_short = spec.short;
       }
       const item = (
-        <MenuItem
-          cocalc-test={type}
-          selected={selected_type === type}
-          key={type}
-          eventKey={type}
-          onSelect={type => this.select_type(type)}
-        >
+        <MenuItem cocalc-test={type} key={type}>
           <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
           {spec.name}
         </MenuItem>
@@ -241,24 +302,32 @@ export class FrameTitleBar extends Component<Props, State> {
       items.push(item);
     }
 
-    let title = <Icon name={selected_icon} />;
+    let title;
     if (selected_short) {
       title = (
         <span>
           {title} {selected_short}
         </span>
       );
+    } else {
+      title = <Icon name={selected_icon} />;
     }
+
+    // TODO: The "float: left" below is a hack
+    // to workaround that this is still in a bootstrap button group.
     return (
-      <DropdownButton
-        cocalc-test={"latex-dropdown"}
-        title={title}
+      <DropdownMenu
+        cocalc-test={"types-dropdown"}
+        button={true}
+        style={{ float: "left", height: this.button_height() }}
         key={"types"}
-        id={"types"}
-        bsSize={this.button_size()}
+        title={title}
+        onClick={key => {
+          this.select_type(key);
+        }}
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
@@ -266,11 +335,12 @@ export class FrameTitleBar extends Component<Props, State> {
     const is_active = this.props.active_id === this.props.id;
     const style: CSS.Properties = {
       padding: 0,
+      paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
     };
     if (is_active) {
       style.position = "absolute";
-      style.boxShadow = "#ccc -3px 0";
+      style.boxShadow = "#ccc -2px 0";
       style.right = 0;
       style.zIndex = 10; // so can click see buttons when flow around
     }
@@ -390,18 +460,8 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
 
-    const zooms: Rendered[] = [100, 125, 150, 200].map(zoom => {
-      return (
-        <MenuItem
-          key={`zoom-${zoom}`}
-          eventKey={`zoom-${zoom}`}
-          onSelect={() =>
-            this.props.actions.set_zoom(zoom / 100, this.props.id)
-          }
-        >
-          {`${zoom}%`}
-        </MenuItem>
-      );
+    const items: Rendered[] = [100, 125, 150, 200].map(zoom => {
+      return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
     });
 
     const title =
@@ -412,14 +472,17 @@ export class FrameTitleBar extends Component<Props, State> {
           )}%`;
 
     return (
-      <DropdownButton
-        title={title}
+      <DropdownMenu
         key={"zoom-levels"}
-        id={"zoom-levels"}
-        bsSize={this.button_size()}
+        button={true}
+        title={title}
+        style={{ height: this.button_height() }}
+        onClick={key => {
+          this.props.actions.set_zoom(parseInt(key) / 100, this.props.id);
+        }}
       >
-        {zooms}
-      </DropdownButton>
+        {items}
+      </DropdownMenu>
     );
   }
 
@@ -459,7 +522,9 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"sync"}
         title={"Synchronize views (alt+enter)"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.sync(this.props.id)}
+        onClick={() =>
+          this.props.actions.sync(this.props.id, this.props.editor_actions)
+        }
       >
         <Icon name={"fab fa-staylinked"} />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
@@ -467,8 +532,41 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
+  render_switch_to_file(): Rendered {
+    if (
+      !this.is_visible("switch_to_file") ||
+      this.props.actions.switch_to_file == null ||
+      this.props.switch_to_files == null ||
+      this.props.switch_to_files.size <= 1
+    ) {
+      return;
+    }
+
+    return (
+      <DropdownMenu
+        key={"switch-to-file"}
+        button={true}
+        style={{ top: "-9px", height: this.button_height() }}
+        title={path_split(this.props.path).tail}
+        onClick={key => {
+          this.props.actions.switch_to_file(key, this.props.id);
+        }}
+      >
+        {this.props.switch_to_files.toJS().map(path => (
+          <MenuItem key={path}>
+            {this.props.path == path ? <b>{path}</b> : path}
+            {this.props.actions.path == path ? " (main)" : ""}
+          </MenuItem>
+        ))}
+      </DropdownMenu>
+    );
+  }
+
   render_download(): Rendered {
-    if (!this.is_visible("download") || this.props.actions.download == null) {
+    if (
+      !this.is_visible("download") ||
+      this.props.editor_actions.download == null
+    ) {
       return;
     }
     const labels = this.show_labels();
@@ -477,7 +575,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"download"}
         title={"Download this file"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.download(this.props.id)}
+        onClick={() => this.props.editor_actions.download(this.props.id)}
       >
         <Icon name={"cloud-download"} />{" "}
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
@@ -493,7 +591,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"replace"}
         title={"Replace text"}
-        onClick={() => this.props.actions.replace(this.props.id)}
+        onClick={() => this.props.editor_actions.replace(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -510,7 +608,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"find"}
         title={"Find text"}
-        onClick={() => this.props.actions.find(this.props.id)}
+        onClick={() => this.props.editor_actions.find(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name="search" />
@@ -526,7 +624,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"goto-line"}
         title={"Jump to line"}
-        onClick={() => this.props.actions.goto_line(this.props.id)}
+        onClick={() => this.props.editor_actions.goto_line(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name="bolt" />
@@ -564,7 +662,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"cut"}
         title={"Cut selected"}
-        onClick={() => this.props.actions.cut(this.props.id)}
+        onClick={() => this.props.editor_actions.cut(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -582,7 +680,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
-          () => this.props.actions.paste(this.props.id, true),
+          () => this.props.editor_actions.paste(this.props.id, true),
           200,
           true
         )}
@@ -602,7 +700,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"copy"}
         title={"Copy selected"}
-        onClick={() => this.props.actions.copy(this.props.id)}
+        onClick={() => this.props.editor_actions.copy(this.props.id)}
         bsSize={this.button_size()}
       >
         <Icon name={"copy"} />
@@ -678,7 +776,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => this.props.actions.undo()}
+        onClick={() => this.props.editor_actions.undo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -695,7 +793,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => this.props.actions.redo()}
+        onClick={() => this.props.editor_actions.redo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -722,7 +820,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"auto-indent"}
         title={"Automatically format selected code"}
-        onClick={() => this.props.actions.auto_indent()}
+        onClick={() => this.props.editor_actions.auto_indent()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
@@ -747,7 +845,7 @@ export class FrameTitleBar extends Component<Props, State> {
     if (def != undefined) {
       return def;
     }
-    return misc.capitalize(button_name);
+    return capitalize(button_name);
   }
 
   private button_title(button_name: string, def?: string): string | undefined {
@@ -774,7 +872,21 @@ export class FrameTitleBar extends Component<Props, State> {
         title={"Show complete edit history"}
         bsStyle={"info"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.time_travel()}
+        onClick={event => {
+          if (this.props.actions.name != this.props.editor_actions.name) {
+            // a subframe editor -- always open time travel in a name tab.
+            this.props.editor_actions.time_travel({ frame: false });
+            return;
+          }
+          // If a time_travel frame type is available and the
+          // user does NOT shift+click, then open as a frame.
+          // Otherwise, it opens as a new tab.
+          const frame =
+            !event.shiftKey && this.props.editor_spec["time_travel"] != null;
+          this.props.actions.time_travel({
+            frame
+          });
+        }}
       >
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
@@ -824,13 +936,13 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!this.is_visible("restart", true)) {
       return;
     }
-    let labels = this.show_labels();
+    const labels = this.show_labels();
     return (
       <Button
         key={"restart"}
         title={"Restart service"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.restart()}
+        onClick={() => this.props.editor_actions.restart()}
       >
         <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
@@ -853,7 +965,8 @@ export class FrameTitleBar extends Component<Props, State> {
         no_labels={!labels}
         size={this.button_size()}
         onClick={() => {
-          this.props.actions.save(true);
+          this.props.editor_actions.save(true);
+          this.props.actions.explicit_save();
           this.props.actions.focus(this.props.id);
         }}
       />
@@ -876,7 +989,7 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     if (!this.is_visible("format")) return;
-    let desc: any = this.props.actions.has_format_support(
+    let desc: any = this.props.editor_actions.has_format_support(
       this.props.id,
       this.props.available_features
     );
@@ -888,7 +1001,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"format"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.format(this.props.id)}
+        onClick={() => this.props.editor_actions.format(this.props.id)}
         title={desc}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
@@ -1070,7 +1183,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <Button
         key={"print"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.print(this.props.id)}
+        onClick={() => this.props.editor_actions.print(this.props.id)}
         title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
@@ -1137,6 +1250,7 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_build());
     v.push(this.render_force_build());
     v.push(this.render_sync());
+    v.push(this.render_switch_to_file());
     v.push(this.render_clean());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());
@@ -1163,7 +1277,7 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_help(labels));
 
     const w: Rendered[] = [];
-    for (let c of v) {
+    for (const c of v) {
       if (c != null) {
         w.push(c);
       }
@@ -1184,7 +1298,7 @@ export class FrameTitleBar extends Component<Props, State> {
     return (
       <span style={path_style}>
         <Tip placement={"bottom"} title={this.props.path}>
-          {misc.path_split(this.props.path).tail}
+          {path_split(this.props.path).tail}
         </Tip>
       </span>
     );
@@ -1321,7 +1435,7 @@ export class FrameTitleBar extends Component<Props, State> {
     let style;
     const is_active = this.props.id === this.props.active_id;
     if (is_active) {
-      style = misc.copy(title_bar_style);
+      style = copy(title_bar_style);
       style.background = COL_BAR_BACKGROUND;
       if (!this.props.is_only && !this.props.is_full) {
         style.maxHeight = "34px";
@@ -1338,7 +1452,7 @@ export class FrameTitleBar extends Component<Props, State> {
       // for some reason this is really necessary on safari, but
       // breaks on everything else!
       if (!is_active) {
-        style = misc.copy(style);
+        style = copy(style);
       }
       if (this.props.is_only || this.props.is_full) {
         style.minHeight = "36px";
@@ -1367,3 +1481,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 }
+
+const tmp = rclass(FrameTitleBar);
+export { tmp as FrameTitleBar };

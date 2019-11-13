@@ -5,13 +5,12 @@
 
 const w = window as any;
 
-w.test_load = {}
+w.test_load = {};
 
 w.test_load.basic = function() {
-  require('../../markdown-editor/test/basic');
-}
+  require("../../markdown-editor/test/basic");
+};
 
 w.test_load.math = function() {
-  require('../../markdown-editor/test/math');
-}
-
+  require("../../markdown-editor/test/math");
+};

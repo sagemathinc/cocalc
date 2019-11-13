@@ -31,7 +31,7 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
 
     this._syncstring.on("change", keys => {
       keys.forEach(value => {
-        let id = value.get("id");
+        const id = value.get("id");
         if (id) {
           let cells = this.store.get("cells");
           cells = cells.set(id, this._get_cell(id));
@@ -65,6 +65,6 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
     preparse?: boolean
   ): CodeExecutor {
     // todo: if cell_id is given, ensure is valid.
-    return code_executor({path: this.path, code, data, cell_id, preparse});
+    return code_executor({ path: this.path, code, data, cell_id, preparse });
   }
 }

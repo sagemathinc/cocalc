@@ -16,7 +16,8 @@ export const time_travel = {
   icon: "user-clock",
   component: TimeTravel,
   buttons: set(["decrease_font_size", "increase_font_size", "help", "-file"]),
-  hide_file_menu: true
+  hide_file_menu: true,
+  hide_public: true
 };
 
 const EDITOR_SPEC = {

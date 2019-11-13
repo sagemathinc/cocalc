@@ -48,6 +48,7 @@ import { CourseStore } from "./store";
 import { Map } from "immutable";
 
 const {
+  A,
   Icon,
   Loading,
   NoUpgrades,
@@ -126,7 +127,7 @@ class StudentProjectUpgrades extends Component<
 
   upgrade_goal() {
     const goal = {};
-    for (let quota in this.state.upgrades) {
+    for (const quota in this.state.upgrades) {
       let val = this.state.upgrades[quota];
       val = misc.parse_number_input(val, false);
       const { display_factor } = schema.PROJECT_UPGRADES.params[quota];
@@ -348,7 +349,7 @@ class StudentProjectUpgrades extends Component<
     // your_upgrades      - total amount of each quota that this user has applied to these student projects
     this._upgrade_is_invalid = false; // will get set to true by render_upgrade_row if invalid.
     const result: any[] = [];
-    for (let quota of schema.PROJECT_UPGRADES.field_order) {
+    for (const quota of schema.PROJECT_UPGRADES.field_order) {
       const total = purchased_upgrades[quota];
       const yours = your_upgrades[quota] != null ? your_upgrades[quota] : 0;
       const available =
@@ -412,7 +413,7 @@ class StudentProjectUpgrades extends Component<
     // Sum total amount of each quota that we have applied to all student projects
     let total_upgrades = {}; // all upgrades by anybody
     let your_upgrades = {}; // just by you
-    for (let project_id of project_ids) {
+    for (const project_id of project_ids) {
       your_upgrades = misc.map_sum(
         your_upgrades,
         projects_store.get_upgrades_you_applied_to_project(project_id)
@@ -530,7 +531,7 @@ class StudentProjectUpgrades extends Component<
         ? left
         : {};
     const upgrade_plan = this.get_store().get_upgrade_plan(upgrades);
-    for (let quota in upgrades) {
+    for (const quota in upgrades) {
       const val = upgrades[quota];
       upgrades[quota] =
         val * schema.PROJECT_UPGRADES.params[quota].display_factor;
@@ -613,12 +614,9 @@ class StudentProjectUpgrades extends Component<
             Add or remove upgrades to student projects associated to this
             course, adding to what is provided for free and what students may
             have purchased.{" "}
-            <a
-              href="https://github.com/sagemathinc/cocalc/wiki/prof-pay"
-              target="_blank"
-            >
+            <A href="https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgradespay">
               Help...
-            </a>
+            </A>
           </p>
         </div>
       </div>

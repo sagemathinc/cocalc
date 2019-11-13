@@ -182,6 +182,7 @@ export class SyncDoc extends EventEmitter {
   private before_change?: Document;
 
   private last_user_change: Date = minutes_ago(60);
+  private last_save_to_disk_time: Date = new Date(0);
 
   private last_snapshot: Date | undefined;
   private snapshot_interval: number;
@@ -225,7 +226,7 @@ export class SyncDoc extends EventEmitter {
       this.string_id = opts.string_id;
     }
 
-    for (let field of [
+    for (const field of [
       "project_id",
       "path",
       "client",
@@ -358,7 +359,7 @@ export class SyncDoc extends EventEmitter {
         // edited if there was an actual change record in the
         // patches log, by this user, since last time.
         let user_is_active: boolean = false;
-        for (let tm in this.my_patches) {
+        for (const tm in this.my_patches) {
           if (new Date(parseInt(tm)) > this.last_user_change) {
             user_is_active = true;
             break;
@@ -756,7 +757,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private init_table_close_handlers(): void {
-    for (let x of ["syncstring", "patches", "cursors"]) {
+    for (const x of ["syncstring", "patches", "cursors"]) {
       const t = this[`${x}_table`];
       if (t != null) {
         t.on("close", () => this.close());
@@ -1016,7 +1017,7 @@ export class SyncDoc extends EventEmitter {
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator(),
-      this.init_ipywidgets(),
+      this.init_ipywidgets()
     ]);
     this.assert_not_closed("init_all -- after init patch_list");
 
@@ -1381,7 +1382,7 @@ export class SyncDoc extends EventEmitter {
 
   private async init_evaluator(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path)
+    const ext = filename_extension(this.path);
     if (ext !== "sagews") {
       dbg("done -- only use init_evaluator for sagews");
       return;
@@ -1398,8 +1399,8 @@ export class SyncDoc extends EventEmitter {
 
   private async init_ipywidgets(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path)
-    if (ext != 'sage-jupyter2') {
+    const ext = filename_extension(this.path);
+    if (ext != "sage-jupyter2") {
       dbg("done -- only use ipywidgets for jupyter");
       return;
     }
@@ -1411,7 +1412,6 @@ export class SyncDoc extends EventEmitter {
     );
     await this.ipywidgets_state.init();
     dbg("done");
-
   }
 
   private async init_cursors(): Promise<void> {
@@ -1478,7 +1478,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state === "closed") {
       return;
     }
-    for (let k of keys) {
+    for (const k of keys) {
       const u = JSON.parse(k);
       if (u == null) {
         continue;
@@ -1872,7 +1872,7 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("handle_offline");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
-    for (let obj of data) {
+    for (const obj of data) {
       if (obj.sent) {
         // CRITICAL: ignore anything already processed! (otherwise, infinite loop)
         continue;
@@ -1890,13 +1890,17 @@ export class SyncDoc extends EventEmitter {
     }
     if (oldest) {
       //dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
-      for (let snapshot_time of this.patch_list.snapshot_times()) {
+      for (const snapshot_time of this.patch_list.snapshot_times()) {
         if (snapshot_time >= oldest) {
           //console.log("recomputing snapshot #{snapshot_time}")
           await this.snapshot(snapshot_time, true);
         }
       }
     }
+  }
+
+  public get_last_save_to_disk_time(): Date {
+    return this.last_save_to_disk_time;
   }
 
   private async handle_syncstring_save_state(
@@ -1915,6 +1919,7 @@ export class SyncDoc extends EventEmitter {
        latex compilation properly in case of a .tex file).
     */
     if (state === "done" && this.syncstring_save_state !== "done") {
+      this.last_save_to_disk_time = time;
       this.emit("save-to-disk", time);
     }
     const dbg = this.dbg("handle_syncstring_save_state");
@@ -2125,9 +2130,7 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
-      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${
-        this.save_to_disk_start_ctime
-      }, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
+      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${this.save_to_disk_start_ctime}, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
     );
     if (
       this.save_to_disk_start_ctime == null ||
@@ -2164,7 +2167,7 @@ export class SyncDoc extends EventEmitter {
     const path = this.path;
     const dbg = this.dbg("load_from_disk");
     dbg();
-    let exists: boolean = await callback2(this.client.path_exists, { path });
+    const exists: boolean = await callback2(this.client.path_exists, { path });
     let size: number;
     if (!exists) {
       dbg("file no longer exists -- setting to blank");
@@ -2576,7 +2579,7 @@ export class SyncDoc extends EventEmitter {
     if (this.patch_update_queue == null) {
       this.patch_update_queue = [];
     }
-    for (let key of changed_keys) {
+    for (const key of changed_keys) {
       this.patch_update_queue.push(key);
     }
 
@@ -2597,7 +2600,7 @@ export class SyncDoc extends EventEmitter {
       while (this.patch_update_queue.length > 0) {
         dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
-        for (let key of this.patch_update_queue) {
+        for (const key of this.patch_update_queue) {
           const x = this.patches_table.get(key);
           if (x != null) {
             // may be null, e.g., when deleted.

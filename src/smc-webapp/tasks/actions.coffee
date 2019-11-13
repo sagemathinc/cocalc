@@ -4,7 +4,7 @@ Task Actions
 
 LAST_EDITED_THRESH_S = 30
 
-WIKI_HELP_URL = "https://doc.cocalc.com/tasks.html"
+TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html"
 
 immutable  = require('immutable')
 underscore = require('underscore')
@@ -334,7 +334,7 @@ class exports.TaskActions extends Actions
             foreground : true
 
     help: =>
-        window.open(WIKI_HELP_URL, "_blank").focus()
+        window.open(TASKS_HELP_URL, "_blank").focus()
 
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)

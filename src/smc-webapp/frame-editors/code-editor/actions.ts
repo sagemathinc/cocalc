@@ -24,7 +24,7 @@ import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
-import { callback_opts } from "smc-util/async-utils";
+import { callback_opts, once } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
@@ -54,8 +54,9 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
+import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 import {
   ext2parser,
   parser2tool,
@@ -109,7 +110,7 @@ export interface CodeEditorState {
   cursors: Map<any, any>;
   value?: string;
   load_time_estimate: number;
-  error: any;
+  error: string;
   errorstyle?: ErrorStyles;
   status: any;
   read_only: boolean;
@@ -117,6 +118,7 @@ export interface CodeEditorState {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   visible: boolean;
+  switch_to_files: string[];
 }
 
 export class Actions<
@@ -130,7 +132,8 @@ export class Actions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  protected terminals: TerminalManager<T>;
+  private terminals: TerminalManager<CodeEditorState>;
+  private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -162,7 +165,12 @@ export class Actions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager<T>(this);
+    this.terminals = new TerminalManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
+    this.code_editors = new CodeEditorManager<CodeEditorState>(
+      (this as unknown) as Actions<CodeEditorState>
+    );
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -460,6 +468,8 @@ export class Actions<
     cm_doc_cache.close(this.project_id, this.path);
     // Free up any allocated terminals.
     this.terminals.close();
+    // Free up stuff related to code editors with different path
+    this.code_editors.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -546,7 +556,7 @@ export class Actions<
     }
     // Set local state related to what we see/search for/etc.
     let local = this.store.get("local_view_state");
-    for (let key in obj) {
+    for (const key in obj) {
       const coerced_key = key as keyof LocalViewParams;
       const value = obj[coerced_key];
       local = local.set(coerced_key, fromJS(value));
@@ -709,7 +719,7 @@ export class Actions<
   // like 'type' or 'font_size'.
   public set_frame_data(obj: object): void {
     const x: any = obj["id"] != null ? { id: obj["id"] } : {};
-    for (let key in obj) {
+    for (const key in obj) {
       if (key === "id") continue;
       x["data-" + key] = obj[key];
     }
@@ -737,7 +747,7 @@ export class Actions<
     // And save this new state to localStorage.
     this._save_local_view_state();
     // Emit new-frame events
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(id);
       if (leaf != null) {
         const type = leaf.get("type");
@@ -751,13 +761,15 @@ export class Actions<
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
-  // NOTE: This is only meant to be used in derived classes right now,
-  // though we have a unit test of it at this level.
+  // NOTE: This is only meant to be used in derived classes right now.
   set_frame_type(id: string, type: string): void {
     // save what is currently the most recent frame of this type.
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
 
-    this.set_frame_tree({ id, type });
+    // default path
+    let path = this.path;
+
+    this.set_frame_tree({ id, type, path });
 
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
@@ -769,6 +781,10 @@ export class Actions<
     if (type != "terminal") {
       this.terminals.close_terminal(id);
     }
+
+    // make sure there is no code editor manager for this frame (those
+    // are only for subframe code editors).
+    this.code_editors.close_code_editor(id);
 
     // Reset the font size for the frame based on recent
     // pref for this type.
@@ -831,6 +847,7 @@ export class Actions<
       delete this._cm[id];
     }
     this.terminals.close_terminal(id);
+    this.code_editors.close_code_editor(id);
     this.close_frame_hook(id, type);
 
     // if id is the current active_id, change to most recent one.
@@ -861,7 +878,7 @@ export class Actions<
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
-    for (let new_id in after) {
+    for (const new_id in after) {
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
         if (!no_focus) {
@@ -1014,6 +1031,16 @@ export class Actions<
     cm.delete_trailing_whitespace({ omit_lines });
   }
 
+  // Will get called when this or any subfile is explicitly saved by the user.
+  // If returns false then normal save happened.  If true, then nothing further.
+  // This is used, e.g., by multifile latex so that explicit save triggers
+  // save of all files and build... when a user option for "build on save"
+  // is enabled.
+  public async explicit_save(): Promise<boolean> {
+    await this.save(true);
+    return false;
+  }
+
   async save(explicit: boolean): Promise<void> {
     if (this.is_public || !this.store.get("is_loaded")) {
       return;
@@ -1050,15 +1077,43 @@ export class Actions<
     }
   }
 
+  // Gets the most recent time of a save; if self_only is false (the default),
+  // then includes any files listed in switch_to_files...
+  public last_save_time(self_only: boolean = false): number {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
+      return 0;
+    }
+    let n = this._syncstring.get_last_save_to_disk_time().valueOf();
+    if (self_only) {
+      return n;
+    }
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      return n;
+    }
+
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      const t = (actions as Actions).last_save_time(true);
+      n = Math.max(n, t);
+    }
+    return n;
+  }
+
   _get_project_actions() {
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(path?: string): void {
-    this._get_project_actions().open_file({
-      path: history_path(path || this.path),
-      foreground: true
-    });
+  time_travel(opts: { path?: string; frame?: boolean }): void {
+    if (opts.frame) {
+      this.show_focused_frame_of_type("time_travel");
+    } else {
+      this._get_project_actions().open_file({
+        path: history_path(opts.path || this.path),
+        foreground: true
+      });
+    }
   }
 
   help(type: string): void {
@@ -1134,25 +1189,21 @@ export class Actions<
   }
 
   set_cm(id: string, cm: CodeMirror.Editor): void {
+    (cm as any).cocalc_actions = this;
+    this._cm[id] = cm;
+    // reference to this actions object, so codemirror plugins
+    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
+    if (len(this._cm) == 1) {
+      // Creating codemirror for the first time -- need to initialize it.
+      this.set_codemirror_to_syncstring();
+    }
+
     const sel =
       this._cm_selections != null ? this._cm_selections[id] : undefined;
     if (sel != null) {
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
-    // reference to this actions object, so codemirror plugins
-    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
-    (cm as any).cocalc_actions = this;
-
-    if (len(this._cm) > 0) {
-      // just making another cm
-      this._cm[id] = cm;
-      return;
-    }
-
-    this._cm[id] = cm;
-    // Creating codemirror for the first time -- need to initialize it.
-    this.set_codemirror_to_syncstring();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1219,7 +1270,10 @@ export class Actions<
     return this._cm[this._active_id()];
   }
 
-  public _get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+  public _get_terminal(
+    id: string,
+    parent: HTMLElement
+  ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
 
@@ -1268,7 +1322,7 @@ export class Actions<
       id = this._get_active_id();
     }
 
-    let cm: CodeMirror.Editor | undefined = this._cm[id];
+    const cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
       // Save that it was focused just now; this is just a quick solution to
       // "give me last active cm" -- we will switch to something
@@ -1309,11 +1363,21 @@ export class Actions<
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring(): void {
-    if (this._syncstring == null) {
+  async set_codemirror_to_syncstring(): Promise<void> {
+    if (
+      this._syncstring == null ||
+      this._state == "closed" ||
+      this._syncstring.get_state() == "closed"
+    ) {
       // no point in doing anything further.
       return;
     }
+
+    if (this._syncstring.get_state() != "ready") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     const cm: CodeMirror.Editor | undefined = this._get_cm(undefined, true);
@@ -1411,8 +1475,23 @@ export class Actions<
   async programmatical_goto_line(
     line: number,
     cursor?: boolean,
-    focus?: boolean
+    focus?: boolean,
+    id?: string // if given scroll this particular frame
   ): Promise<void> {
+    if (this._syncstring == null) {
+      // give up -- don't even have a syncstring...
+      // A derived class that doesn't use a syncstring
+      // might overload programmatical_goto_line to make
+      // sense for whatever it works with.
+      return;
+    }
+    const state = this._syncstring.get_state();
+    if (state == "closed") return;
+    if (state == "init") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     if (line <= 0) {
       /* Lines <= 0 cause an exception in codemirror later.
          If the line number is much larger than the number of lines
@@ -1424,19 +1503,37 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined = this._get_most_recent_cm_id();
-    const full_id: string | undefined = this.store.getIn([
-      "local_view_state",
-      "full_id"
-    ]);
-    if (full_id && full_id != cm_id) {
-      this.unset_frame_full();
-      // have to wait for cm to get created and registered.
-      await delay(1);
-      if (this._state == "closed") return;
+    const cm_id: string | undefined =
+      id == null ? this._get_most_recent_cm_id() : id;
+    if (cm_id && this._get_frame_node(cm_id) != null) {
+      // cm_id defines a frame in the main frame tree associated
+      // to this file (rather than a frame in some other frame tree).
+      const full_id: string | undefined = this.store.getIn([
+        "local_view_state",
+        "full_id"
+      ]);
+      if (full_id && full_id != cm_id) {
+        this.unset_frame_full();
+        // have to wait for cm to get created and registered.
+        await delay(1);
+        if (this._state == "closed") return;
+      }
     }
 
     let cm = this._get_cm(cm_id);
+    // This is ugly -- react will render the frame with the
+    // editor in it, and after that happens the CodeMirror
+    // editor that was created gets registered, and finally
+    // this._get_cm will return it.  We thus keep trying until
+    // we find it (but for way less than a second).  This sort
+    // of crappy code is OK here, since it's just for moving the
+    // buffer to a line.
+    for (let i = 0; cm == null && i < 10; i++) {
+      cm = this._get_cm(cm_id);
+      await delay(25);
+      if (this._state == "closed") return;
+    }
+
     if (cm == null) {
       // this case can only happen in derived classes with non-cm editors.
       this.split_frame("col", this._get_active_id(), "cm");
@@ -1457,18 +1554,24 @@ export class Actions<
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
-    if (cursor) {
-      doc.setCursor(pos);
-    }
     if (focus) {
       cm.focus();
+    }
+    if (cursor) {
+      doc.setCursor(pos);
+      // TODO: this is VERY CRAPPY CODE -- wait after,
+      // so cm gets state/value fully set.
+      await delay(100);
+      if (this._state == "closed") return;
+      doc.setCursor(pos);
+      cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
   }
 
   cut(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      let doc = cm.getDoc();
+      const doc = cm.getDoc();
       copypaste.set_buffer(doc.getSelection());
       doc.replaceSelection("");
       cm.focus();
@@ -1518,13 +1621,14 @@ export class Actions<
       this.setState({ error });
     } else {
       if (typeof error == "object") {
-        let e = (error as any).message;
+        const e = (error as any).message;
         if (e === undefined) {
           let e = JSON.stringify(error);
           if (e === "{}") {
             e = `${error}`;
           }
         }
+        if (typeof e != "string") throw Error("bug"); // make typescript happy
         error = e;
       }
       this.setState({ error });
@@ -1553,21 +1657,25 @@ export class Actions<
     }
   }
 
-  print(id): void {
+  print(id: string): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return; // nothing to print...
     }
-    let node = this._get_frame_node(id);
-    if (!node) {
-      return; // this won't happen but it ensures node is defined for typescript.
-    }
+    const node = this._get_frame_node(id);
+    // NOTE/TODO: There is an "on-purpose" bug right now
+    // where node isn't defined, namely when you make
+    // a subframe code editor.  Then the node would be
+    // in a completely different store (the original frame
+    // for the tab) than where the codemirror editor is.
+    // Thus in case of a subframe code editor, the font size
+    // is always the default when printing.
     try {
       print_code({
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: node.get("font_size")
+        font_size: node != null ? node.get("font_size") : undefined
       });
     } catch (err) {
       this.set_error(err);
@@ -1625,7 +1733,22 @@ export class Actions<
     }
   }
 
-  async format_action(cmd, args): Promise<void> {
+  // Do a formatting action to whatever code editor
+  // is currently active, or the main document if none is
+  // focused or force_main is true.
+  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+    if (!force_main) {
+      const id = this._get_active_id();
+      try {
+        return await this.get_code_editor(id)
+          .get_actions()
+          .format_action(cmd, args, true);
+      } catch (err) {
+        // active frame is not a different code editor, so we fallback
+        // to case below that we want the main doc (if there is one).
+      }
+    }
+
     const cm = this._get_cm(undefined, true);
     if (cm == null) {
       // format bar only makes sense when some cm is there...
@@ -1726,24 +1849,31 @@ export class Actions<
     available_features: AvailableFeatures,
     ext: string
   ): false | string {
-    const formatting = available_features.formatting;
-    // there is no formatting available at all
-    if (!formatting) return false;
+    const formatting = available_features.get("formatting");
+    if (formatting == null || formatting == false) return false;
+    // Now formatting is either "true" or a map itself.
     const parser = ext2parser[ext];
     if (parser == null) return false;
     const tool = parser2tool[parser];
     if (tool == null) return false;
-    if (!formatting[tool]) return false;
+    if (formatting !== true && !formatting.get(tool)) return false;
     return tool;
   }
 
   // Not an action, but works to make code clean
   has_format_support(
     id: string,
-    available_features?: AvailableFeatures
+    available_features?: AvailableFeatures // is in project store
   ): false | string {
-    const cm = this._get_cm(id);
-    if (!cm || available_features == null) return false; // not a code editor or no features
+    if (available_features == null) return false;
+    const leaf = this._get_frame_node(id);
+    if (leaf != null) {
+      // Our default format support is only for
+      // normal code editors.  This can be
+      // overloaded in derived actions, e.g.,
+      // it is in the Jupyter notebook actions.
+      if (leaf.get("type") != "cm") return false;
+    }
     const ext = filename_extension(this.path).toLowerCase();
     const tool = this.format_support_for_extension(available_features, ext);
     if (!tool) return false;
@@ -1753,7 +1883,7 @@ export class Actions<
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
-  async format(id?: string): Promise<void> {
+  async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
 
@@ -1761,6 +1891,16 @@ export class Actions<
       return;
     }
 
+    // Important: this function may be called even if there is no format support,
+    // because it can be called via a keyboard shortcut.  That's why we gracefully
+    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
+    const s = this.redux.getProjectStore(this.project_id);
+    if (s == null) return;
+    // TODO: Using any here since TypeMap is just not working right...
+    const af: any = s.get("available_features");
+    if (!this.has_format_support(id, af)) return;
+
+    // Definitely have format support
     cm.focus();
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
     const parser: FormatterParser = format_parser_for_extension(ext);
@@ -1798,9 +1938,9 @@ export class Actions<
   // in arbitrary order.
   _get_most_recent_active_frame_id(f?: Function): string | undefined {
     if (this._state === "closed") return;
-    let tree = this._get_tree();
+    const tree = this._get_tree();
     for (let i = this._active_id_history.length - 1; i >= 0; i--) {
-      let id = this._active_id_history[i];
+      const id = this._active_id_history[i];
       if (tree_ops.is_leaf_id(tree, id)) {
         if (f === undefined || f(tree_ops.get_node(tree, id))) {
           return id;
@@ -1808,7 +1948,7 @@ export class Actions<
       }
     }
     // now just check for any frame at all.
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       if (f === undefined || f(tree_ops.get_node(tree, id))) {
         return id;
       }
@@ -2021,7 +2161,7 @@ export class Actions<
     if (full_id != null) {
       this.refresh(full_id);
     } else {
-      for (let id in this._get_leaf_ids()) {
+      for (const id in this._get_leaf_ids()) {
         this.refresh(id);
       }
     }
@@ -2137,7 +2277,7 @@ export class Actions<
     if (id == null) {
       throw Error("bug creating frame");
     }
-    let local_view_state = this.store.get("local_view_state");
+    const local_view_state = this.store.get("local_view_state");
     if (local_view_state != null && local_view_state.get("full_id") != id) {
       this.unset_frame_full();
     }
@@ -2152,7 +2292,7 @@ export class Actions<
     first: boolean = false,
     pos: number | undefined = undefined
   ): string {
-    let id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
+    const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
   }
@@ -2161,12 +2301,137 @@ export class Actions<
   public close_recently_focused_frame_of_type(
     type: string
   ): string | undefined {
-    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
-      type
-    );
+    const id:
+      | string
+      | undefined = this._get_most_recent_active_frame_id_of_type(type);
     if (id != null) {
       this.close_frame(id);
       return id;
+    }
+  }
+
+  /*
+  Open a file for editing with the code editor.  This is typically used for
+  opening a path other than this.path for editing.  E.g., this would be useful
+  for editing a tex or bib file associated to a master latex document, or editing
+  some .py code related to a Jupyter notebook.
+
+  - Will show and focus an existing frame if there already is one for this path.
+  - Otherwise, will create a new frame open to edit (using codemirror) the given path.
+
+  Returns the id of the frame with the code editor in it.
+  */
+  public open_code_editor_frame(
+    path: string,
+    dir: FrameDirection = "col",
+    first: boolean = false,
+    pos: number | undefined = undefined
+  ): string {
+    // See if there is already a frame for path, and if so show
+    // display and focus it.
+    for (let id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "cm" &&
+        ((this.path === path && leaf.get("path") == null) || // default
+          leaf.get("path") === path) // existing frame
+      ) {
+        // got it!
+        this.set_active_id(id);
+        return id;
+      }
+    }
+
+    // There is no frame for path, so we create one.
+    // First the easy special case:
+    if (this.path === path) {
+      return this.show_focused_frame_of_type("cm", dir, first, pos);
+    }
+
+    // More difficult case - no such frame and different path
+    const active_id = this._get_active_id();
+    const id = this.split_frame(dir, active_id, "cm", undefined, first, true);
+    if (id == null) {
+      throw Error("BUG -- failed to make frame");
+    }
+    this.set_frame_to_code_editor(id, path);
+
+    if (pos != null) {
+      const parent_id = this.get_parent_id(id);
+      if (parent_id != null) {
+        this.set_frame_tree({ id: parent_id, pos });
+      }
+    }
+    this.set_active_id(id);
+    return id;
+  }
+
+  public async switch_to_file(path: string, id?: string): Promise<string> {
+    if (id != null) {
+      const node = this._get_frame_node(id);
+      if (node == null) return id;
+      if (node.get("path") == path) return id; // already done;
+      // Change it --
+      this.set_frame_to_code_editor(id, path);
+      return id;
+    }
+
+    // Check if there is already a code editor frame with the given path.
+    id = this.get_matching_frame({ path, type: "cm" });
+    if (id) {
+      // found one already
+      this.set_active_id(id);
+      return id;
+    }
+
+    // Focus a cm frame then change its path.
+    id = this.show_focused_frame_of_type("cm");
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error("bug");
+    }
+    if (node.get("path") == path) return id; // already done.
+
+    this.set_frame_to_code_editor(id, path);
+    return id;
+  }
+
+  // Init actions and set our new cm frame to the given path.
+  private set_frame_to_code_editor(id: string, path: string): void {
+    const node = this._get_frame_node(id);
+    if (node == null) throw Error(`no frame with id ${id}`);
+
+    // This call to get_code_editor ensures the
+    // actions/manager is already initialized.  We need
+    // to do this here rather than in the frame-tree render
+    // loop, in order to ensure that the actions aren't created
+    // while rendering, as that causes a state transition which
+    // react does NOT appreciate.
+    this.code_editors.get_code_editor(id, path);
+
+    // Now actually change the path field of the frame tree, which causes
+    // a render.
+    this.set_frame_tree({ id, path, type: "cm" });
+  }
+
+  public get_code_editor(id: string): CodeEditor {
+    return this.code_editors.get_code_editor(id);
+  }
+
+  public get_matching_frame(obj: object): string | undefined {
+    const tree = this._get_tree();
+    for (const id in this._get_leaf_ids()) {
+      const node = tree_ops.get_node(tree, id);
+      if (node == null) continue;
+      let match = true;
+      for (let key in obj) {
+        if (node.get(key) != obj[key]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return id;
     }
   }
 }

@@ -49,9 +49,9 @@ function lean_symbols(cm): any {
   if (cm.getOption("disableInput")) {
     return CodeMirror.Pass;
   }
-  for (let range of cm.listSelections()) {
+  for (const range of cm.listSelections()) {
     const line = range.head.line;
-    for (let sub of substitute_symbols(cm.getLine(line))) {
+    for (const sub of substitute_symbols(cm.getLine(line))) {
       const { replacement, from, to } = sub;
       cm.replaceRange(
         replacement,

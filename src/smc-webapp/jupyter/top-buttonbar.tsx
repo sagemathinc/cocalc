@@ -131,7 +131,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_buttons(names: any) {
     const result: any[] = [];
-    for (let key in names) {
+    for (const key in names) {
       const name = names[key];
       result.push(this.render_button(key, name));
     }

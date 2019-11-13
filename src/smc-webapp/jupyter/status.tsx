@@ -299,7 +299,7 @@ class Kernel0 extends Component<KernelProps> {
       </span>
     );
     return (
-      <Tip title={title} tip={tip} placement="left">
+      <Tip title={title} tip={tip} placement={"leftTop"}>
         {body}
       </Tip>
     );
@@ -354,7 +354,7 @@ class Kernel0 extends Component<KernelProps> {
       </div>
     );
     return (
-      <Tip title="Kernel CPU and Memory Usage" tip={tip} placement="bottom">
+      <Tip title="Kernel CPU and Memory Usage" tip={tip} placement={"bottom"}>
         {this.render_usage_text(cpu, memory, cpu_style, memory_style)}
       </Tip>
     );

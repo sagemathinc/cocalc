@@ -3,7 +3,14 @@ import * as markdown from "../markdown";
 import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
 
 // Internal Libraries
-import { Component, React, ReactDOM, rclass, redux, rtypes } from "../app-framework";
+import {
+  Component,
+  React,
+  ReactDOM,
+  rclass,
+  redux,
+  rtypes
+} from "../app-framework";
 
 // Sibling Libraries
 import * as info from "./info";
@@ -14,9 +21,15 @@ export function init(): void {
   if (redux.hasActions(info.name)) {
     return;
   }
-  redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(info.name, MarkdownWidgetStore);
-  redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(info.name, MarkdownWidgetActions);
-};
+  redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(
+    info.name,
+    MarkdownWidgetStore
+  );
+  redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
+    info.name,
+    MarkdownWidgetActions
+  );
+}
 
 interface ReactProps {
   autoFocus: boolean;
@@ -44,7 +57,10 @@ interface MarkdownInputState {
   value: string;
 }
 
-class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputState> {
+class MarkdownInput0 extends Component<
+  ReactProps & ReduxProps,
+  MarkdownInputState
+> {
   displayName: "WidgetMarkdownInput";
 
   constructor(props) {
@@ -57,7 +73,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       markdown_inputs: {
         open_inputs: rtypes.immutable.Map.isRequired
       }
-    }
+    };
   }
 
   getInitialState = () => {
@@ -75,10 +91,12 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       editing,
       value
     };
-  }
+  };
 
   getActions() {
-    return redux.getActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(info.name)
+    return redux.getActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
+      info.name
+    );
   }
 
   componentDidMount() {
@@ -101,28 +119,28 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  persist_value = (value) => {
+  persist_value = value => {
     if (this.props.persist_id != null) {
       this.getActions().set_value(
         this.props.persist_id,
         value != null ? value : this.state.value
       );
     }
-  }
+  };
 
   clear_persist = () => {
     if (this.props.persist_id != null) {
       this.getActions().clear(this.props.persist_id);
     }
-  }
+  };
 
-  set_value = (value) => {
+  set_value = value => {
     if (typeof this.props.on_change === "function") {
       this.props.on_change(value);
     }
     this.persist_value(value);
     this.setState({ value });
-  }
+  };
 
   edit = () => {
     if (typeof this.props.on_edit === "function") {
@@ -132,7 +150,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       this.setState({ editing: true });
     }
     this.setState({ value: this.props.default_value });
-  }
+  };
 
   cancel = () => {
     if (typeof this.props.on_cancel === "function") {
@@ -142,7 +160,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     if (this.props.editing == null) {
       this.setState({ editing: false });
     }
-  }
+  };
 
   save = () => {
     if (typeof this.props.on_save === "function") {
@@ -152,15 +170,15 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     if (this.props.editing == null) {
       this.setState({ editing: false });
     }
-  }
+  };
 
-  keydown = (e) => {
+  keydown = e => {
     if (e.keyCode === 27) {
       this.cancel();
     } else if (e.keyCode === 13 && e.shiftKey) {
       this.save();
     }
-  }
+  };
 
   to_html = () => {
     if (this.props.default_value) {
@@ -169,7 +187,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     } else {
       return { __html: "" };
     }
-  }
+  };
 
   render() {
     // Maybe there's a better way to fix this.
@@ -241,10 +259,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       }
       return (
         <div>
-          <div
-            dangerouslySetInnerHTML={html}
-            style={style}
-          />
+          <div dangerouslySetInnerHTML={html} style={style} />
           {!this.props.hide_edit_button ? (
             <Button onClick={this.edit}>Edit</Button>
           ) : (

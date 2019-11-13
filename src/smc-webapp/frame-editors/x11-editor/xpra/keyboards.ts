@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 // this is based on /usr/share/X11/xkb/rules/evdev.lst
 // the "keyboard layouts" define the basics, and we assume its pc105 keys
 // regarding "variant", down below are configs and defaults for certain layouts

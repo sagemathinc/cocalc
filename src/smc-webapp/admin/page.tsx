@@ -7,14 +7,15 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 import { SystemNotifications } from "./system-notifications";
 import { AnnouncementEditor } from "./announcements";
 import { UserSearch } from "./users/user-search";
+import { List } from "immutable";
 
-import { User } from "smc-webapp/frame-editors/generic/client";
+import { User } from "./store";
 
 interface ReduxProps {
   user_search_state: "edit" | "running";
   user_search_status: string;
   user_search_query: string;
-  user_search_result: User[];
+  user_search_result: List<User>;
 }
 
 require("./init").init(redux);
@@ -28,7 +29,7 @@ export const AdminPage = rclass(
           user_search_state: rtypes.string,
           user_search_status: rtypes.string,
           user_search_query: rtypes.string,
-          user_search_result: rtypes.object
+          user_search_result: rtypes.immutable.List
         }
       };
     }

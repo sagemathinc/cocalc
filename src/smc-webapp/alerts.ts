@@ -94,14 +94,6 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     last_shown[hash] = server_time();
   }
 
-  if (opts.block == null) {
-    if (opts.type === "error") {
-      opts.block = true;
-    } else {
-      opts.block = false;
-    }
-  }
-
   const f =
     opts.type == "default" ? notification.open : notification[opts.type];
   if (f == null) {

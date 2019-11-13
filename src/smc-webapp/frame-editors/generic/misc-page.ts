@@ -29,5 +29,5 @@ export function language(): string {
     }
   }
 
-  return '';
+  return "";
 }

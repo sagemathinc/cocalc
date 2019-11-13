@@ -3,18 +3,18 @@ Functionality and UI to ensure a user with given email (or account_id) is sync'd
 */
 
 import { Row, Col, FormGroup, FormControl, Button } from "react-bootstrap";
-
+import { List } from "immutable";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { User } from "smc-webapp/frame-editors/generic/client";
-
 import { UserResult } from "./user";
+import { User as UserMap } from "../store";
 
 interface UserSearchProps {
   state: "edit" | "running";
   status: string;
   query: string;
-  result: User[];
+  result: List<UserMap>;
   search: () => void;
   set_query: (value: string) => void;
   clear_status: () => void;
@@ -27,7 +27,7 @@ export class UserSearch extends Component<UserSearchProps> {
   }
 
   temp_test(e): void {
-    this.props.set_query(e.target.value)
+    this.props.set_query(e.target.value);
   }
 
   render_form(): Rendered {
@@ -91,14 +91,13 @@ export class UserSearch extends Component<UserSearchProps> {
   }
 
   render_result(): Rendered[] | Rendered {
-    if (this.props.result.length == 0) {
+    if (this.props.result.size == 0) {
       return <div>No results</div>;
     }
-    let user: User;
-    let v: Rendered[] = [this.render_user_header()];
-    for (user of this.props.result) {
-      v.push(this.render_user(user));
-    }
+    const v: Rendered[] = [this.render_user_header()];
+    this.props.result.forEach(user => {
+      v.push(this.render_user(user.toJS()));
+    });
     return v;
   }
 

@@ -335,7 +335,6 @@ schema.collaborators = {
   }
 };
 
-
 // This table does NOT support changefeeds.
 schema.collaborators_one_project = {
   primary_key: "account_id",
