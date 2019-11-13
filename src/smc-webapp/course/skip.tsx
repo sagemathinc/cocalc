@@ -17,7 +17,7 @@ const { Button } = require("react-bootstrap");
 
 interface SkipCopyProps {
   assignment: AssignmentRecord;
-  step?: string;
+  step: string;
   actions: CourseActions;
   not_done?: number;
 }

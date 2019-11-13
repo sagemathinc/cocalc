@@ -18,7 +18,7 @@ const misc = require("smc-util/misc");
 const progress_info = {
   color: COLORS.GRAY_D,
   marginLeft: "10px",
-  whiteSpace: "nowrap"
+  whiteSpace: "normal"
 };
 
 const progress_info_done = misc.copy(progress_info);
@@ -28,7 +28,7 @@ interface ProgressProps {
   done: number;
   not_done: number;
   step: string;
-  skipped: boolean;
+  skipped?: boolean;
 }
 
 export class Progress extends Component<ProgressProps> {
@@ -71,10 +71,10 @@ export class Progress extends Component<ProgressProps> {
       style = progress_info;
     }
     return (
-      <span style={style}>
+      <div style={style}>
         {this.render_checkbox()}
         {this.render_status()}
-      </span>
+      </div>
     );
   }
 }

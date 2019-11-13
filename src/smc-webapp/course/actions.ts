@@ -34,6 +34,8 @@
 // the Configuration page, and that always resends email invites.
 const EMAIL_REINVITE_DAYS = 6;
 
+import { Map } from "immutable";
+
 // 3rd party libs
 import * as async from "async";
 const markdownlib = require("../markdown");
@@ -43,8 +45,13 @@ import * as misc from "smc-util/misc";
 import { defaults, required } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import { SyncDB } from "smc-util/sync/editor/db/sync";
-import { SyncDBRecord } from "./types";
-require("./types");
+import {
+  AssignmentCopyType,
+  LastAssignmentCopyType,
+  SyncDBRecord,
+  SyncDBRecordAssignment,
+  copy_type_to_last
+} from "./types";
 
 const { webapp_client } = require("../webapp_client");
 
@@ -180,8 +187,6 @@ export class CourseActions extends Actions<CourseState> {
       this
     );
     this._finish_copy = this._finish_copy.bind(this);
-    this._start_copy = this._start_copy.bind(this);
-    this._stop_copy = this._stop_copy.bind(this);
     this.copy_assignment_to_student = this.copy_assignment_to_student.bind(
       this
     );
@@ -199,7 +204,6 @@ export class CourseActions extends Actions<CourseState> {
     this.peer_collect_from_all_students = this.peer_collect_from_all_students.bind(
       this
     );
-    this._action_all_students = this._action_all_students.bind(this);
     this.peer_copy_to_student = this.peer_copy_to_student.bind(this);
     this.peer_collect_from_student = this.peer_collect_from_student.bind(this);
     this.stop_copying_assignment = this.stop_copying_assignment.bind(this);
@@ -363,18 +367,19 @@ export class CourseActions extends Actions<CourseState> {
     this.setState({ unsaved });
   }
 
-  handle_projects_store_update(state) {
+  // important that this be bound...
+  public handle_projects_store_update(state: Map<string, any>): void {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    const users = __guard__(
-      state.getIn(["project_map", store.get("course_project_id"), "users"]),
-      x => x.keySeq()
-    );
-    if (users == null) {
-      return;
-    }
+    let users = state.getIn([
+      "project_map",
+      store.get("course_project_id"),
+      "users"
+    ]);
+    if (users == null) return;
+    users = users.keySeq();
     if (this._last_collaborator_state == null) {
       this._last_collaborator_state = users;
       return;
@@ -386,31 +391,25 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // PUBLIC API
-  set_error(error) {
-    if (error === "") {
-      return this.setState({ error });
-    } else {
-      let left;
-      return this.setState({
-        error: (
-          ((left = __guard__(this.get_store(), x => x.get("error"))) != null
-            ? left
-            : "") +
-          "\n" +
-          error
-        ).trim()
-      });
+
+  // Set the error.  Use error="" to explicitly clear the existing set error.
+  // If there is an error already set, then the new error is just
+  // appended to the existing one.
+  public set_error(error: string): void {
+    if (error != "") {
+      const store = this.get_store();
+      if (store == null) return;
+      if (store.get("error")) {
+        error = `${store.get("error")} ${error}`;
+      }
+      error = error.trim();
     }
+    this.setState({ error });
   }
 
-  set_activity(opts) {
-    opts = defaults(opts, {
-      id: undefined,
-      desc: undefined
-    });
-    if (opts.id == null && opts.desc == null) {
-      return;
-    }
+  public set_activity(
+    opts: { id: number; desc?: string } | { id?: number; desc: string }
+  ): number {
     if (opts.id == null) {
       this._activity_id =
         (this._activity_id != null ? this._activity_id : 0) + 1;
@@ -419,28 +418,26 @@ export class CourseActions extends Actions<CourseState> {
     const store = this.get_store();
     if (store == null) {
       // course was closed
-      return;
+      return -1;
     }
-    let x = __guard__(store.get_activity(), x1 => x1.toJS());
-    if (x == null) {
-      x = {};
-    }
+    let activity: any = store.get_activity();
+    activity = activity == null ? {} : activity.toJS();
     if (opts.desc == null) {
-      delete x[opts.id];
+      delete activity[opts.id];
     } else {
-      x[opts.id] = opts.desc;
+      activity[opts.id] = opts.desc;
       // enable for debugging:
       // console.log(opts.desc);
     }
-    this.setState({ activity: x });
+    this.setState({ activity });
     return opts.id;
   }
 
-  clear_activity(id?) {
+  public clear_activity(id?: number): void {
     if (id != null) {
-      return this.set_activity({ id }); // clears for this id
+      this.set_activity({ id }); // clears for this id since desc not provided
     } else {
-      return this.setState({ activity: {} });
+      this.setState({ activity: {} }); // clear all activity
     }
   }
 
@@ -1089,26 +1086,31 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // start projects of all (non-deleted) students running
-  action_all_student_projects(action) {
-    if (!["start", "stop"].includes(action)) {
-      throw Error("action must be start or stop");
+  public action_all_student_projects(
+    action: "start" | "stop" | "restart"
+  ): void {
+    if (!["start", "stop", "restart"].includes(action)) {
+      // just in case typescript doesn't catch it...
+      throw Error("action must be 'start' or 'stop' or 'restart'");
     }
     this.action_shared_project(action);
 
     // Returns undefined if no store.
     const act_on_student_projects = () => {
-      return __guard__(this.get_store(), x =>
-        x
-          .get_students()
-          .filter(student => {
-            return !student.get("deleted") && student.get("project_id") != null;
-          })
-          .map(student => {
-            return this.redux
-              .getActions("projects")
-              [action + "_project"](student.get("project_id"));
-          })
-      );
+      const store = this.get_store();
+      if (store == null) return;
+      const project_actions = this.redux.getActions("project");
+      if (project_actions == null) return;
+      const f = project_actions[action + "_project"];
+      if (f == null) return;
+      return store
+        .get_students()
+        .filter(student => {
+          return !student.get("deleted") && student.get("project_id") != null;
+        })
+        .map(student => {
+          return f(student.get("project_id"));
+        });
     };
     if (!act_on_student_projects()) {
       return;
@@ -1131,7 +1133,7 @@ export class CourseActions extends Actions<CourseState> {
       // Anyway this is just nuts, but whatever. It needs to be rewritten.
       const clear_state = () => {
         window.clearInterval(this.prev_interval_id);
-        return this.setState({ action_all_projects_state: "any" });
+        this.setState({ action_all_projects_state: "any" });
       };
 
       this.prev_interval_id = window.setInterval(
@@ -1148,7 +1150,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async run_in_all_student_projects(
+  public async run_in_all_student_projects(
     command: string,
     args?: string[],
     timeout?: number,
@@ -1343,7 +1345,7 @@ export class CourseActions extends Actions<CourseState> {
       // currently running already.
       return;
     }
-    let id: string = "";
+    let id: number = -1;
     try {
       this.setState({ configuring_projects: true });
       id = this.set_activity({
@@ -1357,11 +1359,11 @@ export class CourseActions extends Actions<CourseState> {
       for (const student_id of ids) {
         if (this.is_closed()) return;
         i += 1;
-        const id = this.set_activity({
+        const id1: number = this.set_activity({
           desc: `Configuring student project ${i} of ${ids.length}`
         });
         await this.configure_project(student_id, false, undefined, force);
-        this.set_activity({ id });
+        this.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
       } // always re-invite students on running this.
       await this.configure_shared_project();
@@ -1680,73 +1682,81 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  private set_assignment_field(assignment, name, val): void {
+  private set_assignment_field(
+    assignment: string | AssignmentRecord,
+    name,
+    val
+  ): void {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    assignment = store.get_assignment(assignment);
+    const assignment_id: string =
+      typeof assignment == "string"
+        ? assignment
+        : assignment.get("assignment_id");
     this.set({
       [name]: val,
       table: "assignments",
-      assignment_id: assignment.get("assignment_id")
+      assignment_id
     });
   }
 
-  set_due_date(assignment, due_date) {
+  public set_due_date(
+    assignment: string | AssignmentRecord,
+    due_date: Date | string
+  ): void {
     if (typeof due_date !== "string") {
-      due_date = due_date != null ? due_date.toISOString() : undefined; // using strings instead of ms for backward compatibility.
+      due_date = due_date.toISOString(); // using strings instead of ms for backward compatibility.
     }
-    return this.set_assignment_field(assignment, "due_date", due_date);
+    this.set_assignment_field(assignment, "due_date", due_date);
   }
 
-  set_assignment_note(assignment, note) {
-    return this.set_assignment_field(assignment, "note", note);
+  public set_assignment_note(
+    assignment: string | AssignmentRecord,
+    note: string
+  ): void {
+    this.set_assignment_field(assignment, "note", note);
   }
 
-  set_peer_grade(assignment, config) {
-    let left;
-    const cur =
-      (left = __guard__(assignment.get("peer_grade"), x => x.toJS())) != null
-        ? left
-        : {};
+  public set_peer_grade(assignment: string | AssignmentRecord, config): void {
+    const store = this.get_store();
+    if (store == null) return;
+    const a = store.get_assignment(assignment);
+    if (a == null) return;
+    let cur: any = a.get("peer_grade");
+    cur = cur == null ? {} : cur.toJS();
     for (const k in config) {
       const v = config[k];
       cur[k] = v;
     }
-    return this.set_assignment_field(assignment, "peer_grade", cur);
+    this.set_assignment_field(a.get("assignment_id"), "peer_grade", cur);
   }
 
-  set_skip(assignment, step, value) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    assignment = store.get_assignment(assignment); // just in case is an id
-    return this.set_assignment_field(
-      assignment.get("assignment_id"),
-      `skip_${step}`,
-      !!value
-    );
+  public set_skip(
+    assignment: string | AssignmentRecord,
+    step: string,
+    value: boolean
+  ): void {
+    this.set_assignment_field(assignment, "skip_" + step, value);
   }
 
   // Synchronous function that makes the peer grading map for the given
   // assignment, if it hasn't already been made.
-  update_peer_assignment(assignment) {
-    let left;
+  public update_peer_assignment(assignment: string | AssignmentRecord) {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    assignment = store.get_assignment(assignment);
-    const peers = assignment.getIn(["peer_grade", "map"]);
+    const a = store.get_assignment(assignment);
+    if (a == null) return;
+    const peers = a.getIn(["peer_grade", "map"]);
     if (peers != null) {
       return peers.toJS();
     }
-    const N =
-      (left = assignment.getIn(["peer_grade", "number"])) != null ? left : 1;
+    const N = a.getIn(["peer_grade", "number"], 1);
     const map = misc.peer_grading(store.get_student_ids(), N);
-    this.set_peer_grade(assignment, { map });
+    this.set_peer_grade(a, { map });
     return map;
   }
 
@@ -1758,16 +1768,19 @@ export class CourseActions extends Actions<CourseState> {
   //    assignment.last_collect[student_id] = {time:?, error:err}
   //
   // where time >= now is the current time in milliseconds.
-  copy_assignment_from_student(assignment, student) {
-    if (this._start_copy(assignment, student, "last_collect")) {
+  private async copy_assignment_from_student(
+    assignment_id: string,
+    student_id: string
+  ): Promise<void> {
+    if (this.start_copy(assignment_id, student_id, "last_collect")) {
       return;
     }
     const id = this.set_activity({ desc: "Copying assignment from a student" });
     const finish = err => {
       this.clear_activity(id);
-      this._finish_copy(assignment, student, "last_collect", err);
+      this._finish_copy(assignment_id, student_id, "last_collect", err);
       if (err) {
-        return this.set_error(`copy from student: ${err}`);
+        this.set_error(`copy from student: ${err}`);
       }
     };
     const store = this.get_store();
@@ -1775,54 +1788,53 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     if (!this._store_is_initialized()) {
-      return finish("store not yet initialized");
+      finish("store not yet initialized");
+      return;
     }
-    if (!(student = store.get_student(student))) {
-      return finish("no student");
+    const student = store.get_student(student_id);
+    if (student == null) {
+      finish("no student");
+      return;
     }
-    if (!(assignment = store.get_assignment(assignment))) {
-      return finish("no assignment");
+    const assignment = store.get_assignment(assignment_id);
+    if (assignment == null) {
+      finish("no assignment");
+      return;
     }
     const student_name = store.get_student_name(student);
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       // nothing to do
-      return this.clear_activity(id);
-    } else {
-      const target_path =
-        assignment.get("collect_path") + "/" + student.get("student_id");
-      this.set_activity({
-        id,
-        desc: `Copying assignment from ${student_name}`
+      this.clear_activity(id);
+      return;
+    }
+    const target_path =
+      assignment.get("collect_path") + "/" + student.get("student_id");
+    this.set_activity({
+      id,
+      desc: `Copying assignment from ${student_name}`
+    });
+    try {
+      await callback2(webapp_client.copy_path_between_projects, {
+        src_project_id: student_project_id,
+        src_path: assignment.get("target_path"),
+        target_project_id: store.get("course_project_id"),
+        target_path,
+        overwrite_newer: true,
+        backup: true,
+        delete_missing: false,
+        exclude_history: false
       });
-      return async.series(
-        [
-          cb => {
-            return webapp_client.copy_path_between_projects({
-              src_project_id: student_project_id,
-              src_path: assignment.get("target_path"),
-              target_project_id: store.get("course_project_id"),
-              target_path,
-              overwrite_newer: true,
-              backup: true,
-              delete_missing: false,
-              exclude_history: false,
-              cb
-            });
-          },
-          cb => {
-            // write their name to a file
-            const name = store.get_student_name(student, true);
-            return webapp_client.write_text_file_to_project({
-              project_id: store.get("course_project_id"),
-              path: target_path + `/STUDENT - ${name.simple}.txt`,
-              content: `This student is ${name.full}.`,
-              cb
-            });
-          }
-        ],
-        finish
-      );
+      // write their name to a file
+      const name = store.get_student_name(student, true);
+      await callback2(webapp_client.write_text_file_to_project, {
+        project_id: store.get("course_project_id"),
+        path: target_path + `/STUDENT - ${name.simple}.txt`,
+        content: `This student is ${name.full}.`
+      });
+      finish("");
+    } catch (err) {
+      finish(err);
     }
   }
 
@@ -1834,30 +1846,39 @@ export class CourseActions extends Actions<CourseState> {
   //
   // where time >= now is the current time in milliseconds.
 
-  return_assignment_to_student(assignment, student) {
-    let left;
-    if (this._start_copy(assignment, student, "last_return_graded")) {
+  private async return_assignment_to_student(
+    assignment_id: string,
+    student_id: string
+  ): void {
+    if (this.start_copy(assignment_id, student_id, "last_return_graded")) {
       return;
     }
-    const id = this.set_activity({ desc: "Returning assignment to a student" });
+    const id: number = this.set_activity({
+      desc: "Returning assignment to a student"
+    });
     const finish = err => {
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_return_graded", err);
       if (err) {
-        return this.set_error(`return to student: ${err}`);
+        this.set_error(`return to student: ${err}`);
       }
     };
     const store = this.get_store();
     if (store == null || !this._store_is_initialized()) {
-      return finish("store not yet initialized");
+      finish("store not yet initialized");
+      return;
     }
-    const grade = store.get_grade(assignment, student);
-    const comments = store.get_comments(assignment, student);
-    if (!(student = store.get_student(student))) {
-      return finish("no student");
+    const grade = store.get_grade(assignment_id, student_id);
+    const comments = store.get_comments(assignment_id, student_id);
+    const student = store.get_student(student_id);
+    if (student == null) {
+      finish("no such student");
+      return;
     }
-    if (!(assignment = store.get_assignment(assignment))) {
-      return finish("no assignment");
+    const assignment = store.get_assignment(assignment_id);
+    if (assignment == null) {
+      finish("no such assignment");
+      return;
     }
     const student_name = store.get_student_name(student);
     const student_project_id = student.get("project_id");
@@ -1865,93 +1886,83 @@ export class CourseActions extends Actions<CourseState> {
     // if skip_grading is true, this means there *might* no be a "grade" given,
     // but instead some grading inside the files or an external tool is used.
     // therefore, only create the grade file if this is false.
-    const skip_grading =
-      (left = assignment.get("skip_grading")) != null ? left : false;
+    const skip_grading = assignment.get("skip_grading", false);
 
     if (student_project_id == null) {
       // nothing to do
-      return this.clear_activity(id);
+      this.clear_activity(id);
+      return;
+    }
+
+    let peer_graded;
+    this.set_activity({
+      id,
+      desc: `Returning assignment to ${student_name}`
+    });
+    let src_path = assignment.get("collect_path");
+    if (assignment.getIn(["peer_grade", "enabled"])) {
+      peer_graded = true;
+      src_path += "-peer-grade/";
     } else {
-      let peer_graded;
-      this.set_activity({
-        id,
-        desc: `Returning assignment to ${student_name}`
-      });
-      let src_path = assignment.get("collect_path");
-      if (assignment.getIn(["peer_grade", "enabled"])) {
-        peer_graded = true;
-        src_path += "-peer-grade/";
+      peer_graded = false;
+    }
+    src_path += `/${student.get("student_id")}`;
+    let content;
+    if (skip_grading && !peer_graded) {
+      content =
+        "Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.";
+    } else {
+      if (grade != null || peer_graded) {
+        content = "Your grade on this assignment:";
       } else {
-        peer_graded = false;
+        content = "";
       }
-      src_path += `/${student.get("student_id")}`;
-      return async.series(
-        [
-          cb => {
-            let content;
-            if (skip_grading && !peer_graded) {
-              content =
-                "Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.";
-            } else {
-              if (grade != null || peer_graded) {
-                content = "Your grade on this assignment:";
-              } else {
-                content = "";
-              }
-            }
-            // write their grade to a file
-            if (grade != null) {
-              // likely undefined when skip_grading true & peer_graded true
-              content += `\n\n    ${grade}`;
-              if (comments != null) {
-                content += `\n\nInstructor comments:\n\n${comments}`;
-              }
-            }
-            if (peer_graded) {
-              content += `\
+    }
+    // write their grade to a file
+    if (grade != null) {
+      // likely undefined when skip_grading true & peer_graded true
+      content += `\n\n    ${grade}`;
+      if (comments != null) {
+        content += `\n\nInstructor comments:\n\n${comments}`;
+      }
+    }
+    if (peer_graded) {
+      content += `\
 \n\n\nPEER GRADED:\n
 Your assignment was peer graded by other students.
 You can find the comments they made in the folders below.\
 `;
-            }
-            return webapp_client.write_text_file_to_project({
-              project_id: store.get("course_project_id"),
-              path: src_path + "/GRADE.md",
-              content,
-              cb
-            });
-          },
-          cb => {
-            return webapp_client.copy_path_between_projects({
-              src_project_id: store.get("course_project_id"),
-              src_path,
-              target_project_id: student_project_id,
-              target_path: assignment.get("graded_path"),
-              overwrite_newer: true,
-              backup: true,
-              delete_missing: false,
-              exclude_history: true,
-              cb
-            });
-          },
-          cb => {
-            if (peer_graded) {
-              // Delete GRADER file
-              return webapp_client.exec({
-                project_id: student_project_id,
-                command: "rm ./*/GRADER*.txt",
-                timeout: 60,
-                bash: true,
-                path: assignment.get("graded_path"),
-                cb
-              });
-            } else {
-              return cb(null);
-            }
-          }
-        ],
-        finish
-      );
+    }
+
+    try {
+      await callback2(webapp_client.write_text_file_to_project, {
+        project_id: store.get("course_project_id"),
+        path: src_path + "/GRADE.md",
+        content
+      });
+      await callback2(webapp_client.copy_path_between_projects, {
+        src_project_id: store.get("course_project_id"),
+        src_path,
+        target_project_id: student_project_id,
+        target_path: assignment.get("graded_path"),
+        overwrite_newer: true,
+        backup: true,
+        delete_missing: false,
+        exclude_history: true
+      });
+      if (peer_graded) {
+        // Delete GRADER file
+        await callback2(webapp_client.exec, {
+          project_id: student_project_id,
+          command: "rm ./*/GRADER*.txt",
+          timeout: 60,
+          bash: true,
+          path: assignment.get("graded_path")
+        });
+      }
+      finish("");
+    } catch (err) {
+      finish(err);
     }
   }
 
@@ -1976,7 +1987,7 @@ You can find the comments they made in the folders below.\
       return error("no assignment");
     }
     let errors = "";
-    const peer = __guard__(assignment.get("peer_grade"), x => x.get("enabled"));
+    const peer = assignment.getIn(["peer_grade", "enabled"]);
     const skip_grading =
       (left = assignment.get("skip_grading")) != null ? left : false;
     const f = (student_id, cb) => {
@@ -2036,9 +2047,8 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  _finish_copy(assignment, student, type, err) {
+  _finish_copy(assignment, student, type, err): void {
     if (student != null && assignment != null) {
-      let left;
       const store = this.get_store();
       if (store == null) {
         return;
@@ -2049,78 +2059,73 @@ You can find the comments they made in the folders below.\
         table: "assignments",
         assignment_id: assignment.get("assignment_id")
       };
-      const x =
-        (left = __guard__(this.get_one(obj), x1 => x1[type])) != null
-          ? left
-          : {};
+      const a = this.get_one(obj);
+      if (a == null) return;
+      const x = a[type] ? a[type] : {};
       const student_id = student.get("student_id");
       x[student_id] = { time: misc.mswalltime() };
       if (err) {
         x[student_id].error = err;
       }
       obj[type] = x;
-      return this.set(obj);
+      this.set(obj);
     }
   }
 
   // This is called internally before doing any copy/collection operation
   // to ensure that we aren't doing the same thing repeatedly, and that
   // everything is in place to do the operation.
-  _start_copy(assignment, student, type) {
-    if (student != null && assignment != null) {
-      let left, left1;
-      const store = this.get_store();
-      if (store == null) {
-        return;
-      }
-      student = store.get_student(student);
-      assignment = store.get_assignment(assignment);
-      const obj = {
-        table: "assignments",
-        assignment_id: assignment.get("assignment_id")
-      };
-      const x =
-        (left = __guard__(this.get_one(obj), x1 => x1[type])) != null
-          ? left
-          : {};
-      const y = (left1 = x[student.get("student_id")]) != null ? left1 : {};
-      if (y.start != null && webapp_client.server_time() - y.start <= 15000) {
-        return true; // never retry a copy until at least 15 seconds later.
-      }
-      y.start = misc.mswalltime();
-      x[student.get("student_id")] = y;
-      obj[type] = x;
-      this.set(obj);
+  private start_copy(
+    assignment_id: string,
+    student_id: string,
+    type: LastAssignmentCopyType
+  ): boolean {
+    const store = this.get_store();
+    if (store == null) return false;
+    const student = store.get_student(student_id);
+    if (student == null) return false;
+    const assignment = store.get_assignment(assignment_id);
+    if (assignment == null) return false;
+    const obj: SyncDBRecordAssignment = {
+      table: "assignments",
+      assignment_id: assignment.get("assignment_id")
+    };
+    const assignment_latest = this.get_one(obj);
+    if (assignment_latest == null) return false; // assignment gone
+    let x = assignment_latest[type];
+    if (x == null) x = {};
+    let y = x[student.get("student_id")];
+    if (y == null) y = {};
+    if (y.start != null && webapp_client.server_time() - y.start <= 15000) {
+      return true; // never retry a copy until at least 15 seconds later.
     }
+    y.start = misc.mswalltime();
+    x[student.get("student_id")] = y;
+    obj[type] = x;
+    this.set(obj);
     return false;
   }
 
-  _stop_copy(assignment, student, type) {
-    if (student != null && assignment != null) {
-      const store = this.get_store();
-      if (store == null) {
-        return;
-      }
-      student = store.get_student(student);
-      assignment = store.get_assignment(assignment);
-      const obj = {
-        table: "assignments",
-        assignment_id: assignment.get("assignment_id")
-      };
-      const x = __guard__(this.get_one(obj), x1 => x1[type]);
-      if (x == null) {
-        return;
-      }
-      const y = x[student.get("student_id")];
-      if (y == null) {
-        return;
-      }
-      if (y.start != null) {
-        delete y.start;
-        x[student.get("student_id")] = y;
-        obj[type] = x;
-        return this.set(obj);
-      }
+  private stop_copy(
+    assignment_id: string,
+    student_id: string,
+    type: LastAssignmentCopyType
+  ): void {
+    const obj: SyncDBRecordAssignment = {
+      table: "assignments",
+      assignment_id
+    };
+    const a = this.get_one(obj);
+    if (a == null) return;
+    const x = a[type];
+    if (x == null) return;
+    const y = x[student_id];
+    if (y == null) return;
+    if (y.start != null) {
+      delete y.start;
+      x[student_id] = y;
+      obj[type] = x;
+      this.set(obj);
     }
   }
 
@@ -2134,13 +2139,13 @@ You can find the comments they made in the folders below.\
   //    assignment.last_assignment[student_id] = {time:?, error:err}
   //
   // where time >= now is the current time in milliseconds.
-  copy_assignment_to_student(assignment, student, opts) {
+  private copy_assignment_to_student(assignment, student, opts) {
     const { overwrite, create_due_date_file } = defaults(opts, {
       overwrite: false,
       create_due_date_file: false
     });
 
-    if (this._start_copy(assignment, student, "last_assignment")) {
+    if (this.start_copy(assignment, student, "last_assignment")) {
       return;
     }
     const id = this.set_activity({ desc: "Copying assignment to a student" });
@@ -2148,18 +2153,21 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_assignment", err);
       if (err) {
-        return this.set_error(`copy to student: ${err}`);
+        this.set_error(`copy to student: ${err}`);
       }
     };
     let store = this.get_store();
     if (store == null || !this._store_is_initialized()) {
-      return finish("store not yet initialized");
+      finish("store not yet initialized");
+      return;
     }
     if (!(student = store.get_student(student))) {
-      return finish("no student");
+      finish("no student");
+      return;
     }
     if (!(assignment = store.get_assignment(assignment))) {
-      return finish("no assignment");
+      finish("no assignment");
+      return;
     }
 
     const student_name = store.get_student_name(student);
@@ -2227,7 +2235,7 @@ You can find the comments they made in the folders below.\
         }
       ],
       err => {
-        return finish(err);
+        finish(err);
       }
     );
   }
@@ -2270,24 +2278,34 @@ You can find the comments they made in the folders below.\
     });
   }
 
-  copy_assignment(type, assignment_id, student_id) {
-    // type = assigned, collected, graded
+  public copy_assignment(
+    type: AssignmentCopyType,
+    assignment_id: string,
+    student_id: string
+  ): void {
+    // type = assigned, collected, graded, peer-assigned, peer-collected
     switch (type) {
       case "assigned":
         // create_due_date_file = true
-        return this.copy_assignment_to_student(assignment_id, student_id, {
+        this.copy_assignment_to_student(assignment_id, student_id, {
           create_due_date_file: true
         });
+        return;
       case "collected":
-        return this.copy_assignment_from_student(assignment_id, student_id);
+        this.copy_assignment_from_student(assignment_id, student_id);
+        return;
       case "graded":
-        return this.return_assignment_to_student(assignment_id, student_id);
+        this.return_assignment_to_student(assignment_id, student_id);
+        return;
       case "peer-assigned":
-        return this.peer_copy_to_student(assignment_id, student_id);
+        this.peer_copy_to_student(assignment_id, student_id);
+        return;
       case "peer-collected":
-        return this.peer_collect_from_student(assignment_id, student_id);
+        this.peer_collect_from_student(assignment_id, student_id);
+        return;
       default:
-        return this.set_error(`copy_assignment -- unknown type: ${type}`);
+        this.set_error(`copy_assignment -- unknown type: ${type}`);
+        return;
     }
   }
 
@@ -2308,10 +2326,10 @@ You can find the comments they made in the folders below.\
       },
       () => {
         // by default, doesn't create the due file
-        return this._action_all_students(
+        this.action_all_students(
           assignment,
           new_only,
-          this.copy_assignment_to_student,
+          this.copy_assignment_to_student.bind(this),
           "assignment",
           desc,
           short_desc,
@@ -2327,7 +2345,7 @@ You can find the comments they made in the folders below.\
       new_only ? "from whom we have not already copied it" : ""
     }`;
     const short_desc = "copy from student";
-    return this._action_all_students(
+    this.action_all_students(
       assignment,
       new_only,
       this.copy_assignment_from_student,
@@ -2342,7 +2360,7 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received their copy" : ""
     }`;
     const short_desc = "copy to student for peer grading";
-    return this._action_all_students(
+    this.action_all_students(
       assignment,
       new_only,
       this.peer_copy_to_student,
@@ -2357,7 +2375,7 @@ You can find the comments they made in the folders below.\
       new_only ? "from whom we have not already copied it" : ""
     }`;
     const short_desc = "copy peer grading from students";
-    return this._action_all_students(
+    this.action_all_students(
       assignment,
       new_only,
       this.peer_collect_from_student,
@@ -2367,31 +2385,34 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  _action_all_students(
+  private action_all_students(
     assignment,
     new_only,
-    action,
+    action: (assignment_id: string, student_id: string, opts: any) => void,
     step,
     desc,
     short_desc,
     overwrite?
-  ) {
+  ): void {
     const id = this.set_activity({ desc });
     const error = err => {
       this.clear_activity(id);
       err = `${short_desc}: ${err}`;
-      return this.set_error(err);
+      this.set_error(err);
     };
     const store = this.get_store();
     if (store == null || !this._store_is_initialized()) {
-      return error("store not yet initialized");
+      error("store not yet initialized");
+      return;
     }
     if (!(assignment = store.get_assignment(assignment))) {
-      return error("no assignment");
+      error("no assignment");
+      return;
     }
     let errors = "";
-    const peer = __guard__(assignment.get("peer_grade"), x => x.get("enabled"));
+    const peer = assignment.getIn(["peer_grade", "enabled"]);
     const prev_step = previous_step(step, peer);
+    const assignment_id = assignment.get("assignment_id");
     const f = (student_id, cb) => {
       if (
         prev_step != null &&
@@ -2405,7 +2426,7 @@ You can find the comments they made in the folders below.\
         return;
       }
       const n = misc.mswalltime();
-      action(assignment, student_id, { overwrite });
+      action(assignment_id, student_id, { overwrite });
       return store.wait({
         timeout: 60 * 15,
         until: () => store.last_copied(step, assignment, student_id) >= n,
@@ -2418,7 +2439,7 @@ You can find the comments they made in the folders below.\
       });
     };
 
-    return async.mapLimit(
+    async.mapLimit(
       store.get_student_ids({ deleted: false }),
       PARALLEL_LIMIT,
       f,
@@ -2435,8 +2456,7 @@ You can find the comments they made in the folders below.\
   // Copy the collected folders from some students to the given student for peer grading.
   // Assumes folder is non-empty
   peer_copy_to_student(assignment, student) {
-    let left;
-    if (this._start_copy(assignment, student, "last_peer_assignment")) {
+    if (this.start_copy(assignment, student, "last_peer_assignment")) {
       return;
     }
     const id = this.set_activity({ desc: "Copying peer grading to a student" });
@@ -2477,10 +2497,10 @@ You can find the comments they made in the folders below.\
 
     const student_project_id = student.get("project_id");
 
-    let guidelines =
-      (left = assignment.getIn(["peer_grade", "guidelines"])) != null
-        ? left
-        : "Please grade this assignment.";
+    let guidelines: string = assignment.getIn(
+      ["peer_grade", "guidelines"],
+      "Please grade this assignment."
+    );
     const due_date = assignment.getIn(["peer_grade", "due_date"]);
     if (due_date != null) {
       guidelines =
@@ -2546,7 +2566,7 @@ You can find the comments they made in the folders below.\
   // Collect all the peer graading of the given student (not the work the student did, but
   // the grading about the student!).
   peer_collect_from_student(assignment, student) {
-    if (this._start_copy(assignment, student, "last_peer_collect")) {
+    if (this.start_copy(assignment, student, "last_peer_collect")) {
       return;
     }
     const id = this.set_activity({
@@ -2641,25 +2661,12 @@ You can find the comments they made in the folders below.\
 
   // This doesn't really stop it yet, since that's not supported by the backend.
   // It does stop the spinner and let the user try to restart the copy.
-  stop_copying_assignment(type, assignment_id, student_id) {
-    switch (type) {
-      case "assigned":
-        type = "last_assignment";
-        break;
-      case "collected":
-        type = "last_collect";
-        break;
-      case "graded":
-        type = "last_return_graded";
-        break;
-      case "peer-assigned":
-        type = "last_peer_assignment";
-        break;
-      case "peer-collected":
-        type = "last_peer_collect";
-        break;
-    }
-    return this._stop_copy(assignment_id, student_id, type);
+  public stop_copying_assignment(
+    assignment_id: string,
+    student_id: string,
+    type: AssignmentCopyType
+  ): void {
+    this.stop_copy(assignment_id, student_id, copy_type_to_last(type));
   }
 
   open_assignment(type, assignment_id, student_id) {
@@ -2769,31 +2776,30 @@ You can find the comments they made in the folders below.\
     this.set_handout_field(handout, "note", note);
   }
 
-  private handout_finish_copy(handout, student, err): void {
-    if (student != null && handout != null) {
-      let left;
-      const store = this.get_store();
-      if (store == null) {
-        return;
-      }
-      student = store.get_student(student);
-      handout = store.get_handout(handout);
-      const obj = {
-        table: "handouts",
-        handout_id: handout.get("handout_id")
-      };
-      const status_map =
-        (left = __guard__(this.get_one(obj), x => x.status)) != null
-          ? left
-          : {};
-      const student_id = student.get("student_id");
-      status_map[student_id] = { time: misc.mswalltime() };
-      if (err) {
-        status_map[student_id].error = err;
-      }
-      (obj as any).status = status_map;
-      this.set(obj);
+  private handout_finish_copy(handout, student, err: string): void {
+    const store = this.get_store();
+    if (store == null) {
+      return;
     }
+    student = store.get_student(student);
+    handout = store.get_handout(handout);
+    if (student == null || handout == null) return;
+    const obj = {
+      table: "handouts",
+      handout_id: handout.get("handout_id")
+    };
+    const h = this.get_one(obj);
+    if (h == null) return;
+    const status_map: {
+      [student_id: string]: { time?: number; error?: string };
+    } = h.status ? h.status : {};
+    const student_id = student.get("student_id");
+    status_map[student_id] = { time: misc.mswalltime() };
+    if (err) {
+      status_map[student_id].error = err;
+    }
+    (obj as any).status = status_map;
+    this.set(obj);
   }
 
   // returns false if an actual copy starts and true if not (since we
@@ -2842,19 +2848,17 @@ You can find the comments they made in the folders below.\
       student = store.get_student(student);
       handout = store.get_handout(handout);
       const obj = { table: "handouts", handout_id: handout.get("handout_id") };
-      const status = __guard__(this.get_one(obj), x => x.status);
-      if (status == null) {
-        return;
-      }
+      const h = this.get_one(obj);
+      if (h == null) return;
+      const status = h.status;
+      if (status == null) return;
       const student_status = status[student.get("student_id")];
-      if (student_status == null) {
-        return;
-      }
+      if (student_status == null) return;
       if (student_status.start != null) {
         delete student_status.start;
         status[student.get("student_id")] = student_status;
         (obj as any).status = status;
-        return this.set(obj);
+        this.set(obj);
       }
     }
   }
@@ -3026,10 +3030,4 @@ You can find the comments they made in the folders below.\
     // Now open it
     return this.redux.getProjectActions(proj).open_directory(path);
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

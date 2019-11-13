@@ -260,10 +260,10 @@ export class StudentAssignmentInfo extends Component<
   };
 
   stop = (type, assignment_id, student_id) => {
-    return this.get_actions().stop_copying_assignment(
-      type,
+    this.get_actions().stop_copying_assignment(
       assignment_id,
-      student_id
+      student_id,
+      type
     );
   };
 

@@ -29,7 +29,7 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 const { webapp_client } = require("../webapp_client");
 
 // React libraries
@@ -72,7 +72,7 @@ import {
 } from "./store";
 import { CourseActions } from "./actions";
 import { ReactElement } from "react";
-const {
+import {
   DateTimePicker,
   Icon,
   LabeledRow,
@@ -81,11 +81,12 @@ const {
   Space,
   Tip,
   NumberInput
-} = require("../r_misc");
+} from "../r_misc";
 
 import { WindowedList } from "../r_misc/windowed-list";
 
-const { STEPS, step_direction, step_verb, step_ready } = util;
+import { STEPS, step_direction, step_verb, step_ready } from "./util";
+
 import {
   BigTime,
   FoldersToolbar,
@@ -93,10 +94,8 @@ import {
   StudentAssignmentInfoHeader
 } from "./common";
 
-const { Progress } = require("./progress");
-//import { Progress } from "./progress";
-const { SkipCopy } = require("./skip");
-//import { SkipCopy } from "./skip";
+import { Progress } from "./progress";
+import { SkipCopy } from "./skip";
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;

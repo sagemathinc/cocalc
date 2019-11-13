@@ -168,7 +168,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               bsStyle="warning"
               onClick={() => {
                 this.setState({ confirm_stop_all_projects: false });
-                return this.get_actions().action_all_student_projects("stop");
+                this.get_actions().action_all_student_projects("stop");
               }}
             >
               <Icon name="hand-stop-o" /> Stop all
@@ -197,7 +197,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               bsStyle="primary"
               onClick={() => {
                 this.setState({ confirm_start_all_projects: false });
-                return this.get_actions().action_all_student_projects("start");
+                this.get_actions().action_all_student_projects("start");
               }}
             >
               <Icon name="flash" /> Start all

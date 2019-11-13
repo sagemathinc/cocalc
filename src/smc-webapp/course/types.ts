@@ -3,6 +3,7 @@ export interface SyncDBRecordBase {
 }
 
 export interface SyncDBRecordSettings {
+  table: string;
   upgrade_goal?: object;
   allow_collabs?: boolean;
   shared_project_id?: string;
@@ -10,6 +11,7 @@ export interface SyncDBRecordSettings {
 }
 
 export interface SyncDBRecordAssignment {
+  table: string;
   assignment_id?: string;
   note?: string;
   description?: string;
@@ -21,10 +23,13 @@ export interface SyncDBRecordAssignment {
   collect_path?: string;
   graded_path?: string;
   target_path?: string;
-  status?: { [string_id: string]: { start?: number } };
+  status?: {
+    [string_id: string]: { start?: number; time?: number; error?: string };
+  };
 }
 
 export interface SyncDBRecordHandout {
+  table: string;
   handout_id?: string;
   note?: string;
   description?: string;
@@ -33,6 +38,7 @@ export interface SyncDBRecordHandout {
 }
 
 export interface SyncDBRecordStudent {
+  table: string;
   student_id?: string;
   account_id?: string;
   email_invite?: string;
@@ -50,3 +56,35 @@ export type SyncDBRecord = SyncDBRecordBase &
   SyncDBRecordAssignment &
   SyncDBRecordHandout &
   SyncDBRecordStudent;
+
+export type LastAssignmentCopyType =
+  | "last_collect"
+  | "last_return_graded"
+  | "last_assignment"
+  | "last_peer_assignment"
+  | "last_peer_collect";
+
+export type AssignmentCopyType =
+  | "assigned"
+  | "collected"
+  | "graded"
+  | "peer-assigned"
+  | "peer-collected";
+
+export function copy_type_to_last(
+  type: AssignmentCopyType
+): LastAssignmentCopyType {
+  switch (type) {
+    case "assigned":
+      return "last_assignment";
+    case "collected":
+      return "last_collect";
+    case "graded":
+      return "last_return_graded";
+    case "peer-assigned":
+      return "last_peer_assignment";
+    case "peer-collected":
+      return "last_peer_collect";
+  }
+  throw Error("type error"); // should be unreachable.
+}

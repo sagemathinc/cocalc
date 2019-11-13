@@ -67,7 +67,11 @@ export type AssignmentRecord = TypedMap<{
   deleted: boolean;
   due_date: Date;
   path: string;
-  peer_grade?: { enabled: boolean; due_date: number };
+  peer_grade?: {
+    enabled: boolean;
+    due_date: number;
+    map: { [student_id: string]: string[] };
+  };
   note: string;
   last_assignment: {
     time?: number;
@@ -459,11 +463,13 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  get_assignment(assignment) {
-    // return assignment with given id if a string; otherwise, just return assignment (the input)
+  public get_assignment(
+    assignment: string | AssignmentRecord
+  ): AssignmentRecord | undefined {
+    // return assignment with given id if a string; otherwise, just return
+    // the latest version of the assignment as stored in the store.
     if (typeof assignment !== "string") {
-      assignment =
-        assignment != null ? assignment.get("assignment_id") : undefined;
+      assignment = assignment.get("assignment_id");
     }
     return this.getIn(["assignments", assignment]);
   }
