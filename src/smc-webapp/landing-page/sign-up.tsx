@@ -107,6 +107,7 @@ export class SignUp extends React.Component<Props, State> {
         <FormControl
           type={"text"}
           placeholder={"Enter the secret token"}
+          cocalc-test={"sign-up-token"}
           onChange={e => this.setState({ user_token: e.target.value })}
         />
       </FormGroup>
@@ -117,6 +118,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <FormGroup style={{ fontSize: "12pt", margin: "20px" }}>
         <Checkbox
+          cocalc-test={"sign-up-tos"}
           onChange={e => this.setState({ terms_checkbox: e.target.checked })}
         >
           <TermsOfService />
@@ -136,6 +138,7 @@ export class SignUp extends React.Component<Props, State> {
           type="text"
           autoFocus={false}
           placeholder="First name"
+          cocalc-test={"sign-up-first-name"}
           maxLength={120}
         />
       </FormGroup>
@@ -153,6 +156,7 @@ export class SignUp extends React.Component<Props, State> {
           type="text"
           autoFocus={false}
           placeholder="Last name"
+          cocalc-test={"sign-up-last-name"}
           maxLength={120}
         />
       </FormGroup>
@@ -169,6 +173,7 @@ export class SignUp extends React.Component<Props, State> {
           ref="email"
           type="email"
           placeholder="Email address"
+          cocalc-test={"sign-up-email"}
           maxLength={254}
         />
       </FormGroup>
@@ -185,6 +190,7 @@ export class SignUp extends React.Component<Props, State> {
           ref="password"
           type="password"
           placeholder="Choose a password"
+          cocalc-test={"sign-up-password"}
           maxLength={64}
         />
       </FormGroup>
@@ -234,6 +240,7 @@ export class SignUp extends React.Component<Props, State> {
         bsStyle={"success"}
         bsSize={"large"}
         type={"submit"}
+        cocalc-test={"sign-up-submit"}
         block
       >
         {this.props.signing_up ? <Icon name="spinner" spin /> : undefined} Sign

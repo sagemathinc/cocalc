@@ -13,8 +13,10 @@ import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignme
 
 import { JupyterActions } from "./browser-actions";
 
+import { PROMPT_MIN_WIDTH } from "./prompt";
+
 const STYLE = {
-  marginLeft: "127px",
+  marginLeft: PROMPT_MIN_WIDTH,
   display: "flex",
   background: "#eee",
   border: "1px solid rgb(247, 247, 247)"

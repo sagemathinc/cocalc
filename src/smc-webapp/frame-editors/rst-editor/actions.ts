@@ -55,7 +55,7 @@ export class Actions extends CodeEditorActions {
 
   print(id: string): void {
     const node = this._get_frame_node(id);
-    if(!node) return;
+    if (!node) return;
     const type = node.get("type");
     if (type === "cm") {
       super.print(id);

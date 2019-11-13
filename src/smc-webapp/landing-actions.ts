@@ -16,7 +16,7 @@
  */
 
 import { redux, Actions, Store } from "./app-framework";
-import * as LS from "misc/local-storage";
+import * as LS from "./misc/local-storage";
 import { analytics_event } from "./tracker";
 import { QueryParams } from "./misc_page2";
 import { uuid } from "smc-util/misc2";
@@ -42,7 +42,11 @@ class LandingActionsStore extends Store<LaunchData> {}
 
 class LandingActions<LaunchData> extends Actions<LaunchData> {}
 
-redux.createStore(NAME, LandingActionsStore, {});
+redux.createStore<LaunchData, LandingActionsStore>(
+  NAME,
+  LandingActionsStore,
+  {}
+);
 const actions = redux.createActions(NAME, LandingActions);
 
 function launch_share(launch: string): void {
@@ -58,7 +62,7 @@ async function launch_custom_software_image(launch: string): Promise<void> {
 
   const custom_software_table = await retry_until_success({
     f: async () => {
-      let cst = redux.getTable(CUSTOM_SOFTWARE_NAME);
+      const cst = redux.getTable(CUSTOM_SOFTWARE_NAME);
       if (cst == null)
         throw new Error("custom software table not yet available...");
       // what is this doing?
@@ -77,12 +81,12 @@ async function launch_custom_software_image(launch: string): Promise<void> {
   // this is mimicing what's going on in projects/create-project.tsx
   const actions = await retry_until_success({
     f: async () => {
-      let projects_table = redux.getTable("projects");
+      const projects_table = redux.getTable("projects");
       if (projects_table == null)
         throw new Error("Projects Table not yet available...");
       // what is this doing?
       await once(projects_table._table, "connected");
-      let actions = redux.getActions("projects");
+      const actions = redux.getActions("projects");
       if (actions == null)
         throw new Error("Projects Actions not yet available...");
       return actions;

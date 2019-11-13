@@ -22,7 +22,7 @@ export async function get_kernel_data(): Promise<any> {
   const ks = await findAll();
   kernel_data = { kernelspecs: ks };
   const v: any[] = [];
-  for (let kernel in kernel_data.kernelspecs) {
+  for (const kernel in kernel_data.kernelspecs) {
     const value = kernel_data.kernelspecs[kernel];
     v.push({
       name: kernel,

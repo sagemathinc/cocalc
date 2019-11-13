@@ -17,7 +17,7 @@ import { EditorFunctions } from "../../../jupyter/codemirror-editor";
 
 import { isEqual } from "lodash";
 
-declare var DEBUG: boolean;
+declare let DEBUG: boolean;
 
 export class NotebookFrameActions {
   private frame_tree_actions: JupyterEditorActions;
@@ -54,7 +54,11 @@ export class NotebookFrameActions {
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(this.jupyter_actions, this, this.frame_tree_actions);
+    this.commands = commands(
+      this.jupyter_actions,
+      this,
+      this.frame_tree_actions
+    );
   }
 
   public set_windowed_list_ref(windowed_list_ref) {
@@ -95,7 +99,7 @@ export class NotebookFrameActions {
     const cell_list = this.jupyter_actions.store.get("cell_list").toArray();
     let computed: number = 0;
     let index: number = 0;
-    for (let id0 of cell_list) {
+    for (const id0 of cell_list) {
       if (id0 == id) break;
       computed += windowed_list.row_height(index);
       index += 1;
@@ -221,7 +225,11 @@ export class NotebookFrameActions {
 
   public enable_key_handler(): void {
     if (this.key_handler == null) {
-      this.key_handler = create_key_handler(this.jupyter_actions, this, this.frame_tree_actions);
+      this.key_handler = create_key_handler(
+        this.jupyter_actions,
+        this,
+        this.frame_tree_actions
+      );
     }
     this.frame_tree_actions.set_active_key_handler(this.key_handler);
   }
@@ -270,7 +278,7 @@ export class NotebookFrameActions {
     // for whatever reason, any running of a cell deselects
     // in official jupyter
     this.unselect_all_cells();
-    for (let id of v) {
+    for (const id of v) {
       const save = id === v[v.length - 1]; // save only last one.
       this.run_cell(id, save);
     }
@@ -293,7 +301,7 @@ export class NotebookFrameActions {
   }
 
   /***
-   * TODO: organize this stuff:
+   * TODO: better organize this code below:
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
@@ -306,6 +314,7 @@ export class NotebookFrameActions {
         this.set_md_cell_editing(cur_id);
       }
     }
+    this.enable_key_handler();
     this.setState({ mode });
   }
 
@@ -534,6 +543,7 @@ export class NotebookFrameActions {
   }
 
   unregister_input_editor(id: string): void {
+    if (this.input_editors == null) return;
     delete this.input_editors[id];
   }
 
@@ -630,7 +640,7 @@ export class NotebookFrameActions {
     if (selected.length === 0) {
       return;
     }
-    let id: string = this.store.get("cur_id");
+    const id: string = this.store.get("cur_id");
     this.move_cursor_after(selected[selected.length - 1]);
     if (this.store.get("cur_id") === id) {
       this.move_cursor_before(selected[0]);
@@ -700,13 +710,13 @@ export class NotebookFrameActions {
   }
 
   public toggle_source_hidden(): void {
-    for (let id in this.store.get_selected_cell_ids()) {
+    for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(id, "source_hidden");
     }
   }
 
   public toggle_outputs_hidden(): void {
-    for (let id in this.store.get_selected_cell_ids()) {
+    for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(
         id,
         "outputs_hidden"
@@ -737,16 +747,6 @@ export class NotebookFrameActions {
   }
 
   public toggle_write_protection_on_selected_cells(): void {
-    // also make sure to switch to escape mode and eval markdown cells
-    /*
-    this.set_mode("escape");
-    const f = id => {
-      const type = this.store.getIn(["cells", id, "cell_type"]);
-      if (type === "markdown") {
-        return this.set_md_cell_not_editing(id);
-      }
-    };
-*/
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
   }
@@ -898,7 +898,7 @@ export class NotebookFrameActions {
   }
 
   public refresh(): void {
-    for (let id in this.input_editors) {
+    for (const id in this.input_editors) {
       this.input_editors[id].refresh();
     }
   }

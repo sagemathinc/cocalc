@@ -131,7 +131,7 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
   if (typeof path != "string") {
     throw Error("path must be a string");
   }
-  let opts = { path, ephemeral: COCALC_EPHEMERAL_STATE };
+  const opts = { path, ephemeral: COCALC_EPHEMERAL_STATE };
   let type: string = "";
 
   let doctype = s.get("doctype");
@@ -142,7 +142,7 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
       doctype = {};
     }
     if (doctype.opts != null) {
-      for (let k in doctype.opts) {
+      for (const k in doctype.opts) {
         opts[k] = doctype.opts[k];
       }
     }

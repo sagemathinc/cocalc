@@ -16,7 +16,11 @@ import { React, Redux, redux } from "../../app-framework";
 
 let BLOCKED: boolean | undefined = undefined;
 
-export function popup(url: string, width:number=800, height:number=640): any {
+export function popup(
+  url: string,
+  width: number = 800,
+  height: number = 640
+): any {
   const w: any = window.open(
     url,
     "_blank",
@@ -50,10 +54,12 @@ interface PrintOptions {
 
 export function print_html(opts: PrintOptions): void {
   if (!opts.src) opts.src = "";
-  let w: any = popup(opts.src);
+  const w: any = popup(opts.src);
   if (opts.src == "") {
     if (!opts.project_id || !opts.path) {
-      throw Error("BUG project_id and path must be specified if src not given.");
+      throw Error(
+        "BUG project_id and path must be specified if src not given."
+      );
     }
     write_content(w, opts);
   }
@@ -96,10 +102,7 @@ function write_content(w, opts: PrintOptions): void {
   w.document.close();
 }
 
-function html_with_deps(
-  html: string,
-  title: string
-): string {
+function html_with_deps(html: string, title: string): string {
   return `\
 <html lang="en">
     <head>
@@ -117,8 +120,8 @@ function html_with_deps(
 
         <link
             rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/katex@0.11.0/dist/katex.min.css"
-            integrity="sha384-BdGj8xC2eZkQaxoQ8nSLefg4AV4/AwB3Fj+8SUSo7pnKP6Eoy18liIKTPn9oBYNG"
+            href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"
+            integrity="sha256-V8SV2MO1FUb63Bwht5Wx9x6PVHNa02gv8BgH/uH3ung="
             crossorigin="anonymous" />
 
     </head>

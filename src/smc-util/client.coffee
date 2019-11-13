@@ -513,6 +513,7 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
+                @_signed_in_time = new Date().valueOf()
                 misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
                 #console.log("signed_in", mesg)
@@ -1054,9 +1055,10 @@ class exports.Connection extends EventEmitter
             title       : required
             description : required
             image       : undefined
+            start       : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, image:opts.image)
+            message: message.create_project(title:opts.title, description:opts.description, image:opts.image, start:opts.start)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -1448,23 +1450,18 @@ class exports.Connection extends EventEmitter
             cb           : (err) =>
 
         @call
+            error_event : true
             message : message.invite_collaborator(
                 project_id   : opts.project_id
                 account_id   : opts.account_id
                 title        : opts.title
-                link2proj    : opts.link2pr
+                link2proj    : opts.link2proj
                 replyto      : opts.replyto
                 replyto_name : opts.replyto_name
                 email        : opts.email
                 subject      : opts.subject
             )
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else if result.event == 'error'
-                    opts.cb(result.error)
-                else
-                    opts.cb(undefined, result)
+            cb      : opts.cb
 
     project_remove_collaborator: (opts) =>
         opts = defaults opts,
@@ -1988,6 +1985,7 @@ class exports.Connection extends EventEmitter
             standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
             cb      : undefined
+        # console.log("QUERY ", JSON.stringify(opts.query))
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
@@ -2001,7 +1999,21 @@ class exports.Connection extends EventEmitter
                 standby : opts.standby
                 cb      : (err, resp) =>
                     if err == 'not signed in'
-                        @_set_signed_out()
+                        if new Date().valueOf() - @_signed_in_time >= 60000
+                            # If you did NOT recently sign in, and you're
+                            # getting this error, we sign you out.  Right
+                            # when you first sign in, you might get this
+                            # error because the cookie hasn't been set
+                            # in your browser yet and you're doing a POST
+                            # request to do a query thinking you are fully
+                            # signed in.  The root cause
+                            # of this is that it's tricky for both the frontend
+                            # and the backend
+                            # to know when the REMEMBER_ME cookie has finished
+                            # being set in the browser since it is not
+                            # visible to Javascript.
+                            # See https://github.com/sagemathinc/cocalc/issues/2204
+                            @_set_signed_out()
                         opts.cb?(err, resp)
                         return
                     if not err or not opts.standby

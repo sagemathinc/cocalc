@@ -29,7 +29,7 @@ export class DirectoryListing extends Component<DirectoryListingProps> {
   private render_listing(): Rendered[] {
     let i = 0;
     const v: Rendered[] = [];
-    for (let file of this.props.files) {
+    for (const file of this.props.files) {
       if (!this.props.hidden && file.name[0] === ".") {
         continue;
       }

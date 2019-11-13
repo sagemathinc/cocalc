@@ -158,16 +158,11 @@ export function setup_analytics_js(
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
     dbg(
-      `/analytics.js GET analytics_cookie='${
-        req.cookies[analytics_cookie_name]
-      }'`
+      `/analytics.js GET analytics_cookie='${req.cookies[analytics_cookie_name]}'`
     );
     if (req.cookies[analytics_cookie_name]) {
       // cache for 6 hours
-      res.header(
-        "Cache-Control",
-        `private, max-age=${6 * 60 * 60}`
-      );
+      res.header("Cache-Control", `private, max-age=${6 * 60 * 60}`);
       res.write("// NOOP");
       res.end();
       return;

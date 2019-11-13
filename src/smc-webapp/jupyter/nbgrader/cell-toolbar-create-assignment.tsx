@@ -34,13 +34,15 @@ import {
 const OPTIONS_CODE: Rendered[] = [];
 const OPTIONS_NOTCODE: Rendered[] = [];
 
-for (let x of CELLTYPE_INFO_LIST) {
+for (const x of CELLTYPE_INFO_LIST) {
   const option = (
     <option key={x.value} value={x.value}>
       {x.title}
     </option>
   );
-  OPTIONS_CODE.push(option);
+  if (!x.markdown_only) {
+    OPTIONS_CODE.push(option);
+  }
   if (!x.code_only) {
     OPTIONS_NOTCODE.push(option);
   }

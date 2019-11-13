@@ -84,6 +84,8 @@ That way, the hub can send down the URL to the jupyter server (there is no webap
 
 // So we can require coffeescript code.
 require("coffeescript/register");
+// So we can require Typescript code.
+require("ts-node").register();
 
 let cleanWebpackPlugin,
   entries,
@@ -135,6 +137,21 @@ const BUILD_TS = date.getTime();
 const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 
+// If True, do not run typescript compiler at all. Fast,
+// but obviously less safe.  This is designed for use, e.g.,
+// when trying to do a quick production build in an emergency,
+// when we already know the typescript all works.
+const TS_TRANSPILE_ONLY = process.env.TS_TRANSPILE_ONLY;
+
+// When building the static page or if the user explicitly sets
+// an env variable, we do not want to use the forking typescript
+// module instead.
+const DISABLE_TS_LOADER_OPTIMIZATIONS =
+  !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS ||
+  PRODMODE ||
+  STATICPAGES ||
+  TS_TRANSPILE_ONLY;
+
 // create a file base_url to set a base url
 const { BASE_URL } = misc_node;
 
@@ -165,6 +182,10 @@ console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
 console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
 console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
+console.log(`TS_TRANSPILE_ONLY= ${TS_TRANSPILE_ONLY}`);
+console.log(
+  `DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`
+);
 
 // mathjax version → symlink with version info from package.json/version
 if (CDN_BASE_URL != null) {
@@ -353,7 +374,7 @@ for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
       template: path.join(INPUT, fn_in),
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       PREFIX: fn_in === "index.pug" ? "" : "../"
     })
   );
@@ -385,7 +406,7 @@ for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
+      SCHEMA: require("smc-util/schema-static"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"
@@ -416,6 +437,7 @@ for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
       inject: "head",
       minify: htmlMinifyOpts,
       GOOGLE_ANALYTICS,
+      SCHEMA: require("smc-util/schema"),
       hash: PRODMODE,
       BASE_URL: base_url_html,
       PREFIX: "../"
@@ -485,9 +507,6 @@ if (COMP_ENV) {
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  minimize: true,
-  discardComments: { removeAll: true },
-  mergeLonghand: true,
   sourceMap: false
 });
 
@@ -563,7 +582,41 @@ if (STATICPAGES) {
     ],
     "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
   };
+
   plugins = plugins.concat([mainApp, singleApp, mathjaxVersionedSymlink]);
+
+  if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
+    console.log("Enabling ForkTsCheckerWebpackPlugin...");
+    if (process.env.TSC_WATCHDIRECTORY == null || process.env.TSC_WATCHFILE) {
+      console.log(
+        "To workaround performance issues with the default typescript watch, we set TSC_WATCH* env vars:"
+      );
+      // See https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
+      // This one seems to work well; others miss changes:
+      process.env.TSC_WATCHFILE = "UseFsEventsOnParentDirectory";
+      // Using "RecursiveDirectoryUsingFsWatchFile" for the directory is very inefficient on CoCalc.
+      process.env.TSC_WATCHDIRECTORY =
+        "RecursiveDirectoryUsingDynamicPriorityPolling";
+    }
+
+    const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+    plugins.push(
+      new ForkTsCheckerWebpackPlugin({
+        // async false makes it much easy to see the error messages and
+        // be aware of when compilation is done,
+        // but is slower because it has to wait before showing them.
+        // We still benefit from parallel computing though.
+        // We could change this to async if there were some
+        // better way to display that output is pending and that it appeared...
+        // NOTE: it is very important to do
+        //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
+        // in package.json's watch. See
+        //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
+        async: false,
+        measureCompilationTime: true
+      })
+    );
+  }
 }
 
 if (DEVMODE) {
@@ -659,31 +712,65 @@ module.exports = {
 
   module: {
     rules: [
-      {
-        test: /pnotify.*\.js$/,
-        use: "imports-loader?define=>false,global=>window"
-      },
       { test: /\.coffee$/, loader: "coffee-loader" },
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
-      // Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
-      // It just kind of does its own thing. See tsconfig.json for further congiration.
-      { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
-      { test: /\.ts$/, loader: "ts-loader" },
+      // Note: see https://github.com/TypeStrong/ts-loader/issues/552
+      // for discussion of issues with ts-loader + webpack.
+      {
+        test: /\.tsx?$/,
+        use: {
+          loader: "ts-loader",
+          options:
+            TS_TRANSPILE_ONLY || DISABLE_TS_LOADER_OPTIMIZATIONS
+              ? { transpileOnly: TS_TRANSPILE_ONLY } // run as normal or not at all
+              : {
+                  // do not run typescript checker in same process...
+                  transpileOnly: !STATICPAGES,
+                  experimentalWatchApi: true
+                }
+        }
+      },
       {
         test: /\.less$/,
-        use: ["style-loader", "css-loader", `less-loader?${cssConfig}`]
-      },
-      {
-        test: /\.scss$/,
-        use: ["style-loader", "css-loader", `sass-loader?${cssConfig}`]
-      },
-      {
-        test: /\.sass$/,
         use: [
           "style-loader",
-          "css-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
+          `less-loader?${cssConfig}`
+        ]
+      },
+      {
+        test: /\.scss$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
+          `sass-loader?${cssConfig}`
+        ]
+      },
+      {
+        test: /\.sass$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2
+            }
+          },
+          "postcss-loader",
           `sass-loader?${cssConfig}&indentedSyntax`
         ]
       },
@@ -710,7 +797,19 @@ module.exports = {
         loader: `file-loader?name=${hashname}`
       },
       // ---
-      { test: /\.css$/, use: ["style-loader", `css-loader?${cssConfig}`] },
+      {
+        test: /\.css$/i,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 1
+            }
+          },
+          "postcss-loader"
+        ]
+      },
       { test: /\.pug$/, loader: "pug-loader" }
     ]
   },
@@ -735,6 +834,8 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
+      path.resolve(__dirname, "cocalc-ui"),
+      path.resolve(__dirname, "cocalc-ui/node_modules"),
       path.resolve(__dirname, "node_modules")
     ]
   },

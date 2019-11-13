@@ -186,7 +186,7 @@ Page = rclass
             {@render_menu() if (@state.show_menu and (@props.fullscreen != 'kiosk'))}
             {### Children must define their own padding from navbar and screen borders ###}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true} kiosk_mode={@props.fullscreen == 'kiosk'}/>
             </ErrorBoundary>
         </div>
 

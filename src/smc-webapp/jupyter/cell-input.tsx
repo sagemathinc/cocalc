@@ -6,7 +6,7 @@ declare const $: any;
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
-import { Button } from "react-bootstrap";
+import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";
 const { Markdown } = require("../r_misc");
 import { Icon } from "../r_misc/icon";
@@ -131,6 +131,13 @@ export class CellInput extends Component<CellInputProps> {
     );
   }
 
+  private handle_upload_click(): void {
+    if (this.props.actions == null) {
+      return;
+    }
+    this.props.actions.insert_image(this.props.id);
+  }
+
   private handle_md_double_click(): void {
     if (this.props.frame_actions == null) {
       return;
@@ -195,12 +202,14 @@ export class CellInput extends Component<CellInputProps> {
       return;
     }
     return (
-      <Button
-        onClick={this.handle_md_double_click.bind(this)}
-        style={{ float: "right" }}
-      >
-        <Icon name="edit" /> Edit
-      </Button>
+      <ButtonGroup style={{ float: "right" }}>
+        <Button onClick={this.handle_md_double_click.bind(this)}>
+          <Icon name="edit" /> Edit
+        </Button>
+        <Button onClick={this.handle_upload_click.bind(this)}>
+          <Icon name="image" />
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -360,6 +369,7 @@ export class CellInput extends Component<CellInputProps> {
             flexDirection: "row",
             alignItems: "stretch"
           }}
+          cocalc-test="cell-input"
         >
           {this.render_input_prompt(type)}
           {this.render_complete()}

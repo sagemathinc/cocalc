@@ -16,26 +16,17 @@ let sale2 = sale1.set("name", "Mocha");
 For more information see "app-framework/examples/"
 */
 import { Map } from "immutable";
+import { TypedCollectionMethods } from "./immutable-types";
 
-export interface TypedMap<TProps> {
+export interface TypedMap<TProps extends Record<string, any>>
+  extends TypedCollectionMethods<TProps> {
   size: number;
 
   // Reading values
   has(key: string): boolean;
 
-  /**
-   * Returns the value associated with the provided key, which may be the
-   * default value defined when creating the Record factory function.
-   *
-   * If the requested key is not defined by this Record type, then
-   * notSetValue will be returned if provided. Note that this scenario would
-   * produce an error when using Flow or TypeScript.
-   */
-  get<K extends keyof TProps>(key: K): TProps[K];
-
   // Reading deep values
   hasIn(keyPath: Iterable<any>): boolean;
-  getIn(keyPath: Iterable<any>): any;
 
   // Value equality
   equals(other: any): boolean;
@@ -116,13 +107,25 @@ export interface TypedMap<TProps> {
    * @see `Map#asImmutable`
    */
   asImmutable(): this;
+
+  [Symbol.iterator](): IterableIterator<[keyof TProps, TProps[keyof TProps]]>;
+
+  filter(fn: (predicate) => boolean): this;
+  some: Map<string, any>["some"];
 }
 
-interface TypedMapFactory<TProps extends Object> {
+interface TypedMapFactory<TProps extends Record<string, any>> {
   new (values: TProps): TypedMap<TProps>;
 }
 
-export function createTypedMap<OuterProps>(
+export function typedMap<TProps extends object>(
+  defaults: Partial<TProps> = {}
+): TypedMap<TProps> {
+  // Add `& readonly TProps` to enable property access?
+  return Map(defaults) as any;
+}
+
+export function createTypedMap<OuterProps extends Record<string, any>>(
   defaults?: Partial<
     OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps
   >
@@ -134,9 +137,11 @@ export function createTypedMap<OuterProps>(
     default_map = Map(defaults as any);
   }
 
-  type TProps = OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps;
+  type TProps = OuterProps extends TypedMap<infer InnerProps>
+    ? InnerProps
+    : OuterProps;
 
-  class _TypedMap {
+  class OldTypedMap {
     private data: any;
 
     constructor(TProps: TProps) {
@@ -162,16 +167,21 @@ export function createTypedMap<OuterProps>(
      * notSetValue will be returned if provided. Note that this scenario would
      * produce an error when using Flow or TypeScript.
      */
-    get<K extends keyof TProps>(key: K): TProps[K] {
-      return this.data.get(key);
+    get<K extends keyof TProps>(key: K): TProps[K];
+    get<K extends keyof TProps, NSV>(key: K, notSetValue: NSV): NonNullable<TProps[K]> | NSV;
+    get<K extends keyof TProps, NSV>(
+      key: K,
+      notSetValue?: NSV
+    ): TProps[K] | NSV {
+      return this.data.get(key, notSetValue);
     }
 
     // Reading deep values
     hasIn(keyPath: Iterable<any>): boolean {
       return this.data.hasIn(keyPath);
     }
-    getIn(keyPath: Iterable<any>): any {
-      return this.data.getIn(keyPath);
+    getIn(keyPath: Iterable<any>, notSetValue?: any): any {
+      return this.data.getIn(keyPath, notSetValue);
     }
 
     // Value equality
@@ -305,5 +315,5 @@ export function createTypedMap<OuterProps>(
     }
   }
 
-  return _TypedMap as any;
+  return OldTypedMap as any;
 }

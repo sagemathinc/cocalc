@@ -19,14 +19,14 @@ const STUBS: { [language: string]: string[] } = {
   markdown: ["YOUR ANSWER HERE"]
 };
 
-const begin_solution_delimeter = "BEGIN SOLUTION";
+const begin_solution_delimiter = "BEGIN SOLUTION";
 
-const end_solution_delimeter = "END SOLUTION";
+const end_solution_delimiter = "END SOLUTION";
 
 /*
 replace_solution_region --
 Find a region in the cell's input that is delimeted by
-`begin_solution_delimeter` and `end_solution_delimeter` (e.g.
+`begin_solution_delimiter` and `end_solution_delimiter` (e.g.
 ### BEGIN SOLUTION and ### END SOLUTION). Replace that region either
 with the code stub or text stub, depending the cell type.
 
@@ -49,9 +49,9 @@ function replace_solution_region(
   let in_solution: boolean = false;
   let replaced_solution: boolean = false;
 
-  for (let line of lines) {
+  for (const line of lines) {
     // begin the solution area
-    if (line.indexOf(begin_solution_delimeter) != -1) {
+    if (line.indexOf(begin_solution_delimiter) != -1) {
       // check to make sure this isn't a nested BEGIN SOLUTION region
       if (in_solution)
         throw Error("encountered nested begin solution statements");
@@ -62,11 +62,11 @@ function replace_solution_region(
       // replace it with the stub, preserving leading whitespace
       const v = line.match(/\s*/);
       const indent: string = v != null ? v[0] : "";
-      for (let stub_line of stub_lines) new_lines.push(indent + stub_line);
+      for (const stub_line of stub_lines) new_lines.push(indent + stub_line);
     }
 
     // end the solution area
-    else if (line.indexOf(end_solution_delimeter) != -1) {
+    else if (line.indexOf(end_solution_delimiter) != -1) {
       in_solution = false;
     }
     // add lines as long as it's not in the solution area
@@ -97,7 +97,7 @@ export function clear_solution(
   const input = cell.get("input");
   if (typeof input != "string") return cell;
   const cell_type = cell.get("cell_type", "code");
-  let language: string = cell_type === "code" ? kernel_language : "markdown";
+  const language: string = cell_type === "code" ? kernel_language : "markdown";
   const input2: string | undefined = replace_solution_region(input, language);
   return input2 != null ? cell.set("input", input2) : cell;
 }

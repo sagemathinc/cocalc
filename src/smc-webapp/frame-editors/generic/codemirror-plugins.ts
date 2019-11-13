@@ -24,12 +24,11 @@ declare module "codemirror" {
       cb?: Function; // called after done; if there is a dialog, this could be a while.
     }): void;
 
-    insertCompletion(item: string) : void;
+    insertCompletion(item: string): void;
   }
 }
 
-
-CodeMirror.defineExtension('insertCompletion', function(item : string) : void {
+CodeMirror.defineExtension("insertCompletion", function(item: string): void {
   const cm = this;
   const cursor = cm.getCursor();
   console.log("insertCompletion", cursor, item);

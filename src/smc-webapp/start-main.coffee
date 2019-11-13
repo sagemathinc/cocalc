@@ -1,5 +1,5 @@
 ###
-Complete 100% top-level react rewrite of CoCalc.
+# Global app initialization
 ###
 
 fullscreen = require('./fullscreen')
@@ -18,7 +18,7 @@ init_buttonbars()
 # Initialize server stats redux store
 require('./redux_server_stats')
 
-# Systemwide notifications that are broadcast to all users (or set by admins)
+# Systemwide notifications that are broadcast to all users (and set by admins)
 require('./system_notifications')
 
 require('./landing-actions')
@@ -26,17 +26,22 @@ require('./landing-actions')
 # Makes some things work. Like the save button
 require('./jquery_plugins')
 
+###
 # Initialize app stores, actions, etc.
+###
 require('./init_app')
+require('./account').init(redux)
+require('./webapp-hooks')
 
-# Initialize the account store.
-require('./account')
-
-notifications = require('./notifications')
 if not fullscreen.COCALC_MINIMAL
+    notifications = require('./notifications')
     notifications.init(redux)
 
 require('./widget-markdown-input/main').init(redux)
+
+# only enable iframe comms in minimal kiosk mode
+if fullscreen.COCALC_MINIMAL
+    require('./iframe-communication').init()
 
 # Feature must be loaded before account and anything that might use cookies or localStorage,
 # but after app-framework and the basic app definition.
@@ -53,7 +58,7 @@ else
 
 $(window).on('beforeunload', redux.getActions('page').check_unload)
 
-# Should be loaded last -- this checks the url and opens up the relevant page, etc.
+# Should be loaded last
 require('./last')
 
 require('./crash')

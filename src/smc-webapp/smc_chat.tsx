@@ -39,11 +39,8 @@ import { MentionList } from "./chat/store";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-const { SearchInput, TimeAgo } = require("./r_misc");
 
-import { Icon } from "./r_misc/icon";
-import { Loading } from "./r_misc/loading";
-import { Tip } from "./r_misc/tip";
+import { Icon, Loading, Tip, SearchInput, TimeAgo } from "./r_misc";
 
 import {
   Button,
@@ -265,9 +262,7 @@ export class Message extends Component<MessageProps, MessageState> {
         this.state.history_size !== this.props.message.get("history").size &&
         this.state.new_changes
       ) {
-        text = `${
-          this.props.editor_name
-        } has updated this message. Esc to discard your changes and see theirs`;
+        text = `${this.props.editor_name} has updated this message. Esc to discard your changes and see theirs`;
         // color = "#E55435";
       } else {
         if (IS_TOUCH) {
@@ -942,9 +937,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   append_file = file => {
     let final_insertion_text;
     if (file.type.indexOf("image") !== -1) {
-      final_insertion_text = `<img src=\".chat-images/${
-        file.name
-      }\" width='100%'>`;
+      final_insertion_text = `<img src=\".chat-images/${file.name}\" style="max-width:100%">`;
     } else {
       final_insertion_text = `[${file.name}](${file.name})`;
     }
@@ -1000,7 +993,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.path
     );
     this.props.actions.send_chat(input);
-    if (this.input_ref.current != null) {
+    if (
+      this.input_ref.current != null &&
+      this.input_ref.current.focus != null
+    ) {
       this.input_ref.current.focus();
     }
   };
@@ -1022,9 +1018,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       overflowX: "hidden",
       margin: "0",
       padding: "0",
-      paddingRight: "10px",
       background: "white",
-      flex: 1
+      flex: "1 0 auto"
     };
 
     // the immutable.Map() default is because of admins:

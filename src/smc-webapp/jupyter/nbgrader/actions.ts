@@ -3,6 +3,8 @@ import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
 import { clear_solution } from "./clear-solutions";
+import { clear_hidden_tests } from "./clear-hidden-tests";
+import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
@@ -24,6 +26,26 @@ export class NBGraderActions {
     delete this.jupyter_actions;
   }
 
+  // Ensure all nbgrader metadata is updated to the latest version we support.
+  // The update is done as a single commit to the syncdb.
+  public update_metadata(): void {
+    const cells = this.jupyter_actions.store.get("cells");
+    let changed: boolean = false; // did something change.
+    cells.forEach((cell, id: string): void => {
+      if (cell == null) return;
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      if (nbgrader == null || nbgrader.get("schema_version") === 3) return;
+      // Doing this set
+      // make the actual change via the syncdb mechanism (NOT updating cells directly; instead
+      // that is a side effect that happens at some point later).
+      this.set_metadata(id, {}, false);
+      changed = true;
+    });
+    if (changed) {
+      this.jupyter_actions._sync();
+    }
+  }
+
   private get_metadata(id: string): ImmutableMetadata {
     return this.jupyter_actions.store.getIn(
       ["cells", id, "metadata", "nbgrader"],
@@ -31,18 +53,35 @@ export class NBGraderActions {
     );
   }
 
+  // Sets the metadata and also ensures the schema is properly updated.
   public set_metadata(
     id: string,
-    metadata: Metadata | undefined = undefined,
+    metadata: Metadata | undefined = undefined, // if undefined, deletes the nbgrader metadata entirely
     save: boolean = true
   ): void {
     let nbgrader: Metadata | undefined = undefined;
     if (metadata != null) {
       nbgrader = this.get_metadata(id).toJS();
       if (nbgrader == null) throw Error("must not be null");
-      nbgrader.schema_version = 1; // always
-      for (let k in metadata) {
+
+      // Merge in the requested changes.
+      for (const k in metadata) {
         nbgrader[k] = metadata[k];
+      }
+
+      // Update the schema, if necessary:
+      if (nbgrader.schema_version == null || nbgrader.schema_version < 3) {
+        // The docs of the schema history are at
+        //   https://nbgrader.readthedocs.io/en/stable/contributor_guide/metadata.html
+        // They were not updated even after schema 3 came out, so I'm just guessing
+        // based on reading source code and actual ipynb files.
+        nbgrader.schema_version = 3;
+        // nbgrader schema_version=3 requires that all these are set:
+        for (const k of ["grade", "locked", "solution", "task"]) {
+          if (nbgrader[k] == null) {
+            nbgrader[k] = false;
+          }
+        }
       }
     }
     this.jupyter_actions.set_cell_metadata({
@@ -92,7 +131,11 @@ export class NBGraderActions {
       body: `Creating the student version of the notebook will make a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)`,
       choices: [
         { title: "Cancel" },
-        { title: "Create or update student version", style: "success", default: true }
+        {
+          title: "Create or update student version",
+          style: "success",
+          default: true
+        }
       ]
     });
     if (choice === "Cancel") return;
@@ -139,7 +182,8 @@ export class NBGraderActions {
            accidentally (or on purpose!)
 
         3. It removes solutions from the notebooks and replaces them with
-           code or text stubs saying (for example) "YOUR ANSWER HERE".
+           code or text stubs saying (for example) "YOUR ANSWER HERE", and
+           similarly for hidden tests.
 
         4. It clears all outputs from the cells of the notebooks.
 
@@ -149,7 +193,9 @@ export class NBGraderActions {
            done by computing a checksum of the cell contents and saving it
            into the cell metadata.
     */
-    this.assign_clear_solutions(); // step 3
+    this.assign_clear_solutions(); // step 3a
+    this.assign_clear_hidden_tests(); // step 3b
+    this.assign_clear_mark_regions(); // step 3c
     this.jupyter_actions.clear_all_outputs(false); // step 4
     this.assign_save_checksums(); // step 5
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
@@ -157,7 +203,6 @@ export class NBGraderActions {
   }
 
   private assign_clear_solutions(): void {
-    //console.log("assign_clear_solutions");
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
@@ -173,8 +218,39 @@ export class NBGraderActions {
     });
   }
 
+  private assign_clear_hidden_tests(): void {
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      // only care about test cells, which have: grade=true and solution=false.
+      if (!cell.getIn(["metadata", "nbgrader", "grade"])) return;
+      if (cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      const cell2 = clear_hidden_tests(cell);
+      if (cell !== cell2) {
+        // set the input
+        this.jupyter_actions.set_cell_input(
+          cell.get("id"),
+          cell2.get("input"),
+          false
+        );
+      }
+    });
+  }
+
+  private assign_clear_mark_regions(): void {
+    this.jupyter_actions.store.get("cells").forEach(cell => {
+      if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
+      const cell2 = clear_mark_regions(cell);
+      if (cell !== cell2) {
+        // set the input
+        this.jupyter_actions.set_cell_input(
+          cell.get("id"),
+          cell2.get("input"),
+          false
+        );
+      }
+    });
+  }
+
   private assign_save_checksums(): void {
-    //console.log("assign_save_checksums");
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = set_checksum(cell);
@@ -198,7 +274,7 @@ export class NBGraderActions {
     this.jupyter_actions.store.get("cells").forEach(cell => {
       if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
         return;
-      for (let key of ["editable", "deletable"]) {
+      for (const key of ["editable", "deletable"]) {
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
           metadata: { [key]: false },

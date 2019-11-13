@@ -42,7 +42,10 @@ export function get_state(cm: CodeMirror.Editor): State | undefined {
   return state;
 }
 
-export async function set_state(cm: CodeMirror.Editor, state: State): Promise<void> {
+export async function set_state(
+  cm: CodeMirror.Editor,
+  state: State
+): Promise<void> {
   if (state.ver < VERSION) {
     return; // ignore old version.
   }

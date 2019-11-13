@@ -42,7 +42,7 @@ export class StripeAPIKeys extends Component<{}, State> {
       };
     }
     const result: Record[] = [];
-    for (let name of ["secret", "publishable"]) {
+    for (const name of ["secret", "publishable"]) {
       result.push({
         server_settings: {
           name: `stripe_${name}_key`,

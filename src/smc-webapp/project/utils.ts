@@ -9,7 +9,7 @@ import { generate as heroku } from "project-name-generator";
 const superb = require("superb");
 const catNames = require("cat-names");
 const dogNames = require("dog-names");
-const { file_options } = require("../editor");
+const { file_options } = require("../editor-tmp");
 import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
 
 export type NewFilenameTypes =
@@ -162,7 +162,7 @@ export class NewFilenames {
   // some superb words contain characters we want to avoid
   private get_superb(): string {
     while (true) {
-      let ret = superb.random();
+      const ret = superb.random();
       if (ret.match(/^[a-zA-Z0-9]+$/)) return ret;
     }
   }

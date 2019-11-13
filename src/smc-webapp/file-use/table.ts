@@ -17,7 +17,7 @@ export class FileUseTable extends Table {
   }
 
   _change(table, _keys): void {
-    const store : FileUseStore | undefined = this.redux.getStore("file_use");
+    const store: FileUseStore | undefined = this.redux.getStore("file_use");
     if (store == null) throw Error("store must be defined");
     store.clear_cache();
 

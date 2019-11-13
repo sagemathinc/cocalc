@@ -11,7 +11,7 @@
  * Copyright (c) 2018-2019 SageMath, Inc.
  * Licensed under MPL 2.0, see:
  * http://www.mozilla.org/MPL/2.0/
-*/
+ */
 /**
  * Xpra HTML Client
  *
@@ -1759,7 +1759,6 @@ export const CHAR_TO_NAME = Object.keys(KEYSYM_TO_UNICODE).reduce(
     }),
   {}
 );
-
 
 export const CODEC_DESCRIPTION = {
   mp4a: "mpeg4: aac",

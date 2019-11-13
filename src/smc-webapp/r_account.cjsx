@@ -35,6 +35,8 @@
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
 
+{SignOut} =require('./account/sign-out')
+
 md5 = require('md5')
 
 misc       = require('smc-util/misc')
@@ -424,7 +426,6 @@ AccountSettings = rclass
         email_address          : rtypes.string
         email_address_verified : rtypes.immutable.Map
         passports              : rtypes.immutable.Map
-        show_sign_out          : rtypes.bool
         sign_out_error         : rtypes.string
         everywhere             : rtypes.bool
         redux                  : rtypes.object
@@ -524,37 +525,19 @@ AccountSettings = rclass
             </Button>
 
     render_sign_out_error: ->
-        <ErrorDisplay error={@props.sign_out_error} onClose={=>@actions('account').setState(sign_out_error : '')} />
-
-    render_sign_out_confirm: ->
-        if @props.everywhere
-            text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
-        else
-            text = "Are you sure you want to sign out of your account on this web browser?"
-        <Well style={marginTop: '15px'}>
-            {text}
-            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
-                    <Icon name="external-link" /> Sign Out
-                </Button>
-                <Button onClick={=>@actions('account').setState(show_sign_out : false)}>
-                    Cancel
-                </Button>
-            </ButtonToolbar>
-            {@render_sign_out_error() if @props.sign_out_error}
-        </Well>
+        if not @props.sign_out_error
+            return
+        <ErrorDisplay style={margin: '5px 0'}
+            error={@props.sign_out_error}
+            onClose={=>@actions('account').setState(sign_out_error : '')}
+        />
 
     render_sign_out_buttons: ->
-        <ButtonToolbar className='pull-right'>
-            <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
-                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false, sign_out_error:undefined)}>
-                <Icon name='sign-out'/> Sign Out...
-            </Button>
-            <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
-                onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true, sign_out_error:undefined)}>
-                <Icon name='sign-out'/> Sign Out Everywhere...
-            </Button>
-        </ButtonToolbar>
+        <div className='pull-right'>
+            <SignOut everywhere={false}/>
+            <Space/>
+            <SignOut everywhere={true}/>
+        </div>
 
     render_sign_in_strategies: ->
         if not STRATEGIES? or STRATEGIES.length <= 1
@@ -615,7 +598,7 @@ AccountSettings = rclass
                     {@render_sign_out_buttons()}
                 </Col>
             </Row>
-            {@render_sign_out_confirm() if @props.show_sign_out}
+            {@render_sign_out_error()}
             <Row>
                 <Col xs={12}>
                     <DeleteAccount
@@ -1145,7 +1128,9 @@ EditorSettings = rclass
 KEYBOARD_SHORTCUTS =
     #'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
     #'Previous file tab'            : 'control+['
-    'Build project / run code'     : 'shift+enter; alt+t; command+t'
+    'Build project / run code'     : 'shift+enter; alt+T; command+T'
+    'Force build project'          : 'shift+alt+enter; shift+alt+T; shift+command+T'
+    'LaTeX forward sync'           : 'alt+enter; cmd+enter'
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
     'Toggle comment'               : 'control+/'
@@ -1157,7 +1142,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text left'     : 'shift+tab'
     'Split view in Sage worksheet' : 'shift+control+I'
     'Autoindent selection'         : "control+'"
-    'Format code (use Prettier)'   : 'control+shift+F'
+    'Format code (use Prettier, etc)' : 'control+shift+F'
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'
@@ -1378,7 +1363,6 @@ exports.AccountSettingsTop = rclass
         email_address          : rtypes.string
         email_address_verified : rtypes.immutable.Map
         passports              : rtypes.immutable.Map
-        show_sign_out          : rtypes.bool
         sign_out_error         : rtypes.string
         everywhere             : rtypes.bool
         terminal               : rtypes.immutable.Map
@@ -1402,7 +1386,6 @@ exports.AccountSettingsTop = rclass
                         email_address          = {@props.email_address}
                         email_address_verified = {@props.email_address_verified}
                         passports              = {@props.passports}
-                        show_sign_out          = {@props.show_sign_out}
                         sign_out_error         = {@props.sign_out_error}
                         everywhere             = {@props.everywhere}
                         other_settings         = {@props.other_settings}

@@ -112,7 +112,7 @@ ChatRoom = rclass ({name}) ->
             misc.original_path(@props.path)
         )
         @props.actions.send_chat(value)
-        if @input_ref.current?
+        if @input_ref.current?.focus?
             @input_ref.current.focus()
 
     on_input_change: (value, mentions, plain_text) ->
@@ -144,6 +144,8 @@ ChatRoom = rclass ({name}) ->
         if not @props.add_collab
             return
         project = @props.project_map?.get(@props.project_id)
+        allow_urls = @props.redux.getStore("projects").allow_urls_in_emails(@props.project_id)
+
         if not project?
             return
         <div>
@@ -153,6 +155,7 @@ ChatRoom = rclass ({name}) ->
             <AddCollaborators
                 project = {project}
                 inline  = {true}
+                allow_urls = {allow_urls}
             />
             <span style={color:'#666'}>
                 NOTE: Anybody you add can work with you on any file in this project. Remove people in settings.

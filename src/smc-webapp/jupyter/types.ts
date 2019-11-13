@@ -18,3 +18,13 @@ export type Scroll =
 export type ViewMode = "normal" | "json" | "raw";
 
 export type KernelInfo = immutable.Map<string, any>;
+
+export type CellToolbarName =
+  | "slideshow"
+  | "attachments"
+  | "tags"
+  | "metadata"
+  | "create_assignment";
+
+// TODO -- this is pretty complicated, but will ne nice to nail down.
+export type Cell = immutable.Map<string, any>;

@@ -28,7 +28,7 @@ interface CellOutputProps {
 
 export class CellOutput extends Component<CellOutputProps> {
   public shouldComponentUpdate(nextProps: CellOutputProps): boolean {
-    for (let field of [
+    for (const field of [
       "collapsed",
       "scrolled",
       "exec_count",
@@ -175,6 +175,7 @@ export class CellOutput extends Component<CellOutputProps> {
           alignItems: "stretch",
           minHeight
         }}
+        cocalc-test="cell-output"
       >
         {this.render_output_prompt()}
         {this.render_output_value()}

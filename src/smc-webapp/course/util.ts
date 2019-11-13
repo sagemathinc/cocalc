@@ -62,7 +62,7 @@ export function STEPS(peer: boolean) {
 // Returns undefined if no previous step
 export function previous_step(step: Step, peer: boolean): Step | undefined {
   let prev: Step | undefined;
-  for (let s of STEPS(peer)) {
+  for (const s of STEPS(peer)) {
     if (step === s) {
       return prev;
     }
@@ -200,7 +200,9 @@ export function immutable_to_list<T, P>(
   primary_key: P
 ): T extends TypedMap<infer S>
   ? S[]
-  : T extends Map<string, infer S> ? S[] : any;
+  : T extends Map<string, infer S>
+  ? S[]
+  : any;
 export function immutable_to_list(x: any, primary_key?): any {
   if (x == null || x == undefined) {
     return;
@@ -237,7 +239,7 @@ export function compute_match_list(opts) {
     } else {
       k = x[search_key];
     }
-    for (let w of words) {
+    for (const w of words) {
       if (k.indexOf(w) === -1) {
         // no match
         num_omitted += 1;
@@ -316,8 +318,11 @@ export function pick_student_sorter<T extends { column_name: StudentField }>(
   }
 }
 
-export function assignment_identifier(assignment: AssignmentRecord, student: StudentRecord): string {
-  return assignment.get("assignment_id") + student.get("student_id")
+export function assignment_identifier(
+  assignment: AssignmentRecord,
+  student: StudentRecord
+): string {
+  return assignment.get("assignment_id") + student.get("student_id");
 }
 
 function __guardMethod__(obj, methodName, transform) {

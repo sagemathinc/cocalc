@@ -67,9 +67,7 @@ export async function xml_format(
     } catch (e) {
       logger.debug(`Calling XML formatter raised ${e}`);
       throw new Error(
-        `XML formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `XML formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -78,15 +76,13 @@ export async function xml_format(
 
     const problem = options.parser === "xml-tidy" ? code >= 2 : code >= 1;
     if (problem) {
-      const msg = `XML formatter "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const msg = `XML formatter "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       throw Error(msg);
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, input_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     // logger.debug(`xml formatter done, unlinking ${input_path}`);

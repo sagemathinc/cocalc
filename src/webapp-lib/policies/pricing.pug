@@ -7,6 +7,7 @@ block vars
     var navbar_active = 'pricing';
     var subtitle = 'Pricing';
     var subnavbar_active = 'pricing';
+    var current_date = htmlWebpackPlugin.options.SCHEMA.UPGRADES_CURRENT_DATE;
 
 block content
 
@@ -19,18 +20,26 @@ block content
   div.jumbotron
     div.container
       h1 #[a(href=URL) #{COMPANY_NAME}]
-      h2 #{NAME} Subscriptions and Pricing (March 2018)
+      h2 #{NAME} Subscriptions and Pricing (prices last updated #{current_date})
       a.btn.btn-default(href="index.html" role="button") &laquo; Other Policies
 
   div.container.vertical-expand
     p.
-      Initially, you start using #{NAME} under a #[em free trial plan] in order to test out the service.
-      You should then switch to using one of the subscription options.  Once you sign up for any
-      subscription, there is an option "Hide free warnings" in account preferences to remove the red banner.
-      Listed prices are in US dollars (when charging in local currency, the prices are converted into local currency using the
-      conversion rates published by leading financial institutions).
+      Initially, you start using #{NAME} under a
+      #[a(target="_blank" rel="noopener" href="https://doc.cocalc.com/trial.html") free trial plan] in order to test out the service.
+      If #{NAME} works out for you, please subscribe to one of the personal plans or course packages.
+      Any subscription or plan awards you with a certain set of
+      #[a(href="https://doc.cocalc.com/billing.html#quota-upgrades" target="_blank" rel="noopener") quota upgrades],
+      which you can apply to your #[a(href="https://doc.cocalc.com/project.html" target="_blank" rel="noopener") projects].
     p.
-      When logged in, you may sign up for a subscription in #[a(target="_blank" rel="noopener" href="/settings/billing") the billing tab]
-      and see a summary of upgrades in #[a(target="_blank" rel="noopener" href="/settings/upgrades") the upgrades tab].
+      To subscribe or purchase a plan,
+      you sign into #{NAME} and open #[a(target="_blank" rel="noopener" href="/settings/billing") the billing tab]
+      in #[a(href="https://doc.cocalc.com/account-settings.html#subscriptions-course-packages" target="_blank" rel="noopener") account settings].
+      Once you subscribe, you'll get the option "Hide free warnings" in account preferences to remove the red trial banner.
+      You can see a summary of upgrades in #[a(target="_blank" rel="noopener" href="/settings/upgrades") the upgrades tab].
+    p.
+      Listed prices are in #[strong US dollars].
+      When charging in local currency,
+      the prices are converted into local currency using the conversion rates published by leading financial institutions.
 
     include _static_pricing_page.html

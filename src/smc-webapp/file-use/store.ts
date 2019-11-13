@@ -66,7 +66,7 @@ export class FileUseStore extends Store<FileUseState> {
     return true;
   }
 
-  public clear_cache() : void {
+  public clear_cache(): void {
     delete this._cache;
   }
 
@@ -74,7 +74,7 @@ export class FileUseStore extends Store<FileUseState> {
     const s: string[] = [x.path];
     s.push(this._projects.get_title(x.project_id));
     if (x.users != null) {
-      for (let account_id in x.users) {
+      for (const account_id in x.users) {
         s.push(this._users.get_name(account_id));
         if (account_id === this._account_id) {
           s.push("you");
@@ -96,7 +96,7 @@ export class FileUseStore extends Store<FileUseState> {
     let newest_chat = 0;
     let you_last_seen = (you_last_read = you_last_chatseen = 0);
     let other_newest_edit_or_chat = 0;
-    for (let account_id in users) {
+    for (const account_id in users) {
       user = users[account_id];
       user.account_id = account_id;
       user.last_edited = Math.max(
@@ -213,7 +213,9 @@ export class FileUseStore extends Store<FileUseState> {
       this._update_cache();
     }
     const v = {};
-    for (let id in this._cache != null ? this._cache.file_use_map : undefined) {
+    for (const id in this._cache != null
+      ? this._cache.file_use_map
+      : undefined) {
       const x = (this._cache != null ? this._cache.file_use_map : undefined)[
         id
       ];
@@ -265,7 +267,7 @@ export class FileUseStore extends Store<FileUseState> {
     const w0: any[] = [];
     const w1: any[] = [];
     const w2: any[] = [];
-    for (let a of v) {
+    for (const a of v) {
       if (a.notify && a.is_unread) {
         w0.push(a);
       } else if (a.show_chat && a.is_unread) {
@@ -281,7 +283,7 @@ export class FileUseStore extends Store<FileUseState> {
     v = w0.concat(w1.concat(w2));
 
     let notify_count: number = 0;
-    for (let x of v) {
+    for (const x of v) {
       if (x.notify) {
         notify_count += 1;
       }
@@ -351,7 +353,7 @@ export class FileUseStore extends Store<FileUseState> {
     const users = {};
     const now = webapp_client.server_time().valueOf();
     const cutoff = now - opts.max_age_s * 1000;
-    for (let _ in files) {
+    for (const _ in files) {
       const info = files[_];
       let user: any;
       for (user of info.users) {

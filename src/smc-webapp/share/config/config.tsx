@@ -14,7 +14,7 @@ simultaneously edit this and have it be synced properly
 between them.
 */
 
-const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
+const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import {
   Alert,
@@ -25,7 +25,14 @@ import {
   FormControl,
   Radio
 } from "react-bootstrap";
-import { React, ReactDOM, Component, Rendered } from "../../app-framework";
+import {
+  React,
+  ReactDOM,
+  Component,
+  Rendered,
+  rclass,
+  rtypes
+} from "../../app-framework";
 const { open_new_tab } = require("../../misc_page");
 const { CopyToClipBoard, Icon, VisibleMDLG } = require("../../r_misc");
 import { Space } from "../../r_misc/space";
@@ -61,16 +68,27 @@ interface Props {
     disabled?: boolean;
   }) => void;
   has_network_access?: boolean;
+
+  // redux props
+  is_commercial?: boolean;
 }
 
 interface State {
   sharing_options_state: string;
 }
 
-export class Configure extends Component<Props, State> {
+class Configure extends Component<Props, State> {
   constructor(props, state) {
     super(props, state);
     this.state = { sharing_options_state: this.get_sharing_options_state() };
+  }
+
+  public static reduxProps(): object {
+    return {
+      customize: {
+        is_commercial: rtypes.bool
+      }
+    };
   }
 
   private render_how_shared_heading(): Rendered {
@@ -128,7 +146,7 @@ export class Configure extends Component<Props, State> {
   }
 
   private render_public_listed_option(state: string): Rendered {
-    if (this.props.has_network_access) {
+    if (!this.props.is_commercial || this.props.has_network_access) {
       return (
         <Radio
           name="sharing_options"
@@ -341,7 +359,7 @@ export class Configure extends Component<Props, State> {
     const server = share_server_url();
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
-        <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">
+        <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
           You share
         </a>{" "}
         files or directories{" "}
@@ -383,7 +401,7 @@ export class Configure extends Component<Props, State> {
   }
 
   public render(): Rendered {
-    if (!this.props.has_network_access) {
+    if (this.props.is_commercial && !this.props.has_network_access) {
       return this.render_needs_network_access();
     }
 
@@ -418,3 +436,6 @@ export class Configure extends Component<Props, State> {
     );
   }
 }
+
+const tmp = rclass(Configure);
+export { tmp as Configure };

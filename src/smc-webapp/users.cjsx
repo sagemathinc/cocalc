@@ -103,11 +103,24 @@ store = redux.createStore('users', UsersStore)
 # Register user actions
 actions = redux.createActions('users', UsersActions)
 
+
 # Create and register projects table, which gets automatically
 # synchronized with the server.
 class UsersTable extends Table
     query: ->
-        return 'collaborators'
+        kiosk_project_id = redux.getStore('page').get('kiosk_project_id')
+        if kiosk_project_id
+            # In kiosk mode for a project we load only collabs on the relevant project.
+            query = require('smc-util/sync/table/util').parse_query('collaborators_one_project')
+            query.collaborators_one_project[0].project_id = kiosk_project_id
+            return query
+        else
+            return 'collaborators'
+
+    no_changefeed: ->
+        # The current collaborators_one_project does NOT support changefeeds, so we only get
+        # the users and names in kiosk mode once during the first connection.
+        return redux.getStore('page').get('kiosk_project_id')?
 
     _change: (table, keys) =>
         # Merge the new table in with what we already have.  If users disappear during the session
@@ -117,17 +130,24 @@ class UsersTable extends Table
         user_map = store.get('user_map')
         if not user_map?
             @redux.getActions('users').setState(user_map: upstream_user_map)
-            return
-        # merge in upstream changes:
-        table.get().map (data, account_id) =>
-            if data != user_map.get(account_id)
-                user_map = user_map.set(account_id, data)
-            return false
-        @redux.getActions('users').setState(user_map: user_map)
+        else
+            # merge in upstream changes:
+            table.get().map (data, account_id) =>
+                if data != user_map.get(account_id)
+                    user_map = user_map.set(account_id, data)
+                return false
+            @redux.getActions('users').setState(user_map: user_map)
 
-## disabling this createTable effectively hides cursors of collaborators, etc.
-# if not COCALC_MINIMAL
-redux.createTable('users', UsersTable)
+# we create the table either if we're in normal (not kiosk) mode,
+# or when we have a specific project_id for kiosk mode
+if not COCALC_MINIMAL or redux.getStore('page').get('kiosk_project_id')?
+    redux.createTable('users', UsersTable)
+
+# this is only for kiosk mode
+exports.recreate_users_table = ->
+    #console.log("recreate_users_table: project_id =", redux.getStore('page').get('kiosk_project_id'))
+    redux.removeTable('users')
+    redux.createTable('users', UsersTable)
 
 #TODO: Make useable without passing in user_map
 exports.User = User = rclass

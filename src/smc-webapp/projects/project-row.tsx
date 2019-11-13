@@ -21,7 +21,7 @@ import { id2name, ComputeImages } from "../custom-software/init";
 import {
   CUSTOM_IMG_PREFIX,
   compute_image2basename
-} from "custom-software/util";
+} from "../custom-software/util";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
@@ -84,9 +84,7 @@ export const ProjectRow = rclass<ReactProps>(
         );
       } catch (e) {
         return console.warn(
-          `error setting time of project ${this.props.project.project_id} to ${
-            this.props.project.last_edited
-          } -- ${e}; please report to help@cocalc.com`
+          `error setting time of project ${this.props.project.project_id} to ${this.props.project.last_edited} -- ${e}; please report to help@cocalc.com`
         );
       }
     }
@@ -121,10 +119,11 @@ export const ProjectRow = rclass<ReactProps>(
       // long ago, and I'm not fixing this now.  This won't result
       // in bad/stale data that matters, since when this object
       // changes, then @props.project changes.
-      const imm = this.props.redux
-        .getStore("projects")
-        .getIn(["project_map", this.props.project.project_id]);
-      return <AddCollaboratorsArea project={imm} />;
+      const projects_store = this.props.redux.getStore("projects");
+      const project_id = this.props.project.project_id;
+      const imm = projects_store.getIn(["project_map", project_id]);
+      const allow_urls = projects_store.allow_urls_in_emails(project_id);
+      return <AddCollaboratorsArea project={imm} allow_urls={allow_urls} />;
     }
 
     render_collab_caret() {
@@ -176,12 +175,22 @@ export const ProjectRow = rclass<ReactProps>(
         const img = this.props.images.get(id);
         if (img == null) return;
         const name = img.get("display");
-        return <div style={image_name_style}>{name} <span title="Custom image created by a third party">(custom)</span></div>;
+        return (
+          <div style={image_name_style}>
+            {name}{" "}
+            <span title="Custom image created by a third party">(custom)</span>
+          </div>
+        );
       } else {
         // official
         const name = id2name(ci);
         if (name === "Default") return; // avoid clutter for the default.
-        return <div style={image_name_style}>{name} <span title="Official image created by CoCalc">(official)</span></div>;
+        return (
+          <div style={image_name_style}>
+            {name}{" "}
+            <span title="Official image created by CoCalc">(official)</span>
+          </div>
+        );
       }
     }
 
@@ -199,12 +208,12 @@ export const ProjectRow = rclass<ReactProps>(
 
     handle_mouse_down = () => {
       this.setState({
-        selection_at_last_mouse_down: window.getSelection().toString()
+        selection_at_last_mouse_down: (window.getSelection() || "").toString()
       });
     };
 
     handle_click = e => {
-      const cur_sel = window.getSelection().toString();
+      const cur_sel = (window.getSelection() || "").toString();
       // Check if user has highlighted some text.
       // Do NOT open if the user seems to be trying to highlight text on the row
       // eg. for copy pasting.
@@ -288,14 +297,18 @@ export const ProjectRow = rclass<ReactProps>(
   }
 );
 
-function AddCollaboratorsArea({ project }) {
+function AddCollaboratorsArea({ project, allow_urls }) {
   return (
     <div>
       <h5>Add people</h5>
       <div style={{ color: "#666", marginBottom: "10px" }}>
         Who would you like to work with on this project?
       </div>
-      <AddCollaborators project={project} inline={true} />
+      <AddCollaborators
+        project={project}
+        inline={true}
+        allow_urls={allow_urls}
+      />
     </div>
   );
 }

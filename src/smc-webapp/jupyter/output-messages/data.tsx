@@ -121,9 +121,9 @@ export class Data extends Component<DataProps> {
                 if (value && value.forEach) {
                   value.forEach((value: any, key: any) => {
                     if (key === "width") {
-                      return (width = value);
+                      width = value;
                     } else if (key === "height") {
-                      return (height = value);
+                      height = value;
                     }
                   });
                 }
@@ -221,7 +221,7 @@ export class Data extends Component<DataProps> {
       // thing we know how to render that is not text/plain.
       // This is inefficient, since we rendered more than one, and then just
       // throw away all but one.
-      for (let x of v) {
+      for (const x of v) {
         if (x[0] != "text/plain") {
           return x[1];
         }

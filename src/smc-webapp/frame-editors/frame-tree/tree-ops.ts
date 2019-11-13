@@ -23,7 +23,7 @@ export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
     }
     if (node.get("id") === id) {
       // it's the one -- change it
-      for (let k in obj) {
+      for (const k in obj) {
         const v = obj[k];
         if (k !== "id") {
           node = node.set(k, fromJS(v));
@@ -32,7 +32,7 @@ export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
       done = true;
       return node;
     }
-    for (let x of ["first", "second"]) {
+    for (const x of ["first", "second"]) {
       const sub0 = node.get(x);
       const sub1 = process(sub0);
       if (sub0 !== sub1) {
@@ -59,14 +59,14 @@ export function set_leafs(
     }
     if (exports.is_leaf(node)) {
       // change it
-      for (let k in obj) {
+      for (const k in obj) {
         const v = obj[k];
         node = node.set(k, fromJS(v));
       }
       return node;
     }
     // walk further
-    for (let x of ["first", "second"]) {
+    for (const x of ["first", "second"]) {
       const sub0 = node.get(x);
       const sub1 = process(sub0);
       if (sub0 !== sub1) {
@@ -92,7 +92,7 @@ export function assign_ids(tree: ImmutableFrameTree): ImmutableFrameTree {
     if (!node.has("id") || typeof node.get("id") != "string") {
       node = node.set("id", generate_id());
     }
-    for (let x of ["first", "second"]) {
+    for (const x of ["first", "second"]) {
       const sub0 = node.get(x);
       const sub1 = process(sub0);
       if (sub0 !== sub1) {
@@ -163,7 +163,7 @@ export function ensure_ids_are_unique(
       dupe = true;
       return node.set("id", generate_id());
     }
-    for (let x of ["first", "second"]) {
+    for (const x of ["first", "second"]) {
       const sub0 = node.get(x);
       const sub1 = process(sub0);
       if (sub0 !== sub1) {
@@ -237,7 +237,7 @@ export function delete_node(
     if (done) {
       return node;
     }
-    for (let x of ["first", "second"]) {
+    for (const x of ["first", "second"]) {
       if (!node.has(x)) continue;
       const t = node.get(x);
       if (t.get("id") == id) {
@@ -264,7 +264,8 @@ function split_the_leaf(
   leaf: ImmutableFrameTree,
   direction: FrameDirection,
   type?: string,
-  extra?: object
+  extra?: object,
+  first?: boolean
 ) {
   // split this leaf node
   // 1. Make another leaf that is identical, except with a new id.
@@ -274,14 +275,19 @@ function split_the_leaf(
   }
   // Also, set extra data if given.
   if (extra != null) {
-    for (let key in extra) {
+    for (const key in extra) {
       leaf2 = leaf2.set(key, fromJS(extra[key]));
     }
   }
   // 2. Make node with these two leafs
   let node = fromJS({ direction, id: generate_id(), type: "node" });
-  node = node.set("first", leaf);
-  node = node.set("second", leaf2);
+  if (first) {
+    node = node.set("first", leaf2);
+    node = node.set("second", leaf);
+  } else {
+    node = node.set("first", leaf);
+    node = node.set("second", leaf2);
+  }
   return node;
 }
 
@@ -290,7 +296,8 @@ export function split_leaf(
   id: string,
   direction: FrameDirection,
   type?: string,
-  extra?: object
+  extra?: object,
+  first?: boolean // if true, new leaf is left or top instead of right or bottom.
 ): ImmutableFrameTree {
   let done = false;
   var process = function(node) {
@@ -299,9 +306,9 @@ export function split_leaf(
     }
     if (node.get("id") === id) {
       done = true;
-      return split_the_leaf(node, direction, type, extra);
+      return split_the_leaf(node, direction, type, extra, first);
     }
-    for (let x of ["first", "second"]) {
+    for (const x of ["first", "second"]) {
       // descend the tree
       const t0 = node.get(x);
       const t1 = process(t0);
@@ -337,7 +344,7 @@ export function get_some_leaf_id(tree: ImmutableFrameTree): string {
       done = true;
       return;
     }
-    for (let limb of ["first", "second"]) {
+    for (const limb of ["first", "second"]) {
       if (!done && node.has(limb)) {
         process(node.get(limb));
       }
@@ -350,4 +357,31 @@ export function get_some_leaf_id(tree: ImmutableFrameTree): string {
     );
   }
   return id;
+}
+
+export function get_parent_id(
+  tree: ImmutableFrameTree,
+  id: string
+): string | undefined {
+  let done: boolean = false;
+  let parent_id: string | undefined = undefined;
+  function process(node: ImmutableFrameTree): void {
+    if (done || node == null) {
+      return;
+    }
+    if (is_leaf(node)) return;
+    for (const limb of ["first", "second"]) {
+      if (!done && node.has(limb)) {
+        const x: ImmutableFrameTree = node.get(limb);
+        if (x.get("id") === id) {
+          done = true;
+          parent_id = node.get("id");
+        } else {
+          process(x);
+        }
+      }
+    }
+  }
+  process(tree);
+  return parent_id;
 }

@@ -28,15 +28,25 @@ import { fromJS } from "immutable";
 // SMC libraries
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
+import { SyncDB } from "smc-util/sync/editor/db/sync";
+import { CourseActions } from "./actions";
+import { CourseStore } from "./store";
+import { AppRedux } from "../app-framework";
 
-export let create_sync_db = (redux, actions, store, filename) => {
+export function create_sync_db(
+  redux: AppRedux,
+  actions: CourseActions,
+  store: CourseStore,
+  filename: string
+): SyncDB {
   if (redux == null || actions == null || store == null) {
-    return;
+    // just in case non-typescript code uses this...
+    throw Error("redux, actions and store must not be null");
   }
 
   const project_id = store.get("course_project_id");
   const path = store.get("course_filename");
-  actions.setState({loading:true});
+  actions.setState({ loading: true });
 
   const syncdb = webapp_client.sync_db2({
     project_id,
@@ -51,7 +61,7 @@ export let create_sync_db = (redux, actions, store, filename) => {
     if (actions != null) {
       actions.set_error(err);
     }
-    console.warn(`Error using '${store.course_filename}' -- ${err}`);
+    console.warn(`Error using '${store.get("course_filename")}' -- ${err}`);
   });
 
   syncdb.once("ready", () => {
@@ -65,9 +75,9 @@ export let create_sync_db = (redux, actions, store, filename) => {
       assignments: {},
       students: {},
       handouts: {},
-      loading : false
+      loading: false
     };
-    for (let x of syncdb.get().toJS()) {
+    for (const x of syncdb.get().toJS()) {
       if (x.table === "settings") {
         misc.merge(t.settings, misc.copy_without(x, "table"));
       } else if (x.table === "students") {
@@ -78,12 +88,12 @@ export let create_sync_db = (redux, actions, store, filename) => {
         t.handouts[x.handout_id] = misc.copy_without(x, "table");
       }
     }
-    for (let k in t) {
+    for (const k in t) {
       const v = t[k];
       t[k] = fromJS(v);
     }
     if (actions != null) {
-      actions.setState(t);
+      (actions as any).setState(t); // TODO: as any since t is an object, not immutable.js map...
     }
     syncdb.on("change", changes => {
       if (actions != null) {
@@ -108,7 +118,6 @@ export let create_sync_db = (redux, actions, store, filename) => {
         }
         actions.lookup_nonregistered_students();
         actions.configure_all_projects();
-        actions._init_who_pay(); // this is just to deal with older courses that may have already paid.
 
         // Also
         projects_store.on("change", actions.handle_projects_store_update);
@@ -123,4 +132,4 @@ export let create_sync_db = (redux, actions, store, filename) => {
   });
 
   return syncdb;
-};
+}

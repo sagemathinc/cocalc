@@ -53,7 +53,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.get_frame_actions(id);
     });
 
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");
@@ -70,6 +70,20 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     );
     syncdb.on("has-unsaved-changes", has_unsaved_changes => {
       this.setState({ has_unsaved_changes });
+    });
+
+    const store = this.jupyter_actions.store;
+    let introspect = store.get("introspect");
+    store.on("change", () => {
+      const i = store.get("introspect");
+      if (i != introspect) {
+        if (i != null) {
+          this.show_introspect();
+        } else {
+          this.close_introspect();
+        }
+        introspect = i;
+      }
     });
   }
 
@@ -161,8 +175,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     actions != null ? actions.paste(value) : super.paste(id, value);
   }
 
-  print(id): void {
-    console.log("TODO: print", id);
+  print(_id): void {
     this.jupyter_actions.show_nbconvert_dialog("html");
   }
 
@@ -255,23 +268,45 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   public show_revealjs_slideshow(): void {
-    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
-      "jupyter_slideshow_revealjs"
+    this.show_focused_frame_of_type("jupyter_slideshow_revealjs");
+    this.build_revealjs_slideshow();
+  }
+
+  public async jump_to_cell(cell_id: string): Promise<void> {
+    // Open or focus a notebook viewer and scroll to the given cell.
+    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
+    if (this._state === "closed") return;
+    const actions = this.get_frame_actions(id);
+    if (actions == null) return;
+    actions.set_cur_id(cell_id);
+    actions.scroll("cell visible");
+    await delay(5);
+    if (this._state === "closed") return;
+    actions.focus();
+  }
+
+  public async show_table_of_contents(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "jupyter_table_of_contents",
+      "col",
+      true,
+      1 / 3
     );
-    if (id == null) {
-      // no slideshow view, so make one
-      this.split_frame(
-        "col",
-        this._get_active_id(),
-        "jupyter_slideshow_revealjs"
-      );
-      id = this._get_most_recent_active_frame_id_of_type(
-        "jupyter_slideshow_revealjs"
-      );
-    }
-    if (id != null) {
-      this.build_revealjs_slideshow();
-      this.focus(id);
-    }
+    // the click to select TOC focuses the active id back on the notebook
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  // Either show the most recently focused introspect frame, or ceate one.
+  public async show_introspect(): Promise<void> {
+    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
+  }
+
+  // Close the most recently focused introspect frame, if there is one.
+  public async close_introspect(): Promise<void> {
+    this.close_recently_focused_frame_of_type("introspect");
   }
 }

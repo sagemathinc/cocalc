@@ -26,9 +26,7 @@ export async function init(opts: {
 }): Promise<{ http_server: any; express_router: any }> {
   if (opts.logger != null) {
     opts.logger.debug(
-      `initializing share server using share_path='${
-        opts.share_path
-      }', base_url='${opts.base_url}'`
+      `initializing share server using share_path='${opts.share_path}', base_url='${opts.base_url}'`
     );
   }
 

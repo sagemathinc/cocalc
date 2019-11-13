@@ -1,5 +1,7 @@
 import { Metadata } from "./types";
 
+type Language = "python" | "julia" | "r" | "sage";
+
 interface CelltypeInfo {
   title: string; // human readable title for this type of cell
   student_title: string;
@@ -8,13 +10,132 @@ interface CelltypeInfo {
   grade: boolean; // is it graded?
   locked: boolean; // is it locked?
   solution: boolean; // is it a solution?
+  task: boolean; // is it a task?
   link: string; // link to some html help (the nbgrader docs)
   hover: string; // hover text that is helpful about this cell type (summary of nbgrader docs)
   points?: number; // default number of points
   icon?: string; // icon that would make sense for this type of cell
   code_only?: boolean; // only code cells can be set to this type
-  template?: { [language: string]: string };
+  markdown_only?: boolean; // only markdown cells can be set to this type
+  template?: { [language in Language]?: string } | string;
 }
+
+const PY_TEST = `
+# [Modify the tests below for your own problem]
+# Check that squares returns the correct output for several inputs:
+from nose.tools import assert_equal
+assert_equal(squares(1), [1])
+assert_equal(squares(2), [1, 4])
+
+# Check that squares raises an error for invalid input:
+from nose.tools import assert_raises
+assert_raises(ValueError, squares, 0)
+assert_raises(ValueError, squares, -1)
+
+### BEGIN HIDDEN TESTS
+# students will NOT see these extra tests
+assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
+### END HIDDEN TESTS
+`;
+
+const PY_ANSWER = `
+def squares(n):  # modify function name and parameters
+    """
+    Compute the squares of the numbers from 1 to n.  [replace with function description]
+    """
+    ### BEGIN SOLUTION
+    # Put correct code here.  This code is removed for the student version, but is used
+    # to confirm that your tests are valid.
+    if n < 1: raise ValueError("n must be at least 1")
+    return [i**2 for i in range(1, n+1)]
+    ### END SOLUTION`;
+
+const R_TEST = `
+testthat::test_that("squares function works as expected", {
+  # test the result is an integer vector of length 10
+  testthat::expect_vector(squares(10), ptype = integer(), size = 10)
+  # check for a specific n=3
+  testthat::expect_equal(squares(3), c(1, 4, 9))
+  # use 'tolerance' when there are slight floating point errors
+  testthat::expect_equal(squares(2), c(1, 4.000001), tolerance = 0.002)
+})
+
+# make sure the error contains the word 'positive' for a negative n
+testthat::test_that("squares function raises errors", {
+  testthat::expect_error(squares(-1), "*positive*", ignore.case = TRUE)
+})
+
+### BEGIN HIDDEN TESTS
+
+# students will NOT see this extra test
+testthat::expect_equal(squares(10), c(1, 4, 9, 16, 25, 36, 49, 64, 81, 100))
+### END HIDDEN TESTS`;
+
+const R_ANSWER = `
+squares <- function(n) {
+  # Compute the squares of the numbers from 1 to n.
+
+  ### BEGIN SOLUTION
+
+  # Put correct code here. This code is removed for the student version, but is
+  # used to confirm that your tests are valid.
+  if (n <= 0) {
+    stop("n must be positive")
+  }
+  x <- 1:n
+  return(x * x)
+
+  ### END SOLUTION
+}`;
+
+const JULIA_TEST = `
+using Test
+
+@testset "squares function works as expected" begin
+    # test the result is an integer vector of length 10
+    s10 = squares(10)
+    @test size(s10) == (10,)
+    @test typeof(s10) == Array{Int64,1}
+    # check for a specific n=3
+    @test squares(3) == [1, 4, 9]
+    # use \approx with a tolerance when there are slight floating point errors
+    @test squares(2) ≈ [1, 4.000001]   atol = 0.002
+end
+
+# check if an ArgumentError is raised for a negative n
+@testset "squares function raises errors" begin
+  @test_throws ArgumentError squares(-1)
+end
+
+### BEGIN HIDDEN TESTS
+# students will NOT see this extra test
+@test squares(10) == [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+### END HIDDEN TESTS`;
+
+const JULIA_ANSWER = `
+function squares(n)
+    # Compute the squares of the numbers from 1 to n.
+
+    ### BEGIN SOLUTION
+    # Put correct code here. This code is removed for the student version, but is
+    # used to confirm that your tests are valid.
+    if (n <= 0)
+        throw(ArgumentError("n must be positive"))
+    end
+    return [i^2 for i in 1:n]
+    ### END SOLUTION
+end`;
+
+const TASK_TEMPLATE = `
+Describe the task here, e.g., "Process the data and create
+a plot to illustrate your results."
+
+=== BEGIN MARK SCHEME ===
+
+Describe how you will grade the task here.
+
+=== END MARK SCHEME ===
+`;
 
 export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   {
@@ -25,6 +146,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: false,
     solution: false,
+    task: false,
     link:
       "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
@@ -44,10 +166,34 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: true,
     locked: false,
     solution: true,
-    points: 1
+    task: false,
+    points: 0
   },
   {
-    title: "Automatically graded answer",
+    // The official docs so this is only for markdown cells only and that is all that makes sense,
+    // but the official implementation in nbgrader
+    // makes it available for both task and code cells, which is surely a bug.   I'm doing it
+    // right and also complained here:
+    //     https://github.com/jupyter/nbgrader/pull/984#issuecomment-539255861
+    title: "Manually graded task",
+    student_title: "Manually graded task",
+    student_tip:
+      "This is a task that you must perform.  Instead of editing this cell, you'll be creating or editing some other cells, which will be manually graded by a person.",
+    link:
+      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-task-cells",
+    hover: "",
+    value: "task",
+    icon: "tasks",
+    grade: false,
+    locked: true,
+    solution: false,
+    task: true,
+    template: TASK_TEMPLATE,
+    points: 0,
+    markdown_only: true
+  },
+  {
+    title: "Autograded answer",
     student_title: "Your answer (tests are below)",
     student_tip:
       "Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
@@ -60,23 +206,16 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     grade: false,
     locked: false,
     solution: true,
+    task: false,
     code_only: true,
     template: {
-      python: `
-def squares(n):  # modify function name and parameters
-    """
-    Compute the squares of the numbers from 1 to n.  [replace with function description]
-    """
-    ### BEGIN SOLUTION
-    # Put correct code here.  This code is removed for the student version, but is used
-    # to confirm that your tests are valid.
-    if n < 1: raise ValueError("n must be at least 1")
-    return [i**2 for i in range(1, n+1)]
-    ### END SOLUTION`
+      python: PY_ANSWER,
+      r: R_ANSWER,
+      julia: JULIA_ANSWER
     }
   },
   {
-    title: "Test cell",
+    title: "Autograder tests",
     student_title: "Test your code",
     student_tip:
       "You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
@@ -89,22 +228,13 @@ def squares(n):  # modify function name and parameters
     grade: true,
     locked: true,
     solution: false,
-    points: 1,
+    task: false,
+    points: 0,
     code_only: true,
     template: {
-      python: `
-# [Modify the tests below for your own problem]
-# Check that squares returns the correct output for several inputs:
-from nose.tools import assert_equal
-assert_equal(squares(1), [1])
-assert_equal(squares(2), [1, 4])
-assert_equal(squares(10), [1, 4, 9, 16, 25, 36, 49, 64, 81, 100])
-
-# Check that squares raises an error for invalid input:
-from nose.tools import assert_raises
-assert_raises(ValueError, squares, 0)
-assert_raises(ValueError, squares, -1)
-`
+      python: PY_TEST,
+      r: R_TEST,
+      julia: JULIA_TEST
     }
   },
   {
@@ -120,12 +250,16 @@ assert_raises(ValueError, squares, -1)
     icon: "lock",
     grade: false,
     locked: true,
-    solution: false
+    solution: false,
+    task: false
   }
 ];
 
 export const CELLTYPE_INFO_MAP: { [value: string]: CelltypeInfo } = {};
-for (let x of CELLTYPE_INFO_LIST) {
+for (const x of CELLTYPE_INFO_LIST) {
+  if (CELLTYPE_INFO_MAP[x.value] != null) {
+    throw Error("bug -- values must be unique");
+  }
   CELLTYPE_INFO_MAP[x.value] = x;
 }
 
@@ -137,16 +271,17 @@ export function state_to_value(state: Metadata): string {
   const grade: boolean = !!state.grade;
   const locked: boolean = !!state.locked;
   const solution: boolean = !!state.solution;
-  if (grade === false && solution === false) {
+  const task: boolean = !!state.task;
+  if (grade === false && solution === false && task === false) {
     // special case: either nothing or readonly
     return locked ? "readonly" : "";
   }
 
-  // other 3 possibilities for grade/solution:
-  const key = JSON.stringify({ grade, solution });
+  // other 7 possibilities for grade/solution/task state:
+  const key = JSON.stringify({ grade, solution, task });
   if (value_cache[key] != undefined) return value_cache[key];
-  for (let x of CELLTYPE_INFO_LIST) {
-    if (x.grade == grade && x.solution == solution) {
+  for (const x of CELLTYPE_INFO_LIST) {
+    if (x.grade == grade && x.solution == solution && x.task == task) {
       value_cache[key] = x.value;
       return x.value;
     }
@@ -163,6 +298,7 @@ export function value_to_state(value: string): Metadata {
     grade: x.grade,
     locked: x.locked,
     solution: x.solution,
+    task: x.task,
     points: x.points
   };
 }
@@ -181,6 +317,7 @@ export function value_to_template_content(
   }
   const template = x.template;
   if (template == null) return "";
+  if (typeof template == "string") return template.trim();
   if (language == "sage" && template[language] == null) {
     language = "python";
   }

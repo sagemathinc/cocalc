@@ -96,7 +96,7 @@ export class CellList extends Component<CellListProps> {
        keep resetting scrollTop a few times.
     */
     let scrollHeight: number = 0;
-    for (let tm of [0, 1, 100, 150]) {
+    for (const tm of [0, 1, 100, 150]) {
       if (!this.is_mounted) return;
       if (this.use_windowed_list) {
         if (this.windowed_list_ref.current != null) {
@@ -200,22 +200,26 @@ export class CellList extends Component<CellListProps> {
       if (this.props.cur_id == null) return;
       const n = this.props.cell_list.indexOf(this.props.cur_id);
       if (n == -1) return;
-      list.scrollToRow(n, "top");
+      list.ensure_row_is_visible(n, "top");
       await delay(5); // needed due to shift+enter causing output
       list = this.windowed_list_ref.current;
       if (list == null) return;
-      list.scrollToRow(n, "top");
+      list.ensure_row_is_visible(n, "top");
     }
     if (info == null) return;
 
     switch (scroll) {
       case "list up":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset - list.get_window_height() * 0.9);
+        list.scrollToPosition(
+          info.scrollOffset - list.get_window_height() * 0.9
+        );
         break;
       case "list down":
         // move scroll position of list up one page
-        list.scrollToPosition(info.scrollOffset + list.get_window_height() * 0.9);
+        list.scrollToPosition(
+          info.scrollOffset + list.get_window_height() * 0.9
+        );
         break;
     }
   }
@@ -260,7 +264,11 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private render_cell(id: string, isScrolling: boolean, index:number): Rendered {
+  private render_cell(
+    id: string,
+    isScrolling: boolean,
+    index: number
+  ): Rendered {
     const cell = this.props.cells.get(id);
     return (
       <Cell
@@ -343,7 +351,7 @@ export class CellList extends Component<CellListProps> {
 
   private render_list_of_cells_directly(): Rendered[] {
     const v: Rendered[] = [];
-    let index : number = 0;
+    let index: number = 0;
     this.props.cell_list.forEach((id: string) => {
       if (this.props.actions != null) {
         v.push(this.render_insert_cell(id));
@@ -364,7 +372,7 @@ export class CellList extends Component<CellListProps> {
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
-      padding: "5px"
+      paddingLeft: "5px"
     };
 
     if (this.use_windowed_list) {

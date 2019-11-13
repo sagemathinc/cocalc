@@ -52,7 +52,7 @@ export async function terminal(
 
     const options = terminals[name].options;
     if (options.args != null) {
-      for (let arg of options.args) {
+      for (const arg of options.args) {
         if (typeof arg === "string") {
           args.push(arg);
         }
@@ -241,7 +241,7 @@ export async function terminal(
     const INFINITY = 999999;
     let rows: number = INFINITY,
       cols: number = INFINITY;
-    for (let id in sizes) {
+    for (const id in sizes) {
       if (sizes[id].rows) {
         // if, since 0 rows or 0 columns means *ignore*.
         rows = Math.min(rows, sizes[id].rows);
@@ -327,7 +327,7 @@ export async function terminal(
           case "boot":
             // delete all sizes except this one, so at least kick resets
             // the sizes no matter what.
-            for (let id in terminals[name].client_sizes) {
+            for (const id in terminals[name].client_sizes) {
               if (id !== spark.id) {
                 delete terminals[name].client_sizes[id];
               }

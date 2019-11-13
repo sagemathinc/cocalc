@@ -80,6 +80,7 @@ export class WindowedList extends Component<Props, State> {
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
   private row_heights_stale: { [key: string]: boolean } = {};
+  private row_heights_removed: { [key: string]: boolean } = {};
   public resize_observer: any; // ResizeObserver, but can't because that's only for the polyfill...
   private is_mounted: boolean = true;
   private _disable_refresh: boolean = false;
@@ -102,6 +103,7 @@ export class WindowedList extends Component<Props, State> {
     visibleStartIndex: 0,
     visibleStopIndex: 0
   };
+  private ensure_visible?: { row: number; align: string };
 
   constructor(props) {
     super(props);
@@ -124,19 +126,23 @@ export class WindowedList extends Component<Props, State> {
   }
 
   public scrollToRow(row: number, align: string = "auto"): void {
-    if (this.list_ref.current == null) return;
+    if (this.list_ref.current == null || this.props.row_count == 0) return;
     if (row < 0) {
       row = row % this.props.row_count;
       if (row < 0) {
         row += this.props.row_count;
       }
     }
+
     if (align == "top") {
       // react-window doesn't have align=top, but we **need** it for jupyter
       // This implementation isn't done; it's just to prove we can do it.
       // Here "top" means the top of the row is in view nicely.
+      this.scrollToRow(row, "auto"); // at least get it into view, so metadata useful.
       const meta = this.get_row_metadata(row);
-      if (meta == null) return;
+      if (meta == null) {
+        return;
+      }
       const { scrollOffset } = this.get_scroll_info();
       const height = this.get_window_height();
       const margin = this.props.scroll_margin ? this.props.scroll_margin : 10;
@@ -154,6 +160,26 @@ export class WindowedList extends Component<Props, State> {
     } else {
       // align is auto, end, start, center
       this.list_ref.current.scrollToItem(row, align);
+    }
+  }
+
+  public async ensure_row_is_visible(
+    row: number,
+    align: string = "auto"
+  ): Promise<void> {
+    this.ensure_visible = { row, align };
+    for (let i = 1; i < 10; i++) {
+      const { row, align } = this.ensure_visible;
+      this.scrollToRow(row, align);
+      await delay(30);
+      if (!this.is_mounted) return;
+      if (
+        this.render_info != null &&
+        this.render_info.visibleStartIndex <= row &&
+        row <= this.render_info.visibleStopIndex
+      ) {
+        return;
+      }
     }
   }
 
@@ -204,22 +230,45 @@ export class WindowedList extends Component<Props, State> {
   private cell_resized(entries: any[]): void {
     let num_changed: number = 0;
     let min_index: number = 999999;
-    for (let entry of entries) {
-      // TODO: don't use jQuery, or just use https://github.com/souporserious/react-measure?
-      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0)
-        continue;
+    for (const entry of entries) {
       const elt = entry.target;
       const key = elt.getAttribute("data-key");
       if (key == null) continue;
-      const index = elt.getAttribute("data-index");
-      if (index != null) {
-        min_index = Math.min(min_index, parseInt(index));
+      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0) {
+        if (this.row_heights_cache[key] > 0) {
+          // A row was deleted (or isn't visible), so goes from a
+          // possibly big height to 0.
+          this.row_heights_removed[key] = true;
+        }
+        continue;
       }
+
+      const index = elt.getAttribute("data-index");
+      if (this.row_heights_removed[key]) {
+        delete this.row_heights_removed[key];
+        if (
+          Math.abs(this.row_heights_cache[key] - entry.contentRect.height) < 3
+        ) {
+          // Last time it changed it was removed, and now it is back but with
+          // a (significantly) different height
+          this.row_heights_cache[key] = entry.contentRect.height;
+          this.row_heights_stale[key] = true;
+          num_changed += 1;
+          if (index != null) {
+            min_index = Math.min(min_index, parseInt(index));
+          }
+          continue;
+        }
+      }
+
       const s = entry.contentRect.height - this.row_heights_cache[key];
       if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
         // not really changed or just disappeared from DOM or just shrunk a little,
         // ... so continue using what we have cached (or the default).
         continue;
+      }
+      if (index != null) {
+        min_index = Math.min(min_index, parseInt(index));
       }
       this.row_heights_stale[key] = true;
       num_changed += 1;
@@ -377,7 +426,10 @@ function create_row_component(windowed_list: WindowedList) {
       }
       return (
         <div
-          style={{ display: "flex", flexDirection: "column" }}
+          style={{
+            display: "flex",
+            flexDirection: "column"
+          }}
           data-key={key}
           data-index={index}
           ref={node => {

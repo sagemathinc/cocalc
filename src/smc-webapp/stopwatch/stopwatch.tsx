@@ -2,16 +2,15 @@
 The stopwatch component
 */
 
-import { Button, ButtonGroup, Row, Col } from "react-bootstrap";
+import { Button, Row, Col } from "cocalc-ui";
 
 import { Component, React, Rendered } from "../app-framework";
 
 import { TimerState } from "./actions";
 
-import { Icon } from "../r_misc/icon";
 import { TextInput } from "../r_misc/text-input";
 
-let { webapp_client } = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 function assertNever(x: never): never {
   throw new Error("Unexpected object: " + x);
@@ -58,11 +57,12 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_start_button(): Rendered {
     return (
       <Button
+        icon={"play-circle"}
         onClick={() => this.props.click_button("start")}
         style={!this.props.compact ? { width: "8em" } : undefined}
-        bsSize={this.props.compact ? "xsmall" : undefined}
+        size={this.props.compact ? "small" : undefined}
       >
-        <Icon name="play" /> {!this.props.compact ? "Start" : undefined}
+        {!this.props.compact ? "Start" : undefined}
       </Button>
     );
   }
@@ -70,10 +70,11 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_reset_button(): Rendered {
     return (
       <Button
+        icon={"stop"}
         onClick={() => this.props.click_button("reset")}
-        bsSize={this.props.compact ? "xsmall" : undefined}
+        size={this.props.compact ? "small" : undefined}
       >
-        <Icon name="ban" /> {!this.props.compact ? "Reset" : undefined}
+        {!this.props.compact ? "Reset" : undefined}
       </Button>
     );
   }
@@ -81,10 +82,8 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_delete_button(): Rendered {
     if (this.props.compact) return;
     return (
-      <Button
-        onClick={() => this.props.click_button("delete")}
-      >
-        <Icon name="trash" /> {!this.props.compact ? "Delete" : undefined}
+      <Button icon={"delete"} onClick={() => this.props.click_button("delete")}>
+        {!this.props.compact ? "Delete" : undefined}
       </Button>
     );
   }
@@ -92,11 +91,12 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   private render_pause_button(): Rendered {
     return (
       <Button
+        icon={"pause-circle"}
         onClick={() => this.props.click_button("pause")}
         style={!this.props.compact ? { width: "8em" } : undefined}
-        bsSize={this.props.compact ? "xsmall" : undefined}
+        size={this.props.compact ? "small" : undefined}
       >
-        <Icon name="pause" /> {!this.props.compact ? "Pause" : undefined}
+        {!this.props.compact ? "Pause" : undefined}
       </Button>
     );
   }
@@ -175,26 +175,26 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
     switch (this.props.state) {
       case "stopped":
         return (
-          <ButtonGroup key={"buttons"}>
+          <Button.Group key={"buttons"}>
             {this.render_start_button()}
             {this.render_delete_button()}
-          </ButtonGroup>
+          </Button.Group>
         );
       case "paused":
         return (
-          <ButtonGroup key={"buttons"}>
+          <Button.Group key={"buttons"}>
             {this.render_start_button()}
             {this.render_reset_button()}
             {this.render_delete_button()}
-          </ButtonGroup>
+          </Button.Group>
         );
       case "running":
         return (
-          <ButtonGroup key={"buttons"}>
+          <Button.Group key={"buttons"}>
             {this.render_pause_button()}
             {this.render_reset_button()}
             {this.render_delete_button()}
-          </ButtonGroup>
+          </Button.Group>
         );
       default:
         assertNever(this.props.state);
@@ -213,15 +213,15 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         }}
       >
         <Row>
-          <Col sm={6} md={6}>
+          <Col sm={12} md={12}>
             {this.render_time()}
           </Col>
-          <Col sm={6} md={6}>
+          <Col sm={12} md={12}>
             {this.render_label()}
           </Col>
         </Row>
         <Row>
-          <Col md={12}>{this.render_buttons()}</Col>
+          <Col md={24}>{this.render_buttons()}</Col>
         </Row>
       </div>
     );

@@ -5,7 +5,7 @@ import { endswith } from "../../smc-util/misc2";
 
 describe("compute 2+7 using the python2 kernel -- ", function() {
   this.timeout(5000);
-  let kernel: common.JupyterKernel = common.kernel("test-python2");
+  const kernel: common.JupyterKernel = common.kernel("test-python2");
 
   it("evaluate 2+7", async function() {
     expect(await common.exec(kernel, "2+7")).toBe('{"text/plain":"9"}');
@@ -26,7 +26,7 @@ describe("compute 2+7 using the python2 kernel -- ", function() {
 
 describe("compute 2/3 using a python3 kernel -- ", function() {
   this.timeout(15000);
-  let kernel: common.JupyterKernel = common.kernel("test-python3");
+  const kernel: common.JupyterKernel = common.kernel("test-python3");
 
   it("evaluate 2/3", async function() {
     expect(await common.exec(kernel, "2/3")).toBe(
@@ -57,7 +57,7 @@ describe("it tries to start a kernel that does not exist -- ", function() {
 });
 
 describe("calling the spawn method -- ", function() {
-  let kernel = common.kernel("test-python2");
+  const kernel = common.kernel("test-python2");
   this.timeout(5000);
 
   it("observes that the state switches to running", function(done) {
@@ -82,7 +82,7 @@ describe("calling the spawn method -- ", function() {
 });
 
 describe("send signals to a kernel -- ", function() {
-  let kernel = common.kernel("test-python2");
+  const kernel = common.kernel("test-python2");
   this.timeout(5000);
 
   it("ensure kernel is running", async function() {
@@ -134,7 +134,7 @@ describe("start a kernel in a different directory -- ", function() {
 });
 
 describe("use the key:value store -- ", function() {
-  let kernel = common.kernel("test-python2");
+  const kernel = common.kernel("test-python2");
   this.timeout(5000);
 
   it("tests setting the store", function() {

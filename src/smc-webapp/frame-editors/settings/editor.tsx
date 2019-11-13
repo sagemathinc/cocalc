@@ -15,7 +15,7 @@ import { Loading } from "../../r_misc/loading";
 
 import { SpellCheck } from "./spell-check";
 
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "../../project_configuration";
 
 interface Props {
   id: string;
@@ -42,7 +42,7 @@ export class Settings extends Component<Props, {}> {
             <SpellCheck
               key={key}
               value={value}
-              available={af.spellcheck}
+              available={af.get("spellcheck")}
               set={value => this.props.actions.set_settings({ [key]: value })}
             />
           );
@@ -84,5 +84,6 @@ export const SETTINGS_SPEC = {
   name: "Editor Settings",
   icon: "wrench",
   buttons: {},
-  component: Settings
+  component: Settings,
+  hide_public: true
 };

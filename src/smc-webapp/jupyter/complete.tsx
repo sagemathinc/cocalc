@@ -7,7 +7,7 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 
 interface CompleteProps {
   actions: JupyterActions;
-  frame_actions : NotebookFrameActions;
+  frame_actions: NotebookFrameActions;
   id: string;
   complete: Map<string, any>;
 }
@@ -57,6 +57,7 @@ export class Complete extends Component<CompleteProps> {
   private key(e: any): void {
     if (e.keyCode === 27) {
       this.props.actions.clear_complete();
+      this.props.frame_actions.set_mode("edit");
     }
     if (e.keyCode !== 13) {
       return;

@@ -113,9 +113,9 @@ describe("test move_selected_cells --", () => {
   it("some undef cases", () => {
     expect(cell_utils.move_selected_cells()).to.equal(undefined);
     expect(cell_utils.move_selected_cells(["a", "b", "x"])).to.equal(undefined);
-    expect(cell_utils.move_selected_cells(["a", "b", "x"], { a: true })).to.equal(
-      undefined
-    );
+    expect(
+      cell_utils.move_selected_cells(["a", "b", "x"], { a: true })
+    ).to.equal(undefined);
     expect(
       cell_utils.move_selected_cells(["a", "b", "x"], { a: true }, 0)
     ).to.equal(undefined);

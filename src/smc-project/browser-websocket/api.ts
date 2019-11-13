@@ -11,6 +11,9 @@ const { callback_opts } = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 
+import { canonical_paths } from "./canonical-path";
+import { eval_code } from "./eval-code";
+
 export function init_websocket_api(
   primus: any,
   logger: any,
@@ -63,6 +66,8 @@ async function handle_api_call(
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
+    case "canonical_paths":
+      return canonical_paths(data.paths);
     case "configuration":
       return await get_configuration(data.aspect);
     case "prettier":
@@ -78,6 +83,8 @@ async function handle_api_call(
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
+    case "eval_code":
+      return eval_code(data.code);
     case "terminal":
       return await terminal(primus, logger, data.path, data.options);
     case "lean":
@@ -108,7 +115,10 @@ async function handle_api_call(
 /* implementation of the api calls */
 
 import { get_listing, ListingEntry } from "../directory-listing";
-async function listing(path: string, hidden?: boolean): Promise<ListingEntry[]> {
+async function listing(
+  path: string,
+  hidden?: boolean
+): Promise<ListingEntry[]> {
   return await get_listing(path, hidden);
 }
 

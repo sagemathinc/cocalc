@@ -2466,7 +2466,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             )
             SELECT ext, cnt
             FROM ext_count
-            WHERE ext IN ('sagews', 'ipynb', 'tex', 'rtex', 'rnw',
+            WHERE ext IN ('sagews', 'ipynb', 'tex', 'rtex', 'rnw', 'x11',
                           'rmd', 'txt', 'py', 'md', 'sage', 'term', 'rst', 'lean',
                           'png', 'svg', 'jpeg', 'jpg', 'pdf',
                           'tasks', 'course', 'sage-chat', 'chat')
