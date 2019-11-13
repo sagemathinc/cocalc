@@ -19,18 +19,22 @@ import { SaveButton } from "./save-button";
 const { debounce } = require("underscore");
 const { ButtonGroup, Button } = require("react-bootstrap");
 
-import * as antd from "cocalc-ui";
-
 import { get_default_font_size } from "../generic/client";
-const { VisibleMDLG, EditorFileInfoDropdown } = require("smc-webapp/r_misc");
 
-import { r_join } from "smc-webapp/r_misc/r_join";
-import { Icon } from "smc-webapp/r_misc/icon";
-import { Space } from "smc-webapp/r_misc/space";
-import { Tip } from "smc-webapp/r_misc/tip";
+import {
+  r_join,
+  Icon,
+  VisibleMDLG,
+  EditorFileInfoDropdown,
+  Space,
+  Tip,
+  DropdownMenu,
+  MenuItem
+} from "smc-webapp/r_misc";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
-const misc = require("smc-util/misc");
+
+import { is_different, capitalize, copy } from "smc-util/misc";
 
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
@@ -191,8 +195,16 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   shouldComponentUpdate(next, state): boolean {
+    if (this.props.type != next.type) {
+      // clear button cache whenever type changes; otherwise,
+      // the buttons at the top wouldn't change.
+      delete this.buttons;
+      return true;
+    }
+
+    // note 'type' field dealt with above.
     return (
-      misc.is_different(this.props, next, [
+      is_different(this.props, next, [
         "active_id",
         "id",
         "is_full",
@@ -203,7 +215,6 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "is_public",
         "is_saving",
         "is_paused",
-        "type",
         "status",
         "title",
         "connection_status",
@@ -211,12 +222,12 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "available_features",
         "switch_to_files",
         "path"
-      ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+      ]) || is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
 
-  private antd_button_height(): string {
-    return this.props.is_only ? "34px" : "30px";
+  private button_height(): string {
+    return this.props.is_only || this.props.is_full ? "34px" : "30px";
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
@@ -268,7 +279,6 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
   }
 
   render_types(): Rendered {
-    const { Menu, Dropdown, Button } = antd;
     const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
@@ -284,40 +294,40 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         selected_short = spec.short;
       }
       const item = (
-        <Menu.Item cocalc-test={type} key={type}>
+        <MenuItem cocalc-test={type} key={type}>
           <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
           {spec.name}
-        </Menu.Item>
+        </MenuItem>
       );
       items.push(item);
     }
 
-    let title = <Icon name={selected_icon} />;
+    let title;
     if (selected_short) {
       title = (
         <span>
           {title} {selected_short}
         </span>
       );
+    } else {
+      title = <Icon name={selected_icon} />;
     }
-    const menu = (
-      <Menu
-        onClick={e => this.select_type(e.key)}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
+
+    // TODO: The "float: left" below is a hack
+    // to workaround that this is still in a bootstrap button group.
+    return (
+      <DropdownMenu
+        cocalc-test={"types-dropdown"}
+        button={true}
+        style={{ float: "left", height: this.button_height() }}
+        key={"types"}
+        title={title}
+        onClick={key => {
+          this.select_type(key);
+        }}
       >
         {items}
-      </Menu>
-    );
-
-    // TODO: The "float: left" below is just an ugly hack to workaround
-    // that this is still in a bootstrap button group.  Will go away
-    // when we switch entirely to Antd.
-    return (
-      <Dropdown cocalc-test={"types-dropdown"} overlay={menu} key={"types"}>
-        <Button style={{ float: "left", height: this.antd_button_height() }}>
-          {title} <antd.Icon type="down" />
-        </Button>
-      </Dropdown>
+      </DropdownMenu>
     );
   }
 
@@ -450,9 +460,8 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       return;
     }
 
-    const { Menu, Dropdown, Button, Icon } = antd;
     const items: Rendered[] = [100, 125, 150, 200].map(zoom => {
-      return <Menu.Item key={zoom}>{`${zoom}%`}</Menu.Item>;
+      return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
     });
 
     const title =
@@ -462,23 +471,18 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
             (100 * this.props.font_size) / get_default_font_size()
           )}%`;
 
-    const menu = (
-      <Menu
-        onClick={e => {
-          this.props.actions.set_zoom(parseInt(e.key) / 100, this.props.id);
+    return (
+      <DropdownMenu
+        key={"zoom-levels"}
+        button={true}
+        title={title}
+        style={{ height: this.button_height() }}
+        onClick={key => {
+          this.props.actions.set_zoom(parseInt(key) / 100, this.props.id);
         }}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {items}
-      </Menu>
-    );
-
-    return (
-      <Dropdown overlay={menu} key={"zoom-levels"}>
-        <Button style={{ height: this.antd_button_height() }}>
-          {title} <Icon type="down" />
-        </Button>
-      </Dropdown>
+      </DropdownMenu>
     );
   }
 
@@ -537,33 +541,24 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     ) {
       return;
     }
-    const { Menu, Dropdown, Button, Icon } = antd;
-    const items: Rendered[] = [];
-    this.props.switch_to_files.forEach(path => {
-      items.push(
-        <Menu.Item key={path}>
-          {this.props.path == path ? <b>{path}</b> : path}
-          {this.props.actions.path == path ? " (main)" : ""}
-        </Menu.Item>
-      );
-    });
-    const menu = (
-      <Menu
-        onClick={e => {
-          this.props.actions.switch_to_file(e.key, this.props.id);
-        }}
-        style={{ maxHeight: "100vH", overflow: "scroll" }}
-      >
-        {items}
-      </Menu>
-    );
-    const title = path_split(this.props.path).tail;
+
     return (
-      <Dropdown overlay={menu} key={"switch-to-file"}>
-        <Button style={{ top: "-9px", height: this.antd_button_height() }}>
-          {title} <Icon type="down" />
-        </Button>
-      </Dropdown>
+      <DropdownMenu
+        key={"switch-to-file"}
+        button={true}
+        style={{ top: "-9px", height: this.button_height() }}
+        title={path_split(this.props.path).tail}
+        onClick={key => {
+          this.props.actions.switch_to_file(key, this.props.id);
+        }}
+      >
+        {this.props.switch_to_files.toJS().map(path => (
+          <MenuItem key={path}>
+            {this.props.path == path ? <b>{path}</b> : path}
+            {this.props.actions.path == path ? " (main)" : ""}
+          </MenuItem>
+        ))}
+      </DropdownMenu>
     );
   }
 
@@ -850,7 +845,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     if (def != undefined) {
       return def;
     }
-    return misc.capitalize(button_name);
+    return capitalize(button_name);
   }
 
   private button_title(button_name: string, def?: string): string | undefined {
@@ -1303,7 +1298,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     return (
       <span style={path_style}>
         <Tip placement={"bottom"} title={this.props.path}>
-          {misc.path_split(this.props.path).tail}
+          {path_split(this.props.path).tail}
         </Tip>
       </span>
     );
@@ -1440,7 +1435,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     let style;
     const is_active = this.props.id === this.props.active_id;
     if (is_active) {
-      style = misc.copy(title_bar_style);
+      style = copy(title_bar_style);
       style.background = COL_BAR_BACKGROUND;
       if (!this.props.is_only && !this.props.is_full) {
         style.maxHeight = "34px";
@@ -1457,7 +1452,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       // for some reason this is really necessary on safari, but
       // breaks on everything else!
       if (!is_active) {
-        style = misc.copy(style);
+        style = copy(style);
       }
       if (this.props.is_only || this.props.is_full) {
         style.minHeight = "36px";

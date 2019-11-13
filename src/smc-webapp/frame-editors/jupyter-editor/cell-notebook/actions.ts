@@ -543,6 +543,7 @@ export class NotebookFrameActions {
   }
 
   unregister_input_editor(id: string): void {
+    if (this.input_editors == null) return;
     delete this.input_editors[id];
   }
 

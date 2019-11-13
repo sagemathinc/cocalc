@@ -905,7 +905,7 @@ exports.commands =
         sagesyntaxerrors:
             url: 'https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors'
         cocalcwiki:
-            url: 'https://github.com/sagemathinc/cocalc/wiki/sagews'
+            url: 'https://doc.cocalc.com/sagews.html'
         sagequestion:
             url: 'https://github.com/sagemathinc/cocalc/wiki/SageQuestion'
         help:
