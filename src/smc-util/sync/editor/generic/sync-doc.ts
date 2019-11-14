@@ -182,6 +182,7 @@ export class SyncDoc extends EventEmitter {
   private before_change?: Document;
 
   private last_user_change: Date = minutes_ago(60);
+  private last_save_to_disk_time: Date = new Date(0);
 
   private last_snapshot: Date | undefined;
   private snapshot_interval: number;
@@ -1898,6 +1899,10 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
+  public get_last_save_to_disk_time(): Date {
+    return this.last_save_to_disk_time;
+  }
+
   private async handle_syncstring_save_state(
     state: string,
     time: Date
@@ -1914,6 +1919,7 @@ export class SyncDoc extends EventEmitter {
        latex compilation properly in case of a .tex file).
     */
     if (state === "done" && this.syncstring_save_state !== "done") {
+      this.last_save_to_disk_time = time;
       this.emit("save-to-disk", time);
     }
     const dbg = this.dbg("handle_syncstring_save_state");

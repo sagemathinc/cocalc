@@ -7,7 +7,7 @@ import { React, Rendered, Component } from "../../app-framework";
 import { is_different } from "smc-util/misc2";
 
 import { NonloadedPage } from "./pdfjs-nonloaded-page";
-import { SVGPage } from "./pdfjs-svg-page";
+
 import { CanvasPage } from "./pdfjs-canvas-page";
 
 import {
@@ -55,15 +55,6 @@ export class Page extends Component<PageProps, {}> {
     };
     if (this.props.renderer == "none") {
       return <NonloadedPage page={this.props.page} scale={this.props.scale} />;
-    } else if (this.props.renderer == "svg") {
-      return (
-        <SVGPage
-          page={this.props.page}
-          scale={this.props.scale}
-          click_annotation={f}
-          sync_highlight={this.props.sync_highlight}
-        />
-      );
     } else {
       return (
         <CanvasPage
@@ -101,7 +92,9 @@ export class Page extends Component<PageProps, {}> {
     this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
   }
 
-  async click_annotation(annotation: PDFAnnotationData): Promise<void> {
+  async click_annotation(annotation0: PDFAnnotationData): Promise<void> {
+    // NOTE: We have to do this cast because the @types for pdfjs are incomplete and wrong.
+    const annotation: any = annotation0 as any; // TODO
     if (annotation.url) {
       // Link to an external URL.
       // TODO: make it work for cocalc URL's, e.g., cocalc.com...
@@ -113,11 +106,23 @@ export class Page extends Component<PageProps, {}> {
     }
     if (annotation.dest) {
       // Internal link within the document.
-      const dest = await this.props.doc.getDestination(annotation.dest);
-      const page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
+      // cast to any because of shortcoming in @types/pdfjs-dist (it's there -- see
+      // https://github.com/mozilla/pdf.js/blob/master/src/display/api.js#L643)
+      const dest = await (this.props.doc as any).getDestination(
+        annotation.dest
+      );
+      if (dest == null) {
+        console.warn(`Unknown destination ${annotation.dest}`);
+        return; // no such destination -- internal inconsistency...
+      }
+
+      // again, cast to any because of missing typing.
+      const page_index: number = await (this.props.doc as any).getPageIndex(
+        dest[0]
+      );
       const page_height = this.props.page.view[3];
       this.props.actions.scroll_pdf_into_view(
-        page,
+        page_index + 1,
         page_height - dest[3],
         this.props.id
       );

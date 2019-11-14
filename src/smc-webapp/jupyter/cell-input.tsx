@@ -369,6 +369,7 @@ export class CellInput extends Component<CellInputProps> {
             flexDirection: "row",
             alignItems: "stretch"
           }}
+          cocalc-test="cell-input"
         >
           {this.render_input_prompt(type)}
           {this.render_complete()}

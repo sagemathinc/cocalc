@@ -126,7 +126,7 @@ exports.NavTab = rclass
 
     render_label: ->
         if @props.show_label and @props.label?
-            <span style={marginLeft: 5} className={@props.label_class}>
+            <span style={marginLeft: 5} className={@props.label_class} cocalc-test={@props.label}>
                 {@props.label}
             </span>
 

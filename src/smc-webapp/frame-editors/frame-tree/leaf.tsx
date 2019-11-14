@@ -21,7 +21,6 @@ interface Props {
   font_size: number;
   editor_state: Map<string, any>;
   active_id: string;
-  gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
   terminal: Map<string, any>;
   settings: Map<string, any>;
@@ -29,7 +28,6 @@ interface Props {
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
   resize: number;
-
   actions: Actions;
   component: any; // ??
   spec: EditorDescription;
@@ -48,6 +46,7 @@ interface ReduxProps {
   complete?: Map<string, any>;
   is_loaded?: boolean;
   error?: string;
+  gutter_markers?: Map<string, any>;
 }
 
 class FrameTreeLeaf extends Component<Props & ReduxProps> {
@@ -66,7 +65,8 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
       misspelled_words: rtypes.immutable.Set,
       complete: rtypes.immutable.Map,
       is_loaded: rtypes.bool,
-      error: rtypes.string
+      error: rtypes.string,
+      gutter_markers: rtypes.immutable.Map
     };
     if (!is_subframe) {
       // This is used for showing the error message right with this frame,

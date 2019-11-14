@@ -13,10 +13,12 @@ for i in range(1, len(sys.argv)):
         break
 
 args = ' '.join(sys.argv[1:])
+# -r esm is so the share server can import frontend js code that
+# may just assume ES6 modules are supported (e.g., antd).
 if id != '':
-    cmd = "cp run/hub.js run/hub%s.js && node run/hub%s.js %s" % (id, id, args)
+    cmd = "cp run/hub.js run/hub%s.js && node -r esm run/hub%s.js %s" % (id, id, args)
 else:
-    cmd = "node --max-old-space-size=8000 run/hub.js " + args
+    cmd = "node -r esm --max-old-space-size=8000 run/hub.js " + args
 print(cmd)
 
 if os.WEXITSTATUS(os.system(cmd)):

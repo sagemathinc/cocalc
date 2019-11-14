@@ -1128,7 +1128,9 @@ EditorSettings = rclass
 KEYBOARD_SHORTCUTS =
     #'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
     #'Previous file tab'            : 'control+['
-    'Build project / run code'     : 'shift+enter; alt+t; command+t'
+    'Build project / run code'     : 'shift+enter; alt+T; command+T'
+    'Force build project'          : 'shift+alt+enter; shift+alt+T; shift+command+T'
+    'LaTeX forward sync'           : 'alt+enter; cmd+enter'
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
     'Toggle comment'               : 'control+/'
@@ -1140,7 +1142,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text left'     : 'shift+tab'
     'Split view in Sage worksheet' : 'shift+control+I'
     'Autoindent selection'         : "control+'"
-    'Format code (use Prettier)'   : 'control+shift+F'
+    'Format code (use Prettier, etc)' : 'control+shift+F'
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'

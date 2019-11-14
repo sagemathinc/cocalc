@@ -118,6 +118,7 @@ export interface CodeEditorState {
   complete: Map<string, any>;
   derived_file_types: Set<string>;
   visible: boolean;
+  switch_to_files: string[];
 }
 
 export class Actions<
@@ -781,9 +782,9 @@ export class Actions<
       this.terminals.close_terminal(id);
     }
 
-    if (type != "cm") {
-      this.code_editors.close_code_editor(id);
-    }
+    // make sure there is no code editor manager for this frame (those
+    // are only for subframe code editors).
+    this.code_editors.close_code_editor(id);
 
     // Reset the font size for the frame based on recent
     // pref for this type.
@@ -1030,6 +1031,16 @@ export class Actions<
     cm.delete_trailing_whitespace({ omit_lines });
   }
 
+  // Will get called when this or any subfile is explicitly saved by the user.
+  // If returns false then normal save happened.  If true, then nothing further.
+  // This is used, e.g., by multifile latex so that explicit save triggers
+  // save of all files and build... when a user option for "build on save"
+  // is enabled.
+  public async explicit_save(): Promise<boolean> {
+    await this.save(true);
+    return false;
+  }
+
   async save(explicit: boolean): Promise<void> {
     if (this.is_public || !this.store.get("is_loaded")) {
       return;
@@ -1064,6 +1075,30 @@ export class Actions<
     } finally {
       this.setState({ is_saving: false });
     }
+  }
+
+  // Gets the most recent time of a save; if self_only is false (the default),
+  // then includes any files listed in switch_to_files...
+  public last_save_time(self_only: boolean = false): number {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
+      return 0;
+    }
+    let n = this._syncstring.get_last_save_to_disk_time().valueOf();
+    if (self_only) {
+      return n;
+    }
+    const files = this.store.get("switch_to_files");
+    if (files == null || files.size <= 1) {
+      return n;
+    }
+
+    for (const path of files) {
+      const actions = this.redux.getEditorActions(this.project_id, path);
+      if (actions == null) continue;
+      const t = (actions as Actions).last_save_time(true);
+      n = Math.max(n, t);
+    }
+    return n;
   }
 
   _get_project_actions() {
@@ -1154,25 +1189,21 @@ export class Actions<
   }
 
   set_cm(id: string, cm: CodeMirror.Editor): void {
+    (cm as any).cocalc_actions = this;
+    this._cm[id] = cm;
+    // reference to this actions object, so codemirror plugins
+    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
+    if (len(this._cm) == 1) {
+      // Creating codemirror for the first time -- need to initialize it.
+      this.set_codemirror_to_syncstring();
+    }
+
     const sel =
       this._cm_selections != null ? this._cm_selections[id] : undefined;
     if (sel != null) {
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
-    // reference to this actions object, so codemirror plugins
-    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
-    (cm as any).cocalc_actions = this;
-
-    if (len(this._cm) > 0) {
-      // just making another cm
-      this._cm[id] = cm;
-      return;
-    }
-
-    this._cm[id] = cm;
-    // Creating codemirror for the first time -- need to initialize it.
-    this.set_codemirror_to_syncstring();
   }
 
   // 1. if id given, returns cm with given id if id
@@ -1444,8 +1475,23 @@ export class Actions<
   async programmatical_goto_line(
     line: number,
     cursor?: boolean,
-    focus?: boolean
+    focus?: boolean,
+    id?: string // if given scroll this particular frame
   ): Promise<void> {
+    if (this._syncstring == null) {
+      // give up -- don't even have a syncstring...
+      // A derived class that doesn't use a syncstring
+      // might overload programmatical_goto_line to make
+      // sense for whatever it works with.
+      return;
+    }
+    const state = this._syncstring.get_state();
+    if (state == "closed") return;
+    if (state == "init") {
+      await once(this._syncstring, "ready");
+      if (this._state == "closed") return;
+    }
+
     if (line <= 0) {
       /* Lines <= 0 cause an exception in codemirror later.
          If the line number is much larger than the number of lines
@@ -1457,19 +1503,37 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined = this._get_most_recent_cm_id();
-    const full_id: string | undefined = this.store.getIn([
-      "local_view_state",
-      "full_id"
-    ]);
-    if (full_id && full_id != cm_id) {
-      this.unset_frame_full();
-      // have to wait for cm to get created and registered.
-      await delay(1);
-      if (this._state == "closed") return;
+    const cm_id: string | undefined =
+      id == null ? this._get_most_recent_cm_id() : id;
+    if (cm_id && this._get_frame_node(cm_id) != null) {
+      // cm_id defines a frame in the main frame tree associated
+      // to this file (rather than a frame in some other frame tree).
+      const full_id: string | undefined = this.store.getIn([
+        "local_view_state",
+        "full_id"
+      ]);
+      if (full_id && full_id != cm_id) {
+        this.unset_frame_full();
+        // have to wait for cm to get created and registered.
+        await delay(1);
+        if (this._state == "closed") return;
+      }
     }
 
     let cm = this._get_cm(cm_id);
+    // This is ugly -- react will render the frame with the
+    // editor in it, and after that happens the CodeMirror
+    // editor that was created gets registered, and finally
+    // this._get_cm will return it.  We thus keep trying until
+    // we find it (but for way less than a second).  This sort
+    // of crappy code is OK here, since it's just for moving the
+    // buffer to a line.
+    for (let i = 0; cm == null && i < 10; i++) {
+      cm = this._get_cm(cm_id);
+      await delay(25);
+      if (this._state == "closed") return;
+    }
+
     if (cm == null) {
       // this case can only happen in derived classes with non-cm editors.
       this.split_frame("col", this._get_active_id(), "cm");
@@ -1490,11 +1554,17 @@ export class Actions<
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
-    if (cursor) {
-      doc.setCursor(pos);
-    }
     if (focus) {
       cm.focus();
+    }
+    if (cursor) {
+      doc.setCursor(pos);
+      // TODO: this is VERY CRAPPY CODE -- wait after,
+      // so cm gets state/value fully set.
+      await delay(100);
+      if (this._state == "closed") return;
+      doc.setCursor(pos);
+      cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
   }
 
@@ -1663,7 +1733,22 @@ export class Actions<
     }
   }
 
-  async format_action(cmd, args): Promise<void> {
+  // Do a formatting action to whatever code editor
+  // is currently active, or the main document if none is
+  // focused or force_main is true.
+  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+    if (!force_main) {
+      const id = this._get_active_id();
+      try {
+        return await this.get_code_editor(id)
+          .get_actions()
+          .format_action(cmd, args, true);
+      } catch (err) {
+        // active frame is not a different code editor, so we fallback
+        // to case below that we want the main doc (if there is one).
+      }
+    }
+
     const cm = this._get_cm(undefined, true);
     if (cm == null) {
       // format bar only makes sense when some cm is there...
@@ -2266,10 +2351,12 @@ export class Actions<
 
     // More difficult case - no such frame and different path
     const active_id = this._get_active_id();
-    const id = this.split_frame(dir, active_id, "cm", { path }, first, true);
+    const id = this.split_frame(dir, active_id, "cm", undefined, first, true);
     if (id == null) {
       throw Error("BUG -- failed to make frame");
     }
+    this.set_frame_to_code_editor(id, path);
+
     if (pos != null) {
       const parent_id = this.get_parent_id(id);
       if (parent_id != null) {
@@ -2280,7 +2367,71 @@ export class Actions<
     return id;
   }
 
+  public async switch_to_file(path: string, id?: string): Promise<string> {
+    if (id != null) {
+      const node = this._get_frame_node(id);
+      if (node == null) return id;
+      if (node.get("path") == path) return id; // already done;
+      // Change it --
+      this.set_frame_to_code_editor(id, path);
+      return id;
+    }
+
+    // Check if there is already a code editor frame with the given path.
+    id = this.get_matching_frame({ path, type: "cm" });
+    if (id) {
+      // found one already
+      this.set_active_id(id);
+      return id;
+    }
+
+    // Focus a cm frame then change its path.
+    id = this.show_focused_frame_of_type("cm");
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error("bug");
+    }
+    if (node.get("path") == path) return id; // already done.
+
+    this.set_frame_to_code_editor(id, path);
+    return id;
+  }
+
+  // Init actions and set our new cm frame to the given path.
+  private set_frame_to_code_editor(id: string, path: string): void {
+    const node = this._get_frame_node(id);
+    if (node == null) throw Error(`no frame with id ${id}`);
+
+    // This call to get_code_editor ensures the
+    // actions/manager is already initialized.  We need
+    // to do this here rather than in the frame-tree render
+    // loop, in order to ensure that the actions aren't created
+    // while rendering, as that causes a state transition which
+    // react does NOT appreciate.
+    this.code_editors.get_code_editor(id, path);
+
+    // Now actually change the path field of the frame tree, which causes
+    // a render.
+    this.set_frame_tree({ id, path, type: "cm" });
+  }
+
   public get_code_editor(id: string): CodeEditor {
     return this.code_editors.get_code_editor(id);
+  }
+
+  public get_matching_frame(obj: object): string | undefined {
+    const tree = this._get_tree();
+    for (const id in this._get_leaf_ids()) {
+      const node = tree_ops.get_node(tree, id);
+      if (node == null) continue;
+      let match = true;
+      for (let key in obj) {
+        if (node.get(key) != obj[key]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return id;
+    }
   }
 }

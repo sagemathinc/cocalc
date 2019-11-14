@@ -6,8 +6,6 @@ This is a wrapper around a single codemirror editor view.
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-import { delay } from "awaiting";
-
 import { Map, Set } from "immutable";
 
 import { is_safari } from "../generic/browser";
@@ -98,7 +96,8 @@ export class CodemirrorEditor extends Component<Props, State> {
         "editor_state",
         "gutter_markers",
         "is_subframe",
-        "is_current"
+        "is_current",
+        "path"
       ])
     );
   }
@@ -134,14 +133,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   }
 
-  _cm_refresh(): void {
+  private cm_refresh(): void {
     if (!this.cm) return;
     this.cm.refresh();
-  }
-
-  async cm_refresh(): Promise<void> {
-    await delay(0);
-    this._cm_refresh();
   }
 
   cm_highlight_misspelled_words(words: Set<string>): void {
@@ -274,14 +268,17 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = function(cm: any) {
+      (CodeMirror as any).commands.save = (cm: any) => {
+        this.props.actions.explicit_save();
         if (cm._actions) {
           cm._actions.save(true);
         }
       };
     }
 
-    const cm: CodeMirror.Editor = (this.editor_actions as any)._cm[this.props.id];
+    const cm: CodeMirror.Editor = (this.editor_actions as any)._cm[
+      this.props.id
+    ];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
@@ -495,7 +492,6 @@ export class CodemirrorEditor extends Component<Props, State> {
 
   // todo: move this render_path to a component in a separate file.
   render_path(): Rendered {
-    if (!this.props.is_subframe) return;
     const style: any = {
       borderBottom: "1px solid lightgrey",
       borderRight: "1px solid lightgrey",
@@ -504,7 +500,8 @@ export class CodemirrorEditor extends Component<Props, State> {
       borderTopRightRadius: "5px",
       color: "#337ab7",
       cursor: "pointer",
-      width: "100%"
+      width: "100%",
+      fontSize: "10pt"
     };
     if (this.props.is_current) {
       style.background = "#337ab7";

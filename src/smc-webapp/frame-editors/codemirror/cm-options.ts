@@ -17,6 +17,10 @@ import { Map } from "immutable";
 
 import { valid_indent } from "./util";
 
+function save(cm) {
+  (CodeMirror as any).commands.save(cm);
+}
+
 export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
@@ -106,8 +110,14 @@ export function cm_options(
     extra_alt_keys(extraKeys, editor_actions, frame_id, opts);
   }
 
-  if (frame_tree_actions != null && editor_actions != null) {
-    const build = () => {
+  if (frame_tree_actions != null) {
+    const build = (force = false) => {
+      if (force) {
+        if (frame_tree_actions.force_build !== undefined) {
+          frame_tree_actions.force_build(frame_id);
+        }
+        return;
+      }
       if (frame_tree_actions.build !== undefined) {
         frame_tree_actions.build(frame_id);
       } else {
@@ -120,14 +130,14 @@ export function cm_options(
     };
 
     const actionKeys = {
-      "Cmd-S"() {
-        editor_actions.save(true);
+      "Cmd-S"(cm) {
+        save(cm);
       },
-      "Alt-S"() {
-        editor_actions.save(true);
+      "Alt-S"(cm) {
+        save(cm);
       },
-      "Ctrl-S"() {
-        editor_actions.save(true);
+      "Ctrl-S"(cm) {
+        save(cm);
       },
       "Cmd-P"() {
         editor_actions.print();
@@ -177,6 +187,15 @@ export function cm_options(
       "Shift-Enter"() {
         build();
       },
+      "Shift-Alt-Enter"() {
+        build(true);
+      },
+      "Shift-Alt-T"() {
+        build(true);
+      },
+      "Shift-Cmd-T"() {
+        build(true);
+      },
       "Cmd-T"() {
         build();
       },
@@ -192,7 +211,10 @@ export function cm_options(
       extraKeys["Ctrl-P"] = () => editor_actions.print(frame_id);
     }
     if (frame_tree_actions.sync != null) {
-      extraKeys["Alt-Enter"] = () => frame_tree_actions.sync(frame_id);
+      extraKeys["Alt-Enter"] = () =>
+        frame_tree_actions.sync(frame_id, editor_actions);
+      extraKeys["Cmd-Enter"] = () =>
+        frame_tree_actions.sync(frame_id, editor_actions);
     }
 
     if (!opts.read_only && opts.bindings !== "emacs") {

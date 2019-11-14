@@ -36,7 +36,7 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
@@ -215,11 +215,6 @@ SUPPORT_LINKS =
         bold : true
         href : DOC_URL
         link : <span><SiteName/> manual</span>
-    wiki :
-        icon : 'question-circle'
-        bold : true
-        href : WIKI_URL
-        link : <span><SiteName/> WIKI portal</span>
     teaching :
         icon : 'graduation-cap'
         href : 'https://doc.cocalc.com/teaching-instructors.html'
@@ -425,7 +420,6 @@ exports.HelpPage = HelpPage = rclass
             textAlign       : 'center'
             marginBottom    : '30px'
 
-        {SmcWikiUrl}      = require('./customize')
         {ShowSupportLink} = require('./support')
         {APP_LOGO}        = require('./art')
 

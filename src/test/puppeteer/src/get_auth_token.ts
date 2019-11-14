@@ -3,7 +3,7 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Creds, Opts, ApiGetString } from "./types";
+import { Creds, Opts, TestGetString } from "./types";
 import { time_log } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
@@ -13,8 +13,8 @@ const get_auth_token = async function(
   opts: Opts,
   api_key: string,
   account_id: string
-): Promise<ApiGetString> {
-  const ags: ApiGetString = new ApiGetString();
+): Promise<TestGetString> {
+  const ags: TestGetString = new TestGetString();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
     ags.skip += 1;

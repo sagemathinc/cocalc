@@ -300,3 +300,4 @@ export async function project_api(project_id: string): Promise<API> {
 export function raw_url_of_file(project_id: string, path: string): string {
   return webapp_client.read_file_from_project({ project_id, path });
 }
+

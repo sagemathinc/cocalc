@@ -8,8 +8,6 @@ import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
 import { Component, React, ReactDOM } from "../../app-framework";
 
-import { is_different } from "smc-util/misc2";
-
 import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
 
 interface Props {
@@ -20,20 +18,19 @@ interface Props {
 }
 
 export class CanvasPage extends Component<Props, {}> {
-  shouldComponentUpdate(next_props: Props): boolean {
-    return (
-      is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
-      this.props.page.version != next_props.page.version
-    );
-  }
-
   async render_page(page: PDFPageProxy, scale: number): Promise<void> {
     const div: HTMLElement = ReactDOM.findDOMNode(this.refs.page);
-    const viewport: PDFPageViewport = page.getViewport(
-      scale * window.devicePixelRatio
-    );
+    const viewport: PDFPageViewport = page.getViewport({
+      scale: scale * window.devicePixelRatio
+    });
     const canvas: HTMLCanvasElement = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
+    if (ctx == null) {
+      console.error(
+        "pdf.js -- unable to get a 2d canvas, so not rendering page"
+      );
+      return;
+    }
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
@@ -43,11 +40,8 @@ export class CanvasPage extends Component<Props, {}> {
     try {
       await page.render({
         canvasContext: ctx,
-        viewport: viewport,
-        enableWebGL: true
-      });
-      //$(div).empty();
-      //div.appendChild(canvas);
+        viewport: viewport
+      }).promise;
     } catch (err) {
       console.error(`pdf.js -- Error rendering canvas page: ${err}`);
       return;

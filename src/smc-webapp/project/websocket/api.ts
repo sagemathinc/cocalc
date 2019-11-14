@@ -32,10 +32,24 @@ export class API {
   }
 
   async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call(
-      { cmd: "listing", path: path, hidden: hidden },
-      15000
-    );
+    return await this.call({ cmd: "listing", path, hidden }, 15000);
+  }
+
+  /* Normalize the given paths relative to the HOME directory.
+     This takes any old weird looking mess of a path and makes
+     it one that can be opened properly with our file editor,
+     and the path appears to be to a file *in* the HOME directory.
+  */
+  async canonical_path(path: string): Promise<string> {
+    const v = await this.canonical_paths([path]);
+    const x = v[0];
+    if (typeof x != "string") {
+      throw Error("bug in canonical_path");
+    }
+    return x;
+  }
+  async canonical_paths(paths: string[]): Promise<string[]> {
+    return await this.call({ cmd: "canonical_paths", paths }, 15000);
   }
 
   async configuration(aspect: ConfigurationAspect): Promise<object[]> {
@@ -112,6 +126,10 @@ export class API {
       timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "exec", opts }, timeout_ms);
+  }
+
+  async eval_code(code: string, timeout_ms: number = 20000): Promise<any> {
+    return await this.call({ cmd: "eval_code", code }, timeout_ms);
   }
 
   async terminal(path: string, options: object = {}): Promise<Channel> {
