@@ -110,8 +110,14 @@ export function cm_options(
     extra_alt_keys(extraKeys, editor_actions, frame_id, opts);
   }
 
-  if (frame_tree_actions != null && editor_actions != null) {
-    const build = () => {
+  if (frame_tree_actions != null) {
+    const build = (force = false) => {
+      if (force) {
+        if (frame_tree_actions.force_build !== undefined) {
+          frame_tree_actions.force_build(frame_id);
+        }
+        return;
+      }
       if (frame_tree_actions.build !== undefined) {
         frame_tree_actions.build(frame_id);
       } else {
@@ -181,6 +187,15 @@ export function cm_options(
       "Shift-Enter"() {
         build();
       },
+      "Shift-Alt-Enter"() {
+        build(true);
+      },
+      "Shift-Alt-T"() {
+        build(true);
+      },
+      "Shift-Cmd-T"() {
+        build(true);
+      },
       "Cmd-T"() {
         build();
       },
@@ -197,6 +212,8 @@ export function cm_options(
     }
     if (frame_tree_actions.sync != null) {
       extraKeys["Alt-Enter"] = () =>
+        frame_tree_actions.sync(frame_id, editor_actions);
+      extraKeys["Cmd-Enter"] = () =>
         frame_tree_actions.sync(frame_id, editor_actions);
     }
 

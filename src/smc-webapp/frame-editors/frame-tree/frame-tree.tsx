@@ -312,7 +312,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   async reset_frame_tree(): Promise<void> {
-    await delay(1);
+    await delay(100);
     if (this.props.actions) {
       this.props.actions.reset_frame_tree();
     }

@@ -12,4 +12,6 @@ import "antd/es/popconfirm/style/css";
 import "antd/es/icon/style/css";
 import "antd/es/tabs/style/css";
 import "antd/es/card/style/css";
+import "antd/es/menu/style/css";
+import "antd/es/dropdown/style/css";
 import "./antd-fix.sass";

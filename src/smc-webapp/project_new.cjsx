@@ -385,7 +385,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         <Row>
             <Col sm={9}>
                 <div style={color: "#666"}>
-                    <em>Drag and drop uploads are <a href="https://doc.cocalc.com/howto/upload.html" target="_blank">limited to 200MB</a>.  You can also drag & drop onto the file listing.</em>
+                    <em>Read about <a href="https://doc.cocalc.com/howto/upload.html" target="_blank">other ways to upload files.</a>  You can also drag & drop files on the file listing.</em>
                 </div>
             </Col>
             <Col sm={3}>

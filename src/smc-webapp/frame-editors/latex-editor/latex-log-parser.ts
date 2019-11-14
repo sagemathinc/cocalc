@@ -352,10 +352,7 @@ export class LatexParser {
   postProcess(data: Error[]): ProcessedLatexLog {
     const pll = new ProcessedLatexLog();
     for (const path of this.files) {
-      if (path.indexOf(" [") != -1) continue; // HACK: sometimes this gets miss-parsed....
-      if (path.indexOf(" (") != -1) continue; // HACK...
-      if (path.indexOf("\\") != -1) continue; // .
-      if (path.endsWith(".aux")) continue; // do not include this.
+      if (!path.endsWith(".tex") && !path.endsWith(".bib")) continue; // only include tex and bib files
       pll.files.push(path);
     }
     const hashes: string[] = [];

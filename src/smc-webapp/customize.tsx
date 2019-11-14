@@ -291,4 +291,3 @@ export const PolicyPricingPageUrl = app_base_url + "/policies/pricing.html";
 export const PolicyPrivacyPageUrl = app_base_url + "/policies/privacy.html";
 export const PolicyCopyrightPageUrl = app_base_url + "/policies/copyright.html";
 export const PolicyTOSPageUrl = app_base_url + "/policies/terms.html";
-export const SmcWikiUrl = theme.WIKI_URL;

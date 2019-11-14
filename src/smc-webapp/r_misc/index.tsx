@@ -18,6 +18,7 @@ export { LabeledRow } from "./labeled-row";
 export { TimeElapsed } from "./time-elapsed";
 export { SettingBox } from "./setting-box";
 export { ProfileIcon } from "./profile-icon";
+export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
 
 export const {
   MarkdownInput,

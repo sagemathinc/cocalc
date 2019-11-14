@@ -1733,7 +1733,22 @@ export class Actions<
     }
   }
 
-  async format_action(cmd, args): Promise<void> {
+  // Do a formatting action to whatever code editor
+  // is currently active, or the main document if none is
+  // focused or force_main is true.
+  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+    if (!force_main) {
+      const id = this._get_active_id();
+      try {
+        return await this.get_code_editor(id)
+          .get_actions()
+          .format_action(cmd, args, true);
+      } catch (err) {
+        // active frame is not a different code editor, so we fallback
+        // to case below that we want the main doc (if there is one).
+      }
+    }
+
     const cm = this._get_cm(undefined, true);
     if (cm == null) {
       // format bar only makes sense when some cm is there...

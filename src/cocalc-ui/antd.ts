@@ -38,3 +38,9 @@ export { Tabs };
 
 import Card from "antd/es/card";
 export { Card };
+
+import Menu from "antd/es/menu";
+export { Menu };
+
+import Dropdown from "antd/es/dropdown";
+export { Dropdown };
