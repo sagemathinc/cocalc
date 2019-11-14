@@ -21,6 +21,7 @@ export { ProfileIcon } from "./profile-icon";
 export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
 export { WindowedList } from "./windowed-list";
 export { DateTimePicker } from "./date-time-picker";
+export { UncommittedChanges } from "./uncommited-changes";
 
 export const {
   MarkdownInput,
