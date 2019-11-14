@@ -1,19 +1,25 @@
 # kucalc-style
 set -ex
 
-npm install coffeescript -g
+npm install -g coffeescript uglify-js
 
 cd $TRAVIS_BUILD_DIR/src
-npm install uglify-js
 
 # the first few are for the hub services, but we also build the project
-for path in smc-util smc-util-node smc-hub smc-webapp smc-webapp/jupyter smc-project smc-project/jupyter smc-webapp/jupyter; do
-    cd $TRAVIS_BUILD_DIR/src/$path
+export SMC_ROOT=$TRAVIS_BUILD_DIR/src/
+export SALVUS_ROOT=$SMC_ROOT
+
+. $TRAVIS_BUILD_DIR/src/scripts/cocalc-dirs.sh
+
+for path in "${CODE_DIRS[@]}"; do
+    cd $path
     npm ci
 done
 
+cd $TRAVIS_BUILD_DIR/src
+
 # hub: build primus
-env SALVUS_ROOT=$TRAVIS_BUILD_DIR/src PATH=$TRAVIS_BUILD_DIR/src/node_modules/.bin:$PATH $TRAVIS_BUILD_DIR/src/webapp-lib/primus/update_primus
+env PATH=$TRAVIS_BUILD_DIR/src/node_modules/.bin:$PATH $TRAVIS_BUILD_DIR/src/webapp-lib/primus/update_primus
 
 # coffee: # the first few are for the hub services, but we also build the project
 for path in smc-util smc-util-node smc-hub smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter; do
