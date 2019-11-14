@@ -430,10 +430,9 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen             : rtypes.oneOf(['default', 'kiosk'])
-            show_global_info       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
+        return misc.is_different(@props, next, ['fullscreen'])
 
     on_fullscreen: (ev) ->
         @actions('page').toggle_fullscreen()
@@ -560,7 +559,7 @@ exports.MentionsButton = rclass
             <Tip
                 style     = {tip_style}
                 title     = {'Show where you were mentioned.'}
-                placement = {'left'}
+                placement = {'bottom'}
             >
                 <Icon
                     style   = {icon_style}

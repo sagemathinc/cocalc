@@ -22,8 +22,8 @@
 import { notification } from "cocalc-ui";
 import { ReactElement } from "react";
 
-import { redux } from "./app-framework";
-import { NAME_SYSTEM, NotificationsActions } from "./system_notifications";
+// import { redux } from "./app-framework";
+// import { NAME_SYSTEM, NotificationsActions } from "./system_notifications";
 import { tuple } from "smc-util/misc2";
 import {
   defaults,
@@ -115,22 +115,24 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     webapp_client.log_error(opts.message);
   }
 
-  const system_notification_actions = redux.getActions<
-    {},
-    NotificationsActions
-  >(NAME_SYSTEM);
-  if (system_notification_actions == null) {
-    console.error("system_notification_actions is not available");
-    return;
-  }
+  // pass on alerts to the global notification bar -- disabled for now
 
-  system_notification_actions.create_alert({
-    time: server_time(),
-    title,
-    text: opts.message,
-    delay: opts.timeout * 1000,
-    severity: opts.type
-  });
+  //const system_notification_actions = redux.getActions<
+  //  {},
+  //  NotificationsActions
+  //>(NAME_SYSTEM);
+  //if (system_notification_actions == null) {
+  //  console.error("system_notification_actions is not available");
+  //  return;
+  //}
+
+  //system_notification_actions.create_alert({
+  //  time: server_time(),
+  //  title,
+  //  text: opts.message,
+  //  delay: opts.timeout * 1000,
+  //  severity: opts.type
+  //});
 }
 
 function check_for_clock_skew() {

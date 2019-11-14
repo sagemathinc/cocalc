@@ -55,7 +55,7 @@ export class GlobalInformationToggle extends React.Component<
           title={
             "Show global announcements, system notifications and application alerts."
           }
-          placement={"left"}
+          placement={"bottom"}
         >
           <Icon style={icon_style} name={icon} />
         </Tip>
