@@ -43,17 +43,13 @@ export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail
     await page.click(sel);
     debuglog("clicked file line");
 
-    // sel = 'button[title="Show only this frame"]';
-    // await page.click(sel);
-    // debuglog('clicked show only source frame');
-
     time_log("open tex file", tm_open_tex);
     const tm_word_count = process.hrtime.bigint();
 
-    sel = '*[cocalc-test="latex-dropdown"]';
+    sel = '*[cocalc-test="short-Source"]';
     await page.waitForSelector(sel);
     await page.click(sel);
-    debuglog("clicked latex dropdown");
+    debuglog("clicked latex Source");
 
     sel = '*[cocalc-test="word_count"]';
     await page.click(sel);
@@ -73,10 +69,9 @@ export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail
     debuglog("word count output:\n" + chalk.cyan(text));
     expect(text, "missing text in word count output").to.include(want);
 
-    sel = '*[cocalc-test="latex-dropdown"]';
-    await page.waitForSelector(sel);
+    sel = '*[cocalc-test="short-Word Count"]';
     await page.click(sel);
-    debuglog("clicked latex dropdown again");
+    debuglog("clicked word count again");
 
     sel = '*[cocalc-test="cm"]';
     await page.click(sel);
