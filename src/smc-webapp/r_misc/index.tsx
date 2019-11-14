@@ -20,6 +20,7 @@ export { SettingBox } from "./setting-box";
 export { ProfileIcon } from "./profile-icon";
 export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
 export { WindowedList } from "./windowed-list";
+export { UncommittedChanges } from "./uncommited-changes";
 
 export const {
   MarkdownInput,

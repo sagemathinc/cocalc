@@ -4,7 +4,7 @@ import { Icon, VisibleMDLG } from "smc-webapp/r_misc";
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { UncommittedChanges } from "../../jupyter/uncommitted-changes";
+import { UncommittedChanges } from "../../r_misc";
 
 interface Props {
   has_unsaved_changes?: boolean;
