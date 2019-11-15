@@ -516,37 +516,74 @@ export class SortedPatchList extends EventEmitter {
     }
   }
 
-  /* If the number of patches since the most recent snapshot
-     is >= 2*interval, we would make a snapshot at the patch
-     that is interval steps forward from the most recent
-     snapshot.  This function does not MAKE a snapshot; it just
+  /* This function does not MAKE a snapshot; it just
      returns the time at which we must plan to make a snapshot.
      Returns undefined if do NOT need to make a snapshot soon.
+     NOTE: we want to make snapshots as far in the past from
+     right now as possible, since users can't insert new offline
+     patches *before* the most recent snapshot (in that situation
+     all offline work has to get rebased before being inserted
+     in history).
+
+     RULE 1: If the number of patches since the most recent snapshot
+     (or the start of time) is >= 2*interval, we would make a snapshot
+     at the patch that is interval steps forward from most recent
+     or start of time.
+
+     RULE 2: If the sum of the patch sizes since the last
+     snapshot (or start of time) exceeds max_size, we make a
+     new snapshot at that point in time (starting from the last snapshot)
+     when the sum of the patch sizes exceeds max_size.  We do this
+     since this is the most canonical choice, in that many distinct
+     participants would be mostly likely to make the same choice, which
+     increases the chances of avoiding conflicts.  Also, if there are
+     tons of big patches, each time there is a new patch that
+     gets committed, a new snapshot would get made until no
+     more need to be made.  This isn't maximally efficient, in that
+     several extra snapshots might get made, but maybe that is OK.
      */
-  public time_of_unmade_periodic_snapshot(interval: number): Date | undefined {
+  public time_of_unmade_periodic_snapshot(
+    interval: number,
+    max_size: number
+  ): Date | undefined {
     const n = this.patches.length - 1;
-    if (n < 2 * interval) {
-      // definitely no need to make a snapshot
-      return;
-    }
-    const end = n - 2 * interval;
-    for (let i = n; i >= end; i--) {
-      if (this.patches[i].snapshot != null) {
+    let cur_size: number = 0;
+    for (let i = n; i >= 0; i--) {
+      const is_snapshot: boolean = this.patches[i].snapshot != null;
+      if (!is_snapshot) {
+        // add this patch to our size count.  NOTE -- we do not
+        // include the snapshot in the size count, since the
+        // snapshot already incorporates the patch itself.
+        cur_size += this.patches[i].size;
+      }
+      if (is_snapshot || i == 0) {
+        // This is the most recent snapshot or the beginning of time.
         if (i + 2 * interval <= n) {
+          // Time to make a snapshot, based purely on the number
+          // of patches made since the last snapshot (or beginning of time).
           return this.patches[i + interval].time;
+        }
+        // No reason to make snapshot based on number of patches.  What about size?
+        if (cur_size > max_size) {
+          // Time to make a snapshot, based on the total size since the last
+          // snapshot (or beginning of time).
+          // Make snapshot at first time where max_size exceeded.
+          // We start at i+1 when snapshot below, since the snapshot position
+          // itself includes the patch.
+          let cnt_size = 0;
+          for (let j = is_snapshot ? i + 1 : i; j <= n; j++) {
+            cnt_size += this.patches[j].size;
+            if (cnt_size > max_size) {
+              return this.patches[j].time;
+            }
+          }
+          return; // this should be unreachable
         } else {
-          // found a relatively recent snapshot, so don't need
-          // to make another one
+          // We found a relatively recent snapshot before max_size exceeded,
+          // so we don't need to make a snapshot.
           return;
         }
       }
-    }
-    // No snapshot found at all -- maybe old ones were deleted.
-    // We return the time at which we should have the *newest* snapshot.
-    // This is the largest multiple i of interval that is <= n - interval
-    const i = Math.floor((n - interval) / interval) * interval;
-    if (this.patches[i] != null) {
-      return this.patches[i].time;
     }
   }
 

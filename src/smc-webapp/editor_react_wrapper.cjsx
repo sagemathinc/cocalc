@@ -123,7 +123,15 @@ exports.register_nonreact_editor = (opts) ->
 
         generator : (path, redux, project_id) ->
             key = get_key(project_id, path)
-            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name={project_name} />
+            wrapper_generator = ({project_name}) ->
+                if editors[key]?
+                    return <WrappedEditor editor={editors[key]} project_name={project_name} />
+                else
+                    # GitHub #4231 and #4232 -- sometimes the editor gets rendered
+                    # after it gets removed.  Presumably this is just for a moment, but
+                    # it's good to do something halfway sensible rather than hit a traceback in
+                    # this case...
+                    return <div>Please close then re-open this file.</div>
             wrapper_generator.get_editor = -> editors[key]
             return wrapper_generator
 
