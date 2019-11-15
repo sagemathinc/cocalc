@@ -1483,7 +1483,7 @@ schema.system_notifications = {
 schema.announcements = {
   primary_key: "id",
   db_standby: "unsafe",
-  anonymous: false,
+  anonymous: true, // allow users read access, even if not signed in
   virtual: "system_notifications",
   fields: {
     id: true,
@@ -1503,6 +1503,16 @@ schema.announcements = {
         text: "",
         priority: "info",
         done: false
+      }
+    },
+    set: {
+      admin: true,
+      fields: {
+        id: true,
+        time: true,
+        text: true,
+        priority: true,
+        done: true
       }
     }
   }

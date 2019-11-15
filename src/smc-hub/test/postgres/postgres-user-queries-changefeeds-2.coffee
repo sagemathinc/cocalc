@@ -885,24 +885,23 @@ describe 'test announcements ', ->
         f = (account_id, cb) ->
             db.user_query
                 account_id : account_id
-                query      : {system_notifications: [obj]}
+                query      : {announcements: [obj]}
                 cb         : (err, x) ->
-                    expect(x).toEqual(system_notifications: [])
+                    expect(x).toEqual(announcements: [])
                     cb(err)
         async.map([accounts[0], accounts[1], undefined], f, done)
 
 
     # interestingly, it is necessary to explicitly add priority=info -- otherwise nothing is stored in the table?
-    ago = (24*60*60*1000) * 50 # 50 days ago
-    long_ago = new Date()
-    long_ago.setTime(long_ago.getTime() - ago)
+    ago = (24*60*60*1000) * 5 # 5 days ago
+    long_ago = new Date((new Date()).getTime() - ago)
     obj0 = {id:misc.uuid(), time:long_ago, text:"watch out!", done:true, priority:'info'}
 
-    it 'tries to write as admin, non-admin and anon to system_notifications table', (done) ->
+    it 'tries to write as admin, non-admin and anon to announcements table', (done) ->
         f = (x, cb) ->
             db.user_query
                 account_id : x.account_id
-                query      : {system_notifications: obj0}
+                query      : {announcements: obj0}
                 cb         : (err, result) ->
                     expect(err).toEqual(x.err)
                     cb()
@@ -921,39 +920,38 @@ describe 'test announcements ', ->
         async.map([accounts[0], accounts[1], undefined], f, done)
 
 
-#    it 'create changefeed, insert entry, and see it appear (as admin, non-admin, and anon)', (done) ->
-#        f = (account_id, cb) ->
-#            obj1 = {id:misc.uuid(), time:new Date(), text:'news announcement!', priority:'info', done:false}
-#            changefeed_id = misc.uuid()
-#            db.user_query
-#                account_id : account_id
-#                query      : {announcements: [obj]}
-#                changes    : changefeed_id
-#                cb         : changefeed_series([
-#                    (x, cb) ->
-#                        expect(x.announcements.length).toEqual(1)
-#
-#                        db.user_query
-#                            account_id : accounts[0]  # as admin
-#                            query      : {system_notifications: [obj1]}
-#                            cb         : cb
-#                    (x, cb) ->
-#                        expect(x).toEqual( { action: 'insert', new_val: obj1 })
-#
-#                        obj1.done = true
-#                        db.user_query
-#                            account_id : accounts[0]  # as admin
-#                            query      : {announcements: [obj1]}
-#                            cb         : cb
-#                    (x, cb) ->
-#                        expect(x.action).toEqual('update');
-#                        expect(x.new_val.done).toEqual(true);
-#
-#                        db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
-#                    (x, cb) ->
-#                        expect(x).toEqual({action:'close'})
-#                        cb()
-#                ], done)
-#
-#        async.mapSeries([accounts[0], accounts[1], undefined], f, done)
+    it 'create changefeed, insert entry, and see it appear (as admin, non-admin, and anon)', (done) ->
+        f = (account_id, cb) ->
+            obj1 = {id:misc.uuid(), time:new Date(), text:'news announcement!', priority:'info', done:false}
+            changefeed_id = misc.uuid()
+            db.user_query
+                account_id : account_id
+                query      : {announcements: [obj]}
+                changes    : changefeed_id
+                cb         : changefeed_series([
+                    (x, cb) ->
+                        expect(x.announcements.length).toEqual(1)
 
+                        db.user_query
+                            account_id : accounts[0]  # as admin
+                            query      : {announcements: [obj1]}
+                            cb         : cb
+                    (x, cb) ->
+                        expect(x).toEqual( { action: 'insert', new_val: obj1 })
+
+                        obj1.done = true
+                        db.user_query
+                            account_id : accounts[0]  # as admin
+                            query      : {announcements: [obj1]}
+                            cb         : cb
+                    (x, cb) ->
+                        expect(x.action).toEqual('update');
+                        expect(x.new_val.done).toEqual(true);
+
+                        db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
+                    (x, cb) ->
+                        expect(x).toEqual({action:'close'})
+                        cb()
+                ], done)
+
+        async.mapSeries([accounts[0], accounts[1], undefined], f, done)
