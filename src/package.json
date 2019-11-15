@@ -60,7 +60,7 @@
     "node-glob": "^1.2.0",
     "node-sass": "^4.11.0",
     "postcss-loader": "^3.0.0",
-    "prettier": "^1.18.2",
+    "prettier": "^1.19.1",
     "pug": "^2.0.3",
     "pug-loader": "^2.3.0",
     "react-test-renderer": "^16.5.2",
