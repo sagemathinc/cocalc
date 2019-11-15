@@ -31,9 +31,6 @@ require('octicons/octicons/octicons.css')
 # custom cocalc icon font
 require('webapp-lib/cocalc-icons-font/style.css')
 
-# cocalc-ui
-require('cocalc-ui/index-css.ts')
-
 # info at the bottom about the next step in startup sequence
 if window.smcLoadStatus?
     window.smcLoadStatus("Loading CoCalc...")

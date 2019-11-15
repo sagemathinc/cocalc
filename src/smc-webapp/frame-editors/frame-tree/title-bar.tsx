@@ -305,7 +305,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     let title;
     if (selected_short) {
       title = (
-        <span>
+        <span cocalc-test={"short-"+selected_short} >
           {title} {selected_short}
         </span>
       );

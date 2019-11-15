@@ -7,6 +7,8 @@ export interface Creds {
   readonly token?: string;
   readonly firstname?: string;
   readonly lastname?: string;
+  readonly shared_folder?: string;
+  readonly shared_file?: string;
 }
 
 export interface Opts {
