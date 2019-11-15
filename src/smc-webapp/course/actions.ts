@@ -49,7 +49,8 @@ import {
   LastAssignmentCopyType,
   SyncDBRecord,
   SyncDBRecordAssignment,
-  copy_type_to_last
+  copy_type_to_last,
+  UpgradeGoal
 } from "./types";
 
 const { webapp_client } = require("../webapp_client");
@@ -434,20 +435,20 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Configuration
-  set_title(title) {
+  public set_title(title: string): void {
     this.set({ title, table: "settings" });
     this.set_all_student_project_titles(title);
-    return this.set_shared_project_title();
+    this.set_shared_project_title();
   }
 
-  set_description(description) {
+  public set_description(description: string): void {
     this.set({ description, table: "settings" });
     this.set_all_student_project_descriptions(description);
-    return this.set_shared_project_description();
+    this.set_shared_project_description();
   }
 
-  set_pay_choice(type, value) {
-    this.set({ [`${type}_pay`]: value, table: "settings" });
+  public set_pay_choice(type: string, value: boolean): void {
+    this.set({ [type + "_pay"]: value, table: "settings" });
     if (type == "student") {
       if (value) {
         this.set_all_student_project_course_info();
@@ -457,7 +458,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  public set_upgrade_goal(upgrade_goal: object): void {
+  public set_upgrade_goal(upgrade_goal: UpgradeGoal): void {
     this.set({ upgrade_goal, table: "settings" });
   }
 
@@ -1214,22 +1215,31 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async set_all_student_project_course_info(pay?: any): Promise<void> {
+  async set_all_student_project_course_info(
+    pay?: string | Date | undefined
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
     }
     if (pay == null) {
+      // read pay from syncdb then do the configuration below
       pay = store.get_pay();
       if (pay == null) {
         pay = "";
       }
     } else {
+      // setting pay in the syncdb, and will then later
+      // do some configu below.
+      if (pay instanceof Date) {
+        pay = pay.toISOString();
+      }
       this.set({
         pay,
         table: "settings"
       });
     }
+
     if (pay != "" && !(pay instanceof Date)) {
       // pay *must* be a Date, not just a string timestamp... or "" for not paying.
       pay = new Date(pay);

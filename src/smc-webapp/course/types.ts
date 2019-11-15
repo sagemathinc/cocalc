@@ -4,7 +4,7 @@ export interface SyncDBRecordBase {
 
 export interface SyncDBRecordSettings {
   table: string;
-  upgrade_goal?: object;
+  upgrade_goal?: UpgradeGoal;
   allow_collabs?: boolean;
   shared_project_id?: string;
   pay?: string;
@@ -87,4 +87,15 @@ export function copy_type_to_last(
       return "last_peer_collect";
   }
   throw Error("type error"); // should be unreachable.
+}
+
+export interface UpgradeGoal {
+  network?: 0 | 1;
+  member_host?: 0 | 1;
+  disk_quota?: number;
+  cores?: number;
+  cpu_shares?: number;
+  memory_request?: number;
+  mintime?: number;
+  memory?: number;
 }

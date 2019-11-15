@@ -29,9 +29,10 @@
 // Upgrading quotas for all student projects
 //#############################################################################
 
-const misc = require("smc-util/misc");
+import { UpgradeGoal } from "./types";
+import * as misc from "smc-util/misc";
 
-const schema = require("smc-util/schema");
+import * as schema from "smc-util/schema";
 
 import {
   Component,
@@ -41,11 +42,11 @@ import {
   rtypes,
   redux,
   rclass,
-  Rendered
+  Rendered,
+  TypedMap
 } from "../app-framework";
 import { CourseActions } from "./actions";
 import { CourseStore } from "./store";
-import { Map } from "immutable";
 
 const {
   A,
@@ -74,7 +75,7 @@ import { Card } from "cocalc-ui";
 interface StudentProjectUpgradesProps {
   name: string;
   redux: AppRedux;
-  upgrade_goal?: Map<any, any>;
+  upgrade_goal?: TypedMap<UpgradeGoal>;
   institute_pay?: boolean;
   student_pay?: boolean;
 
@@ -125,7 +126,7 @@ class StudentProjectUpgrades extends Component<
     return redux.getStore(this.props.name) as any;
   }
 
-  upgrade_goal() {
+  upgrade_goal(): UpgradeGoal {
     const goal = {};
     for (const quota in this.state.upgrades) {
       let val = this.state.upgrades[quota];
@@ -141,7 +142,7 @@ class StudentProjectUpgrades extends Component<
     const a = this.get_actions();
     const upgrade_goal = this.upgrade_goal();
     a.set_upgrade_goal(upgrade_goal);
-    return a.upgrade_all_student_projects(upgrade_goal);
+    a.upgrade_all_student_projects(upgrade_goal);
   };
 
   render_upgrade_heading(num_projects) {
