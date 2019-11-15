@@ -55,13 +55,20 @@ describe("Test comparison of patch log entries (compares time and user)", () => 
   const p0 = {
     time: new Date("2019-01-01T22:15:31.539Z"),
     patch: [],
-    user_id: 0
+    user_id: 0,
+    size: 2
   };
-  const p1 = { time: new Date("2019-01-01T22:15:40Z"), patch: [], user_id: 1 };
+  const p1 = {
+    time: new Date("2019-01-01T22:15:40Z"),
+    patch: [],
+    user_id: 1,
+    size: 2
+  };
   const p2 = {
     time: new Date("2019-01-01T22:15:31.539Z"),
     patch: [],
-    user_id: 1
+    user_id: 1,
+    size: 2
   };
 
   it("compares some patch log entries", () => {
