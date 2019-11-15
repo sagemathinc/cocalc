@@ -115,13 +115,13 @@ export class NotificationsActions extends Actions<NotificationsState> {
   process_all_messages(): void {
     // messages ordered by newest first
     const messages: Messages = sort_messages(
-      (store.get("announcements") || Map<string, any>())
-        .merge(store.get("notifications") || Map<string, any>())
-        .merge(store.get("alerts") || Map<string, any>())
+      (store.get("announcements") ?? Map<string, any>())
+        .merge(store.get("notifications") ?? Map<string, any>())
+        .merge(store.get("alerts") ?? Map<string, any>())
     );
     this.setState({ messages });
 
-    const start: number = store.get("dismissed_info") || 0;
+    const start: number = store.get("dismissed_info") ?? 0;
     const newest = messages.first();
 
     // there are no messages
@@ -186,8 +186,8 @@ export class NotificationsActions extends Actions<NotificationsState> {
     let next_mesg: undefined | Message = undefined;
     let first = true;
     announcements.forEach((mesg, _id) => {
-      const time = mesg.get("time") || new Date(0);
-      if (forward ? time > current_time : time < current_time || first) {
+      const time = mesg.get("time") ?? new Date(0);
+      if (forward ? time > current_time : time < current_time ?? first) {
         next_mesg = mesg;
       } else {
         return false;
@@ -208,7 +208,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
     const alert_msg = new MessageObject(
       Object.assign({}, alert, { id, priority })
     );
-    const alerts = store.get("alerts") || Map<string, any>();
+    const alerts = store.get("alerts") ?? Map<string, any>();
     this.setState({ alerts: sort_messages(alerts.set(id, alert_msg)) });
     this.process_all_messages();
   };
@@ -254,7 +254,7 @@ class NotificationsTable extends Table {
     if (mesg.priority != ("high" as Priority)) return;
 
     // filter old messages or those which are marked "done"
-    if (mesg.time < this.recent || mesg.done) return;
+    if (mesg.time < this.recent ?? mesg.done) return;
 
     const lt = mesg.time.toLocaleString();
     const message = `SYSTEM MESSAGE (${lt}): ${mesg.text}`;
