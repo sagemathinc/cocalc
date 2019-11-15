@@ -50,12 +50,12 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
 
     // get notebook into defined initial state
     // restart kernel and clear outputs
-    sel = "button[id='Kernel']";
+    sel = "[id='Kernel']";
     await page.click(sel);
     debuglog("clicked Kernel button");
 
     let linkHandlers = await page.$x(
-      "//a[contains(., 'Restart and run all (do not stop on errors)...')]"
+      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
     );
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
