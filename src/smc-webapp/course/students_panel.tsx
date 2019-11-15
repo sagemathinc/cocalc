@@ -27,6 +27,10 @@
 //
 //##############################################################################
 
+require('../users');
+
+
+
 // CoCalc libraries
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
@@ -63,7 +67,7 @@ import { Card } from "cocalc-ui";
 
 // CoCalc components
 import { WindowedList } from "../r_misc/windowed-list";
-const { User } = require("../users");
+import { User } from "../users";
 import { MarkdownInput, SearchInput, TimeAgo } from "../r_misc";
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Icon } from "../r_misc/icon";

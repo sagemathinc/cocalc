@@ -43,6 +43,7 @@ interface WebappClient {
   exec: Function;
   find_directories: Function;
   sync_db2: Function;
+  get_username: Function;
 }
 
 export let webapp_client: WebappClient;
