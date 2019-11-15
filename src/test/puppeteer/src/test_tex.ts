@@ -51,7 +51,8 @@ export const test_tex = async function(opts: Opts, page: Page): Promise<PassFail
     await page.click(sel);
     debuglog("clicked latex Source");
 
-    sel = '*[cocalc-test="word_count"]';
+    sel = '[cocalc-test="word_count"]';
+    await page.waitForSelector(sel);
     await page.click(sel);
     debuglog("clicked word count");
 
