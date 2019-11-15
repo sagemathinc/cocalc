@@ -54,7 +54,7 @@ export const test_shared_file = async function(creds: Creds, opts: Opts, browser
     await screenshot(page2, opts, "cocalc-shared-file.png");
     await page2.close;
     pfcounts.pass += 1;
-    time_log("shared file", tm_shared_file);
+    time_log(this_file, tm_shared_file);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

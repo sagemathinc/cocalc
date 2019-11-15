@@ -110,7 +110,7 @@ export const test_sage_ker = async function(
     await page.waitForSelector(sel);
     debuglog("got file search");
 
-    time_log("sage ipynb test", tm_sage_ker_test);
+    time_log(this_file, tm_sage_ker_test);
     await screenshot(page, opts, "cocalc-sage-ipynb.png");
     pfcounts.pass += 1;
   } catch (e) {
