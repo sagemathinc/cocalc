@@ -37,7 +37,7 @@ import { Map } from "immutable";
 
 // 3rd party libs
 import * as async from "async";
-const markdownlib = require("../markdown");
+import * as markdownlib from "../markdown";
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
@@ -53,7 +53,7 @@ import {
   UpgradeGoal
 } from "./types";
 
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 // Course Library
 import { previous_step, Step, assignment_identifier } from "./util";
@@ -65,6 +65,7 @@ import {
   Feedback
 } from "./store";
 
+import { SITE_NAME } from "smc-util/theme";
 import { delay, map as amap } from "awaiting";
 
 import { run_in_all_projects, Result } from "./run-in-all-projects";
@@ -932,7 +933,7 @@ export class CourseActions extends Actions<CourseState> {
 
     let site_name = this.redux.getStore("customize").site_name;
     if (!site_name) {
-      site_name = require("smc-util/theme").SITE_NAME;
+      site_name = SITE_NAME;
     }
     let body = s.get_email_invite();
 
