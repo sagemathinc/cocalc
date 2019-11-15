@@ -71,7 +71,7 @@
     "start-stop-daemon": "^0.1.1",
     "stripe": "^6.19.0",
     "temp": "^0.8.3",
-    "typescript": "^3.6.4",
+    "typescript": "^3.7.2",
     "uglify-js": "^3.5.15",
     "underscore": "^1.9.1",
     "winston": "^2.4"

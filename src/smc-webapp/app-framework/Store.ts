@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import * as async from "async";
-import { createSelector, Selector } from "reselect";
+import { createSelector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
