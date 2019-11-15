@@ -120,6 +120,7 @@
     "superb": "^3.0.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
+    "typescript": "^3.7.2",
     "underscore": "^1.9.1",
     "xterm": "^4.0.2",
     "xterm-addon-fit": "^0.2.1",

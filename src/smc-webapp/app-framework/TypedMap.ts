@@ -43,8 +43,8 @@ export interface TypedMap<TProps extends Record<string, any>>
     ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
   ): this;
 
-  mergeWith(
-    merger: (oldVal: any, newVal: any, key: keyof TProps) => any,
+  mergeWith<K extends keyof TProps>(
+    merger: (oldVal: any, newVal: any, key: K) => any,
     ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
   ): this;
   mergeDeepWith(
