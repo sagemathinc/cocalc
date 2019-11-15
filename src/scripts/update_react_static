@@ -4,8 +4,5 @@ cd $SALVUS_ROOT/smc-webapp
 
 # Render the pricing/subscription info -- this renders a React component on the *server*
 # into the pricing.html static file.  The same component also gets rendered in the billing tab.
-# The "-r esm" is because antd (and maybe other modules?) use ES6 module import syntax
-# in .js files (not ts files!), and we want to support them without having to run everything
-# through babel.  See https://www.wisdomgeek.com/development/web-development/how-to-import-export-es6-modules-in-node/
-node -r esm -e "require('./render.js').render_static_react_pages()"
+node -e "require('./render.js').render_static_react_pages()"
 
