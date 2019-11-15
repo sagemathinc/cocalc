@@ -33,7 +33,7 @@
 import { Store } from "../app-framework";
 
 // SMC libraries
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 const { defaults } = misc;
 
 // Course Library
@@ -41,8 +41,10 @@ import { STEPS } from "./util";
 import { Map, Set } from "immutable";
 import { TypedMap, createTypedMap } from "../app-framework/TypedMap";
 
+import { SITE_NAME } from "smc-util/theme";
+
 // Upgrades
-const project_upgrades = require("./project-upgrades");
+import * as project_upgrades from "./project-upgrades";
 
 export type StudentRecord = TypedMap<{
   create_project: number; // Time the student project was created
@@ -260,7 +262,6 @@ export class CourseStore extends Store<CourseState> {
 
   get_email_invite() {
     let left;
-    const { SITE_NAME } = require("smc-util/theme");
     return (left = this.get("settings").get("email_invite")) != null
       ? left
       : `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;

@@ -30,7 +30,7 @@
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
-const { webapp_client } = require("../webapp_client");
+import { webapp_client } from "../webapp-client";
 
 // React libraries
 import {

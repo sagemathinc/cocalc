@@ -11,9 +11,8 @@ Skip assigning or collecting an assignment, so next step can be attempted.
 import { React, Component } from "../app-framework";
 import { CourseActions } from "./actions";
 import { AssignmentRecord } from "./store";
-
-const { Icon, Space, Tip } = require("../r_misc");
-const { Button } = require("react-bootstrap");
+import { Icon, Space, Tip } from "../r_misc";
+import { Button } from "react-bootstrap";
 
 interface SkipCopyProps {
   assignment: AssignmentRecord;

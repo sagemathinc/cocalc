@@ -10,10 +10,10 @@ import { Map } from "immutable";
 /*
 Functions for determining various things about applying upgrades to a project.
 
-WARNING: Pure Javascript with no crazy dependencies for easy unit testing.
+WARNING: This should stay as simple typescript with no crazy dependencies for easy node.js unit testing.
 */
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 
 type ProjectMap = Map<any, any>;
 interface ExistenceMap {

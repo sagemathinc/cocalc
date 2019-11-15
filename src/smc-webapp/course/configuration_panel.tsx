@@ -28,8 +28,8 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("../webapp_client");
+import * as misc from "smc-util/misc";
+import { webapp_client } from "../webapp-client";
 import { contains_url } from "smc-util/misc2";
 import { debounce } from "lodash";
 
@@ -43,7 +43,7 @@ import {
   AppRedux,
   Rendered
 } from "../app-framework";
-const {
+import {
   Alert,
   Button,
   ButtonToolbar,
@@ -51,12 +51,12 @@ const {
   Col,
   Checkbox,
   Grid
-} = require("react-bootstrap");
+} from "react-bootstrap";
 
 import { Card } from "cocalc-ui";
 
 // CoCalc Components
-const {
+import {
   Calendar,
   HiddenXS,
   Icon,
@@ -68,7 +68,7 @@ const {
   TimeAgo,
   Tip,
   ErrorDisplay
-} = require("../r_misc");
+} from "../r_misc";
 
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "./actions";
@@ -82,8 +82,8 @@ import {
 import { DeleteSharedProjectPanel } from "./delete_shared_project";
 import { TerminalCommandPanel } from "./terminal-command";
 
-const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
-  .subscription.student_course.price.month4;
+import { upgrades } from "smc-util/upgrade-spec";
+const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
 interface StartStopPanelReactProps {
   name: string;
@@ -321,7 +321,7 @@ class DisableStudentCollaboratorsPanel extends Component<
         >
           <Checkbox
             checked={this.props.checked}
-            onChange={e => this.props.on_change(e.target.checked)}
+            onChange={e => this.props.on_change((e.target as any).checked)}
           >
             Allow arbitrary collaborators
           </Checkbox>

@@ -29,13 +29,13 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("smc-webapp/webapp_client");
+import { is_different } from "smc-util/misc";
+import { webapp_client } from "../../webapp-client";
 
 // React libraries
-import { React, ReactDOM, Component } from "smc-webapp/app-framework";
-const { Icon, SearchInput, SkinnyError } = require("smc-webapp/r_misc");
-const {
+import { React, ReactDOM, Component } from "../../app-framework";
+import { Icon, SearchInput, SkinnyError } from "../../r_misc";
+import {
   Button,
   ButtonToolbar,
   FormControl,
@@ -43,7 +43,7 @@ const {
   Row,
   Col,
   Grid
-} = require("react-bootstrap");
+} from "react-bootstrap";
 
 const SEARCH_STYLE = { marginBottom: "0px" };
 
@@ -82,7 +82,7 @@ class MultipleAddSearch extends Component<
 
   shouldComponentUpdate(newProps, newState) {
     return (
-      misc.is_different(this.props, newProps, [
+      is_different(this.props, newProps, [
         "search_results",
         "item_name",
         "is_searching",
@@ -286,7 +286,7 @@ interface FoldersToolbarProps {
   num_omitted?: number;
   project_id?: string;
   items: object;
-  add_folders: (folders: Iterable<string>) => void; // add_folders (Iterable<T>)
+  add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
   plural_item_name: string;
 }
@@ -330,7 +330,7 @@ export class FoldersToolbar extends Component<
 
     this.setState({ add_is_searching: true, last_add_search: search });
 
-    return webapp_client.find_directories({
+    webapp_client.find_directories({
       project_id: this.props.project_id,
       query: `*${search}*`,
       cb: (err, resp) => {

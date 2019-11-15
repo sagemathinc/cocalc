@@ -28,10 +28,10 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("../webapp_client");
-
+import * as misc from "smc-util/misc";
+import { webapp_client } from "../webapp-client";
 import { is_different } from "smc-util/misc2";
+import { keys } from "underscore";
 
 // React libraries and components
 import {
@@ -44,7 +44,7 @@ import {
   Rendered
 } from "../app-framework";
 
-const {
+import {
   Alert,
   Button,
   ButtonToolbar,
@@ -57,14 +57,14 @@ const {
   Grid,
   Well,
   Form
-} = require("react-bootstrap");
+} from "react-bootstrap";
 
 import { Card } from "cocalc-ui";
 
 // CoCalc components
 import { WindowedList } from "../r_misc/windowed-list";
 const { User } = require("../users");
-const { MarkdownInput, SearchInput, TimeAgo } = require("../r_misc");
+import { MarkdownInput, SearchInput, TimeAgo } from "../r_misc";
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Icon } from "../r_misc/icon";
 import { Space } from "../r_misc/space";
@@ -449,10 +449,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             ? this.state.selected_option_nodes.length
             : undefined
           : 0;
-      const _ = require("underscore");
       const es = this.state.existing_students;
       if (es != null) {
-        existing = _.keys(es.email).length + _.keys(es.account).length > 0;
+        existing = keys(es.email).length + keys(es.account).length > 0;
       } else {
         // es not defined when user clicks the close button on the warning.
         existing = 0;
@@ -1504,7 +1503,7 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_first_name: e.target.value })
+                  this.setState({ edited_first_name: (e.target as any).value })
                 }
                 onKeyDown={this.on_key_down}
               />
@@ -1521,7 +1520,7 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_last_name: e.target.value })
+                  this.setState({ edited_last_name: (e.target as any).value })
                 }
                 onKeyDown={this.on_key_down}
               />
@@ -1540,7 +1539,7 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_email_address: e.target.value })
+                  this.setState({ edited_email_address: (e.target as any).value })
                 }
                 onKeyDown={this.on_key_down}
               />

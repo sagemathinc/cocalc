@@ -1,11 +1,10 @@
 import { CSSProperties } from "react";
 
-const misc = require("smc-util/misc");
-const { types } = misc;
+import { merge, types } from "smc-util/misc";
 
 export const entry_style: CSSProperties = {};
 
-export const selected_entry: CSSProperties = misc.merge(
+export const selected_entry: CSSProperties = merge(
   {
     border: "1px solid #aaa",
     boxShadow: "5px 5px 5px #999",

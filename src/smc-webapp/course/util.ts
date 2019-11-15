@@ -1,7 +1,3 @@
-import { Map } from "immutable";
-import { TypedMap } from "../app-framework/TypedMap";
-import { StudentsMap, AssignmentRecord, StudentRecord } from "./store";
-
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
@@ -31,10 +27,14 @@ import { StudentsMap, AssignmentRecord, StudentRecord } from "./store";
 //
 //##############################################################################
 
+import { Map } from "immutable";
+import { TypedMap } from "../app-framework/TypedMap";
+import { StudentsMap, AssignmentRecord, StudentRecord } from "./store";
+
 // Pure functions used in the course manager
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 const { defaults, required } = misc;
 
 export enum Step {

@@ -9,11 +9,11 @@ Progress indicator for assigning/collecting/etc. a particular assignment or hand
 */
 
 import { React, Component } from "../app-framework";
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
-const { COLORS } = require("smc-util/theme");
+import { COLORS } from "smc-util/theme";
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 
 const progress_info = {
   color: COLORS.GRAY_D,

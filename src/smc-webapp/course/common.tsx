@@ -26,8 +26,7 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { defaults, required } = misc;
+import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
 
 // React libraries
 import { React, Component } from "../app-framework";
@@ -36,7 +35,7 @@ import { redux } from "../frame-editors/generic/test/util";
 import { AssignmentRecord, StudentRecord } from "./store";
 import { FormEvent } from "react";
 
-const {
+import {
   Button,
   ButtonToolbar,
   ButtonGroup,
@@ -45,18 +44,18 @@ const {
   Grid,
   Row,
   Col
-} = require("react-bootstrap");
+} from "react-bootstrap";
 
-const {
+import {
   ErrorDisplay,
   Icon,
   MarkdownInput,
   TimeAgo,
   Tip,
   is_different_date
-} = require("../r_misc");
+} from "../r_misc";
 
-export const { FoldersToolbar } = require("./common/FoldersToolBar");
+export { FoldersToolbar } from "./common/FoldersToolBar";
 
 interface BigTimeProps {
   date: string | number | object;
@@ -75,7 +74,7 @@ export class BigTime extends Component<BigTimeProps> {
       return;
     }
     if (typeof date === "string") {
-      date = misc.ISO_to_Date(date);
+      date = ISO_to_Date(date);
     }
     return <TimeAgo popover={true} date={date} />;
   }
@@ -260,11 +259,7 @@ export class StudentAssignmentInfo extends Component<
   };
 
   stop = (type, assignment_id, student_id) => {
-    this.get_actions().stop_copying_assignment(
-      assignment_id,
-      student_id,
-      type
-    );
+    this.get_actions().stop_copying_assignment(assignment_id, student_id, type);
   };
 
   save_feedback = (e?: FormEvent<HTMLFormElement>) => {
@@ -523,7 +518,7 @@ export class StudentAssignmentInfo extends Component<
 
   render_error(name, error) {
     if (typeof error !== "string") {
-      error = misc.to_json(error);
+      error = to_json(error);
     }
     if (error.indexOf("No such file or directory") !== -1) {
       error = `Somebody may have moved the folder that should have contained the assignment.\n${error}`;

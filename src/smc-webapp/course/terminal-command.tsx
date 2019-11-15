@@ -8,16 +8,11 @@ import {
   redux,
   rclass
 } from "../app-framework";
-const {
-  FormControl,
-  FormGroup,
-  InputGroup,
-  Button
-} = require("react-bootstrap");
+import { FormControl, FormGroup, InputGroup, Button } from "react-bootstrap";
 
 import { Card } from "cocalc-ui";
 
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 import { Result } from "./run-in-all-projects";
 

@@ -41,6 +41,8 @@ interface WebappClient {
   copy_path_between_projects: Function;
   write_text_file_to_project: Function;
   exec: Function;
+  find_directories: Function;
+  sync_db2: Function;
 }
 
 export let webapp_client: WebappClient;
