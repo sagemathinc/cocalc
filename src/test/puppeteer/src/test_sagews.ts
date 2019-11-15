@@ -74,7 +74,7 @@ export const test_sagews = async function (opts: Opts, page: Page): Promise<Pass
     await page.waitForSelector(sel);
     debuglog('got file search');
 
-    time_log("sagews test", tm_sagews_test);
+    time_log(this_file, tm_sagews_test);
     await screenshot(page, opts, 'cocalc-sagews-1.png');
     pfcounts.pass += 1;
 

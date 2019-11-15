@@ -59,13 +59,13 @@ export const test_sage_ker = async function(
     //await page.waitForFunction(dqs);
     //debuglog('got kernel menu button');
 
-    sel = "button[id='Kernel']";
+    sel = "[id='Kernel']";
     await page.waitForSelector(sel, { visible: true });
     await page.click(sel);
     debuglog("clicked Kernel button");
 
     let linkHandlers = await page.$x(
-      "//a[contains(., 'Restart and run all (do not stop on errors)...')]"
+      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
     );
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
@@ -110,7 +110,7 @@ export const test_sage_ker = async function(
     await page.waitForSelector(sel);
     debuglog("got file search");
 
-    time_log("sage ipynb test", tm_sage_ker_test);
+    time_log(this_file, tm_sage_ker_test);
     await screenshot(page, opts, "cocalc-sage-ipynb.png");
     pfcounts.pass += 1;
   } catch (e) {
