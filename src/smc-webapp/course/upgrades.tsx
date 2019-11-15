@@ -48,18 +48,18 @@ import {
 import { CourseActions } from "./actions";
 import { CourseStore } from "./store";
 
-const {
+import {
   A,
   Icon,
   Loading,
   NoUpgrades,
   Tip,
   UPGRADE_ERROR_STYLE
-} = require("../r_misc");
+} from "../r_misc";
 
-const { UpgradeRestartWarning } = require("../upgrade_restart_warning");
+import { UpgradeRestartWarning } from "../upgrade-restart-warning";
 
-const {
+import {
   Alert,
   Button,
   ButtonToolbar,
@@ -68,7 +68,7 @@ const {
   FormControl,
   Row,
   Col
-} = require("react-bootstrap");
+} from "react-bootstrap";
 
 import { Card } from "cocalc-ui";
 
@@ -176,7 +176,7 @@ class StudentProjectUpgrades extends Component<
     let label, val;
     const ref = `upgrade_${quota}`;
     if (input_type === "number") {
-      let bs_style;
+      let style;
       val =
         this.state.upgrades[quota] != null
           ? this.state.upgrades[quota]
@@ -188,7 +188,7 @@ class StudentProjectUpgrades extends Component<
       }
 
       if (!this.is_upgrade_input_valid(val, limit)) {
-        bs_style = "error";
+        style = UPGRADE_ERROR_STYLE;
         this._upgrade_is_invalid = true;
         if (misc.parse_number_input(val) != null) {
           label = (
@@ -207,8 +207,8 @@ class StudentProjectUpgrades extends Component<
           <FormControl
             type="text"
             ref={ref}
+            style={style}
             value={val}
-            bsStyle={bs_style}
             onChange={() => {
               const u = this.state.upgrades;
               u[quota] = ReactDOM.findDOMNode(this.refs[ref]).value;
@@ -244,7 +244,7 @@ class StudentProjectUpgrades extends Component<
             checked={val > 0}
             onChange={e => {
               const u = this.state.upgrades;
-              u[quota] = e.target.checked ? 1 : 0;
+              u[quota] = (e.target as any).checked ? 1 : 0;
               this.setState({ upgrades: u });
               this.update_plan();
             }}
@@ -442,6 +442,7 @@ class StudentProjectUpgrades extends Component<
           your_upgrades
         )}
         <UpgradeRestartWarning />
+        <br />
         {this.render_upgrade_submit_buttons()}
         <div style={{ marginTop: "15px", color: "#333" }}>
           {this.render_upgrade_plan()}
