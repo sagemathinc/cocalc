@@ -105,7 +105,7 @@ export const login_tests = async function(
       pfcounts.add(await test_sagews(opts, page));
       const tgb: TestGetBoolean = await is_admin(opts, page);
       pfcounts.add(tgb);
-      pfcounts.add(await test_shared_file(opts, browser!));
+      pfcounts.add(await test_shared_file(creds, opts, browser!));
     }
 
     time_log("login session total", tm_launch_browser);

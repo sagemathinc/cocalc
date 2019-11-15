@@ -90,7 +90,7 @@ export const sign_up = async function(
     time_log("signup", tm_signup);
     pfcounts.pass += 1;
 
-    time_log("signup session total", tm_launch_browser);
+    time_log(this_file, tm_launch_browser);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));
