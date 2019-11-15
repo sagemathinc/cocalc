@@ -13,6 +13,7 @@ export interface Patch {
   snapshot?: string; // to_str() applied to the document at this point in time
   sent?: Date; // when patch actually sent, which may be later than when made
   prev?: Date; // timestamp of previous patch sent from this session
+  size: number; // size of the patch (by defn length of string representation)
 }
 
 export interface Document {

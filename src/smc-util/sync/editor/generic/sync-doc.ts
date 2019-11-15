@@ -13,7 +13,8 @@ in projects, and behaves slightly differently in each case.
    the backend for more than this long then---on reconnect---do
    extra work to ensure that all snapshots are up to date (in
    case snapshots were made when we were offline), and mark the
-   sent field of patches that weren't saved. */
+   sent field of patches that weren't saved.   I.e., we rebase
+   all offline changes. */
 const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
 
 /* How often the local hub will autosave this file to disk if
@@ -1582,10 +1583,6 @@ export class SyncDoc extends EventEmitter {
       }
       dbg("Compute new patch and send it.");
       await this.sync_remote_and_doc();
-      dbg("Patch sent, now make a snapshot if we are due for one.");
-      if (this.get_state() === "ready") {
-        await this.snapshot_if_necessary();
-      }
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
@@ -1698,12 +1695,55 @@ export class SyncDoc extends EventEmitter {
     x.snapshot = obj.snapshot;
     this.patches_table.set(obj, "none");
     await this.patches_table.save();
+    if (this.state != "ready") return;
+
     /* CRITICAL: Only save the snapshot time in the database
-       after the set in the patches table was saved
+       after the set in the patches table was definitely saved
        -- otherwise if the user refreshes their
        browser (or visits later) they lose all their
-       early work!
+       early work due to trying to apply patches
+       to a blank snapshot.  That would be VERY bad.
     */
+    if (!this.ephemeral) {
+      /*
+       PARANOID: We are extra paranoid and ensure the
+       snapshot is definitely stored in the database
+       before we change the syncstrings table's last_snapshot time.
+       Indeed, we do a query to the database itself
+       to ensure that the snapshot was really saved
+       before changing last_snapshot, since the above
+       patches_table.save only ensures that the snapshot
+       was (presumably) saved *from the browser to the project*.
+       We do give this several chances, since it might
+       take a little while for the project to save it.
+       */
+      let success: boolean = false;
+      for (let i = 0; i < 2; i++) {
+        const x = await callback2(this.client.query, {
+          query: {
+            patches: {
+              string_id: this.string_id,
+              time,
+              snapshot: null
+            }
+          }
+        });
+        if (this.state != "ready") return;
+        if (x.query.patches == null || x.query.patches.snapshot != snapshot) {
+          await delay((i + 1) * 5000);
+        } else {
+          success = true;
+          break;
+        }
+      }
+      if (!success) {
+        throw Error(
+          "unable to confirm that snapshot was saved to the database"
+        );
+      }
+    }
+
+    if (this.state != "ready") return;
     this.syncstring_table.set({
       string_id: this.string_id,
       project_id: this.project_id,
@@ -1717,11 +1757,20 @@ export class SyncDoc extends EventEmitter {
   // Have a snapshot every this.snapshot_interval patches, except
   // for the very last interval.
   private async snapshot_if_necessary(): Promise<void> {
+    const dbg = this.dbg("snapshot_if_necessary");
+    if (this.get_state() !== "ready") return;
+    const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
+    const interval = this.snapshot_interval;
+    dbg("check if we need to make a snapshot:", { interval, max_size });
     const time = this.patch_list.time_of_unmade_periodic_snapshot(
-      this.snapshot_interval
+      interval,
+      max_size
     );
     if (time != null) {
+      dbg("yes, make a snapshot at time", time);
       await this.snapshot(time);
+    } else {
+      dbg("no need to make a snapshot yet");
     }
   }
 
@@ -1760,6 +1809,7 @@ export class SyncDoc extends EventEmitter {
     const user_id: number = x.get("user_id");
     const sent: Date = x.get("sent");
     const prev: Date | undefined = x.get("prev");
+    let size: number;
     if (patch == null) {
       /* Do **NOT** use misc.from_json, since we definitely
          do not want to unpack ISO timestamps as Date,
@@ -1769,18 +1819,27 @@ export class SyncDoc extends EventEmitter {
          See https://github.com/sagemathinc/cocalc/issues/1771
       */
       if (x.has("patch")) {
-        patch = JSON.parse(x.get("patch"));
+        const p: string = x.get("patch");
+        patch = JSON.parse(p);
+        size = p.length;
       } else {
         patch = [];
+        size = 2;
       }
+    } else {
+      const p = x.get("patch");
+      // Looking at other code, I think this JSON.stringify (which
+      // would be a waste of time) never gets called in practice.
+      size = p != null ? p.length : JSON.stringify(patch).length;
     }
 
-    const snapshot: string = x.get("snapshot");
     const obj: any = {
       time,
       user_id,
-      patch
+      patch,
+      size
     };
+    const snapshot: string = x.get("snapshot");
     if (sent != null) {
       obj.sent = sent;
     }
@@ -2633,6 +2692,9 @@ export class SyncDoc extends EventEmitter {
           // due to synctable changes being emited on save.
           dbg("wait for next event loop");
           await delay(1);
+        } else {
+          dbg("Patch sent, now make a snapshot if we are due for one.");
+          await this.snapshot_if_necessary();
         }
       }
     } finally {

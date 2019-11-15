@@ -5,3 +5,4 @@ foo*.js
 *.x11
 *.png
 test_files/.*
+build
