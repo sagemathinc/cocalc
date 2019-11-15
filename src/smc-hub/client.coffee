@@ -59,7 +59,8 @@ MESG_QUEUE_MAX_COUNT    = 300
 MESG_QUEUE_MAX_WARN    = 50
 
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
-MESG_QUEUE_MAX_SIZE_MB  = 10
+# On the other hand, it is good to make this large enough that projects can save
+MESG_QUEUE_MAX_SIZE_MB  = 20
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
