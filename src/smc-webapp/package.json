@@ -37,6 +37,7 @@
     "bootstrap-colorpicker": "^2.5.3",
     "cat-names": "^2.0.0",
     "chai": "^4.2.0",
+    "cocalc-ui": "npm:antd@^3.25.1",
     "codemirror": "^5.40.2",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.6.2",

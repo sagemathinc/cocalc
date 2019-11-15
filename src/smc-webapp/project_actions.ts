@@ -593,7 +593,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           const { name, Editor } = this.init_file_react_redux(path, is_public);
           info.redux_name = name;
           info.Editor = Editor;
-          this.open_files.set(path, 'component', info);
+          this.open_files.set(path, "component", info);
         }
 
         this.show_file(path);
@@ -991,7 +991,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!open_files.has(opts.path)) {
       // Make the visible tab appear ASAP, even though
       // some stuff that may await below needs to happen...
-      this.open_files.set(opts.path, 'component', {});
+      this.open_files.set(opts.path, "component", {});
     }
 
     // Next get the group.
@@ -1066,6 +1066,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes.
     open_files = store.get("open_files");
+    if (open_files == null || this.open_files == null) {
+      // project is closing
+      return;
+    }
     const file_info = open_files.getIn([opts.path, "component"], {
       is_public: false
     });
@@ -1078,9 +1082,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
 
       // Add it to open files
-      this.open_files.set(opts.path, 'component', {is_public});
-      this.open_files.set(opts.path, 'is_chat_open', opts.chat);
-      this.open_files.set(opts.path, 'chat_width', opts.chat_width);
+      this.open_files.set(opts.path, "component", { is_public });
+      this.open_files.set(opts.path, "is_chat_open", opts.chat);
+      this.open_files.set(opts.path, "chat_width", opts.chat_width);
 
       if (opts.chat) {
         require("./chat/register").init(
