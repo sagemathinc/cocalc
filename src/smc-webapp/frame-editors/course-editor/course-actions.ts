@@ -1,6 +1,7 @@
 import { CourseActions } from "../../course/actions";
 export { CourseActions };
-import { init_redux, remove_redux } from "../../course/main";
+
+import { init_redux, remove_redux } from "../../course/redux";
 
 export function course_redux_name(project_id: string, path: string): string {
   return `course-editor-${project_id}-${path}`;

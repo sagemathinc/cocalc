@@ -130,7 +130,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
   }
 
   set_field(field: string, value: any): void {
-    const store = (redux.getActions(this.props.name) as any).get_store();
+    const store = redux.getStore(this.props.name);
     if (!store) {
       return;
     }
@@ -150,7 +150,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
     // Important to get from store, not from props, since on second
     // run old output isn't pushed down to props by the time this
     // gets called.
-    const store = (redux.getActions(this.props.name) as any).get_store();
+    const store = redux.getStore(this.props.name);
     if (!store) {
       return;
     }

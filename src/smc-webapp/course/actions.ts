@@ -2,7 +2,6 @@
  * decaffeinate suggestions:
  * DS001: Remove Babel/TypeScript constructor workaround
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
@@ -91,9 +90,6 @@ export class CourseActions extends Actions<CourseState> {
 
   constructor(name, redux) {
     super(name, redux);
-    this._loaded = this._loaded.bind(this);
-    this._store_is_initialized = this._store_is_initialized.bind(this);
-    this.set_tab = this.set_tab.bind(this);
     this.save = this.save.bind(this);
     this._syncdb_change = this._syncdb_change.bind(this);
     this.handle_projects_store_update = this.handle_projects_store_update.bind(
@@ -228,7 +224,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  get_store = (): CourseStore | undefined => {
+  private get_store = (): CourseStore | undefined => {
     return this.redux.getStore<CourseState, CourseStore>(this.name);
   };
 
@@ -236,7 +232,7 @@ export class CourseActions extends Actions<CourseState> {
     return this.get_store() == null; // for now.
   }
 
-  _loaded() {
+  private is_loaded(): boolean {
     if (this.syncdb == null) {
       this.set_error("attempt to set syncdb before loading");
       return false;
@@ -244,17 +240,17 @@ export class CourseActions extends Actions<CourseState> {
     return true;
   }
 
-  _store_is_initialized() {
+  private store_is_initialized(): boolean {
     const store = this.get_store();
     if (store == null) {
-      return;
+      return false;
     }
     if (
       !(
         store.get("students") != null &&
         store.get("assignments") != null &&
         store.get("settings") != null &&
-        store.get("handouts")
+        store.get("handouts") != null
       )
     ) {
       this.set_error("store must be initialized");
@@ -266,7 +262,7 @@ export class CourseActions extends Actions<CourseState> {
   // Set one object in the syncdb
   private set(obj: SyncDBRecord, commit: boolean = true): void {
     if (
-      !this._loaded() ||
+      !this.is_loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
     ) {
       return;
@@ -287,10 +283,6 @@ export class CourseActions extends Actions<CourseState> {
     const x = this.syncdb.get_one(obj);
     if (x == null) return;
     return x.toJS();
-  }
-
-  set_tab(tab) {
-    this.setState({ tab });
   }
 
   async save(): Promise<void> {
@@ -1787,7 +1779,7 @@ export class CourseActions extends Actions<CourseState> {
     if (store == null) {
       return;
     }
-    if (!this._store_is_initialized()) {
+    if (!this.store_is_initialized()) {
       finish("store not yet initialized");
       return;
     }
@@ -1864,7 +1856,7 @@ export class CourseActions extends Actions<CourseState> {
       }
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       finish("store not yet initialized");
       return;
     }
@@ -1979,7 +1971,7 @@ You can find the comments they made in the folders below.\
       return this.set_error(`return to student: ${err}`);
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       return error("store not yet initialized");
     }
     assignment = store.get_assignment(assignment);
@@ -2157,7 +2149,7 @@ You can find the comments they made in the folders below.\
       }
     };
     let store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       finish("store not yet initialized");
       return;
     }
@@ -2312,7 +2304,7 @@ You can find the comments they made in the folders below.\
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
   copy_assignment_to_all_students(assignment, new_only, overwrite) {
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       console.warn("store not yet initialized");
       return;
     }
@@ -2401,7 +2393,7 @@ You can find the comments they made in the folders below.\
       this.set_error(err);
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       error("store not yet initialized");
       return;
     }
@@ -2468,7 +2460,7 @@ You can find the comments they made in the folders below.\
       }
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2580,7 +2572,7 @@ You can find the comments they made in the folders below.\
       }
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2886,7 +2878,7 @@ You can find the comments they made in the folders below.\
       }
     };
     let store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2966,7 +2958,7 @@ You can find the comments they made in the folders below.\
       return this.set_error(err);
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == null || !this.store_is_initialized()) {
       return error("store not yet initialized");
     }
     if (!(handout = store.get_handout(handout))) {

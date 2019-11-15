@@ -146,7 +146,6 @@ export interface CourseState {
   settings: CourseSettingsRecord;
   show_save_button: boolean;
   students: StudentsMap;
-  tab: string;
   unsaved?: boolean;
 }
 
