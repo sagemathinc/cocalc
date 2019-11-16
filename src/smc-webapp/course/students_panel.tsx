@@ -27,10 +27,6 @@
 //
 //##############################################################################
 
-require('../users');
-
-
-
 // CoCalc libraries
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";

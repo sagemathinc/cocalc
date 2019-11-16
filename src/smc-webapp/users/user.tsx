@@ -1,14 +1,20 @@
 //TODO: Make useable without passing in user_map
-let _User = (User = rclass({
-  displayName: "User",
 
-  propTypes: {
-    account_id: rtypes.string.isRequired,
-    user_map: rtypes.immutable.Map,
-    last_active: rtypes.oneOfType([rtypes.object, rtypes.number]),
-    name: rtypes.string
-  }, // if not given, is got from store -- will be truncated to 50 characters in all cases.
+import { React, Component } from "../app-framework";
+import { TimeAgo, Tip } from "../r_misc";
+import { is_valid_uuid_string, trunc_middle } from "smc-util/misc";
+import { UserMap } from "./types";
+import { actions } from "./actions";
 
+interface Props {
+  account_id: string;
+  user_map: UserMap;
+  last_active?: Date | number;
+  show_original?: boolean;
+  name?: string;
+}
+
+export class User extends Component<Props> {
   shouldComponentUpdate(nextProps) {
     if (this.props.account_id !== nextProps.account_id) {
       return true;
@@ -38,8 +44,9 @@ let _User = (User = rclass({
     if (this.props.name !== nextProps.name) {
       return true;
     }
+    // same so don't update
     return false;
-  }, // same so don't update
+  }
 
   render_last_active() {
     if (this.props.last_active) {
@@ -50,7 +57,7 @@ let _User = (User = rclass({
         </span>
       );
     }
-  },
+  }
 
   render_original(info) {
     let full_name;
@@ -75,16 +82,16 @@ let _User = (User = rclass({
         </Tip>
       );
     }
-  },
+  }
 
   name(info) {
-    return misc.trunc_middle(
+    return trunc_middle(
       this.props.name != null
         ? this.props.name
         : `${info.first_name} ${info.last_name}`,
       50
     );
-  },
+  }
 
   render() {
     if (this.props.user_map == null || this.props.user_map.size === 0) {
@@ -95,7 +102,7 @@ let _User = (User = rclass({
         ? this.props.user_map.get(this.props.account_id)
         : undefined;
     if (info == null) {
-      if (!misc.is_valid_uuid_string(this.props.account_id)) {
+      if (!is_valid_uuid_string(this.props.account_id)) {
         return <span>Unknown User {this.props.account_id}</span>;
       }
       actions.fetch_non_collaborator(this.props.account_id);
@@ -111,6 +118,4 @@ let _User = (User = rclass({
       );
     }
   }
-}));
-
-export { _User as User };
+}

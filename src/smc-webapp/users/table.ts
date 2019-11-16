@@ -1,24 +1,11 @@
+import { Table, redux } from "../app-framework";
+import { store } from "./store";
+import { actions } from "./actions";
+import { COCALC_MINIMAL } from "../fullscreen";
+
 // Create and register projects table, which gets automatically
 // synchronized with the server.
 class UsersTable extends Table {
-  constructor(...args) {
-    {
-      // Hack: trick Babel/TypeScript into allowing this before super.
-      if (false) {
-        super();
-      }
-      let thisFn = (() => {
-        return this;
-      }).toString();
-      let thisName = thisFn.match(
-        /return (?:_assertThisInitialized\()*(\w+)\)*;/
-      )[1];
-      eval(`${thisName} = this;`);
-    }
-    this._change = this._change.bind(this);
-    super(...args);
-  }
-
   query() {
     const kiosk_project_id = redux.getStore("page").get("kiosk_project_id");
     if (kiosk_project_id) {
@@ -39,16 +26,14 @@ class UsersTable extends Table {
     return redux.getStore("page").get("kiosk_project_id") != null;
   }
 
-  _change(table, keys) {
+  _change(table, _keys) {
     // Merge the new table in with what we already have.  If users disappear during the session
     // *or* if user info is added by fetch_non_collaborator, it is important not to just
     // forget about their names.
     const upstream_user_map = table.get();
     let user_map = store.get("user_map");
     if (user_map == null) {
-      return this.redux
-        .getActions("users")
-        .setState({ user_map: upstream_user_map });
+      return actions.setState({ user_map: upstream_user_map });
     } else {
       // merge in upstream changes:
       table.get().map((data, account_id) => {
@@ -57,21 +42,20 @@ class UsersTable extends Table {
         }
         return false;
       });
-      return this.redux.getActions("users").setState({ user_map });
+      actions.setState({ user_map });
     }
   }
 }
 
-
 // we create the table either if we're in normal (not kiosk) mode,
 // or when we have a specific project_id for kiosk mode
-if (!COCALC_MINIMAL || (redux.getStore('page').get('kiosk_project_id') != null)) {
-    redux.createTable('users', UsersTable);
+if (!COCALC_MINIMAL || redux.getStore("page").get("kiosk_project_id") != null) {
+  redux.createTable("users", UsersTable);
 }
 
 // this is only for kiosk mode
-export function recreate_users_table() {
-    //console.log("recreate_users_table: project_id =", redux.getStore('page').get('kiosk_project_id'))
-    redux.removeTable('users');
-    return redux.createTable('users', UsersTable);
+export function recreate_users_table(): void {
+  //console.log("recreate_users_table: project_id =", redux.getStore('page').get('kiosk_project_id'))
+  redux.removeTable("users");
+  redux.createTable("users", UsersTable);
 }
