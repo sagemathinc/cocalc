@@ -103,7 +103,7 @@ export class NotificationsActions extends Actions<NotificationsState> {
   private show_banner(show = true): void {
     // this controls if the global banner is shown
     const page_actions = redux.getActions("page");
-    page_actions.setState({ show_global_info: show });
+    page_actions.set_global_information(show);
   }
 
   update = (dismissed_high, dismissed_info): void => {
