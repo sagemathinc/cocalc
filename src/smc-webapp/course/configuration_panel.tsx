@@ -30,6 +30,7 @@
 // CoCalc libraries
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
+import { callback2 } from "smc-util/async-utils";
 import { contains_url } from "smc-util/misc2";
 import { debounce } from "lodash";
 
@@ -363,7 +364,10 @@ export class ConfigurationPanel extends Component<
   ConfigurationPanelProps,
   ConfigurationPanelState
 > {
-  displayName: "CourseEditorConfiguration";
+  private is_unmounted: boolean;
+  componentWillUnmount(): void {
+    this.is_unmounted = true;
+  }
 
   constructor(props) {
     super(props);
@@ -465,30 +469,31 @@ export class ConfigurationPanel extends Component<
     return `export_${p.slice(0, i)}.${ext}`;
   }
 
-  open_file = path => {
-    return redux.getActions({ project_id: this.props.project_id }).open_file({
+  private open_file(path: string): void {
+    redux.getActions({ project_id: this.props.project_id }).open_file({
       path,
       foreground: true
     });
-  };
+  }
 
-  write_file = (path, content) => {
+  private async write_file(path: string, content: string): Promise<void> {
     const actions = this.get_actions();
     const id = actions.set_activity({ desc: `Writing ${path}` });
-    return webapp_client.write_text_file_to_project({
-      project_id: this.props.project_id,
-      path,
-      content,
-      cb: err => {
-        actions.set_activity({ id });
-        if (!err) {
-          return this.open_file(path);
-        } else {
-          return actions.set_error(`Error writing '${path}' -- '${err}'`);
-        }
-      }
-    });
-  };
+    try {
+      await callback2(webapp_client.write_text_file_to_project, {
+        project_id: this.props.project_id,
+        path,
+        content
+      });
+      if (this.is_unmounted) return;
+      this.open_file(path);
+    } catch (err) {
+      if (this.is_unmounted) return;
+      actions.set_error(`Error writing '${path}' -- '${err}'`);
+    } finally {
+      actions.set_activity({ id });
+    }
+  }
 
   // newlines and duplicated double-quotes
   _sanitize_csv_entry = (s: string): string => {
@@ -554,7 +559,7 @@ export class ConfigurationPanel extends Component<
       const line = [name, id, email, grades, comments].join(",");
       content += line + "\n";
     }
-    return this.write_file(this.path("csv"), content);
+    this.write_file(this.path("csv"), content);
   };
 
   save_grades_to_py = () => {
@@ -623,7 +628,7 @@ export class ConfigurationPanel extends Component<
       content += line + "\n";
     }
     content += "]\n";
-    return this.write_file(this.path("py"), content);
+    this.write_file(this.path("py"), content);
   };
 
   render_save_grades() {

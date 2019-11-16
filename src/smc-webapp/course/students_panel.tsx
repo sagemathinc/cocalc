@@ -32,6 +32,7 @@ import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
 import { is_different } from "smc-util/misc2";
 import { keys } from "underscore";
+import { callback2 } from "smc-util/async-utils";
 
 // React libraries and components
 import {
@@ -127,6 +128,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     StudentsPanelReactProps & StudentsPanelReduxProps,
     StudentsPanelState
   > {
+    private is_unmounted: boolean;
+    componentWillUnmount(): void {
+      this.is_unmounted = true;
+    }
+
     // student_list not a list, but has one, plus some extra info.
     private student_list:
       | {
@@ -191,7 +197,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    do_add_search = e => {
+    private async do_add_search(e): Promise<void> {
       // Search for people to add to the course
       if (e != null) {
         e.preventDefault();
@@ -220,90 +226,79 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         selected_option_nodes: undefined
       });
       const { add_search } = this.state;
-      return webapp_client.user_search({
-        query: add_search,
-        limit: 100,
-        cb: (err, select) => {
-          let x;
-          if (err) {
-            this.setState({
-              add_searching: false,
-              err,
-              add_select: undefined,
-              existing_students: undefined
-            });
-            return;
+      let select;
+      try {
+        select = await callback2(webapp_client.user_search, {
+          query: add_search,
+          limit: 150
+        });
+      } catch (err) {
+        if (this.is_unmounted) return;
+        this.setState({
+          add_searching: false,
+          err,
+          add_select: undefined,
+          existing_students: undefined
+        });
+        return;
+      }
+      if (this.is_unmounted) return;
+
+      // Get the current collaborators/owners of the project that contains the course.
+      const users = this.props.redux
+        .getStore("projects")
+        .get_users(this.props.project_id);
+      // Make a map with keys the email or account_id is already part of the course.
+      const already_added = users.toJS(); // start with collabs on project
+      // also track **which** students are already part of the course
+      const existing_students: any = {};
+      existing_students.account = {};
+      existing_students.email = {};
+      // For each student in course add account_id and/or email_address:
+      this.props.students.map(val => {
+        for (const n of literal(["account_id", "email_address"])) {
+          if (val.get(n) != null) {
+            already_added[val.get(n)] = true;
           }
-          // Get the current collaborators/owners of the project that contains the course.
-          const users = this.props.redux
-            .getStore("projects")
-            .get_users(this.props.project_id);
-          // Make a map with keys the email or account_id is already part of the course.
-          const already_added = users.toJS(); // start with collabs on project
-          // also track **which** students are already part of the course
-          const existing_students: any = {};
-          existing_students.account = {};
-          existing_students.email = {};
-          // For each student in course add account_id and/or email_address:
-          this.props.students.map(val => {
-            return (() => {
-              const result: any[] = [];
-              for (const n of literal(["account_id", "email_address"])) {
-                if (val.get(n) != null) {
-                  result.push((already_added[val.get(n)] = true));
-                } else {
-                  result.push(undefined);
-                }
-              }
-              return result;
-            })();
-          });
-          // This function returns true if we shouldn't list the given account_id or email_address
-          // in the search selector for adding to the class.
-          const exclude_add = (account_id, email_address) => {
-            const aa =
-              already_added[account_id] || already_added[email_address];
-            if (aa) {
-              if (account_id != null) {
-                existing_students.account[account_id] = true;
-              }
-              if (email_address != null) {
-                existing_students.email[email_address] = true;
-              }
-            }
-            return aa;
-          };
-          const select2 = (() => {
-            const result: any[] = [];
-            for (x of select) {
-              if (!exclude_add(x.account_id, x.email_address)) {
-                result.push(x);
-              }
-            }
-            return result;
-          })();
-          // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
-          // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
-          // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
-          // bringing back everything in the search, which is a bug.
-          const select3 = (() => {
-            const result1: any[] = [];
-            for (x of noncloud_emails(select, add_search)) {
-              if (!exclude_add(null, x.email_address)) {
-                result1.push(x);
-              }
-            }
-            return result1;
-          })().concat(select2);
-          // We are no longer searching, but now show an options selector.
-          this.setState({
-            add_searching: false,
-            add_select: select3,
-            existing_students
-          });
         }
       });
-    };
+      // This function returns true if we shouldn't list the given account_id or email_address
+      // in the search selector for adding to the class.
+      const exclude_add = (account_id, email_address): boolean => {
+        const aa = already_added[account_id] || already_added[email_address];
+        if (aa) {
+          if (account_id != null) {
+            existing_students.account[account_id] = true;
+          }
+          if (email_address != null) {
+            existing_students.email[email_address] = true;
+          }
+        }
+        return aa;
+      };
+      const select2: any[] = [];
+      for (const x of select) {
+        if (!exclude_add(x.account_id, x.email_address)) {
+          select2.push(x);
+        }
+      }
+      // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
+      // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
+      // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
+      // bringing back everything in the search, which is a bug.
+      const select3: any[] = select2;
+      for (const x of noncloud_emails(select, add_search)) {
+        if (!exclude_add(null, x.email_address)) {
+          select3.unshift(x);
+        }
+      }
+      // We are no longer searching, but now show an options selector.
+      this.setState({
+        add_searching: false,
+        add_select: select3,
+        existing_students
+      });
+    }
 
     student_add_button() {
       const icon = this.state.add_searching ? (
@@ -313,7 +308,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
 
       return (
-        <Button onClick={this.do_add_search}>
+        <Button onClick={this.do_add_search.bind(this)}>
           {icon} Search (shift+enter)
         </Button>
       );
@@ -605,7 +600,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
               )}
             </Col>
             <Col md={5}>
-              <Form onSubmit={this.do_add_search} horizontal>
+              <Form onSubmit={this.do_add_search.bind(this)} horizontal>
                 <Col md={9}>
                   <FormGroup>
                     <FormControl
@@ -1539,7 +1534,9 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_email_address: (e.target as any).value })
+                  this.setState({
+                    edited_email_address: (e.target as any).value
+                  })
                 }
                 onKeyDown={this.on_key_down}
               />

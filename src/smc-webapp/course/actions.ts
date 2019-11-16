@@ -230,7 +230,7 @@ export class CourseActions extends Actions<CourseState> {
     return this.redux.getStore<CourseState, CourseStore>(this.name);
   };
 
-  private is_closed(): boolean {
+  public is_closed(): boolean {
     return this.get_store() == null; // for now.
   }
 

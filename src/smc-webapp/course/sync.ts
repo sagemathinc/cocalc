@@ -24,6 +24,7 @@ Describes how the client course editor syncs with the database
 */
 
 import { fromJS } from "immutable";
+import { callback2 } from "smc-util/async-utils";
 
 // SMC libraries
 import * as misc from "smc-util/misc";
@@ -58,13 +59,13 @@ export function create_sync_db(
   }); // wait at least 3s between saving changes to backend
 
   syncdb.once("error", err => {
-    if (actions != null) {
+    if (!actions.is_closed()) {
       actions.set_error(err);
     }
     console.warn(`Error using '${store.get("course_filename")}' -- ${err}`);
   });
 
-  syncdb.once("ready", () => {
+  syncdb.once("ready", async () => {
     const i = store.get("course_filename").lastIndexOf(".");
     const t = {
       settings: {
@@ -92,11 +93,11 @@ export function create_sync_db(
       const v = t[k];
       t[k] = fromJS(v);
     }
-    if (actions != null) {
+    if (!actions.is_closed()) {
       (actions as any).setState(t); // TODO: as any since t is an object, not immutable.js map...
     }
     syncdb.on("change", changes => {
-      if (actions != null) {
+      if (!actions.is_closed()) {
         actions._syncdb_change(changes);
       }
     });
@@ -105,30 +106,35 @@ export function create_sync_db(
       redux.getProjectActions(project_id).flag_file_activity(filename)
     );
 
-    // Wait until the projects store has data about users of our project before configuring anything.
-    const projects_store = redux.getStore("projects");
-    projects_store.wait({
-      until(p_store) {
-        return p_store.get_users(project_id) != null;
-      },
-      timeout: 30,
-      cb() {
-        if (actions == null) {
-          return;
-        }
-        actions.lookup_nonregistered_students();
-        actions.configure_all_projects();
-
-        // Also
-        projects_store.on("change", actions.handle_projects_store_update);
-        actions.handle_projects_store_update(projects_store);
-      }
-    }); // initialize
-
     const p = redux.getProjectActions(store.get("course_project_id"));
     if (p != null) {
       p.log_opened_time(store.get("course_filename"));
     }
+
+    // Wait until the projects store has data about users of our project before configuring anything.
+    const projects_store = redux.getStore("projects");
+    try {
+      await callback2(projects_store.wait, {
+        until(p_store) {
+          return p_store.get_users(project_id) != null;
+        },
+        timeout: 60
+      });
+    } catch (err) {
+      return; // something is very broken (or maybe admin view)...
+    }
+    if (actions.is_closed()) {
+      return;
+    }
+    actions.lookup_nonregistered_students();
+    actions.configure_all_projects();
+
+    // Also
+    projects_store.on(
+      "change",
+      actions.handle_projects_store_update.bind(actions)
+    );
+    actions.handle_projects_store_update(projects_store);
   });
 
   return syncdb;

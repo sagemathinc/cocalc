@@ -45,6 +45,8 @@ import {
   Grid
 } from "react-bootstrap";
 
+import { callback2 } from "smc-util/async-utils";
+
 const SEARCH_STYLE = { marginBottom: "0px" };
 
 interface MultipleAddSearchProps {
@@ -305,6 +307,11 @@ export class FoldersToolbar extends Component<
   FoldersToolbarProps,
   FoldersToolbarState
 > {
+  private is_unmounted: boolean;
+  componentWillUnmount(): void {
+    this.is_unmounted = true;
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -321,7 +328,7 @@ export class FoldersToolbar extends Component<
     plural_item_name: "items"
   };
 
-  do_add_search = search => {
+  private async do_add_search(search): Promise<void> {
     search = search.trim();
 
     if (this.state.add_is_searching && search === this.state.last_add_search) {
@@ -330,60 +337,59 @@ export class FoldersToolbar extends Component<
 
     this.setState({ add_is_searching: true, last_add_search: search });
 
-    webapp_client.find_directories({
-      project_id: this.props.project_id,
-      query: `*${search}*`,
-      cb: (err, resp) => {
-        // Disregard the results of this search of a new one was already submitted
-        if (this.state.last_add_search !== search) {
-          return;
-        }
-
-        if (err) {
-          this.setState({
-            add_is_searching: false,
-            err,
-            add_search_results: undefined
-          });
-          return;
-        }
-
-        if (resp.directories.length === 0) {
-          this.setState({
-            add_is_searching: false,
-            add_search_results: immutable.List([]),
-            none_found: true
-          });
-          return;
-        }
-
-        return this.setState(function(state, props) {
-          let merged;
-          const filtered_results = filter_results(
-            resp.directories,
-            search,
-            props.items
-          );
-
-          // Merge to prevent possible massive list alterations
-          if (
-            state.add_search_results &&
-            filtered_results.length === state.add_search_results.size
-          ) {
-            merged = state.add_search_results.merge(filtered_results);
-          } else {
-            merged = immutable.List(filtered_results);
-          }
-
-          return {
-            add_is_searching: false,
-            add_search_results: merged,
-            none_found: false
-          };
-        });
+    let resp;
+    try {
+      resp = await callback2(webapp_client.find_directories, {
+        project_id: this.props.project_id,
+        query: `*${search}*`
+      });
+      // Disregard the results of this search of a new one was already submitted
+      if (this.is_unmounted || this.state.last_add_search !== search) {
+        return;
       }
+    } catch (err) {
+      if (this.is_unmounted) return;
+      this.setState({
+        add_is_searching: false,
+        err,
+        add_search_results: undefined
+      });
+    }
+
+    if (resp.directories.length === 0) {
+      this.setState({
+        add_is_searching: false,
+        add_search_results: immutable.List([]),
+        none_found: true
+      });
+      return;
+    }
+
+    this.setState(function(state, props) {
+      let merged;
+      const filtered_results = filter_results(
+        resp.directories,
+        search,
+        props.items
+      );
+
+      // Merge to prevent possible massive list alterations
+      if (
+        state.add_search_results &&
+        filtered_results.length === state.add_search_results.size
+      ) {
+        merged = state.add_search_results.merge(filtered_results);
+      } else {
+        merged = immutable.List(filtered_results);
+      }
+
+      return {
+        add_is_searching: false,
+        add_search_results: merged,
+        none_found: false
+      };
     });
-  };
+  }
 
   submit_selected = path_list => {
     if (path_list != null) {
@@ -396,12 +402,12 @@ export class FoldersToolbar extends Component<
     return this.clear_add_search();
   };
 
-  clear_add_search = () => {
-    return this.setState({
+  private clear_add_search(): void {
+    this.setState({
       add_search_results: immutable.List([]),
       none_found: false
     });
-  };
+  }
 
   render() {
     return (
@@ -430,9 +436,9 @@ export class FoldersToolbar extends Component<
           </Col>
           <Col md={5}>
             <MultipleAddSearch
-              add_selected={this.submit_selected}
-              do_search={this.do_add_search}
-              clear_search={this.clear_add_search}
+              add_selected={this.submit_selected.bind(this)}
+              do_search={this.do_add_search.bind(this)}
+              clear_search={this.clear_add_search.bind(this)}
               is_searching={this.state.add_is_searching}
               item_name={this.props.item_name}
               err={undefined}
