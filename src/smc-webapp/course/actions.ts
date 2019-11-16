@@ -43,6 +43,7 @@ import * as markdownlib from "../markdown";
 import * as misc from "smc-util/misc";
 import { defaults, required } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
+import * as awaiting from "awaiting";
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 import {
   AssignmentCopyType,
@@ -676,7 +677,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Students
-  add_students(students) {
+  public async add_students(students: any[]): Promise<void> {
     // students = array of account_id or email_address
     // New student_id's will be constructed randomly for each student
     const student_ids: string[] = [];
@@ -688,51 +689,39 @@ export class CourseActions extends Actions<CourseState> {
       this.syncdb.set(x);
     }
     this.syncdb.commit();
-    const f = (student_id: string, cb) => {
-      return async.series(
-        [
-          cb => {
-            const store = this.get_store();
-            if (store == null) {
-              cb("store not defined");
-              return;
-            }
-            return store.wait({
-              until: (store: CourseStore) => store.get_student(student_id),
-              timeout: 60,
-              cb
-            });
-          },
-          cb => {
-            this.create_student_project(student_id);
-            const store = this.get_store();
-            if (store == null) {
-              cb("store not defined");
-              return;
-            }
-            return store.wait({
-              until: (store: CourseStore) =>
-                store.getIn(["students", student_id, "project_id"]),
-              timeout: 60,
-              cb
-            });
-          }
-        ],
-        cb
-      );
-    };
+    async function f(student_id: string): Promise<void> {
+      let store = this.get_store();
+      if (store == null) throw Error("store not defined");
+      await callback2(store.wait, {
+        until: (store: CourseStore) => store.get_student(student_id),
+        timeout: 60
+      });
+      this.create_student_project(student_id);
+      store = this.get_store();
+      if (store == null) throw Error("store not defined");
+      await callback2(store.wait, {
+        until: (store: CourseStore) =>
+          store.getIn(["students", student_id, "project_id"]),
+        timeout: 60
+      });
+    }
+
     const id = this.set_activity({
       desc: `Creating ${students.length} student projects (do not close the course until done)`
     });
-    return async.mapLimit(student_ids, PARALLEL_LIMIT, f, err => {
+
+    try {
+      await awaiting.map(student_ids, PARALLEL_LIMIT, f.bind(this));
+    } catch (err) {
+      if (this.is_closed()) return;
+      this.set_error(`error creating student projects -- ${err}`);
+    } finally {
+      if (this.is_closed()) return;
       this.set_activity({ id });
-      if (err) {
-        this.set_error(`error creating student projects -- ${err}`);
-      }
       // after adding students, always run configure all projects,
       // to ensure everything is set properly
       this.configure_all_projects();
-    });
+    }
   }
 
   public async delete_student(student): Promise<void> {
@@ -2178,7 +2167,7 @@ You can find the comments they made in the folders below.\
     let student_project_id = student.get("project_id");
     const student_id = student.get("student_id");
     const src_path = assignment.get("path");
-    return async.series(
+    async.series(
       [
         cb => {
           if (student_project_id == null) {
@@ -2323,7 +2312,7 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
-    return async.series([
+    async.series([
       cb => {
         return this.copy_assignment_create_due_date_file(assignment, store, cb);
       },
@@ -2558,9 +2547,9 @@ You can find the comments they made in the folders below.\
       cb: err => {
         if (!err) {
           // now copy actual stuff to grade
-          return async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
+          async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
         } else {
-          return finish(err);
+          finish(err);
         }
       }
     });
@@ -2620,7 +2609,7 @@ You can find the comments they made in the folders below.\
       const target_path = `${assignment.get(
         "collect_path"
       )}-peer-grade/${our_student_id}/${student_id}`;
-      return async.series(
+      async.series(
         [
           cb => {
             // copy the files over from the student who did the peer grading
@@ -2659,7 +2648,7 @@ You can find the comments they made in the folders below.\
       );
     };
 
-    return async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
+    async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
   }
 
   // This doesn't really stop it yet, since that's not supported by the backend.
@@ -2905,7 +2894,7 @@ You can find the comments they made in the folders below.\
     const student_id = student.get("student_id");
     const course_project_id = store.get("course_project_id");
     const src_path = handout.get("path");
-    return async.series(
+    async.series(
       [
         cb => {
           if (student_project_id == null) {
@@ -2995,7 +2984,7 @@ You can find the comments they made in the folders below.\
       });
     };
 
-    return async.mapLimit(
+    async.mapLimit(
       store.get_student_ids({ deleted: false }),
       PARALLEL_LIMIT,
       f,
