@@ -1955,8 +1955,8 @@ You can find the comments they made in the folders below.\
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
   public async return_assignment_to_all_students(
-    assignment: AssignmentRecord,
-    new_only: boolean = false
+    assignment_id: string,
+    new_only: boolean
   ): Promise<void> {
     const id = this.set_activity({
       desc:
@@ -1968,6 +1968,16 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this.set_error(`return to student: ${err}`);
     };
+    const store = this.get_store();
+    if (store == null) {
+      error("no store");
+      return;
+    }
+    const assignment = store.get_assignment(assignment_id);
+    if (assignment == null) {
+      error("no such assignment");
+      return;
+    }
     let errors: string = "";
     const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
     const skip_grading: boolean = assignment.get("skip_grading", false);
@@ -1977,7 +1987,7 @@ You can find the comments they made in the folders below.\
       if (
         !store.last_copied(
           previous_step(Step.return_graded, peer),
-          assignment,
+          assignment_id,
           student_id,
           true
         )
@@ -1985,14 +1995,14 @@ You can find the comments they made in the folders below.\
         // we never collected the assignment from this student
         return;
       }
-      const has_grade = store.has_grade(assignment, student_id);
+      const has_grade = store.has_grade(assignment_id, student_id);
       if (!skip_grading && !has_grade) {
         // we collected and do grade, but didn't grade it yet
         return;
       }
       if (new_only) {
         if (
-          store.last_copied("return_graded", assignment, student_id, true) &&
+          store.last_copied("return_graded", assignment_id, student_id, true) &&
           (skip_grading || has_grade)
         ) {
           // it was already returned
@@ -2000,13 +2010,12 @@ You can find the comments they made in the folders below.\
         }
       }
       try {
-        await this.return_assignment_to_student(assignment, student_id);
+        await this.return_assignment_to_student(assignment_id, student_id);
       } catch (err) {
         errors += `\n ${err}`;
       }
     }
 
-    const store = this.get_store();
     if (store == null || !this.store_is_initialized()) {
       error("store not yet initialized");
       return;
@@ -2256,8 +2265,8 @@ You can find the comments they made in the folders below.\
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
   public async copy_assignment_to_all_students(
     assignment_id: string,
-    new_only?: boolean,
-    overwrite?: boolean
+    new_only: boolean,
+    overwrite: boolean
   ): Promise<void> {
     const store = this.get_store();
     if (store == null || !this.store_is_initialized()) {
@@ -2273,7 +2282,7 @@ You can find the comments they made in the folders below.\
     await this.action_all_students(
       assignment_id,
       new_only,
-      this.copy_assignment_to_student.bind(this),
+      this.copy_assignment_to_student,
       "assignment",
       desc,
       short_desc,
@@ -2282,13 +2291,17 @@ You can find the comments they made in the folders below.\
   }
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-  copy_assignment_from_all_students(assignment, new_only) {
-    const desc = `Copying assignment from all students ${
-      new_only ? "from whom we have not already copied it" : ""
-    }`;
+  public async copy_assignment_from_all_students(
+    assignment_id: string,
+    new_only: boolean
+  ): Promise<void> {
+    let desc = "Copying assignment from all students";
+    if (new_only) {
+      desc += " from whom we have not already copied it";
+    }
     const short_desc = "copy from student";
-    this.action_all_students(
-      assignment,
+    await this.action_all_students(
+      assignment_id,
       new_only,
       this.copy_assignment_from_student,
       "collect",
@@ -2297,13 +2310,17 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  peer_copy_to_all_students(assignment, new_only) {
-    const desc = `Copying assignments for peer grading to all students ${
-      new_only ? "who have not already received their copy" : ""
-    }`;
+  public async peer_copy_to_all_students(
+    assignment_id: string,
+    new_only: boolean
+  ): Promise<void> {
+    let desc = "Copying assignments for peer grading to all students ";
+    if (new_only) {
+      desc += " who have not already received their copy";
+    }
     const short_desc = "copy to student for peer grading";
-    this.action_all_students(
-      assignment,
+    await this.action_all_students(
+      assignment_id,
       new_only,
       this.peer_copy_to_student,
       "peer_assignment",
@@ -2312,13 +2329,17 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  peer_collect_from_all_students(assignment, new_only) {
-    const desc = `Copying peer graded assignments from all students ${
-      new_only ? "from whom we have not already copied it" : ""
-    }`;
+  public async peer_collect_from_all_students(
+    assignment_id: string,
+    new_only: boolean
+  ): Promise<void> {
+    let desc = "Copying peer graded assignments from all students";
+    if (new_only) {
+      desc += " from whom we have not already copied it";
+    }
     const short_desc = "copy peer grading from students";
-    this.action_all_students(
-      assignment,
+    await this.action_all_students(
+      assignment_id,
       new_only,
       this.peer_collect_from_student,
       "peer_collect",
@@ -2327,15 +2348,19 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  private action_all_students(
-    assignment,
-    new_only,
-    action: (assignment_id: string, student_id: string, opts: any) => void,
+  private async action_all_students(
+    assignment_id: string,
+    new_only: boolean,
+    action: (
+      assignment_id: string,
+      student_id: string,
+      opts: any
+    ) => Promise<void>,
     step,
     desc,
-    short_desc,
-    overwrite?
-  ): void {
+    short_desc: string,
+    overwrite?: boolean
+  ): Promise<void> {
     const id = this.set_activity({ desc });
     const error = err => {
       this.clear_activity(id);
@@ -2347,58 +2372,56 @@ You can find the comments they made in the folders below.\
       error("store not yet initialized");
       return;
     }
-    if (!(assignment = store.get_assignment(assignment))) {
+    const assignment = store.get_assignment(assignment_id);
+    if (!assignment) {
       error("no assignment");
       return;
     }
     let errors = "";
-    const peer = assignment.getIn(["peer_grade", "enabled"]);
+    const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
     const prev_step = previous_step(step, peer);
-    const assignment_id = assignment.get("assignment_id");
-    const f = (student_id, cb) => {
+    const f = async (student_id: string): Promise<void> => {
+      const store = this.get_store();
+      if (store == null) return;
       if (
         prev_step != null &&
-        !store.last_copied(prev_step, assignment, student_id, true)
+        !store.last_copied(prev_step, assignment_id, student_id, true)
       ) {
-        cb();
         return;
       }
-      if (new_only && store.last_copied(step, assignment, student_id, true)) {
-        cb();
+      if (
+        new_only &&
+        store.last_copied(step, assignment_id, student_id, true)
+      ) {
         return;
       }
-      const n = misc.mswalltime();
-      action(assignment_id, student_id, { overwrite });
-      return store.wait({
-        timeout: 60 * 15,
-        until: () => store.last_copied(step, assignment, student_id) >= n,
-        cb: err => {
-          if (err) {
-            errors += `\n ${err}`;
-          }
-          return cb();
-        }
-      });
+      try {
+        await action.bind(this)(assignment_id, student_id, { overwrite });
+      } catch (err) {
+        errors += `\n ${err}`;
+      }
     };
 
-    async.mapLimit(
+    await awaiting.map(
       store.get_student_ids({ deleted: false }),
       PARALLEL_LIMIT,
-      f,
-      () => {
-        if (errors) {
-          return error(errors);
-        } else {
-          return this.clear_activity(id);
-        }
-      }
+      f
     );
+
+    if (errors) {
+      error(errors);
+    } else {
+      this.clear_activity(id);
+    }
   }
 
   // Copy the collected folders from some students to the given student for peer grading.
   // Assumes folder is non-empty
-  peer_copy_to_student(assignment, student) {
-    if (this.start_copy(assignment, student, "last_peer_assignment")) {
+  private async peer_copy_to_student(
+    assignment_id: string,
+    student_id: string
+  ): Promise<void> {
+    if (this.start_copy(assignment_id, student_id, "last_peer_assignment")) {
       return;
     }
     const id = this.set_activity({ desc: "Copying peer grading to a student" });
@@ -2406,18 +2429,23 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_peer_assignment", err);
       if (err) {
-        return this.set_error(`copy peer-grading to student: ${err}`);
+        this.set_error(`copy peer-grading to student: ${err}`);
       }
     };
     const store = this.get_store();
     if (store == null || !this.store_is_initialized()) {
-      return finish("store not yet initialized");
+      finish("store not yet initialized");
+      return;
     }
-    if (!(student = store.get_student(student))) {
-      return finish("no student");
+    const student = store.get_student(student_id);
+    if (student == null) {
+      finish("no student");
+      return;
     }
-    if (!(assignment = store.get_assignment(assignment))) {
-      return finish("no assignment");
+    const assignment = store.get_assignment(assignment_id);
+    if (assignment == null) {
+      finish("no assignment");
+      return;
     }
 
     const student_name = store.get_student_name(student);
@@ -2428,13 +2456,15 @@ You can find the comments they made in the folders below.\
     // list of student_id's
     if (peer_map == null) {
       // empty peer assignment for this student (maybe added late)
-      return finish();
+      finish();
+      return;
     }
 
     const peers = peer_map[student.get("student_id")];
     if (peers == null) {
       // empty peer assignment for this student (maybe added late)
-      return finish();
+      finish();
+      return;
     }
 
     const student_project_id = student.get("project_id");
@@ -2450,59 +2480,49 @@ You can find the comments they made in the folders below.\
         guidelines;
     }
     const target_base_path = assignment.get("path") + "-peer-grade";
-    const f = (student_id, cb) => {
+    const f = async (student_id: string): Promise<void> => {
       const src_path = assignment.get("collect_path") + "/" + student_id;
       const target_path = target_base_path + "/" + student_id;
-      async.series(
-        [
-          cb => {
-            // delete the student's name so that grading is anonymous; also, remove original
-            // due date to avoid confusion.
-            const name = store.get_student_name(student_id, true);
-            webapp_client.exec({
-              project_id: store.get("course_project_id"),
-              command: "rm",
-              args: [
-                "-f",
-                src_path + `/STUDENT - ${name.simple}.txt`,
-                src_path + "/DUE_DATE.txt",
-                src_path + `/STUDENT - ${name.simple}.txt~`,
-                src_path + "/DUE_DATE.txt~"
-              ],
-              cb
-            });
-          },
-          cb => {
-            // copy the files to be peer graded into place for this student
-            webapp_client.copy_path_between_projects({
-              src_project_id: store.get("course_project_id"),
-              src_path,
-              target_project_id: student_project_id,
-              target_path,
-              overwrite_newer: false,
-              delete_missing: false,
-              cb
-            });
-          }
-        ],
-        cb
-      );
+      // delete the student's name so that grading is anonymous; also, remove original
+      // due date to avoid confusion.
+      const name = store.get_student_name(student_id, true);
+      await callback2(webapp_client.exec, {
+        project_id: store.get("course_project_id"),
+        command: "rm",
+        args: [
+          "-f",
+          src_path + `/STUDENT - ${name.simple}.txt`,
+          src_path + "/DUE_DATE.txt",
+          src_path + `/STUDENT - ${name.simple}.txt~`,
+          src_path + "/DUE_DATE.txt~"
+        ]
+      });
+
+      // copy the files to be peer graded into place for this student
+      await callback2(webapp_client.copy_path_between_projects, {
+        src_project_id: store.get("course_project_id"),
+        src_path,
+        target_project_id: student_project_id,
+        target_path,
+        overwrite_newer: false,
+        delete_missing: false
+      });
     };
 
-    // write instructions file to the student
-    webapp_client.write_text_file_to_project({
-      project_id: student_project_id,
-      path: target_base_path + "/GRADING_GUIDE.md",
-      content: guidelines,
-      cb: err => {
-        if (!err) {
-          // now copy actual stuff to grade
-          async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
-        } else {
-          finish(err);
-        }
-      }
-    });
+    try {
+      // write instructions file to the student
+      await callback2(webapp_client.write_text_file_to_project, {
+        project_id: student_project_id,
+        path: target_base_path + "/GRADING_GUIDE.md",
+        content: guidelines
+      });
+      // now copy actual stuff to grade
+      awaiting.map(peers, PARALLEL_LIMIT, f);
+      finish();
+    } catch (err) {
+      finish(err);
+      return;
+    }
   }
 
   // Collect all the peer graading of the given student (not the work the student did, but

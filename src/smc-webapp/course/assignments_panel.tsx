@@ -868,34 +868,32 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  copy_assignment(step, new_only, overwrite?) {
+  copy_assignment(step, new_only: boolean, overwrite: boolean = false) {
     // assign assignment to all (non-deleted) students
     const actions = this.get_actions();
+    const assignment_id: string | undefined = this.props.assignment.get(
+      "assignment_id"
+    );
+    if (assignment_id == null) throw Error("bug");
     switch (step) {
       case "assignment":
         actions.copy_assignment_to_all_students(
-          this.props.assignment.get('assignment_id'),
+          assignment_id,
           new_only,
           overwrite
         );
         break;
       case "collect":
-        actions.copy_assignment_from_all_students(
-          this.props.assignment,
-          new_only
-        );
+        actions.copy_assignment_from_all_students(assignment_id, new_only);
         break;
       case "peer_assignment":
-        actions.peer_copy_to_all_students(this.props.assignment, new_only);
+        actions.peer_copy_to_all_students(assignment_id, new_only);
         break;
       case "peer_collect":
-        actions.peer_collect_from_all_students(this.props.assignment, new_only);
+        actions.peer_collect_from_all_students(assignment_id, new_only);
         break;
       case "return_graded":
-        actions.return_assignment_to_all_students(
-          this.props.assignment,
-          new_only
-        );
+        actions.return_assignment_to_all_students(assignment_id, new_only);
         break;
       default:
         console.log(`BUG -- unknown step: ${step}`);
@@ -1258,7 +1256,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   return_assignment = () => {
     // Return assignment to all (non-deleted) students.
     this.get_actions().return_assignment_to_all_students(
-      this.props.assignment
+      this.props.assignment.get('assignment_id'),
+      false
     );
   };
 
