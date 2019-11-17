@@ -1636,7 +1636,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                     </VisibleMDLG>
                     <NewProjectCreator
                         start_in_edit_mode = {@project_list().length == 0}
-                        default_value={@props.search}
+                        default_value={if @props.search then @props.search else 'Untitled'}
                         images = {@props.images}
                     />
                 </Col>
@@ -1697,7 +1697,7 @@ LoadAllProjects = rclass
             bsSize='large'
             style={width:'100%', fontSize:'18pt'}>
             {@render_loading()}
-            Load all older projects...
+            Load any older projects...
         </Button>
 
     render: ->
