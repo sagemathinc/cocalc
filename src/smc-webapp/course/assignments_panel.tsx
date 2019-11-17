@@ -102,7 +102,7 @@ interface AssignmentsPanelReactProps {
   name: string;
   project_id: string;
   redux: AppRedux;
-  actions: object;
+  actions: CourseActions;
   assignments: Map<string, AssignmentRecord>;
   students: Map<string, StudentRecord>;
   user_map: object;
@@ -874,7 +874,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     switch (step) {
       case "assignment":
         actions.copy_assignment_to_all_students(
-          this.props.assignment,
+          this.props.assignment.get('assignment_id'),
           new_only,
           overwrite
         );
@@ -1256,8 +1256,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   return_assignment = () => {
-    // Assign assignment to all (non-deleted) students.
-    return this.get_actions().return_assignment_to_all_students(
+    // Return assignment to all (non-deleted) students.
+    this.get_actions().return_assignment_to_all_students(
       this.props.assignment
     );
   };

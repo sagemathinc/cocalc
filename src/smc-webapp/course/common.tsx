@@ -413,11 +413,11 @@ export class StudentAssignmentInfo extends Component<
       const v: any[] = [];
       v.push(
         <Button
-          key="copy_confirm"
+          key="recopy_confirm"
           bsStyle="danger"
           onClick={() => {
             this.setState({ [key]: false } as any);
-            return copy();
+            copy();
           }}
         >
           <Icon
@@ -438,7 +438,10 @@ export class StudentAssignmentInfo extends Component<
       if (name.toLowerCase() === "assign") {
         // inline-block because buttons above are float:left
         v.push(
-          <div style={{ margin: "5px", display: "inline-block" }}>
+          <div
+            key="what-happens"
+            style={{ margin: "5px", display: "inline-block" }}
+          >
             <a
               target="_blank"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"

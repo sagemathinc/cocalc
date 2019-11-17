@@ -182,20 +182,11 @@ export class CourseActions extends Actions<CourseState> {
     this.return_assignment_to_student = this.return_assignment_to_student.bind(
       this
     );
-    this.return_assignment_to_all_students = this.return_assignment_to_all_students.bind(
-      this
-    );
     this._finish_copy = this._finish_copy.bind(this);
-    this.copy_assignment_to_student = this.copy_assignment_to_student.bind(
-      this
-    );
     this.copy_assignment_create_due_date_file = this.copy_assignment_create_due_date_file.bind(
       this
     );
     this.copy_assignment = this.copy_assignment.bind(this);
-    this.copy_assignment_to_all_students = this.copy_assignment_to_all_students.bind(
-      this
-    );
     this.copy_assignment_from_all_students = this.copy_assignment_from_all_students.bind(
       this
     );
@@ -776,45 +767,41 @@ export class CourseActions extends Actions<CourseState> {
   // Some students might *only* have been added using their email address, but they
   // subsequently signed up for an CoCalc account.  We check for any of these and if
   // we find any, we add in the account_id information about that student.
-  lookup_nonregistered_students() {
+  public async lookup_nonregistered_students(): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       console.warn("lookup_nonregistered_students: store not initialized");
       return;
     }
-    const v = {};
+    const v: { [email: string]: string } = {};
     const s: string[] = [];
     store.get_students().map((student, student_id) => {
       if (!student.get("account_id") && !student.get("deleted")) {
         const email = student.get("email_address");
         v[email] = student_id;
-        return s.push(email);
+        s.push(email);
       }
     });
-    if (s.length > 0) {
-      return webapp_client.user_search({
+    if (s.length == 0) return;
+    try {
+      const result = await callback2(webapp_client.user_search, {
         query: s.join(","),
-        limit: s.length,
-        cb: (err, result) => {
-          if (err) {
-            return console.warn(
-              `lookup_nonregistered_students: search error -- ${err}`
-            );
-          } else {
-            return result.map(x =>
-              this.set({
-                account_id: x.account_id,
-                table: "students",
-                student_id: v[x.email_address]
-              })
-            );
-          }
-        }
+        limit: s.length
       });
+      for (const x of result) {
+        this.set({
+          account_id: x.account_id,
+          table: "students",
+          student_id: v[x.email_address]
+        });
+      }
+    } catch (err) {
+      // Non-fatal, will try again next time lookup_nonregistered_students gets called.
+      console.warn(`lookup_nonregistered_students: search error -- ${err}`);
     }
   }
 
-  // columns: first_name ,last_name, email, last_active, hosting
+  // columns: first_name, last_name, email, last_active, hosting
   // Toggles ascending/decending order
   set_active_student_sort(column_name) {
     let is_descending;
@@ -859,7 +846,7 @@ export class CourseActions extends Actions<CourseState> {
   // Student projects
 
   // Create a single student project.
-  public async create_student_project(student): Promise<void> {
+  public async create_student_project(student): Promise<string | undefined> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -868,9 +855,16 @@ export class CourseActions extends Actions<CourseState> {
       this.set_error("BUG: attempt to create when stores not yet initialized");
       return;
     }
-    const student_id = UNSAFE_NONNULLABLE(store.get_student(student)).get(
-      "student_id"
-    );
+    student = store.get_student(student);
+    if (student == null) {
+      this.set_error("unknown student");
+      return;
+    }
+    if (student.get("project_id")) {
+      // project already created.
+      return student.get("project_id");
+    }
+    const student_id = student.get("student_id");
     this.set({
       create_project: webapp_client.server_time(),
       table: "students",
@@ -902,6 +896,7 @@ export class CourseActions extends Actions<CourseState> {
       student_id
     });
     await this.configure_project(student_id, false, project_id);
+    return project_id;
   }
 
   private async configure_project_users(
@@ -1959,30 +1954,26 @@ You can find the comments they made in the folders below.\
   }
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-  return_assignment_to_all_students(assignment, new_only?) {
-    let left;
+  public async return_assignment_to_all_students(
+    assignment: AssignmentRecord,
+    new_only: boolean = false
+  ): Promise<void> {
     const id = this.set_activity({
-      desc: `Returning assignments to all students ${
-        new_only ? "who have not already received it" : ""
-      }`
+      desc:
+        "Returning assignments to all students " + new_only
+          ? "who have not already received it"
+          : ""
     });
     const error = err => {
       this.clear_activity(id);
-      return this.set_error(`return to student: ${err}`);
+      this.set_error(`return to student: ${err}`);
     };
-    const store = this.get_store();
-    if (store == null || !this.store_is_initialized()) {
-      return error("store not yet initialized");
-    }
-    assignment = store.get_assignment(assignment);
-    if (!assignment) {
-      return error("no assignment");
-    }
-    let errors = "";
-    const peer = assignment.getIn(["peer_grade", "enabled"]);
-    const skip_grading =
-      (left = assignment.get("skip_grading")) != null ? left : false;
-    const f = (student_id, cb) => {
+    let errors: string = "";
+    const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
+    const skip_grading: boolean = assignment.get("skip_grading", false);
+    async function f(student_id: string): Promise<void> {
+      const store = this.get_store();
+      if (store == null) return;
       if (
         !store.last_copied(
           previous_step(Step.return_graded, peer),
@@ -1992,13 +1983,11 @@ You can find the comments they made in the folders below.\
         )
       ) {
         // we never collected the assignment from this student
-        cb();
         return;
       }
       const has_grade = store.has_grade(assignment, student_id);
       if (!skip_grading && !has_grade) {
         // we collected and do grade, but didn't grade it yet
-        cb();
         return;
       }
       if (new_only) {
@@ -2007,36 +1996,31 @@ You can find the comments they made in the folders below.\
           (skip_grading || has_grade)
         ) {
           // it was already returned
-          cb();
           return;
         }
       }
-      const n = misc.mswalltime();
-      this.return_assignment_to_student(assignment, student_id);
-      return store.wait({
-        timeout: 60 * 15,
-        until: (store: CourseStore) =>
-          store.last_copied("return_graded", assignment, student_id) >= n,
-        cb: err => {
-          if (err) {
-            errors += `\n ${err}`;
-          }
-          return cb();
-        }
-      });
-    };
-    async.mapLimit(
+      try {
+        await this.return_assignment_to_student(assignment, student_id);
+      } catch (err) {
+        errors += `\n ${err}`;
+      }
+    }
+
+    const store = this.get_store();
+    if (store == null || !this.store_is_initialized()) {
+      error("store not yet initialized");
+      return;
+    }
+    await awaiting.map(
       store.get_student_ids({ deleted: false }),
       PARALLEL_LIMIT,
-      f,
-      () => {
-        if (errors) {
-          return error(errors);
-        } else {
-          return this.clear_activity(id);
-        }
-      }
+      f.bind(this)
     );
+    if (errors) {
+      error(errors);
+    } else {
+      this.clear_activity(id);
+    }
   }
 
   _finish_copy(assignment, student, type, err): void {
@@ -2131,7 +2115,11 @@ You can find the comments they made in the folders below.\
   //    assignment.last_assignment[student_id] = {time:?, error:err}
   //
   // where time >= now is the current time in milliseconds.
-  private copy_assignment_to_student(assignment, student, opts) {
+  private async copy_assignment_to_student(
+    assignment,
+    student,
+    opts
+  ): Promise<void> {
     const { overwrite, create_due_date_file } = defaults(opts, {
       overwrite: false,
       create_due_date_file: false
@@ -2141,7 +2129,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     const id = this.set_activity({ desc: "Copying assignment to a student" });
-    const finish = err => {
+    const finish = (err = "") => {
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_assignment", err);
       if (err) {
@@ -2165,135 +2153,99 @@ You can find the comments they made in the folders below.\
     const student_name = store.get_student_name(student);
     this.set_activity({ id, desc: `Copying assignment to ${student_name}` });
     let student_project_id = student.get("project_id");
-    const student_id = student.get("student_id");
     const src_path = assignment.get("path");
-    async.series(
-      [
-        cb => {
-          if (student_project_id == null) {
-            this.set_activity({
-              id,
-              desc: `${student_name}'s project doesn't exist, so creating it.`
-            });
-            this.create_student_project(student);
-            store = this.get_store();
-            if (store == null) {
-              cb("no store");
-              return;
-            }
-            return store.wait({
-              until: (store: CourseStore) =>
-                store.get_student_project_id(student_id),
-              cb: (err, x) => {
-                student_project_id = x;
-                return cb(err);
-              }
-            });
-          } else {
-            return cb();
-          }
-        },
-        cb => {
-          if (create_due_date_file) {
-            return this.copy_assignment_create_due_date_file(
-              assignment,
-              store,
-              cb
-            );
-          } else {
-            return cb();
-          }
-        },
-        cb => {
-          this.set_activity({
-            id,
-            desc: `Copying files to ${student_name}'s project`
-          });
-          if (store == undefined) {
-            console.warn(student_name, " failed to receieve files.");
-            return;
-          }
-          return webapp_client.copy_path_between_projects({
-            src_project_id: store.get("course_project_id"),
-            src_path,
-            target_project_id: student_project_id,
-            target_path: assignment.get("target_path"),
-            overwrite_newer: !!overwrite, // default is "false"
-            delete_missing: !!overwrite, // default is "false"
-            backup: !!!overwrite, // default is "true"
-            exclude_history: true,
-            cb
-          });
+    try {
+      if (student_project_id == null) {
+        this.set_activity({
+          id,
+          desc: `${student_name}'s project doesn't exist, so creating it.`
+        });
+        student_project_id = await this.create_student_project(student);
+        if (!student_project_id) {
+          throw Error("failed to create project");
         }
-      ],
-      err => {
-        finish(err);
       }
-    );
+      if (create_due_date_file) {
+        await this.copy_assignment_create_due_date_file(assignment, store);
+      }
+      this.set_activity({
+        id,
+        desc: `Copying files to ${student_name}'s project`
+      });
+      await callback2(webapp_client.copy_path_between_projects, {
+        src_project_id: store.get("course_project_id"),
+        src_path,
+        target_project_id: student_project_id,
+        target_path: assignment.get("target_path"),
+        overwrite_newer: !!overwrite, // default is "false"
+        delete_missing: !!overwrite, // default is "false"
+        backup: !!!overwrite, // default is "true"
+        exclude_history: true
+      });
+
+      // successful finish
+      finish();
+    } catch (err) {
+      // error somewhere along the way
+      finish(err);
+    }
   }
 
   // this is part of the assignment disribution, should be done only *once*, not for every student
-  copy_assignment_create_due_date_file(assignment, store, cb) {
+  private async copy_assignment_create_due_date_file(assignment, store) {
     // write the due date to a file
     const due_date = store.get_due_date(assignment);
     const src_path = assignment.get("path");
     const due_date_fn = "DUE_DATE.txt";
     if (due_date == null) {
-      cb();
       return;
     }
-
-    const locals = {
-      due_id: this.set_activity({ desc: `Creating ${due_date_fn} file...` }),
-      due_date,
-      src_path,
-      content: `This assignment is due\n\n   ${due_date.toLocaleString()}`,
-      project_id: store.get("course_project_id"),
-      path: src_path + "/" + due_date_fn,
-      due_date_fn
-    };
-
-    return webapp_client.write_text_file_to_project({
-      project_id: locals.project_id,
-      path: locals.path,
-      content: locals.content,
-      cb: err => {
-        this.clear_activity(locals.due_id);
-        if (err) {
-          return cb(
-            `Problem writing ${due_date_fn} file ('${err}'). Try again...`
-          );
-        } else {
-          return cb();
-        }
-      }
+    const due_id = this.set_activity({
+      desc: `Creating ${due_date_fn} file...`
     });
+    const content = `This assignment is due\n\n   ${due_date.toLocaleString()}`;
+    const project_id = store.get("course_project_id");
+    const path = src_path + "/" + due_date_fn;
+
+    try {
+      await callback2(webapp_client.write_text_file_to_project, {
+        project_id,
+        path,
+        content
+      });
+    } catch (err) {
+      throw Error(
+        `Problem writing ${due_date_fn} file ('${err}'). Try again...`
+      );
+    } finally {
+      this.clear_activity(due_id);
+    }
   }
 
-  public copy_assignment(
+  public async copy_assignment(
     type: AssignmentCopyType,
     assignment_id: string,
     student_id: string
-  ): void {
+  ): Promise<void> {
     // type = assigned, collected, graded, peer-assigned, peer-collected
     switch (type) {
       case "assigned":
         // create_due_date_file = true
-        this.copy_assignment_to_student(assignment_id, student_id, {
+        await this.copy_assignment_to_student(assignment_id, student_id, {
           create_due_date_file: true
         });
         return;
       case "collected":
-        this.copy_assignment_from_student(assignment_id, student_id);
+        await this.copy_assignment_from_student(assignment_id, student_id);
         return;
       case "graded":
-        this.return_assignment_to_student(assignment_id, student_id);
+        await this.return_assignment_to_student(assignment_id, student_id);
         return;
       case "peer-assigned":
-        this.peer_copy_to_student(assignment_id, student_id);
+        await this.peer_copy_to_student(assignment_id, student_id);
         return;
       case "peer-collected":
-        this.peer_collect_from_student(assignment_id, student_id);
+        await this.peer_collect_from_student(assignment_id, student_id);
         return;
       default:
         this.set_error(`copy_assignment -- unknown type: ${type}`);
@@ -2302,7 +2254,11 @@ You can find the comments they made in the folders below.\
   }
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-  copy_assignment_to_all_students(assignment, new_only, overwrite) {
+  public async copy_assignment_to_all_students(
+    assignment_id: string,
+    new_only?: boolean,
+    overwrite?: boolean
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null || !this.store_is_initialized()) {
       console.warn("store not yet initialized");
@@ -2312,23 +2268,17 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
-    async.series([
-      cb => {
-        return this.copy_assignment_create_due_date_file(assignment, store, cb);
-      },
-      () => {
-        // by default, doesn't create the due file
-        this.action_all_students(
-          assignment,
-          new_only,
-          this.copy_assignment_to_student.bind(this),
-          "assignment",
-          desc,
-          short_desc,
-          overwrite
-        );
-      }
-    ]);
+    await this.copy_assignment_create_due_date_file(assignment_id, store);
+    // by default, doesn't create the due file
+    await this.action_all_students(
+      assignment_id,
+      new_only,
+      this.copy_assignment_to_student.bind(this),
+      "assignment",
+      desc,
+      short_desc,
+      overwrite
+    );
   }
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
