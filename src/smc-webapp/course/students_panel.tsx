@@ -1358,7 +1358,10 @@ class Student extends Component<StudentProps, StudentState> {
         this.props.student,
         assignment
       );
-      const key = util.assignment_identifier(assignment, this.props.student);
+      const key = util.assignment_identifier(
+        assignment.get("assignment_id"),
+        this.props.student.get("student_id")
+      );
       const edited_feedback = this.props.active_feedback_edits.get(key);
       let edited_comments: string | undefined;
       let edited_grade: string | undefined;

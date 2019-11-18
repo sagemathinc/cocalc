@@ -29,7 +29,7 @@
 
 import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
-import { StudentsMap, AssignmentRecord, StudentRecord } from "./store";
+import { StudentsMap } from "./store";
 
 // Pure functions used in the course manager
 
@@ -319,10 +319,10 @@ export function pick_student_sorter<T extends { column_name: StudentField }>(
 }
 
 export function assignment_identifier(
-  assignment: AssignmentRecord,
-  student: StudentRecord
+  assignment_id: string,
+  student_id: string
 ): string {
-  return assignment.get("assignment_id") + student.get("student_id");
+  return assignment_id + student_id;
 }
 
 function __guardMethod__(obj, methodName, transform) {

@@ -73,7 +73,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
-import { Actions, UNSAFE_NONNULLABLE } from "../app-framework";
+import { Actions } from "../app-framework";
 
 const PARALLEL_LIMIT = 3; // number of async things to do in parallel
 
@@ -194,7 +194,6 @@ export class CourseActions extends Actions<CourseState> {
     );
     this.peer_copy_to_student = this.peer_copy_to_student.bind(this);
     this.stop_copying_assignment = this.stop_copying_assignment.bind(this);
-    this.open_assignment = this.open_assignment.bind(this);
     this.add_handout = this.add_handout.bind(this);
     this.delete_handout = this.delete_handout.bind(this);
     this.undelete_handout = this.undelete_handout.bind(this);
@@ -900,6 +899,7 @@ export class CourseActions extends Actions<CourseState> {
     const s = this.get_store();
     if (s == null) return;
     const student = s.get_student(student_id);
+    if (student == null) return; // no such student..
 
     let site_name = this.redux.getStore("customize").site_name;
     if (!site_name) {
@@ -938,19 +938,17 @@ export class CourseActions extends Actions<CourseState> {
       }
     };
     // Make sure the student is on the student's project:
-    const student_account_id = UNSAFE_NONNULLABLE(student).get("account_id");
+    const student_account_id = student.get("account_id");
     if (student_account_id == null) {
       // No known account yet, so invite by email.  That said,
       // we only do this at most once every few days.
-      const last_email_invite = UNSAFE_NONNULLABLE(student).get(
-        "last_email_invite"
-      );
+      const last_email_invite = student.get("last_email_invite");
       if (
         force_send_invite_by_email ||
         (!last_email_invite ||
           new Date(last_email_invite) < misc.days_ago(EMAIL_REINVITE_DAYS))
       ) {
-        await invite(UNSAFE_NONNULLABLE(student).get("email_address"));
+        await invite(student.get("email_address"));
         this.set({
           table: "students",
           student_id,
@@ -1544,7 +1542,7 @@ export class CourseActions extends Actions<CourseState> {
 
     const open_grades = store.get("active_feedback_edits");
     const new_open_grades = open_grades.delete(
-      assignment_identifier(assignment, student)
+      assignment_identifier(assignment.get('assignment_id'), student.get('student_id'))
     );
     this.setState({ active_feedback_edits: new_open_grades });
   };
@@ -1560,7 +1558,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
 
-    const key = assignment_identifier(assignment, student);
+    const key = assignment_identifier(assignment.get('assignment_id'), student.get('student_id'));
     const current_edited_feedback = store.get("active_feedback_edits").get(key);
 
     let current_edited_grade: string | undefined;
@@ -1605,7 +1603,7 @@ export class CourseActions extends Actions<CourseState> {
     if (active_feedback_edits == undefined) {
       return;
     }
-    const key = assignment_identifier(assignment, student);
+    const key = assignment_identifier(assignment.get('assignment_id'), student.get('student_id'));
     const edited_feedback = active_feedback_edits.get(key);
     if (edited_feedback == undefined) {
       return;
@@ -2647,46 +2645,45 @@ You can find the comments they made in the folders below.\
     this.stop_copy(assignment_id, student_id, copy_type_to_last(type));
   }
 
-  open_assignment(type, assignment_id, student_id) {
-    // type = assigned, collected, graded
-    let path, proj;
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const assignment = store.get_assignment(assignment_id);
-    const student = store.get_student(student_id);
-    const student_project_id = UNSAFE_NONNULLABLE(student).get("project_id");
+  open_assignment(
+    type: AssignmentCopyType,
+    assignment_id: string,
+    student_id: string
+  ): void {
+    const { store, assignment, student } = this.resolve({
+      assignment_id,
+      student_id
+    });
+    if (store == null || assignment == null || student == null) return;
+    const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       this.set_error("open_assignment: student project not yet created");
       return;
     }
     // Figure out what to open
+    let path, proj;
     switch (type) {
       case "assigned": // where project was copied in the student's project.
-        path = UNSAFE_NONNULLABLE(assignment).get("target_path");
+        path = assignment.get("target_path");
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path =
-          UNSAFE_NONNULLABLE(assignment).get("collect_path") +
-          "/" +
-          UNSAFE_NONNULLABLE(student).get("student_id"); // TODO: refactor
+        path = assignment.get("collect_path") + "/" + student.get("student_id"); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)
         proj = student_project_id;
-        path = UNSAFE_NONNULLABLE(assignment).get("path") + "-peer-grade";
+        path = assignment.get("path") + "-peer-grade";
         break;
       case "peer-collected": // where collected peer-graded work (in our project)
         path =
-          UNSAFE_NONNULLABLE(assignment).get("collect_path") +
+          assignment.get("collect_path") +
           "-peer-grade/" +
-          UNSAFE_NONNULLABLE(student).get("student_id");
+          student.get("student_id");
         proj = store.get("course_project_id");
         break;
       case "graded": // where project returned
-        path = UNSAFE_NONNULLABLE(assignment).get("graded_path"); // refactor
+        path = assignment.get("graded_path"); // refactor
         proj = student_project_id;
         break;
       default:
@@ -2697,7 +2694,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     // Now open it
-    return this.redux.getProjectActions(proj).open_directory(path);
+    this.redux.getProjectActions(proj).open_directory(path);
   }
 
   // Handouts
@@ -2953,17 +2950,13 @@ You can find the comments they made in the folders below.\
     finish(errors);
   }
 
-  open_handout(handout_id, student_id) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const handout = store.get_handout(handout_id);
-    if (handout == undefined) {
-      return;
-    }
-    const student = store.get_student(student_id);
-    const student_project_id = UNSAFE_NONNULLABLE(student).get("project_id");
+  public open_handout(handout_id: string, student_id: string): void {
+    const { handout, student } = this.resolve({
+      handout_id,
+      student_id
+    });
+    if (student == null || handout == null) return;
+    const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       this.set_error("open_handout: student project not yet created");
       return;
@@ -2975,6 +2968,6 @@ You can find the comments they made in the folders below.\
       return;
     }
     // Now open it
-    return this.redux.getProjectActions(proj).open_directory(path);
+    this.redux.getProjectActions(proj).open_directory(path);
   }
 }
