@@ -35,6 +35,9 @@ export interface SyncDBRecordHandout {
   description?: string;
   title?: string;
   deleted?: boolean;
+  status?: {
+    [string_id: string]: { start?: number; time?: number; error?: string };
+  };
 }
 
 export interface SyncDBRecordStudent {

@@ -1280,7 +1280,7 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   undelete_student = () => {
-    this.get_actions().undelete_student(this.props.student);
+    this.get_actions().undelete_student(this.props.student.get("student_id"));
   };
 
   render_confirm_delete() {

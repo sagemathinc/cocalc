@@ -545,7 +545,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
     switch (step) {
       case "handout":
         this.props.actions.copy_handout_to_all_students(
-          this.props.handout,
+          this.props.handout.get("handout_id"),
           new_only,
           overwrite
         );
@@ -1081,7 +1081,11 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   }
 
   copy(handout_id, student_id) {
-    return this.props.actions.copy_handout_to_student(handout_id, student_id);
+    return this.props.actions.copy_handout_to_student(
+      handout_id,
+      student_id,
+      false
+    );
   }
 
   stop(handout_id, student_id) {
