@@ -24,6 +24,7 @@ const { bib_format } = require("./bib-format");
 const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
 const { gofmt } = require("./gofmt");
+const { rust_format } = require("./rust_format");
 const misc = require("../smc-util/misc");
 const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // from project Jupyter
 
@@ -109,6 +110,10 @@ export async function run_prettier_string(
       break;
     case "gofmt":
       pretty = await gofmt(str, options, logger);
+      break;
+    case "rust":
+    case "rustfmt":
+      pretty = await rust_format(str, options, logger);
       break;
     default:
       pretty = prettier.format(str, options);
