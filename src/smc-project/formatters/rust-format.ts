@@ -18,15 +18,11 @@ function run_rustfmt(input_path: string) {
   return spawn("rustfmt", [input_path]);
 }
 
-function cleanup_error(err: string, tmpfn: string): string {
-  const ret: string[] = [];
-  for (let line of err.split("\n")) {
-    if (line.startsWith(tmpfn)) {
-      line = line.slice(tmpfn.length + 1);
-    }
-    ret.push(line);
-  }
-  return ret.join("\n");
+function cleanup_error(out: string, tmpfn: string): string {
+  return out
+    .split("\n")
+    .filter(line => line.indexOf(tmpfn) < 0)
+    .join("\n");
 }
 
 export async function rust_format(
@@ -37,7 +33,7 @@ export async function rust_format(
   // create input temp file
   const input_path: string = await callback(tmp.file);
   try {
-    // logger.debug(`gofmt tmp file: ${input_path}`);
+    // logger.debug(`rustfmt tmp file: ${input_path}`);
     await callback(writeFile, input_path, input);
 
     // spawn the html formatter
@@ -48,7 +44,7 @@ export async function rust_format(
         formatter = run_rustfmt(input_path /*, logger*/);
         break;
       default:
-        throw Error(`Unknown Go code formatting utility '${options.parser}'`);
+        throw Error(`Unknown Rust code formatting utility '${options.parser}'`);
     }
     // stdout/err capture
     let stdout: string = "";
@@ -61,16 +57,15 @@ export async function rust_format(
     if (code >= 1) {
       stdout = cleanup_error(stdout, input_path);
       stderr = cleanup_error(stderr, input_path);
-      const err_msg = `Gofmt code formatting utility "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
-      logger.debug(`gofmt error: ${err_msg}`);
+      const err_msg = [stdout, stderr].filter(x => !!x).join("\n");
+      logger.debug(`rustfmt error: ${err_msg}`);
       throw Error(err_msg);
     }
 
     // all fine, we read from the temp file
     const output: Buffer = await callback(readFile, input_path);
     const s: string = output.toString("utf-8");
-    // logger.debug(`gofmt_format output s ${s}`);
-
+    // logger.debug(`rust_format output s ${s}`);
     return s;
   } finally {
     unlink(input_path, () => {});

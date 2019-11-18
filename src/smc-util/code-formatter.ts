@@ -1,7 +1,7 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
-import { tuple } from "smc-util/misc2";
+import { tuple } from "./misc2";
 
 // ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
