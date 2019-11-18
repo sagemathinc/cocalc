@@ -7,30 +7,7 @@ import { filename_extension, set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-
-const FORMAT = set([
-  "js",
-  "jsx",
-  "ts",
-  "tsx",
-  "json",
-  "md",
-  "css",
-  "py",
-  "r",
-  "go",
-  "yml",
-  "yaml",
-  "xml",
-  "cml" /* that's xml */,
-  "kml" /* geodata keyhole markup, also xml */,
-  "c",
-  "c++",
-  "cc",
-  "cpp",
-  "h",
-  "bib"
-]);
+import { file_extensions as FORMAT } from "smc-util/code-formatter";
 
 export const SHELLS = {
   erl: "erl",
@@ -73,9 +50,7 @@ export const cm = {
       "shell"
     ]);
     const ext = filename_extension(path);
-    if (FORMAT[ext]) {
-      buttons.format = true;
-    }
+    buttons.format = FORMAT.includes(ext);
     return buttons;
   }
 };
