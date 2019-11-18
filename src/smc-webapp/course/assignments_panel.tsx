@@ -350,7 +350,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       }
     }
 
-    private yield_adder(deleted_assignments) {
+    private yield_adder(deleted_assignments): (string) => void {
       const deleted_paths = {};
       deleted_assignments.map(obj => {
         if (obj.path) {
@@ -360,9 +360,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
       return path => {
         if (deleted_paths[path] != null) {
-          return this.get_actions().undelete_assignment(deleted_paths[path]);
+          this.get_actions().undelete_assignment(deleted_paths[path]);
         } else {
-          return this.get_actions().add_assignment(path);
+          this.get_actions().add_assignment(path);
         }
       };
     }
@@ -536,8 +536,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (date == null) {
       date = this._due_date();
     }
-    return this.get_actions().set_due_date(
-      this.props.assignment,
+    this.get_actions().set_due_date(
+      this.props.assignment.get("assignment_id"),
       date != null ? date.toISOString() : undefined
     );
   };
@@ -568,7 +568,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             default_value={this.props.assignment.get("note")}
             on_save={value =>
               this.get_actions().set_assignment_note(
-                this.props.assignment,
+                this.props.assignment.get("assignment_id"),
                 value
               )
             }
@@ -1255,14 +1255,14 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   return_assignment = () => {
     // Return assignment to all (non-deleted) students.
     this.get_actions().return_assignment_to_all_students(
-      this.props.assignment.get('assignment_id'),
+      this.props.assignment.get("assignment_id"),
       false
     );
   };
 
   toggle_skip_grading = () => {
-    return this.get_actions().set_skip(
-      this.props.assignment,
+    this.get_actions().set_skip(
+      this.props.assignment.get("assignment_id"),
       "grading",
       !this.props.assignment.get("skip_grading")
     );
@@ -1351,12 +1351,16 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   delete_assignment = () => {
-    this.get_actions().delete_assignment(this.props.assignment);
+    this.get_actions().delete_assignment(
+      this.props.assignment.get("assignment_id")
+    );
     return this.setState({ confirm_delete: false });
   };
 
   undelete_assignment = () => {
-    return this.get_actions().undelete_assignment(this.props.assignment);
+    return this.get_actions().undelete_assignment(
+      this.props.assignment.get("assignment_id")
+    );
   };
 
   render_confirm_delete() {
@@ -1414,7 +1418,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   set_peer_grade = config => {
-    return this.get_actions().set_peer_grade(this.props.assignment, config);
+    this.get_actions().set_peer_grade(
+      this.props.assignment.get("assignment_id"),
+      config
+    );
   };
 
   render_configure_peer_checkbox(config) {
@@ -1451,7 +1458,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (due_date != undefined) {
       due_date_string = due_date.toISOString();
     }
-    return this.set_peer_grade({
+    this.set_peer_grade({
       due_date: due_date_string
     });
   };
@@ -1709,7 +1716,7 @@ class StudentListForAssignment extends Component<
     const student = store.get_student(student_id);
     if (student == null) return; // no such student
     const key = util.assignment_identifier(
-      this.props.assignment.get('assignment_id'),
+      this.props.assignment.get("assignment_id"),
       student_id
     );
     const edited_feedback = this.props.active_feedback_edits.get(key);

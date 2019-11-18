@@ -716,12 +716,12 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private delete_handout = (): void => {
-    this.props.actions.delete_handout(this.props.handout);
+    this.props.actions.delete_handout(this.props.handout.get('handout_id'));
     this.setState({ confirm_delete: false });
   };
 
   private undelete_handout = (): void => {
-    this.props.actions.undelete_handout(this.props.handout);
+    this.props.actions.undelete_handout(this.props.handout.get('handout_id'));
   };
 
   private render_confirm_delete(): Rendered {
@@ -842,7 +842,7 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private render_handout_heading(): Rendered {
-    let status = this.get_store().get_handout_status(this.props.handout);
+    let status = this.get_store().get_handout_status(this.props.handout.get('handout_id'));
     if (status == null) {
       status = {
         handout: 0,
@@ -1076,20 +1076,16 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
     this.state = {};
   }
 
-  open(handout_id, student_id) {
-    return this.props.actions.open_handout(handout_id, student_id);
+  private open(handout_id: string, student_id: string): void {
+    this.props.actions.open_handout(handout_id, student_id);
   }
 
-  copy(handout_id, student_id) {
-    return this.props.actions.copy_handout_to_student(
-      handout_id,
-      student_id,
-      false
-    );
+  private copy(handout_id: string, student_id: string): void {
+    this.props.actions.copy_handout_to_student(handout_id, student_id, false);
   }
 
-  stop(handout_id, student_id) {
-    return this.props.actions.stop_copying_handout(handout_id, student_id);
+  private stop(handout_id: string, student_id: string): void {
+    this.props.actions.stop_copying_handout(handout_id, student_id);
   }
 
   render_last_time(time) {

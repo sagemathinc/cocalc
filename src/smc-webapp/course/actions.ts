@@ -73,7 +73,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
-import { Actions } from "../app-framework";
+import { Actions, TypedMap } from "../app-framework";
 
 const PARALLEL_LIMIT = 3; // number of async things to do in parallel
 
@@ -94,119 +94,8 @@ export class CourseActions extends Actions<CourseState> {
 
   constructor(name, redux) {
     super(name, redux);
-    this.save = this.save.bind(this);
-    this._syncdb_change = this._syncdb_change.bind(this);
-    this.handle_projects_store_update = this.handle_projects_store_update.bind(
-      this
-    );
-    this.set_error = this.set_error.bind(this);
-    this.set_activity = this.set_activity.bind(this);
-    this.clear_activity = this.clear_activity.bind(this);
-    this.set_title = this.set_title.bind(this);
-    this.set_description = this.set_description.bind(this);
-    this.set_pay_choice = this.set_pay_choice.bind(this);
-    this.set_upgrade_goal = this.set_upgrade_goal.bind(this);
-    this.set_allow_collabs = this.set_allow_collabs.bind(this);
-    this.set_email_invite = this.set_email_invite.bind(this);
-    this.shared_project_settings = this.shared_project_settings.bind(this);
-    this.set_shared_project_title = this.set_shared_project_title.bind(this);
-    this.set_shared_project_description = this.set_shared_project_description.bind(
-      this
-    );
-    this.action_shared_project = this.action_shared_project.bind(this);
-    this.configure_shared_project = this.configure_shared_project.bind(this);
-    this.create_shared_project = this.create_shared_project.bind(this);
-    this.set_course_info = this.set_course_info.bind(this);
-    this.toggle_item_expansion = this.toggle_item_expansion.bind(this);
-    this.add_students = this.add_students.bind(this);
-    this.delete_student = this.delete_student.bind(this);
-    this.delete_all_students = this.delete_all_students.bind(this);
-    this._delete_student = this._delete_student.bind(this);
-    this.lookup_nonregistered_students = this.lookup_nonregistered_students.bind(
-      this
-    );
-    this.set_active_student_sort = this.set_active_student_sort.bind(this);
-    this.set_internal_student_info = this.set_internal_student_info.bind(this);
-    this.configure_project_users = this.configure_project_users.bind(this);
-    this.configure_project_visibility = this.configure_project_visibility.bind(
-      this
-    );
-    this.configure_project_title = this.configure_project_title.bind(this);
-    this.action_all_student_projects = this.action_all_student_projects.bind(
-      this
-    );
-    this.set_all_student_project_titles = this.set_all_student_project_titles.bind(
-      this
-    );
-    this.configure_project_description = this.configure_project_description.bind(
-      this
-    );
-    this.set_all_student_project_descriptions = this.set_all_student_project_descriptions.bind(
-      this
-    );
-    this.set_all_student_project_course_info = this.set_all_student_project_course_info.bind(
-      this
-    );
-    this.configure_project = this.configure_project.bind(this);
-    this.delete_project = this.delete_project.bind(this);
-    this.configure_all_projects = this.configure_all_projects.bind(this);
-    this.delete_all_student_projects = this.delete_all_student_projects.bind(
-      this
-    );
-    this.delete_shared_project = this.delete_shared_project.bind(this);
-    this.upgrade_all_student_projects = this.upgrade_all_student_projects.bind(
-      this
-    );
-    this.admin_upgrade_all_student_projects = this.admin_upgrade_all_student_projects.bind(
-      this
-    );
-    this.set_student_note = this.set_student_note.bind(this);
-    this._collect_path = this._collect_path.bind(this);
-    this.add_assignment = this.add_assignment.bind(this);
-    this.delete_assignment = this.delete_assignment.bind(this);
-    this.undelete_assignment = this.undelete_assignment.bind(this);
-    this.save_feedback = this.save_feedback.bind(this);
-    this.set_active_assignment_sort = this.set_active_assignment_sort.bind(
-      this
-    );
-    this.set_assignment_field = this.set_assignment_field.bind(this);
-    this.set_due_date = this.set_due_date.bind(this);
-    this.set_assignment_note = this.set_assignment_note.bind(this);
-    this.set_peer_grade = this.set_peer_grade.bind(this);
-    this.set_skip = this.set_skip.bind(this);
-    this.update_peer_assignment = this.update_peer_assignment.bind(this);
-    this.copy_assignment_from_student = this.copy_assignment_from_student.bind(
-      this
-    );
-    this.return_assignment_to_student = this.return_assignment_to_student.bind(
-      this
-    );
-    this.copy_assignment_create_due_date_file = this.copy_assignment_create_due_date_file.bind(
-      this
-    );
-    this.copy_assignment = this.copy_assignment.bind(this);
-    this.copy_assignment_from_all_students = this.copy_assignment_from_all_students.bind(
-      this
-    );
-    this.peer_copy_to_all_students = this.peer_copy_to_all_students.bind(this);
-    this.peer_collect_from_all_students = this.peer_collect_from_all_students.bind(
-      this
-    );
-    this.peer_copy_to_student = this.peer_copy_to_student.bind(this);
-    this.stop_copying_assignment = this.stop_copying_assignment.bind(this);
-    this.add_handout = this.add_handout.bind(this);
-    this.delete_handout = this.delete_handout.bind(this);
-    this.undelete_handout = this.undelete_handout.bind(this);
-    this.set_handout_field = this.set_handout_field.bind(this);
-    this.set_handout_note = this.set_handout_note.bind(this);
-    this.stop_copying_handout = this.stop_copying_handout.bind(this);
-    this.open_handout = this.open_handout.bind(this);
-    this.is_closed = this.is_closed.bind(this);
-    if (this.name == null) {
-      throw Error("@name must be defined");
-    }
-    if (this.redux == null) {
-      throw Error("@redux must be defined");
+    if (this.name == null || this.redux == null) {
+      throw Error("BUG: name and redux must be defined");
     }
   }
 
@@ -271,7 +160,7 @@ export class CourseActions extends Actions<CourseState> {
     return x.toJS();
   }
 
-  async save(): Promise<void> {
+  public async save(): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -296,8 +185,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  _syncdb_change(changes) {
-    // console.log('_syncdb_change', JSON.stringify(changes.toJS()))
+  public syncdb_change(changes: TypedMap<SyncDBRecord>[]): void {
     let t;
     const store = this.get_store();
     if (store == null) {
@@ -447,63 +335,53 @@ export class CourseActions extends Actions<CourseState> {
     this.set({ upgrade_goal, table: "settings" });
   }
 
-  set_allow_collabs(allow_collabs) {
+  public set_allow_collabs(allow_collabs: boolean): void {
     this.set({ allow_collabs, table: "settings" });
     this.configure_all_projects();
   }
 
-  set_email_invite(body) {
-    return this.set({ email_invite: body, table: "settings" });
+  public set_email_invite(body: string): void {
+    this.set({ email_invite: body, table: "settings" });
   }
 
   // return the default title and description of the shared project.
-  shared_project_settings(title?) {
+  private shared_project_settings(): { title: string; description: string } {
     const store = this.get_store();
-    if (store == null) {
-      return { title: undefined, description: undefined };
-    }
-    const x = {
-      title: `Shared Project -- ${
-        title != null ? title : store.get("settings").get("title")
-      }`,
+    if (store == null) throw Error("no store");
+    const settings = store.get("settings");
+    return {
+      title: `Shared Project -- ${settings.get("title")}`,
       description:
-        store.get("settings").get("description") +
+        settings.get("description") +
         "\n\n---\n\nThis project is shared with all students in the course."
     };
-    return x;
   }
 
-  set_shared_project_title() {
+  private set_shared_project_title(): void {
     const store = this.get_store();
-    const shared_id = store != null ? store.get_shared_project_id() : undefined;
-    if (store == null || !shared_id) {
-      return;
-    }
-
+    if (store == null) return;
+    const shared_id = store.get_shared_project_id();
+    if (!shared_id) return;
     const { title } = this.shared_project_settings();
-    return this.redux
-      .getActions("projects")
-      .set_project_title(shared_id, title);
+    this.redux.getActions("projects").set_project_title(shared_id, title);
   }
 
-  set_shared_project_description() {
+  private set_shared_project_description(): void {
     const store = this.get_store();
-    const shared_id = store != null ? store.get_shared_project_id() : undefined;
-    if (store == null || !shared_id) {
-      return;
-    }
+    if (store == null) return;
+    const shared_id = store.get_shared_project_id();
+    if (!shared_id) return;
 
     const { description } = this.shared_project_settings();
-    return this.redux
+    this.redux
       .getActions("projects")
       .set_project_description(shared_id, description);
   }
 
-  // start the shared project running (if it is defined)
-  action_shared_project(action) {
-    if (!["start", "stop", "restart"].includes(action)) {
-      throw Error("action must be start, stop or restart");
-    }
+  // start the shared project running, stopping, etc. (if it exists)
+  private async action_shared_project(
+    action: "start" | "stop" | "restart"
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -514,9 +392,9 @@ export class CourseActions extends Actions<CourseState> {
     }
     const a = this.redux.getActions("projects");
     if (a == null) return;
-    const f = a[action + "_project"];
+    const f = a[action + "_project"].bind(a);
     if (f == null) return;
-    f(shared_project_id);
+    await f(shared_project_id);
   }
 
   // configure the shared project so that it has everybody as collaborators
@@ -590,10 +468,10 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // set the shared project id in our syncdb
-  private set_shared_project_id(project_id: string): void {
+  private set_shared_project_id(shared_project_id: string): void {
     this.set({
       table: "settings",
-      shared_project_id: project_id
+      shared_project_id
     });
   }
 
@@ -635,7 +513,7 @@ export class CourseActions extends Actions<CourseState> {
   // Takes an item_name and the id of the time
   // item_name should be one of
   // ['student', 'assignment', 'peer_config', handout', 'skip_grading']
-  toggle_item_expansion(
+  public toggle_item_expansion(
     item_name:
       | "student"
       | "assignment"
@@ -643,7 +521,7 @@ export class CourseActions extends Actions<CourseState> {
       | "handout"
       | "skip_grading",
     item_id
-  ) {
+  ): void {
     let adjusted;
     const store = this.get_store();
     if (store == null) {
@@ -656,7 +534,7 @@ export class CourseActions extends Actions<CourseState> {
     } else {
       adjusted = expanded_items.add(item_id);
     }
-    return this.setState({ [field_name]: adjusted });
+    this.setState({ [field_name]: adjusted });
   }
 
   // Students
@@ -791,7 +669,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // columns: first_name, last_name, email, last_active, hosting
   // Toggles ascending/decending order
-  set_active_student_sort(column_name) {
+  public set_active_student_sort(column_name: string): void {
     let is_descending;
     const store = this.get_store();
     if (store == null) {
@@ -808,12 +686,16 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  set_internal_student_info(student, info) {
+  public set_internal_student_info(
+    student_id: string,
+    info: { first_name: string; last_name: string; email_address?: string }
+  ): void {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    student = store.get_student(student);
+    const { student } = this.resolve({ student_id });
+    if (student == null) return;
 
     info = defaults(info, {
       first_name: required,
@@ -825,9 +707,10 @@ export class CourseActions extends Actions<CourseState> {
       first_name: info.first_name,
       last_name: info.last_name,
       email_address: info.email_address,
-      student_id: student.get("student_id"),
+      student_id,
       table: "students"
     });
+
     this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
@@ -1134,7 +1017,7 @@ export class CourseActions extends Actions<CourseState> {
     );
   }
 
-  async set_all_student_project_titles(title: string): Promise<void> {
+  private async set_all_student_project_titles(title: string): Promise<void> {
     const actions = this.redux.getActions("projects");
     const store = this.get_store();
     if (store == null) return;
@@ -1153,7 +1036,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async configure_project_description(
+  private async configure_project_description(
     student_project_id: string
   ): Promise<void> {
     const store = this.get_store();
@@ -1162,11 +1045,11 @@ export class CourseActions extends Actions<CourseState> {
       .getActions("projects")
       .set_project_description(
         student_project_id,
-        store.get("settings").get("description")
+        store.getIn(["settings", "description"])
       );
   }
 
-  async set_all_student_project_descriptions(
+  private async set_all_student_project_descriptions(
     description: string
   ): Promise<void> {
     const store = this.get_store();
@@ -1184,7 +1067,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  async set_all_student_project_course_info(
+  private async set_all_student_project_course_info(
     pay?: string | Date | undefined
   ): Promise<void> {
     const store = this.get_store();
@@ -1276,7 +1159,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  delete_project(student_id) {
+  private async delete_student_project(student_id: string): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1286,25 +1169,24 @@ export class CourseActions extends Actions<CourseState> {
       student_id,
       "project_id"
     ]);
-    if (student_project_id != undefined) {
-      const student_account_id = store.getIn([
-        "students",
-        student_id,
-        "account_id"
-      ]);
-      if (student_account_id != undefined) {
-        this.redux
-          .getActions("projects")
-          .remove_collaborator(student_project_id, student_account_id);
-      }
-      this.redux.getActions("projects").delete_project(student_project_id);
-      return this.set({
-        create_project: null,
-        project_id: null,
-        table: "students",
-        student_id
-      });
+    if (student_project_id == null) return;
+    const student_account_id = store.getIn([
+      "students",
+      student_id,
+      "account_id"
+    ]);
+    if (student_account_id != undefined) {
+      this.redux
+        .getActions("projects")
+        .remove_collaborator(student_project_id, student_account_id);
     }
+    await this.redux.getActions("projects").delete_project(student_project_id);
+    this.set({
+      create_project: null,
+      project_id: null,
+      table: "students",
+      student_id
+    });
   }
 
   async configure_all_projects(force: boolean = false): Promise<void> {
@@ -1347,25 +1229,28 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Deletes student projects and removes students from those projects
-  delete_all_student_projects() {
-    const id = this.set_activity({ desc: "Deleting all student projects..." });
+  public async delete_all_student_projects(): Promise<void> {
     const store = this.get_store();
-    if (store == null) {
+    if (store == null) return;
+
+    const id = this.set_activity({ desc: "Deleting all student projects..." });
+    try {
+      const ids = store.get_student_ids({ deleted: false });
+      if (ids == undefined) {
+        return;
+      }
+      for (const student_id of ids) {
+        await this.delete_student_project(student_id);
+      }
+    } catch (err) {
+      this.set_error(`error deleting a student project... ${err}`);
+    } finally {
       this.set_activity({ id });
-      return;
     }
-    const ids = store.get_student_ids({ deleted: false });
-    if (ids == undefined) {
-      return;
-    }
-    for (const student_id of ids) {
-      this.delete_project(student_id);
-    }
-    return this.set_activity({ id });
   }
 
   // Delete the shared project, removing students too.
-  delete_shared_project() {
+  public delete_shared_project(): void {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1402,7 +1287,9 @@ export class CourseActions extends Actions<CourseState> {
 
   // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
   // to get all the students to.
-  upgrade_all_student_projects(upgrade_goal) {
+  public async upgrade_all_student_projects(
+    upgrade_goal: UpgradeGoal
+  ): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1415,16 +1302,18 @@ export class CourseActions extends Actions<CourseState> {
     const id = this.set_activity({
       desc: `Adjusting upgrades on ${misc.len(plan)} student projects...`
     });
+    const a = this.redux.getActions("projects");
+    const s = this.redux.getStore("projects");
     for (const project_id in plan) {
+      if (project_id == null) continue;
       const upgrades = plan[project_id];
-      if (project_id != null) {
-        // avoid race if projects are being created *right* when we try to upgrade them.
-        this.redux
-          .getActions("projects")
-          .apply_upgrades_to_project(project_id, upgrades, false);
-      }
+      if (upgrades == null) continue;
+      // avoid race if projects are being created *right* when we
+      // try to upgrade them.
+      if (!s.get_project(project_id)) continue;
+      await a.apply_upgrades_to_project(project_id, upgrades, false);
     }
-    return setTimeout(() => this.set_activity({ id }), 5000);
+    this.set_activity({ id });
   }
 
   // Do an admin upgrade to all student projects.  This changes the base quotas for every student
@@ -1455,47 +1344,35 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  set_student_note(student, note) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    student = store.get_student(student);
+  public set_student_note(student_id: string, note: string): void {
     this.set({
       note,
       table: "students",
-      student_id: student.get("student_id")
+      student_id
     });
   }
 
-  _collect_path(path) {
+  private collect_path(path: string): string {
     const store = this.get_store();
     if (store == undefined) {
-      return;
+      throw Error("store must be defined");
     }
     const i = store.get("course_filename").lastIndexOf(".");
     return store.get("course_filename").slice(0, i) + "-collect/" + path;
   }
 
-  // Assignments
-  // TODO: Make a batch adder?
-  add_assignment(path) {
+  public add_assignment(path: string): void {
     // Add an assignment to the course, which is defined by giving a directory in the project.
     // Where we collect homework that students have done (in teacher project)
-    let beginning;
-    const collect_path = this._collect_path(path);
+    const collect_path = this.collect_path(path);
     const path_parts = misc.path_split(path);
     // folder that we return graded homework to (in student project)
-    if (path_parts.head) {
-      beginning = "/graded-";
-    } else {
-      beginning = "graded-";
-    }
+    const beginning = path_parts.head ? "/graded-" : "graded-";
     const graded_path = path_parts.head + beginning + path_parts.tail;
     // folder where we copy the assignment to
     const target_path = path;
 
-    return this.set({
+    this.set({
       path,
       collect_path,
       graded_path,
@@ -1505,60 +1382,50 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  delete_assignment(assignment) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    assignment = store.get_assignment(assignment);
+  public delete_assignment(assignment_id: string): void {
     return this.set({
       deleted: true,
-      assignment_id: assignment.get("assignment_id"),
+      assignment_id,
       table: "assignments"
     });
   }
 
-  undelete_assignment(assignment) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    assignment = store.get_assignment(assignment);
+  public undelete_assignment(assignment_id: string): void {
     return this.set({
       deleted: false,
-      assignment_id: assignment.get("assignment_id"),
+      assignment_id,
       table: "assignments"
     });
   }
 
-  clear_edited_feedback = (
-    assignment: AssignmentRecord,
-    student: StudentRecord
-  ) => {
+  public clear_edited_feedback(
+    assignment_id: string,
+    student_id: string
+  ): void {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
 
-    const open_grades = store.get("active_feedback_edits");
-    const new_open_grades = open_grades.delete(
-      assignment_identifier(assignment.get('assignment_id'), student.get('student_id'))
+    let active_feedback_edits = store.get("active_feedback_edits");
+    active_feedback_edits = active_feedback_edits.delete(
+      assignment_identifier(assignment_id, student_id)
     );
-    this.setState({ active_feedback_edits: new_open_grades });
-  };
+    this.setState({ active_feedback_edits });
+  }
 
-  update_edited_feedback = (
-    assignment: AssignmentRecord,
-    student: StudentRecord,
+  public update_edited_feedback(
+    assignment_id: string,
+    student_id: string,
     new_edited_grade?: string,
     new_edited_comments?: string
-  ) => {
+  ) {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
 
-    const key = assignment_identifier(assignment.get('assignment_id'), student.get('student_id'));
+    const key = assignment_identifier(assignment_id, student_id);
     const current_edited_feedback = store.get("active_feedback_edits").get(key);
 
     let current_edited_grade: string | undefined;
@@ -1575,7 +1442,7 @@ export class CourseActions extends Actions<CourseState> {
     } else if (current_edited_grade != undefined) {
       grade = current_edited_grade;
     } else {
-      grade = store.get_grade(assignment, student) || "";
+      grade = store.get_grade(assignment_id, student_id) || "";
     }
 
     let comments: string;
@@ -1584,7 +1451,7 @@ export class CourseActions extends Actions<CourseState> {
     } else if (current_edited_comments != undefined) {
       comments = current_edited_comments;
     } else {
-      comments = store.get_comments(assignment, student) || "";
+      comments = store.get_comments(assignment_id, student_id) || "";
     }
     const old_edited_feedback = store.get("active_feedback_edits");
     const new_edited_feedback = old_edited_feedback.set(
@@ -1592,9 +1459,9 @@ export class CourseActions extends Actions<CourseState> {
       new Feedback({ edited_grade: grade, edited_comments: comments })
     );
     this.setState({ active_feedback_edits: new_edited_feedback });
-  };
+  }
 
-  save_feedback = (assignment: AssignmentRecord, student: StudentRecord) => {
+  public save_feedback(assignment_id: string, student_id: string): void {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1603,14 +1470,14 @@ export class CourseActions extends Actions<CourseState> {
     if (active_feedback_edits == undefined) {
       return;
     }
-    const key = assignment_identifier(assignment.get('assignment_id'), student.get('student_id'));
+    const key = assignment_identifier(assignment_id, student_id);
     const edited_feedback = active_feedback_edits.get(key);
     if (edited_feedback == undefined) {
       return;
     }
     const query = {
       table: "assignments",
-      assignment_id: assignment.get("assignment_id")
+      assignment_id
     };
     const assignment_data = this.get_one(query);
     if (assignment_data == null) {
@@ -1619,21 +1486,19 @@ export class CourseActions extends Actions<CourseState> {
     }
 
     const grades = assignment_data.grades || {};
-    grades[student.get("student_id")] = edited_feedback.get("edited_grade");
+    grades[student_id] = edited_feedback.get("edited_grade");
 
     const comments = assignment_data.comments || {};
-    comments[student.get("student_id")] = edited_feedback.get(
-      "edited_comments"
-    );
+    comments[student_id] = edited_feedback.get("edited_comments");
     const feedback_changes = Object.assign(
       { grades: grades, comments: comments },
       query
     );
     this.set(feedback_changes);
-    this.clear_edited_feedback(assignment, student);
-  };
+    this.clear_edited_feedback(assignment_id, student_id);
+  }
 
-  set_active_assignment_sort(column_name) {
+  public set_active_assignment_sort(column_name: string): void {
     let is_descending;
     const store = this.get_store();
     if (store == null) {
@@ -1653,19 +1518,7 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  private set_assignment_field(
-    assignment: string | AssignmentRecord,
-    name,
-    val
-  ): void {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const assignment_id: string =
-      typeof assignment == "string"
-        ? assignment
-        : assignment.get("assignment_id");
+  private set_assignment_field(assignment_id: string, name, val): void {
     this.set({
       [name]: val,
       table: "assignments",
@@ -1673,27 +1526,21 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  public set_due_date(
-    assignment: string | AssignmentRecord,
-    due_date: Date | string
-  ): void {
+  public set_due_date(assignment_id: string, due_date: Date | string): void {
     if (typeof due_date !== "string") {
       due_date = due_date.toISOString(); // using strings instead of ms for backward compatibility.
     }
-    this.set_assignment_field(assignment, "due_date", due_date);
+    this.set_assignment_field(assignment_id, "due_date", due_date);
   }
 
-  public set_assignment_note(
-    assignment: string | AssignmentRecord,
-    note: string
-  ): void {
-    this.set_assignment_field(assignment, "note", note);
+  public set_assignment_note(assignment_id: string, note: string): void {
+    this.set_assignment_field(assignment_id, "note", note);
   }
 
-  public set_peer_grade(assignment: string | AssignmentRecord, config): void {
+  public set_peer_grade(assignment_id: string, config): void {
     const store = this.get_store();
     if (store == null) return;
-    const a = store.get_assignment(assignment);
+    const a = store.get_assignment(assignment_id);
     if (a == null) return;
     let cur: any = a.get("peer_grade");
     cur = cur == null ? {} : cur.toJS();
@@ -1701,25 +1548,21 @@ export class CourseActions extends Actions<CourseState> {
       const v = config[k];
       cur[k] = v;
     }
-    this.set_assignment_field(a.get("assignment_id"), "peer_grade", cur);
+    this.set_assignment_field(assignment_id, "peer_grade", cur);
   }
 
-  public set_skip(
-    assignment: string | AssignmentRecord,
-    step: string,
-    value: boolean
-  ): void {
-    this.set_assignment_field(assignment, "skip_" + step, value);
+  public set_skip(assignment_id: string, step: string, value: boolean): void {
+    this.set_assignment_field(assignment_id, "skip_" + step, value);
   }
 
   // Synchronous function that makes the peer grading map for the given
   // assignment, if it hasn't already been made.
-  public update_peer_assignment(assignment: string | AssignmentRecord) {
+  private update_peer_assignment(assignment_id: string) {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    const a = store.get_assignment(assignment);
+    const a = store.get_assignment(assignment_id);
     if (a == null) return;
     const peers = a.getIn(["peer_grade", "map"]);
     if (peers != null) {
@@ -1727,7 +1570,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     const N = a.getIn(["peer_grade", "number"], 1);
     const map = misc.peer_grading(store.get_student_ids(), N);
-    this.set_peer_grade(a, { map });
+    this.set_peer_grade(assignment_id, { map });
     return map;
   }
 
@@ -1754,24 +1597,12 @@ export class CourseActions extends Actions<CourseState> {
         this.set_error(`copy from student: ${err}`);
       }
     };
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    if (!this.store_is_initialized()) {
-      finish("store not yet initialized");
-      return;
-    }
-    const student = store.get_student(student_id);
-    if (student == null) {
-      finish("no student");
-      return;
-    }
-    const assignment = store.get_assignment(assignment_id);
-    if (assignment == null) {
-      finish("no assignment");
-      return;
-    }
+    const { store, student, assignment } = this.resolve({
+      assignment_id,
+      student_id,
+      finish
+    });
+    if (!store || !student || !assignment) return;
     const student_name = store.get_student_name(student);
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
@@ -1834,23 +1665,14 @@ export class CourseActions extends Actions<CourseState> {
         this.set_error(`return to student: ${err}`);
       }
     };
-    const store = this.get_store();
-    if (store == null || !this.store_is_initialized()) {
-      finish("store not yet initialized");
-      return;
-    }
+    const { store, student, assignment } = this.resolve({
+      assignment_id,
+      student_id,
+      finish
+    });
+    if (!store || !student || !assignment) return;
     const grade = store.get_grade(assignment_id, student_id);
     const comments = store.get_comments(assignment_id, student_id);
-    const student = store.get_student(student_id);
-    if (student == null) {
-      finish("no such student");
-      return;
-    }
-    const assignment = store.get_assignment(assignment_id);
-    if (assignment == null) {
-      finish("no such assignment");
-      return;
-    }
     const student_name = store.get_student_name(student);
     const student_project_id = student.get("project_id");
 
@@ -1948,20 +1770,12 @@ You can find the comments they made in the folders below.\
           ? "who have not already received it"
           : ""
     });
-    const error = err => {
+    const finish = err => {
       this.clear_activity(id);
       this.set_error(`return to student: ${err}`);
     };
-    const store = this.get_store();
-    if (store == null) {
-      error("no store");
-      return;
-    }
-    const assignment = store.get_assignment(assignment_id);
-    if (assignment == null) {
-      error("no such assignment");
-      return;
-    }
+    const { store, assignment } = this.resolve({ assignment_id, finish });
+    if (!store || !assignment) return;
     let errors: string = "";
     const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
     const skip_grading: boolean = assignment.get("skip_grading", false);
@@ -2001,7 +1815,7 @@ You can find the comments they made in the folders below.\
     }
 
     if (store == null || !this.store_is_initialized()) {
-      error("store not yet initialized");
+      finish("store not yet initialized");
       return;
     }
     await awaiting.map(
@@ -2010,7 +1824,7 @@ You can find the comments they made in the folders below.\
       f.bind(this)
     );
     if (errors) {
-      error(errors);
+      finish(errors);
     } else {
       this.clear_activity(id);
     }
@@ -2088,6 +1902,12 @@ You can find the comments they made in the folders below.\
     }
   }
 
+  /* Internal function that makes getting student/assignment/handout
+     object associated to an id cleaner, since we do this a LOT in
+     our code, and there was a lot of code duplication as a result.
+     If something goes wrong and the finish function is defined, then
+     it is called with a string describing the error.
+    */
   private resolve(opts: {
     assignment_id?: string;
     student_id?: string;
@@ -2197,7 +2017,7 @@ You can find the comments they made in the folders below.\
         }
       }
       if (create_due_date_file) {
-        await this.copy_assignment_create_due_date_file(assignment, store);
+        await this.copy_assignment_create_due_date_file(assignment_id);
       }
       this.set_activity({
         id,
@@ -2223,7 +2043,11 @@ You can find the comments they made in the folders below.\
   }
 
   // this is part of the assignment disribution, should be done only *once*, not for every student
-  private async copy_assignment_create_due_date_file(assignment, store) {
+  private async copy_assignment_create_due_date_file(
+    assignment_id: string
+  ): void {
+    const { assignment, store } = this.resolve({ assignment_id });
+    if (!assignment || !store) return;
     // write the due date to a file
     const due_date = store.get_due_date(assignment);
     const src_path = assignment.get("path");
@@ -2299,7 +2123,7 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
-    await this.copy_assignment_create_due_date_file(assignment_id, store);
+    await this.copy_assignment_create_due_date_file(assignment_id);
     // by default, doesn't create the due file
     await this.action_all_students(
       assignment_id,
@@ -2384,21 +2208,13 @@ You can find the comments they made in the folders below.\
     overwrite?: boolean
   ): Promise<void> {
     const id = this.set_activity({ desc });
-    const error = err => {
+    const finish = err => {
       this.clear_activity(id);
       err = `${short_desc}: ${err}`;
       this.set_error(err);
     };
-    const store = this.get_store();
-    if (store == null || !this.store_is_initialized()) {
-      error("store not yet initialized");
-      return;
-    }
-    const assignment = store.get_assignment(assignment_id);
-    if (!assignment) {
-      error("no assignment");
-      return;
-    }
+    const { store, assignment } = this.resolve({ assignment_id, finish });
+    if (!store || !assignment) return;
     let errors = "";
     const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
     const prev_step = previous_step(step, peer);
@@ -2431,7 +2247,7 @@ You can find the comments they made in the folders below.\
     );
 
     if (errors) {
-      error(errors);
+      finish(errors);
     } else {
       this.clear_activity(id);
     }
@@ -2454,26 +2270,17 @@ You can find the comments they made in the folders below.\
         this.set_error(`copy peer-grading to student: ${err}`);
       }
     };
-    const store = this.get_store();
-    if (store == null || !this.store_is_initialized()) {
-      finish("store not yet initialized");
-      return;
-    }
-    const student = store.get_student(student_id);
-    if (student == null) {
-      finish("no student");
-      return;
-    }
-    const assignment = store.get_assignment(assignment_id);
-    if (assignment == null) {
-      finish("no assignment");
-      return;
-    }
+    const { store, student, assignment } = this.resolve({
+      assignment_id,
+      student_id,
+      finish
+    });
+    if (!store || !student || !assignment) return;
 
     const student_name = store.get_student_name(student);
     this.set_activity({ id, desc: `Copying peer grading to ${student_name}` });
 
-    const peer_map = this.update_peer_assignment(assignment); // synchronous
+    const peer_map = this.update_peer_assignment(assignment_id); // synchronous
 
     // list of student_id's
     if (peer_map == null) {
@@ -2645,7 +2452,7 @@ You can find the comments they made in the folders below.\
     this.stop_copy(assignment_id, student_id, copy_type_to_last(type));
   }
 
-  open_assignment(
+  public open_assignment(
     type: AssignmentCopyType,
     assignment_id: string,
     student_id: string
@@ -2698,9 +2505,9 @@ You can find the comments they made in the folders below.\
   }
 
   // Handouts
-  add_handout(path) {
+  public add_handout(path: string): void {
     const target_path = path; // folder where we copy the handout to
-    return this.set({
+    this.set({
       path,
       target_path,
       table: "handouts",
@@ -2708,28 +2515,18 @@ You can find the comments they made in the folders below.\
     });
   }
 
-  delete_handout(handout) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    handout = store.get_handout(handout);
-    return this.set({
+  public delete_handout(handout_id: string): void {
+    this.set({
       deleted: true,
-      handout_id: handout.get("handout_id"),
+      handout_id,
       table: "handouts"
     });
   }
 
-  undelete_handout(handout) {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    handout = store.get_handout(handout);
-    return this.set({
+  public undelete_handout(handout_id: string): void {
+    this.set({
       deleted: false,
-      handout_id: handout.get("handout_id"),
+      handout_id,
       table: "handouts"
     });
   }
@@ -2780,62 +2577,46 @@ You can find the comments they made in the folders below.\
 
   // returns false if an actual copy starts and true if not (since we
   // already tried or closed the store).
-  private handout_start_copy(handout, student): boolean {
-    if (student != null && handout != null) {
-      const store = this.get_store();
-      if (store == null) {
-        return true;
-      }
-      student = store.get_student(student);
-      handout = store.get_handout(handout);
-      const obj: any = {
-        table: "handouts",
-        handout_id: handout.get("handout_id")
-      };
-      const x = this.get_one(obj);
-      if (x == null) {
-        // no such handout.
-        return true;
-      }
-      const status_map = x.status != null ? x.status : {};
-      let student_status = status_map[student.get("student_id")];
-      if (student_status == null) student_status = {};
-      if (
-        student_status.start != null &&
-        webapp_client.server_time() - student_status.start <= 15000
-      ) {
-        return true; // never retry a copy until at least 15 seconds later.
-      }
-      student_status.start = misc.mswalltime();
-      status_map[student.get("student_id")] = student_status;
-      obj.status = status_map;
-      this.set(obj);
+  private handout_start_copy(handout_id: string, student_id: string): boolean {
+    const obj: any = {
+      table: "handouts",
+      handout_id
+    };
+    const x = this.get_one(obj);
+    if (x == null) {
+      // no such handout.
+      return true;
     }
+    const status_map = x.status != null ? x.status : {};
+    let student_status = status_map[student_id];
+    if (student_status == null) student_status = {};
+    if (
+      student_status.start != null &&
+      webapp_client.server_time() - student_status.start <= 15000
+    ) {
+      return true; // never retry a copy until at least 15 seconds later.
+    }
+    student_status.start = misc.mswalltime();
+    status_map[student_id] = student_status;
+    obj.status = status_map;
+    this.set(obj);
     return false;
   }
 
   // "Copy" of `stop_copying_assignment:`
-  stop_copying_handout(handout, student) {
-    if (student != null && handout != null) {
-      const store = this.get_store();
-      if (store == null) {
-        return;
-      }
-      student = store.get_student(student);
-      handout = store.get_handout(handout);
-      const obj = { table: "handouts", handout_id: handout.get("handout_id") };
-      const h = this.get_one(obj);
-      if (h == null) return;
-      const status = h.status;
-      if (status == null) return;
-      const student_status = status[student.get("student_id")];
-      if (student_status == null) return;
-      if (student_status.start != null) {
-        delete student_status.start;
-        status[student.get("student_id")] = student_status;
-        (obj as any).status = status;
-        this.set(obj);
-      }
+  public stop_copying_handout(handout_id: string, student_id: string): void {
+    const obj: SyncDBRecordHandout = { table: "handouts", handout_id };
+    const h = this.get_one(obj);
+    if (h == null) return;
+    const status = h.status;
+    if (status == null) return;
+    const student_status = status[student_id];
+    if (student_status == null) return;
+    if (student_status.start != null) {
+      delete student_status.start;
+      status[student_id] = student_status;
+      obj.status = status;
+      this.set(obj);
     }
   }
 

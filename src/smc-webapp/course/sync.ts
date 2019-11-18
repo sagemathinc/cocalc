@@ -98,7 +98,7 @@ export function create_sync_db(
     }
     syncdb.on("change", changes => {
       if (!actions.is_closed()) {
-        actions._syncdb_change(changes);
+        actions.syncdb_change(changes);
       }
     });
 

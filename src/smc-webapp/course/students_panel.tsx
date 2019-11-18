@@ -1261,11 +1261,14 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   save_student_changes = () => {
-    this.get_actions().set_internal_student_info(this.props.student, {
-      first_name: this.state.edited_first_name,
-      last_name: this.state.edited_last_name,
-      email_address: this.state.edited_email_address
-    });
+    this.get_actions().set_internal_student_info(
+      this.props.student.get("student_id"),
+      {
+        first_name: this.state.edited_first_name,
+        last_name: this.state.edited_last_name,
+        email_address: this.state.edited_email_address
+      }
+    );
 
     this.setState({ editing_student: false });
   };
@@ -1419,7 +1422,10 @@ class Student extends Component<StudentProps, StudentState> {
             placeholder="Notes about student (not visible to student)"
             default_value={this.props.student.get("note")}
             on_save={value =>
-              this.get_actions().set_student_note(this.props.student, value)
+              this.get_actions().set_student_note(
+                this.props.student.get("student_id"),
+                value
+              )
             }
           />
         </Col>

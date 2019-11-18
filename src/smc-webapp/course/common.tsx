@@ -266,13 +266,16 @@ export class StudentAssignmentInfo extends Component<
     if (e) {
       e.preventDefault;
     }
-    this.get_actions().save_feedback(this.props.assignment, this.props.student);
+    this.get_actions().save_feedback(
+      this.props.assignment.get("assignment_id"),
+      this.props.student.get("student_id")
+    );
   };
 
   set_edited_feedback = (grade?: string, comments?: string) => {
     this.get_actions().update_edited_feedback(
-      this.props.assignment,
-      this.props.student,
+      this.props.assignment.get("assignment_id"),
+      this.props.student.get("student_id"),
       grade,
       comments
     );
@@ -289,8 +292,8 @@ export class StudentAssignmentInfo extends Component<
 
   cancel_editing = () => {
     this.get_actions().clear_edited_feedback(
-      this.props.assignment,
-      this.props.student
+      this.props.assignment.get("assignment_id"),
+      this.props.student.get("student_id")
     );
   };
 

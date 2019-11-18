@@ -111,7 +111,7 @@ export function remove_redux(
   }
   redux
     .getStore("projects")
-    .removeListener("change", actions.handle_projects_store_update);
+    .removeListener("change", actions.handle_projects_store_update.bind(actions));
 
   // Remove the store and actions.
   redux.removeStore(the_redux_name);

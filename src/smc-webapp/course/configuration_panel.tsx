@@ -1035,7 +1035,7 @@ export class ConfigurationPanel extends Component<
     if (this.props.settings.get("shared_project_id")) {
       return (
         <DeleteSharedProjectPanel
-          delete={this.get_actions().delete_shared_project}
+          delete={() => this.get_actions().delete_shared_project()}
         />
       );
     }
@@ -1044,7 +1044,7 @@ export class ConfigurationPanel extends Component<
   render_delete_student_projects() {
     return (
       <DeleteAllStudentProjects
-        delete_projects={this.get_actions().delete_all_student_projects}
+        delete_projects={() => this.get_actions().delete_all_student_projects()}
       />
     );
   }
@@ -1052,7 +1052,7 @@ export class ConfigurationPanel extends Component<
   render_delete_all_students() {
     return (
       <DeleteAllStudents
-        delete_all_students={this.get_actions().delete_all_students}
+        delete_all_students={() => this.get_actions().delete_all_students()}
       />
     );
   }
@@ -1067,7 +1067,7 @@ export class ConfigurationPanel extends Component<
     return (
       <DisableStudentCollaboratorsPanel
         checked={!!this.props.settings.get("allow_collabs")}
-        on_change={this.get_actions().set_allow_collabs}
+        on_change={val => this.get_actions().set_allow_collabs(val)}
       />
     );
   }
