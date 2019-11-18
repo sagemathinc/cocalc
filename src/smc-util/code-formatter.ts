@@ -1,6 +1,8 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
+import { tuple } from "smc-util/misc2";
+
 // ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
   | "r"
@@ -50,10 +52,6 @@ export type Tool =
   | "biber"
   | "tidy"
   | "DOES_NOT_EXIST"; // use this for testing;
-
-function tuple<T extends string[]>(o: T) {
-  return o;
-}
 
 // the set of file extensions where we want to have formatting support
 export const file_extensions = tuple([
