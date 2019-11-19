@@ -80,7 +80,6 @@ import {
   AssignmentsMap,
   SortDescription,
   StudentRecord,
-  CourseStore,
   IsGradingMap
 } from "./store";
 import { literal } from "../app-framework/literal";
@@ -108,7 +107,6 @@ interface StudentsPanelReactProps {
 interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
   active_student_sort?: SortDescription;
-  get_student_name: (id: string) => string;
   active_feedback_edits: IsGradingMap;
 }
 
@@ -156,14 +154,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       };
     }
 
-    displayName: "CourseEditorStudents";
-
     static reduxProps = ({ name }) => {
       return {
         [name]: {
           expanded_students: rtypes.immutable.Set,
           active_student_sort: rtypes.immutable.Map,
-          get_student_name: rtypes.func,
           active_feedback_edits: rtypes.immutable.Map
         }
       };
@@ -782,8 +777,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     private render_student(student_id: string, index: number): Rendered {
       const x = this.get_student_list().students[index];
       if (x == null) return;
+      const store = this.get_actions().get_store();
+      if (store == null) return;
       const name: StudentNameDescription = {
-        full: this.props.get_student_name(x.student_id),
+        full: store.get_student_name(x.student_id),
         first: x.first_name,
         last: x.last_name
       };
@@ -956,14 +953,14 @@ class Student extends Component<StudentProps, StudentState> {
     this.state = this.get_initial_state();
   }
 
-  displayName: "CourseEditorStudent";
-
   get_actions = (): CourseActions => {
     return redux.getActions(this.props.name);
   };
 
-  get_store = (): CourseStore => {
-    return redux.getStore(this.props.name) as any;
+  get_store = () => {
+    const store = this.get_actions().get_store();
+    if (store == null) throw Error("store must be defined");
+    return store;
   };
 
   get_initial_state() {
@@ -1064,7 +1061,10 @@ class Student extends Component<StudentProps, StudentState> {
         />
       );
     }
-    return <span>{this.props.student.get("email_address")} (invited)</span>;
+    const name = this.get_store().get_student_name(
+      this.props.student.get("student_id")
+    );
+    return <span>{name} (invited)</span>;
   }
 
   render_student_email() {
@@ -1203,9 +1203,7 @@ class Student extends Component<StudentProps, StudentState> {
               </Tip>
             </Button>
           </ButtonGroup>
-          {this.props.student.get("account_id")
-            ? this.render_edit_student()
-            : undefined}
+          {this.render_edit_student()}
         </ButtonToolbar>
       );
     } else {
@@ -1355,11 +1353,17 @@ class Student extends Component<StudentProps, StudentState> {
     const store = this.get_store();
     const result: any[] = [];
     for (const assignment of store.get_sorted_assignments()) {
-      const grade = store.get_grade(assignment, this.props.student);
-      const comments = store.get_comments(assignment, this.props.student);
+      const grade = store.get_grade(
+        assignment.get("assignment_id"),
+        this.props.student.get("student_id")
+      );
+      const comments = store.get_comments(
+        assignment.get("assignment_id"),
+        this.props.student.get("student_id")
+      );
       const info = store.student_assignment_info(
-        this.props.student,
-        assignment
+        this.props.student.get("student_id"),
+        assignment.get("assignment_id")
       );
       const key = util.assignment_identifier(
         assignment.get("assignment_id"),

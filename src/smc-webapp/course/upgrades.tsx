@@ -388,10 +388,7 @@ class StudentProjectUpgrades extends Component<
     }
 
     // Get non-deleted student projects
-    const project_ids = course_store.get_student_project_ids();
-    if (!project_ids) {
-      return <Loading />;
-    }
+    const project_ids: string[] = course_store.get_student_project_ids();
     const num_projects = project_ids.length;
     if (!num_projects) {
       return (

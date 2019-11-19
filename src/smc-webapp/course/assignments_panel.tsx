@@ -32,6 +32,8 @@
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../webapp-client";
 
+import { AssignmentStatus } from "./types";
+
 // React libraries
 import {
   Component,
@@ -134,7 +136,6 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         show_deleted: false // whether or not to show deleted assignments on the bottom
       };
     }
-    displayName: "CourseEditorAssignments";
 
     static reduxProps = ({ name }) => {
       return {
@@ -453,8 +454,6 @@ interface AssignmentState {
 }
 
 class Assignment extends Component<AssignmentProps, AssignmentState> {
-  displayName: "CourseEditor-Assignment";
-
   constructor(props) {
     super(props);
     this.state = {
@@ -580,8 +579,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_more_header() {
     let width;
-    const status = this.get_store().get_assignment_status(
-      this.props.assignment
+    const status: AssignmentStatus | undefined = this.get_store().get_assignment_status(
+      this.props.assignment.get("assignment_id")
     );
     if (status == null) {
       return <Loading key="loading_more" />;
@@ -1733,9 +1732,12 @@ class StudentListForAssignment extends Component<
         name={this.props.name}
         student={student}
         assignment={this.props.assignment}
-        grade={store.get_grade(this.props.assignment, student_id)}
-        comments={store.get_comments(this.props.assignment, student_id)}
-        info={store.student_assignment_info(student_id, this.props.assignment)}
+        grade={store.get_grade(this.props.assignment.get('assignment_id'), student_id)}
+        comments={store.get_comments(this.props.assignment.get('assignment_id'), student_id)}
+        info={store.student_assignment_info(
+          student_id,
+          this.props.assignment.get("assignment_id")
+        )}
         is_editing={!!edited_feedback}
         edited_comments={edited_comments}
         edited_grade={edited_grade}

@@ -32,7 +32,7 @@ import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
 import { React, Component } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
-import { AssignmentRecord, StudentRecord } from "./store";
+import { AssignmentRecord, StudentRecord, LastCopyInfo } from "./store";
 import { FormEvent } from "react";
 
 import {
@@ -62,8 +62,6 @@ interface BigTimeProps {
 }
 
 export class BigTime extends Component<BigTimeProps> {
-  displayName: "CourseEditor-BigTime";
-
   shouldComponentUpdate(props) {
     return is_different_date(this.props.date, props.date);
   }
@@ -88,8 +86,6 @@ interface StudentAssignmentInfoHeaderProps {
 export class StudentAssignmentInfoHeader extends Component<
   StudentAssignmentInfoHeaderProps
 > {
-  displayName: "CourseEditor-StudentAssignmentInfoHeader";
-
   render_col(number, key, width) {
     let tip, title;
     switch (key) {
@@ -203,11 +199,11 @@ interface StudentAssignmentInfoProps {
     student_id: string;
     peer_assignment: boolean;
     peer_collect: boolean;
-    last_assignment: { error: string };
-    last_collect: { error: string };
-    last_peer_assignment: number;
-    last_peer_collect: { error: string };
-    last_return_graded: { error: string };
+    last_assignment?: LastCopyInfo;
+    last_collect?: LastCopyInfo;
+    last_peer_assignment?: LastCopyInfo;
+    last_peer_collect?: LastCopyInfo;
+    last_return_graded?: LastCopyInfo;
   };
   edited_grade?: string;
   edited_comments?: string;
@@ -227,8 +223,6 @@ export class StudentAssignmentInfo extends Component<
   StudentAssignmentInfoProps,
   StudentAssignmentInfoState
 > {
-  displayName: "CourseEditor-StudentAssignmentInfo";
-
   constructor(props: StudentAssignmentInfoProps) {
     super(props);
     this.state = {

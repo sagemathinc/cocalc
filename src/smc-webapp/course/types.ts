@@ -24,7 +24,7 @@ export interface SyncDBRecordAssignment {
   graded_path?: string;
   target_path?: string;
   status?: {
-    [string_id: string]: { start?: number; time?: number; error?: string };
+    [student_id: string]: { start?: number; time?: number; error?: string };
   };
 }
 
@@ -36,7 +36,7 @@ export interface SyncDBRecordHandout {
   title?: string;
   deleted?: boolean;
   status?: {
-    [string_id: string]: { start?: number; time?: number; error?: string };
+    [student_id: string]: { start?: number; time?: number; error?: string };
   };
 }
 
@@ -59,6 +59,13 @@ export type SyncDBRecord = SyncDBRecordBase &
   SyncDBRecordAssignment &
   SyncDBRecordHandout &
   SyncDBRecordStudent;
+
+export type AssignmentCopyStep =
+  | "collect"
+  | "return_graded"
+  | "assignment"
+  | "peer_assignment"
+  | "peer_collect";
 
 export type LastAssignmentCopyType =
   | "last_collect"
@@ -101,4 +108,17 @@ export interface UpgradeGoal {
   memory_request?: number;
   mintime?: number;
   memory?: number;
+}
+
+export interface AssignmentStatus {
+  assignment: number;
+  collect: number;
+  peer_assignment: number;
+  peer_collect: number;
+  return_graded: number;
+  not_assignment: number;
+  not_collect: number;
+  not_peer_assignment: number;
+  not_peer_collect: number;
+  not_return_graded: number;
 }

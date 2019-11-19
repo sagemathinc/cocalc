@@ -25,7 +25,7 @@ import { Map, Set } from "immutable";
 import { AppRedux } from "../app-framework";
 import { CourseActions } from "./actions";
 import { create_sync_db } from "./sync";
-import {  AssignmentRecord, CourseStore } from "./store";
+import { AssignmentRecord, CourseStore } from "./store";
 
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 
@@ -51,6 +51,7 @@ export function init_redux(
   // DO NOT initialize settings here. They are initialized in sync.ts to prevent a
   // race condition involving automatic course configuration and settings
   const initial_store_state: any = {
+    activity: Map<number, string>(),
     assignments: Map<string, AssignmentRecord>(),
     configure_projects: "",
     error: undefined,
@@ -111,7 +112,10 @@ export function remove_redux(
   }
   redux
     .getStore("projects")
-    .removeListener("change", actions.handle_projects_store_update.bind(actions));
+    .removeListener(
+      "change",
+      actions.handle_projects_store_update.bind(actions)
+    );
 
   // Remove the store and actions.
   redux.removeStore(the_redux_name);

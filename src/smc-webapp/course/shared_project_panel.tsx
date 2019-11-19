@@ -37,8 +37,6 @@ interface SharedProjectPanelProps {
 }
 
 export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
-  displayName: "CourseEditor-SharedProject";
-
   public shouldComponentUpdate(props): boolean {
     return (
       this.props.settings.get("shared_project_id") !==

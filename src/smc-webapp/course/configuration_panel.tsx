@@ -106,8 +106,6 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     StartStopPanelReactProps & StartStopPanelReduxProps,
     StartStopPanelState
   > {
-    displayName: "CourseEditorConfiguration-StudentProjectsStartStopPanel";
-
     static reduxProps({ name }) {
       return {
         [name]: {
@@ -153,6 +151,10 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
         <Alert bsStyle={bsStyle}>
           {misc.capitalize(state_name)} all projects...{" "}
           <Icon name="cc-icon-cocalc-ring" spin />
+          <br/>
+          <Button onClick={()=>this.get_actions().cancel_action_all_student_projects()}>
+            Cancel
+          </Button>
         </Alert>
       );
     }
@@ -298,8 +300,6 @@ interface DisableStudentCollaboratorsPanelProps {
 class DisableStudentCollaboratorsPanel extends Component<
   DisableStudentCollaboratorsPanelProps
 > {
-  displayName: "DisableStudentCollaboratorsPanel";
-
   shouldComponentUpdate(props) {
     return this.props.checked !== props.checked;
   }
@@ -531,7 +531,10 @@ export class ConfigurationPanel extends Component<
       const grades = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
-          let grade = store.get_grade(assignment, student);
+          let grade = store.get_grade(
+            assignment.get("assignment_id"),
+            student.get("student_id")
+          );
           grade = grade != null ? grade : "";
           grade = this._sanitize_csv_entry(grade);
           result2.push(`\"${grade}\"`);
@@ -542,7 +545,10 @@ export class ConfigurationPanel extends Component<
       const comments = (() => {
         const result3: any[] = [];
         for (assignment of assignments) {
-          let comment = store.get_comments(assignment, student);
+          let comment = store.get_comments(
+            assignment.get("assignment_id"),
+            student.get("student_id")
+          );
           comment = comment != null ? comment : "";
           comment = this._sanitize_csv_entry(comment);
           result3.push(`\"${comment}\"`);
@@ -550,10 +556,12 @@ export class ConfigurationPanel extends Component<
         return result3;
       })().join(",");
       const name = `\"${this._sanitize_csv_entry(
-        store.get_student_name(student)
+        store.get_student_name(student.get("student_id"))
       )}\"`;
       const email = `\"${
-        (left2 = store.get_student_email(student)) != null ? left2 : ""
+        (left2 = store.get_student_email(student.get("student_id"))) != null
+          ? left2
+          : ""
       }\"`;
       const id = `\"${student.get("student_id")}\"`;
       const line = [name, id, email, grades, comments].join(",");
@@ -592,13 +600,17 @@ export class ConfigurationPanel extends Component<
     content += "students = [\n";
 
     for (var student of store.get_sorted_students()) {
+      const student_id = student.get("student_id");
       let grades = (() => {
         const result1: any[] = [];
         for (assignment of assignments) {
+          const assignment_id = assignment.get("assignment_id");
           var left;
           result1.push(
             `'${
-              (left = store.get_grade(assignment, student)) != null ? left : ""
+              (left = store.get_grade(assignment_id, student_id)) != null
+                ? left
+                : ""
             }'`
           );
         }
@@ -608,10 +620,11 @@ export class ConfigurationPanel extends Component<
       let comments = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
+          const assignment_id = assignment.get("assignment_id");
           var left1;
           result2.push(
             `'${
-              (left1 = store.get_comments(assignment, student)) != null
+              (left1 = store.get_comments(assignment_id, student_id)) != null
                 ? left1
                 : ""
             }'`
@@ -620,8 +633,8 @@ export class ConfigurationPanel extends Component<
         return result2;
       })().join(",");
       comments = comments.replace(/\n/g, "\\n");
-      const name = store.get_student_name(student);
-      let email = store.get_student_email(student);
+      const name = store.get_student_name(student_id);
+      let email = store.get_student_email(student_id);
       email = email != null ? `'${email}'` : "None";
       const id = student.get("student_id");
       const line = `    {'name':'${name}', 'id':'${id}', 'email':${email}, 'grades':[${grades}], 'comments':[${comments}]},`;

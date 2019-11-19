@@ -6,35 +6,28 @@ import { fromJS } from "immutable";
 
 // Define user store: all the users you collaborate with
 class UsersStore extends Store<UsersState> {
-  public get_first_name(account_id) {
-    let left;
-    return (left = this.getIn(["user_map", account_id, "first_name"])) != null
-      ? left
-      : "Unknown";
+  public get_first_name(account_id): string {
+    return this.getIn(["user_map", account_id, "first_name"], "Unknown");
   }
 
-  public get_last_name(account_id) {
-    let left;
-    return (left = this.getIn(["user_map", account_id, "last_name"])) != null
-      ? left
-      : "User";
+  public get_last_name(account_id): string {
+    return this.getIn(["user_map", account_id, "last_name"], "User");
   }
 
   // URL of color (defaults to rgb(170,170,170))
-  public get_color(account_id) {
-    let left;
-    return (left = this.getIn(["user_map", account_id, "profile", "color"])) !=
-      null
-      ? left
-      : "rgb(170,170,170)";
+  public get_color(account_id): string {
+    return this.getIn(
+      ["user_map", account_id, "profile", "color"],
+      "rgb(170,170,170)"
+    );
   }
 
   // URL of image or undefined if none
-  public get_image(account_id) {
+  public get_image(account_id): string | undefined {
     return this.getIn(["user_map", account_id, "profile", "image"]);
   }
 
-  public get_name(account_id) {
+  public get_name(account_id) : string | undefined {
     const user_map = this.get("user_map");
     if (user_map == null) {
       return;
@@ -84,4 +77,6 @@ class UsersStore extends Store<UsersState> {
 }
 
 // Register user store
-export const store = redux.createStore("users", UsersStore, { user_map: fromJS({}) });
+export const store = redux.createStore("users", UsersStore, {
+  user_map: fromJS({})
+});

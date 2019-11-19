@@ -1,12 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -87,10 +78,8 @@ const primary_key = {
 // Manages local and sync changes
 export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
-  private _last_collaborator_state: any;
-  private _activity_id: number;
-  private prev_interval_id: number;
-  private prev_timeout_id: number;
+  private last_collaborator_state: any;
+  private activity_id: number;
 
   constructor(name, redux) {
     super(name, redux);
@@ -99,9 +88,9 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  private get_store = (): CourseStore | undefined => {
+  public get_store(): CourseStore | undefined {
     return this.redux.getStore<CourseState, CourseStore>(this.name);
-  };
+  }
 
   public is_closed(): boolean {
     return this.get_store() == null; // for now.
@@ -246,14 +235,14 @@ export class CourseActions extends Actions<CourseState> {
     ]);
     if (users == null) return;
     users = users.keySeq();
-    if (this._last_collaborator_state == null) {
-      this._last_collaborator_state = users;
+    if (this.last_collaborator_state == null) {
+      this.last_collaborator_state = users;
       return;
     }
-    if (!this._last_collaborator_state.equals(users)) {
+    if (!this.last_collaborator_state.equals(users)) {
       this.configure_all_projects();
     }
-    this._last_collaborator_state = users;
+    this.last_collaborator_state = users;
   }
 
   // PUBLIC API
@@ -277,23 +266,19 @@ export class CourseActions extends Actions<CourseState> {
     opts: { id: number; desc?: string } | { id?: number; desc: string }
   ): number {
     if (opts.id == null) {
-      this._activity_id =
-        (this._activity_id != null ? this._activity_id : 0) + 1;
-      opts.id = this._activity_id;
+      this.activity_id = (this.activity_id != null ? this.activity_id : 0) + 1;
+      opts.id = this.activity_id;
     }
     const store = this.get_store();
     if (store == null) {
       // course was closed
       return -1;
     }
-    let activity: any = store.get_activity();
-    activity = activity == null ? {} : activity.toJS();
+    let activity = store.get("activity");
     if (opts.desc == null) {
-      delete activity[opts.id];
+      activity = activity.delete(opts.id);
     } else {
-      activity[opts.id] = opts.desc;
-      // enable for debugging:
-      // console.log(opts.desc);
+      activity = activity.set(opts.id, opts.desc);
     }
     this.setState({ activity });
     return opts.id;
@@ -303,7 +288,7 @@ export class CourseActions extends Actions<CourseState> {
     if (id != null) {
       this.set_activity({ id }); // clears for this id since desc not provided
     } else {
-      this.setState({ activity: {} }); // clear all activity
+      this.setState({ activity: Map() }); // clear all activity
     }
   }
 
@@ -379,9 +364,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // start the shared project running, stopping, etc. (if it exists)
-  private async action_shared_project(
-    action: "start" | "stop" | "restart"
-  ): Promise<void> {
+  private async action_shared_project(action: "start" | "stop"): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -930,69 +913,38 @@ export class CourseActions extends Actions<CourseState> {
       .set_project_title(student_project_id, title);
   }
 
-  // start projects of all (non-deleted) students running
-  public action_all_student_projects(
-    action: "start" | "stop" | "restart"
-  ): void {
-    if (!["start", "stop", "restart"].includes(action)) {
-      // just in case typescript doesn't catch it...
-      throw Error("action must be 'start' or 'stop' or 'restart'");
-    }
-    this.action_shared_project(action);
-
-    // Returns undefined if no store.
-    const act_on_student_projects = () => {
-      const store = this.get_store();
-      if (store == null) return;
-      const project_actions = this.redux.getActions("project");
-      if (project_actions == null) return;
-      const f = project_actions[action + "_project"];
-      if (f == null) return;
-      return store
-        .get_students()
-        .filter(student => {
-          return !student.get("deleted") && student.get("project_id") != null;
-        })
-        .map(student => {
-          return f(student.get("project_id"));
-        });
-    };
-    if (!act_on_student_projects()) {
-      return;
-    }
-
-    if (this.prev_interval_id) {
-      window.clearInterval(this.prev_interval_id);
-      this.prev_interval_id = 0;
-    }
-    if (this.prev_timeout_id) {
-      window.clearTimeout(this.prev_timeout_id);
-      this.prev_timeout_id = 0;
-    }
-    if (action === "start") {
-      // action is start -- in this case we bizarely keep starting the
-      // projects every 30s.  This is basically a no-op when already running,
-      // so maybe not so bad.  (Do NOT do this for stop or restart, since
-      // those are NOT no-ops, or user might try to start project, only to
-      // be stopped.)
-      // Anyway this is just nuts, but whatever. It needs to be rewritten.
-      const clear_state = () => {
-        window.clearInterval(this.prev_interval_id);
-        this.setState({ action_all_projects_state: "any" });
-      };
-
-      this.prev_interval_id = window.setInterval(
-        act_on_student_projects,
-        30000
-      );
-      this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
-    }
-
-    if (["start", "restart"].includes(action)) {
+  // start or stop projects of all (non-deleted) students running
+  public action_all_student_projects(action: "start" | "stop"): void {
+    if (action == "start") {
       this.setState({ action_all_projects_state: "starting" });
     } else if (action === "stop") {
       this.setState({ action_all_projects_state: "stopping" });
     }
+
+    this.action_shared_project(action);
+
+    const store = this.get_store();
+    if (store == null) return;
+
+    const projects_actions = this.redux.getActions("projects");
+    if (projects_actions == null) {
+      throw Error("projects actions must be defined");
+    }
+    let f = projects_actions[action + "_project"];
+    if (f == null) {
+      throw Error(`invalid action "${action}"`);
+    }
+    f = f.bind(projects_actions);
+    for (const [, student] of store.get_students()) {
+      if (student.get("deleted")) continue;
+      const project_id = student.get("project_id");
+      if (!project_id) continue;
+      f(project_id);
+    }
+  }
+
+  public cancel_action_all_student_projects(): void {
+    this.setState({ action_all_projects_state: "any" });
   }
 
   public async run_in_all_student_projects(
@@ -1009,6 +961,7 @@ export class CourseActions extends Actions<CourseState> {
     // it's in stop state.
     this.action_all_student_projects("start");
     return await run_in_all_projects(
+      // as string[] is right since map option isn't set (make typescript happy)
       store.get_student_project_ids(),
       command,
       args,
@@ -1325,18 +1278,12 @@ export class CourseActions extends Actions<CourseState> {
     const groups = account_store.get("groups");
     if (groups && groups.includes("admin")) {
       throw Error("must be an admin to upgrade");
-      return;
     }
     const store = this.get_store();
     if (store == null) {
       throw Error("unable to get store");
-      return;
     }
-    const ids: string[] | undefined = store.get_student_project_ids();
-    if (ids == null) {
-      throw Error("student project ids not defined");
-      return;
-    }
+    const ids: string[] = store.get_student_project_ids();
     for (const project_id of ids) {
       const x = misc.copy(quotas);
       x.project_id = project_id;
@@ -1603,7 +1550,7 @@ export class CourseActions extends Actions<CourseState> {
       finish
     });
     if (!store || !student || !assignment) return;
-    const student_name = store.get_student_name(student);
+    const student_name = store.get_student_name(student_id);
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       // nothing to do
@@ -1628,7 +1575,7 @@ export class CourseActions extends Actions<CourseState> {
         exclude_history: false
       });
       // write their name to a file
-      const name = store.get_student_name(student, true);
+      const name = store.get_student_name_extra(student_id);
       await callback2(webapp_client.write_text_file_to_project, {
         project_id: store.get("course_project_id"),
         path: target_path + `/STUDENT - ${name.simple}.txt`,
@@ -1673,7 +1620,7 @@ export class CourseActions extends Actions<CourseState> {
     if (!store || !student || !assignment) return;
     const grade = store.get_grade(assignment_id, student_id);
     const comments = store.get_comments(assignment_id, student_id);
-    const student_name = store.get_student_name(student);
+    const student_name = store.get_student_name(student_id);
     const student_project_id = student.get("project_id");
 
     // if skip_grading is true, this means there *might* no be a "grade" given,
@@ -1908,7 +1855,7 @@ You can find the comments they made in the folders below.\
      If something goes wrong and the finish function is defined, then
      it is called with a string describing the error.
     */
-  private resolve(opts: {
+  public resolve(opts: {
     assignment_id?: string;
     student_id?: string;
     handout_id?: string;
@@ -2001,7 +1948,7 @@ You can find the comments they made in the folders below.\
     });
     if (!student || !assignment || !store) return;
 
-    const student_name = store.get_student_name(student);
+    const student_name = store.get_student_name(student_id);
     this.set_activity({ id, desc: `Copying assignment to ${student_name}` });
     let student_project_id: string | undefined = student.get("project_id");
     const src_path = assignment.get("path");
@@ -2049,7 +1996,7 @@ You can find the comments they made in the folders below.\
     const { assignment, store } = this.resolve({ assignment_id });
     if (!assignment || !store) return;
     // write the due date to a file
-    const due_date = store.get_due_date(assignment);
+    const due_date = store.get_due_date(assignment_id);
     const src_path = assignment.get("path");
     const due_date_fn = "DUE_DATE.txt";
     if (due_date == null) {
@@ -2277,7 +2224,7 @@ You can find the comments they made in the folders below.\
     });
     if (!store || !student || !assignment) return;
 
-    const student_name = store.get_student_name(student);
+    const student_name = store.get_student_name(student_id);
     this.set_activity({ id, desc: `Copying peer grading to ${student_name}` });
 
     const peer_map = this.update_peer_assignment(assignment_id); // synchronous
@@ -2314,7 +2261,7 @@ You can find the comments they made in the folders below.\
       const target_path = target_base_path + "/" + student_id;
       // delete the student's name so that grading is anonymous; also, remove original
       // due date to avoid confusion.
-      const name = store.get_student_name(student_id, true);
+      const name = store.get_student_name_extra(student_id);
       await callback2(webapp_client.exec, {
         project_id: store.get("course_project_id"),
         command: "rm",
@@ -2387,12 +2334,11 @@ You can find the comments they made in the folders below.\
       desc: `Collecting peer grading of ${student_name}`
     });
 
-    // list of student_id of students that graded this student
-    const peers = store.get_peers_that_graded_student(assignment, student);
-    if (peers == null) {
-      // empty peer assignment for this student (maybe added late)
-      return finish();
-    }
+    // list of student_id of students that graded this student (may be empty)
+    const peers: string[] = store.get_peers_that_graded_student(
+      assignment_id,
+      student_id
+    );
 
     const our_student_id = student.get("student_id");
 
@@ -2418,7 +2364,7 @@ You can find the comments they made in the folders below.\
       });
 
       // write local file identifying the grader
-      let name = store.get_student_name(student_id, true);
+      let name = store.get_student_name_extra(student_id);
       await callback2(webapp_client.write_text_file_to_project, {
         project_id: store.get("course_project_id"),
         path: target_path + `/GRADER - ${name.simple}.txt`,
@@ -2426,7 +2372,7 @@ You can find the comments they made in the folders below.\
       });
 
       // write local file identifying student being graded
-      name = store.get_student_name(student, true);
+      name = store.get_student_name_extra(student_id);
       await callback2(webapp_client.write_text_file_to_project, {
         project_id: store.get("course_project_id"),
         path: target_path + `/STUDENT - ${name.simple}.txt`,
@@ -2653,7 +2599,7 @@ You can find the comments they made in the folders below.\
     });
     if (!store || !student || !handout) return;
 
-    const student_name = store.get_student_name(student);
+    const student_name = store.get_student_name(student_id);
     this.set_activity({ id, desc: `Copying handout to ${student_name}` });
     let student_project_id: string | undefined = student.get("project_id");
     const course_project_id = store.get("course_project_id");

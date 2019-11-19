@@ -63,7 +63,7 @@ import {
   StudentsMap,
   HandoutRecord,
   CourseStore,
-  StudentRecord
+  LastCopyInfo
 } from "./store";
 import { UserMap } from "../todo-types";
 import { Set } from "immutable";
@@ -135,8 +135,6 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
     HandoutsPanelReactProps & HandoutsPanelReduxProps,
     HandoutsPanelState
   > {
-    displayName: "Course-editor-HandoutsPanel";
-
     constructor(props) {
       super(props);
       this.state = {
@@ -716,12 +714,12 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private delete_handout = (): void => {
-    this.props.actions.delete_handout(this.props.handout.get('handout_id'));
+    this.props.actions.delete_handout(this.props.handout.get("handout_id"));
     this.setState({ confirm_delete: false });
   };
 
   private undelete_handout = (): void => {
-    this.props.actions.undelete_handout(this.props.handout.get('handout_id'));
+    this.props.actions.undelete_handout(this.props.handout.get("handout_id"));
   };
 
   private render_confirm_delete(): Rendered {
@@ -842,7 +840,9 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private render_handout_heading(): Rendered {
-    let status = this.get_store().get_handout_status(this.props.handout.get('handout_id'));
+    let status = this.get_store().get_handout_status(
+      this.props.handout.get("handout_id")
+    );
     if (status == null) {
       status = {
         handout: 0,
@@ -978,15 +978,20 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
     return this.student_list;
   }
 
-  private render_student_info(id: string): Rendered {
+  private render_student_info(student_id: string): Rendered {
+    const info = this.get_store().student_handout_info(
+      student_id,
+      this.props.handout.get("handout_id")
+    );
     return (
       <StudentHandoutInfo
-        key={id}
+        key={student_id}
         actions={this.props.actions}
-        info={this.get_store().student_handout_info(id, this.props.handout)}
-        title={misc.trunc_middle(this.get_store().get_student_name(id), 40)}
-        student={id}
-        handout={this.props.handout}
+        info={info}
+        title={misc.trunc_middle(
+          this.get_store().get_student_name(student_id),
+          40
+        )}
       />
     );
   }
@@ -1008,8 +1013,6 @@ interface StudentHandoutInfoHeaderProps {
 class StudentHandoutInfoHeader extends Component<
   StudentHandoutInfoHeaderProps
 > {
-  displayName: "CourseEditor-StudentHandoutInfoHeader";
-
   render_col(step_number, key, width) {
     let tip, title;
     switch (key) {
@@ -1062,15 +1065,11 @@ class StudentHandoutInfoHeader extends Component<
 
 interface StudentHandoutInfoProps {
   actions: CourseActions;
-  info: { handout_id: string; student_id: string; status: string };
-  title: string | object;
-  student: string | StudentRecord; // required string (student_id) or student immutable js object
-  handout: string | HandoutRecord;
+  info: { handout_id: string; student_id: string; status?: LastCopyInfo };
+  title: string;
 }
 
 class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
-  displayName: "CourseEditor-StudentHandoutInfo";
-
   constructor(props) {
     super(props);
     this.state = {};
