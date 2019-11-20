@@ -4,14 +4,12 @@ import { Map } from "immutable";
 import { SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
 import { TypedMap } from "../../app-framework";
+import { ProjectEvent } from "./types";
 
 interface Props {
   search?: string;
   actions: ProjectActions;
-  selected?: Map<
-    string,
-    TypedMap<{ event: "open" | "set"; filename?: string }>
-  >;
+  selected?: Map<string, TypedMap<ProjectEvent>>;
   increment_cursor: Function;
   decrement_cursor: Function;
   reset_cursor: Function;
