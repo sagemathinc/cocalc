@@ -29,7 +29,7 @@
     "express-session": "^1.10.4",
     "formidable": "^1.2.1",
     "http-proxy": "^1.17.0",
-    "immutable": "^4.0.0-rc.12",
+    "immutable": "^3.8.2",
     "jquery": "^3.4.0",
     "jsdom": "^15.2.1",
     "json-stable-stringify": "^1.0.1",
