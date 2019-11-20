@@ -77,7 +77,7 @@ export interface TypedMap<TProps extends Record<string, any>>
   /**
    * Deeply converts this Record to equivalent native JavaScript Object.
    */
-  toJS(): { [K in keyof TProps]: any };
+  toJS(): { [K in keyof TProps]: TProps[K] };
 
   /**
    * Shallowly converts this Record to equivalent native JavaScript Object.
@@ -112,6 +112,7 @@ export interface TypedMap<TProps extends Record<string, any>>
 
   filter(fn: (predicate) => boolean): this;
   some: Map<string, any>["some"];
+  forEach: Map<string, TProps[keyof TProps]>["forEach"];
 }
 
 interface TypedMapFactory<TProps extends Record<string, any>> {
