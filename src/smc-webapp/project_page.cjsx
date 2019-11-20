@@ -37,7 +37,7 @@ Draggable = require('react-draggable')
 {SideChat}         = require('./side_chat')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project_new')
-{ProjectLog}       = require('./project_log')
+{ProjectLog}       = require('./project/history')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
@@ -393,7 +393,7 @@ ProjectContentViewer = rclass
             when 'new'
                 <ProjectNew name={@props.project_name} project_id={@props.project_id} />
             when 'log'
-                <ProjectLog name={@props.project_name} project_id={@props.project_id} />
+                <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'
                 <ProjectSearch name={@props.project_name} />
             when 'settings'

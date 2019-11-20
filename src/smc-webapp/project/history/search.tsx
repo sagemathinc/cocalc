@@ -1,15 +1,13 @@
 import * as React from "react";
 import { debounce } from "lodash";
-import { Map } from "immutable";
 import { SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
-import { TypedMap } from "../../app-framework";
-import { ProjectEvent } from "./types";
+import { EventRecordMap } from "./types";
 
 interface Props {
   search?: string;
   actions: ProjectActions;
-  selected?: Map<string, TypedMap<ProjectEvent>>;
+  selected?: EventRecordMap;
   increment_cursor: Function;
   decrement_cursor: Function;
   reset_cursor: Function;
@@ -28,12 +26,13 @@ export function LogSearch(props: Props) {
   const open_selected = React.useCallback(
     (_value, info: any): void => {
       let e = props.selected?.get("event");
-      if (e == undefined) {
+      if (e == undefined || typeof e === "string") {
         return;
       }
+
       switch (e.get("event")) {
         case "open":
-          var target = e.get("filename");
+          let target = e.get("filename");
           if (target != null) {
             props.actions.open_file({
               path: target,

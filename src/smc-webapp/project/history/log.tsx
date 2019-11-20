@@ -31,49 +31,75 @@ import misc from "smc-util/misc";
 
 import * as immutable from "immutable";
 
-import { React, ReactDOM, rtypes, rclass, redux } from "../../app-framework";
+import {
+  React,
+  rtypes,
+  rclass,
+  redux,
+  TypedMap,
+  Rendered
+} from "../../app-framework";
 
 import { Button } from "react-bootstrap";
 
-import {
-  Icon,
-  Loading
-} from "../../r_misc";
+import { Icon, Loading } from "../../r_misc";
 import { WindowedList } from "../../r_misc/windowed-list";
 
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
+import { ProjectLogMap, EventRecord } from "./types";
+import { ProjectActions } from "smc-webapp/project_store";
+import { UserMap } from "smc-webapp/todo-types";
 
-export const ProjectLog = rclass(function({ name }) {
-  return {
-    displayName: "ProjectLog",
+interface ReactProps {
+  project_id: string;
+  name: string;
+  search?: string;
+  actions: ProjectActions;
+}
 
-    reduxProps: {
-      [name]: {
-        project_log: rtypes.immutable,
-        project_log_all: rtypes.immutable,
-        search: rtypes.string
-      },
-      users: {
-        user_map: rtypes.immutable,
-        get_name: rtypes.func
-      }
-    },
+interface ReduxProps {
+  project_log?: ProjectLogMap;
+  project_log_all?: ProjectLogMap;
+  search?: string;
 
-    propTypes: {
-      project_id: rtypes.string.isRequired
-    },
+  user_map?: UserMap;
+  get_name: (user_id: string) => string;
+}
 
-    getDefaultProps() {
-      return { search: "" };
-    }, // search that user has requested
+interface State {
+  cursor_index: number;
+}
 
-    getInitialState() {
-      // Temporarily sticking this here until we switch to typescript
+export const ProjectLog = rclass<ReactProps>(
+  class ProjectLog extends React.Component<ReactProps & ReduxProps, State> {
+    static reduxProps = ({ name }) => {
+      return {
+        [name]: {
+          project_log: rtypes.immutable,
+          project_log_all: rtypes.immutable,
+          search: rtypes.string
+        },
+        users: {
+          user_map: rtypes.immutable,
+          get_name: rtypes.func
+        }
+      };
+    };
+
+    static defaultProps = { search: "" }; // search that user has requested
+
+    private windowed_list_ref: React.RefObject<any>;
+    private _log: immutable.List<TypedMap<EventRecord>>;
+    private _search_cache: { [key: string]: string };
+    private _loading_table: boolean;
+    private _next_cursor_pos: number;
+
+    constructor(props) {
+      super(props);
       this.windowed_list_ref = React.createRef();
-
-      return { cursor_index: 0 };
-    },
+      this.state = { cursor_index: 0 };
+    }
 
     shouldComponentUpdate(nextProps, nextState) {
       if (this.state.cursor_index !== nextState.cursor_index) {
@@ -102,9 +128,9 @@ export const ProjectLog = rclass(function({ name }) {
         return !nextProps.project_log_all.equals(this.props.project_log_all);
       }
       return false;
-    },
+    }
 
-    componentWillReceiveProps(next, next_state) {
+    componentWillReceiveProps(next, _next_state) {
       if (
         next.user_map == null ||
         (next.project_log == null && next.project_log_all == null)
@@ -116,32 +142,32 @@ export const ProjectLog = rclass(function({ name }) {
         !immutable.is(this.props.project_log_all, next.project_log_all) ||
         this.props.search !== next.search
       ) {
-        return delete this._log;
+        delete this._log;
       }
-    },
+    }
 
-    get_log() {
+    get_log(): immutable.List<TypedMap<EventRecord>> {
       if (this._log != null) {
         return this._log;
       }
-      let v =
+      let logs =
         this.props.project_log_all != null
           ? this.props.project_log_all
           : this.props.project_log;
-      if (v == null) {
+      if (logs == null) {
         this._log = immutable.List();
         return this._log;
       }
 
-      v = v.valueSeq();
+      let logs_seq = logs.valueSeq().toList();
       if (this.props.search) {
         if (this._search_cache == null) {
           this._search_cache = {};
         }
         const terms = misc.search_split(this.props.search.toLowerCase());
         const names = {};
-        const match = z => {
-          let s = this._search_cache[z.get("id")];
+        const match = (z: TypedMap<EventRecord>): boolean => {
+          let s: string = this._search_cache[z.get("id")];
           if (s == null) {
             let name1;
             s =
@@ -165,42 +191,40 @@ export const ProjectLog = rclass(function({ name }) {
           }
           return misc.search_match(s, terms);
         };
-        v = v.filter(match);
+        logs_seq = logs_seq.filter(match);
       }
-      v = v.sort((a, b) => b.get("time") - a.get("time"));
-
-      return (this._log = v);
-    },
+      logs_seq = logs_seq.sort(
+        (a, b) => b.get("time").valueOf() - a.get("time").valueOf()
+      );
+      this._log = logs_seq;
+      return this._log;
+    }
 
     move_cursor_to(cursor_index) {
       if (cursor_index < 0 || cursor_index >= this.get_log().size) {
         return;
       }
       this.setState({ cursor_index });
-      return this.windowed_list_ref.current != null
-        ? this.windowed_list_ref.current.scrollToRow(cursor_index)
-        : undefined;
-    },
+      this.windowed_list_ref.current?.scrollToRow(cursor_index);
+    }
 
     increment_cursor() {
-      return this.move_cursor_to(this.state.cursor_index + 1);
-    },
+      this.move_cursor_to(this.state.cursor_index + 1);
+    }
 
     decrement_cursor() {
-      return this.move_cursor_to(this.state.cursor_index - 1);
-    },
+      this.move_cursor_to(this.state.cursor_index - 1);
+    }
 
     reset_cursor() {
-      return this.move_cursor_to(0);
-    },
+      this.move_cursor_to(0);
+    }
 
     load_all() {
       this._next_cursor_pos = this.get_log().size - 1;
-      delete this._last_project_log;
-      delete this._last_user_map;
       delete this._loading_table;
-      return this.actions(name).project_log_load_all();
-    },
+      this.props.actions.project_log_load_all();
+    }
 
     render_load_all_button() {
       if (this.props.project_log_all != null) {
@@ -209,20 +233,15 @@ export const ProjectLog = rclass(function({ name }) {
       return (
         <Button
           bsStyle={"info"}
-          onClick={this.load_all}
+          onClick={() => this.load_all()}
           disabled={this.props.project_log_all != null}
         >
           Load older log entries
         </Button>
       );
-    },
+    }
 
-    focus_search_box() {
-      const { input } = this.refs.search.refs.box.refs;
-      return ReactDOM.findDOMNode(input).focus();
-    },
-
-    row_renderer(index) {
+    row_renderer(index): Rendered {
       const log = this.get_log();
       if (index === log.size) {
         return this.render_load_all_button();
@@ -235,7 +254,7 @@ export const ProjectLog = rclass(function({ name }) {
         <LogEntry
           cursor={this.state.cursor_index === index}
           time={x.get("time")}
-          event={x.get("event", immutable.Map()).toJS()}
+          event={x.get("event").toJS()}
           account_id={x.get("account_id")}
           user_map={this.props.user_map}
           backgroundStyle={
@@ -244,13 +263,13 @@ export const ProjectLog = rclass(function({ name }) {
           project_id={this.props.project_id}
         />
       );
-    },
+    }
 
-    row_key(index) {
+    row_key(index: number): string {
       return `${index}`;
-    },
+    }
 
-    render_log_entries() {
+    render_log_entries(): JSX.Element {
       const next_cursor_pos = this._next_cursor_pos;
       if (this._next_cursor_pos) {
         delete this._next_cursor_pos;
@@ -267,9 +286,9 @@ export const ProjectLog = rclass(function({ name }) {
           cache_id={"project_log" + this.props.project_id}
         />
       );
-    },
+    }
 
-    render_log_panel() {
+    render_log_panel(): JSX.Element {
       return (
         <div
           className="smc-vfill"
@@ -278,9 +297,9 @@ export const ProjectLog = rclass(function({ name }) {
           {this.render_log_entries()}
         </div>
       );
-    },
+    }
 
-    render_body() {
+    render_body(): JSX.Element {
       if (!this.props.project_log && !this.props.project_log_all) {
         if (!this._loading_table) {
           this._loading_table = true;
@@ -296,23 +315,22 @@ export const ProjectLog = rclass(function({ name }) {
       }
       this._loading_table = false;
       return this.render_log_panel();
-    },
+    }
 
-    render_search() {
+    render_search(): JSX.Element {
       return (
         <LogSearch
-          ref={"search"}
-          actions={this.actions(name)}
+          actions={this.props.actions}
           search={this.props.search}
           selected={this.get_log().get(this.state.cursor_index)}
-          increment_cursor={this.increment_cursor}
-          decrement_cursor={this.decrement_cursor}
-          reset_cursor={this.reset_cursor}
+          increment_cursor={() => this.increment_cursor()}
+          decrement_cursor={() => this.decrement_cursor()}
+          reset_cursor={() => this.reset_cursor()}
         />
       );
-    },
+    }
 
-    render() {
+    render(): JSX.Element {
       return (
         <div style={{ padding: "15px" }} className={"smc-vfill"}>
           <h1 style={{ marginTop: "0px" }}>
@@ -323,5 +341,5 @@ export const ProjectLog = rclass(function({ name }) {
         </div>
       );
     }
-  };
-});
+  }
+);

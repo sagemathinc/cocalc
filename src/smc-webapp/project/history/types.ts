@@ -1,3 +1,18 @@
+import { Map } from "immutable";
+import { TypedMap } from "../../app-framework";
+
+export type EventRecord = {
+  id: string;
+  event: TypedMap<ProjectEvent>;
+  account_id: string;
+  project_id?: string;
+  time: Date;
+};
+
+export type EventRecordMap = TypedMap<EventRecord>
+
+export type ProjectLogMap = Map<string, EventRecordMap>;
+
 export type ProjectEvent =
   | AssistantEvent
   | ProjectControlEvent

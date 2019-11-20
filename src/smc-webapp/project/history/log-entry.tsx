@@ -14,6 +14,7 @@ import { file_actions } from "../../project_store";
 const { ProjectTitleAuto } = require("../../projects");
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
+import { UserMap } from 'smc-webapp/todo-types';
 
 import {
   ProjectEvent,
@@ -38,9 +39,9 @@ interface Props {
   time: object;
   event: ProjectEvent | string;
   account_id: string;
-  user_map: object;
+  user_map?: UserMap;
   cursor: boolean;
-  backgroundStyle: React.CSSProperties;
+  backgroundStyle?: React.CSSProperties;
   project_id: string;
 }
 
