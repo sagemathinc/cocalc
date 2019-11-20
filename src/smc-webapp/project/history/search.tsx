@@ -8,9 +8,9 @@ interface Props {
   search?: string;
   actions: ProjectActions;
   selected?: EventRecordMap;
-  increment_cursor: Function;
-  decrement_cursor: Function;
-  reset_cursor: Function;
+  increment_cursor: () => void;
+  decrement_cursor: () => void;
+  reset_cursor: () => void;
 }
 
 export function LogSearch(props: Props) {
