@@ -614,3 +614,10 @@ export function history_path(path: string): string {
 }
 
 export const VERSION_COOKIE_NAME = "cocalc_version";
+
+// helps with converting an array of strings to a union type of strings.
+// usage: 1. const foo : string[] = tuple(["bar", "baz"]);
+//        2. type Foo = typeof foo[number]; // bar | baz;
+export function tuple<T extends string[]>(o: T) {
+  return o;
+}

@@ -4,7 +4,6 @@ import { MentionsMap, MentionFilter } from "./mentions/types";
 import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
-import { typedMap } from "../app-framework/TypedMap";
 
 const { ProjectTitleAuto } = require("../projects");
 
@@ -37,10 +36,10 @@ export function NotificationList({
   mentions
     .filter(notification => notification.get("target") === account_id)
     .filter(notification => {
-      const status =
-        notification.getIn(["users", account_id]) ||
-        typedMap({ read: false, saved: false });
-
+      const status = notification.getIn(["users", account_id]);
+      if (!status) {
+        return false;
+      }
       switch (filter) {
         case "unread":
           return status.get("read") === false;
