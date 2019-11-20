@@ -68,7 +68,8 @@ export class NewProjectCreator extends Component<Props, State> {
     super(props);
     this.state = Object.assign({}, INIT_STATE, {
       // view --> edit --> saving --> view
-      state: props.start_in_edit_mode ? "edit" : "view"
+      state: props.start_in_edit_mode ? "edit" : "view",
+      title_text: props.default_value ? props.default_value : ""
     });
   }
 
@@ -271,7 +272,8 @@ export class NewProjectCreator extends Component<Props, State> {
               A <b>project</b> is your own, private computational workspace that
               you can share with others.
               <br />
-              You can easily change the project title in project settings.
+              <br />
+              You can easily change the project's title at any time in project settings.
             </div>
           </Col>
         </Row>

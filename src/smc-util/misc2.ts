@@ -621,3 +621,10 @@ export function hidden_meta_file(path: string, ext: string): string {
 export function history_path(path: string): string {
   return hidden_meta_file(path, "time-travel");
 }
+
+// helps with converting an array of strings to a union type of strings.
+// usage: 1. const foo : string[] = tuple(["bar", "baz"]);
+//        2. type Foo = typeof foo[number]; // bar | baz;
+export function tuple<T extends string[]>(o: T) {
+  return o;
+}

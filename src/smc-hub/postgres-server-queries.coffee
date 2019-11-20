@@ -2525,7 +2525,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl_dt : 15       # 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
             ttl    : 5*60     # how long cached version lives (in seconds)
             ttl_db : 30       # how long a valid result from a db query is cached in any case
             update : true     # true: recalculate if older than ttl; false: don't recalculate and pick it from the DB (locally cached for ttl secs)
@@ -2537,9 +2536,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 dbg("using cached stats?")
                 if @_stats_cached?
-                    # decide if cache should be used -- tighten interval if we are allowed to update
-                    offset_dt = if opts.update then opts.ttl_dt else 0
-                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl - offset_dt)
+                    # decide if cache should be used
+                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl)
                     # in case we aren't allowed to update and the cache is outdated, do not query db too often
                     did_query_recently = @_stats_cached_db_query > misc.seconds_ago(opts.ttl_db)
                     if is_cache_recent or did_query_recently
