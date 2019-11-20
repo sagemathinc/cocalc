@@ -29,26 +29,13 @@
 
 import misc from "smc-util/misc";
 
-import misc_page from "./misc_page";
-import underscore from "underscore";
-import immutable from "immutable";
+import * as underscore from "underscore";
+import * as immutable from "immutable";
 const TRUNC = 90;
 
-import { React, ReactDOM, rtypes, rclass, Redux, redux } from "./app-framework";
+import { React, ReactDOM, rtypes, rclass, redux } from "../../app-framework";
 
-import {
-  Grid,
-  Col,
-  Row,
-  Button,
-  ButtonGroup,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  InputGroup,
-  Panel,
-  Well
-} from "react-bootstrap";
+import { Grid, Col, Row, Button } from "react-bootstrap";
 
 import {
   Icon,
@@ -56,117 +43,34 @@ import {
   TimeAgo,
   PathLink,
   r_join,
-  SearchInput,
   Space,
   Tip
-} from "./r_misc";
-import { WindowedList } from "./r_misc/windowed-list";
-import { User } from "./users";
-import { file_actions } from "./project_store";
-import { ProjectTitleAuto } from "./projects";
-import { file_associations } from "./file-associations";
+} from "../../r_misc";
+import { WindowedList } from "../../r_misc/windowed-list";
+const { User } = require("../../users");
+import { file_actions } from "../../project_store";
+const { ProjectTitleAuto } = require("../../projects");
+import { file_associations } from "../../file-associations";
 
-const LogMessage = rclass({
-  displayName: "ProjectLog-LogMessage",
-
-  render() {
-    return <div>This is a log message</div>;
-  }
-});
+import { LogSearch } from "./search";
 
 // This is used for these cases, where `account_id` isn't set. This means, a back-end system process is responsible.
 // In the case of stopping a project, the name is recorded in the event.by field.
-const SystemProcess = rclass({
-  displayName: "ProjectLog-SystemProcess",
-
-  propTypes: {
-    event: rtypes.any
-  },
-
-  render() {
-    if (this.props.event.by != null) {
-      return (
-        <span>
-          System service <code>{this.props.event.by}</code>
-        </span>
-      );
-    } else {
-      return <span>A system service</span>;
-    }
-  }
-});
-
-const LogSearch = rclass({
-  displayName: "ProjectLog-LogSearch",
-
-  componentWillMount() {
-    this.mounted = true;
-    return (this.on_change = underscore.debounce(this.on_change, 300));
-  },
-
-  componentWillUnmount() {
-    delete this.mounted;
-    return delete this.on_change;
-  },
-
-  propTypes: {
-    search: rtypes.string,
-    actions: rtypes.object.isRequired,
-    selected: rtypes.immutable.Map,
-    increment_cursor: rtypes.func.isRequired,
-    decrement_cursor: rtypes.func.isRequired,
-    reset_cursor: rtypes.func.isRequired
-  },
-
-  open_selected(value, info) {
-    let e =
-      this.props.selected != null
-        ? this.props.selected.get("event")
-        : undefined;
-    if (e == null) {
-      return;
-    }
-    e = e.toJS();
-    switch (e.event) {
-      case "open":
-        var target = e.filename;
-        if (target != null) {
-          return this.props.actions.open_file({
-            path: target,
-            foreground: !info.ctrl_down
-          });
-        }
-        break;
-      case "set":
-        return this.props.actions.set_active_tab("settings");
-    }
-  },
-
-  on_change(value) {
-    if (!this.mounted) {
-      return;
-    }
-    this.props.reset_cursor();
-    return this.props.actions.setState({ search: value });
-  },
-
-  render() {
+function SystemProcess({
+  event
+}: {
+  event: { by: React.ReactNode };
+}): JSX.Element {
+  if (event.by != null) {
     return (
-      <SearchInput
-        ref={"box"}
-        autoFocus={true}
-        autoSelect={true}
-        placeholder="Search log..."
-        value={this.props.search}
-        on_change={this.on_change}
-        on_submit={this.open_selected}
-        on_up={this.props.decrement_cursor}
-        on_down={this.props.increment_cursor}
-        on_escape={() => this.props.actions.setState({ search: "" })}
-      />
+      <span>
+        System service <code>{event.by}</code>
+      </span>
     );
+  } else {
+    return <span>A system service</span>;
   }
-});
+}
 
 const selected_item = {
   backgroundColor: "#08c",
