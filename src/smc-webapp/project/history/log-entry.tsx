@@ -1,4 +1,4 @@
-import misc from "smc-util/misc";
+import * as misc from "smc-util/misc";
 import * as React from "react";
 
 import * as lodash from "lodash";
