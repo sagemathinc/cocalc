@@ -47,6 +47,7 @@ const file_action_icons = {
 };
 
 interface Props {
+  id: string;
   time: object;
   event: ProjectEvent | string;
   account_id: string;
@@ -76,6 +77,9 @@ function TookTime({
 }
 
 export class LogEntry extends React.Component<Props> {
+  shouldComponentUpdate(nextProps): boolean {
+    return nextProps.id !== this.props.id;
+  }
   render_open_file(event: OpenFile): JSX.Element {
     return (
       <span>

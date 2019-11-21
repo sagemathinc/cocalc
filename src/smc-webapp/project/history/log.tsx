@@ -244,6 +244,7 @@ export const ProjectLog = rclass<ReactProps>(
       }
       return (
         <LogEntry
+          id={x.get("id")}
           cursor={this.state.cursor_index === index}
           time={x.get("time")}
           event={x.get("event").toJS()}
