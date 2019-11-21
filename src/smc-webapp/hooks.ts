@@ -17,10 +17,10 @@ type Tail<T extends any[]> = ((...args: T) => any) extends (
  * When a callback is deferred (eg. with debounce) it may
  * try to run when the component is no longer rendered
  *
- * useAsyncCallback automatically runs a clean up function
- * like React.useEffect
+ * useCallbackWith automatically runs a clean up function
+ * with React.useEffect
  */
-function useAsyncCallback<
+function useCallbackWith<
   H extends CancelableHOF,
   F extends (...args: any[]) => any
 >(hof: H, callback: F, ...tail: Tail<Parameters<H>>): typeof wrapped {
@@ -33,10 +33,19 @@ function useAsyncCallback<
   return wrapped;
 }
 
+/**
+ * Debounces `cb` dropping the last update *if* the component
+ * is no longer rendered. If you need to keep the last update,
+ * use lodash.debounce directly.
+ *
+ * @param cb The function to debounce
+ * @param wait The number of milliseconds to delay
+ * @param options Options passed to lodash.debounce
+ */
 export const useDebounce = <T extends (...args) => any>(
   cb: T,
   wait?: number,
   options?: DebounceSettings
 ): T & Cancelable => {
-  return useAsyncCallback(debounce, cb, wait, options);
+  return useCallbackWith(debounce, cb, wait, options);
 };
