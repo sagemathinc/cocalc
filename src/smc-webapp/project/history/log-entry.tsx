@@ -14,7 +14,7 @@ import { file_actions } from "../../project_store";
 const { ProjectTitleAuto } = require("../../projects");
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
-import { UserMap } from 'smc-webapp/todo-types';
+import { UserMap } from "smc-webapp/todo-types";
 
 import {
   ProjectEvent,
@@ -33,6 +33,15 @@ import {
 const selected_item: React.CSSProperties = {
   backgroundColor: "#08c",
   color: "white"
+};
+
+const file_action_icons = {
+  deleted: "delete",
+  downloaded: "download",
+  moved: "move",
+  copied: "copy",
+  share: "shared",
+  uploaded: "upload"
 };
 
 interface Props {
@@ -365,15 +374,6 @@ export class LogEntry extends React.Component<Props> {
     return <span>removed collaborator {event.removed_name}</span>;
   }
 
-  file_action_icons: {
-    deleted: "delete";
-    downloaded: "download";
-    moved: "move";
-    copied: "copy";
-    share: "shared";
-    uploaded: "upload";
-  };
-
   render_desc(): Rendered | Rendered[] {
     if (typeof this.props.event === "string") {
       return <span>{this.props.event}</span>;
@@ -459,7 +459,7 @@ export class LogEntry extends React.Component<Props> {
       case "set":
         return "wrench";
       case "file_action":
-        const icon = this.file_action_icons[this.props.event.action];
+        const icon = file_action_icons[this.props.event.action];
         return file_actions[icon] != null ? file_actions[icon].icon : undefined;
       case "upgrade":
         return "arrow-circle-up";
