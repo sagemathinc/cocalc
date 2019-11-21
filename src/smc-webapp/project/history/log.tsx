@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -109,22 +101,23 @@ export const ProjectLog = rclass<ReactProps>(
         return true;
       }
       if (
-        (this.props.project_log == null || nextProps.project_log == null) &&
-        (this.props.project_log_all == null ||
-          nextProps.project_log_all == null)
+        (this.props.project_log == undefined ||
+          nextProps.project_log == undefined) &&
+        (this.props.project_log_all == undefined ||
+          nextProps.project_log_all == undefined)
       ) {
         return true;
       }
-      if (this.props.user_map == null || nextProps.user_map == null) {
+      if (this.props.user_map == undefined || nextProps.user_map == undefined) {
         return true;
       }
       if (!nextProps.user_map.equals(this.props.user_map)) {
         return true;
       }
-      if (nextProps.project_log != null) {
+      if (nextProps.project_log != undefined) {
         return !nextProps.project_log.equals(this.props.project_log);
       }
-      if (nextProps.project_log_all != null) {
+      if (nextProps.project_log_all != undefined) {
         return !nextProps.project_log_all.equals(this.props.project_log_all);
       }
       return false;
@@ -132,8 +125,8 @@ export const ProjectLog = rclass<ReactProps>(
 
     componentWillReceiveProps(next, _next_state) {
       if (
-        next.user_map == null ||
-        (next.project_log == null && next.project_log_all == null)
+        next.user_map == undefined ||
+        (next.project_log == undefined && next.project_log_all == undefined)
       ) {
         return;
       }
@@ -147,35 +140,32 @@ export const ProjectLog = rclass<ReactProps>(
     }
 
     get_log(): immutable.List<TypedMap<EventRecord>> {
-      if (this._log != null) {
+      if (this._log != undefined) {
         return this._log;
       }
-      let logs =
-        this.props.project_log_all != null
-          ? this.props.project_log_all
-          : this.props.project_log;
-      if (logs == null) {
+      let logs = this.props.project_log_all ?? this.props.project_log;
+      if (logs == undefined) {
         this._log = immutable.List();
         return this._log;
       }
 
       let logs_seq = logs.valueSeq().toList();
       if (this.props.search) {
-        if (this._search_cache == null) {
+        if (this._search_cache == undefined) {
           this._search_cache = {};
         }
         const terms = misc.search_split(this.props.search.toLowerCase());
         const names = {};
         const match = (z: TypedMap<EventRecord>): boolean => {
           let s: string = this._search_cache[z.get("id")];
-          if (s == null) {
+          if (s == undefined) {
             let name1;
             s =
-              names[(name1 = z.get("account_id"))] != null
+              names[(name1 = z.get("account_id"))] != undefined
                 ? names[name1]
                 : (names[name1] = this.props.get_name(z.get("account_id")));
             const event = z.get("event");
-            if (event != null) {
+            if (event != undefined) {
               event.forEach((val, k) => {
                 if (k !== "event" && k !== "filename") {
                   s += " " + k;
@@ -227,14 +217,14 @@ export const ProjectLog = rclass<ReactProps>(
     }
 
     render_load_all_button() {
-      if (this.props.project_log_all != null) {
+      if (this.props.project_log_all != undefined) {
         return;
       }
       return (
         <Button
           bsStyle={"info"}
           onClick={() => this.load_all()}
-          disabled={this.props.project_log_all != null}
+          disabled={this.props.project_log_all != undefined}
         >
           Load older log entries
         </Button>
@@ -247,7 +237,7 @@ export const ProjectLog = rclass<ReactProps>(
         return this.render_load_all_button();
       }
       const x = log.get(index);
-      if (x == null) {
+      if (x == undefined) {
         return;
       }
       return (
