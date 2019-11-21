@@ -34,11 +34,11 @@ import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { AccessErrors } from "./access-errors";
 import { ListingItem } from "./types";
 
-const { Col, Row, ButtonGroup, Button, Alert } = require("react-bootstrap");
+import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 const { SMC_Dropwrapper } = require("../../smc-dropzone");
-const { ProjectNewForm } = require("../../project_new");
+import { ProjectNewForm } from "../new";
 const { Library } = require("../../library");
 const { webapp_client } = require("../../webapp_client");
 const { UsersViewing } = require("../../other-users");

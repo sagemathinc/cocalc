@@ -28,36 +28,24 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //##############################################################################
-
-let FileTypeSelector, NewFileButton, ProjectNewForm;
-import misc from "smc-util/misc";
-import misc_page from "./misc_page";
-import underscore from "underscore";
+import * as misc from "smc-util/misc";
 
 import {
   React,
   ReactDOM,
-  Actions,
-  Store,
-  Table,
   rtypes,
   rclass,
   Redux,
-  redux,
   Fragment
-} from "./app-framework";
+} from "../../app-framework";
 
 import {
   Col,
   Row,
   Button,
-  ButtonGroup,
   ButtonToolbar,
   FormControl,
   FormGroup,
-  Panel,
-  Input,
-  Well,
   SplitButton,
   MenuItem,
   Alert
@@ -66,30 +54,29 @@ import {
 import {
   ErrorDisplay,
   Icon,
-  Loading,
-  TimeAgo,
   Tip,
   ImmutablePureRenderMixin,
-  Space,
-  CloseX2,
   SettingBox
-} from "./r_misc";
+} from "../../r_misc";
 
-import { User } from "./users";
-import { webapp_client } from "./webapp_client";
-import { file_associations } from "./file-associations";
-import { special_filenames_with_no_extension } from "./project_file";
-import { SMC_Dropzone } from "./smc-dropzone";
-import { JupyterServerPanel } from "./project/plain-jupyter-server";
-import { JupyterLabServerPanel } from "./project/jupyterlab-server";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { file_options } = require("../../editor");
+
+import { file_associations } from "../../file-associations";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { special_filenames_with_no_extension } = require("../../project_file");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { SMC_Dropzone } = require("../../smc-dropzone");
+import { JupyterServerPanel } from "../plain-jupyter-server";
+import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 const v = misc.keys(file_associations);
 v.sort();
 
-const file_type_list = function(list, exclude) {
-  const extensions = [];
+const file_type_list = function(list: string[], exclude: boolean): string[] {
+  const extensions: string[] = [];
   const file_types_so_far = {};
-  for (let ext of Array.from(list)) {
+  for (const ext of list) {
     if (!ext) {
       continue;
     }
@@ -107,11 +94,9 @@ const file_type_list = function(list, exclude) {
 
 const new_file_button_types = file_type_list(v, true);
 
-const defaultExport = {};
-
 // A link that goes back to the current directory
 // FUTURE: refactor to use PathSegmentLink?
-const PathLink = (defaultExport.PathLink = rclass({
+export const PathLink = rclass({
   displayName: "ProjectNew-PathLink",
 
   mixins: [ImmutablePureRenderMixin],
@@ -141,9 +126,9 @@ const PathLink = (defaultExport.PathLink = rclass({
       </a>
     );
   }
-}));
+});
 
-defaultExport.NewFileButton = NewFileButton = rclass({
+export const NewFileButton = rclass({
   displayName: "ProjectNew-ProjectNewFileButton",
 
   mixins: [ImmutablePureRenderMixin],
@@ -196,7 +181,6 @@ const NewFileDropdown = rclass({
   },
 
   file_dropdown_item(i, ext) {
-    const { file_options } = require("./editor");
     const data = file_options("x." + ext);
     const text = (
       <Fragment>
@@ -209,7 +193,9 @@ const NewFileDropdown = rclass({
         className={"dropdown-menu-left"}
         eventKey={i}
         key={i}
-        onSelect={() => this.props.create_file(ext)}
+        onSelect={(): void => {
+          this.props.create_file(ext);
+        }}
       >
         <Icon name={data.icon} /> {text}
       </MenuItem>
@@ -225,11 +211,13 @@ const NewFileDropdown = rclass({
         <SplitButton
           id={"new_file_dropdown"}
           title={this.file_dropdown_icon()}
-          onClick={() => this.props.create_file()}
+          onClick={(): void => {
+            this.props.create_file();
+          }}
         >
-          {(() => {
-            const result = [];
-            for (let i in new_file_button_types) {
+          {((): JSX.Element[] => {
+            const result: JSX.Element[] = [];
+            for (const i in new_file_button_types) {
               const ext = new_file_button_types[i];
               result.push(this.file_dropdown_item(i, ext));
             }
@@ -243,7 +231,7 @@ const NewFileDropdown = rclass({
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
-defaultExport.FileTypeSelector = FileTypeSelector = rclass(function({ name }) {
+export const FileTypeSelector = rclass(function({ name }) {
   return {
     displayName: "ProjectNew-FileTypeSelector",
 
@@ -281,9 +269,9 @@ defaultExport.FileTypeSelector = FileTypeSelector = rclass(function({ name }) {
 
       // why is available_features immutable?
       const available =
-        (left = __guardMethod__(this.props.available_features, "toJS", o =>
-          o.toJS()
-        )) != null
+        (left = __guardMethod__(this.props.available_features, "toJS", o => {
+          return o.toJS();
+        })) != null
           ? left
           : {};
 
@@ -473,9 +461,9 @@ defaultExport.FileTypeSelector = FileTypeSelector = rclass(function({ name }) {
                   <NewFileButton
                     name={"Jupyter classic server..."}
                     icon={"cc-icon-ipynb"}
-                    on_click={() =>
-                      this.setState({ show_jupyter_server_panel: true })
-                    }
+                    on_click={(): void => {
+                      this.setState({ show_jupyter_server_panel: true });
+                    }}
                     disabled={this.state.show_jupyter_server_panel}
                   />
                 </Tip>
@@ -493,9 +481,9 @@ defaultExport.FileTypeSelector = FileTypeSelector = rclass(function({ name }) {
                   <NewFileButton
                     name={"JupyterLab server..."}
                     icon={"cc-icon-ipynb"}
-                    on_click={() =>
-                      this.setState({ show_jupyterlab_server_panel: true })
-                    }
+                    on_click={(): void => {
+                      this.setState({ show_jupyterlab_server_panel: true });
+                    }}
                     disabled={this.state.show_jupyterlab_server_panel}
                   />
                 </Tip>
@@ -526,7 +514,7 @@ defaultExport.FileTypeSelector = FileTypeSelector = rclass(function({ name }) {
   };
 });
 
-defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
+export const ProjectNewForm = rclass(function({ name }) {
   return {
     displayName: "ProjectNew-ProjectNewForm",
 
@@ -628,7 +616,12 @@ defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
         return;
       }
       return (
-        <Button onClick={() => this.props.close()} className={"pull-right"}>
+        <Button
+          onClick={(): void => {
+            this.props.close();
+          }}
+          className={"pull-right"}
+        >
           Close
         </Button>
       );
@@ -645,9 +638,9 @@ defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
       return (
         <ErrorDisplay
           error={message}
-          onClose={() =>
-            this.props.actions.setState({ file_creation_error: "" })
-          }
+          onClose={(): void => {
+            this.props.actions.setState({ file_creation_error: "" });
+          }}
         />
       );
     },
@@ -659,7 +652,9 @@ defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
       if (
         __guard__(
           this.props.get_total_project_quotas(this.props.project_id),
-          x => x.network
+          x => {
+            return x.network;
+          }
         )
       ) {
         return "";
@@ -691,11 +686,18 @@ defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
             button below to create the corresponding type of file.
           </p>
           <ButtonToolbar style={{ marginTop: "10px" }}>
-            <Button onClick={() => this.create_file()} bsStyle="success">
+            <Button
+              onClick={(): void => {
+                this.create_file();
+              }}
+              bsStyle="success"
+            >
               Yes, please create this file with no extension
             </Button>
             <Button
-              onClick={() => this.setState({ extension_warning: false })}
+              onClick={(): void => {
+                this.setState({ extension_warning: false });
+              }}
               bsStyle="default"
             >
               Cancel
@@ -748,7 +750,9 @@ defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
             <Col sm={12}>
               <SMC_Dropzone
                 dropzone_handler={{
-                  complete: () => this.props.actions.fetch_directory_listing()
+                  complete: () => {
+                    return this.props.actions.fetch_directory_listing();
+                  }
                 }}
                 project_id={this.props.project_id}
                 current_path={this.props.current_path}
@@ -915,38 +919,7 @@ defaultExport.ProjectNewForm = ProjectNewForm = rclass(function({ name }) {
   };
 });
 
-const render = function(project_id, redux) {
-  const store = redux.getProjectStore(project_id);
-  const actions = redux.getProjectActions(project_id);
-  const ProjectNew_connnected = ProjectNew(store.name);
-  return (
-    <div>
-      <Redux redux={redux}>
-        <ProjectNew_connnected
-          project_id={project_id}
-          actions={actions}
-          projects_store={redux.getStore("projects")}
-        />
-      </Redux>
-      <hr />
-      <div className="center">
-        Looking for file upload? Goto "Files" and click on "Upload".
-      </div>
-    </div>
-  );
-};
-
-defaultExport.render_new = (
-  project_id,
-  dom_node,
-  redux //console.log("mount project_new")
-) => ReactDOM.render(render(project_id, redux), dom_node);
-
-defaultExport.unmount = (
-  dom_node //console.log("unmount project_new")
-) => ReactDOM.unmountComponentAtNode(dom_node);
-
-defaultExport.ProjectNew = rclass(function({ name }) {
+export const ProjectNew = rclass(function({ name }) {
   return {
     propTypes: {
       project_id: rtypes.string
@@ -967,8 +940,6 @@ defaultExport.ProjectNew = rclass(function({ name }) {
     }
   };
 });
-
-export default defaultExport;
 
 function __guardMethod__(obj, methodName, transform) {
   if (
