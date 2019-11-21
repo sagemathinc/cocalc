@@ -93,7 +93,7 @@ export const ProjectLog = rclass<ReactProps>(
       this.state = { cursor_index: 0 };
     }
 
-    shouldComponentUpdate(nextProps, nextState) {
+    shouldComponentUpdate(nextProps, nextState): boolean {
       if (this.state.cursor_index !== nextState.cursor_index) {
         return true;
       }
@@ -123,7 +123,7 @@ export const ProjectLog = rclass<ReactProps>(
       return false;
     }
 
-    componentWillReceiveProps(next, _next_state) {
+    UNSAFE_componentWillReceiveProps(next): void {
       if (
         next.user_map == undefined ||
         (next.project_log == undefined && next.project_log_all == undefined)
@@ -190,7 +190,7 @@ export const ProjectLog = rclass<ReactProps>(
       return this._log;
     }
 
-    move_cursor_to(cursor_index) {
+    move_cursor_to(cursor_index): void {
       if (cursor_index < 0 || cursor_index >= this.get_log().size) {
         return;
       }
@@ -198,32 +198,32 @@ export const ProjectLog = rclass<ReactProps>(
       this.windowed_list_ref.current?.scrollToRow(cursor_index);
     }
 
-    increment_cursor() {
+    increment_cursor(): void {
       this.move_cursor_to(this.state.cursor_index + 1);
     }
 
-    decrement_cursor() {
+    decrement_cursor(): void {
       this.move_cursor_to(this.state.cursor_index - 1);
     }
 
-    reset_cursor() {
+    reset_cursor(): void {
       this.move_cursor_to(0);
     }
 
-    load_all() {
+    load_all(): void {
       this._next_cursor_pos = this.get_log().size - 1;
       delete this._loading_table;
       this.props.actions.project_log_load_all();
     }
 
-    render_load_all_button() {
+    render_load_all_button(): Rendered {
       if (this.props.project_log_all != undefined) {
         return;
       }
       return (
         <Button
           bsStyle={"info"}
-          onClick={() => {
+          onClick={(): void => {
             this.load_all();
           }}
           disabled={this.props.project_log_all != undefined}
@@ -272,7 +272,7 @@ export const ProjectLog = rclass<ReactProps>(
           overscan_row_count={20}
           estimated_row_size={22}
           row_count={this.get_log().size + 1}
-          row_renderer={x => {
+          row_renderer={(x): Rendered => {
             return this.row_renderer(x.index);
           }}
           row_key={this.row_key}
@@ -317,14 +317,14 @@ export const ProjectLog = rclass<ReactProps>(
           actions={this.props.actions}
           search={this.props.search}
           selected={this.get_log().get(this.state.cursor_index)}
-          increment_cursor={() => {
-            return this.increment_cursor();
+          increment_cursor={(): void => {
+            this.increment_cursor();
           }}
-          decrement_cursor={() => {
-            return this.decrement_cursor();
+          decrement_cursor={(): void => {
+            this.decrement_cursor();
           }}
-          reset_cursor={() => {
-            return this.reset_cursor();
+          reset_cursor={(): void => {
+            this.reset_cursor();
           }}
         />
       );

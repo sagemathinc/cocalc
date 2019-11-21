@@ -13,15 +13,15 @@ interface Props {
   reset_cursor: () => void;
 }
 
-export function LogSearch(props: Props) {
-  let mounted = true;
+export function LogSearch(props: Props): JSX.Element {
+  const mounted = React.useRef(true);
 
   // [j3] This has to be an anti-pattern...
   React.useEffect(() => {
-    return () => {
-      mounted = false;
+    return (): void => {
+      mounted.current = false;
     };
-  }, []);
+  }, [mounted]);
 
   const open_selected = React.useCallback(
     (_value, info: any): void => {
@@ -49,7 +49,7 @@ export function LogSearch(props: Props) {
 
   const on_change = React.useCallback(
     debounce((value: string): void => {
-      if (!mounted) {
+      if (!mounted.current) {
         return;
       }
       props.reset_cursor();
@@ -68,8 +68,8 @@ export function LogSearch(props: Props) {
       on_submit={open_selected}
       on_up={props.decrement_cursor}
       on_down={props.increment_cursor}
-      on_escape={() => {
-        return props.actions.setState({ search: "" });
+      on_escape={(): void => {
+        props.actions.setState({ search: "" });
       }}
     />
   );

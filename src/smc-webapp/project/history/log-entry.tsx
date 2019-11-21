@@ -9,8 +9,10 @@ import { Rendered, redux } from "../../app-framework";
 import { Grid, Col, Row } from "react-bootstrap";
 
 import { Icon, TimeAgo, PathLink, r_join, Space, Tip } from "../../r_misc";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { ProjectTitleAuto } = require("../../projects");
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
