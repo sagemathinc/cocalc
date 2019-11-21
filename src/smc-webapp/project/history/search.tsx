@@ -53,7 +53,7 @@ export function LogSearch({
       },
       [reset_cursor, actions]
     ),
-    300
+    50
   );
 
   return (
