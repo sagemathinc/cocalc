@@ -77,9 +77,15 @@ function TookTime({
 }
 
 export class LogEntry extends React.Component<Props> {
-  shouldComponentUpdate(nextProps): boolean {
-    return nextProps.id !== this.props.id;
+  // Trade-off! Most log entries are never updated
+  shouldComponentUpdate(next: Props): boolean {
+    return (
+      next.id !== this.props.id ||
+      next.user_map !== this.props.user_map ||
+      next.backgroundStyle !== this.props.backgroundStyle
+    );
   }
+
   render_open_file(event: OpenFile): JSX.Element {
     return (
       <span>
