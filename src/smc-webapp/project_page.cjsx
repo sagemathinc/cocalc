@@ -36,7 +36,7 @@ Draggable = require('react-draggable')
 # CoCalc Libraries
 {SideChat}         = require('./side_chat')
 {Explorer}         = require('./project/explorer')
-{ProjectNew}       = require('./project_new')
+{ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project/settings')
