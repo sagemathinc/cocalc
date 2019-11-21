@@ -82,7 +82,7 @@ export class LogEntry extends React.Component<Props> {
     return (
       next.id !== this.props.id ||
       next.user_map !== this.props.user_map ||
-      next.backgroundStyle !== this.props.backgroundStyle
+      next.cursor !== this.props.cursor
     );
   }
 
