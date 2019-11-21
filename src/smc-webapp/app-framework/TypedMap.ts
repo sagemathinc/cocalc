@@ -77,7 +77,7 @@ export interface TypedMap<TProps extends Record<string, any>>
   /**
    * Deeply converts this Record to equivalent native JavaScript Object.
    */
-  toJS(): { [K in keyof TProps]: TProps[K] };
+  toJS(): { [K in keyof TProps]: any };
 
   /**
    * Shallowly converts this Record to equivalent native JavaScript Object.
