@@ -54,8 +54,11 @@ export type UpgradeEvent = {
 
 export type LibraryEvent = {
   event: "library";
+  action: "copy";
   target?: string;
   title: string;
+  docid?: string;
+  source: string;
 };
 export type AssistantEvent = {
   event: "assistant";
@@ -72,9 +75,10 @@ export type MiniTermEvent = {
 
 export type OpenFile = {
   event: "open";
+  action: "open";
   filename: string;
   time?: number;
-  type: string;
+  type?: string;
 };
 
 export type ProjectControlEvent = {
