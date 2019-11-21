@@ -20,6 +20,7 @@ type Tail<T extends any[]> = ((...args: T) => any) extends (
  * useCallbackWith automatically runs a clean up function
  * with React.useEffect
  */
+// TODO: Allow an option to flush instead of cancel
 function useCallbackWith<
   H extends CancelableHOF,
   F extends (...args: any[]) => any
