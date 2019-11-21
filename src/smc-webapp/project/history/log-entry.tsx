@@ -60,21 +60,19 @@ function TookTime({
   ms,
   display = "seconds"
 }: {
-  ms: number;
+  ms?: number;
   display?: "seconds";
-}): JSX.Element {
-  let description = "an unknown amount of time";
+}): JSX.Element | null {
+  if (ms == undefined) {
+    return null;
+  }
+  let description = `${ms}ms`;
 
   if (display == "seconds") {
     description = `${(Math.round(ms / 100) / 10).toFixed(1)}s`;
   }
 
-  return (
-    <span style={{ color: "#666" }}>
-      <Space />
-      (took {description})
-    </span>
-  );
+  return <span style={{ color: "#666" }}>(took {description})</span>;
 }
 
 export class LogEntry extends React.Component<Props> {

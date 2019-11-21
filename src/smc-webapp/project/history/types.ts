@@ -69,7 +69,7 @@ export type MiniTermEvent = {
 export type OpenFile = {
   event: "open";
   filename: string;
-  time: number;
+  time?: number;
   type: string;
 };
 
@@ -79,7 +79,7 @@ export type ProjectControlEvent = {
     | "project_stop_requested"
     | "project_restart_requested"
     | "project_stopped";
-  time: number;
+  time?: number;
 };
 
 export type FileActionEvent = (
