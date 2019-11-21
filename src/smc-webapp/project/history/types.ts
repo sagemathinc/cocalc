@@ -9,7 +9,7 @@ export type EventRecord = {
   time: Date;
 };
 
-export type EventRecordMap = TypedMap<EventRecord>
+export type EventRecordMap = TypedMap<EventRecord>;
 
 export type ProjectLogMap = Map<string, EventRecordMap>;
 

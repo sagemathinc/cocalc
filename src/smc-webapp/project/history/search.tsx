@@ -25,14 +25,14 @@ export function LogSearch(props: Props) {
 
   const open_selected = React.useCallback(
     (_value, info: any): void => {
-      let e = props.selected?.get("event");
+      const e = props.selected?.get("event");
       if (e == undefined || typeof e === "string") {
         return;
       }
 
       switch (e.get("event")) {
         case "open":
-          let target = e.get("filename");
+          const target = e.get("filename");
           if (target != null) {
             props.actions.open_file({
               path: target,
@@ -68,7 +68,9 @@ export function LogSearch(props: Props) {
       on_submit={open_selected}
       on_up={props.decrement_cursor}
       on_down={props.increment_cursor}
-      on_escape={() => props.actions.setState({ search: "" })}
+      on_escape={() => {
+        return props.actions.setState({ search: "" });
+      }}
     />
   );
 }

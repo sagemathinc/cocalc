@@ -65,7 +65,7 @@ interface State {
 
 export const ProjectLog = rclass<ReactProps>(
   class ProjectLog extends React.Component<ReactProps & ReduxProps, State> {
-    static reduxProps = ({ name }) => {
+    static reduxProps = ({ name }): Record<string, any> => {
       return {
         [name]: {
           project_log: rtypes.immutable,
@@ -143,7 +143,7 @@ export const ProjectLog = rclass<ReactProps>(
       if (this._log != undefined) {
         return this._log;
       }
-      let logs = this.props.project_log_all ?? this.props.project_log;
+      const logs = this.props.project_log_all ?? this.props.project_log;
       if (logs == undefined) {
         this._log = immutable.List();
         return this._log;
@@ -183,9 +183,9 @@ export const ProjectLog = rclass<ReactProps>(
         };
         logs_seq = logs_seq.filter(match);
       }
-      logs_seq = logs_seq.sort(
-        (a, b) => b.get("time").valueOf() - a.get("time").valueOf()
-      );
+      logs_seq = logs_seq.sort((a, b) => {
+        return b.get("time").valueOf() - a.get("time").valueOf();
+      });
       this._log = logs_seq;
       return this._log;
     }
@@ -223,7 +223,9 @@ export const ProjectLog = rclass<ReactProps>(
       return (
         <Button
           bsStyle={"info"}
-          onClick={() => this.load_all()}
+          onClick={() => {
+            this.load_all();
+          }}
           disabled={this.props.project_log_all != undefined}
         >
           Load older log entries
@@ -270,7 +272,9 @@ export const ProjectLog = rclass<ReactProps>(
           overscan_row_count={20}
           estimated_row_size={22}
           row_count={this.get_log().size + 1}
-          row_renderer={x => this.row_renderer(x.index)}
+          row_renderer={x => {
+            return this.row_renderer(x.index);
+          }}
           row_key={this.row_key}
           scroll_to_index={next_cursor_pos}
           cache_id={"project_log" + this.props.project_id}
@@ -313,9 +317,15 @@ export const ProjectLog = rclass<ReactProps>(
           actions={this.props.actions}
           search={this.props.search}
           selected={this.get_log().get(this.state.cursor_index)}
-          increment_cursor={() => this.increment_cursor()}
-          decrement_cursor={() => this.decrement_cursor()}
-          reset_cursor={() => this.reset_cursor()}
+          increment_cursor={() => {
+            return this.increment_cursor();
+          }}
+          decrement_cursor={() => {
+            return this.decrement_cursor();
+          }}
+          reset_cursor={() => {
+            return this.reset_cursor();
+          }}
         />
       );
     }
