@@ -6,6 +6,13 @@ type CancelableHOF = <T extends (...args: any[]) => any>(
   ...rest
 ) => T & Cancelable;
 
+type Tail<T extends any[]> = ((...args: T) => any) extends (
+  _: any,
+  ...tail: infer Rest
+) => any
+  ? Rest
+  : [];
+
 /**
  * When a callback is deferred (eg. with debounce) it may
  * try to run when the component is no longer rendered
@@ -13,15 +20,11 @@ type CancelableHOF = <T extends (...args: any[]) => any>(
  * useAsyncCallback automatically runs a clean up function
  * like React.useEffect
  */
-export function useAsyncCallback<F extends (...args: any[]) => any>(
-  hof: CancelableHOF,
-  callback: F,
-  ...rest
-): typeof wrapped {
-  const wrapped = React.useCallback(hof(callback, ...rest), [
-    callback,
-    ...rest
-  ]);
+function useAsyncCallback<
+  H extends CancelableHOF,
+  F extends (...args: any[]) => any
+>(hof: H, callback: F, ...tail: Tail<Parameters<H>>): typeof wrapped {
+  const wrapped = React.useCallback(hof(callback, ...tail), [...tail]);
 
   React.useEffect(() => {
     return wrapped.cancel;
