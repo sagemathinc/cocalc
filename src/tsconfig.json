@@ -17,7 +17,6 @@
     "smc-project",
     "smc-hub",
     "smc-util-node",
-    "cocalc-ui",
     "smc-webapp/jupyter/project-actions.ts",
     "smc-webapp/jupyter/test/",
     "smc-webapp/test-mocha",

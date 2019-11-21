@@ -65,4 +65,8 @@ require("script-loader!term/color_themes.js")
 # Make html look nice
 require("script-loader!jsbeautify/beautify-html.min.js")
 
+# CSS Style files for CoCalc
+require('cocalc-ui/dist/antd.css')
+require('./smc-webapp/index.sass')
+
 require("./smc-webapp/set-version-cookie.js")

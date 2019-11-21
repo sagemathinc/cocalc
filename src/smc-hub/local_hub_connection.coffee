@@ -270,7 +270,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             return
         if await @ephemeral_state()
             @dbg("project has ephemeral state")
-            write_mesg(message.error(error:"FATAL -- project has ephemeral state so no database queries are aloud"))
+            write_mesg(message.error(error:"FATAL -- project has ephemeral state so no database queries are allowed"))
             return
         @dbg("project does NOT have ephemeral state")
         first = true

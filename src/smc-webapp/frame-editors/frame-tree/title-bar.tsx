@@ -305,7 +305,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     let title;
     if (selected_short) {
       title = (
-        <span>
+        <span cocalc-test={"short-" + selected_short}>
           {title} {selected_short}
         </span>
       );
@@ -989,7 +989,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
 
   render_format(): Rendered {
     if (!this.is_visible("format")) return;
-    let desc: any = this.props.editor_actions.has_format_support(
+    let desc = this.props.editor_actions.has_format_support(
       this.props.id,
       this.props.available_features
     );
