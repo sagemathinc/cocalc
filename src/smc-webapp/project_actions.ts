@@ -901,8 +901,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const event = {
       event: "open",
       action: "open",
-      filename: path,
-      type: misc.filename_extension(path)
+      filename: path
     } as const;
     const id = this.log(event);
 

@@ -443,10 +443,8 @@ export class LogEntry extends React.Component<Props> {
       case "open_project":
         return "folder-open-o";
       case "open": // open a file
-        let x =
-          file_associations[this.props.event.type] != null
-            ? file_associations[this.props.event.type].icon
-            : undefined;
+        const ext = misc.filename_extension(this.props.event.filename);
+        let x = file_associations[ext].icon;
         if (x != undefined) {
           if (x.slice(0, 3) === "fa-") {
             // temporary -- until change code there?
