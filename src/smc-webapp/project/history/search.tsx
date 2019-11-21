@@ -13,7 +13,11 @@ interface Props {
   reset_cursor: () => void;
 }
 
-export function LogSearch(props: Props): JSX.Element {
+function useDebounce<F extends (...args: any[]) => any>(
+  f: F,
+  deps: any[],
+  delay: number
+): (...funcArgs: Parameters<F>) => ReturnType<F> | undefined {
   const mounted = React.useRef(true);
 
   // [j3] This has to be an anti-pattern...
@@ -23,6 +27,19 @@ export function LogSearch(props: Props): JSX.Element {
     };
   }, [mounted]);
 
+  return React.useCallback(
+    debounce((...args: Parameters<F>): ReturnType<F> | undefined => {
+      if (!mounted.current) {
+        return;
+      }
+      const results = f(...args);
+      return results;
+    }, delay),
+    [mounted, delay, ...deps]
+  );
+}
+
+export function LogSearch(props: Props): JSX.Element {
   const open_selected = React.useCallback(
     (_value, info: any): void => {
       const e = props.selected?.get("event");
@@ -47,15 +64,13 @@ export function LogSearch(props: Props): JSX.Element {
     [props.selected, props.actions]
   );
 
-  const on_change = React.useCallback(
-    debounce((value: string): void => {
-      if (!mounted.current) {
-        return;
-      }
+  const on_change = useDebounce(
+    (value: string): void => {
       props.reset_cursor();
       props.actions.setState({ search: value });
-    }, 300),
-    [props.reset_cursor, props.actions]
+    },
+    [props.reset_cursor, props.actions],
+    3000
   );
 
   return (
