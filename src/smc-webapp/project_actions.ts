@@ -58,6 +58,7 @@ const { defaults, required } = misc;
 import { Actions, project_redux_name, redux } from "./app-framework";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
+import { ProjectEvent } from "./project/history/types";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -676,7 +677,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // an id that we use later to update the log, and we would have
   // to change whatever client code uses that id to be async.  Maybe later.
   // So we make the new function async_log below.
-  log(event, id?: string, cb?: Function): string | undefined {
+  log(event: ProjectEvent, id?: string, cb?: Function): string | undefined {
     const my_role = (this.redux.getStore("projects") as any).get_my_group(
       this.project_id
     );
@@ -730,7 +731,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return id;
   }
 
-  public async async_log(event, id?: string): Promise<void> {
+  public async async_log(event: ProjectEvent, id?: string): Promise<void> {
     await callback(this.log.bind(this), event, id);
   }
 

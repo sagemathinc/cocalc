@@ -13,6 +13,10 @@ export type EventRecordMap = TypedMap<EventRecord>;
 
 export type ProjectLogMap = Map<string, EventRecordMap>;
 
+/**
+ * Comprehensive list of all event types loggable to a project
+ * All events must have an event field
+ */
 export type ProjectEvent =
   | AssistantEvent
   | ProjectControlEvent
