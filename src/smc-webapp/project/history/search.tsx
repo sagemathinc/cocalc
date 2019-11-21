@@ -60,7 +60,6 @@ export function LogSearch(props: Props) {
 
   return (
     <SearchInput
-      ref={"box"}
       autoFocus={true}
       autoSelect={true}
       placeholder="Search log..."
