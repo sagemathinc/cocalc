@@ -70,6 +70,8 @@ const { SMC_Dropzone } = require("../../smc-dropzone");
 import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 
+import { PathLink } from "./path-link";
+
 const v = misc.keys(file_associations);
 v.sort();
 
@@ -93,40 +95,6 @@ const file_type_list = function(list: string[], exclude: boolean): string[] {
 };
 
 const new_file_button_types = file_type_list(v, true);
-
-// A link that goes back to the current directory
-// FUTURE: refactor to use PathSegmentLink?
-export const PathLink = rclass({
-  displayName: "ProjectNew-PathLink",
-
-  mixins: [ImmutablePureRenderMixin],
-
-  propTypes: {
-    path: rtypes.string.isRequired,
-    actions: rtypes.object.isRequired,
-    default: rtypes.string
-  },
-
-  getDefaultProps() {
-    return { default: "home directory of project" };
-  },
-
-  styles: {
-    cursor: "pointer"
-  },
-
-  handle_click() {
-    return this.props.actions.set_active_tab("files");
-  },
-
-  render() {
-    return (
-      <a style={this.styles} onClick={this.handle_click}>
-        {this.props.path ? this.props.path : this.props.default}
-      </a>
-    );
-  }
-});
 
 export const NewFileButton = rclass({
   displayName: "ProjectNew-ProjectNewFileButton",
