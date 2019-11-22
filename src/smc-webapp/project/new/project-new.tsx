@@ -71,6 +71,7 @@ import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { PathLink } from "./path-link";
+import { NewFileButton } from "./new-file-button";
 
 const v = misc.keys(file_associations);
 v.sort();
@@ -95,43 +96,6 @@ const file_type_list = function(list: string[], exclude: boolean): string[] {
 };
 
 const new_file_button_types = file_type_list(v, true);
-
-export const NewFileButton = rclass({
-  displayName: "ProjectNew-ProjectNewFileButton",
-
-  mixins: [ImmutablePureRenderMixin],
-
-  propTypes: {
-    name: rtypes.string,
-    icon: rtypes.string,
-    on_click: rtypes.func,
-    ext: rtypes.string,
-    className: rtypes.string,
-    disabled: rtypes.bool
-  },
-
-  on_click() {
-    if (this.props.ext != null) {
-      return this.props.on_click(this.props.ext);
-    } else {
-      return this.props.on_click();
-    }
-  },
-
-  render() {
-    return (
-      <Button
-        onClick={this.on_click}
-        style={{ marginRight: "5px", marginBottom: "5px" }}
-        className={this.props.className}
-        disabled={this.props.disabled}
-      >
-        <Icon name={this.props.icon} /> {this.props.name}
-        {this.props.children}
-      </Button>
-    );
-  }
-});
 
 const NewFileDropdown = rclass({
   propTypes: {
