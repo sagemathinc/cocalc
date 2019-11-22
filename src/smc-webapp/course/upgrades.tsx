@@ -47,14 +47,14 @@ import { CourseActions } from "./actions";
 import { CourseStore } from "./store";
 import { Map } from "immutable";
 
-const {
+import {
   A,
   Icon,
   Loading,
   NoUpgrades,
   Tip,
   UPGRADE_ERROR_STYLE
-} = require("../r_misc");
+} from "../r_misc";
 
 const { UpgradeRestartWarning } = require("../upgrade_restart_warning");
 

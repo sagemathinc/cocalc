@@ -8,7 +8,7 @@ import { Map } from "immutable";
 import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "./options";
-const { HTML } = require("smc-webapp/r_misc");
+import { HTML } from "smc-webapp/r_misc";
 
 interface PropTypes {
   id: string;

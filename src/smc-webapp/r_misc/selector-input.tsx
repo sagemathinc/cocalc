@@ -7,7 +7,8 @@ interface Props {
   options:
     | string[]
     | { value: string; display: JSX.Element }[]
-    | { [keys: string]: JSX.Element };
+    | { [keys: string]: JSX.Element }
+    | Readonly<{ [keys: string]: string }>;
   disabled?: boolean;
   selected?: string;
   on_change?: (selected: string) => void;

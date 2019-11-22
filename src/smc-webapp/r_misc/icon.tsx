@@ -14,7 +14,7 @@ interface Props {
   inverse?: boolean;
   Component?: JSX.Element | JSX.Element[];
   style?: any;
-  onClick?: () => void;
+  onClick?: (event?: any) => void; // TODO tighten what event could be
   onMouseOver?: () => void;
   onMouseOut?: () => void;
 }

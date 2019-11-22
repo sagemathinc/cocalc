@@ -6,13 +6,11 @@ declare const $: any;
 
 const DEFAULT_ROW_SIZE: number = 64;
 
-import { WindowedList } from "../r_misc/windowed-list";
-
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { React, Component, Rendered } from "../app-framework";
-import { Loading } from "../r_misc/loading";
+import { Loading, WindowedList } from "../r_misc";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 
@@ -56,7 +54,8 @@ export class CellList extends Component<CellListProps> {
     super(props);
     this.use_windowed_list =
       !!this.props.use_windowed_list &&
-      (this.props.actions != null && this.props.frame_actions != null);
+      this.props.actions != null &&
+      this.props.frame_actions != null;
     if (this.use_windowed_list && this.props.frame_actions != null) {
       this.props.frame_actions.set_windowed_list_ref(this.windowed_list_ref);
     }

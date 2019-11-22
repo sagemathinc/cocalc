@@ -12,7 +12,7 @@ import { React, Component } from "../app-framework";
 import { CourseActions } from "./actions";
 import { AssignmentRecord } from "./store";
 
-const { Icon, Space, Tip } = require("../r_misc");
+import { Icon, Space, Tip } from "../r_misc";
 const { Button } = require("react-bootstrap");
 
 interface SkipCopyProps {

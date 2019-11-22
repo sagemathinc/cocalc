@@ -8,6 +8,7 @@ import {
   redux,
   rclass
 } from "../app-framework";
+
 const {
   FormControl,
   FormGroup,
@@ -17,7 +18,7 @@ const {
 
 import { Card } from "cocalc-ui";
 
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 import { Result } from "./run-in-all-projects";
 

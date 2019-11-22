@@ -4,7 +4,7 @@ Components related to toggling the way output is displayed.
 
 import { React, Component } from "../app-framework";
 
-const { Icon } = require("../r_misc"); // TODO: type
+import { Icon } from "../r_misc";
 const { merge } = require("smc-util/misc");
 
 const SCROLLED_STYLE: React.CSSProperties = {

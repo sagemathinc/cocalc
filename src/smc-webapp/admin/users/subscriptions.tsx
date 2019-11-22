@@ -2,7 +2,7 @@ import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Button } from "react-bootstrap";
 
-const { Icon, ErrorDisplay, TimeAgo } = require("smc-webapp/r_misc");
+import { Icon, ErrorDisplay, TimeAgo } from "smc-webapp/r_misc";
 
 import { stripe_admin_create_customer } from "smc-webapp/frame-editors/generic/client";
 
@@ -83,7 +83,7 @@ export class Subscriptions extends Component<Props, State> {
     return (
       <ErrorDisplay
         error={this.state.error}
-        onClick={() => {
+        onClose={() => {
           this.setState({ error: undefined });
         }}
       />

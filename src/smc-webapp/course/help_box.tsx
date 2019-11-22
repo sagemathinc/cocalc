@@ -20,7 +20,7 @@
 
 import { React } from "../app-framework";
 import { Card } from "cocalc-ui";
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 const { SITE_NAME, LIVE_DEMO_REQUEST } = require("smc-util/theme");
 
 export function HelpBox() {

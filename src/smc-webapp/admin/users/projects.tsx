@@ -2,7 +2,7 @@ import { React, Component, Rendered, redux } from "smc-webapp/app-framework";
 
 import { cmp } from "smc-util/misc2";
 
-const { Loading, TimeAgo } = require("smc-webapp/r_misc");
+import { Loading, TimeAgo } from "smc-webapp/r_misc";
 
 import { query } from "smc-webapp/frame-editors/generic/client";
 
@@ -60,21 +60,23 @@ export class Projects extends Component<Props, State> {
 
   async search(): Promise<void> {
     this.status_mesg("Searching...");
-    const projects: Project[] = (await query({
-      query: {
-        projects: [
-          {
-            project_id: null,
-            title: null,
-            description: null,
-            users: null,
-            last_active: null,
-            last_edited: null
-          }
-        ]
-      },
-      options: [{ account_id: this.props.account_id }]
-    })).query.projects;
+    const projects: Project[] = (
+      await query({
+        query: {
+          projects: [
+            {
+              project_id: null,
+              title: null,
+              description: null,
+              users: null,
+              last_active: null,
+              last_edited: null
+            }
+          ]
+        },
+        options: [{ account_id: this.props.account_id }]
+      })
+    ).query.projects;
     if (!this.mounted) {
       return;
     }

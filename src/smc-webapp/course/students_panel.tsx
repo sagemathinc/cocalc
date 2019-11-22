@@ -62,13 +62,17 @@ const {
 import { Card } from "cocalc-ui";
 
 // CoCalc components
-import { WindowedList } from "../r_misc/windowed-list";
 const { User } = require("../users");
-const { MarkdownInput, SearchInput, TimeAgo } = require("../r_misc");
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Icon } from "../r_misc/icon";
-import { Space } from "../r_misc/space";
-import { Tip } from "../r_misc/tip";
+import {
+  MarkdownInput,
+  SearchInput,
+  TimeAgo,
+  WindowedList,
+  ErrorDisplay,
+  Icon,
+  Space,
+  Tip
+} from "../r_misc";
 
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "./common";
 import * as util from "./util";

@@ -1,6 +1,6 @@
 const { Button } = require("react-bootstrap");
 
-const { Icon, VisibleMDLG } = require("smc-webapp/r_misc");
+import { Icon, VisibleMDLG } from "smc-webapp/r_misc";
 
 import { React, Rendered, Component } from "../../app-framework";
 

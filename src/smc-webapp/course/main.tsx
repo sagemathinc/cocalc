@@ -48,14 +48,14 @@ import {
 
 import { Button, ButtonGroup, Nav, NavItem, Tab } from "react-bootstrap";
 
-const {
+import {
   ActivityDisplay,
   ErrorDisplay,
   Icon,
   Loading,
   SaveButton,
   VisibleMDLG
-} = require("../r_misc");
+} from "../r_misc";
 
 // Course components
 import {

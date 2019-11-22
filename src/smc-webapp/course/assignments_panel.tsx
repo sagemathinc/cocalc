@@ -72,7 +72,7 @@ import {
 } from "./store";
 import { CourseActions } from "./actions";
 import { ReactElement } from "react";
-const {
+import {
   DateTimePicker,
   Icon,
   LabeledRow,
@@ -80,10 +80,9 @@ const {
   MarkdownInput,
   Space,
   Tip,
-  NumberInput
-} = require("../r_misc");
-
-import { WindowedList } from "../r_misc/windowed-list";
+  NumberInput,
+  WindowedList
+} from "../r_misc";
 
 const { STEPS, step_direction, step_verb, step_ready } = util;
 import {
@@ -1305,7 +1304,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       (left = this.props.assignment.get("skip_grading")) != null ? left : false;
     if (
       !skip_grading &&
-      (status.not_return_graded === 0 && status.return_graded === 0)
+      status.not_return_graded === 0 && status.return_graded === 0
     ) {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
