@@ -5,13 +5,13 @@ The static buttonbar at the top.
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import * as immutable from "immutable";
 import { Button, ButtonGroup, Form } from "react-bootstrap";
-const {
+import {
   Icon,
   VisibleMDLG,
   VisibleLG,
   DropdownMenu,
   MenuItem
-} = require("../r_misc");
+} from "../r_misc";
 import { endswith, capitalize } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
