@@ -8,16 +8,10 @@ import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { NewFileButton } from "./new-file-button";
+import { AvailableFeatures } from "./types";
 
 interface ReduxProps {
-  available_features: TypedMap<{
-    sage: boolean;
-    latex: boolean;
-    x11: boolean;
-    rmd: boolean;
-    jupyter_notebook: boolean;
-    jupyter_lab: boolean;
-  }>;
+  available_features: AvailableFeatures;
 }
 
 interface ReactProps {
@@ -25,6 +19,7 @@ interface ReactProps {
   create_folder: (name?: string) => void;
   styles?: React.CSSProperties;
   project_id?: string;
+  name: string;
 }
 
 interface State {
