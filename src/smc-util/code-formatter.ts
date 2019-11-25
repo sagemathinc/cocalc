@@ -1,6 +1,8 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
+import { tuple } from "./misc2";
+
 // ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
   | "r"
@@ -11,6 +13,8 @@ export type Parser =
   | "latex"
   | "go"
   | "gofmt"
+  | "rust"
+  | "rustfmt"
   | "tidy"
   | "CSS"
   | "html"
@@ -44,36 +48,39 @@ export type Tool =
   | "clang-format"
   | "latexindent"
   | "gofmt"
+  | "rustfmt"
   | "biber"
   | "tidy"
   | "DOES_NOT_EXIST"; // use this for testing;
 
-// the list of file extensions where we want to have formatting support
-export type Exts =
-  | "js"
-  | "jsx"
-  | "md"
-  | "rmd"
-  | "css"
-  | "ts"
-  | "tsx"
-  | "json"
-  | "yaml"
-  | "yml"
-  | "py"
-  | "tex"
-  | "html"
-  | "r"
-  | "go"
-  | "c"
-  | "cc"
-  | "c++"
-  | "cpp"
-  | "h"
-  | "xml"
-  | "cml"
-  | "kml"
-  | "bib";
+// the set of file extensions where we want to have formatting support
+export const file_extensions = tuple([
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "json",
+  "md",
+  "css",
+  "py",
+  "r",
+  "rs",
+  "go",
+  "yml",
+  "yaml",
+  "xml",
+  "cml" /* that's xml */,
+  "kml" /* geodata keyhole markup, also xml */,
+  "c",
+  "c++",
+  "cc",
+  "cpp",
+  "h",
+  "bib"
+]);
+
+// convert to type
+export type Exts = typeof file_extensions[number];
 
 // associating filename extensions with a specific type of syntax for a parser
 type Ext2Parser = { [s in Exts]: Parser };
@@ -92,6 +99,7 @@ export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
   tex: "latex",
   html: "html",
   r: "R",
+  rs: "rust",
   go: "go",
   c: "clang",
   cc: "clang",
@@ -135,6 +143,8 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   latex: "latexindent",
   go: "gofmt",
   gofmt: "gofmt",
+  rust: "rustfmt",
+  rustfmt: "rustfmt",
   bibtex: "biber",
   "bib-biber": "biber",
   tidy: "tidy",
@@ -159,6 +169,8 @@ export const parser2display: Readonly<Langs> = Object.freeze({
   yaml: "YAML",
   py: "Python",
   gofmt: "Go",
+  rust: "Rust",
+  rustfmt: "Rust",
   markdown: "Markdown",
   typescript: "TypeScript",
   html: "HTML",
@@ -220,6 +232,9 @@ export function format_parser_for_extension(ext: string): Parser {
       break;
     case "go":
       parser = "gofmt";
+      break;
+    case "rs":
+      parser = "rustfmt";
       break;
     case "html":
       parser = "html-tidy";
