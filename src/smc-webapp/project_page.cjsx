@@ -392,7 +392,7 @@ ProjectContentViewer = rclass
             when 'files'
                 <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
             when 'new'
-                <ProjectNew name={@props.project_name} project_id={@props.project_id} />
+                <ProjectNew name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)}/>
             when 'log'
                 <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'

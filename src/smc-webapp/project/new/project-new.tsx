@@ -29,28 +29,25 @@
 //
 //##############################################################################
 import * as React from "react";
-import { rtypes, rclass } from "../../app-framework";
 
 import { Col, Row } from "react-bootstrap";
 
-export const ProjectNew = rclass(function({ name }) {
-  return {
-    propTypes: {
-      project_id: rtypes.string
-    },
+import { ProjectActions } from "../../project_actions";
 
-    render() {
-      return (
-        <Row style={{ marginTop: "15px" }}>
-          <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
-            <ProjectNewForm
-              project_id={this.props.project_id}
-              name={name}
-              actions={this.actions(name)}
-            />
-          </Col>
-        </Row>
-      );
-    }
-  };
-});
+import { ProjectNewForm } from "./project-new-form";
+
+interface Props {
+  name: string;
+  project_id: string;
+  actions: ProjectActions;
+}
+
+export function ProjectNew({ name, project_id, actions }: Props): JSX.Element {
+  return (
+    <Row style={{ marginTop: "15px" }}>
+      <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
+        <ProjectNewForm project_id={project_id} name={name} actions={actions} />
+      </Col>
+    </Row>
+  );
+}
