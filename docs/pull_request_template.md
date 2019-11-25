@@ -8,7 +8,7 @@
 # Relevant Issues
 
 ### [Checklist](https://github.com/sagemathinc/cocalc/wiki/PR-Checklist):
-- [ ] No debugging console.log messages.
+- [ ] Run eslint on new and edited files
 - [ ] All new code is actually used.
 - [ ] Non-obvious code has some sort of comments.
 
