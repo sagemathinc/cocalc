@@ -30,14 +30,7 @@
 //##############################################################################
 import * as misc from "smc-util/misc";
 
-import {
-  React,
-  ReactDOM,
-  rtypes,
-  rclass,
-  Redux,
-  Fragment
-} from "../../app-framework";
+import { React, ReactDOM, rtypes, rclass, Fragment } from "../../app-framework";
 
 import {
   Col,
@@ -46,23 +39,11 @@ import {
   ButtonToolbar,
   FormControl,
   FormGroup,
-  SplitButton,
-  MenuItem,
   Alert
 } from "react-bootstrap";
 
-import {
-  ErrorDisplay,
-  Icon,
-  Tip,
-  ImmutablePureRenderMixin,
-  SettingBox
-} from "../../r_misc";
+import { ErrorDisplay, Icon, Tip, SettingBox } from "../../r_misc";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { file_options } = require("../../editor");
-
-import { file_associations } from "../../file-associations";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { special_filenames_with_no_extension } = require("../../project_file");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -72,94 +53,7 @@ import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { PathLink } from "./path-link";
 import { NewFileButton } from "./new-file-button";
-
-const v = misc.keys(file_associations);
-v.sort();
-
-const file_type_list = function(list: string[], exclude: boolean): string[] {
-  const extensions: string[] = [];
-  const file_types_so_far = {};
-  for (const ext of list) {
-    if (!ext) {
-      continue;
-    }
-    const data = file_associations[ext];
-    if (exclude && data.exclude_from_menu) {
-      continue;
-    }
-    if (data.name != null && !file_types_so_far[data.name]) {
-      file_types_so_far[data.name] = true;
-      extensions.push(ext);
-    }
-  }
-  return extensions;
-};
-
-const new_file_button_types = file_type_list(v, true);
-
-const NewFileDropdown = rclass({
-  propTypes: {
-    create_file: rtypes.func
-  },
-
-  mixins: [ImmutablePureRenderMixin],
-
-  file_dropdown_icon() {
-    return (
-      <span>
-        <Icon name="file" /> File
-      </span>
-    );
-  },
-
-  file_dropdown_item(i, ext) {
-    const data = file_options("x." + ext);
-    const text = (
-      <Fragment>
-        <span style={{ textTransform: "capitalize" }}>{data.name}</span>
-        <span style={{ color: "#666" }}>(.{ext})</span>
-      </Fragment>
-    );
-    return (
-      <MenuItem
-        className={"dropdown-menu-left"}
-        eventKey={i}
-        key={i}
-        onSelect={(): void => {
-          this.props.create_file(ext);
-        }}
-      >
-        <Icon name={data.icon} /> {text}
-      </MenuItem>
-    );
-  },
-
-  render() {
-    return (
-      <span
-        className={"pull-right dropdown-splitbutton-left"}
-        style={{ marginRight: "5px" }}
-      >
-        <SplitButton
-          id={"new_file_dropdown"}
-          title={this.file_dropdown_icon()}
-          onClick={(): void => {
-            this.props.create_file();
-          }}
-        >
-          {((): JSX.Element[] => {
-            const result: JSX.Element[] = [];
-            for (const i in new_file_button_types) {
-              const ext = new_file_button_types[i];
-              result.push(this.file_dropdown_item(i, ext));
-            }
-            return result;
-          })()}
-        </SplitButton>
-      </span>
-    );
-  }
-});
+import { NewFileDropdown } from "./new-file-dropdown";
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
