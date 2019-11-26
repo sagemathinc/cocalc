@@ -52,8 +52,6 @@ interface State {
 
 export const ProjectNewForm = rclass(
   class ProjectNewForm extends React.Component<ReactProps & ReduxProps, State> {
-    private project_new_filename: React.RefObject<any>;
-
     static reduxProps({ name }): any {
       return {
         [name]: {
@@ -78,7 +76,6 @@ export const ProjectNewForm = rclass(
             : this.default_filename(),
         extension_warning: false
       };
-      this.project_new_filename = React.createRef();
     }
 
     static defaultProps = { show_header: true };
@@ -96,13 +93,8 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    focus_input(): void {
-      this.project_new_filename.current.focus();
-    }
-
     create_file(ext?: string): void {
       if (!this.state.filename) {
-        this.focus_input();
         return;
       }
       this.props.actions.create_file({
@@ -115,7 +107,7 @@ export const ProjectNewForm = rclass(
         : undefined;
     }
 
-    submit(ext?: string): void {
+    submit = (ext?: string): void => {
       if (!this.state.filename) {
         // empty filename
         return;
@@ -135,7 +127,7 @@ export const ProjectNewForm = rclass(
       } else {
         this.setState({ extension_warning: true });
       }
-    }
+    };
 
     submit_via_enter(e): void {
       e.preventDefault();
@@ -312,19 +304,23 @@ export const ProjectNewForm = rclass(
             tip="Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc."
             placement="top"
           >
-            <NewFileDropdown create_file={this.submit} />
+            <NewFileDropdown
+              create_file={(ext?: string) => {
+                this.submit(ext);
+              }}
+            />
           </Tip>
         </>
       );
     }
 
     render_filename_form(): JSX.Element {
-      const onChange = (): void => {
+      const onChange = (e): void => {
         if (this.state.extension_warning) {
           this.setState({ extension_warning: false });
         } else {
           this.setState({
-            filename: this.project_new_filename.current.value
+            filename: e.target.value
           });
         }
       };
@@ -335,12 +331,17 @@ export const ProjectNewForm = rclass(
         }
       };
 
+      console.log("render_file_name_form:", this.state.filename);
+
       return (
-        <form onSubmit={this.submit_via_enter}>
+        <form
+          onSubmit={e => {
+            return this.submit_via_enter(e);
+          }}
+        >
           <FormGroup>
             <FormControl
               autoFocus
-              ref={this.project_new_filename}
               value={this.state.filename}
               type={"text"}
               disabled={this.state.extension_warning}
@@ -413,7 +414,9 @@ export const ProjectNewForm = rclass(
               </div>
               <FileTypeSelector
                 name={this.props.name}
-                create_file={this.submit}
+                create_file={(ext?: string) => {
+                  this.submit(ext);
+                }}
                 project_id={this.props.project_id}
               >
                 <Tip
