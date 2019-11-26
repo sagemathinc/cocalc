@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Col, Row } from "react-bootstrap";
 
-import { rclass, rtypes, TypedMap } from "../../app-framework";
+import { rclass, rtypes } from "../../app-framework";
 import { Tip } from "../../r_misc";
 
 import { JupyterServerPanel } from "../plain-jupyter-server";
