@@ -33,7 +33,7 @@ export const NewFileButton = React.memo(function NewFileButton({
       disabled={disabled}
     >
       <Icon name={icon} />
-      <Space/>
+      <Space />
       {name}
       {children}
     </Button>
