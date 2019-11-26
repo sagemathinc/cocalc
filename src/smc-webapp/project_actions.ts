@@ -58,6 +58,7 @@ const { defaults, required } = misc;
 import { Actions, project_redux_name, redux } from "./app-framework";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
+import { ProjectEvent } from "./project/history/types";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -668,15 +669,26 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  // report a log event to the backend -- will indirectly result in a new entry in the store...
-  // Returns the random log entry uuid. If called later with that id, then the time isn't
-  // changed and the event is merely updated.
-  // Returns undefined if log event is ignored
+  /**
+   *
+   * Report a log event to the backend -- will indirectly result in a new entry in the store...
+   * Allows for updating logs via merging if `id` is provided
+   *
+   * Returns the random log entry uuid. If called later with that id, then the time isn't
+   * changed and the event is merely updated.
+   * Returns undefined if log event is ignored
+   */
   // NOTE: we can't just make this log function async since it returns
   // an id that we use later to update the log, and we would have
   // to change whatever client code uses that id to be async.  Maybe later.
   // So we make the new function async_log below.
-  log(event, id?: string, cb?: Function): string | undefined {
+  log(event: ProjectEvent): string | undefined;
+  log(
+    event: Partial<ProjectEvent>,
+    id: string,
+    cb?: (err?: any) => void
+  ): string | undefined;
+  log(event: ProjectEvent, id?: string, cb?: Function): string | undefined {
     const my_role = (this.redux.getStore("projects") as any).get_my_group(
       this.project_id
     );
@@ -730,7 +742,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return id;
   }
 
-  public async async_log(event, id?: string): Promise<void> {
+  public async async_log(event: ProjectEvent, id?: string): Promise<void> {
     await callback(this.log.bind(this), event, id);
   }
 
@@ -890,7 +902,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       event: "open",
       action: "open",
       filename: path
-    };
+    } as const;
     const id = this.log(event);
 
     // Save the log entry id, so it is possible to optionally
