@@ -54,6 +54,7 @@ import {
 import { literal } from "./app-framework/literal";
 
 import { ProjectConfiguration } from "./project_configuration";
+import { ProjectLogMap } from "./project/history/types";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -112,8 +113,8 @@ export interface ProjectStoreState {
   ext_selection?: string;
 
   // Project Log
-  project_log?: any; // immutable,
-  project_log_all?: any; // immutable,
+  project_log?: ProjectLogMap;
+  project_log_all?: ProjectLogMap;
   search?: string;
   page?: number;
 

@@ -14,8 +14,7 @@ const misc_page = require("../misc_page"); // TODO: import type
 
 import { COLORS } from "smc-util/theme";
 import { INPUT_PROMPT_COLOR } from "./prompt";
-import { Icon } from "../r_misc/icon";
-import { Tip } from "../r_misc/tip";
+import { Icon, Tip } from "../r_misc";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 

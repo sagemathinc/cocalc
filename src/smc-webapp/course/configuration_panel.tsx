@@ -56,7 +56,7 @@ const {
 import { Card } from "cocalc-ui";
 
 // CoCalc Components
-const {
+import {
   Calendar,
   HiddenXS,
   Icon,
@@ -68,7 +68,7 @@ const {
   TimeAgo,
   Tip,
   ErrorDisplay
-} = require("../r_misc");
+} from "../r_misc";
 
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "./actions";

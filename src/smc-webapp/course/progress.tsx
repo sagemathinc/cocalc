@@ -9,7 +9,7 @@ Progress indicator for assigning/collecting/etc. a particular assignment or hand
 */
 
 import { React, Component } from "../app-framework";
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
 const { COLORS } = require("smc-util/theme");
 

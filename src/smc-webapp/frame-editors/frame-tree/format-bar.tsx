@@ -18,7 +18,7 @@ const {
 } = require("react-bootstrap");
 
 const buttonbar = require("smc-webapp/buttonbar");
-const { Icon, Space } = require("smc-webapp/r_misc");
+import { Icon, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "

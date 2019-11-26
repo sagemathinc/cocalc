@@ -4,7 +4,7 @@ import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
 
 const { Avatar } = require("../../other-users");
-const { Icon, TimeAgo } = require("../../r_misc");
+import { Icon, TimeAgo } from "../../r_misc";
 const { User } = require("../../users");
 
 export function MentionRow({

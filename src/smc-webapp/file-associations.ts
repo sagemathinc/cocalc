@@ -298,27 +298,38 @@ for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
 }
 
 // See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
-export const IMAGE_EXTS = <ReadonlyArray<string>>(
-  Object.freeze(["jpg", "jpeg", "png", "bmp", "gif", "apng", "svg", "ico"])
-);
+export const IMAGE_EXTS = Object.freeze([
+  "jpg",
+  "jpeg",
+  "png",
+  "bmp",
+  "gif",
+  "apng",
+  "svg",
+  "ico"
+]) as ReadonlyArray<string>;
 
-export const VIDEO_EXTS = <ReadonlyArray<string>>(
-  Object.freeze(["webm", "mp4", "avi", "mkv", "ogv", "ogm", "3gp"])
-);
+export const VIDEO_EXTS = Object.freeze([
+  "webm",
+  "mp4",
+  "avi",
+  "mkv",
+  "ogv",
+  "ogm",
+  "3gp"
+]) as ReadonlyArray<string>;
 
-export const AUDIO_EXTS = <ReadonlyArray<string>>(
-  Object.freeze([
-    "wav",
-    "ogg",
-    "mp3",
-    "aiff",
-    "flac",
-    "asnd",
-    "aif",
-    "au",
-    "snd"
-  ])
-);
+export const AUDIO_EXTS = Object.freeze([
+  "wav",
+  "ogg",
+  "mp3",
+  "aiff",
+  "flac",
+  "asnd",
+  "aif",
+  "au",
+  "snd"
+]) as ReadonlyArray<string>;
 
 file_associations["pdf"] = {
   editor: "pdf",

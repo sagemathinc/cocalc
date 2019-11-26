@@ -47,14 +47,14 @@ const {
   Col
 } = require("react-bootstrap");
 
-const {
+import {
   ErrorDisplay,
   Icon,
   MarkdownInput,
   TimeAgo,
   Tip,
   is_different_date
-} = require("../r_misc");
+} from "../r_misc";
 
 export const { FoldersToolbar } = require("./common/FoldersToolBar");
 

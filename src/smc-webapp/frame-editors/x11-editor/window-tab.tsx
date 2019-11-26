@@ -2,7 +2,7 @@
 X11 Window frame.
 */
 
-const { Icon } = require("smc-webapp/r_misc");
+import { Icon } from "smc-webapp/r_misc";
 
 import { Map } from "immutable";
 

@@ -1,7 +1,7 @@
 import { Component, React, Rendered } from "../app-framework";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
-const { Markdown, SearchInput, Icon } = require("../r_misc");
+import { Markdown, SearchInput, Icon } from "../r_misc";
 import { CUSTOM_SOFTWARE_HELP_URL } from "./util";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";

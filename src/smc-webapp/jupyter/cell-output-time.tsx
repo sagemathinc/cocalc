@@ -1,6 +1,6 @@
 import { React, Component } from "../app-framework";
 
-const { TimeAgo } = require("../r_misc"); // TODO: import
+import { TimeAgo } from "../r_misc";
 
 interface CellTimingProps {
   start?: number;

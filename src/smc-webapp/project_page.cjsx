@@ -37,7 +37,7 @@ Draggable = require('react-draggable')
 {SideChat}         = require('./side_chat')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project_new')
-{ProjectLog}       = require('./project_log')
+{ProjectLog}       = require('./project/history')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
@@ -55,6 +55,7 @@ project_file = require('./project_file')
 {ShareIndicator} = require('./share-indicator')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
+{file_tab_labels} = require('./project/file-tab-labels')
 
 {editor_id} = require('./project/utils')
 
@@ -393,7 +394,7 @@ ProjectContentViewer = rclass
             when 'new'
                 <ProjectNew name={@props.project_name} project_id={@props.project_id} />
             when 'log'
-                <ProjectLog name={@props.project_name} project_id={@props.project_id} />
+                <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'
                 <ProjectSearch name={@props.project_name} />
             when 'settings'
@@ -448,11 +449,15 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         if not @props.open_files_order?
             return
         tabs = []
-        @props.open_files_order.map (path, index) =>
+        paths = []
+        @props.open_files_order.map (path) =>
             if not path?  # see https://github.com/sagemathinc/cocalc/issues/3450
                 # **This should never fail** so be loud if it does.
                 throw Error("BUG -- each entry in open_files_order must be defined -- " + JSON.stringify(@props.open_files_order.toJS()))
-            tabs.push(@file_tab(path, index))
+            paths.push(path)
+        labels = file_tab_labels(paths)
+        for index in [0...labels.length]
+            tabs.push(@file_tab(paths[index], index, labels[index]))
         if @props.num_ghost_file_tabs == 0
             return tabs
 
@@ -462,17 +467,16 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             tabs.push(<GhostTab index={index} key={index}/>)
         return tabs
 
-    file_tab: (path, index) ->
+    file_tab: (path, index, label) ->
         filename         = misc.path_split(path).tail
         # get the file_associations[ext] just like it is defined in the editor
         {file_options}   = require('./editor')
         icon             = file_options(filename)?.icon ? 'code-o'
-        display_name     = misc.trunc(filename, 64)
         <SortableFileTab
             index        = {index}
             key          = {path}
             name         = {misc.path_to_tab(path)}
-            label        = {display_name}
+            label        = {label}
             icon         = {icon}
             tooltip      = {path}
             project_id   = {@props.project_id}

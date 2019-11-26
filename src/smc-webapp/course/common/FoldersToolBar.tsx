@@ -34,7 +34,7 @@ const { webapp_client } = require("smc-webapp/webapp_client");
 
 // React libraries
 import { React, ReactDOM, Component } from "smc-webapp/app-framework";
-const { Icon, SearchInput, SkinnyError } = require("smc-webapp/r_misc");
+import { Icon, SearchInput, SkinnyError } from "smc-webapp/r_misc";
 const {
   Button,
   ButtonToolbar,
