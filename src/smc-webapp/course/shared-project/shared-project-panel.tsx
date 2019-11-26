@@ -1,8 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -23,10 +18,10 @@
 //
 //#############################################################################
 
-import { React, Component, AppRedux, Rendered } from "../app-framework";
-import { CourseActions } from "./actions";
-import { CourseSettingsRecord } from "./store";
-import { HiddenXS, Icon, Tip, VisibleMDLG } from "../r_misc";
+import { React, Component, AppRedux, Rendered } from "../../app-framework";
+import { CourseActions } from "../actions";
+import { CourseSettingsRecord } from "../store";
+import { HiddenXS, Icon, Tip, VisibleMDLG } from "../../r_misc";
 
 import { Button, Popconfirm } from "cocalc-ui";
 

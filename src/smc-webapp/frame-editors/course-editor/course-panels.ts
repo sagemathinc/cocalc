@@ -12,5 +12,5 @@ export const Handouts = wrap(HandoutsPanel);
 import { ConfigurationPanel } from "../../course/configuration_panel";
 export const Configuration = wrap(ConfigurationPanel);
 
-import { SharedProjectPanel } from "../../course/shared_project_panel";
+import { SharedProjectPanel } from "../../course/shared-project/shared-project-panel";
 export const SharedProject = wrap(SharedProjectPanel);
