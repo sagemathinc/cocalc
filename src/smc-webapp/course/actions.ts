@@ -59,17 +59,18 @@ import {
 } from "./store";
 
 import { SITE_NAME } from "smc-util/theme";
-import { delay, map as amap } from "awaiting";
+import { delay } from "awaiting";
 
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 import { SharedProjectActions } from "./shared-project/actions";
 import { ActivityActions } from "./activity/actions";
+import { StudentsActions } from "./students/actions";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
 
-const PARALLEL_LIMIT = 3; // number of async things to do in parallel
+export const PARALLEL_LIMIT = 3; // number of async things to do in parallel
 
 const primary_key = {
   students: "student_id",
@@ -82,8 +83,9 @@ const primary_key = {
 export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
   private last_collaborator_state: any;
-  private activity : ActivityActions;
+  private activity: ActivityActions;
   private shared_project: SharedProjectActions;
+  private students: StudentsActions;
 
   constructor(name, redux) {
     super(name, redux);
@@ -93,6 +95,7 @@ export class CourseActions extends Actions<CourseState> {
 
     this.shared_project = new SharedProjectActions(this);
     this.activity = new ActivityActions(this);
+    this.students = new StudentsActions(this);
   }
 
   public get_store(): CourseStore | undefined {
@@ -365,96 +368,22 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Students
-  public async add_students(students: any[]): Promise<void> {
-    // students = array of account_id or email_address
-    // New student_id's will be constructed randomly for each student
-    const student_ids: string[] = [];
-    for (const x of students) {
-      const student_id = misc.uuid();
-      student_ids.push(student_id);
-      x.table = "students";
-      x.student_id = student_id;
-      this.syncdb.set(x);
-    }
-    this.syncdb.commit();
-    async function f(student_id: string): Promise<void> {
-      let store = this.get_store();
-      if (store == null) throw Error("store not defined");
-      await callback2(store.wait, {
-        until: (store: CourseStore) => store.get_student(student_id),
-        timeout: 60
-      });
-      this.create_student_project(student_id);
-      store = this.get_store();
-      if (store == null) throw Error("store not defined");
-      await callback2(store.wait, {
-        until: (store: CourseStore) =>
-          store.getIn(["students", student_id, "project_id"]),
-        timeout: 60
-      });
-    }
-
-    const id = this.set_activity({
-      desc: `Creating ${students.length} student projects (do not close the course until done)`
-    });
-
-    try {
-      await awaiting.map(student_ids, PARALLEL_LIMIT, f.bind(this));
-    } catch (err) {
-      if (this.is_closed()) return;
-      this.set_error(`error creating student projects -- ${err}`);
-    } finally {
-      if (this.is_closed()) return;
-      this.set_activity({ id });
-      // after adding students, always run configure all projects,
-      // to ensure everything is set properly
-      this.configure_all_projects();
-    }
+  public async add_students(
+    students: { account_id?: string; email_address?: string }[]
+  ): Promise<void> {
+    await this.students.add_students(students);
   }
 
-  public async delete_student(student): Promise<void> {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    await this._delete_student(store.get_student(student));
-    this.configure_all_projects(); // since they may get removed from shared project, etc.
+  public async delete_student(student_id: string): Promise<void> {
+    await this.students.delete_student(student_id);
   }
 
-  public undelete_student(student_id: string): void {
-    this.set({
-      deleted: false,
-      student_id,
-      table: "students"
-    });
-    // configure, since they may get added back to shared project, etc.
-    this.configure_all_projects();
+  public async undelete_student(student_id: string): void {
+    await this.students.undelete_student(student_id);
   }
 
   public async delete_all_students(): Promise<void> {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const students = store
-      .get_students()
-      .valueSeq()
-      .toArray();
-    await amap(students, PARALLEL_LIMIT, this._delete_student);
-    this.configure_all_projects();
-  }
-
-  private async _delete_student(student): Promise<void> {
-    const project_id = student.get("project_id");
-    if (project_id != null) {
-      // The student's project was created so let's clear any upgrades from it.
-      this.redux.getActions("projects").clear_project_upgrades(project_id);
-    }
-    this.set({
-      deleted: true,
-      student_id: student.get("student_id"),
-      table: "students"
-    });
+    await this.students.delete_all_students();
   }
 
   // Some students might *only* have been added using their email address, but they

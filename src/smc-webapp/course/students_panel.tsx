@@ -1280,7 +1280,7 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   delete_student = () => {
-    this.get_actions().delete_student(this.props.student);
+    this.get_actions().delete_student(this.props.student.get("student_id"));
     this.setState({ confirm_delete: false });
   };
 
