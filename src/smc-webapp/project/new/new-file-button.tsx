@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { Button } from "cocalc-ui";
-import { Icon } from "../../r_misc";
+import { Icon, Space } from "../../r_misc";
 
 interface Props {
   name: string;
@@ -32,7 +32,9 @@ export const NewFileButton = React.memo(function NewFileButton({
       className={className}
       disabled={disabled}
     >
-      <Icon name={icon} /> {name}
+      <Icon name={icon} />
+      <Space/>
+      {name}
       {children}
     </Button>
   );
