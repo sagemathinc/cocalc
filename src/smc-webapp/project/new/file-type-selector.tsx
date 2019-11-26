@@ -29,6 +29,7 @@ export function FileTypeSelector({
   const [show_jupyterlab_server, set_show_jupyterlab_server] = React.useState(
     false
   );
+  // TODO: Add typechecking to this hook!
   const available_features = useSelector<any, AvailableFeatures>(obj => {
     return obj.getIn([name, "available_features"]);
   });
