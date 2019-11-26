@@ -1,6 +1,7 @@
 import * as misc from "smc-util/misc";
 
 import { React, rtypes, rclass } from "../../app-framework";
+import { default_filename } from "../../account";
 
 import {
   Col,
@@ -87,10 +88,7 @@ export const ProjectNewForm = rclass(
     }
 
     default_filename(): string {
-      return require("../../account").default_filename(
-        undefined,
-        this.props.project_id
-      );
+      return default_filename(undefined, this.props.project_id);
     }
 
     create_file(ext?: string): void {
