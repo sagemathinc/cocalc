@@ -64,6 +64,7 @@ import { delay, map as amap } from "awaiting";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 import { SharedProjectActions } from "./shared-project/actions";
+import { ActivityActions } from "./activity/actions";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -81,7 +82,7 @@ const primary_key = {
 export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
   private last_collaborator_state: any;
-  private activity_id: number;
+  private activity : ActivityActions;
   private shared_project: SharedProjectActions;
 
   constructor(name, redux) {
@@ -91,6 +92,7 @@ export class CourseActions extends Actions<CourseState> {
     }
 
     this.shared_project = new SharedProjectActions(this);
+    this.activity = new ActivityActions(this);
   }
 
   public get_store(): CourseStore | undefined {
@@ -270,31 +272,11 @@ export class CourseActions extends Actions<CourseState> {
   public set_activity(
     opts: { id: number; desc?: string } | { id?: number; desc: string }
   ): number {
-    if (opts.id == null) {
-      this.activity_id = (this.activity_id != null ? this.activity_id : 0) + 1;
-      opts.id = this.activity_id;
-    }
-    const store = this.get_store();
-    if (store == null) {
-      // course was closed
-      return -1;
-    }
-    let activity = store.get("activity");
-    if (opts.desc == null) {
-      activity = activity.delete(opts.id);
-    } else {
-      activity = activity.set(opts.id, opts.desc);
-    }
-    this.setState({ activity });
-    return opts.id;
+    return this.activity.set_activity(opts);
   }
 
   public clear_activity(id?: number): void {
-    if (id != null) {
-      this.set_activity({ id }); // clears for this id since desc not provided
-    } else {
-      this.setState({ activity: Map() }); // clear all activity
-    }
+    this.activity.clear_activity(id);
   }
 
   // Configuration
