@@ -87,11 +87,11 @@ export const ProjectNewForm = rclass(
       }
     }
 
-    default_filename(): string {
+    default_filename = (): string => {
       return default_filename(undefined, this.props.project_id);
-    }
+    };
 
-    create_file(ext?: string): void {
+    create_file = (ext?: string): void => {
       if (!this.state.filename) {
         return;
       }
@@ -100,10 +100,8 @@ export const ProjectNewForm = rclass(
         ext,
         current_path: this.props.current_path
       });
-      return typeof this.props.close === "function"
-        ? this.props.close()
-        : undefined;
-    }
+      this.props.close?.();
+    };
 
     submit = (ext?: string): void => {
       if (!this.state.filename) {
@@ -127,12 +125,12 @@ export const ProjectNewForm = rclass(
       }
     };
 
-    submit_via_enter(e): void {
+    submit_via_enter = (e): void => {
       e.preventDefault();
       this.submit();
-    }
+    };
 
-    close_button(): JSX.Element | undefined {
+    private close_button(): JSX.Element | undefined {
       if (!this.props.close) {
         return;
       }
@@ -148,7 +146,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    render_error(): JSX.Element {
+    private render_error(): JSX.Element {
       let message;
       const error = this.props.file_creation_error;
       if (error === "not running") {
@@ -166,7 +164,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    blocked(): string {
+    private blocked(): string {
       if (this.props.project_map == null) {
         return "";
       }
@@ -177,16 +175,16 @@ export const ProjectNewForm = rclass(
       }
     }
 
-    create_folder(): void {
+    private create_folder = (): void => {
       this.props.actions.create_folder({
         name: this.state.filename,
         current_path: this.props.current_path,
         switch_over: true
       });
       this.props.close?.();
-    }
+    };
 
-    render_no_extension_alert(): JSX.Element {
+    private render_no_extension_alert(): JSX.Element {
       return (
         <Alert
           bsStyle="warning"
@@ -219,7 +217,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    render_close_row(): JSX.Element | undefined {
+    private render_close_row(): JSX.Element | undefined {
       if (!this.props.close) {
         return;
       }
@@ -249,7 +247,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    render_upload(): JSX.Element {
+    private render_upload(): JSX.Element {
       return (
         <>
           <Row style={{ marginTop: "20px" }}>
@@ -278,7 +276,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    render_new_file_folder(): JSX.Element {
+    private render_new_file_folder(): JSX.Element {
       return (
         <>
           <Tip
@@ -303,7 +301,7 @@ export const ProjectNewForm = rclass(
             placement="top"
           >
             <NewFileDropdown
-              create_file={(ext?: string) => {
+              create_file={(ext?: string): void => {
                 this.submit(ext);
               }}
             />
@@ -312,7 +310,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    render_filename_form(): JSX.Element {
+    private render_filename_form(): JSX.Element {
       const onChange = (e): void => {
         if (this.state.extension_warning) {
           this.setState({ extension_warning: false });
@@ -329,12 +327,10 @@ export const ProjectNewForm = rclass(
         }
       };
 
-      console.log("render_file_name_form:", this.state.filename);
-
       return (
         <form
-          onSubmit={e => {
-            return this.submit_via_enter(e);
+          onSubmit={(e): void => {
+            this.submit_via_enter(e);
           }}
         >
           <FormGroup>
@@ -354,7 +350,7 @@ export const ProjectNewForm = rclass(
       );
     }
 
-    render_title(): JSX.Element | undefined {
+    private render_title(): JSX.Element | undefined {
       if (this.props.current_path != null) {
         return (
           <span>
@@ -412,7 +408,7 @@ export const ProjectNewForm = rclass(
               </div>
               <FileTypeSelector
                 name={this.props.name}
-                create_file={(ext?: string) => {
+                create_file={(ext?: string): void => {
                   this.submit(ext);
                 }}
                 project_id={this.props.project_id}
