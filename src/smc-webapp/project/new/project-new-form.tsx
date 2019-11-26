@@ -414,7 +414,6 @@ export const ProjectNewForm = rclass(
               <FileTypeSelector
                 name={this.props.name}
                 create_file={this.submit}
-                create_folder={this.create_folder}
                 project_id={this.props.project_id}
               >
                 <Tip
