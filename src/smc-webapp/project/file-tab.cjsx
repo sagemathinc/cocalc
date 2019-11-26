@@ -107,10 +107,14 @@ exports.FileTab = rclass
 
         label_style =
             flex         : 1
-            textOverflow : 'ellipsis'
-            direction    : 'rtl'  # so the ellipsis are on the left side of the path, which is most useful
             padding      : '0 1px'
             overflow     : 'hidden'
+
+        if @props.label.indexOf('/') != -1
+            # using a full path for the label instead of just a filename
+            label_style.textOverflow = 'ellipsis'
+            # so the ellipsis are on the left side of the path, which is most useful
+            label_style.direction = 'rtl'
 
         x_button_style =
             float      : 'right'
