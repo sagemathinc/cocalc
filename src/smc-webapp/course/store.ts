@@ -338,6 +338,7 @@ export class CourseStore extends Store<CourseState> {
 
   public get_student_ids(opts: { deleted?: boolean } = {}): string[] {
     const v: string[] = [];
+    opts.deleted = !!opts.deleted;
     for (const [student_id, val] of this.get("students")) {
       if (!!val.get("deleted") == opts.deleted) {
         v.push(student_id);

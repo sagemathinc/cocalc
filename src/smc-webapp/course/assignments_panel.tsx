@@ -579,7 +579,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_more_header() {
     let width;
-    const status: AssignmentStatus | undefined = this.get_store().get_assignment_status(
+    const status:
+      | AssignmentStatus
+      | undefined = this.get_store().get_assignment_status(
       this.props.assignment.get("assignment_id")
     );
     if (status == null) {
@@ -1557,12 +1559,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         </div>
 
         {this.render_configure_peer_checkbox(config)}
-        {config.enabled ? this.render_configure_peer_number(config) : undefined}
-        {config.enabled ? this.render_configure_peer_due(config) : undefined}
-        {config.enabled
-          ? this.render_configure_grading_guidelines(config)
-          : undefined}
-
+        <Grid fluid={true}>
+          {config.enabled
+            ? this.render_configure_peer_number(config)
+            : undefined}
+          {config.enabled ? this.render_configure_peer_due(config) : undefined}
+          {config.enabled
+            ? this.render_configure_grading_guidelines(config)
+            : undefined}
+        </Grid>
         <Button
           onClick={() =>
             this.get_actions().toggle_item_expansion(
@@ -1732,8 +1737,14 @@ class StudentListForAssignment extends Component<
         name={this.props.name}
         student={student}
         assignment={this.props.assignment}
-        grade={store.get_grade(this.props.assignment.get('assignment_id'), student_id)}
-        comments={store.get_comments(this.props.assignment.get('assignment_id'), student_id)}
+        grade={store.get_grade(
+          this.props.assignment.get("assignment_id"),
+          student_id
+        )}
+        comments={store.get_comments(
+          this.props.assignment.get("assignment_id"),
+          student_id
+        )}
         info={store.student_assignment_info(
           student_id,
           this.props.assignment.get("assignment_id")

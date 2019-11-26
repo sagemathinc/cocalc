@@ -63,6 +63,8 @@ import { delay, map as amap } from "awaiting";
 
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 
+import { SharedProjectActions } from "./shared-project/actions";
+
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
 
@@ -80,12 +82,15 @@ export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
   private last_collaborator_state: any;
   private activity_id: number;
+  private shared_project: SharedProjectActions;
 
   constructor(name, redux) {
     super(name, redux);
     if (this.name == null || this.redux == null) {
       throw Error("BUG: name and redux must be defined");
     }
+
+    this.shared_project = new SharedProjectActions(this);
   }
 
   public get_store(): CourseStore | undefined {
@@ -124,7 +129,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Set one object in the syncdb
-  private set(obj: SyncDBRecord, commit: boolean = true): void {
+  public set(obj: SyncDBRecord, commit: boolean = true): void {
     if (
       !this.is_loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
@@ -296,13 +301,13 @@ export class CourseActions extends Actions<CourseState> {
   public set_title(title: string): void {
     this.set({ title, table: "settings" });
     this.set_all_student_project_titles(title);
-    this.set_shared_project_title();
+    this.shared_project.set_project_title();
   }
 
   public set_description(description: string): void {
     this.set({ description, table: "settings" });
     this.set_all_student_project_descriptions(description);
-    this.set_shared_project_description();
+    this.shared_project.set_project_description();
   }
 
   public set_pay_choice(type: string, value: boolean): void {
@@ -329,157 +334,14 @@ export class CourseActions extends Actions<CourseState> {
     this.set({ email_invite: body, table: "settings" });
   }
 
-  // return the default title and description of the shared project.
-  private shared_project_settings(): { title: string; description: string } {
-    const store = this.get_store();
-    if (store == null) throw Error("no store");
-    const settings = store.get("settings");
-    return {
-      title: `Shared Project -- ${settings.get("title")}`,
-      description:
-        settings.get("description") +
-        "\n\n---\n\nThis project is shared with all students in the course."
-    };
-  }
-
-  private set_shared_project_title(): void {
-    const store = this.get_store();
-    if (store == null) return;
-    const shared_id = store.get_shared_project_id();
-    if (!shared_id) return;
-    const { title } = this.shared_project_settings();
-    this.redux.getActions("projects").set_project_title(shared_id, title);
-  }
-
-  private set_shared_project_description(): void {
-    const store = this.get_store();
-    if (store == null) return;
-    const shared_id = store.get_shared_project_id();
-    if (!shared_id) return;
-
-    const { description } = this.shared_project_settings();
-    this.redux
-      .getActions("projects")
-      .set_project_description(shared_id, description);
-  }
-
-  // start the shared project running, stopping, etc. (if it exists)
-  private async action_shared_project(action: "start" | "stop"): Promise<void> {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const shared_project_id = store.get_shared_project_id();
-    if (!shared_project_id) {
-      return; // no shared project
-    }
-    const a = this.redux.getActions("projects");
-    if (a == null) return;
-    const f = a[action + "_project"].bind(a);
-    if (f == null) return;
-    await f(shared_project_id);
-  }
-
-  // configure the shared project so that it has everybody as collaborators
-  public async configure_shared_project(): Promise<void> {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const shared_project_id = store.get_shared_project_id();
-    if (!shared_project_id) {
-      return; // no shared project
-    }
-    const id = this.set_activity({ desc: "Configuring shared project..." });
-    try {
-      await this.set_shared_project_title();
-      // add collabs -- all collaborators on course project and all students
-      const projects = this.redux.getStore("projects");
-      const shared_project_users = projects.get_users(shared_project_id);
-      if (shared_project_users == null) {
-        return;
-      }
-      const course_project_users = projects.get_users(
-        store.get("course_project_id")
-      );
-      if (course_project_users == null) {
-        return;
-      }
-      const student_account_ids = {};
-      store.get_students().map((student, _) => {
-        if (!student.get("deleted")) {
-          const account_id = student.get("account_id");
-          if (account_id != null) {
-            student_account_ids[account_id] = true;
-          }
-        }
-      });
-
-      // Each of shared_project_users or course_project_users are
-      // immutable.js maps from account_id's to something, and students is a map from
-      // the student account_id's.
-      // Our goal is to ensur that:
-      //   {shared_project_users} = {course_project_users} union {students}.
-
-      const actions = this.redux.getActions("projects");
-      if (!store.get_allow_collabs()) {
-        // Ensure the shared project users are all either course or students
-        for (const account_id in shared_project_users.toJS()) {
-          if (
-            !course_project_users.get(account_id) &&
-            !student_account_ids[account_id]
-          ) {
-            await actions.remove_collaborator(shared_project_id, account_id);
-          }
-        }
-      }
-      // Ensure every course project user is on the shared project
-      for (const account_id in course_project_users.toJS()) {
-        if (!shared_project_users.get(account_id)) {
-          await actions.invite_collaborator(shared_project_id, account_id);
-        }
-      }
-      // Ensure every student is on the shared project
-      for (const account_id in student_account_ids) {
-        if (!shared_project_users.get(account_id)) {
-          await actions.invite_collaborator(shared_project_id, account_id);
-        }
-      }
-    } finally {
-      this.set_activity({ id });
-    }
-  }
-
-  // set the shared project id in our syncdb
-  private set_shared_project_id(shared_project_id: string): void {
-    this.set({
-      table: "settings",
-      shared_project_id
-    });
-  }
-
   // create the globally shared project if it doesn't exist
   public async create_shared_project(): Promise<void> {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    if (store.get_shared_project_id()) {
-      return;
-    }
-    const x: any = this.shared_project_settings();
-    const id = this.set_activity({ desc: "Creating shared project..." });
-    let project_id: string;
-    try {
-      project_id = await this.redux.getActions("projects").create_project(x);
-    } catch (err) {
-      this.set_error(`error creating shared project -- ${err}`);
-      return;
-    } finally {
-      this.set_activity({ id });
-    }
-    this.set_shared_project_id(project_id);
-    await this.configure_shared_project();
+    await this.shared_project.create();
+  }
+
+  // Delete the shared project, removing students too.
+  public async delete_shared_project(): Promise<void> {
+    await this.shared_project.delete();
   }
 
   // Set the pay option for the course, and ensure that the course fields are
@@ -921,7 +783,7 @@ export class CourseActions extends Actions<CourseState> {
       this.setState({ action_all_projects_state: "stopping" });
     }
 
-    this.action_shared_project(action);
+    this.shared_project.action_shared_project(action);
 
     const store = this.get_store();
     if (store == null) return;
@@ -1172,7 +1034,7 @@ export class CourseActions extends Actions<CourseState> {
         this.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
       } // always re-invite students on running this.
-      await this.configure_shared_project();
+      await this.shared_project.configure();
       await this.set_all_student_project_course_info();
     } finally {
       if (this.is_closed()) return;
@@ -1200,42 +1062,6 @@ export class CourseActions extends Actions<CourseState> {
     } finally {
       this.set_activity({ id });
     }
-  }
-
-  // Delete the shared project, removing students too.
-  public delete_shared_project(): void {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const shared_id = store.get_shared_project_id();
-    if (!shared_id) {
-      return;
-    }
-    const project_actions = this.redux.getActions("projects");
-    // delete project
-    project_actions.delete_project(shared_id);
-    // remove student collabs
-
-    const ids = store.get_student_ids({ deleted: false });
-    if (ids == undefined) {
-      return;
-    }
-    for (const student_id of ids) {
-      const student_account_id = store.unsafe_getIn([
-        "students",
-        student_id,
-        "account_id"
-      ]);
-      if (student_account_id) {
-        project_actions.remove_collaborator(shared_id, student_account_id);
-      }
-    }
-    // make the course itself forget about the shared project:
-    this.set({
-      table: "settings",
-      shared_project_id: ""
-    });
   }
 
   // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
@@ -1516,6 +1342,7 @@ export class CourseActions extends Actions<CourseState> {
       return peers.toJS();
     }
     const N = a.getIn(["peer_grade", "number"], 1);
+    console.log("upgrade peer grading", store.get_student_ids(), N);
     const map = misc.peer_grading(store.get_student_ids(), N);
     this.set_peer_grade(assignment_id, { map });
     return map;
