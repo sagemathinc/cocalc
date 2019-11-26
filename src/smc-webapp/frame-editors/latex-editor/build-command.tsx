@@ -5,7 +5,7 @@ Customization and selection of the build command.
 
 import { List, fromJS } from "immutable";
 
-const { Loading } = require("smc-webapp/r_misc");
+import { Loading } from "smc-webapp/r_misc";
 
 import { Alert, FormControl } from "react-bootstrap";
 

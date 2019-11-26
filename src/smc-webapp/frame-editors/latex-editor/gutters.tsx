@@ -9,7 +9,7 @@ import * as React from "react";
 
 import { capitalize } from "smc-util/misc2";
 
-const { Icon, Tip } = require("smc-webapp/r_misc");
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 import { SPEC, SpecItem } from "./errors-and-warnings";
 

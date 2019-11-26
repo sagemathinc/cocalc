@@ -15,7 +15,7 @@ import { Component, React, redux } from "../app-framework";
 import { Alert } from "react-bootstrap";
 import { CourseSettingsRecord } from "./store";
 import { CourseActions } from "./actions";
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
 interface PayBannerProps {
   settings: CourseSettingsRecord;

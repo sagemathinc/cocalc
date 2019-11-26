@@ -1,6 +1,6 @@
 import { React, Component } from "../app-framework";
 
-import { Icon } from "../r_misc/icon";
+import { Icon } from "../r_misc";
 
 // TODO: maybe clicking to reveal.
 // This is just an mvp. See https://github.com/sagemathinc/cocalc/issues/3835

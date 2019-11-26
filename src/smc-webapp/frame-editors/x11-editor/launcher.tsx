@@ -11,7 +11,7 @@ import {
 } from "../../app-framework";
 import { debounce, keys, sortBy } from "underscore";
 const { Button } = require("react-bootstrap");
-const { Icon } = require("r_misc");
+import { Icon } from "../../r_misc";
 import { APPS } from "./apps";
 import { is_different } from "smc-util/misc2";
 import { Actions } from "./actions";

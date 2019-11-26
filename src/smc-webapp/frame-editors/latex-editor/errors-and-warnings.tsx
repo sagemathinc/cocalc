@@ -15,7 +15,7 @@ import { TypedMap } from "../../app-framework/TypedMap";
 
 import { BuildLogs } from "./actions";
 
-const { Icon, Loading } = require("smc-webapp/r_misc");
+import { Icon, Loading } from "smc-webapp/r_misc";
 
 function group_to_level(group: string): string {
   switch (group) {

@@ -1,7 +1,7 @@
 import { React, Component, redux } from "../app-framework";
 import { analytics_event } from "../tracker";
 const { Button, ButtonGroup } = require("react-bootstrap");
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 interface Props {
   hidden: boolean;

@@ -17,7 +17,7 @@ import { BuildLogs } from "./actions";
 
 import { BuildCommand } from "./build-command";
 
-const { Icon, Loading } = require("smc-webapp/r_misc");
+import { Icon, Loading } from "smc-webapp/r_misc";
 
 interface IBuildSpec {
   button: boolean;

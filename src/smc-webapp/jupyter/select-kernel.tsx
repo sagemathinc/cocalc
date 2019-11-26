@@ -9,7 +9,7 @@ import {
   OrderedMap /*, List as ImmutableList*/
 } from "immutable";
 import * as misc from "smc-util/misc";
-const { Icon, Loading } = require("../r_misc"); // TODO: import types
+import { Icon, Loading } from "../r_misc";
 const {
   Button,
   Col,

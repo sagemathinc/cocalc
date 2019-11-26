@@ -26,8 +26,6 @@
 //
 //##############################################################################
 
-import { WindowedList } from "../r_misc/windowed-list";
-
 // CoCalc libraries
 import * as misc from "smc-util/misc";
 
@@ -68,10 +66,13 @@ import {
 import { UserMap } from "../todo-types";
 import { Set } from "immutable";
 import { CourseActions } from "./actions";
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Icon } from "../r_misc/icon";
-import { Tip } from "../r_misc/tip";
-const { MarkdownInput } = require("../r_misc");
+import {
+  ErrorDisplay,
+  Icon,
+  Tip,
+  MarkdownInput,
+  WindowedList
+} from "../r_misc";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.

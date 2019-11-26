@@ -10,7 +10,7 @@ It also:
    - [x] checkbox in markdown are interactive (can click them, which edits file)
 */
 
-const { Markdown } = require("smc-webapp/r_misc");
+import { Markdown } from "smc-webapp/r_misc";
 
 import { is_different, path_split } from "smc-util/misc2";
 import { throttle } from "underscore";

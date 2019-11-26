@@ -26,7 +26,7 @@
 import { Component, React } from "../app-framework";
 const { Button, ButtonToolbar, Well } = require("react-bootstrap");
 import { Card } from "cocalc-ui";
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 interface DeleteSharedProjectPanelProps {
   delete: () => void;

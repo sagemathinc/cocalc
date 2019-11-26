@@ -1,6 +1,6 @@
 import { List, Map } from "immutable";
 
-const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
+import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
 
 import { server_time } from "../generic/client";
 

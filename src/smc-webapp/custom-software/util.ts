@@ -1,4 +1,4 @@
-const { COLORS } = require("../r_misc");
+import { COLORS } from "../r_misc";
 
 export const RESET_ICON = "redo-alt";
 
