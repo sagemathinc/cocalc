@@ -132,7 +132,7 @@ exports.FileTab = rclass
 
         if @props.file_tab
             # ONLY show tooltip for filename (it provides the full path).
-            label = <Tip title={@props.tooltip} stable={true} placement={'bottom'}> {label} </Tip>
+            label = <Tip title={@props.tooltip} stable={false} placement={'bottom'}> {label} </Tip>
             # The dir="ltr" below is needed because of the direction 'rtl' in label_style, which
             # we have to compensate for in some situations, e.g.., a file name "this is a file!"
             # will have the ! moved to the beginning by rtl.
