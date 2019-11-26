@@ -29,7 +29,7 @@
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
-import { webapp_client } from "../webapp-client";
+import { webapp_client } from "../../webapp-client";
 import { is_different } from "smc-util/misc2";
 import { keys } from "underscore";
 import { callback2 } from "smc-util/async-utils";
@@ -43,7 +43,7 @@ import {
   rtypes,
   AppRedux,
   Rendered
-} from "../app-framework";
+} from "../../app-framework";
 
 import {
   Alert,
@@ -63,7 +63,7 @@ import {
 import { Card } from "cocalc-ui";
 
 // CoCalc components
-import { User } from "../users";
+import { User } from "../../users";
 import {
   MarkdownInput,
   SearchInput,
@@ -73,22 +73,22 @@ import {
   Icon,
   Space,
   Tip
-} from "../r_misc";
+} from "../../r_misc";
 
-import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "./common";
-import * as util from "./util";
-import * as styles from "./styles";
-import { ProjectMap, UserMap } from "../todo-types";
+import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
+import * as util from "../util";
+import * as styles from "../styles";
+import { ProjectMap, UserMap } from "../../todo-types";
 import {
   StudentsMap,
   AssignmentsMap,
   SortDescription,
   StudentRecord,
   IsGradingMap
-} from "./store";
-import { literal } from "../app-framework/literal";
-import { redux } from "../frame-editors/generic/test/util";
-import { CourseActions } from "./actions";
+} from "../store";
+import { literal } from "../../app-framework/literal";
+import { redux } from "../../frame-editors/generic/test/util";
+import { CourseActions } from "../actions";
 import { Set } from "immutable";
 
 interface StudentNameDescription {
@@ -1588,7 +1588,7 @@ class Student extends Component<StudentProps, StudentState> {
   }
 }
 
-var noncloud_emails = function(v, s) {
+function noncloud_emails(v, s) {
   // Given a list v of user_search results, and a search string s,
   // return entries for each email address not in v, in order.
   let r;
@@ -1613,4 +1613,4 @@ var noncloud_emails = function(v, s) {
     }
     return result1;
   })().sort((a, b) => misc.cmp(a.email_address, b.email_address));
-};
+}
