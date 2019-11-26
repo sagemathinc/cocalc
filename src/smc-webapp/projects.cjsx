@@ -429,8 +429,8 @@ class ProjectsActions extends Actions
     ###
     # **THIS IS AN ASYNC FUNCTION!**
     remove_collaborator: (project_id, account_id) =>
+        name = redux.getStore('users').get_name(account_id)
         f = (cb) =>
-            name = redux.getStore('users').get_name(account_id)
             webapp_client.project_remove_collaborator
                 project_id : project_id
                 account_id : account_id

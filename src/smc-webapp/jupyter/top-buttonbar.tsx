@@ -4,10 +4,15 @@ The static buttonbar at the top.
 
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import * as immutable from "immutable";
-import { Button, ButtonGroup, Form, FormControl } from "react-bootstrap";
-import { Icon, VisibleMDLG, VisibleLG } from "../r_misc";
-import { endswith } from "smc-util/misc2";
-
+import { Button, ButtonGroup, Form } from "react-bootstrap";
+import {
+  Icon,
+  VisibleMDLG,
+  VisibleLG,
+  DropdownMenu,
+  MenuItem
+} from "../r_misc";
+import { endswith, capitalize } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
@@ -34,6 +39,11 @@ interface TopButtonbarProps {
 }
 
 export class TopButtonbar0 extends Component<TopButtonbarProps> {
+  constructor(props) {
+    super(props);
+    this.cell_select_type.bind(this);
+  }
+
   public static reduxProps({ name }) {
     return {
       [name]: {
@@ -187,39 +197,53 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     ]);
   }
 
-  cell_select_type(event: any): void {
-    this.props.frame_actions.set_selected_cell_type(event.target.value);
+  cell_select_type(key: any): void {
+    this.props.frame_actions.set_selected_cell_type(key);
     this.focus();
   }
 
-  render_select_cell_type() {
-    let cell_type: any;
-    if (this.props.sel_ids.size > 1) {
-      cell_type = "multi";
-    } else {
-      cell_type = this.props.cells.getIn(
-        [this.props.cur_id, "cell_type"],
-        "code"
-      );
+  private static cell_type_title(key): string {
+    switch (key) {
+      case "multi":
+        return "-";
+      default:
+        return capitalize(key);
     }
+  }
+
+  render_select_cell_type() {
+    const cell_type = (() => {
+      if (this.props.sel_ids.size > 1) {
+        return "multi";
+      } else {
+        return this.props.cells.getIn([this.props.cur_id, "cell_type"], "code");
+      }
+    })();
+
+    const title = TopButtonbar0.cell_type_title(cell_type);
 
     return (
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={this.cell_select_type.bind(this)}
-        className="hidden-xs"
-        style={{ maxWidth: "8em" }}
+      <DropdownMenu
+        cocalc-test={"jupyter-cell-type-dropdown"}
+        button={true}
+        key={"cell-type"}
+        title={title}
         disabled={this.props.read_only}
-        value={cell_type}
+        onClick={key => this.cell_select_type(key)}
       >
-        <option value="code">Code</option>
-        <option value="markdown">Markdown</option>
-        <option value="raw">Raw</option>
-        <option value="multi" disabled>
-          -
-        </option>
-      </FormControl>
+        <MenuItem cocalc-test={"code"} key={"code"}>
+          {TopButtonbar0.cell_type_title("code")}
+        </MenuItem>
+        <MenuItem cocalc-test={"markdown"} key={"markdown"}>
+          {TopButtonbar0.cell_type_title("markdown")}
+        </MenuItem>
+        <MenuItem cocalc-test={"raw"} key={"raw"}>
+          {TopButtonbar0.cell_type_title("raw")}
+        </MenuItem>
+        <MenuItem cocalc-test={"multi"} key={"multi"} disabled>
+          {TopButtonbar0.cell_type_title("multi")}
+        </MenuItem>
+      </DropdownMenu>
     );
   }
 
