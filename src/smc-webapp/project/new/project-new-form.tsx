@@ -37,7 +37,7 @@ interface ReactProps {
 }
 
 interface ReduxProps {
-  current_path: string;
+  current_path?: string;
   default_filename: string;
   file_creation_error: string;
   available_features: AvailableFeatures;
@@ -71,10 +71,7 @@ export const ProjectNewForm = rclass(
     constructor(props) {
       super(props);
       this.state = {
-        filename:
-          this.props.default_filename != null
-            ? this.props.default_filename
-            : this.default_filename(),
+        filename: this.props.default_filename ?? this.default_filename(),
         extension_warning: false
       };
     }
@@ -165,7 +162,7 @@ export const ProjectNewForm = rclass(
     }
 
     private blocked(): string {
-      if (this.props.project_map == null) {
+      if (this.props.project_map == undefined) {
         return "";
       }
       if (this.props.get_total_project_quotas(this.props.project_id)?.network) {
@@ -351,7 +348,7 @@ export const ProjectNewForm = rclass(
     }
 
     private render_title(): JSX.Element | undefined {
-      if (this.props.current_path != null) {
+      if (this.props.current_path != undefined) {
         return (
           <span>
             Create new files in{" "}

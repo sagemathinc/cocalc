@@ -22,7 +22,7 @@ const file_type_list = function(list: string[], exclude: boolean): string[] {
     if (exclude && data.exclude_from_menu) {
       continue;
     }
-    if (data.name != null && !file_types_so_far[data.name]) {
+    if (data.name != undefined && !file_types_so_far[data.name]) {
       file_types_so_far[data.name] = true;
       extensions.push(ext);
     }
