@@ -37,10 +37,7 @@ export function FileTypeSelector({
   if (!create_file || !create_file || !project_id) {
     return null;
   }
-
   const row_style = { marginBottom: "8px" };
-
-  // why is available_features immutable?
   const available = available_features?.toJS() ?? {};
 
   // console.log("FileTypeSelector: available", available)
