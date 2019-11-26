@@ -12,13 +12,7 @@ import { ComputeImages } from "./init";
 const misc = require("smc-util/misc");
 import * as misc2 from "smc-util/misc2";
 const { open_new_tab } = require("smc-webapp/misc_page");
-const {
-  Icon,
-  Tip,
-  HiddenXSSM,
-  VisibleMDLG,
-  VisibleXSSM
-} = require("../r_misc");
+import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 const { ButtonGroup, Button } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 //const { ROW_INFO_STYLE } = require("../project_files");

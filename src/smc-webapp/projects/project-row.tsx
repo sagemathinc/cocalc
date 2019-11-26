@@ -15,7 +15,7 @@ import { ProjectUsers } from "./project-users";
 import { analytics_event } from "../tracker";
 
 const { Row, Col, Well } = require("react-bootstrap");
-const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
+import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../r_misc";
 const { AddCollaborators } = require("../collaborators/add-to-project");
 import { id2name, ComputeImages } from "../custom-software/init";
 import {
@@ -229,7 +229,7 @@ export const ProjectRow = rclass<ReactProps>(
       const project_id = this.props.project.project_id;
       this.props.redux.getActions("projects").open_project({
         project_id,
-        switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
+        switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey)
       });
       e.preventDefault();
       analytics_event("projects_page", "opened_a_project");
@@ -239,7 +239,7 @@ export const ProjectRow = rclass<ReactProps>(
     open_project_settings = e => {
       this.props.redux.getActions("projects").open_project({
         project_id: this.props.project.project_id,
-        switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey)),
+        switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
         target: "settings"
       });
       e.stopPropagation();

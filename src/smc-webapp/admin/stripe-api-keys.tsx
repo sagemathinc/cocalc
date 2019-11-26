@@ -1,4 +1,4 @@
-const { ErrorDisplay, LabeledRow } = require("../r_misc");
+import { ErrorDisplay, LabeledRow } from "../r_misc";
 
 import {
   Button,

@@ -81,10 +81,9 @@ import {
   MarkdownInput,
   Space,
   Tip,
-  NumberInput
+  NumberInput,
+  WindowedList
 } from "../r_misc";
-
-import { WindowedList } from "../r_misc/windowed-list";
 
 import { STEPS, step_direction, step_verb, step_ready } from "./util";
 
@@ -1303,7 +1302,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       (left = this.props.assignment.get("skip_grading")) != null ? left : false;
     if (
       !skip_grading &&
-      (status.not_return_graded === 0 && status.return_graded === 0)
+      status.not_return_graded === 0 && status.return_graded === 0
     ) {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;

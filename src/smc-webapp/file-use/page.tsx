@@ -9,7 +9,7 @@ import {
   Rendered
 } from "../app-framework";
 
-const { Loading } = require("../r_misc");
+import { Loading } from "../r_misc";
 
 import { FileUseViewer } from "./viewer";
 

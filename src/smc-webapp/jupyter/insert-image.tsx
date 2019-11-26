@@ -4,7 +4,7 @@ Modal for inserting an image
 
 import { React, Component, Rendered } from "../app-framework";
 
-const { Icon } = require("../r_misc"); // TODO: import types
+import { Icon } from "../r_misc";
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 const { SMC_Dropzone } = require("../smc-dropzone"); // TODO: import types
 import { JupyterActions } from "./browser-actions";

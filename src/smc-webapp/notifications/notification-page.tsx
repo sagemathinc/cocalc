@@ -6,7 +6,7 @@ import { MentionFilter } from "./mentions/types";
 import { redux, rclass, rtypes } from "../app-framework";
 
 const { Tab, Tabs } = require("react-bootstrap");
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 interface ReduxProps {
   account_id: string;

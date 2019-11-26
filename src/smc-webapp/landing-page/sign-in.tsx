@@ -4,7 +4,7 @@ import * as React from "react";
 import { ReactDOM, Rendered } from "../app-framework";
 import { List } from "immutable";
 import { ErrorDisplay } from "../r_misc/error-display";
-const { Markdown } = require("../r_misc");
+import { Markdown } from "../r_misc";
 import { Passports } from "../passports";
 import {
   Col,

@@ -8,7 +8,7 @@ import { List } from "immutable";
 
 import * as React from "react";
 
-const { Icon, Tip } = require("smc-webapp/r_misc");
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 import { RenderedMessage, message_color, message_icon } from "./lean-messages";
 
