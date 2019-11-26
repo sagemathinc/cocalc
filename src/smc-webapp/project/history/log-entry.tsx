@@ -454,7 +454,9 @@ export class LogEntry extends React.Component<Props> {
         return "folder-open-o";
       case "open": // open a file
         const ext = misc.filename_extension(this.props.event.filename);
-        let x = file_associations[ext].icon;
+        const info = file_associations[ext];
+        if (info == null) return "file-code-o";
+        let x = info.icon;
         if (x != undefined) {
           if (x.slice(0, 3) === "fa-") {
             // temporary -- until change code there?
