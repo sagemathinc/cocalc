@@ -15,12 +15,12 @@
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
     "coffeescript": "^2.4.1",
-    "jsdom": "^7.2.2",
+    "jsdom": "^15.2.1",
     "node-memwatch": "^1.0.1",
     "nyc": "^14.1.1",
     "shell-escape": "^0.2.0",
     "sqlite3": "^4.0.4",
-    "temp": "^0.8.3",
+    "temp": "^0.9.1",
     "winston": "^2.4.4"
   },
   "repository": {

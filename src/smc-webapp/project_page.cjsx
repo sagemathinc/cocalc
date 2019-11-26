@@ -467,12 +467,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         # get the file_associations[ext] just like it is defined in the editor
         {file_options}   = require('./editor')
         icon             = file_options(filename)?.icon ? 'code-o'
-        display_name     = misc.trunc(filename, 64)
         <SortableFileTab
             index        = {index}
             key          = {path}
             name         = {misc.path_to_tab(path)}
-            label        = {display_name}
+            label        = {path}
             icon         = {icon}
             tooltip      = {path}
             project_id   = {@props.project_id}
