@@ -108,7 +108,7 @@ exports.FileTab = rclass
         label_style =
             flex         : 1
             textOverflow : 'ellipsis'
-            direction    : 'rtl'
+            direction    : 'rtl'  # so the ellipsis are on the left side of the path, which is most useful
             padding      : '0 1px'
             overflow     : 'hidden'
 
@@ -129,7 +129,10 @@ exports.FileTab = rclass
         if @props.file_tab
             # ONLY show tooltip for filename (it provides the full path).
             label = <Tip title={@props.tooltip} stable={true} placement={'bottom'}> {label} </Tip>
-            label = <div style={label_style}>{label}</div>
+            # The dir="ltr" below is needed because of the direction 'rtl' in label_style, which
+            # we have to compensate for in some situations, e.g.., a file name "this is a file!"
+            # will have the ! moved to the beginning by rtl.
+            label = <div style={label_style}><span dir="ltr">{label}</span></div>
 
         body = <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_style}>
