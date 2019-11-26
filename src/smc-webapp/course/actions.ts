@@ -31,7 +31,7 @@ import * as markdownlib from "../markdown";
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
-import { defaults, required } from "smc-util/misc";
+import { defaults } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import * as awaiting from "awaiting";
 import { SyncDB } from "smc-util/sync/editor/db/sync";
@@ -390,84 +390,20 @@ export class CourseActions extends Actions<CourseState> {
   // subsequently signed up for an CoCalc account.  We check for any of these and if
   // we find any, we add in the account_id information about that student.
   public async lookup_nonregistered_students(): Promise<void> {
-    const store = this.get_store();
-    if (store == null) {
-      console.warn("lookup_nonregistered_students: store not initialized");
-      return;
-    }
-    const v: { [email: string]: string } = {};
-    const s: string[] = [];
-    store.get_students().map((student, student_id) => {
-      if (!student.get("account_id") && !student.get("deleted")) {
-        const email = student.get("email_address");
-        v[email] = student_id;
-        s.push(email);
-      }
-    });
-    if (s.length == 0) return;
-    try {
-      const result = await callback2(webapp_client.user_search, {
-        query: s.join(","),
-        limit: s.length
-      });
-      for (const x of result) {
-        this.set({
-          account_id: x.account_id,
-          table: "students",
-          student_id: v[x.email_address]
-        });
-      }
-    } catch (err) {
-      // Non-fatal, will try again next time lookup_nonregistered_students gets called.
-      console.warn(`lookup_nonregistered_students: search error -- ${err}`);
-    }
+    await this.students.lookup_nonregistered_students();
   }
 
   // columns: first_name, last_name, email, last_active, hosting
   // Toggles ascending/decending order
   public set_active_student_sort(column_name: string): void {
-    let is_descending;
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const current_column = store.getIn(["active_student_sort", "column_name"]);
-    if (current_column === column_name) {
-      is_descending = !store.getIn(["active_student_sort", "is_descending"]);
-    } else {
-      is_descending = false;
-    }
-    return this.setState({
-      active_student_sort: { column_name, is_descending }
-    });
+    this.students.set_active_student_sort(column_name);
   }
 
-  public set_internal_student_info(
+  public async set_internal_student_info(
     student_id: string,
     info: { first_name: string; last_name: string; email_address?: string }
-  ): void {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const { student } = this.resolve({ student_id });
-    if (student == null) return;
-
-    info = defaults(info, {
-      first_name: required,
-      last_name: required,
-      email_address: student.get("email_address")
-    });
-
-    this.set({
-      first_name: info.first_name,
-      last_name: info.last_name,
-      email_address: info.email_address,
-      student_id,
-      table: "students"
-    });
-
-    this.configure_all_projects(); // since they may get removed from shared project, etc.
+  ): Promise<void> {
+    await this.students.set_internal_student_info(student_id, info);
   }
 
   // Student projects
