@@ -404,9 +404,7 @@ export const ProjectNewForm = rclass(
               </div>
               <FileTypeSelector
                 name={this.props.name}
-                create_file={(ext?: string): void => {
-                  this.submit(ext);
-                }}
+                create_file={this.submit}
                 project_id={this.props.project_id}
               >
                 <Tip
