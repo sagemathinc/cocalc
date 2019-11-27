@@ -121,6 +121,7 @@ export interface ProjectStoreState {
   // Project New
   default_filename?: string;
   file_creation_error?: string;
+  downloading_file: boolean;
   library: immutable.Map<any, any>;
   library_selected?: object;
   library_is_copying: boolean; // for the copy button, to signal an ongoing copy process
@@ -251,6 +252,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project New
       library: immutable.Map({}),
       library_is_copying: false, // for the copy button, to signal an ongoing copy process
+      downloading_file: false,
 
       // Project Find
       user_input: "",

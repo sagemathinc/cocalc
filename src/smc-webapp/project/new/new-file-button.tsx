@@ -10,7 +10,7 @@ interface Props {
   ext?: string;
   className?: string;
   disabled?: boolean;
-  loading?: boolean; // TODO Read semantics from download option!
+  loading?: boolean;
   children?: React.ReactNode;
 }
 
@@ -21,8 +21,15 @@ export const NewFileButton = React.memo(function NewFileButton({
   ext,
   className,
   disabled,
+  loading,
   children
 }: Props) {
+  let displayed_icon = <Icon name={icon} />;
+
+  if (loading) {
+    displayed_icon = <Icon name="cc-icon-cocalc-ring" spin />;
+  }
+
   return (
     <Button
       onClick={(): void => {
@@ -30,9 +37,9 @@ export const NewFileButton = React.memo(function NewFileButton({
       }}
       style={{ marginRight: "5px", marginBottom: "5px" }}
       className={className}
-      disabled={disabled}
+      disabled={disabled || loading}
     >
-      <Icon name={icon} />
+      {displayed_icon}
       <Space />
       {name}
       {children}
