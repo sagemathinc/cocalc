@@ -30,7 +30,9 @@ import { ProjectMap } from "smc-webapp/todo-types";
 interface ReactProps {
   project_id: string;
   actions: ProjectActions;
-  close?: () => void;
+  on_close?: () => void;
+  on_create_file?: () => void;
+  on_create_folder?: () => void;
   show_header?: boolean;
   default_filename?: string;
   name: string;
@@ -98,7 +100,7 @@ export const ProjectNewForm = rclass(
         ext,
         current_path: this.props.current_path
       });
-      this.props.close?.();
+      this.props.on_create_file?.();
     };
 
     submit = (ext?: string): void => {
@@ -128,17 +130,13 @@ export const ProjectNewForm = rclass(
       this.submit();
     };
 
-    private close_button(): JSX.Element | undefined {
-      if (!this.props.close) {
+    private render_close_button(): JSX.Element | undefined {
+      const { on_close } = this.props;
+      if (!on_close) {
         return;
       }
       return (
-        <Button
-          onClick={(): void => {
-            this.props.close?.();
-          }}
-          className={"pull-right"}
-        >
+        <Button onClick={on_close} className={"pull-right"}>
           Close
         </Button>
       );
@@ -179,7 +177,7 @@ export const ProjectNewForm = rclass(
         current_path: this.props.current_path,
         switch_over: true
       });
-      this.props.close?.();
+      this.props.on_create_folder?.();
     };
 
     private render_no_extension_alert(): JSX.Element {
@@ -216,7 +214,7 @@ export const ProjectNewForm = rclass(
     }
 
     private render_close_row(): JSX.Element | undefined {
-      if (!this.props.close) {
+      if (!this.props.on_close) {
         return;
       }
       return (
@@ -238,7 +236,7 @@ export const ProjectNewForm = rclass(
           </Col>
           <Col sm={3}>
             <Row>
-              <Col sm={12}>{this.close_button()}</Col>
+              <Col sm={12}>{this.render_close_button()}</Col>
             </Row>
           </Col>
         </Row>
@@ -321,7 +319,7 @@ export const ProjectNewForm = rclass(
 
       const onKey = (e: React.KeyboardEvent<FormControl>): void => {
         if (e.keyCode === 27) {
-          this.props.close?.();
+          this.props.on_close?.();
         }
       };
 
@@ -369,7 +367,7 @@ export const ProjectNewForm = rclass(
           show_header={this.props.show_header}
           icon={"plus-circle"}
           title_el={this.render_title()}
-          close={this.props.close}
+          close={this.props.on_close}
         >
           <Row key={this.props.default_filename}>
             <Col sm={12}>
