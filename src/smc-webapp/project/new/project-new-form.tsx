@@ -42,13 +42,13 @@ interface ReduxProps {
   file_creation_error: string;
   available_features: AvailableFeatures;
   project_map: ProjectMap;
+  downloading_file: boolean;
   get_total_project_quotas: (project_id: string) => Record<string, any>;
 }
 
 interface State {
   filename: string;
   extension_warning: boolean;
-  downloading?: boolean;
 }
 
 export const ProjectNewForm = rclass(
@@ -59,7 +59,8 @@ export const ProjectNewForm = rclass(
           current_path: rtypes.string,
           default_filename: rtypes.string,
           file_creation_error: rtypes.string,
-          available_features: rtypes.immutable
+          available_features: rtypes.immutable,
+          downloading_file: rtypes.boolean
         },
         projects: {
           project_map: rtypes.immutable,
@@ -420,7 +421,7 @@ export const ProjectNewForm = rclass(
                     icon={"cloud"}
                     name={`Download from Internet ${this.blocked()}`}
                     on_click={this.create_file}
-                    loading={this.state.downloading}
+                    loading={this.props.downloading_file}
                   />
                 </Tip>
               </FileTypeSelector>
