@@ -14,7 +14,7 @@ import { Card } from "cocalc-ui";
 
 import { Icon } from "../r_misc";
 
-import { Result } from "./run-in-all-projects";
+import { Result } from "./student-projects/run-in-all-projects";
 
 interface Props {
   name: string;

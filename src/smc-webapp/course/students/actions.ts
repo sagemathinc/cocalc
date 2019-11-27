@@ -1,6 +1,5 @@
 /*
 Actions specific to manipulating the students in a course
-
 */
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
@@ -189,5 +188,13 @@ export class StudentsActions {
 
     // since they may get removed from shared project, etc.
     await this.course_actions.configure_all_projects();
+  }
+
+  public set_student_note(student_id: string, note: string): void {
+    this.course_actions.set({
+      note,
+      table: "students",
+      student_id
+    });
   }
 }
