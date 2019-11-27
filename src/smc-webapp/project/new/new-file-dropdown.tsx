@@ -30,66 +30,71 @@ const file_type_list = function(list: string[], exclude: boolean): string[] {
   return extensions;
 };
 
-const FileDropDownIcon: React.FunctionComponent<{}> = React.memo(
-  function FileDropDownIcon() {
-    return (
-      <span>
-        <Icon name="file" /> File
-      </span>
+function ButtonIcon(): JSX.Element {
+  return (
+    <span>
+      <Icon name="file" /> File
+    </span>
+  );
+}
+
+function FileDropDownItem({
+  ext,
+  on_select
+}: {
+  ext: string;
+  on_select: () => void;
+}): JSX.Element {
+  const data = file_options("x." + ext);
+  const text = (
+    <>
+      <span style={{ textTransform: "capitalize" }}>{data.name}</span>
+      <span style={{ color: "#666" }}>(.{ext})</span>
+    </>
+  );
+  return (
+    <MenuItem className={"dropdown-menu-left"} onSelect={on_select}>
+      <Icon name={data.icon} /> {text}
+    </MenuItem>
+  );
+}
+
+export const NewFileDropdown = React.memo(function NewFileDropdown({
+  create_file
+}: Props) {
+  const new_file_button_types = file_type_list(
+    misc.keys(file_associations).sort(),
+    true
+  );
+
+  const dropdown_buttons: JSX.Element[] = [];
+  for (const i in new_file_button_types) {
+    const ext = new_file_button_types[i];
+    dropdown_buttons.push(
+      <FileDropDownItem
+        key={i}
+        ext={ext}
+        on_select={(): void => {
+          create_file(ext);
+        }}
+      />
     );
   }
-);
 
-export const NewFileDropdown: React.FunctionComponent<Props> = React.memo(
-  function NewFileDropdown({ create_file }: Props) {
-    function file_dropdown_item(i: string, ext: string): JSX.Element {
-      const data = file_options("x." + ext);
-      const text = (
-        <>
-          <span style={{ textTransform: "capitalize" }}>{data.name}</span>
-          <span style={{ color: "#666" }}>(.{ext})</span>
-        </>
-      );
-      return (
-        <MenuItem
-          className={"dropdown-menu-left"}
-          eventKey={i}
-          key={i}
-          onSelect={(): void => {
-            create_file(ext);
-          }}
-        >
-          <Icon name={data.icon} /> {text}
-        </MenuItem>
-      );
-    }
-
-    const new_file_button_types = file_type_list(
-      misc.keys(file_associations).sort(),
-      true
-    );
-
-    const dropdown_buttons: JSX.Element[] = [];
-    for (const i in new_file_button_types) {
-      const ext = new_file_button_types[i];
-      dropdown_buttons.push(file_dropdown_item(i, ext));
-    }
-
-    return (
-      <span
-        className={"pull-right dropdown-splitbutton-left"}
-        style={{ marginRight: "5px" }}
+  return (
+    <span
+      className={"pull-right dropdown-splitbutton-left"}
+      style={{ marginRight: "5px" }}
+    >
+      <SplitButton
+        id={"new_file_dropdown"}
+        title={<ButtonIcon />}
+        onClick={(): void => {
+          create_file();
+        }}
       >
-        <SplitButton
-          id={"new_file_dropdown"}
-          title={<FileDropDownIcon />}
-          onClick={(): void => {
-            create_file();
-          }}
-        >
-          {dropdown_buttons}
-        </SplitButton>
-      </span>
-    );
-  }
-);
+        {dropdown_buttons}
+      </SplitButton>
+    </span>
+  );
+});
