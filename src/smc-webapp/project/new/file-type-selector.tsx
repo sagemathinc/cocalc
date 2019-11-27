@@ -17,7 +17,7 @@ interface Props {
   name: string;
 }
 
-// Use Rows and Cols to append more buttons to this class.
+// Use Rows and Cols to append more buttons to this component
 // Could be changed to auto adjust to a list of pre-defined button names.
 export function FileTypeSelector({
   name,
@@ -40,7 +40,6 @@ export function FileTypeSelector({
   const row_style = { marginBottom: "8px" };
   const available = available_features?.toJS() ?? {};
 
-  // console.log("FileTypeSelector: available", available)
   return (
     <>
       <Row style={row_style}>
