@@ -634,6 +634,7 @@ You can find the comments they made in the folders below.\
       if (create_due_date_file) {
         await this.copy_assignment_create_due_date_file(assignment_id);
       }
+      if (this.course_actions.is_closed()) return;
       this.course_actions.set_activity({
         id,
         desc: `Copying files to ${student_name}'s project`
@@ -837,8 +838,8 @@ You can find the comments they made in the folders below.\
     const prev_step =
       step == Step.assignment ? undefined : previous_step(step, peer);
     const f = async (student_id: string): Promise<void> => {
+      if (this.course_actions.is_closed()) return;
       const store = this.get_store();
-      if (store == null) return;
       if (
         prev_step != null &&
         !store.last_copied(prev_step, assignment_id, student_id, true)
@@ -929,6 +930,7 @@ You can find the comments they made in the folders below.\
     }
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = async (student_id: string): Promise<void> => {
+      if (this.course_actions.is_closed()) return;
       const src_path = assignment.get("collect_path") + "/" + student_id;
       const target_path = target_base_path + "/" + student_id;
       // delete the student's name so that grading is anonymous; also, remove original
@@ -945,6 +947,7 @@ You can find the comments they made in the folders below.\
           src_path + "/DUE_DATE.txt~"
         ]
       });
+      if (this.course_actions.is_closed()) return;
 
       // copy the files to be peer graded into place for this student
       await callback2(webapp_client.copy_path_between_projects, {
