@@ -229,14 +229,15 @@ export class AssignmentsActions {
   // Synchronous function that makes the peer grading map for the given
   // assignment, if it hasn't already been made.
   private update_peer_assignment(assignment_id: string) {
-    const store = this.get_store();
-    const a = store.get_assignment(assignment_id);
-    if (a == null) return;
-    const peers = a.getIn(["peer_grade", "map"]);
+    const { store, assignment } = this.course_actions.resolve({
+      assignment_id
+    });
+    if (!assignment) return;
+    const peers = assignment.getIn(["peer_grade", "map"]);
     if (peers != null) {
       return peers.toJS();
     }
-    const N = a.getIn(["peer_grade", "number"], 1);
+    const N = assignment.getIn(["peer_grade", "number"], 1);
     const map = peer_grading(store.get_student_ids(), N);
     this.set_peer_grade(assignment_id, { map });
     return map;
@@ -299,8 +300,7 @@ export class AssignmentsActions {
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
-      await callback2(webapp_client.write_text_file_to_project, {
-        project_id: store.get("course_project_id"),
+      await this.write_text_file_to_course_project({
         path: target_path + `/STUDENT - ${name.simple}.txt`,
         content: `This student is ${name.full}.`
       });
@@ -398,8 +398,7 @@ You can find the comments they made in the folders below.\
     }
 
     try {
-      await callback2(webapp_client.write_text_file_to_project, {
-        project_id: store.get("course_project_id"),
+      await this.write_text_file_to_course_project({
         path: src_path + "/GRADE.md",
         content
       });
@@ -677,12 +676,10 @@ You can find the comments they made in the folders below.\
       desc: `Creating ${due_date_fn} file...`
     });
     const content = `This assignment is due\n\n   ${due_date.toLocaleString()}`;
-    const project_id = store.get("course_project_id");
     const path = src_path + "/" + due_date_fn;
 
     try {
-      await callback2(webapp_client.write_text_file_to_project, {
-        project_id,
+      await this.write_text_file_to_course_project({
         path,
         content
       });
@@ -902,16 +899,14 @@ You can find the comments they made in the folders below.\
 
     const peer_map = this.update_peer_assignment(assignment_id); // synchronous
 
-    // list of student_id's
     if (peer_map == null) {
-      // empty peer assignment for this student (maybe added late)
       finish();
       return;
     }
 
     const peers = peer_map[student.get("student_id")];
     if (peers == null) {
-      // empty peer assignment for this student (maybe added late)
+      // empty peer assignment for this student (maybe student added after peer assignment already created?)
       finish();
       return;
     }
@@ -928,6 +923,10 @@ You can find the comments they made in the folders below.\
         `GRADING IS DUE ${new Date(due_date).toLocaleString()} \n\n ` +
         guidelines;
     }
+
+    const peer_grading_guidelines_file =
+      assignment.get("collect_path") + "/GRADING-GUIDE.md";
+
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = async (student_id: string): Promise<void> => {
       if (this.course_actions.is_closed()) return;
@@ -962,13 +961,19 @@ You can find the comments they made in the folders below.\
 
     try {
       // write instructions file to the student
-      await callback2(webapp_client.write_text_file_to_project, {
-        project_id: student_project_id,
-        path: target_base_path + "/GRADING_GUIDE.md",
+      await this.write_text_file_to_course_project({
+        path: peer_grading_guidelines_file,
         content: guidelines
       });
+      // copy it over
+      await callback2(webapp_client.copy_path_between_projects, {
+        src_project_id: store.get("course_project_id"),
+        src_path: peer_grading_guidelines_file,
+        target_project_id: student_project_id,
+        target_path: target_base_path + "/GRADING-GUIDE.md"
+      });
       // now copy actual stuff to grade
-      map(peers, PARALLEL_LIMIT, f);
+      await map(peers, PARALLEL_LIMIT, f);
       finish();
     } catch (err) {
       finish(err);
@@ -1042,23 +1047,21 @@ You can find the comments they made in the folders below.\
 
       // write local file identifying the grader
       let name = store.get_student_name_extra(student_id);
-      await callback2(webapp_client.write_text_file_to_project, {
-        project_id: store.get("course_project_id"),
+      await this.write_text_file_to_course_project({
         path: target_path + `/GRADER - ${name.simple}.txt`,
         content: `The student who did the peer grading is named ${name.full}.`
       });
 
       // write local file identifying student being graded
       name = store.get_student_name_extra(student_id);
-      await callback2(webapp_client.write_text_file_to_project, {
-        project_id: store.get("course_project_id"),
+      await this.write_text_file_to_course_project({
         path: target_path + `/STUDENT - ${name.simple}.txt`,
         content: `This student is ${name.full}.`
       });
     };
 
     try {
-      map(peers, PARALLEL_LIMIT, f);
+      await map(peers, PARALLEL_LIMIT, f);
       finish();
     } catch (err) {
       finish(err);
@@ -1129,5 +1132,16 @@ You can find the comments they made in the folders below.\
     }
     // Now open it
     redux.getProjectActions(proj).open_directory(path);
+  }
+
+  private async write_text_file_to_course_project(opts: {
+    path: string;
+    content: string;
+  }): Promise<void> {
+    await callback2(webapp_client.write_text_file_to_project, {
+      project_id: this.get_store().get("course_project_id"),
+      path: opts.path,
+      content: opts.content
+    });
   }
 }

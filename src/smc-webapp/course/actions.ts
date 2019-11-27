@@ -31,11 +31,7 @@ import * as misc from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import * as awaiting from "awaiting";
 import { SyncDB } from "smc-util/sync/editor/db/sync";
-import {
-  SyncDBRecord,
-  SyncDBRecordHandout,
-  UpgradeGoal
-} from "./types";
+import { SyncDBRecord, SyncDBRecordHandout, UpgradeGoal } from "./types";
 
 import { webapp_client } from "../webapp-client";
 
@@ -131,7 +127,6 @@ export class CourseActions extends Actions<CourseState> {
         store.get("handouts") != null
       )
     ) {
-      this.set_error("store must be initialized");
       return false;
     }
     return true;
@@ -238,10 +233,8 @@ export class CourseActions extends Actions<CourseState> {
 
   // important that this be bound...
   public handle_projects_store_update(state: Map<string, any>): void {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    const store = this.redux.getStore<CourseState, CourseStore>(this.name);
+    if (store == null) return; // not needed yet.
     let users = state.getIn([
       "project_map",
       store.get("course_project_id"),
@@ -508,7 +501,6 @@ export class CourseActions extends Actions<CourseState> {
 
   // ASSIGNMENT ACTIONS
   // These all hang off of this.assignments now.
-
 
   // HANDOUT ACTIONS
   public add_handout(path: string): void {

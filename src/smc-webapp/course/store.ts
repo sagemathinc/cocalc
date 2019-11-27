@@ -660,7 +660,10 @@ export class CourseStore extends Store<CourseState> {
         const x = assignment.getIn([`last_${t}`, student_id]) as
           | undefined
           | TypedMap<LastCopyInfo>;
-        if ((x != null && !x.get("error")) || assignment.get(`skip_${t}`)) {
+        if (
+          (x != null && !x.get("error") && !x.get("start")) ||
+          assignment.get(`skip_${t}`)
+        ) {
           previous = true;
           info[t] += 1;
         } else {
