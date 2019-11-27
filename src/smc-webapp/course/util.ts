@@ -59,20 +59,19 @@ export function STEPS(peer: boolean) {
   }
 }
 
-// Returns undefined if no previous step
-export function previous_step(step: Step, peer: boolean): Step | undefined {
+export function previous_step(step: Step, peer: boolean): Step {
   let prev: Step | undefined;
   for (const s of STEPS(peer)) {
     if (step === s) {
+      if (prev === undefined) break;
       return prev;
     }
     prev = s;
   }
-  console.warn(`BUG! previous_step('${step}, ${peer}')`);
-  return undefined;
+  throw Error(`BUG! previous_step('${step}, ${peer}')`);
 }
 
-export function step_direction(step: Step) {
+export function step_direction(step: Step): "to" | "from" {
   switch (step) {
     case "assignment":
       return "to";
@@ -85,7 +84,7 @@ export function step_direction(step: Step) {
     case "peer_collect":
       return "from";
     default:
-      return console.warn(`BUG! step_direction('${step}')`);
+      throw Error(`BUG! step_direction('${step}')`);
   }
 }
 

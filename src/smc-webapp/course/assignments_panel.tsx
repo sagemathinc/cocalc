@@ -213,7 +213,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           href=""
           onClick={e => {
             e.preventDefault();
-            return this.get_actions().set_active_assignment_sort(column_name);
+            return this.get_actions().assignments.set_active_assignment_sort(column_name);
           }}
         >
           {display_name}
@@ -360,9 +360,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
       return path => {
         if (deleted_paths[path] != null) {
-          this.get_actions().undelete_assignment(deleted_paths[path]);
+          this.get_actions().assignments.undelete_assignment(deleted_paths[path]);
         } else {
-          this.get_actions().add_assignment(path);
+          this.get_actions().assignments.add_assignment(path);
         }
       };
     }
@@ -534,7 +534,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (date == null) {
       date = this._due_date();
     }
-    this.get_actions().set_due_date(
+    this.get_actions().assignments.set_due_date(
       this.props.assignment.get("assignment_id"),
       date != null ? date.toISOString() : undefined
     );
@@ -565,7 +565,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             placeholder="Private notes about this assignment (not visible to students)"
             default_value={this.props.assignment.get("note")}
             on_save={value =>
-              this.get_actions().set_assignment_note(
+              this.get_actions().assignments.set_assignment_note(
                 this.props.assignment.get("assignment_id"),
                 value
               )
@@ -876,23 +876,23 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (assignment_id == null) throw Error("bug");
     switch (step) {
       case "assignment":
-        actions.copy_assignment_to_all_students(
+        actions.assignments.copy_assignment_to_all_students(
           assignment_id,
           new_only,
           overwrite
         );
         break;
       case "collect":
-        actions.copy_assignment_from_all_students(assignment_id, new_only);
+        actions.assignments.copy_assignment_from_all_students(assignment_id, new_only);
         break;
       case "peer_assignment":
-        actions.peer_copy_to_all_students(assignment_id, new_only);
+        actions.assignments.peer_copy_to_all_students(assignment_id, new_only);
         break;
       case "peer_collect":
-        actions.peer_collect_from_all_students(assignment_id, new_only);
+        actions.assignments.peer_collect_from_all_students(assignment_id, new_only);
         break;
       case "return_graded":
-        actions.return_assignment_to_all_students(assignment_id, new_only);
+        actions.assignments.return_assignment_to_all_students(assignment_id, new_only);
         break;
       default:
         console.log(`BUG -- unknown step: ${step}`);
@@ -1254,14 +1254,14 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   return_assignment = () => {
     // Return assignment to all (non-deleted) students.
-    this.get_actions().return_assignment_to_all_students(
+    this.get_actions().assignments.return_assignment_to_all_students(
       this.props.assignment.get("assignment_id"),
       false
     );
   };
 
   toggle_skip_grading = () => {
-    this.get_actions().set_skip(
+    this.get_actions().assignments.set_skip(
       this.props.assignment.get("assignment_id"),
       "grading",
       !this.props.assignment.get("skip_grading")
@@ -1351,14 +1351,14 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   delete_assignment = () => {
-    this.get_actions().delete_assignment(
+    this.get_actions().assignments.delete_assignment(
       this.props.assignment.get("assignment_id")
     );
     return this.setState({ confirm_delete: false });
   };
 
   undelete_assignment = () => {
-    return this.get_actions().undelete_assignment(
+    return this.get_actions().assignments.undelete_assignment(
       this.props.assignment.get("assignment_id")
     );
   };
@@ -1418,7 +1418,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   set_peer_grade = config => {
-    this.get_actions().set_peer_grade(
+    this.get_actions().assignments.set_peer_grade(
       this.props.assignment.get("assignment_id"),
       config
     );

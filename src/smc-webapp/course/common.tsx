@@ -245,29 +245,29 @@ export class StudentAssignmentInfo extends Component<
   }
 
   open = (type, assignment_id, student_id) => {
-    return this.get_actions().open_assignment(type, assignment_id, student_id);
+    return this.get_actions().assignments.open_assignment(type, assignment_id, student_id);
   };
 
   copy = (type, assignment_id, student_id) => {
-    return this.get_actions().copy_assignment(type, assignment_id, student_id);
+    return this.get_actions().assignments.copy_assignment(type, assignment_id, student_id);
   };
 
   stop = (type, assignment_id, student_id) => {
-    this.get_actions().stop_copying_assignment(assignment_id, student_id, type);
+    this.get_actions().assignments.stop_copying_assignment(assignment_id, student_id, type);
   };
 
   save_feedback = (e?: FormEvent<HTMLFormElement>) => {
     if (e) {
       e.preventDefault;
     }
-    this.get_actions().save_feedback(
+    this.get_actions().assignments.save_feedback(
       this.props.assignment.get("assignment_id"),
       this.props.student.get("student_id")
     );
   };
 
   set_edited_feedback = (grade?: string, comments?: string) => {
-    this.get_actions().update_edited_feedback(
+    this.get_actions().assignments.update_edited_feedback(
       this.props.assignment.get("assignment_id"),
       this.props.student.get("student_id"),
       grade,
@@ -285,7 +285,7 @@ export class StudentAssignmentInfo extends Component<
   };
 
   cancel_editing = () => {
-    this.get_actions().clear_edited_feedback(
+    this.get_actions().assignments.clear_edited_feedback(
       this.props.assignment.get("assignment_id"),
       this.props.student.get("student_id")
     );

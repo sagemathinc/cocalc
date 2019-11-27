@@ -34,7 +34,7 @@ export class SkipCopy extends Component<SkipCopyProps> {
   }
 
   click = () => {
-    this.props.actions.set_skip(
+    this.props.actions.assignments.set_skip(
       this.props.assignment.get("assignment_id"),
       this.props.step,
       !this.props.assignment.get(`skip_${this.props.step}` as any)
