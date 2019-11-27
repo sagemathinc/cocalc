@@ -355,6 +355,9 @@ export const Explorer = rclass<ReactProps>(
       if (!this.props.show_new) {
         return;
       }
+      const close = () => {
+        this.props.actions.toggle_new(false);
+      };
       return (
         <Row>
           <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
@@ -362,7 +365,9 @@ export const Explorer = rclass<ReactProps>(
               project_id={this.props.project_id}
               name={this.props.name}
               actions={this.props.actions}
-              close={() => this.props.actions.toggle_new(false)}
+              on_close={close}
+              on_create_file={close}
+              on_create_folder={close}
               show_header={true}
             />
           </Col>
