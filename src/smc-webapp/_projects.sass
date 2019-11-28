@@ -10,10 +10,18 @@
   padding       : 5px
   +file-tabs-base
 
-.smc-file-tabs-files-desktop > li > a
-  padding       : 11px 5px
-  +file-tabs-base
-  +disable-user-select
+.smc-file-tabs-files-desktop > li
+  > a
+    padding       : 11px 5px
+    +file-tabs-base
+    +disable-user-select
+  &.colorcoded > a
+    +file-tabs-base
+    +disable-user-select
+    border-radius : 0
+    height        : 26px
+    padding       : 5px 5px 0px 5px
+    margin-top    : 4px
 
 // MobileProjectPage
 

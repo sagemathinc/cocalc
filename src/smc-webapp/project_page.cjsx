@@ -468,7 +468,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         return tabs
 
     file_tab: (path, index, label) ->
-        filename         = misc.path_split(path).tail
+        {head, tail}     = misc.path_split(path)
+        filename         = tail
         # get the file_associations[ext] just like it is defined in the editor
         {file_options}   = require('./editor')
         icon             = file_options(filename)?.icon ? 'code-o'
@@ -476,6 +477,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             index        = {index}
             key          = {path}
             name         = {misc.path_to_tab(path)}
+            dir          = {head}
+            colorcoded   = {true}
             label        = {label}
             icon         = {icon}
             tooltip      = {path}

@@ -14,6 +14,8 @@ misc = require('smc-util/misc')
 
 {analytics_event} = require("../tracker")
 
+{color} = require('./file-tab-colorcoding')
+
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
     borderRadius : "5px 5px 0px 0px"
@@ -25,6 +27,7 @@ exports.FileTab = rclass
     displayName : 'FileTab'
 
     propTypes :
+        dir          : rtypes.string    # directory where the file is
         name         : rtypes.string
         label        : rtypes.string    # rendered tab title
         icon         : rtypes.string    # Affiliated icon
@@ -34,6 +37,7 @@ exports.FileTab = rclass
         file_tab     : rtypes.bool      # Whether or not this tab holds a file *editor*
         shrink       : rtypes.bool      # Whether or not to shrink to just the icon
         has_activity : rtypes.bool      # Whether or not some activity is happening with the file
+        colorcoded   : rtypes.bool      # colorcoded tabs for the directory
 
     getInitialState : ->
         x_hovered : false
@@ -86,6 +90,12 @@ exports.FileTab = rclass
             style = misc.copy(exports.DEFAULT_FILE_TAB_STYLES)
             if @props.is_active
                 style.backgroundColor = COLORS.BLUE_BG
+            if @props.colorcoded
+                style.borderRadius = "0"
+                style.borderBottom = "2px solid #{color(@props.dir)}"
+                console.log(color(@props.dir), style.borderBottom)
+                #style.position = "relative"
+                #style.top = "-2px"
         else
             style.flex = 'none'
 
@@ -153,8 +163,9 @@ exports.FileTab = rclass
             </div>
 
         <NavItem
-            ref         = 'tab'
+            ref         = {'tab'}
             style       = {style}
+            className   = {'colorcoded' if @props.colorcoded}
             active      = {@props.is_active}
             onClick     = {@click}
             cocalc-test = {@props.label}
