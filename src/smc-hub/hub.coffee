@@ -79,6 +79,7 @@ MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
+{lti_service} = require('./lti/lti')
 
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
@@ -565,6 +566,11 @@ exports.start_server = start_server = (cb) ->
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
+        #(cb) ->
+        #    f = =>
+        #        await lti_service(base_url:BASE_URL, port:program.port)
+        #        cb()
+        #    f()
         (cb) ->
             if not program.share_port
                 cb(); return
@@ -709,6 +715,7 @@ command_line = () ->
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
+        .option('--lti', 'just start the LTI service')
         .parse(process.argv)
 
         # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -762,6 +769,10 @@ command_line = () ->
                 else
                      console.log("User added to project.")
                 process.exit()
+        else if program.lti
+            console.log("LTI MODE")
+            await lti_service(port:program.port)
+            #process.exit()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
