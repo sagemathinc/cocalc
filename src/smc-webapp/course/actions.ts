@@ -28,7 +28,7 @@ import { Map } from "immutable";
 
 // CoCalc libraries
 import { SyncDB } from "smc-util/sync/editor/db/sync";
-import { SyncDBRecord, UpgradeGoal } from "./types";
+import { SyncDBRecord } from "./types";
 
 // Course Library
 import {
@@ -45,6 +45,7 @@ import { StudentsActions } from "./students/actions";
 import { StudentProjectsActions } from "./student-projects/actions";
 import { AssignmentsActions } from "./assignments/actions";
 import { HandoutsActions } from "./handouts/actions";
+import { ConfigurationActions } from "./configuration/actions";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -63,11 +64,12 @@ export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
   private last_collaborator_state: any;
   private activity: ActivityActions;
-  private students: StudentsActions;
+  public students: StudentsActions;
   public student_projects: StudentProjectsActions;
   public shared_project: SharedProjectActions;
   public assignments: AssignmentsActions;
   public handouts: HandoutsActions;
+  public configuration: ConfigurationActions;
   private state: "init" | "ready" | "closed" = "init";
 
   constructor(name, redux) {
@@ -82,6 +84,7 @@ export class CourseActions extends Actions<CourseState> {
     this.student_projects = new StudentProjectsActions(this);
     this.assignments = new AssignmentsActions(this);
     this.handouts = new HandoutsActions(this);
+    this.configuration = new ConfigurationActions(this);
   }
 
   public get_store(): CourseStore {
@@ -276,98 +279,13 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // CONFIGURATION ACTIONS
-  public set_title(title: string): void {
-    this.set({ title, table: "settings" });
-    this.student_projects.set_all_student_project_titles(title);
-    this.shared_project.set_project_title();
-  }
-
-  public set_description(description: string): void {
-    this.set({ description, table: "settings" });
-    this.student_projects.set_all_student_project_descriptions(description);
-    this.shared_project.set_project_description();
-  }
-
-  public set_pay_choice(type: string, value: boolean): void {
-    this.set({ [type + "_pay"]: value, table: "settings" });
-    if (type == "student") {
-      if (value) {
-        this.student_projects.set_all_student_project_course_info();
-      } else {
-        this.student_projects.set_all_student_project_course_info("");
-      }
-    }
-  }
-
-  public set_upgrade_goal(upgrade_goal: UpgradeGoal): void {
-    this.set({ upgrade_goal, table: "settings" });
-  }
-
-  public set_allow_collabs(allow_collabs: boolean): void {
-    this.set({ allow_collabs, table: "settings" });
-    this.student_projects.configure_all_projects();
-  }
-
-  public set_email_invite(body: string): void {
-    this.set({ email_invite: body, table: "settings" });
-  }
-
-  // Set the pay option for the course, and ensure that the course fields are
-  // set on every student project in the course (see schema.coffee for format
-  // of the course field) to reflect this change in the database.
-  public async set_course_info(pay: string = ""): Promise<void> {
-    this.set({
-      pay,
-      table: "settings"
-    });
-    await this.student_projects.set_all_student_project_course_info(pay);
-  }
+  // These hang off of this.configuration
 
   // SHARED PROJECT ACTIONS
   // These hang off of this.shared_project
 
   // STUDENTS ACTIONS
-  public async add_students(
-    students: { account_id?: string; email_address?: string }[]
-  ): Promise<void> {
-    await this.students.add_students(students);
-  }
-
-  public async delete_student(student_id: string): Promise<void> {
-    await this.students.delete_student(student_id);
-  }
-
-  public async undelete_student(student_id: string): void {
-    await this.students.undelete_student(student_id);
-  }
-
-  public async delete_all_students(): Promise<void> {
-    await this.students.delete_all_students();
-  }
-
-  // Some students might *only* have been added using their email address, but they
-  // subsequently signed up for an CoCalc account.  We check for any of these and if
-  // we find any, we add in the account_id information about that student.
-  public async lookup_nonregistered_students(): Promise<void> {
-    await this.students.lookup_nonregistered_students();
-  }
-
-  // columns: first_name, last_name, email, last_active, hosting
-  // Toggles ascending/decending order
-  public set_active_student_sort(column_name: string): void {
-    this.students.set_active_student_sort(column_name);
-  }
-
-  public async set_internal_student_info(
-    student_id: string,
-    info: { first_name: string; last_name: string; email_address?: string }
-  ): Promise<void> {
-    await this.students.set_internal_student_info(student_id, info);
-  }
-
-  public set_student_note(student_id: string, note: string): void {
-    this.students.set_student_note(student_id, note);
-  }
+  // These hang off of this.students
 
   // STUDENT PROJECTS ACTIONS
   // These all hang off of this.student_projects now.
@@ -377,7 +295,6 @@ export class CourseActions extends Actions<CourseState> {
 
   // HANDOUT ACTIONS
   // These all hang off of this.handouts now.
-
 
   // UTILITY FUNCTIONS
 

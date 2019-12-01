@@ -167,7 +167,7 @@ export class HandoutsActions {
       handout_id,
       finish
     });
-    if (!store || !student || !handout) return;
+    if (!student || !handout) return;
 
     const student_name = store.get_student_name(student_id);
     this.course_actions.set_activity({

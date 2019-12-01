@@ -9,7 +9,7 @@ export const Students = wrap(StudentsPanel);
 import { HandoutsPanel } from "../../course/handouts/handouts-panel";
 export const Handouts = wrap(HandoutsPanel);
 
-import { ConfigurationPanel } from "../../course/configuration_panel";
+import { ConfigurationPanel } from "../../course/configuration/configuration-panel";
 export const Configuration = wrap(ConfigurationPanel);
 
 import { SharedProjectPanel } from "../../course/shared-project/shared-project-panel";

@@ -141,7 +141,7 @@ class StudentProjectUpgrades extends Component<
     this.setState({ upgrade_quotas: false });
     const a = this.get_actions();
     const upgrade_goal = this.upgrade_goal();
-    a.set_upgrade_goal(upgrade_goal);
+    a.configuration.set_upgrade_goal(upgrade_goal);
     a.student_projects.upgrade_all_student_projects(upgrade_goal);
   };
 
@@ -585,7 +585,7 @@ class StudentProjectUpgrades extends Component<
   }
 
   handle_institute_pay_checkbox = e => {
-    return this.get_actions().set_pay_choice("institute", e.target.checked);
+    return this.get_actions().configuration.set_pay_choice("institute", e.target.checked);
   };
 
   render_checkbox() {

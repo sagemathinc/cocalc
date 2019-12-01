@@ -355,7 +355,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           students.push({ email_address: y });
         }
       }
-      this.get_actions().add_students(students);
+      this.get_actions().students.add_students(students);
       return this.setState({
         err: undefined,
         add_select: undefined,
@@ -377,7 +377,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           students.push({ email_address: entry.email_address });
         }
       }
-      this.get_actions().add_students(students);
+      this.get_actions().students.add_students(students);
       return this.setState({
         err: undefined,
         add_select: undefined,
@@ -734,7 +734,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           href=""
           onClick={e => {
             e.preventDefault();
-            return this.get_actions().set_active_student_sort(column_name);
+            return this.get_actions().students.set_active_student_sort(column_name);
           }}
         >
           {display_name}
@@ -1263,7 +1263,7 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   save_student_changes = () => {
-    this.get_actions().set_internal_student_info(
+    this.get_actions().students.set_internal_student_info(
       this.props.student.get("student_id"),
       {
         first_name: this.state.edited_first_name,
@@ -1280,12 +1280,12 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   delete_student = () => {
-    this.get_actions().delete_student(this.props.student.get("student_id"));
+    this.get_actions().students.delete_student(this.props.student.get("student_id"));
     this.setState({ confirm_delete: false });
   };
 
   undelete_student = () => {
-    this.get_actions().undelete_student(this.props.student.get("student_id"));
+    this.get_actions().students.undelete_student(this.props.student.get("student_id"));
   };
 
   render_confirm_delete() {
@@ -1430,7 +1430,7 @@ class Student extends Component<StudentProps, StudentState> {
             placeholder="Notes about student (not visible to student)"
             default_value={this.props.student.get("note")}
             on_save={value =>
-              this.get_actions().set_student_note(
+              this.get_actions().students.set_student_note(
                 this.props.student.get("student_id"),
                 value
               )
