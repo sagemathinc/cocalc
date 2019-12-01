@@ -71,17 +71,17 @@ import {
   ErrorDisplay
 } from "../../r_misc";
 
-import { StudentProjectUpgrades } from "../upgrades";
+import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
 import { ProjectMap } from "../../todo-types";
 import { CourseSettingsRecord, CourseStore } from "../store";
-import { HelpBox } from "../help_box";
+import { HelpBox } from "./help-box";
 
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
 import { DeleteAllStudents } from "./delete-all-students";
 
-import { DeleteSharedProjectPanel } from "../delete_shared_project";
-import { TerminalCommandPanel } from "../terminal-command";
+import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
+import { TerminalCommandPanel } from "./terminal-command";
 
 import { upgrades } from "smc-util/upgrade-spec";
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
@@ -151,8 +151,12 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
         <Alert bsStyle={bsStyle}>
           {misc.capitalize(state_name)} all projects...{" "}
           <Icon name="cc-icon-cocalc-ring" spin />
-          <br/>
-          <Button onClick={()=>this.get_actions().student_projects.cancel_action_all_student_projects()}>
+          <br />
+          <Button
+            onClick={() =>
+              this.get_actions().student_projects.cancel_action_all_student_projects()
+            }
+          >
             Cancel
           </Button>
         </Alert>
@@ -171,7 +175,9 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               bsStyle="warning"
               onClick={() => {
                 this.setState({ confirm_stop_all_projects: false });
-                this.get_actions().student_projects.action_all_student_projects("stop");
+                this.get_actions().student_projects.action_all_student_projects(
+                  "stop"
+                );
               }}
             >
               <Icon name="hand-stop-o" /> Stop all
@@ -200,7 +206,9 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               bsStyle="primary"
               onClick={() => {
                 this.setState({ confirm_start_all_projects: false });
-                this.get_actions().student_projects.action_all_student_projects("start");
+                this.get_actions().student_projects.action_all_student_projects(
+                  "start"
+                );
               }}
             >
               <Icon name="flash" /> Start all
@@ -424,7 +432,9 @@ export class ConfigurationPanel extends Component<
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
-            on_change={title => this.get_actions().configuration.set_title(title)}
+            on_change={title =>
+              this.get_actions().configuration.set_title(title)
+            }
           />
         </LabeledRow>
         <LabeledRow label="Description">
@@ -434,7 +444,9 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.props.settings.get("description")}
-            on_save={desc => this.get_actions().configuration.set_description(desc)}
+            on_save={desc =>
+              this.get_actions().configuration.set_description(desc)
+            }
           />
         </LabeledRow>
         <hr />
@@ -721,7 +733,9 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.get_store().get_email_invite()}
-            on_save={body => this.get_actions().configuration.set_email_invite(body)}
+            on_save={body =>
+              this.get_actions().configuration.set_email_invite(body)
+            }
             save_disabled={this.state.email_body_error != null}
             on_change={this.check_email_body}
             on_cancel={() => this.setState({ email_body_error: undefined })}
@@ -752,7 +766,9 @@ export class ConfigurationPanel extends Component<
         <hr />
         <Button
           disabled={this.props.configuring_projects}
-          onClick={() => this.get_actions().student_projects.configure_all_projects(true)}
+          onClick={() =>
+            this.get_actions().student_projects.configure_all_projects(true)
+          }
         >
           {this.props.configuring_projects ? (
             <Icon name="cc-icon-cocalc-ring" spin />
@@ -823,7 +839,10 @@ export class ConfigurationPanel extends Component<
   }
 
   handle_student_pay_choice = e => {
-    return this.get_actions().configuration.set_pay_choice("student", e.target.checked);
+    return this.get_actions().configuration.set_pay_choice(
+      "student",
+      e.target.checked
+    );
   };
 
   render_require_students_pay_desc() {
@@ -863,7 +882,9 @@ export class ConfigurationPanel extends Component<
         <div style={{ width: "50%", marginLeft: "3em", marginBottom: "1ex" }}>
           <Calendar
             value={value != null ? value : this.props.settings.get("pay")}
-            on_change={date => this.get_actions().configuration.set_course_info(date)}
+            on_change={date =>
+              this.get_actions().configuration.set_course_info(date)
+            }
           />
         </div>
         {this.props.settings.get("pay")
@@ -885,7 +906,9 @@ export class ConfigurationPanel extends Component<
 
   handle_students_pay_checkbox = e => {
     if (e.target.checked) {
-      this.get_actions().configuration.set_course_info(this.get_student_pay_when());
+      this.get_actions().configuration.set_course_info(
+        this.get_student_pay_when()
+      );
     } else {
       this.get_actions().configuration.set_course_info("");
     }
@@ -1057,7 +1080,9 @@ export class ConfigurationPanel extends Component<
   render_delete_student_projects() {
     return (
       <DeleteAllStudentProjects
-        delete_projects={() => this.get_actions().student_projects.delete_all_student_projects()}
+        delete_projects={() =>
+          this.get_actions().student_projects.delete_all_student_projects()
+        }
       />
     );
   }
@@ -1065,7 +1090,9 @@ export class ConfigurationPanel extends Component<
   render_delete_all_students() {
     return (
       <DeleteAllStudents
-        delete_all_students={() => this.get_actions().students.delete_all_students()}
+        delete_all_students={() =>
+          this.get_actions().students.delete_all_students()
+        }
       />
     );
   }
@@ -1080,7 +1107,9 @@ export class ConfigurationPanel extends Component<
     return (
       <DisableStudentCollaboratorsPanel
         checked={!!this.props.settings.get("allow_collabs")}
-        on_change={val => this.get_actions().configuration.set_allow_collabs(val)}
+        on_change={val =>
+          this.get_actions().configuration.set_allow_collabs(val)
+        }
       />
     );
   }

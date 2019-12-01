@@ -23,10 +23,10 @@
 //
 //#############################################################################
 
-import { Component, React } from "../app-framework";
+import { Component, React } from "../../app-framework";
 import { Button, ButtonToolbar, Well } from "react-bootstrap";
 import { Card } from "cocalc-ui";
-import { Icon } from "../r_misc";
+import { Icon } from "../../r_misc";
 
 interface DeleteSharedProjectPanelProps {
   delete: () => void;

@@ -8,10 +8,10 @@
 Skip assigning or collecting an assignment, so next step can be attempted.
 */
 
-import { React, Component } from "../app-framework";
-import { CourseActions } from "./actions";
-import { AssignmentRecord } from "./store";
-import { Icon, Space, Tip } from "../r_misc";
+import { React, Component } from "../../app-framework";
+import { CourseActions } from "../actions";
+import { AssignmentRecord } from "../store";
+import { Icon, Space, Tip } from "../../r_misc";
 import { Button } from "react-bootstrap";
 
 interface SkipCopyProps {

@@ -18,9 +18,9 @@
 //
 //#############################################################################
 
-import { React } from "../app-framework";
 import { Card } from "cocalc-ui";
-import { Icon } from "../r_misc";
+import { React } from "../../app-framework";
+import { Icon } from "../../r_misc";
 import { SITE_NAME, LIVE_DEMO_REQUEST } from "smc-util/theme";
 
 export function HelpBox() {

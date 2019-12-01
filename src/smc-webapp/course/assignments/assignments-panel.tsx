@@ -94,8 +94,8 @@ import {
   StudentAssignmentInfoHeader
 } from "../common";
 
-import { Progress } from "../progress";
-import { SkipCopy } from "../skip";
+import { Progress } from "../common/progress";
+import { SkipCopy } from "./skip";
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;

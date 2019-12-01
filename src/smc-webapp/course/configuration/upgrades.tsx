@@ -29,7 +29,7 @@
 // Upgrading quotas for all student projects
 //#############################################################################
 
-import { UpgradeGoal } from "./types";
+import { UpgradeGoal } from "../types";
 import * as misc from "smc-util/misc";
 
 import * as schema from "smc-util/schema";
@@ -44,9 +44,9 @@ import {
   rclass,
   Rendered,
   TypedMap
-} from "../app-framework";
-import { CourseActions } from "./actions";
-import { CourseStore } from "./store";
+} from "../../app-framework";
+import { CourseActions } from "../actions";
+import { CourseStore } from "../store";
 
 import {
   A,
@@ -55,9 +55,9 @@ import {
   NoUpgrades,
   Tip,
   UPGRADE_ERROR_STYLE
-} from "../r_misc";
+} from "../../r_misc";
 
-import { UpgradeRestartWarning } from "../upgrade-restart-warning";
+import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 
 import {
   Alert,

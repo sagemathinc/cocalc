@@ -7,14 +7,15 @@ import {
   rtypes,
   redux,
   rclass
-} from "../app-framework";
+} from "../../app-framework";
+
 import { FormControl, FormGroup, InputGroup, Button } from "react-bootstrap";
 
 import { Card } from "cocalc-ui";
 
-import { Icon } from "../r_misc";
+import { Icon } from "../../r_misc";
 
-import { Result } from "./student-projects/run-in-all-projects";
+import { Result } from "../student-projects/run-in-all-projects";
 
 interface Props {
   name: string;

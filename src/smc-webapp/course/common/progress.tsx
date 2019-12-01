@@ -8,8 +8,8 @@
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
-import { React, Component } from "../app-framework";
-import { Icon, Space } from "../r_misc";
+import { React, Component } from "../../app-framework";
+import { Icon, Space } from "../../r_misc";
 
 import { COLORS } from "smc-util/theme";
 
