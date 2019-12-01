@@ -1,31 +1,23 @@
 /*
-Panel for configuring peer grading
+Panel for configuring peer grading.
 */
 
-import {
-  Component,
-  React,
-  Rendered
-} from "../../app-framework";
+import { Component, React, Rendered } from "../../app-framework";
 
-import  {server_days_ago} from "smc-util/misc";
+import { server_days_ago } from "smc-util/misc";
 import { AssignmentRecord } from "../store";
 import { CourseActions } from "../actions";
 
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Grid
-} from "react-bootstrap";
+import { Button, Checkbox } from "react-bootstrap";
+
+import { Card, Row, Col } from "cocalc-ui";
 
 import {
   DateTimePicker,
   Icon,
-  LabeledRow,
   MarkdownInput,
   Tip,
-  NumberInput,
+  NumberInput
 } from "../../r_misc";
 
 interface Props {
@@ -34,8 +26,7 @@ interface Props {
 }
 
 export class ConfigurePeerGrading extends Component<Props> {
-
-  render_configure_peer_checkbox(config) {
+  private render_configure_peer_checkbox(config): Rendered {
     return (
       <div>
         <Checkbox
@@ -52,7 +43,7 @@ export class ConfigurePeerGrading extends Component<Props> {
     );
   }
 
-  _peer_due(date): Date | undefined {
+  private peer_due(date): Date | undefined {
     if (date == null) {
       return date;
     }
@@ -63,15 +54,15 @@ export class ConfigurePeerGrading extends Component<Props> {
     }
   }
 
-  set_peer_grade = config => {
+  private set_peer_grade = config => {
     this.props.actions.assignments.set_peer_grade(
       this.props.assignment.get("assignment_id"),
       config
     );
   };
 
-  peer_due_change = date => {
-    const due_date = this._peer_due(date);
+  private peer_due_change = date => {
+    const due_date = this.peer_due(date);
     let due_date_string: string | undefined;
     if (due_date != undefined) {
       due_date_string = due_date.toISOString();
@@ -81,8 +72,7 @@ export class ConfigurePeerGrading extends Component<Props> {
     });
   };
 
-
-  render_configure_peer_due(config) {
+  private render_configure_peer_due(config): Rendered {
     const label = (
       <Tip
         placement="top"
@@ -93,100 +83,112 @@ export class ConfigurePeerGrading extends Component<Props> {
       </Tip>
     );
     return (
-      <LabeledRow label_cols={6} label={label}>
-        <DateTimePicker
-          placeholder={"Set Peer Grading Due Date"}
-          value={this._peer_due(config.due_date)}
-          onChange={this.peer_due_change}
-        />
-      </LabeledRow>
+      <Row>
+        <Col span={12}>{label}</Col>
+        <Col span={12}>
+          <DateTimePicker
+            placeholder={"Set Peer Grading Due Date"}
+            value={this.peer_due(config.due_date)}
+            onChange={this.peer_due_change}
+          />
+        </Col>
+      </Row>
     );
   }
 
-  render_configure_peer_number(config) {
+  private render_configure_peer_number(config): Rendered {
     let left;
     const store = this.props.actions.get_store();
     return (
-      <LabeledRow
-        label_cols={6}
-        label="Number of students who will grade each assignment"
-      >
-        <NumberInput
-          on_change={n => this.set_peer_grade({ number: n })}
-          min={1}
-          max={
-            ((left = store != null ? store.num_students() : undefined) != null
-              ? left
-              : 2) - 1
-          }
-          number={config.number != null ? config.number : 1}
-        />
-      </LabeledRow>
+      <Row>
+        <Col span={12}>Number of students who will grade each assignment</Col>
+        <Col span={12}>
+          <NumberInput
+            on_change={n => this.set_peer_grade({ number: n })}
+            min={1}
+            max={
+              ((left = store != null ? store.num_students() : undefined) != null
+                ? left
+                : 2) - 1
+            }
+            number={config.number != null ? config.number : 1}
+          />
+        </Col>
+      </Row>
     );
   }
 
-  render_configure_grading_guidelines(config) {
+  private render_configure_grading_guidelines(config): Rendered {
     return (
       <div style={{ marginTop: "10px" }}>
-        <LabeledRow
-          label_cols={6}
-          label="Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines."
-        >
-          <div
-            style={{
-              background: "white",
-              padding: "10px",
-              border: "1px solid #ccc",
-              borderRadius: "3px"
-            }}
-          >
-            <MarkdownInput
-              persist_id={
-                this.props.assignment.get("path") +
-                this.props.assignment.get("assignment_id") +
-                "grading-guidelines"
-              }
-              attach_to={this.props.actions.name}
-              rows={16}
-              placeholder="Enter your grading guidelines for this assignment..."
-              default_value={config.guidelines}
-              on_save={x => this.set_peer_grade({ guidelines: x })}
-            />
-          </div>
-        </LabeledRow>
+        <Row>
+          <Col span={12}>
+            Grading guidelines, which will be made available to students in
+            their grading folder in a file GRADING_GUIDE.md. Tell your students
+            how to grade each problem. Since this is a markdown file, you might
+            also provide a link to a publicly shared file or directory with
+            guidelines.
+          </Col>
+          <Col span={12}>
+            <div
+              style={{
+                background: "white",
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "3px"
+              }}
+            >
+              <MarkdownInput
+                persist_id={
+                  this.props.assignment.get("path") +
+                  this.props.assignment.get("assignment_id") +
+                  "grading-guidelines"
+                }
+                attach_to={this.props.actions.name}
+                rows={16}
+                placeholder="Enter your grading guidelines for this assignment..."
+                default_value={config.guidelines}
+                on_save={x => this.set_peer_grade({ guidelines: x })}
+              />
+            </div>
+          </Col>
+        </Row>
       </div>
     );
   }
 
+  private render_configure_grid(config): Rendered {
+    return (
+      <div>
+        {this.render_configure_peer_number(config)}
+        {this.render_configure_peer_due(config)}
+        {this.render_configure_grading_guidelines(config)}
+      </div>
+    );
+  }
 
-
-  public render() : Rendered {
+  public render(): Rendered {
     const peer_info = this.props.assignment.get("peer_grade");
     let config: { enabled?: boolean } = {};
     if (peer_info) {
       config = peer_info.toJS();
     }
     return (
-      <Alert bsStyle="warning">
-        <h3>
-          <Icon name="users" /> Peer grading
-        </h3>
-
+      <Card
+        style={{ background: "#fcf8e3", whiteSpace: "normal" }}
+        title={
+          <h3>
+            <Icon name="users" /> Peer grading
+          </h3>
+        }
+      >
         <div style={{ color: "#666" }}>
           Use peer grading to randomly (and anonymously) redistribute collected
           homework to your students, so that they can grade it for you.
         </div>
 
         {this.render_configure_peer_checkbox(config)}
-        <Grid fluid={true}>
-          {config.enabled
-            ? this.render_configure_peer_number(config)
-            : undefined}
-          {config.enabled ? this.render_configure_peer_due(config) : undefined}
-          {config.enabled
-            ? this.render_configure_grading_guidelines(config)
-            : undefined}
-        </Grid>
+        {config.enabled ? this.render_configure_grid(config) : undefined}
         <Button
           onClick={() =>
             this.props.actions.toggle_item_expansion(
@@ -197,9 +199,7 @@ export class ConfigurePeerGrading extends Component<Props> {
         >
           Close
         </Button>
-      </Alert>
+      </Card>
     );
   }
-
-
 }
