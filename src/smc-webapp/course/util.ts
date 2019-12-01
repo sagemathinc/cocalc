@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -101,7 +93,7 @@ export function step_verb(step: Step) {
     case "peer_collect":
       return "collect";
     default:
-      return console.warn(`BUG! step_verb('${step}')`);
+      throw Error(`BUG! step_verb('${step}')`);
   }
 }
 
@@ -135,37 +127,28 @@ export function step_ready(step: Step, n) {
 // }
 export function parse_students(student_map: StudentsMap, user_map, redux) {
   const v = immutable_to_list(student_map, "student_id");
-  for (var x of v) {
+  for (const x of v) {
     if (x.account_id != null) {
       const user = user_map.get(x.account_id);
       if (x.first_name == null) {
-        var left;
-        x.first_name =
-          (left = user != null ? user.get("first_name") : undefined) != null
-            ? left
-            : "";
+        x.first_name = user == null ? "" : user.get("first_name", "");
       }
       if (x.last_name == null) {
-        var left1;
-        x.last_name =
-          (left1 = user != null ? user.get("last_name") : undefined) != null
-            ? left1
-            : "";
+        x.last_name = user == null ? "" : user.get("last_name", "");
       }
       if (x.project_id != null) {
-        x.last_active = __guardMethod__(
-          __guard__(
-            redux.getStore("projects").get_last_active(x.project_id),
-            x1 => x1.get(x.account_id)
-          ),
-          "getTime",
-          o => o.getTime()
-        );
-        const upgrades = redux
-          .getStore("projects")
-          .get_total_project_quotas(x.project_id);
-        if (upgrades != null) {
-          x.hosting = upgrades.member_host;
+        const projects_store = redux.getStore("projects");
+        if (projects_store != null) {
+          const last_active = projects_store.get_last_active(x.project_id);
+          if (last_active != null) {
+            x.last_active = last_active.get(x.account_id);
+          }
+          const upgrades = projects_store.get_total_project_quotas(
+            x.project_id
+          );
+          if (upgrades != null) {
+            x.hosting = upgrades.member_host;
+          }
         }
       }
     }
@@ -210,7 +193,7 @@ export function immutable_to_list(x: any, primary_key?): any {
   x.map((val, key) => v.push(misc.merge(val.toJS(), { [primary_key]: key })));
   return v;
 }
-Object.assign;
+
 // Returns a list of matched objects and the number of objects
 // which were in the original list but omitted in the returned list
 export function compute_match_list(opts) {
@@ -322,21 +305,4 @@ export function assignment_identifier(
   student_id: string
 ): string {
   return assignment_id + student_id;
-}
-
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
-  }
-}
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
