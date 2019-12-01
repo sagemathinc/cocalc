@@ -229,9 +229,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
                         tip='RMarkdown document with real-time preview.'>
                         <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
                     </Tip> if available.rmd}
-                    <Tip title='Task list'   icon='tasks'
-                        tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
-                        <NewFileButton icon='tasks' name='Task list' on_click={@props.create_file} ext='tasks' />
+                    <Tip title='To do list'   icon='tasks'
+                        tip='Create a to do list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
+                        <NewFileButton icon='tasks' name='To do list' on_click={@props.create_file} ext='tasks' />
                     </Tip>
                     <Tip title='Stopwatch'   icon='stopwatch'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
