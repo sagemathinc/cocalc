@@ -30,9 +30,9 @@
 
 // CoCalc libraries
 import * as misc from "smc-util/misc";
-import { webapp_client } from "../webapp-client";
+import { webapp_client } from "../../webapp-client";
 
-import { AssignmentStatus } from "./types";
+import { AssignmentStatus } from "../types";
 
 // React libraries
 import {
@@ -43,7 +43,7 @@ import {
   redux,
   AppRedux,
   Rendered
-} from "../app-framework";
+} from "../../app-framework";
 
 import {
   Alert,
@@ -62,16 +62,16 @@ import { Card } from "cocalc-ui";
 import { Set, Map } from "immutable";
 
 // CoCalc and course components
-import * as util from "./util";
-import * as styles from "./styles";
+import * as util from "../util";
+import * as styles from "../styles";
 import {
   StudentRecord,
   AssignmentRecord,
   SortDescription,
   CourseStore,
   IsGradingMap
-} from "./store";
-import { CourseActions } from "./actions";
+} from "../store";
+import { CourseActions } from "../actions";
 import { ReactElement } from "react";
 import {
   DateTimePicker,
@@ -83,19 +83,19 @@ import {
   Tip,
   NumberInput,
   WindowedList
-} from "../r_misc";
+} from "../../r_misc";
 
-import { STEPS, step_direction, step_verb, step_ready } from "./util";
+import { STEPS, step_direction, step_verb, step_ready } from "../util";
 
 import {
   BigTime,
   FoldersToolbar,
   StudentAssignmentInfo,
   StudentAssignmentInfoHeader
-} from "./common";
+} from "../common";
 
-import { Progress } from "./progress";
-import { SkipCopy } from "./skip";
+import { Progress } from "../progress";
+import { SkipCopy } from "../skip";
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;

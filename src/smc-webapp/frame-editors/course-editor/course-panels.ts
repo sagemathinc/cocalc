@@ -1,6 +1,6 @@
 import { wrap } from "./course-panel-wrapper";
 
-import { AssignmentsPanel } from "../../course/assignments_panel";
+import { AssignmentsPanel } from "../../course/assignments/assignments-panel";
 export const Assignments = wrap(AssignmentsPanel);
 
 import { StudentsPanel } from "../../course/students/students-panel";
