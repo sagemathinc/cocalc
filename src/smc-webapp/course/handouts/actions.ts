@@ -183,7 +183,7 @@ export class HandoutsActions {
           id,
           desc: `${student_name}'s project doesn't exist, so creating it.`
         });
-        student_project_id = await this.course_actions.create_student_project(student_id);
+        student_project_id = await this.course_actions.student_projects.create_student_project(student_id);
       }
 
       this.course_actions.set_activity({

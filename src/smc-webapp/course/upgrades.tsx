@@ -142,7 +142,7 @@ class StudentProjectUpgrades extends Component<
     const a = this.get_actions();
     const upgrade_goal = this.upgrade_goal();
     a.set_upgrade_goal(upgrade_goal);
-    a.upgrade_all_student_projects(upgrade_goal);
+    a.student_projects.upgrade_all_student_projects(upgrade_goal);
   };
 
   render_upgrade_heading(num_projects) {
@@ -455,7 +455,7 @@ class StudentProjectUpgrades extends Component<
     const quotas = JSON.parse(s);
     // This console.log is intentional.
     console.log(`admin upgrade '${s}' -->`, quotas);
-    this.get_actions().admin_upgrade_all_student_projects(quotas);
+    this.get_actions().student_projects.admin_upgrade_all_student_projects(quotas);
     return false;
   };
 

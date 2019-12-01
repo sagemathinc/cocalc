@@ -39,7 +39,6 @@ import {
   HandoutRecord
 } from "./store";
 
-import { Result } from "./student-projects/run-in-all-projects";
 import { SharedProjectActions } from "./shared-project/actions";
 import { ActivityActions } from "./activity/actions";
 import { StudentsActions } from "./students/actions";
@@ -64,9 +63,9 @@ export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
   private last_collaborator_state: any;
   private activity: ActivityActions;
-  public shared_project: SharedProjectActions;
   private students: StudentsActions;
-  private student_projects: StudentProjectsActions;
+  public student_projects: StudentProjectsActions;
+  public shared_project: SharedProjectActions;
   public assignments: AssignmentsActions;
   public handouts: HandoutsActions;
   private state: "init" | "ready" | "closed" = "init";
@@ -245,7 +244,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     if (!this.last_collaborator_state.equals(users)) {
-      this.configure_all_projects();
+      this.student_projects.configure_all_projects();
     }
     this.last_collaborator_state = users;
   }
@@ -306,7 +305,7 @@ export class CourseActions extends Actions<CourseState> {
 
   public set_allow_collabs(allow_collabs: boolean): void {
     this.set({ allow_collabs, table: "settings" });
-    this.configure_all_projects();
+    this.student_projects.configure_all_projects();
   }
 
   public set_email_invite(body: string): void {
@@ -326,7 +325,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // SHARED PROJECT ACTIONS
   // These hang off of this.shared_project
-  
+
   // STUDENTS ACTIONS
   public async add_students(
     students: { account_id?: string; email_address?: string }[]
@@ -371,61 +370,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // STUDENT PROJECTS ACTIONS
-
-  // Create a single student project.
-  public async create_student_project(
-    student_id: string
-  ): Promise<string | undefined> {
-    return await this.student_projects.create_student_project(student_id);
-  }
-
-  // start or stop projects of all (non-deleted) students running
-  public action_all_student_projects(action: "start" | "stop"): void {
-    this.student_projects.action_all_student_projects(action);
-  }
-
-  public cancel_action_all_student_projects(): void {
-    this.setState({ action_all_projects_state: "any" });
-  }
-
-  public async run_in_all_student_projects(
-    command: string,
-    args?: string[],
-    timeout?: number,
-    log?: Function
-  ): Promise<Result[]> {
-    return await this.student_projects.run_in_all_student_projects(
-      command,
-      args,
-      timeout,
-      log
-    );
-  }
-
-  public async configure_all_projects(force: boolean = false): Promise<void> {
-    await this.student_projects.configure_all_projects(force);
-  }
-
-  // Deletes student projects and removes students from those projects
-  public async delete_all_student_projects(): Promise<void> {
-    await this.student_projects.delete_all_student_projects();
-  }
-
-  // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
-  // to get all the students to.
-  public async upgrade_all_student_projects(
-    upgrade_goal: UpgradeGoal
-  ): Promise<void> {
-    await this.student_projects.upgrade_all_student_projects(upgrade_goal);
-  }
-
-  // Do an admin upgrade to all student projects.  This changes the base quotas for every student
-  // project as indicated by the quotas object.  E.g., to increase the core quota from 1 to 2, do
-  //         .admin_upgrade_all_student_projects(cores:2)
-  // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
-  public async admin_upgrade_all_student_projects(quotas): Promise<void> {
-    await this.student_projects.admin_upgrade_all_student_projects(quotas);
-  }
+  // These all hang off of this.student_projects now.
 
   // ASSIGNMENT ACTIONS
   // These all hang off of this.assignments now.

@@ -1087,7 +1087,7 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   create_project = () => {
-    this.get_actions().create_student_project(this.props.student_id);
+    this.get_actions().student_projects.create_student_project(this.props.student_id);
   };
 
   render_last_active() {

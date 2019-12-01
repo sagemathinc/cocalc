@@ -152,7 +152,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
           {misc.capitalize(state_name)} all projects...{" "}
           <Icon name="cc-icon-cocalc-ring" spin />
           <br/>
-          <Button onClick={()=>this.get_actions().cancel_action_all_student_projects()}>
+          <Button onClick={()=>this.get_actions().student_projects.cancel_action_all_student_projects()}>
             Cancel
           </Button>
         </Alert>
@@ -171,7 +171,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               bsStyle="warning"
               onClick={() => {
                 this.setState({ confirm_stop_all_projects: false });
-                this.get_actions().action_all_student_projects("stop");
+                this.get_actions().student_projects.action_all_student_projects("stop");
               }}
             >
               <Icon name="hand-stop-o" /> Stop all
@@ -200,7 +200,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               bsStyle="primary"
               onClick={() => {
                 this.setState({ confirm_start_all_projects: false });
-                this.get_actions().action_all_student_projects("start");
+                this.get_actions().student_projects.action_all_student_projects("start");
               }}
             >
               <Icon name="flash" /> Start all
@@ -752,7 +752,7 @@ export class ConfigurationPanel extends Component<
         <hr />
         <Button
           disabled={this.props.configuring_projects}
-          onClick={() => this.get_actions().configure_all_projects(true)}
+          onClick={() => this.get_actions().student_projects.configure_all_projects(true)}
         >
           {this.props.configuring_projects ? (
             <Icon name="cc-icon-cocalc-ring" spin />
@@ -1057,7 +1057,7 @@ export class ConfigurationPanel extends Component<
   render_delete_student_projects() {
     return (
       <DeleteAllStudentProjects
-        delete_projects={() => this.get_actions().delete_all_student_projects()}
+        delete_projects={() => this.get_actions().student_projects.delete_all_student_projects()}
       />
     );
   }

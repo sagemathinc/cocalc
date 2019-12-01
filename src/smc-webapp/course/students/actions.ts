@@ -46,7 +46,7 @@ export class StudentsActions {
         until: (store: CourseStore) => store.get_student(student_id),
         timeout: 60
       });
-      this.course_actions.create_student_project(student_id);
+      this.course_actions.student_projects.create_student_project(student_id);
       store = this.get_store();
       await callback2(store.wait, {
         until: (store: CourseStore) =>
@@ -71,7 +71,7 @@ export class StudentsActions {
       this.course_actions.set_activity({ id });
       // after adding students, always run configure all projects,
       // to ensure everything is set properly
-      await this.course_actions.configure_all_projects();
+      await this.course_actions.student_projects.configure_all_projects();
     }
   }
 
@@ -80,7 +80,7 @@ export class StudentsActions {
     const student = store.get_student(student_id);
     if (student == null) return;
     await this.do_delete_student(student);
-    await this.course_actions.configure_all_projects(); // since they may get removed from shared project, etc.
+    await this.course_actions.student_projects.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
   public async undelete_student(student_id: string): Promise<void> {
@@ -90,7 +90,7 @@ export class StudentsActions {
       table: "students"
     });
     // configure, since they may get added back to shared project, etc.
-    await this.course_actions.configure_all_projects();
+    await this.course_actions.student_projects.configure_all_projects();
   }
 
   public async delete_all_students(): Promise<void> {
@@ -100,7 +100,7 @@ export class StudentsActions {
       .valueSeq()
       .toArray();
     await map(students, PARALLEL_LIMIT, this.do_delete_student.bind(this));
-    await this.course_actions.configure_all_projects();
+    await this.course_actions.student_projects.configure_all_projects();
   }
 
   private async do_delete_student(student: StudentRecord): Promise<void> {
@@ -187,7 +187,7 @@ export class StudentsActions {
     });
 
     // since they may get removed from shared project, etc.
-    await this.course_actions.configure_all_projects();
+    await this.course_actions.student_projects.configure_all_projects();
   }
 
   public set_student_note(student_id: string, note: string): void {

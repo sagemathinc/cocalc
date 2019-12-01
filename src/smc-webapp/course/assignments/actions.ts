@@ -630,7 +630,7 @@ You can find the comments they made in the folders below.\
           id,
           desc: `${student_name}'s project doesn't exist, so creating it.`
         });
-        student_project_id = await this.course_actions.create_student_project(
+        student_project_id = await this.course_actions.student_projects.create_student_project(
           student_id
         );
         if (!student_project_id) {

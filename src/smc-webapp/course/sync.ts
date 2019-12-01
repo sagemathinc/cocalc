@@ -127,7 +127,7 @@ export function create_sync_db(
       return;
     }
     actions.lookup_nonregistered_students();
-    actions.configure_all_projects();
+    actions.student_projects.configure_all_projects();
 
     // Also
     projects_store.on(
