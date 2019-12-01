@@ -37,7 +37,8 @@ import {
   rclass,
   Rendered,
   redux
-} from "../app-framework";
+} from "../../app-framework";
+
 import {
   Alert,
   Button,
@@ -53,26 +54,26 @@ import {
 import { Card } from "cocalc-ui";
 
 // CoCalc and course components
-import * as util from "./util";
-import * as styles from "./styles";
-import { BigTime, FoldersToolbar } from "./common";
+import * as util from "../util";
+import * as styles from "../styles";
+import { BigTime, FoldersToolbar } from "../common";
 import {
   HandoutsMap,
   StudentsMap,
   HandoutRecord,
   CourseStore,
   LastCopyInfo
-} from "./store";
-import { UserMap } from "../todo-types";
+} from "../store";
+import { UserMap } from "../../todo-types";
 import { Set } from "immutable";
-import { CourseActions } from "./actions";
+import { CourseActions } from "../actions";
 import {
   ErrorDisplay,
   Icon,
   Tip,
   MarkdownInput,
   WindowedList
-} from "../r_misc";
+} from "../../r_misc";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -248,9 +249,9 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
       return path => {
         if (deleted_paths[path] != null) {
-          return this.props.actions.undelete_handout(deleted_paths[path]);
+          return this.props.actions.handouts.undelete_handout(deleted_paths[path]);
         } else {
-          return this.props.actions.add_handout(path);
+          return this.props.actions.handouts.add_handout(path);
         }
       };
     }
@@ -445,7 +446,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             placeholder="Private notes about this handout (not visible to students)"
             default_value={this.props.handout.get("note")}
             on_save={value =>
-              this.props.actions.set_handout_note(this.props.handout, value)
+              this.props.actions.handouts.set_handout_note(this.props.handout, value)
             }
           />
         </Col>
@@ -543,7 +544,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
     // handout to all (non-deleted) students
     switch (step) {
       case "handout":
-        this.props.actions.copy_handout_to_all_students(
+        this.props.actions.handouts.copy_handout_to_all_students(
           this.props.handout.get("handout_id"),
           new_only,
           overwrite
@@ -715,12 +716,12 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private delete_handout = (): void => {
-    this.props.actions.delete_handout(this.props.handout.get("handout_id"));
+    this.props.actions.handouts.delete_handout(this.props.handout.get("handout_id"));
     this.setState({ confirm_delete: false });
   };
 
   private undelete_handout = (): void => {
-    this.props.actions.undelete_handout(this.props.handout.get("handout_id"));
+    this.props.actions.handouts.undelete_handout(this.props.handout.get("handout_id"));
   };
 
   private render_confirm_delete(): Rendered {
@@ -1077,15 +1078,15 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   }
 
   private open(handout_id: string, student_id: string): void {
-    this.props.actions.open_handout(handout_id, student_id);
+    this.props.actions.handouts.open_handout(handout_id, student_id);
   }
 
   private copy(handout_id: string, student_id: string): void {
-    this.props.actions.copy_handout_to_student(handout_id, student_id, false);
+    this.props.actions.handouts.copy_handout_to_student(handout_id, student_id, false);
   }
 
   private stop(handout_id: string, student_id: string): void {
-    this.props.actions.stop_copying_handout(handout_id, student_id);
+    this.props.actions.handouts.stop_copying_handout(handout_id, student_id);
   }
 
   render_last_time(time) {

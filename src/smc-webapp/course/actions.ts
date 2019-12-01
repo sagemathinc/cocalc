@@ -27,13 +27,8 @@ export const EMAIL_REINVITE_DAYS = 6;
 import { Map } from "immutable";
 
 // CoCalc libraries
-import * as misc from "smc-util/misc";
-import { callback2 } from "smc-util/async-utils";
-import * as awaiting from "awaiting";
 import { SyncDB } from "smc-util/sync/editor/db/sync";
-import { SyncDBRecord, SyncDBRecordHandout, UpgradeGoal } from "./types";
-
-import { webapp_client } from "../webapp-client";
+import { SyncDBRecord, UpgradeGoal } from "./types";
 
 // Course Library
 import {
@@ -50,6 +45,7 @@ import { ActivityActions } from "./activity/actions";
 import { StudentsActions } from "./students/actions";
 import { StudentProjectsActions } from "./student-projects/actions";
 import { AssignmentsActions } from "./assignments/actions";
+import { HandoutsActions } from "./handouts/actions";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -72,6 +68,7 @@ export class CourseActions extends Actions<CourseState> {
   private students: StudentsActions;
   private student_projects: StudentProjectsActions;
   public assignments: AssignmentsActions;
+  public handouts: HandoutsActions;
   private state: "init" | "ready" | "closed" = "init";
 
   constructor(name, redux) {
@@ -85,6 +82,7 @@ export class CourseActions extends Actions<CourseState> {
     this.students = new StudentsActions(this);
     this.student_projects = new StudentProjectsActions(this);
     this.assignments = new AssignmentsActions(this);
+    this.handouts = new HandoutsActions(this);
   }
 
   public get_store(): CourseStore {
@@ -252,8 +250,6 @@ export class CourseActions extends Actions<CourseState> {
     this.last_collaborator_state = users;
   }
 
-  // PUBLIC API
-
   // Set the error.  Use error="" to explicitly clear the existing set error.
   // If there is an error already set, then the new error is just
   // appended to the existing one.
@@ -347,33 +343,6 @@ export class CourseActions extends Actions<CourseState> {
     await this.shared_project.configure();
   }
 
-  // Takes an item_name and the id of the time
-  // item_name should be one of
-  // ['student', 'assignment', 'peer_config', handout', 'skip_grading']
-  public toggle_item_expansion(
-    item_name:
-      | "student"
-      | "assignment"
-      | "peer_config"
-      | "handout"
-      | "skip_grading",
-    item_id
-  ): void {
-    let adjusted;
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    const field_name: any = `expanded_${item_name}s`;
-    const expanded_items = store.get(field_name);
-    if (expanded_items.has(item_id)) {
-      adjusted = expanded_items.delete(item_id);
-    } else {
-      adjusted = expanded_items.add(item_id);
-    }
-    this.setState({ [field_name]: adjusted });
-  }
-
   // STUDENTS ACTIONS
   public async add_students(
     students: { account_id?: string; email_address?: string }[]
@@ -428,32 +397,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // start or stop projects of all (non-deleted) students running
   public action_all_student_projects(action: "start" | "stop"): void {
-    if (action == "start") {
-      this.setState({ action_all_projects_state: "starting" });
-    } else if (action === "stop") {
-      this.setState({ action_all_projects_state: "stopping" });
-    }
-
-    this.action_shared_project(action);
-
-    const store = this.get_store();
-    if (store == null) return;
-
-    const projects_actions = this.redux.getActions("projects");
-    if (projects_actions == null) {
-      throw Error("projects actions must be defined");
-    }
-    let f = projects_actions[action + "_project"];
-    if (f == null) {
-      throw Error(`invalid action "${action}"`);
-    }
-    f = f.bind(projects_actions);
-    for (const [, student] of store.get_students()) {
-      if (student.get("deleted")) continue;
-      const project_id = student.get("project_id");
-      if (!project_id) continue;
-      f(project_id);
-    }
+    this.student_projects.action_all_student_projects(action);
   }
 
   public cancel_action_all_student_projects(): void {
@@ -503,252 +447,8 @@ export class CourseActions extends Actions<CourseState> {
   // These all hang off of this.assignments now.
 
   // HANDOUT ACTIONS
-  public add_handout(path: string): void {
-    const target_path = path; // folder where we copy the handout to
-    this.set({
-      path,
-      target_path,
-      table: "handouts",
-      handout_id: misc.uuid()
-    });
-  }
+  // These all hang off of this.handouts now.
 
-  public delete_handout(handout_id: string): void {
-    this.set({
-      deleted: true,
-      handout_id,
-      table: "handouts"
-    });
-  }
-
-  public undelete_handout(handout_id: string): void {
-    this.set({
-      deleted: false,
-      handout_id,
-      table: "handouts"
-    });
-  }
-
-  private set_handout_field(handout, name, val): void {
-    const store = this.get_store();
-    if (store == null) {
-      return;
-    }
-    handout = store.get_handout(handout);
-    return this.set({
-      [name]: val,
-      table: "handouts",
-      handout_id: handout.get("handout_id")
-    });
-  }
-
-  public set_handout_note(handout, note): void {
-    this.set_handout_field(handout, "note", note);
-  }
-
-  private handout_finish_copy(
-    handout_id: string,
-    student_id: string,
-    err: string
-  ): void {
-    const { store, student, handout } = this.resolve({
-      handout_id,
-      student_id
-    });
-    if (student == null || handout == null || store == null) return;
-    const obj: SyncDBRecordHandout = {
-      table: "handouts",
-      handout_id: handout.get("handout_id")
-    };
-    const h = this.get_one(obj);
-    if (h == null) return;
-    const status_map: {
-      [student_id: string]: { time?: number; error?: string };
-    } = h.status ? h.status : {};
-    status_map[student_id] = { time: misc.mswalltime() };
-    if (err) {
-      status_map[student_id].error = err;
-    }
-    obj.status = status_map;
-    this.set(obj);
-  }
-
-  // returns false if an actual copy starts and true if not (since we
-  // already tried or closed the store).
-  private handout_start_copy(handout_id: string, student_id: string): boolean {
-    const obj: any = {
-      table: "handouts",
-      handout_id
-    };
-    const x = this.get_one(obj);
-    if (x == null) {
-      // no such handout.
-      return true;
-    }
-    const status_map = x.status != null ? x.status : {};
-    let student_status = status_map[student_id];
-    if (student_status == null) student_status = {};
-    if (
-      student_status.start != null &&
-      webapp_client.server_time() - student_status.start <= 15000
-    ) {
-      return true; // never retry a copy until at least 15 seconds later.
-    }
-    student_status.start = misc.mswalltime();
-    status_map[student_id] = student_status;
-    obj.status = status_map;
-    this.set(obj);
-    return false;
-  }
-
-  // "Copy" of `stop_copying_assignment:`
-  public stop_copying_handout(handout_id: string, student_id: string): void {
-    const obj: SyncDBRecordHandout = { table: "handouts", handout_id };
-    const h = this.get_one(obj);
-    if (h == null) return;
-    const status = h.status;
-    if (status == null) return;
-    const student_status = status[student_id];
-    if (student_status == null) return;
-    if (student_status.start != null) {
-      delete student_status.start;
-      status[student_id] = student_status;
-      obj.status = status;
-      this.set(obj);
-    }
-  }
-
-  // Copy the files for the given handout to the given student. If
-  // the student project doesn't exist yet, it will be created.
-  // You may also pass in an id for either the handout or student.
-  // "overwrite" (boolean, optional): if true, the copy operation will overwrite/delete remote files in student projects -- #1483
-  // If the store is initialized and the student and handout both exist,
-  // then calling this action will result in this getting set in the store:
-  //
-  //    handout.status[student_id] = {time:?, error:err}
-  //
-  // where time >= now is the current time in milliseconds.
-  public async copy_handout_to_student(
-    handout_id: string,
-    student_id: string,
-    overwrite: boolean
-  ): Promise<void> {
-    if (this.handout_start_copy(handout_id, student_id)) {
-      return;
-    }
-    const id = this.set_activity({ desc: "Copying handout to a student" });
-    const finish = (err?) => {
-      this.clear_activity(id);
-      this.handout_finish_copy(handout_id, student_id, err);
-      if (err) {
-        this.set_error(`copy handout to student: ${err}`);
-      }
-    };
-    const { store, student, handout } = this.resolve({
-      student_id,
-      handout_id,
-      finish
-    });
-    if (!store || !student || !handout) return;
-
-    const student_name = store.get_student_name(student_id);
-    this.set_activity({ id, desc: `Copying handout to ${student_name}` });
-    let student_project_id: string | undefined = student.get("project_id");
-    const course_project_id = store.get("course_project_id");
-    const src_path = handout.get("path");
-    try {
-      if (student_project_id == null) {
-        this.set_activity({
-          id,
-          desc: `${student_name}'s project doesn't exist, so creating it.`
-        });
-        student_project_id = await this.create_student_project(student_id);
-      }
-
-      this.set_activity({
-        id,
-        desc: `Copying files to ${student_name}'s project`
-      });
-
-      await callback2(webapp_client.copy_path_between_projects, {
-        src_project_id: course_project_id,
-        src_path,
-        target_project_id: student_project_id,
-        target_path: handout.get("target_path"),
-        overwrite_newer: !!overwrite, // default is "false"
-        delete_missing: !!overwrite, // default is "false"
-        backup: !!!overwrite, // default is "true"
-        exclude_history: true
-      });
-      finish();
-    } catch (err) {
-      finish(err);
-    }
-  }
-
-  // Copy the given handout to all non-deleted students, doing several copies in parallel at once.
-  public async copy_handout_to_all_students(
-    handout_id: string,
-    new_only: boolean,
-    overwrite: boolean
-  ): Promise<void> {
-    const desc: string =
-      "Copying handouts to all students " +
-      (new_only ? "who have not already received it" : "");
-    const short_desc = "copy handout to student";
-
-    const id = this.set_activity({ desc });
-    const finish = (err?) => {
-      this.clear_activity(id);
-      if (err) {
-        err = `${short_desc}: ${err}`;
-        this.set_error(err);
-      }
-    };
-    const { store, handout } = this.resolve({ handout_id, finish });
-    if (!store || !handout) return;
-
-    let errors = "";
-    const f = async (student_id: string): Promise<void> => {
-      if (new_only && store.handout_last_copied(handout_id, student_id)) {
-        return;
-      }
-      try {
-        await this.copy_handout_to_student(handout_id, student_id, overwrite);
-      } catch (err) {
-        errors += `\n ${err}`;
-      }
-    };
-
-    await awaiting.map(
-      store.get_student_ids({ deleted: false }),
-      PARALLEL_LIMIT,
-      f
-    );
-
-    finish(errors);
-  }
-
-  public open_handout(handout_id: string, student_id: string): void {
-    const { handout, student } = this.resolve({
-      handout_id,
-      student_id
-    });
-    if (student == null || handout == null) return;
-    const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
-      this.set_error("open_handout: student project not yet created");
-      return;
-    }
-    const path = handout.get("target_path");
-    const proj = student_project_id;
-    if (proj == null) {
-      this.set_error("no such project");
-      return;
-    }
-    // Now open it
-    this.redux.getProjectActions(proj).open_directory(path);
-  }
 
   // UTILITY FUNCTIONS
 
@@ -803,5 +503,32 @@ export class CourseActions extends Actions<CourseState> {
       r.handout = handout;
     }
     return r;
+  }
+
+  // Takes an item_name and the id of the time
+  // item_name should be one of
+  // ['student', 'assignment', 'peer_config', handout', 'skip_grading']
+  public toggle_item_expansion(
+    item_name:
+      | "student"
+      | "assignment"
+      | "peer_config"
+      | "handout"
+      | "skip_grading",
+    item_id
+  ): void {
+    let adjusted;
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const field_name: any = `expanded_${item_name}s`;
+    const expanded_items = store.get(field_name);
+    if (expanded_items.has(item_id)) {
+      adjusted = expanded_items.delete(item_id);
+    } else {
+      adjusted = expanded_items.add(item_id);
+    }
+    this.setState({ [field_name]: adjusted });
   }
 }
