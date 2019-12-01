@@ -81,6 +81,7 @@
     "mathjax": "2.7.4",
     "md5": "^2",
     "memoize-one": "^5.0.2",
+    "moment": "^2.24.0",
     "node-forge": "^0.7.6",
     "nodeunit": "^0.11.3",
     "npm": "^6.10.2",

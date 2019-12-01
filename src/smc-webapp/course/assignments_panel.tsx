@@ -213,7 +213,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           href=""
           onClick={e => {
             e.preventDefault();
-            return this.get_actions().assignments.set_active_assignment_sort(column_name);
+            return this.get_actions().assignments.set_active_assignment_sort(
+              column_name
+            );
           }}
         >
           {display_name}
@@ -360,7 +362,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
       return path => {
         if (deleted_paths[path] != null) {
-          this.get_actions().assignments.undelete_assignment(deleted_paths[path]);
+          this.get_actions().assignments.undelete_assignment(
+            deleted_paths[path]
+          );
         } else {
           this.get_actions().assignments.add_assignment(path);
         }
@@ -520,10 +524,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         </Col>
         <Col xs={11}>
           <DateTimePicker
-            value={this._due_date()}
-            on_change={this.date_change}
-            autoFocus={false}
-            defaultOpen={false}
+            placeholder={"Set Assignment Due Date"}
+            value={this.props.assignment.get("due_date")}
+            onChange={this.date_change}
           />
         </Col>
       </Row>
@@ -531,9 +534,6 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   date_change = date => {
-    if (date == null) {
-      date = this._due_date();
-    }
     this.get_actions().assignments.set_due_date(
       this.props.assignment.get("assignment_id"),
       date != null ? date.toISOString() : undefined
@@ -883,16 +883,25 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         );
         break;
       case "collect":
-        actions.assignments.copy_assignment_from_all_students(assignment_id, new_only);
+        actions.assignments.copy_assignment_from_all_students(
+          assignment_id,
+          new_only
+        );
         break;
       case "peer_assignment":
         actions.assignments.peer_copy_to_all_students(assignment_id, new_only);
         break;
       case "peer_collect":
-        actions.assignments.peer_collect_from_all_students(assignment_id, new_only);
+        actions.assignments.peer_collect_from_all_students(
+          assignment_id,
+          new_only
+        );
         break;
       case "return_graded":
-        actions.assignments.return_assignment_to_all_students(assignment_id, new_only);
+        actions.assignments.return_assignment_to_all_students(
+          assignment_id,
+          new_only
+        );
         break;
       default:
         console.log(`BUG -- unknown step: ${step}`);
@@ -1302,7 +1311,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       (left = this.props.assignment.get("skip_grading")) != null ? left : false;
     if (
       !skip_grading &&
-      status.not_return_graded === 0 && status.return_graded === 0
+      status.not_return_graded === 0 &&
+      status.return_graded === 0
     ) {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
@@ -1443,7 +1453,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   _peer_due(date): Date | undefined {
     if (date == null) {
-      date = this.props.assignment.getIn(["peer_grade", "due_date"]);
+      return date;
     }
     if (date != null) {
       return new Date(date);
@@ -1476,10 +1486,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return (
       <LabeledRow label_cols={6} label={label}>
         <DateTimePicker
+          placeholder={"Set Peer Grading Due Date"}
           value={this._peer_due(config.due_date)}
-          on_change={this.peer_due_change}
-          autoFocus={false}
-          defaultOpen={false}
+          onChange={this.peer_due_change}
         />
       </LabeledRow>
     );

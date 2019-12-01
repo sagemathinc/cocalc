@@ -198,7 +198,14 @@ export class AssignmentsActions {
     });
   }
 
-  public set_due_date(assignment_id: string, due_date: Date | string): void {
+  public set_due_date(
+    assignment_id: string,
+    due_date: Date | string | undefined | null
+  ): void {
+    if (due_date == null) {
+      this.set_assignment_field(assignment_id, "due_date", null);
+      return;
+    }
     if (typeof due_date !== "string") {
       due_date = due_date.toISOString(); // using strings instead of ms for backward compatibility.
     }
