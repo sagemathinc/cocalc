@@ -190,7 +190,7 @@ export class AssignmentsActions {
     });
   }
 
-  private set_assignment_field(assignment_id: string, name, val): void {
+  private set_assignment_field(assignment_id: string, name: string, val): void {
     this.course_actions.set({
       [name]: val,
       table: "assignments",

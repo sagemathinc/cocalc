@@ -380,10 +380,6 @@ export class CourseStore extends Store<CourseState> {
     return this.getIn(["students", student_id]);
   }
 
-  public get_student_note(student_id: string): string | undefined {
-    return this.getIn(["students", student_id, "note"]);
-  }
-
   public get_student_project_id(student_id: string): string | undefined {
     return this.getIn(["students", student_id, "project_id"]);
   }
@@ -406,22 +402,18 @@ export class CourseStore extends Store<CourseState> {
     return v;
   }
 
-  public get_grade(
-    assignment_id: string,
-    student_id: string
-  ): string | undefined {
+  public get_grade(assignment_id: string, student_id: string): string {
     const { assignment } = this.resolve({ assignment_id });
-    if (assignment == null) return;
-    return assignment.getIn(["grades", student_id]);
+    if (assignment == null) return "";
+    const r = assignment.getIn(["grades", student_id], "");
+    return r == null ? "" : r;
   }
 
-  public get_comments(
-    assignment_id: string,
-    student_id: string
-  ): string | undefined {
+  public get_comments(assignment_id: string, student_id: string): string {
     const { assignment } = this.resolve({ assignment_id });
-    if (assignment == null) return;
-    return assignment.getIn(["comments", student_id]);
+    if (assignment == null) return "";
+    const r = assignment.getIn(["comments", student_id], "");
+    return r == null ? "" : r;
   }
 
   public get_due_date(assignment_id: string): Date | undefined {
@@ -431,12 +423,6 @@ export class CourseStore extends Store<CourseState> {
     if (due_date != null) {
       return new Date(due_date);
     }
-  }
-
-  public get_assignment_note(assignment_id: string): string | undefined {
-    const { assignment } = this.resolve({ assignment_id });
-    if (assignment == null) return;
-    return assignment.get("note");
   }
 
   public get_assignments(): AssignmentsMap {
@@ -681,10 +667,6 @@ export class CourseStore extends Store<CourseState> {
 
     this.assignment_status_cache[assignment_id] = info;
     return info;
-  }
-
-  public get_handout_note(handout_id: string): string | undefined {
-    return this.getIn(["handouts", handout_id, "note"]);
   }
 
   public get_handouts(): HandoutsMap {

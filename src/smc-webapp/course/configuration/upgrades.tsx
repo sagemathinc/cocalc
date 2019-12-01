@@ -1,12 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -269,7 +260,6 @@ class StudentProjectUpgrades extends Component<
     // current   -- Sum of total upgrades currently allocated by anybody to the course projects
     // yours     -- How much of this quota this user has allocated to this quota total.
     // num_projects -- How many student projects there are.
-    let left;
     const {
       display,
       desc,
@@ -282,12 +272,17 @@ class StudentProjectUpgrades extends Component<
     current *= display_factor;
 
     const x = this.state.upgrades[quota];
-    let input =
-      x === ""
-        ? 0
-        : (left = misc.parse_number_input(x)) != null
-        ? left
-        : yours / num_projects; // currently typed in
+    let input: number;
+    if (x == "") {
+      input = 0;
+    } else {
+      const n = misc.parse_number_input(x);
+      if (n == null) {
+        input = n;
+      } else {
+        input = yours / num_projects; // currently typed in
+      }
+    }
     if (input_type === "checkbox") {
       input = input > 0 ? 1 : 0;
     }
@@ -453,9 +448,12 @@ class StudentProjectUpgrades extends Component<
     e.preventDefault();
     const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
     const quotas = JSON.parse(s);
-    // This console.log is intentional.
+    // This console.log is intentional... because admin upgrade is only
+    // for really advanced users (i.e., William).
     console.log(`admin upgrade '${s}' -->`, quotas);
-    this.get_actions().student_projects.admin_upgrade_all_student_projects(quotas);
+    this.get_actions().student_projects.admin_upgrade_all_student_projects(
+      quotas
+    );
     return false;
   };
 
@@ -585,7 +583,10 @@ class StudentProjectUpgrades extends Component<
   }
 
   handle_institute_pay_checkbox = e => {
-    return this.get_actions().configuration.set_pay_choice("institute", e.target.checked);
+    return this.get_actions().configuration.set_pay_choice(
+      "institute",
+      e.target.checked
+    );
   };
 
   render_checkbox() {

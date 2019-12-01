@@ -1,12 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -206,7 +197,10 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     }
 
-    private render_sort_link(column_name, display_name): Rendered {
+    private render_sort_link(
+      column_name: string,
+      display_name: string
+    ): Rendered {
       return (
         <a
           href=""
@@ -274,7 +268,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
     }
 
-    private render_assignments(assignments): Rendered {
+    private render_assignments(
+      assignments: { assignment_id: string }[]
+    ): Rendered {
       if (assignments.length == 0) {
         return this.render_no_assignments();
       }
@@ -317,7 +313,10 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
     }
 
-    private render_show_deleted(num_deleted, num_shown): Rendered {
+    private render_show_deleted(
+      num_deleted: number,
+      num_shown: number
+    ): Rendered {
       if (this.state.show_deleted) {
         return (
           <Button
@@ -355,7 +354,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       const deleted_paths = {};
       deleted_assignments.map(obj => {
         if (obj.path) {
-          return (deleted_paths[obj.path] = obj.assignment_id);
+          deleted_paths[obj.path] = obj.assignment_id;
         }
       });
 
@@ -377,6 +376,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         num_omitted,
         num_deleted
       } = this.compute_assignment_list();
+
       const add_assignment = this.yield_adder(deleted_assignments);
 
       const header = (
@@ -1277,18 +1277,13 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   };
 
   render_skip_grading_button(status) {
-    let icon, left;
     if (status.collect === 0) {
       // No button if nothing collected.
       return;
     }
-    const is_skip_grading =
-      (left = this.props.assignment.get("skip_grading")) != null ? left : false;
-    if (is_skip_grading) {
-      icon = "check-square-o";
-    } else {
-      icon = "square-o";
-    }
+    const icon: string = this.props.assignment.get("skip_grading")
+      ? "check-square-o"
+      : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
         <Icon name={icon} /> Skip Grading
@@ -1297,7 +1292,6 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_return_graded_button(status) {
-    let bsStyle, left;
     if (status.collect === 0) {
       // No button if nothing collected.
       return;
@@ -1306,16 +1300,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       // Peer grading enabled, but we didn't collect anything yet
       return;
     }
-    const skip_grading =
-      (left = this.props.assignment.get("skip_grading")) != null ? left : false;
     if (
-      !skip_grading &&
+      !this.props.assignment.get("skip_grading") &&
       status.not_return_graded === 0 &&
       status.return_graded === 0
     ) {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
     }
+    let bsStyle: string;
     if (status.return_graded > 0) {
       // Have already returned some
       if (status.not_return_graded === 0) {

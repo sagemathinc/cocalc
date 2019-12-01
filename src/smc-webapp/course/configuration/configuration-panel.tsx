@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -538,7 +530,7 @@ export class ConfigurationPanel extends Component<
         }
         return result1;
       })().join(",") + "\n";
-    for (var student of store.get_sorted_students()) {
+    for (const student of store.get_sorted_students()) {
       var left2;
       const grades = (() => {
         const result2: any[] = [];
@@ -611,20 +603,13 @@ export class ConfigurationPanel extends Component<
 
     content += "students = [\n";
 
-    for (var student of store.get_sorted_students()) {
+    for (const student of store.get_sorted_students()) {
       const student_id = student.get("student_id");
       let grades = (() => {
         const result1: any[] = [];
         for (assignment of assignments) {
           const assignment_id = assignment.get("assignment_id");
-          var left;
-          result1.push(
-            `'${
-              (left = store.get_grade(assignment_id, student_id)) != null
-                ? left
-                : ""
-            }'`
-          );
+          result1.push(`'${store.get_grade(assignment_id, student_id)}'`);
         }
         return result1;
       })().join(",");
@@ -633,14 +618,7 @@ export class ConfigurationPanel extends Component<
         const result2: any[] = [];
         for (assignment of assignments) {
           const assignment_id = assignment.get("assignment_id");
-          var left1;
-          result2.push(
-            `'${
-              (left1 = store.get_comments(assignment_id, student_id)) != null
-                ? left1
-                : ""
-            }'`
-          );
+          result2.push(`'${store.get_comments(assignment_id, student_id)}'`);
         }
         return result2;
       })().join(",");

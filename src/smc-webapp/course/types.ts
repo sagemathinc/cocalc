@@ -61,11 +61,11 @@ export type SyncDBRecord = SyncDBRecordBase &
   SyncDBRecordStudent;
 
 export type AssignmentCopyStep =
-  | "collect"
-  | "return_graded"
   | "assignment"
+  | "collect"
   | "peer_assignment"
-  | "peer_collect";
+  | "peer_collect"
+  | "return_graded";
 
 export type LastAssignmentCopyType =
   | "last_collect"
