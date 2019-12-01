@@ -251,7 +251,7 @@ export class StudentProjectsActions {
       this.course_actions.setState({ action_all_projects_state: "stopping" });
     }
 
-    this.course_actions.action_shared_project(action);
+    this.course_actions.shared_project.action_shared_project(action);
 
     const store = this.get_store();
 
@@ -488,7 +488,7 @@ export class StudentProjectsActions {
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
       } // always re-invite students on running this.
-      await this.course_actions.configure_shared_project();
+      await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
     } finally {
       if (this.course_actions.is_closed()) return;

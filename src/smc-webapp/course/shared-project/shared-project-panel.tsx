@@ -120,7 +120,7 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
             const actions = this.props.redux.getActions(
               this.props.name
             ) as CourseActions;
-            if (actions != null) actions.create_shared_project();
+            if (actions != null) actions.shared_project.create();
           }}
           okText="Create Shared Project"
           cancelText="Cancel"

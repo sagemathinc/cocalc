@@ -64,7 +64,7 @@ export class CourseActions extends Actions<CourseState> {
   public syncdb: SyncDB;
   private last_collaborator_state: any;
   private activity: ActivityActions;
-  private shared_project: SharedProjectActions;
+  public shared_project: SharedProjectActions;
   private students: StudentsActions;
   private student_projects: StudentProjectsActions;
   public assignments: AssignmentsActions;
@@ -325,24 +325,8 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // SHARED PROJECT ACTIONS
-  // create the globally shared project if it doesn't exist
-  public async create_shared_project(): Promise<void> {
-    await this.shared_project.create();
-  }
-
-  // Delete the shared project, removing students too.
-  public async delete_shared_project(): Promise<void> {
-    await this.shared_project.delete();
-  }
-
-  public async action_shared_project(action: "start" | "stop"): Promise<void> {
-    await this.shared_project.action_shared_project(action);
-  }
-
-  public async configure_shared_project(): Promise<void> {
-    await this.shared_project.configure();
-  }
-
+  // These hang off of this.shared_project
+  
   // STUDENTS ACTIONS
   public async add_students(
     students: { account_id?: string; email_address?: string }[]

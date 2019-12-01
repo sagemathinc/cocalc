@@ -1048,7 +1048,7 @@ export class ConfigurationPanel extends Component<
     if (this.props.settings.get("shared_project_id")) {
       return (
         <DeleteSharedProjectPanel
-          delete={() => this.get_actions().delete_shared_project()}
+          delete={() => this.get_actions().shared_project.delete()}
         />
       );
     }
