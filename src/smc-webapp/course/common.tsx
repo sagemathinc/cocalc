@@ -34,11 +34,10 @@ import {
   ButtonToolbar,
   ButtonGroup,
   FormControl,
-  FormGroup,
-  Grid,
-  Row,
-  Col
+  FormGroup
 } from "react-bootstrap";
+
+import { Row, Col } from "cocalc-ui";
 
 import {
   ErrorDisplay,
@@ -83,7 +82,7 @@ export class StudentAssignmentInfoHeader extends Component<
   private render_col(
     number: number,
     key: AssignmentCopyStep | "grade",
-    width: number
+    width: 4 | 6
   ): Rendered {
     let tip: string, title: string;
     switch (key) {
@@ -133,7 +132,7 @@ export class StudentAssignmentInfoHeader extends Component<
   }
 
   private render_headers(): Rendered {
-    const w = 3;
+    const w = 6;
     return (
       <Row>
         {this.render_col(1, "assignment", w)}
@@ -145,7 +144,7 @@ export class StudentAssignmentInfoHeader extends Component<
   }
 
   private render_headers_peer(): Rendered {
-    const w = 2;
+    const w = 4;
     return (
       <Row>
         {this.render_col(1, "assignment", w)}
@@ -160,9 +159,9 @@ export class StudentAssignmentInfoHeader extends Component<
 
   public render(): Rendered {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row style={{ borderBottom: "2px solid #aaa" }}>
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             <Tip
               title={this.props.title}
               tip={
@@ -174,13 +173,13 @@ export class StudentAssignmentInfoHeader extends Component<
               <b>{this.props.title}</b>
             </Tip>
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             {this.props.peer_grade
               ? this.render_headers_peer()
               : this.render_headers()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
@@ -515,11 +514,7 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  private render_open_copying(
-    name: string,
-    open,
-    stop
-  ): Rendered {
+  private render_open_copying(name: string, open, stop): Rendered {
     return (
       <ButtonGroup key="open_copying">
         <Button key="copy" bsStyle="success" disabled={true}>
@@ -535,11 +530,7 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  private render_copy(
-    name: string,
-    copy,
-    copy_tip: string
-  ): Rendered {
+  private render_copy(name: string, copy, copy_tip: string): Rendered {
     let placement;
     if (name === "Return") {
       placement = "left";
@@ -641,7 +632,7 @@ export class StudentAssignmentInfo extends Component<
 
   private render_peer_assign(): Rendered {
     return (
-      <Col md={2} key="peer_assign">
+      <Col md={4} key="peer_assign">
         {this.render_last({
           name: "Peer Assign",
           data: this.props.info.last_peer_assignment,
@@ -658,7 +649,7 @@ export class StudentAssignmentInfo extends Component<
 
   private render_peer_collect(): Rendered {
     return (
-      <Col md={2} key="peer_collect">
+      <Col md={4} key="peer_collect">
         {this.render_last({
           name: "Peer Collect",
           data: this.props.info.last_peer_collect,
@@ -708,9 +699,9 @@ export class StudentAssignmentInfo extends Component<
         (skip_grading && skip_collect);
     }
 
-    const width = peer_grade ? 2 : 3;
+    const width = peer_grade ? 4 : 6;
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={{
             borderTop: "1px solid #aaa",
@@ -718,10 +709,10 @@ export class StudentAssignmentInfo extends Component<
             paddingBottom: "5px"
           }}
         >
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             {this.props.title}
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             <Row>
               <Col md={width} key="last_assignment">
                 {this.render_last({
@@ -789,7 +780,7 @@ export class StudentAssignmentInfo extends Component<
             </Row>
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

@@ -28,15 +28,9 @@ import { webapp_client } from "../../webapp-client";
 // React libraries
 import { React, ReactDOM, Component } from "../../app-framework";
 import { Icon, SearchInput, SkinnyError } from "../../r_misc";
-import {
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  Row,
-  Col,
-  Grid
-} from "react-bootstrap";
+import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
+
+import { Row, Col } from "cocalc-ui";
 
 import { callback2 } from "smc-util/async-utils";
 
@@ -404,9 +398,9 @@ export class FoldersToolbar extends Component<
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row>
-          <Col md={3}>
+          <Col md={6}>
             <SearchInput
               placeholder={`Find ${this.props.plural_item_name}...`}
               default_value={this.props.search}
@@ -414,9 +408,11 @@ export class FoldersToolbar extends Component<
               style={SEARCH_STYLE}
             />
           </Col>
-          <Col md={4}>
+          <Col md={8}>
             {this.props.num_omitted ? (
-              <h5>
+              <h5
+                style={{ textAlign: "center", color: "#666", marginTop: "5px" }}
+              >
                 (Omitting {this.props.num_omitted}{" "}
                 {this.props.num_omitted > 1
                   ? this.props.plural_item_name
@@ -427,7 +423,7 @@ export class FoldersToolbar extends Component<
               undefined
             )}
           </Col>
-          <Col md={5}>
+          <Col md={10}>
             <MultipleAddSearch
               add_selected={this.submit_selected.bind(this)}
               do_search={this.do_add_search.bind(this)}
@@ -440,7 +436,7 @@ export class FoldersToolbar extends Component<
             />
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

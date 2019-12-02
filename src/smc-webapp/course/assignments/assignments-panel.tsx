@@ -41,13 +41,10 @@ import {
   Button,
   ButtonToolbar,
   FormControl,
-  FormGroup,
-  Row,
-  Col,
-  Grid
+  FormGroup
 } from "react-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Card, Row, Col } from "cocalc-ui";
 
 import { Set, Map } from "immutable";
 
@@ -232,17 +229,14 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
     private render_assignment_table_header(): Rendered {
       return (
-        <Grid
-          fluid={true}
-          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
-        >
+        <div style={{ borderBottom: "1px solid #e5e5e5" }}>
           <Row style={{ marginRight: "0px" }}>
-            <Col md={6}>
+            <Col md={12}>
               {this.render_sort_link("dir_name", "Assignment Name")}
             </Col>
-            <Col md={6}>{this.render_sort_link("due_date", "Due Date")}</Col>
+            <Col md={12}>{this.render_sort_link("due_date", "Due Date")}</Col>
           </Row>
-        </Grid>
+        </div>
       );
     }
 
@@ -395,7 +389,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
 
       return (
-        <div className={"smc-vfill"}>
+        <div className={"smc-vfill"} style={{ margin: "0 15px" }}>
           {header}
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()
@@ -512,7 +506,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_due() {
     return (
       <Row>
-        <Col xs={1} style={{ marginTop: "8px", color: "#666" }}>
+        <Col xs={2} style={{ marginTop: "8px", color: "#666" }}>
           <Tip
             placement="top"
             title="Set the due date"
@@ -521,7 +515,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             Due
           </Tip>
         </Col>
-        <Col xs={11}>
+        <Col xs={22}>
           <DateTimePicker
             placeholder={"Set Assignment Due Date"}
             value={this.props.assignment.get("due_date")}
@@ -542,7 +536,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_note() {
     return (
       <Row key="note" style={styles.note}>
-        <Col xs={2}>
+        <Col xs={4}>
           <Tip
             title="Notes about this assignment"
             tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment."
@@ -552,7 +546,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
-        <Col xs={10}>
+        <Col xs={20}>
           <MarkdownInput
             persist_id={
               this.props.assignment.get("path") +
@@ -594,16 +588,16 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     };
     v.push(
       <Row key="header3" style={bottom}>
-        <Col md={2}>{this.render_open_button()}</Col>
-        <Col md={10}>
+        <Col md={4}>{this.render_open_button()}</Col>
+        <Col md={20}>
           <Row>
-            <Col md={6} style={{ fontSize: "14px" }} key="due">
+            <Col md={12} style={{ fontSize: "14px" }} key="due">
               {this.render_due()}
             </Col>
-            <Col md={6} key="delete">
+            <Col md={12} key="delete">
               <Row>
-                <Col md={7}>{this.render_peer_button()}</Col>
-                <Col md={5}>
+                <Col md={14}>{this.render_peer_button()}</Col>
+                <Col md={10}>
                   <span className="pull-right">
                     {this.render_delete_button()}
                   </span>
@@ -618,7 +612,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (this.props.expand_peer_config) {
       v.push(
         <Row key="header2-peer" style={bottom}>
-          <Col md={10} mdOffset={2}>
+          <Col md={20} offset={4}>
             {this.render_configure_peer()}
           </Col>
         </Row>
@@ -627,7 +621,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (this.state.confirm_delete) {
       v.push(
         <Row key="header2-delete" style={bottom}>
-          <Col md={10} mdOffset={2}>
+          <Col md={20} offset={4}>
             {this.render_confirm_delete()}
           </Col>
         </Row>
@@ -636,9 +630,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
     const peer = this.is_peer_graded();
     if (peer) {
-      width = 2;
+      width = 4;
     } else {
-      width = 3;
+      width = 6;
     }
     const buttons: ReactElement<any>[] = [];
     const insert_skip_button = (key: string) => {
@@ -670,7 +664,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
     v.push(
       <Row key="header-control">
-        <Col md={10} mdOffset={2} key="buttons">
+        <Col md={20} offset={4} key="buttons">
           <Row>{buttons}</Row>
         </Col>
       </Row>
@@ -678,7 +672,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
     v.push(
       <Row key="header2-copy">
-        <Col md={10} mdOffset={2}>
+        <Col md={20} offset={4}>
           {this.render_copy_confirms(status)}
         </Col>
       </Row>
@@ -690,7 +684,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_more() {
     return (
       <Row key="more">
-        <Col sm={12}>
+        <Col sm={24}>
           <Card title={this.render_more_header()}>
             <StudentListForAssignment
               redux={this.props.redux}
@@ -1494,28 +1488,28 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_summary_line() {
     return (
       <Row key="summary" style={{ backgroundColor: this.props.background }}>
-        <Col md={6}>
+        <Col md={12}>
           <h5>{this.render_assignment_title_link()}</h5>
         </Col>
-        <Col md={6}>{this.render_summary_due_date()}</Col>
+        <Col md={12}>{this.render_summary_due_date()}</Col>
       </Row>
     );
   }
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={
             this.props.is_expanded ? styles.selected_entry : styles.entry_style
           }
         >
-          <Col xs={12}>
+          <Col xs={24}>
             {this.render_summary_line()}
             {this.props.is_expanded ? this.render_more() : undefined}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

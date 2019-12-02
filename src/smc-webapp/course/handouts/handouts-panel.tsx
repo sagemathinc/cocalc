@@ -38,13 +38,10 @@ import {
   ButtonToolbar,
   ButtonGroup,
   FormGroup,
-  FormControl,
-  Row,
-  Col,
-  Grid
+  FormControl
 } from "react-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Card, Row, Col } from "cocalc-ui";
 
 // CoCalc and course components
 import * as util from "../util";
@@ -242,7 +239,9 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
       return path => {
         if (deleted_paths[path] != null) {
-          return this.props.actions.handouts.undelete_handout(deleted_paths[path]);
+          return this.props.actions.handouts.undelete_handout(
+            deleted_paths[path]
+          );
         } else {
           return this.props.actions.handouts.add_handout(path);
         }
@@ -330,7 +329,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       );
 
       return (
-        <div className={"smc-vfill"}>
+        <div className={"smc-vfill"} style={{ margin: "0 15px" }}>
           {header}
           <div style={{ marginTop: "5px" }} />
           {this.render_handouts(shown_handouts)}
@@ -417,7 +416,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
   private render_handout_notes(): Rendered {
     return (
       <Row key="note" style={styles.note}>
-        <Col xs={2}>
+        <Col xs={4}>
           <Tip
             title="Notes about this handout"
             tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout."
@@ -427,7 +426,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
-        <Col xs={10}>
+        <Col xs={20}>
           <MarkdownInput
             persist_id={
               this.props.handout.get("path") +
@@ -439,7 +438,10 @@ class Handout extends Component<HandoutProps, HandoutState> {
             placeholder="Private notes about this handout (not visible to students)"
             default_value={this.props.handout.get("note")}
             on_save={value =>
-              this.props.actions.handouts.set_handout_note(this.props.handout, value)
+              this.props.actions.handouts.set_handout_note(
+                this.props.handout,
+                value
+              )
             }
           />
         </Col>
@@ -709,12 +711,16 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private delete_handout = (): void => {
-    this.props.actions.handouts.delete_handout(this.props.handout.get("handout_id"));
+    this.props.actions.handouts.delete_handout(
+      this.props.handout.get("handout_id")
+    );
     this.setState({ confirm_delete: false });
   };
 
   private undelete_handout = (): void => {
-    this.props.actions.handouts.undelete_handout(this.props.handout.get("handout_id"));
+    this.props.actions.handouts.undelete_handout(
+      this.props.handout.get("handout_id")
+    );
   };
 
   private render_confirm_delete(): Rendered {
@@ -779,7 +785,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     if (!this.props.is_expanded) return;
     return (
       <Row key="more">
-        <Col sm={12}>
+        <Col sm={24}>
           <Card title={this.render_more_header()}>
             <StudentListForHandout
               frame_id={this.props.frame_id}
@@ -849,10 +855,10 @@ Select "Replace student files!" in case you do not want to create any backups an
         key="summary"
         style={{ backgroundColor: this.props.backgroundColor }}
       >
-        <Col md={2} style={{ paddingRight: "0px" }}>
+        <Col md={4} style={{ paddingRight: "0px" }}>
           {this.render_handout_name()}
         </Col>
-        <Col md={6}>
+        <Col md={12}>
           <Row style={{ marginLeft: "8px" }}>
             {this.render_handout_button(status)}
             <span style={{ color: "#666", marginLeft: "5px" }}>
@@ -864,7 +870,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             {this.render_copy_all(status)}
           </Row>
         </Col>
-        <Col md={4}>
+        <Col md={8}>
           <Row>
             <span className="pull-right">{this.render_delete_button()}</span>
           </Row>
@@ -880,18 +886,18 @@ Select "Replace student files!" in case you do not want to create any backups an
 
   public render(): Rendered {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={
             this.props.is_expanded ? styles.selected_entry : styles.entry_style
           }
         >
-          <Col xs={12} style={{ paddingTop: "5px", paddingBottom: "5px" }}>
+          <Col xs={24} style={{ paddingTop: "5px", paddingBottom: "5px" }}>
             {this.render_handout_heading()}
             {this.render_more()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
@@ -1029,15 +1035,14 @@ class StudentHandoutInfoHeader extends Component<
   }
 
   render_headers() {
-    const w = 12;
-    return <Row>{this.render_col(1, "last_handout", w)}</Row>;
+    return <Row>{this.render_col(1, "last_handout", 24)}</Row>;
   }
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row style={{ borderBottom: "2px solid #aaa" }}>
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             <Tip
               title={this.props.title}
               tip={
@@ -1049,11 +1054,11 @@ class StudentHandoutInfoHeader extends Component<
               <b>{this.props.title}</b>
             </Tip>
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             {this.render_headers()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
@@ -1075,7 +1080,11 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   }
 
   private copy(handout_id: string, student_id: string): void {
-    this.props.actions.handouts.copy_handout_to_student(handout_id, student_id, false);
+    this.props.actions.handouts.copy_handout_to_student(
+      handout_id,
+      student_id,
+      false
+    );
   }
 
   private stop(handout_id: string, student_id: string): void {
@@ -1214,9 +1223,8 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   }
 
   render() {
-    const width = 12;
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={{
             borderTop: "1px solid #aaa",
@@ -1224,12 +1232,12 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
             paddingBottom: "5px"
           }}
         >
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             {this.props.title}
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             <Row>
-              <Col md={width} key="last_handout">
+              <Col md={24} key="last_handout">
                 {this.render_last(
                   "Distribute",
                   this.props.info.status,
@@ -1242,7 +1250,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
             </Row>
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

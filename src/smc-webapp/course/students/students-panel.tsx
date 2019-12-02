@@ -45,14 +45,11 @@ import {
   FormGroup,
   FormControl,
   InputGroup,
-  Row,
-  Col,
-  Grid,
   Well,
   Form
 } from "react-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Card, Row, Col } from "cocalc-ui";
 
 // CoCalc components
 import { User } from "../../users";
@@ -416,11 +413,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          <Grid fluid={true} style={{ width: "100%" }}>
+          <div>
             {this.render_add_selector_button(options)}
             <Space />
             {this.render_add_all_students_button(options)}
-          </Grid>
+          </div>
         </FormGroup>
       );
     }
@@ -531,16 +528,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (ed != null) {
         return (
-          <Grid
-            fluid={true}
-            style={{ width: "100%", marginTop: "1em", marginBottom: "-10px" }}
-          >
+          <div style={{ marginTop: "1em", marginBottom: "-10px" }}>
             <Row>
-              <Col md={5} lgOffset={7}>
+              <Col md={10} offset={14}>
                 {ed}
               </Col>
             </Row>
-          </Grid>
+          </div>
         );
       }
     }
@@ -571,28 +565,25 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     render_header(num_omitted) {
       return (
-        <Grid
-          fluid={true}
-          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
-        >
+        <div style={{ borderBottom: "1px solid #e5e5e5" }}>
           <Row>
-            <Col md={3}>
+            <Col md={6}>
               <SearchInput
                 placeholder="Find students..."
                 default_value={this.state.search}
                 on_change={value => this.setState({ search: value })}
               />
             </Col>
-            <Col md={4}>
+            <Col md={8}>
               {num_omitted ? (
                 <h5>(Omitting {num_omitted} students)</h5>
               ) : (
                 undefined
               )}
             </Col>
-            <Col md={5}>
+            <Col md={10}>
               <Form onSubmit={this.do_add_search.bind(this)} horizontal>
-                <Col md={9}>
+                <Col md={18}>
                   <FormGroup>
                     <FormControl
                       ref="student_add_input"
@@ -604,7 +595,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                     />
                   </FormGroup>
                 </Col>
-                <Col md={3}>
+                <Col md={6}>
                   <InputGroup.Button>
                     {this.student_add_button()}
                   </InputGroup.Button>
@@ -614,7 +605,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
           </Row>
           {this.render_error()}
-        </Grid>
+        </div>
       );
     }
 
@@ -726,7 +717,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           href=""
           onClick={e => {
             e.preventDefault();
-            return this.get_actions().students.set_active_student_sort(column_name);
+            return this.get_actions().students.set_active_student_sort(
+              column_name
+            );
           }}
         >
           {display_name}
@@ -742,9 +735,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // to make an extension to our WindowedList that supports explicit
       // headers (and uses css grid).
       return (
-        <Grid fluid={true} style={{ width: "100%" }}>
+        <div>
           <Row style={{ marginRight: 0 }}>
-            <Col md={3}>
+            <Col md={6}>
               <div style={{ display: "inline-block", width: "50%" }}>
                 {this.render_sort_link("first_name", "First Name")}
               </div>
@@ -752,13 +745,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                 {this.render_sort_link("last_name", "Last Name")}
               </div>
             </Col>
-            <Col md={2}>{this.render_sort_link("email", "Email Address")}</Col>
-            <Col md={4}>
+            <Col md={4}>{this.render_sort_link("email", "Email Address")}</Col>
+            <Col md={8}>
               {this.render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md={3}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
+            <Col md={6}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
           </Row>
-        </Grid>
+        </div>
       );
     }
 
@@ -888,7 +881,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       const { students, num_omitted, num_deleted } = this.get_student_list();
 
       return (
-        <div className="smc-vfill">
+        <div className="smc-vfill" style={{ margin: "0 15px" }}>
           {this.render_header(num_omitted)}
           {this.render_student_info(students, num_deleted)}
         </div>
@@ -1079,7 +1072,9 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   create_project = () => {
-    this.get_actions().student_projects.create_student_project(this.props.student_id);
+    this.get_actions().student_projects.create_student_project(
+      this.props.student_id
+    );
   };
 
   render_last_active() {
@@ -1272,12 +1267,16 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   delete_student = () => {
-    this.get_actions().students.delete_student(this.props.student.get("student_id"));
+    this.get_actions().students.delete_student(
+      this.props.student.get("student_id")
+    );
     this.setState({ confirm_delete: false });
   };
 
   undelete_student = () => {
-    this.get_actions().students.undelete_student(this.props.student.get("student_id"));
+    this.get_actions().students.undelete_student(
+      this.props.student.get("student_id")
+    );
   };
 
   render_confirm_delete() {
@@ -1406,7 +1405,7 @@ class Student extends Component<StudentProps, StudentState> {
   render_note() {
     return (
       <Row key="note" style={styles.note}>
-        <Col xs={2}>
+        <Col xs={4}>
           <Tip
             title="Notes about this student"
             tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc."
@@ -1414,7 +1413,7 @@ class Student extends Component<StudentProps, StudentState> {
             Private Student Notes
           </Tip>
         </Col>
-        <Col xs={10}>
+        <Col xs={20}>
           <MarkdownInput
             persist_id={this.props.student.get("student_id") + "note"}
             attach_to={this.props.name}
@@ -1438,7 +1437,7 @@ class Student extends Component<StudentProps, StudentState> {
     const v: any[] = [];
     v.push(
       <Row key="more">
-        <Col md={12}>{this.render_assignments_info()}</Col>
+        <Col md={24}>{this.render_assignments_info()}</Col>
       </Row>
     );
     v.push(this.render_note());
@@ -1448,19 +1447,19 @@ class Student extends Component<StudentProps, StudentState> {
   render_basic_info() {
     return (
       <Row key="basic" style={{ backgroundColor: this.props.background }}>
-        <Col md={3}>
+        <Col md={6}>
           <h6>
             {this.render_student()}
             {this.render_deleted()}
           </h6>
         </Col>
-        <Col md={2}>
+        <Col md={4}>
           <h6 style={{ color: "#666" }}>{this.render_student_email()}</h6>
         </Col>
-        <Col md={4} style={{ paddingTop: "10px" }}>
+        <Col md={8} style={{ paddingTop: "10px" }}>
           {this.render_last_active()}
         </Col>
-        <Col md={3} style={{ paddingTop: "10px" }}>
+        <Col md={6} style={{ paddingTop: "10px" }}>
           {this.render_hosting()}
         </Col>
       </Row>
@@ -1477,12 +1476,12 @@ class Student extends Component<StudentProps, StudentState> {
     return (
       <div>
         <Row>
-          <Col md={8}>{this.render_project_access()}</Col>
-          <Col md={4}>{this.render_delete_button()}</Col>
+          <Col md={16}>{this.render_project_access()}</Col>
+          <Col md={8}>{this.render_delete_button()}</Col>
         </Row>
         {this.state.editing_student ? (
           <Row>
-            <Col md={4}>{this.render_edit_student_interface()}</Col>
+            <Col md={8}>{this.render_edit_student_interface()}</Col>
           </Row>
         ) : (
           undefined
@@ -1495,7 +1494,7 @@ class Student extends Component<StudentProps, StudentState> {
     return (
       <Well style={{ marginTop: "10px" }}>
         <Row>
-          <Col md={6}>
+          <Col md={12}>
             First Name
             <FormGroup>
               <FormControl
@@ -1513,7 +1512,7 @@ class Student extends Component<StudentProps, StudentState> {
               />
             </FormGroup>
           </Col>
-          <Col md={6}>
+          <Col md={12}>
             Last Name
             <FormGroup>
               <FormControl
@@ -1532,7 +1531,7 @@ class Student extends Component<StudentProps, StudentState> {
           </Col>
         </Row>
         <Row>
-          <Col md={12}>
+          <Col md={24}>
             Email Address
             <FormGroup>
               <FormControl
@@ -1568,14 +1567,14 @@ class Student extends Component<StudentProps, StudentState> {
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row style={this.state.more ? styles.selected_entry : undefined}>
-          <Col xs={12}>
+          <Col xs={24}>
             {this.render_basic_info()}
             {this.props.is_expanded ? this.render_more_panel() : undefined}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

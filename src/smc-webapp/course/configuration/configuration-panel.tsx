@@ -36,17 +36,9 @@ import {
   AppRedux,
   Rendered
 } from "../../app-framework";
-import {
-  Alert,
-  Button,
-  ButtonToolbar,
-  Row,
-  Col,
-  Checkbox,
-  Grid
-} from "react-bootstrap";
+import { Alert, Button, ButtonToolbar, Checkbox } from "react-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Card, Row, Col } from "cocalc-ui";
 
 // CoCalc Components
 import {
@@ -229,12 +221,12 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
           }
         >
           <Row>
-            <Col md={9}>
+            <Col md={18}>
               {r} of {n} student projects currently running.
             </Col>
           </Row>
           <Row style={{ marginTop: "10px" }}>
-            <Col md={12}>
+            <Col md={24}>
               <ButtonToolbar>
                 <Button
                   onClick={() =>
@@ -266,7 +258,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
             </Col>
           </Row>
           <Row style={{ marginTop: "10px" }}>
-            <Col md={12}>
+            <Col md={24}>
               {this.state.confirm_start_all_projects
                 ? this.render_confirm_start_all_projects()
                 : undefined}
@@ -1094,13 +1086,9 @@ export class ConfigurationPanel extends Component<
 
   render() {
     return (
-      <Grid
-        fluid={true}
-        className="smc-vfill"
-        style={{ width: "100%", overflowY: "scroll" }}
-      >
+      <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
-          <Col md={6}>
+          <Col md={12} style={{ padding: "15px" }}>
             {this.render_require_students_pay()}
             <br />
             {this.render_require_institute_pay()}
@@ -1117,7 +1105,7 @@ export class ConfigurationPanel extends Component<
             <br />
             {this.render_delete_shared_project()}
           </Col>
-          <Col md={6}>
+          <Col md={12} style={{ padding: "15px" }}>
             <HelpBox />
             <br />
             {this.render_title_description()}
@@ -1129,7 +1117,7 @@ export class ConfigurationPanel extends Component<
             {this.render_configure_all_projects()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
