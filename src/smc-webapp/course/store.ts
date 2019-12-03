@@ -28,7 +28,7 @@ import { set } from "smc-util/misc2";
 
 // Course Library
 import { STEPS } from "./util";
-import { Map, Set } from "immutable";
+import { Map, Set, List } from "immutable";
 import { TypedMap, createTypedMap } from "../app-framework/TypedMap";
 
 import { SITE_NAME } from "smc-util/theme";
@@ -39,6 +39,18 @@ import * as project_upgrades from "./project-upgrades";
 import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
 
 import { CourseActions } from "./actions";
+
+export type TerminalCommandOutput = TypedMap<{
+  project_id: string;
+  stdout?: string;
+  stderr?: string;
+}>;
+
+export type TerminalCommand = TypedMap<{
+  input?: string;
+  output?: List<TerminalCommandOutput>;
+  running?: boolean;
+}>;
 
 export type StudentRecord = TypedMap<{
   create_project: number; // Time the student project was created
@@ -52,7 +64,7 @@ export type StudentRecord = TypedMap<{
   project_id: string;
   deleted: boolean;
   note: string;
-  terminal_command: Map<string, any>;
+  terminal_command: TerminalCommand;
   last_email_invite: number;
 }>;
 

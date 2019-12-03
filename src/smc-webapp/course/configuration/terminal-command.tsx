@@ -17,14 +17,25 @@ import { Icon } from "../../r_misc";
 
 import { Result } from "../student-projects/run-in-all-projects";
 
+import { CourseActions } from "../actions";
+import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
+
 interface Props {
   name: string;
-  terminal_command?: Map<string, any>;
+  terminal_command?: TerminalCommand;
 }
 
 class TerminalCommandPanel extends Component<Props, {}> {
   constructor(props) {
     super(props);
+  }
+
+  get_actions(): CourseActions {
+    const actions = redux.getActions(this.props.name);
+    if (actions == null) {
+      throw Error("actions must be defined");
+    }
+    return actions as CourseActions;
   }
 
   static reduxProps({ name }) {
@@ -121,25 +132,29 @@ class TerminalCommandPanel extends Component<Props, {}> {
     return <div style={{ maxHeight: "400px", overflowY: "auto" }}>{v}</div>;
   }
 
-  render_result(result: Map<string, any>): Rendered {
+  render_result(result: TerminalCommandOutput): Rendered {
     return <Output key={result.get("project_id")} result={result} />;
   }
 
-  set_field(field: string, value: any): void {
+  private get_store(): CourseStore {
     const store = redux.getStore(this.props.name);
-    if (!store) {
-      return;
-    }
-    let terminal_command = (store as any).get("terminal_command");
-    if (terminal_command == null) {
-      terminal_command = Map();
-    }
+    if (store == null) throw Error("store must be defined");
+    return store as any;
+  }
+
+  set_field(field: "input" | "running" | "output", value: any): void {
+    const store: CourseStore = this.get_store();
+    let terminal_command: TerminalCommand = store.get(
+      "terminal_command",
+      Map() as TerminalCommand
+    );
     if (value == null) {
       terminal_command = terminal_command.delete(field);
     } else {
       terminal_command = terminal_command.set(field, value);
     }
-    redux.getActions(this.props.name).setState({ terminal_command });
+    // I don't know why the "as any" is needed below...
+    this.get_actions().setState({ terminal_command } as any);
   }
 
   run_log(result: Result): void {
@@ -170,9 +185,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
     }
     try {
       this.set_field("running", true);
-      await (redux.getActions(
-        this.props.name
-      ) as any).run_in_all_student_projects(
+      await this.get_actions().student_projects.run_in_all_student_projects(
         input,
         undefined,
         undefined,
@@ -223,7 +236,7 @@ const PROJECT_LINK_STYLE = {
   whiteSpace: "nowrap"
 };
 
-class Output extends Component<{ result: Map<string, any> }, {}> {
+class Output extends Component<{ result: TerminalCommandOutput }, {}> {
   shouldComponentUpdate(next): boolean {
     return this.props.result !== next.result;
   }
