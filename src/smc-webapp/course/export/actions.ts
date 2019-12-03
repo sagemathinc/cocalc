@@ -60,7 +60,6 @@ export class ExportActions {
   }
 
   public async to_csv(): Promise<void> {
-    let assignment;
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
     // CSV definition: http://edoceo.com/utilitas/csv-file-format
@@ -72,7 +71,7 @@ export class ExportActions {
     content +=
       (() => {
         const result: any[] = [];
-        for (assignment of assignments) {
+        for (const assignment of assignments) {
           result.push(`\"grade: ${assignment.get("path")}\"`);
         }
         return result;
@@ -80,7 +79,7 @@ export class ExportActions {
     content +=
       (() => {
         const result1: any[] = [];
-        for (assignment of assignments) {
+        for (const assignment of assignments) {
           result1.push(`\"comments: ${assignment.get("path")}\"`);
         }
         return result1;
@@ -89,7 +88,7 @@ export class ExportActions {
       var left2;
       const grades = (() => {
         const result2: any[] = [];
-        for (assignment of assignments) {
+        for (const assignment of assignments) {
           let grade = store.get_grade(
             assignment.get("assignment_id"),
             student.get("student_id")
@@ -103,7 +102,7 @@ export class ExportActions {
 
       const comments = (() => {
         const result3: any[] = [];
-        for (assignment of assignments) {
+        for (const assignment of assignments) {
           let comment = store.get_comments(
             assignment.get("assignment_id"),
             student.get("student_id")
@@ -164,20 +163,26 @@ export class ExportActions {
         const result1: any[] = [];
         for (assignment of assignments) {
           const assignment_id = assignment.get("assignment_id");
-          result1.push(`'${store.get_grade(assignment_id, student_id)}'`);
+          const grade = store
+            .get_grade(assignment_id, student_id)
+            .replace(/'/g, "\\'")
+            .replace(/\n/g, "\\n");
+          result1.push("'" + grade + "'");
         }
         return result1;
       })().join(",");
-      grades = grades.replace(/\n/g, "\\n");
       let comments = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
           const assignment_id = assignment.get("assignment_id");
-          result2.push(`'${store.get_comments(assignment_id, student_id)}'`);
+          const comment = store
+            .get_comments(assignment_id, student_id)
+            .replace(/'/g, "\\'")
+            .replace(/\n/g, "\\n");
+          result2.push("'" + comment + "'");
         }
         return result2;
       })().join(",");
-      comments = comments.replace(/\n/g, "\\n");
       const name = store.get_student_name(student_id);
       let email = store.get_student_email(student_id);
       email = email != null ? `'${email}'` : "None";
