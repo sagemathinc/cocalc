@@ -64,7 +64,6 @@ export type StudentRecord = TypedMap<{
   project_id: string;
   deleted: boolean;
   note: string;
-  terminal_command: TerminalCommand;
   last_email_invite: number;
 }>;
 
@@ -167,6 +166,7 @@ export interface CourseState {
   show_save_button: boolean;
   students: StudentsMap;
   unsaved?: boolean;
+  terminal_command?: TerminalCommand;
 }
 
 export class CourseStore extends Store<CourseState> {

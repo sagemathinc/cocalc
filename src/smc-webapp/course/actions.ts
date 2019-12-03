@@ -46,6 +46,7 @@ import { StudentProjectsActions } from "./student-projects/actions";
 import { AssignmentsActions } from "./assignments/actions";
 import { HandoutsActions } from "./handouts/actions";
 import { ConfigurationActions } from "./configuration/actions";
+import { ExportActions } from "./export/actions";
 
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
@@ -70,6 +71,7 @@ export class CourseActions extends Actions<CourseState> {
   public assignments: AssignmentsActions;
   public handouts: HandoutsActions;
   public configuration: ConfigurationActions;
+  public export : ExportActions;
   private state: "init" | "ready" | "closed" = "init";
 
   constructor(name, redux) {
@@ -85,6 +87,7 @@ export class CourseActions extends Actions<CourseState> {
     this.assignments = new AssignmentsActions(this);
     this.handouts = new HandoutsActions(this);
     this.configuration = new ConfigurationActions(this);
+    this.export = new ExportActions(this);
   }
 
   public get_store(): CourseStore {

@@ -153,8 +153,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
     } else {
       terminal_command = terminal_command.set(field, value);
     }
-    // I don't know why the "as any" is needed below...
-    this.get_actions().setState({ terminal_command } as any);
+    this.get_actions().setState({ terminal_command });
   }
 
   run_log(result: Result): void {
