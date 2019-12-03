@@ -512,9 +512,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         if (existing.length > 0) {
           let msg;
           if (existing.length > 1) {
-            msg = "Already added students or project collaborators: ";
+            msg =
+              "Already added (or deleted) students or project collaborators: ";
           } else {
-            msg = "Already added student or project collaborator: ";
+            msg =
+              "Already added (or deleted) student or project collaborator: ";
           }
           msg += existing.join(", ");
           ed = (
@@ -1029,10 +1031,12 @@ class Student extends Component<StudentProps, StudentState> {
   render_student() {
     return (
       <a href="" onClick={this.toggle_show_more}>
-        <Icon
-          style={{ marginRight: "10px" }}
-          name={this.props.is_expanded ? "caret-down" : "caret-right"}
-        />
+        <div style={{ width: "20px", display: "inline-block" }}>
+          <Icon
+            style={{ marginRight: "10px" }}
+            name={this.props.is_expanded ? "caret-down" : "caret-right"}
+          />
+        </div>
         {this.render_student_name()}
       </a>
     );

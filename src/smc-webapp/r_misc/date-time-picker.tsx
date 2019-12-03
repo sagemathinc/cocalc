@@ -18,12 +18,14 @@ export function DateTimePicker(props: {
   onFocus?: Function;
   onBlur?: Function;
   open?: boolean;
+  style?: React.CSSProperties;
 }) {
   const props2: any = {
     showTime: true,
     format: "LLL",
     placeholder: props.placeholder,
-    onChange: props.onChange
+    onChange: props.onChange,
+    style: props.style
   };
   if (props.open != null) {
     props2.open = props.open;
@@ -43,18 +45,4 @@ export function DateTimePicker(props: {
     };
   }
   return <DatePicker {...props2} />;
-
-  /*
-  return (
-    <DatePicker
-      open={props.open}
-      showTime={true}
-      format={"LLL"}
-      placeholder={props.placeholder}
-      value={props.value != null ? moment(props.value) : undefined}
-      onChange={props.onChange}
-      onOpenChange={}
-    />
-  );
-  */
 }

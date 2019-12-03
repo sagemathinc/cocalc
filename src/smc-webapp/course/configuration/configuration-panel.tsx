@@ -42,7 +42,7 @@ import { Card, Row, Col } from "cocalc-ui";
 
 // CoCalc Components
 import {
-  Calendar,
+  DateTimePicker,
   HiddenXS,
   Icon,
   LabeledRow,
@@ -850,11 +850,15 @@ export class ConfigurationPanel extends Component<
     return (
       <div style={{ marginBottom: "1em" }}>
         <div style={{ width: "50%", marginLeft: "3em", marginBottom: "1ex" }}>
-          <Calendar
+          <DateTimePicker
+            style={{ width: "20em" }}
+            placeholder={"Student Pay Deadline"}
             value={value != null ? value : this.props.settings.get("pay")}
-            on_change={date =>
-              this.get_actions().configuration.set_course_info(date)
-            }
+            onChange={date => {
+              this.get_actions().configuration.set_course_info(
+                date != null ? date.toISOString() : undefined
+              );
+            }}
           />
         </div>
         {this.props.settings.get("pay")
@@ -924,9 +928,9 @@ export class ConfigurationPanel extends Component<
         <span>
           Click the following checkbox to require that all students in the
           course pay a special discounted{" "}
-          <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their projects
-          from trial servers to members-only computers, enable full internet
-          access, and do not see a large red warning message. This lasts four
+          <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their project
+          from trial servers to better members-only servers, enable full internet
+          access, and not see a large red warning message. This lasts four
           months, and{" "}
           <em>you will not be charged (only students are charged).</em>
         </span>

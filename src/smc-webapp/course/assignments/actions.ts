@@ -1060,7 +1060,7 @@ You can find the comments they made in the folders below.\
       });
 
       // write local file identifying student being graded
-      name = store.get_student_name_extra(student_id);
+      name = store.get_student_name_extra(our_student_id);
       await this.write_text_file_to_course_project({
         path: target_path + `/STUDENT - ${name.simple}.txt`,
         content: `This student is ${name.full}.`
