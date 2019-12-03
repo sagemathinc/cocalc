@@ -56,7 +56,6 @@ interface ReduxProps {
   search?: string;
 
   user_map?: UserMap;
-  get_name: (user_id: string) => string;
 }
 
 interface State {
@@ -73,8 +72,7 @@ export const ProjectLog = rclass<ReactProps>(
           search: rtypes.string
         },
         users: {
-          user_map: rtypes.immutable,
-          get_name: rtypes.func
+          user_map: rtypes.immutable
         }
       };
     };
@@ -159,11 +157,11 @@ export const ProjectLog = rclass<ReactProps>(
         const match = (z: TypedMap<EventRecord>): boolean => {
           let s: string = this._search_cache[z.get("id")];
           if (s == undefined) {
-            let name1;
-            s =
-              names[(name1 = z.get("account_id"))] != undefined
-                ? names[name1]
-                : (names[name1] = this.props.get_name(z.get("account_id")));
+            const account_id = z.get("account_id");
+            if (names[account_id] == null) {
+              names[account_id] = redux.getStore("users").get_name(account_id);
+            }
+            s = names[account_id];
             const event = z.get("event");
             if (event != undefined) {
               event.forEach((val, k) => {

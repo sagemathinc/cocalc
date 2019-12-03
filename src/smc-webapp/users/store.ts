@@ -27,7 +27,7 @@ class UsersStore extends Store<UsersState> {
     return this.getIn(["user_map", account_id, "profile", "image"]);
   }
 
-  public get_name(account_id) : string | undefined {
+  public get_name(account_id): string | undefined {
     const user_map = this.get("user_map");
     if (user_map == null) {
       return;
