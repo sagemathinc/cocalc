@@ -28,18 +28,16 @@ interface Props {
 export class ConfigurePeerGrading extends Component<Props> {
   private render_configure_peer_checkbox(config): Rendered {
     return (
-      <div>
-        <Checkbox
-          checked={config.enabled != null ? config.enabled : false}
-          key="peer_grade_checkbox"
-          ref="peer_grade_checkbox"
-          onChange={e =>
-            this.set_peer_grade({ enabled: (e.target as any).checked })
-          }
-          style={{ display: "inline-block", verticalAlign: "middle" }}
-        />
+      <Checkbox
+        checked={config.enabled != null ? config.enabled : false}
+        key="peer_grade_checkbox"
+        onChange={e =>
+          this.set_peer_grade({ enabled: (e.target as any).checked })
+        }
+        style={{ display: "inline-block", verticalAlign: "middle" }}
+      >
         Enable Peer Grading
-      </div>
+      </Checkbox>
     );
   }
 

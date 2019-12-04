@@ -11,11 +11,9 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 
 // What we haven't converted yet, but do use in CoCalc:
 export {
-  Checkbox,
   FormControl,
   FormGroup,
   Form,
-  Well,
   InputGroup,
   Row,
   Col
@@ -88,4 +86,38 @@ export function ButtonToolbar(props: any) {
 
 export function Grid(props: any) {
   return <div>{props.children}</div>;
+}
+
+export function Well(props: any) {
+  let style: React.CSSProperties = props.style != null ? props.style : {};
+  style.backgroundColor = "#f5f5f5";
+  style.border = "1px solid #e3e3e3";
+  return <antd.Card style={style}>{props.children}</antd.Card>;
+}
+
+export function Checkbox(props: any) {
+  const style: React.CSSProperties = props.style != null ? props.style : {};
+  if (style.fontWeight == null) {
+    // Antd checkbox uses the label DOM element, and bootstrap css
+    // changes the weight of that DOM element to 700, which is
+    // really ugly and conflicts with the antd design style. So
+    // we manualy change it back here.  This will go away if/when
+    // we no longer include bootstrap css...
+    style.fontWeight = 400;
+  }
+  // The margin and div is to be like react-bootstrap which
+  // has that margin.
+  return (
+    <div style={{ margin: "10px 0" }}>
+      <antd.Checkbox
+        autoFocus={props.autoFocus}
+        checked={props.checked}
+        disabled={props.disabled}
+        style={style}
+        onChange={props.onChange}
+      >
+        {props.children}
+      </antd.Checkbox>
+    </div>
+  );
 }
