@@ -11,6 +11,7 @@ export async function lti_service({ base_url, port }) {
     pass: read_db_password_from_disk(),
     host: process.env["PGHOST"] ?? "localhost"
   });
+  console.log(db);
 
   // Configure provider and the Database
   const appUrl =
@@ -20,8 +21,8 @@ export async function lti_service({ base_url, port }) {
 
   const lti = new LTI.Provider(
     "S3cR3TkEy",
-    { plugin: db }, // You set the plugin option as the instance of the Postgres Database Class
-    //{ url: "mongodb://localhost/database" },
+    //{ plugin: db }, // You set the plugin option as the instance of the Postgres Database Class
+    { url: "mongodb://localhost/database" },
     {
       appUrl: `${appUrl}/`,
       loginUrl: `${appUrl}/login`,
@@ -35,42 +36,37 @@ export async function lti_service({ base_url, port }) {
   // Deploy and open connection to the database
   await lti.deploy({ port: port + 1 });
 
-  // console.log("provider invalidTokenUrl:", lti.invalidTokenUrl())
-
   // delete all existing ones -- just for debugging
-  for (let p of await lti.getAllPlatforms()) {
-    const url = await p.platformUrl();
-    console.log("platform url to delete:", url);
-    await lti.deletePlatform(url);
+  //for (let p of await lti.getAllPlatforms()) {
+  //  const url = await p.platformUrl();
+  //  console.log("platform url to delete:", url);
+  //  await lti.deletePlatform(url);
+  //}
+
+  // console.log("provider invalidTokenUrl:", lti.invalidTokenUrl())
+  let plat: any | boolean = await lti.getPlatform(
+    "https://moodletest.cocalc.com"
+  );
+
+  if (!plat) {
+    // Register platform
+    plat = await lti.registerPlatform({
+      url: "https://moodletest.cocalc.com",
+      name: "CoCalc Moodle",
+      // clientId in moodle: Site administration/Plugins/Activity modules/Manage activities/Edit preconfigured tool
+      clientId: "8LkW4yP6qMF5WFf", // hsy3
+      // clientId: "koGe3QiTumczL3b" // hsy2
+      authenticationEndpoint: "https://moodletest.cocalc.com/mod/lti/auth.php",
+      accesstokenEndpoint: "https://moodletest.cocalc.com/mod/lti/token.php",
+      authConfig: {
+        method: "JWK_SET",
+        key: "https://moodletest.cocalc.com/mod/lti/certs.php"
+      }
+    });
   }
 
-  // Register platform
-  const plat = await lti.registerPlatform({
-    url: "https://moodletest.cocalc.com",
-    name: "CoCalc Moodle",
-    // clientId in moodle: Site administration/Plugins/Activity modules/Manage activities/Edit preconfigured tool
-    clientId: "1SwszomDqwmo8XX", // first test
-    // clientId: "koGe3QiTumczL3b" // hsy2
-    authenticationEndpoint: "https://moodletest.cocalc.com/mod/lti/auth.php",
-    accesstokenEndpoint: "https://moodletest.cocalc.com/mod/lti/token.php",
-    authConfig: {
-      method: "JWK_SET",
-      key: "https://moodletest.cocalc.com/mod/lti/certs.php"
-      // method: "JWK_KEY",
-      // key: {
-      //   kty: "RSA",
-      //   alg: "RS256",
-      //   kid: "8a408bfe64393fe1d89a",
-      //   e: "AQAB",
-      //   n:
-      //     "yPtDb1_S2asoQUfcg_8fdldy021zgApr1tCQpxTEX0Bv3wFoOJT2azp-TZK-Ad2LfilETvEv1m1c0SkY7Wqns8J1y4LL3CYJASCFjHdOuX4b7f3CTns3IGcYBBLo1sdTOrQrcKBCMOueOF05g1trjKK_fUYrhp5huO5f8iOzCzREFCED4bYp8mkQJIrL1Nc3d2ftdha7ozChI50pmdS7kz91-SrQWcx-oh38nExRwxchKkzczVLhgFtO8OsFPRMD2sfh7BxCNw_yY-caG97BA5JqRlOsQ4r9SqQLbmnZc7XpwxAvyHGem5kwVVT3QrSGaq14aGHAU_oiJ_6kjoEjHQ==",
-      //   use: "sig"
-      // }
-    }
-  });
-
   console.log("platform:", plat);
-  if (plat == null) {
+  if (!plat) {
     throw Error(`Platform didn't register (was ${plat})`);
   }
   console.log("platform access token:", await plat.platformAccessToken());
@@ -84,24 +80,64 @@ export async function lti_service({ base_url, port }) {
   );
 
   // Set connection callback
-  lti.onConnect((req, res) => {
-    console.log("onConnect request:", req);
+  lti.onConnect(
+    (conn, _req, res) => {
+      console.log("onConnect conn", conn);
+      console.log("onConnect conn.platformContext:", conn.platformContext);
+      console.log("onConnect conn.userInfo:", conn.userInfo);
+      //console.log("onConnect req", req);
+      //console.log("onConnect req.baseUrl", req.baseUrl);
+      //console.log("onConnect req.path", req.path);
+      //console.log("onConnect req.query", req.query);
 
-    // Call redirect function
-    lti.redirect(res, appUrl + "/main");
-  });
+      // Call redirect function
+
+      // TODO check if these are "general enough" (they what moodle sends)
+      const student_role =
+        "http://purl.imsglobal.org/vocab/lis/v2/membership#Learner";
+      const teacher_role =
+        "http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor";
+
+      if (conn.roles.includes(student_role)) {
+        lti.redirect(res, appUrl + "/student", {
+          isNewResource: true,
+          ignoreRoot: true
+        });
+      } else if (conn.roles.includes(teacher_role)) {
+        lti.redirect(res, appUrl + "/teacher", {
+          isNewResource: true,
+          ignoreRoot: true
+        });
+      } else {
+        console.log(
+          `WARNING: unclear where to redirect for roles: ${conn.roles}`
+        );
+      }
+    },
+    // secure:true sets the "secure" flag for the plat* cookie
+    { secure: true }
+  );
 
   lti.app.get(appUrl, (_req, res) => {
     console.log("appUrl:", res.locals);
     res.send("appUrl is alive");
   });
 
-  // Set main route
-  lti.app.get(appUrl + "/main", (_req, res) => {
+  // Set student route
+  lti.app.get(appUrl + "/student", (_req, res) => {
     // Id token
-    console.log("appUrl/main:", res.locals);
-    res.send(
-      "appUrl/main alive!\ntoken =" + JSON.stringify(res.locals, null, 2)
-    );
+    console.log("appUrl/student:", res.locals);
+    let body = "appUrl/student mode!\n";
+    body += `<pre>token = ${JSON.stringify(res.locals, null, 2)}</pre>`;
+    res.send(body);
+  });
+
+  // Set content selection route
+  lti.app.get(appUrl + "/teacher", (_req, res) => {
+    // Id token
+    console.log("appUrl/teacher:", res.locals);
+    let body = "appUrl/teacher mode!\n";
+    body += `<pre>token = ${JSON.stringify(res.locals, null, 2)}</pre>`;
+    res.send(body);
   });
 }
