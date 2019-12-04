@@ -41,11 +41,10 @@ import {
   Button,
   ButtonToolbar,
   FormControl,
-  FormGroup,
-  Alert
+  FormGroup
 } from "react-bootstrap";
 
-import { Alert as Alert2, Card, Row, Col } from "cocalc-ui";
+import { Alert, Card, Row, Col } from "cocalc-ui";
 
 import { Set, Map } from "immutable";
 
@@ -286,11 +285,8 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
 
     private render_no_assignments(): Rendered {
-      return (
-        <Alert
-          bsStyle="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-        >
+      const message = (
+        <div>
           <h3>Add an Assignment to your Course</h3>
           <p>
             An assignment is a <i>directory</i> of files somewhere in your
@@ -304,7 +300,15 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
             Files tab, then type the name of the directory in the box in the
             upper right and click to search.
           </p>
-        </Alert>
+        </div>
+      );
+
+      return (
+        <Alert
+          type="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
+          message={message}
+        />
       );
     }
 
@@ -936,7 +940,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     )
       return;
     return (
-      <Alert2
+      <Alert
         style={{ marginBottom: "15px" }}
         type="info"
         message={`NOTE: Only the ${STUDENT_SUBDIR}/ subdirectory will be copied to the students.`}
@@ -949,12 +953,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     status
   ): Rendered {
     const n = status[`not_${step}`];
-    return (
-      <Alert
-        bsStyle="warning"
-        key={`${step}_confirm_to_all`}
-        style={{ marginTop: "15px" }}
-      >
+    const message = (
+      <div>
+        {" "}
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this homework{" "}
           {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
@@ -972,7 +973,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           </Button>
           {this.render_copy_cancel(step)}
         </ButtonToolbar>
-      </Alert>
+      </div>
+    );
+    return (
+      <Alert
+        type="warning"
+        key={`${step}_confirm_to_all`}
+        style={{ marginTop: "15px" }}
+        message={message}
+      />
     );
   }
 
@@ -1053,12 +1062,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   ): Rendered {
     const n = status[`not_${step}`];
     const m = n + status[step];
-    return (
-      <Alert
-        bsStyle="warning"
-        key={`${step}_confirm_to_all_or_new`}
-        style={{ marginTop: "15px" }}
-      >
+    const message = (
+      <div>
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this homework{" "}
           {step_direction(step)}...
@@ -1097,7 +1102,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         {this.state[`copy_confirm_all_${step}`]
           ? this.render_copy_confirm_overwrite_all(step)
           : undefined}
-      </Alert>
+      </div>
+    );
+    return (
+      <Alert
+        type="warning"
+        key={`${step}_confirm_to_all_or_new`}
+        style={{ marginTop: "15px" }}
+        message={message}
+      />
     );
   }
 
@@ -1395,8 +1408,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   };
 
   render_confirm_delete() {
-    return (
-      <Alert bsStyle="warning" key="confirm_delete">
+    const message = (
+      <div>
         Are you sure you want to delete this assignment (you can undelete it
         later)?
         <br /> <br />
@@ -1411,8 +1424,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             Cancel
           </Button>
         </ButtonToolbar>
-      </Alert>
+      </div>
     );
+    return <Alert type="warning" key="confirm_delete" message={message} />;
   }
 
   render_delete_button() {
