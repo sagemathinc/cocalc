@@ -31,11 +31,10 @@ import { FormEvent } from "react";
 
 import {
   Button,
-  ButtonToolbar,
   ButtonGroup,
   FormControl,
   FormGroup
-} from "react-bootstrap";
+} from "../antd-bootstrap";
 
 import { Row, Col } from "antd";
 
@@ -503,14 +502,14 @@ export class StudentAssignmentInfo extends Component<
   ): Rendered {
     const placement = name === "Return" ? "left" : "right";
     return (
-      <ButtonToolbar key="open_recopy">
+      <ButtonGroup key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip, placement)}
         <Button key="open" onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
             <Icon name="folder-open-o" /> Open
           </Tip>
         </Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     );
   }
 

@@ -35,7 +35,7 @@ import {
   AppRedux,
   Rendered
 } from "../../app-framework";
-import { Button, ButtonToolbar, Checkbox } from "react-bootstrap";
+import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
 
 import { Alert, Card, Row, Col } from "antd";
 
@@ -161,7 +161,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               disruptive)?
               <br />
               <br />
-              <ButtonToolbar>
+              <ButtonGroup>
                 <Button
                   bsStyle="warning"
                   onClick={() => {
@@ -180,7 +180,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
                 >
                   Cancel
                 </Button>
-              </ButtonToolbar>
+              </ButtonGroup>
             </div>
           }
         />
@@ -198,7 +198,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
               them.
               <br />
               <br />
-              <ButtonToolbar>
+              <ButtonGroup>
                 <Button
                   bsStyle="primary"
                   onClick={() => {
@@ -217,7 +217,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
                 >
                   Cancel
                 </Button>
-              </ButtonToolbar>
+              </ButtonGroup>
             </div>
           }
         />
@@ -242,7 +242,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
           </Row>
           <Row style={{ marginTop: "10px" }}>
             <Col md={24}>
-              <ButtonToolbar>
+              <ButtonGroup>
                 <Button
                   onClick={() =>
                     this.setState({ confirm_start_all_projects: true })
@@ -269,7 +269,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
                 >
                   <Icon name="hand-stop-o" /> Stop all...
                 </Button>
-              </ButtonToolbar>
+              </ButtonGroup>
             </Col>
           </Row>
           <Row style={{ marginTop: "10px" }}>
@@ -479,14 +479,14 @@ export class ConfigurationPanel extends Component<
     return (
       <Card title={this.render_grades_header()}>
         <div style={{ marginBottom: "10px" }}>Save grades to... </div>
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button onClick={this.save_grades_to_csv}>
             <Icon name="file-text-o" /> CSV file...
           </Button>
           <Button onClick={this.save_grades_to_py}>
             <Icon name="file-code-o" /> Python file...
           </Button>
-        </ButtonToolbar>
+        </ButtonGroup>
         <hr />
         <div style={{ color: "#666" }}>
           Export all the grades you have recorded for students in your course to

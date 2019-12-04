@@ -34,11 +34,10 @@ import {
 
 import {
   Button,
-  ButtonToolbar,
   ButtonGroup,
   FormGroup,
   FormControl
-} from "react-bootstrap";
+} from "../../antd-bootstrap";
 
 import { Alert, Card, Row, Col } from "antd";
 
@@ -521,7 +520,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             style={{ marginTop: "1ex" }}
           />
         </FormGroup>
-        <ButtonToolbar style={{ textAlign: "center", marginTop: "15px" }}>
+        <ButtonGroup style={{ textAlign: "center", marginTop: "15px" }}>
           <Button
             disabled={
               this.state.copy_handout_confirm_overwrite_text !== "OVERWRITE"
@@ -532,7 +531,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             <Icon name="exclamation-triangle" /> Confirm replacing files
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
       </div>
     );
   }
@@ -571,7 +570,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
               {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
               {step_ready(step)}?
             </div>
-            <ButtonToolbar>
+            <ButtonGroup>
               <Button
                 key="yes"
                 bsStyle="primary"
@@ -580,7 +579,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
                 Yes
               </Button>
               {this.render_copy_cancel(step)}
-            </ButtonToolbar>
+            </ButtonGroup>
           </div>
         }
       />
@@ -604,7 +603,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         <div style={{ marginBottom: "15px" }}>
           {this.copy_confirm_all_caution(step)}
         </div>
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key="all"
             bsStyle="warning"
@@ -622,7 +621,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             Replace student files!
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
         {this.render_copy_handout_confirm_overwrite(step)}
       </div>
     );
@@ -643,7 +642,7 @@ Select "Replace student files!" in case you do not want to create any backups an
               {step_direction(step)}
               ...
             </div>
-            <ButtonToolbar>
+            <ButtonGroup>
               <Button
                 key="all"
                 bsStyle="danger"
@@ -672,7 +671,7 @@ Select "Replace student files!" in case you do not want to create any backups an
                 undefined
               )}
               {this.render_copy_cancel(step)}
-            </ButtonToolbar>
+            </ButtonGroup>
             {this.state[`copy_confirm_all_${step}`]
               ? this.render_copy_confirm_overwrite_all(step)
               : undefined}
@@ -743,7 +742,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             Are you sure you want to delete this handout (you can undelete it
             later)?
             <br /> <br />
-            <ButtonToolbar>
+            <ButtonGroup>
               <Button key="yes" onClick={this.delete_handout} bsStyle="danger">
                 <Icon name="trash" /> Delete
               </Button>
@@ -753,7 +752,7 @@ Select "Replace student files!" in case you do not want to create any backups an
               >
                 Cancel
               </Button>
-            </ButtonToolbar>
+            </ButtonGroup>
           </div>
         }
       />
@@ -1157,14 +1156,14 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
 
   render_open_recopy(name, open, copy, copy_tip, open_tip) {
     return (
-      <ButtonToolbar key="open_recopy">
+      <ButtonGroup key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open handout" tip={open_tip}>
             <Icon name="folder-open-o" /> Open
           </Tip>
         </Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     );
   }
 

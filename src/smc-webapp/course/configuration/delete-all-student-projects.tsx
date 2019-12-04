@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../r_misc";
-import { Button, ButtonToolbar, Well } from "react-bootstrap";
+import { Button, ButtonGroup, Well } from "../../antd-bootstrap";
 import { Card } from "antd";
 
 interface Props {
@@ -41,12 +41,12 @@ function Confirmation({ on_confirm, on_cancel }) {
       All student projects will be deleted and are no longer accessible by the
       student. (You will still have access to the deleted projects in the
       Projects page.) Are you absolutely sure?
-      <ButtonToolbar style={{ marginTop: "10px" }}>
+      <ButtonGroup style={{ marginTop: "10px" }}>
         <Button bsStyle="danger" onClick={on_confirm}>
           YES, DELETE all Student Projects
         </Button>
         <Button onClick={on_cancel}>Cancel</Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     </Well>
   );
 }

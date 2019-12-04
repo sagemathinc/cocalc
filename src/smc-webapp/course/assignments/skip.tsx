@@ -6,7 +6,7 @@ import { React, Component, Rendered } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
 import { Icon, Space, Tip } from "../../r_misc";
-import { Button } from "react-bootstrap";
+import { Button } from "../../antd-bootstrap";
 
 interface SkipCopyProps {
   assignment: AssignmentRecord;

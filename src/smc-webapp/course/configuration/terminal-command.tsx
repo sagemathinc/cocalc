@@ -9,7 +9,7 @@ import {
   rclass
 } from "../../app-framework";
 
-import { FormControl, FormGroup, InputGroup, Button } from "react-bootstrap";
+import { FormControl, FormGroup, InputGroup, Button } from "../../antd-bootstrap";
 
 import { Card } from "antd";
 

@@ -46,7 +46,7 @@ import {
   InputGroup,
   Well,
   Form
-} from "react-bootstrap";
+} from "../../antd-bootstrap";
 
 import { Alert, Card, Row, Col } from "antd";
 
@@ -1292,14 +1292,14 @@ class Student extends Component<StudentProps, StudentState> {
           Are you sure you want to delete this student (you can always undelete
           them later)?
           <Space />
-          <ButtonToolbar>
+          <ButtonGroup>
             <Button onClick={this.delete_student} bsStyle="danger">
               <Icon name="trash" /> YES, Delete
             </Button>
             <Button onClick={() => this.setState({ confirm_delete: false })}>
               Cancel
             </Button>
-          </ButtonToolbar>
+          </ButtonGroup>
         </div>
       );
     }

@@ -28,7 +28,7 @@ import { webapp_client } from "../../webapp-client";
 // React libraries
 import { React, ReactDOM, Component } from "../../app-framework";
 import { Icon, SearchInput, SkinnyError } from "../../r_misc";
-import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
+import { Button, ButtonGroup, FormControl, FormGroup } from "../../antd-bootstrap";
 
 import { Row, Col } from "antd";
 
@@ -167,10 +167,10 @@ class MultipleAddSearch extends Component<
         >
           {this.render_results_list()}
         </FormControl>
-        <ButtonToolbar style={{ marginTop: "15px" }}>
+        <ButtonGroup style={{ marginTop: "15px" }}>
           {this.render_add_selector_button()}
           <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
-        </ButtonToolbar>
+        </ButtonGroup>
       </FormGroup>
     );
   }

@@ -52,13 +52,13 @@ import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 
 import {
   Button,
-  ButtonToolbar,
+  ButtonGroup,
   Checkbox,
   FormGroup,
   FormControl,
   Row,
   Col
-} from "react-bootstrap";
+} from "../../antd-bootstrap";
 
 import { Alert, Card } from "antd";
 
@@ -493,7 +493,7 @@ class StudentProjectUpgrades extends Component<
 
   render_upgrade_submit_buttons() {
     return (
-      <ButtonToolbar>
+      <ButtonGroup>
         <Button
           bsStyle="primary"
           onClick={this.save_upgrade_quotas}
@@ -507,7 +507,7 @@ class StudentProjectUpgrades extends Component<
         <Button onClick={() => this.setState({ upgrade_quotas: false })}>
           Cancel
         </Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     );
   }
 

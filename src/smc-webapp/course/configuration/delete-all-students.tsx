@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../r_misc";
-import { Button, ButtonToolbar, Well } from "react-bootstrap";
+import { Button, ButtonToolbar, Well } from "../../antd-bootstrap";
 import { Card } from "antd";
 
 interface Props {

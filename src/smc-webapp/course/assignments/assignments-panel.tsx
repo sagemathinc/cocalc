@@ -39,10 +39,10 @@ import {
 
 import {
   Button,
-  ButtonToolbar,
+  ButtonGroup,
   FormControl,
   FormGroup
-} from "react-bootstrap";
+} from "../../antd-bootstrap";
 
 import { Alert, Card, Row, Col } from "antd";
 
@@ -856,7 +856,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             style={{ marginTop: "1ex" }}
           />
         </FormGroup>
-        <ButtonToolbar style={{ textAlign: "center", marginTop: "15px" }}>
+        <ButtonGroup style={{ textAlign: "center", marginTop: "15px" }}>
           <Button
             disabled={
               this.state.copy_assignment_confirm_overwrite_text !== "OVERWRITE"
@@ -867,7 +867,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             <Icon name="exclamation-triangle" /> Confirm replacing files
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
       </div>
     );
   }
@@ -963,7 +963,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         </div>
         {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key="yes"
             bsStyle="primary"
@@ -972,7 +972,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             Yes
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
       </div>
     );
     return (
@@ -1026,7 +1026,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         <div style={{ marginBottom: "15px" }}>
           {this.copy_confirm_all_caution(step)}
         </div>
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key={"all"}
             bsStyle={"warning"}
@@ -1050,7 +1050,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             undefined
           )}
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
         {this.render_copy_assignment_confirm_overwrite(step)}
       </div>
     );
@@ -1070,7 +1070,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         </div>
         {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key="all"
             bsStyle="danger"
@@ -1098,7 +1098,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             undefined
           )}
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
         {this.state[`copy_confirm_all_${step}`]
           ? this.render_copy_confirm_overwrite_all(step)
           : undefined}
@@ -1413,7 +1413,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         Are you sure you want to delete this assignment (you can undelete it
         later)?
         <br /> <br />
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button key="yes" onClick={this.delete_assignment} bsStyle="danger">
             <Icon name="trash" /> Delete
           </Button>
@@ -1423,7 +1423,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           >
             Cancel
           </Button>
-        </ButtonToolbar>
+        </ButtonGroup>
       </div>
     );
     return <Alert type="warning" key="confirm_delete" message={message} />;

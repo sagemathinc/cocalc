@@ -8,7 +8,7 @@ import { server_days_ago } from "smc-util/misc";
 import { AssignmentRecord } from "../store";
 import { CourseActions } from "../actions";
 
-import { Button, Checkbox } from "react-bootstrap";
+import { Button, Checkbox } from "../../antd-bootstrap";
 
 import { Card, Row, Col } from "antd";
 

@@ -19,7 +19,7 @@
 //#############################################################################
 
 import { Component, React } from "../../app-framework";
-import { Button, ButtonToolbar, Well } from "react-bootstrap";
+import { Button, ButtonGroup, Well } from "../../antd-bootstrap";
 import { Card } from "antd";
 import { Icon } from "../../r_misc";
 
@@ -46,7 +46,7 @@ export class DeleteSharedProjectPanel extends Component<
         The shared project will be deleted and all students removed from it.
         (You will still have access to the deleted shared project in the
         Projects page.) Are you absolutely sure?
-        <ButtonToolbar style={{ marginTop: "10px" }}>
+        <ButtonGroup style={{ marginTop: "10px" }}>
           <Button
             bsStyle="danger"
             onClick={() => {
@@ -63,7 +63,7 @@ export class DeleteSharedProjectPanel extends Component<
           >
             Cancel
           </Button>
-        </ButtonToolbar>
+        </ButtonGroup>
       </Well>
     );
   }
