@@ -3,9 +3,12 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
+const STUDENT_SUBDIR = "student";
+
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
 import { CourseStore, Feedback } from "../store";
 import { callback2 } from "smc-util/async-utils";
+import { exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import {
@@ -67,7 +70,7 @@ export class AssignmentsActions {
   }
 
   public delete_assignment(assignment_id: string): void {
-    return this.course_actions.set({
+    this.course_actions.set({
       deleted: true,
       assignment_id,
       table: "assignments"
@@ -75,7 +78,7 @@ export class AssignmentsActions {
   }
 
   public undelete_assignment(assignment_id: string): void {
-    return this.course_actions.set({
+    this.course_actions.set({
       deleted: false,
       assignment_id,
       table: "assignments"
@@ -1149,6 +1152,31 @@ You can find the comments they made in the folders below.\
       project_id: this.get_store().get("course_project_id"),
       path: opts.path,
       content: opts.content
+    });
+  }
+
+  // Update the database to properly reflect whether or not the assignment
+  // directory currently has a STUDENT_SUBDIR/ subdirectory.
+  public async has_student_subdir(assignment_id: string): Promise<void> {
+    const { store, assignment } = this.course_actions.resolve({
+      assignment_id
+    });
+    if (assignment == null) return;
+    const project_id = store.get("course_project_id");
+    const command = "stat";
+    const path = assignment.get("path");
+    const args = ["-c", "%F", path + "/" + STUDENT_SUBDIR];
+    const r = await exec({
+      project_id,
+      command,
+      args,
+      err_on_exit: false
+    });
+    const has_student_subdir = r != null && r.stdout.trim() == "directory";
+    this.course_actions.set({
+      has_student_subdir,
+      assignment_id,
+      table: "assignments"
     });
   }
 }

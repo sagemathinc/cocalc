@@ -14,6 +14,7 @@ export interface SyncDBRecordAssignment {
   table: string;
   assignment_id?: string;
   note?: string;
+  has_student_subdir?: boolean;  // True if assignment has a STUDENT_SUBDIR subdir (so only that subdir is sent to students)
   description?: string;
   title?: string;
   grades?: { [student_id: string]: string };
