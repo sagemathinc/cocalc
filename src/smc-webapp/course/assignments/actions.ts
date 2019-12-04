@@ -3,7 +3,7 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
-const STUDENT_SUBDIR = "student";
+export const STUDENT_SUBDIR = "student";
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
 import { CourseStore, Feedback } from "../store";
@@ -19,7 +19,7 @@ import {
   defaults
 } from "smc-util/misc";
 import { map } from "awaiting";
-import { previous_step, Step, assignment_identifier } from "../util";
+import { previous_step, assignment_identifier } from "../util";
 import {
   AssignmentCopyType,
   LastAssignmentCopyType,
@@ -465,7 +465,7 @@ You can find the comments they made in the folders below.\
       if (this.course_actions.is_closed()) return;
       if (
         !store.last_copied(
-          previous_step(Step.return_graded, peer),
+          previous_step("return_graded", peer),
           assignment_id,
           student_id,
           true
@@ -843,7 +843,7 @@ You can find the comments they made in the folders below.\
     let errors = "";
     const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
     const prev_step =
-      step == Step.assignment ? undefined : previous_step(step, peer);
+      step == "assignment" ? undefined : previous_step(step, peer);
     const f = async (student_id: string): Promise<void> => {
       if (this.course_actions.is_closed()) return;
       const store = this.get_store();

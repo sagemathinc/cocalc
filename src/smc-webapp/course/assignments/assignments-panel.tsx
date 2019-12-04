@@ -23,7 +23,8 @@
 import * as misc from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 
-import { AssignmentStatus } from "../types";
+import { STUDENT_SUBDIR } from "./actions";
+import { AssignmentCopyStep, AssignmentStatus } from "../types";
 
 // React libraries
 import {
@@ -37,14 +38,14 @@ import {
 } from "../../app-framework";
 
 import {
-  Alert,
   Button,
   ButtonToolbar,
   FormControl,
-  FormGroup
+  FormGroup,
+  Alert
 } from "react-bootstrap";
 
-import { Card, Row, Col } from "cocalc-ui";
+import { Alert as Alert2, Card, Row, Col } from "cocalc-ui";
 
 import { Set, Map } from "immutable";
 
@@ -727,6 +728,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
+  private show_copy_confirm(): void {
+    this.setState({ copy_confirm_assignment: true, copy_confirm: true });
+    const actions = this.get_actions();
+    const assignment_id: string | undefined = this.props.assignment.get(
+      "assignment_id"
+    );
+    actions.assignments.has_student_subdir(assignment_id);
+  }
+
   render_assignment_button(status) {
     let bsStyle;
     const last_assignment = this.props.assignment.get("last_assignment");
@@ -747,9 +757,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       <Button
         key="assign"
         bsStyle={bsStyle}
-        onClick={() =>
-          this.setState({ copy_confirm_assignment: true, copy_confirm: true })
-        }
+        onClick={this.show_copy_confirm.bind(this)}
         disabled={this.state.copy_confirm}
       >
         <Tip
@@ -906,7 +914,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     } as any);
   }
 
-  render_skip(step) {
+  private render_skip(step: AssignmentCopyStep): Rendered {
     if (step === "return_graded") {
       return;
     }
@@ -921,7 +929,25 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  render_copy_confirm_to_all(step, status) {
+  private render_has_student_subdir(step: AssignmentCopyStep): Rendered {
+    if (
+      step != "assignment" ||
+      !this.props.assignment.get("has_student_subdir")
+    )
+      return;
+    return (
+      <Alert2
+        style={{ marginBottom: "15px" }}
+        type="info"
+        message={`NOTE: Only the ${STUDENT_SUBDIR}/ subdirectory will be copied to the students.`}
+      />
+    );
+  }
+
+  private render_copy_confirm_to_all(
+    step: AssignmentCopyStep,
+    status
+  ): Rendered {
     const n = status[`not_${step}`];
     return (
       <Alert
@@ -934,6 +960,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
           {step_ready(step, n)}?
         </div>
+        {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
         <ButtonToolbar>
           <Button
@@ -949,7 +976,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  copy_confirm_all_caution(step) {
+  private copy_confirm_all_caution(
+    step: AssignmentCopyStep
+  ): Rendered | string {
     switch (step) {
       case "assignment":
         return (
@@ -980,7 +1009,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  render_copy_confirm_overwrite_all(step) {
+  private render_copy_confirm_overwrite_all(
+    step: AssignmentCopyStep
+  ): Rendered {
     return (
       <div key={"copy_confirm_overwrite_all"} style={{ marginTop: "15px" }}>
         <div style={{ marginBottom: "15px" }}>
@@ -1016,7 +1047,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  render_copy_confirm_to_all_or_new(step, status) {
+  private render_copy_confirm_to_all_or_new(
+    step: AssignmentCopyStep,
+    status
+  ): Rendered {
     const n = status[`not_${step}`];
     const m = n + status[step];
     return (
@@ -1029,6 +1063,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           {misc.capitalize(step_verb(step))} this homework{" "}
           {step_direction(step)}...
         </div>
+        {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
         <ButtonToolbar>
           <Button

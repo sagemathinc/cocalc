@@ -22,6 +22,7 @@
 import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
 import { StudentsMap } from "./store";
+import { AssignmentCopyStep } from "./types";
 
 // Pure functions used in the course manager
 
@@ -29,30 +30,25 @@ import { StudentsMap } from "./store";
 import * as misc from "smc-util/misc";
 const { defaults, required } = misc;
 
-export enum Step {
-  assignment = "assignment",
-  collect = "collect",
-  peer_assignment = "peer_assignment",
-  peer_collect = "peer_collect",
-  return_graded = "return_graded"
-}
-
-export function STEPS(peer: boolean) {
+export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {
     return [
-      Step.assignment,
-      Step.collect,
-      Step.peer_assignment,
-      Step.peer_collect,
-      Step.return_graded
+      "assignment",
+      "collect",
+      "peer_assignment",
+      "peer_collect",
+      "return_graded"
     ];
   } else {
-    return [Step.assignment, Step.collect, Step.return_graded];
+    return ["assignment", "collect", "return_graded"];
   }
 }
 
-export function previous_step(step: Step, peer: boolean): Step {
-  let prev: Step | undefined;
+export function previous_step(
+  step: AssignmentCopyStep,
+  peer: boolean
+): AssignmentCopyStep {
+  let prev: AssignmentCopyStep | undefined;
   for (const s of STEPS(peer)) {
     if (step === s) {
       if (prev === undefined) break;
@@ -63,7 +59,7 @@ export function previous_step(step: Step, peer: boolean): Step {
   throw Error(`BUG! previous_step('${step}, ${peer}')`);
 }
 
-export function step_direction(step: Step): "to" | "from" {
+export function step_direction(step: AssignmentCopyStep): "to" | "from" {
   switch (step) {
     case "assignment":
       return "to";
@@ -80,7 +76,7 @@ export function step_direction(step: Step): "to" | "from" {
   }
 }
 
-export function step_verb(step: Step) {
+export function step_verb(step: AssignmentCopyStep) {
   switch (step) {
     case "assignment":
       return "assign";
@@ -97,7 +93,7 @@ export function step_verb(step: Step) {
   }
 }
 
-export function step_ready(step: Step, n) {
+export function step_ready(step: AssignmentCopyStep, n) {
   switch (step) {
     case "assignment":
       return "";
