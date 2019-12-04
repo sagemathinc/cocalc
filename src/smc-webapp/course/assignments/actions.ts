@@ -6,7 +6,7 @@ Actions involving working with assignments:
 export const STUDENT_SUBDIR = "student";
 
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
-import { CourseStore, Feedback } from "../store";
+import { AssignmentRecord, CourseStore, Feedback } from "../store";
 import { callback2 } from "smc-util/async-utils";
 import { exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
@@ -1168,6 +1168,8 @@ You can find the comments they made in the folders below.\
 
   // Update the database to properly reflect whether or not the assignment
   // directory currently has a STUDENT_SUBDIR/ subdirectory.
+  // If there is a STUDENT_SUBDIR/, we also check heuristically if
+  // nbgrader is probably being used.
   public async has_student_subdir(assignment_id: string): Promise<void> {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id
@@ -1183,11 +1185,37 @@ You can find the comments they made in the folders below.\
       args,
       err_on_exit: false
     });
+    if (this.course_actions.is_closed()) return;
+
     const has_student_subdir = r != null && r.stdout.trim() == "directory";
+    const nbgrader = has_student_subdir
+      ? await this.probably_uses_nbgrader(assignment, project_id)
+      : false;
+    if (this.course_actions.is_closed()) return;
     this.course_actions.set({
       has_student_subdir,
+      nbgrader,
       assignment_id,
       table: "assignments"
     });
+  }
+
+  private async probably_uses_nbgrader(
+    assignment: AssignmentRecord,
+    project_id: string
+  ): Promise<boolean> {
+    // Heuristic: we check if there is an ipynb file in the STUDENT_SUBDIR
+    // that contains "nbgrader".
+    const path = this.assignment_src_path(assignment);
+    const command = "grep nbgrader *.ipynb | wc -l";
+    const cnt = parseInt(
+      (await exec({
+        project_id,
+        command,
+        path,
+        err_on_exit: true
+      })).stdout
+    );
+    return cnt > 0;
   }
 }
