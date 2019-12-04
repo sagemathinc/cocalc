@@ -16,11 +16,12 @@ export async function lti_service({ base_url, port }) {
   const appUrl =
     "/14eed217-2d3c-4975-a381-b69edcb40e0e/port/" + (port + 1) + "/lti";
 
-  console.log(base_url, LTI, db);
+  console.log(base_url);
 
   const lti = new LTI.Provider(
-    "EXAMPLEKEY",
+    "S3cR3TkEy",
     { plugin: db }, // You set the plugin option as the instance of the Postgres Database Class
+    //{ url: "mongodb://localhost/database" },
     {
       appUrl: `${appUrl}/`,
       loginUrl: `${appUrl}/login`,
@@ -48,26 +49,30 @@ export async function lti_service({ base_url, port }) {
     url: "https://moodletest.cocalc.com",
     name: "CoCalc Moodle",
     // clientId in moodle: Site administration/Plugins/Activity modules/Manage activities/Edit preconfigured tool
-    clientId: "xuYq0HBdSlr5Utb",
+    clientId: "1SwszomDqwmo8XX", // first test
+    // clientId: "koGe3QiTumczL3b" // hsy2
     authenticationEndpoint: "https://moodletest.cocalc.com/mod/lti/auth.php",
     accesstokenEndpoint: "https://moodletest.cocalc.com/mod/lti/token.php",
     authConfig: {
-      // method: "JWK_SET",
-      // key: "https://moodletest.cocalc.com/mod/lti/certs.php"
-      method: "JWK_KEY",
-      key: {
-        kty: "RSA",
-        alg: "RS256",
-        kid: "8a408bfe64393fe1d89a",
-        e: "AQAB",
-        n:
-          "yPtDb1_S2asoQUfcg_8fdldy021zgApr1tCQpxTEX0Bv3wFoOJT2azp-TZK-Ad2LfilETvEv1m1c0SkY7Wqns8J1y4LL3CYJASCFjHdOuX4b7f3CTns3IGcYBBLo1sdTOrQrcKBCMOueOF05g1trjKK_fUYrhp5huO5f8iOzCzREFCED4bYp8mkQJIrL1Nc3d2ftdha7ozChI50pmdS7kz91-SrQWcx-oh38nExRwxchKkzczVLhgFtO8OsFPRMD2sfh7BxCNw_yY-caG97BA5JqRlOsQ4r9SqQLbmnZc7XpwxAvyHGem5kwVVT3QrSGaq14aGHAU_oiJ_6kjoEjHQ==",
-        use: "sig"
-      }
+      method: "JWK_SET",
+      key: "https://moodletest.cocalc.com/mod/lti/certs.php"
+      // method: "JWK_KEY",
+      // key: {
+      //   kty: "RSA",
+      //   alg: "RS256",
+      //   kid: "8a408bfe64393fe1d89a",
+      //   e: "AQAB",
+      //   n:
+      //     "yPtDb1_S2asoQUfcg_8fdldy021zgApr1tCQpxTEX0Bv3wFoOJT2azp-TZK-Ad2LfilETvEv1m1c0SkY7Wqns8J1y4LL3CYJASCFjHdOuX4b7f3CTns3IGcYBBLo1sdTOrQrcKBCMOueOF05g1trjKK_fUYrhp5huO5f8iOzCzREFCED4bYp8mkQJIrL1Nc3d2ftdha7ozChI50pmdS7kz91-SrQWcx-oh38nExRwxchKkzczVLhgFtO8OsFPRMD2sfh7BxCNw_yY-caG97BA5JqRlOsQ4r9SqQLbmnZc7XpwxAvyHGem5kwVVT3QrSGaq14aGHAU_oiJ_6kjoEjHQ==",
+      //   use: "sig"
+      // }
     }
   });
 
   console.log("platform:", plat);
+  if (plat == null) {
+    throw Error(`Platform didn't register (was ${plat})`);
+  }
   console.log("platform access token:", await plat.platformAccessToken());
   console.log("platform public key:\n", await plat.platformPublicKey());
   console.log("platform private key:\n", await plat.platformPrivateKey());
@@ -79,19 +84,24 @@ export async function lti_service({ base_url, port }) {
   );
 
   // Set connection callback
-  lti.onConnect((request, response) => {
-    console.log("request:", request);
+  lti.onConnect((req, res) => {
+    console.log("onConnect request:", req);
 
     // Call redirect function
-    lti.redirect(response, appUrl + "/main");
+    lti.redirect(res, appUrl + "/main");
+  });
+
+  lti.app.get(appUrl, (_req, res) => {
+    console.log("appUrl:", res.locals);
+    res.send("appUrl is alive");
   });
 
   // Set main route
   lti.app.get(appUrl + "/main", (_req, res) => {
     // Id token
-    console.log(res.locals.token);
+    console.log("appUrl/main:", res.locals);
     res.send(
-      "It's alive!\ntoken =" + JSON.stringify(res.locals.token, null, 2)
+      "appUrl/main alive!\ntoken =" + JSON.stringify(res.locals, null, 2)
     );
   });
 }
