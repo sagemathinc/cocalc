@@ -37,7 +37,7 @@ import {
   FormGroup
 } from "react-bootstrap";
 
-import { Row, Col } from "cocalc-ui";
+import { Row, Col } from "antd";
 
 import {
   ErrorDisplay,

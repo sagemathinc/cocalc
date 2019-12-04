@@ -37,7 +37,7 @@ import {
 } from "../../app-framework";
 import { Alert, Button, ButtonToolbar, Checkbox } from "react-bootstrap";
 
-import { Card, Row, Col } from "cocalc-ui";
+import { Card, Row, Col } from "antd";
 
 // CoCalc Components
 import {

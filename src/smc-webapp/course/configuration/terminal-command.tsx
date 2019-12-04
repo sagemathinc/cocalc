@@ -11,7 +11,7 @@ import {
 
 import { FormControl, FormGroup, InputGroup, Button } from "react-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Card } from "antd";
 
 import { Icon } from "../../r_misc";
 

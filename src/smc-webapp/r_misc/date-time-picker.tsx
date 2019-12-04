@@ -8,7 +8,7 @@
 
 import { React } from "../app-framework";
 
-import { DatePicker } from "cocalc-ui";
+import { DatePicker } from "antd";
 import * as moment from "moment";
 
 export function DateTimePicker(props: {

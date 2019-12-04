@@ -23,7 +23,7 @@ import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
 import { HiddenXS, Icon, Tip, VisibleMDLG } from "../../r_misc";
 
-import { Button, Popconfirm } from "cocalc-ui";
+import { Button, Popconfirm } from "antd";
 
 interface SharedProjectPanelProps {
   settings: CourseSettingsRecord;

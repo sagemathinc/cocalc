@@ -20,7 +20,7 @@
 
 import { Component, React } from "../../app-framework";
 import { Button, ButtonToolbar, Well } from "react-bootstrap";
-import { Card } from "cocalc-ui";
+import { Card } from "antd";
 import { Icon } from "../../r_misc";
 
 interface DeleteSharedProjectPanelProps {
