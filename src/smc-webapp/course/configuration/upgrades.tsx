@@ -225,22 +225,20 @@ class StudentProjectUpgrades extends Component<
           </div>
         );
       } else {
-        label = val === 0 ? "Enable" : "Enabled";
+        label = val === 0 ? "Disabled" : "Enabled";
       }
       return (
-        <form>
-          <Checkbox
-            ref={ref}
-            checked={val > 0}
-            onChange={e => {
-              const u = this.state.upgrades;
-              u[quota] = (e.target as any).checked ? 1 : 0;
-              this.setState({ upgrades: u });
-              this.update_plan();
-            }}
-          />
+        <Checkbox
+          checked={val > 0}
+          onChange={e => {
+            const u = this.state.upgrades;
+            u[quota] = (e.target as any).checked ? 1 : 0;
+            this.setState({ upgrades: u });
+            this.update_plan();
+          }}
+        >
           {label}
-        </form>
+        </Checkbox>
       );
     } else {
       console.warn(

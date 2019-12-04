@@ -1,7 +1,6 @@
 import { List, Map, fromJS } from "immutable";
 import {
   React,
-  ReactDOM,
   Component,
   Rendered,
   rtypes,
@@ -9,9 +8,7 @@ import {
   rclass
 } from "../../app-framework";
 
-import { FormControl, FormGroup, InputGroup, Button } from "../../antd-bootstrap";
-
-import { Card } from "antd";
+import { Button, Card, Form, Input } from "antd";
 
 import { Icon } from "../../r_misc";
 
@@ -65,40 +62,32 @@ class TerminalCommandPanel extends Component<Props, {}> {
 
   render_input(): Rendered {
     const c = this.props.terminal_command;
-    let input = "";
     let running = false;
     if (c != null) {
-      input = c.get("input", "");
       running = c.get("running", false);
     }
     return (
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          this.run_terminal_command();
-        }}
-      >
-        <FormGroup>
-          <InputGroup>
-            <FormControl
-              type="text"
-              value={input}
-              ref="input"
-              placeholder="Terminal command..."
-              onChange={e => {
-                e.preventDefault();
-                this.set_field(
-                  "input",
-                  ReactDOM.findDOMNode(this.refs.input).value
-                );
-              }}
-            />
-            <InputGroup.Button disabled={running}>
+      <div>
+        <Form
+          onSubmit={e => {
+            e.preventDefault();
+            this.run_terminal_command();
+          }}
+        >
+          <Form.Item>
+            <Input.Group>
+              <Input
+                style={{ width: "80%" }}
+                placeholder="Terminal command..."
+                onChange={e => {
+                  this.set_field("input", e.target.value);
+                }}
+              />
               {this.render_button(running)}
-            </InputGroup.Button>
-          </InputGroup>
-        </FormGroup>
-      </form>
+            </Input.Group>
+          </Form.Item>
+        </Form>
+      </div>
     );
   }
 

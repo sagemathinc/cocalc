@@ -1304,7 +1304,7 @@ exports.UpgradeAdjustor = rclass
                 reason = reasons.join(' and ')
                 label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: {reason}</div>
             else
-                label = if val == 0 then 'Enable' else 'Enabled'
+                label = if val == 0 then 'Disabled' else 'Enabled'
 
             is_upgraded = if total >= 1 then '(already upgraded)' else '(not upgraded)'
 

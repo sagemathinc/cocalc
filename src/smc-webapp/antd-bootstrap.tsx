@@ -10,14 +10,7 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 */
 
 // What we haven't converted yet, but do use in CoCalc:
-export {
-  FormControl,
-  FormGroup,
-  Form,
-  InputGroup,
-  Row,
-  Col
-} from "react-bootstrap";
+export { FormControl, FormGroup, Form, InputGroup } from "react-bootstrap";
 
 import { React } from "./app-framework";
 import { r_join, Space } from "./r_misc";
@@ -120,4 +113,19 @@ export function Checkbox(props: any) {
       </antd.Checkbox>
     </div>
   );
+}
+
+export const Row = antd.Row;
+
+export function Col(props: any) {
+  const props2: any = {};
+  for (const p of ["xs", "sm", "md", "lg"]) {
+    if (props[p] != null) {
+      props2[p] = 2 * props[p];
+    }
+    if (props[p + "Offset"] != null) {
+      props2["offset"] = 2 * props[p + "Offset"]; // loss of info
+    }
+  }
+  return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
