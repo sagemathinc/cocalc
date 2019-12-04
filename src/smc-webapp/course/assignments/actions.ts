@@ -1218,4 +1218,17 @@ You can find the comments they made in the folders below.\
     );
     return cnt > 0;
   }
+
+  public async run_nbgrader_for_all_students(
+    assignment_id: string
+  ): Promise<void> {
+    console.log("run_nbgrader_for_all_students", assignment_id);
+  }
+
+  public async run_nbgrader_for_one_student(
+    assignment_id: string,
+    student_id: string
+  ): Promise<void> {
+    console.log("run_nbgrader_for_one_student", assignment_id, student_id);
+  }
 }

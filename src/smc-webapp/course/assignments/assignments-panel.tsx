@@ -640,11 +640,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       width = 6;
     }
     const buttons: ReactElement<any>[] = [];
-    const insert_skip_button = (key: string) => {
+    const insert_grade_button = (key: string) => {
       const b2 = this.render_skip_grading_button(status);
       return buttons.push(
         <Col md={width} key={key}>
           {b2}
+          {this.render_nbgrader_button(status)}
         </Col>
       );
     };
@@ -653,7 +654,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       const b = this[`render_${name}_button`](status);
       // squeeze in the skip grading button (don't add it to STEPS!)
       if (!peer && name === "return_graded") {
-        insert_skip_button("skip_grading");
+        insert_grade_button("skip_grading");
       }
       if (b != null) {
         buttons.push(
@@ -662,7 +663,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           </Col>
         );
         if (peer && name === "peer_collect") {
-          insert_skip_button("skip_peer_collect");
+          insert_grade_button("skip_peer_collect");
         }
       }
     }
@@ -1330,6 +1331,32 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       <Button onClick={this.toggle_skip_grading}>
         <Icon name={icon} /> Skip Grading
       </Button>
+    );
+  }
+
+  render_nbgrader_button(status) {
+    if (
+      status.collect === 0 ||
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    ) {
+      // No button if nothing collected or not nbgrader support or
+      // decided to skip grading this.
+      return;
+    }
+    return (
+      <div style={{ marginTop: "5px" }}>
+        <Button
+          key="nbgrader"
+          onClick={() => {
+            this.get_actions().assignments.run_nbgrader_for_all_students(
+              this.props.assignment.get("assignment_id")
+            );
+          }}
+        >
+          <Icon name="graduation-cap" /> nbgrader...
+        </Button>
+      </div>
     );
   }
 

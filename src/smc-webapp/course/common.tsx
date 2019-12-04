@@ -29,12 +29,7 @@ import { AssignmentRecord, StudentRecord, LastCopyInfo } from "./store";
 import { AssignmentCopyType, AssignmentCopyStep } from "./types";
 import { FormEvent } from "react";
 
-import {
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormGroup
-} from "../antd-bootstrap";
+import { Button, ButtonGroup, FormControl, FormGroup } from "../antd-bootstrap";
 
 import { Row, Col } from "antd";
 
@@ -391,6 +386,29 @@ export class StudentAssignmentInfo extends Component<
     }
   };
 
+  private render_nbgrader(): Rendered {
+    if (
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    )
+      return;
+    return (
+      <div style={{ marginTop: "5px" }}>
+        <Button
+          key="nbgrader"
+          onClick={() => {
+            this.get_actions().assignments.run_nbgrader_for_one_student(
+              this.props.assignment.get("assignment_id"),
+              this.props.student.get("student_id")
+            );
+          }}
+        >
+          <Icon name="graduation-cap" /> nbgrader...
+        </Button>
+      </div>
+    );
+  }
+
   private render_grade_col(): Rendered {
     const grade = this.props.grade || "";
     const bsStyle = !grade.trim() ? "primary" : undefined;
@@ -410,6 +428,7 @@ export class StudentAssignmentInfo extends Component<
             {text}
           </Button>
         </Tip>
+        {this.render_nbgrader()}
         {this.render_grade()}
         {this.render_comments()}
       </>
