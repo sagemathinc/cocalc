@@ -331,7 +331,7 @@ export class AssignmentsActions {
   private async return_assignment_to_student(
     assignment_id: string,
     student_id: string
-  ): void {
+  ): Promise<void> {
     if (this.start_copy(assignment_id, student_id, "last_return_graded")) {
       return;
     }
@@ -678,7 +678,7 @@ You can find the comments they made in the folders below.\
   // this is part of the assignment disribution, should be done only *once*, not for every student
   private async copy_assignment_create_due_date_file(
     assignment_id: string
-  ): void {
+  ): Promise<void> {
     const { assignment, store } = this.course_actions.resolve({
       assignment_id
     });
