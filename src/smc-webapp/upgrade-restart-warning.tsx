@@ -1,4 +1,4 @@
-import { Alert } from "cocalc-ui";
+import { Alert } from "antd";
 import { React } from "./app-framework";
 
 export function UpgradeRestartWarning(props: { style?: React.CSSProperties }) {

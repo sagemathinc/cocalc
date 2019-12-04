@@ -2,7 +2,7 @@ import * as React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../r_misc";
 import { Button, ButtonToolbar, Well } from "react-bootstrap";
-import { Card } from "cocalc-ui";
+import { Card } from "antd";
 
 interface Props {
   delete_projects: () => void;

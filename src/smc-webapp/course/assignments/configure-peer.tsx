@@ -10,7 +10,7 @@ import { CourseActions } from "../actions";
 
 import { Button, Checkbox } from "react-bootstrap";
 
-import { Card, Row, Col } from "cocalc-ui";
+import { Card, Row, Col } from "antd";
 
 import {
   DateTimePicker,

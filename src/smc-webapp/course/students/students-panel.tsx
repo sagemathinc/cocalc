@@ -49,7 +49,7 @@ import {
   Form
 } from "react-bootstrap";
 
-import { Card, Row, Col } from "cocalc-ui";
+import { Card, Row, Col } from "antd";
 
 // CoCalc components
 import { User } from "../../users";

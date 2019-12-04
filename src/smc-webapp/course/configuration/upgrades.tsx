@@ -61,7 +61,7 @@ import {
   Col
 } from "react-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Card } from "antd";
 
 interface StudentProjectUpgradesProps {
   name: string;

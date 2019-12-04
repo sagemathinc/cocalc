@@ -44,7 +44,7 @@ import {
   FormGroup
 } from "react-bootstrap";
 
-import { Card, Row, Col } from "cocalc-ui";
+import { Card, Row, Col } from "antd";
 
 import { Set, Map } from "immutable";
 

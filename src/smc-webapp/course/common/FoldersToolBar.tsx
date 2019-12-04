@@ -30,7 +30,7 @@ import { React, ReactDOM, Component } from "../../app-framework";
 import { Icon, SearchInput, SkinnyError } from "../../r_misc";
 import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
 
-import { Row, Col } from "cocalc-ui";
+import { Row, Col } from "antd";
 
 import { callback2 } from "smc-util/async-utils";
 
