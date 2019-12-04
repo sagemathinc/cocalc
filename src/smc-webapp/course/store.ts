@@ -361,7 +361,7 @@ export class CourseStore extends Store<CourseState> {
 
   // return list of all student projects
   public get_student_project_ids(
-    opts?: {
+    opts: {
       include_deleted?: boolean;
       deleted_only?: boolean;
     } = {}
@@ -716,9 +716,9 @@ export class CourseStore extends Store<CourseState> {
   // student (in the given step of the workflow), or undefined.
   // Even an attempt to copy with an error counts.
   public handout_last_copied(handout_id: string, student_id: string): boolean {
-    const x = this.getIn(["handouts", handout_id, "status", student_id]) as (
+    const x = this.getIn(["handouts", handout_id, "status", student_id]) as
       | TypedMap<LastCopyInfo>
-      | undefined);
+      | undefined;
     if (x == null) {
       return false;
     }
