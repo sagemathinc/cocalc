@@ -626,7 +626,7 @@ You can find the comments they made in the folders below.\
       desc: `Copying assignment to ${student_name}`
     });
     let student_project_id: string | undefined = student.get("project_id");
-    const src_path = assignment.get("path");
+    const src_path = this.assignment_src_path(assignment);
     try {
       if (student_project_id == null) {
         this.course_actions.set_activity({
@@ -667,6 +667,14 @@ You can find the comments they made in the folders below.\
     }
   }
 
+  private assignment_src_path(assignment): string {
+    let path = assignment.get("path");
+    if (assignment.get("has_student_subdir")) {
+      path += "/" + STUDENT_SUBDIR;
+    }
+    return path;
+  }
+
   // this is part of the assignment disribution, should be done only *once*, not for every student
   private async copy_assignment_create_due_date_file(
     assignment_id: string
@@ -677,7 +685,7 @@ You can find the comments they made in the folders below.\
     if (!assignment) return;
     // write the due date to a file
     const due_date = store.get_due_date(assignment_id);
-    const src_path = assignment.get("path");
+    const src_path = this.assignment_src_path(assignment);
     const due_date_fn = "DUE_DATE.txt";
     if (due_date == null) {
       return;
@@ -745,7 +753,10 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
+    await this.has_student_subdir(assignment_id); // make sure this is up to date
+    if (this.course_actions.is_closed()) return;
     await this.copy_assignment_create_due_date_file(assignment_id);
+    if (this.course_actions.is_closed()) return;
     // by default, doesn't create the due file
     await this.assignment_action_all_students(
       assignment_id,
