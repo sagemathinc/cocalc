@@ -51,7 +51,6 @@ import {
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 
 import {
-  Alert,
   Button,
   ButtonToolbar,
   Checkbox,
@@ -61,7 +60,7 @@ import {
   Col
 } from "react-bootstrap";
 
-import { Card } from "antd";
+import { Alert, Card } from "antd";
 
 interface StudentProjectUpgradesProps {
   name: string;
@@ -418,29 +417,34 @@ class StudentProjectUpgrades extends Component<
     }
 
     return (
-      <Alert bsStyle="warning">
-        <h3>
-          <Icon name="arrow-circle-up" /> Adjust your contributions to the
-          student project upgrades
-        </h3>
-        <hr />
-        {this.render_upgrade_heading(num_projects)}
-        <hr />
-        {this.render_upgrade_rows(
-          purchased_upgrades,
-          applied_upgrades,
-          num_projects,
-          total_upgrades,
-          your_upgrades
-        )}
-        <UpgradeRestartWarning />
-        <br />
-        {this.render_upgrade_submit_buttons()}
-        <div style={{ marginTop: "15px", color: "#333" }}>
-          {this.render_upgrade_plan()}
-        </div>
-        {this.render_admin_upgrade()}
-      </Alert>
+      <Alert
+        type="warning"
+        message={
+          <div>
+            <h3>
+              <Icon name="arrow-circle-up" /> Adjust your contributions to the
+              student project upgrades
+            </h3>
+            <hr />
+            {this.render_upgrade_heading(num_projects)}
+            <hr />
+            {this.render_upgrade_rows(
+              purchased_upgrades,
+              applied_upgrades,
+              num_projects,
+              total_upgrades,
+              your_upgrades
+            )}
+            <UpgradeRestartWarning />
+            <br />
+            {this.render_upgrade_submit_buttons()}
+            <div style={{ marginTop: "15px", color: "#333" }}>
+              {this.render_upgrade_plan()}
+            </div>
+            {this.render_admin_upgrade()}
+          </div>
+        }
+      />
     );
   }
 

@@ -5,7 +5,7 @@ know they should.
 
 import { Component, React, redux } from "../app-framework";
 
-import { Alert } from "react-bootstrap";
+import { Alert } from "antd";
 import { CourseSettingsRecord } from "./store";
 import { CourseActions } from "./actions";
 import { Icon, Space } from "../r_misc";
@@ -83,15 +83,21 @@ export class PayBanner extends Component<PayBannerProps> {
     }
 
     return (
-      <Alert bsStyle="warning" style={style}>
-        <Icon
-          name="exclamation-triangle"
-          style={{ float: "right", marginTop: "3px" }}
-        />
-        <Icon name="exclamation-triangle" />
-        <Space />
-        {mesg}
-      </Alert>
+      <Alert
+        type="warning"
+        style={style}
+        message={
+          <div>
+            <Icon
+              name="exclamation-triangle"
+              style={{ float: "right", marginTop: "3px" }}
+            />
+            <Icon name="exclamation-triangle" />
+            <Space />
+            {mesg}
+          </div>
+        }
+      />
     );
   }
 }

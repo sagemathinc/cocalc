@@ -35,9 +35,9 @@ import {
   AppRedux,
   Rendered
 } from "../../app-framework";
-import { Alert, Button, ButtonToolbar, Checkbox } from "react-bootstrap";
+import { Button, ButtonToolbar, Checkbox } from "react-bootstrap";
 
-import { Card, Row, Col } from "antd";
+import { Alert, Card, Row, Col } from "antd";
 
 // CoCalc Components
 import {
@@ -114,97 +114,113 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     }
 
     render_in_progress_action() {
-      let bsStyle;
+      let type;
       const state_name = this.props.action_all_projects_state;
       switch (state_name) {
         case "stopping":
           if (this.props.num_running_projects === 0) {
             return;
           }
-          bsStyle = "warning";
+          type = "warning";
           break;
         default:
           if (this.props.num_running_projects === this.props.num_students) {
             return;
           }
-          bsStyle = "info";
+          type = "info";
       }
 
       return (
-        <Alert bsStyle={bsStyle}>
-          {misc.capitalize(state_name)} all projects...{" "}
-          <Icon name="cc-icon-cocalc-ring" spin />
-          <br />
-          <Button
-            onClick={() =>
-              this.get_actions().student_projects.cancel_action_all_student_projects()
-            }
-          >
-            Cancel
-          </Button>
-        </Alert>
+        <Alert
+          type={type}
+          message={
+            <div>
+              {misc.capitalize(state_name)} all projects...{" "}
+              <Icon name="cc-icon-cocalc-ring" spin />
+              <br />
+              <Button
+                onClick={() =>
+                  this.get_actions().student_projects.cancel_action_all_student_projects()
+                }
+              >
+                Cancel
+              </Button>
+            </div>
+          }
+        />
       );
     }
 
     render_confirm_stop_all_projects() {
       return (
-        <Alert bsStyle="warning">
-          Are you sure you want to stop all student projects (this might be
-          disruptive)?
-          <br />
-          <br />
-          <ButtonToolbar>
-            <Button
-              bsStyle="warning"
-              onClick={() => {
-                this.setState({ confirm_stop_all_projects: false });
-                this.get_actions().student_projects.action_all_student_projects(
-                  "stop"
-                );
-              }}
-            >
-              <Icon name="hand-stop-o" /> Stop all
-            </Button>
-            <Button
-              onClick={() =>
-                this.setState({ confirm_stop_all_projects: false })
-              }
-            >
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
+        <Alert
+          type="warning"
+          message={
+            <div>
+              Are you sure you want to stop all student projects (this might be
+              disruptive)?
+              <br />
+              <br />
+              <ButtonToolbar>
+                <Button
+                  bsStyle="warning"
+                  onClick={() => {
+                    this.setState({ confirm_stop_all_projects: false });
+                    this.get_actions().student_projects.action_all_student_projects(
+                      "stop"
+                    );
+                  }}
+                >
+                  <Icon name="hand-stop-o" /> Stop all
+                </Button>
+                <Button
+                  onClick={() =>
+                    this.setState({ confirm_stop_all_projects: false })
+                  }
+                >
+                  Cancel
+                </Button>
+              </ButtonToolbar>
+            </div>
+          }
+        />
       );
     }
 
     render_confirm_start_all_projects() {
       return (
-        <Alert bsStyle="info">
-          Are you sure you want to start all student projects? This will ensure
-          the projects are already running when the students open them.
-          <br />
-          <br />
-          <ButtonToolbar>
-            <Button
-              bsStyle="primary"
-              onClick={() => {
-                this.setState({ confirm_start_all_projects: false });
-                this.get_actions().student_projects.action_all_student_projects(
-                  "start"
-                );
-              }}
-            >
-              <Icon name="flash" /> Start all
-            </Button>
-            <Button
-              onClick={() =>
-                this.setState({ confirm_start_all_projects: false })
-              }
-            >
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
+        <Alert
+          type="info"
+          message={
+            <div>
+              Are you sure you want to start all student projects? This will
+              ensure the projects are already running when the students open
+              them.
+              <br />
+              <br />
+              <ButtonToolbar>
+                <Button
+                  bsStyle="primary"
+                  onClick={() => {
+                    this.setState({ confirm_start_all_projects: false });
+                    this.get_actions().student_projects.action_all_student_projects(
+                      "start"
+                    );
+                  }}
+                >
+                  <Icon name="flash" /> Start all
+                </Button>
+                <Button
+                  onClick={() =>
+                    this.setState({ confirm_start_all_projects: false })
+                  }
+                >
+                  Cancel
+                </Button>
+              </ButtonToolbar>
+            </div>
+          }
+        />
       );
     }
 
@@ -753,27 +769,32 @@ export class ConfigurationPanel extends Component<
 
   render_students_pay_dialog() {
     return (
-      <Alert bsStyle="warning">
-        <h3>
-          <Icon name="arrow-circle-up" /> Require students to upgrade
-        </h3>
-        <hr />
-        <span>
-          Click the following checkbox to require that all students in the
-          course pay a special discounted{" "}
-          <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their project
-          from trial servers to better members-only servers, enable full internet
-          access, and not see a large red warning message. This lasts four
-          months, and{" "}
-          <em>you will not be charged (only students are charged).</em>
-        </span>
+      <Alert
+        type="warning"
+        message={
+          <div>
+            <h3>
+              <Icon name="arrow-circle-up" /> Require students to upgrade
+            </h3>
+            <hr />
+            <span>
+              Click the following checkbox to require that all students in the
+              course pay a special discounted{" "}
+              <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their project
+              from trial servers to better members-only servers, enable full
+              internet access, and not see a large red warning message. This
+              lasts four months, and{" "}
+              <em>you will not be charged (only students are charged).</em>
+            </span>
 
-        {this.render_students_pay_checkbox()}
-        {this.props.settings.get("pay")
-          ? this.render_require_students_pay_when()
-          : undefined}
-        {this.render_students_pay_submit_buttons()}
-      </Alert>
+            {this.render_students_pay_checkbox()}
+            {this.props.settings.get("pay")
+              ? this.render_require_students_pay_when()
+              : undefined}
+            {this.render_students_pay_submit_buttons()}
+          </div>
+        }
+      />
     );
   }
 

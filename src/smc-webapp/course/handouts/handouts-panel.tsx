@@ -33,7 +33,6 @@ import {
 } from "../../app-framework";
 
 import {
-  Alert,
   Button,
   ButtonToolbar,
   ButtonGroup,
@@ -41,7 +40,7 @@ import {
   FormControl
 } from "react-bootstrap";
 
-import { Card, Row, Col } from "antd";
+import { Alert, Card, Row, Col } from "antd";
 
 // CoCalc and course components
 import * as util from "../util";
@@ -286,22 +285,25 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
     private render_no_handouts(): Rendered {
       return (
         <Alert
-          bsStyle="info"
+          type="info"
           style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-        >
-          <h3>Add a Handout to your Course</h3>
-          <p>
-            A handout is a <i>directory</i> of files somewhere in your CoCalc
-            project, which you send to all of your students. They can then do
-            anything they want with that handout.
-          </p>
+          message={
+            <div>
+              <h3>Add a Handout to your Course</h3>
+              <p>
+                A handout is a <i>directory</i> of files somewhere in your
+                CoCalc project, which you send to all of your students. They can
+                then do anything they want with that handout.
+              </p>
 
-          <p>
-            Add a handout to your course by creating a directory using the Files
-            tab, then type the name of the directory in the box in the upper
-            right and click to search.
-          </p>
-        </Alert>
+              <p>
+                Add a handout to your course by creating a directory using the
+                Files tab, then type the name of the directory in the box in the
+                upper right and click to search.
+              </p>
+            </div>
+          }
+        />
       );
     }
 
@@ -559,26 +561,29 @@ class Handout extends Component<HandoutProps, HandoutState> {
     const n = status[`not_${step}`];
     return (
       <Alert
-        bsStyle="warning"
+        type="warning"
         key={`${step}_confirm_to_all`}
         style={{ marginTop: "15px" }}
-      >
-        <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this handout {step_direction(step)}{" "}
-          the {n} student{n > 1 ? "s" : ""}
-          {step_ready(step)}?
-        </div>
-        <ButtonToolbar>
-          <Button
-            key="yes"
-            bsStyle="primary"
-            onClick={() => this.copy_handout(step, false)}
-          >
-            Yes
-          </Button>
-          {this.render_copy_cancel(step)}
-        </ButtonToolbar>
-      </Alert>
+        message={
+          <div>
+            <div style={{ marginBottom: "15px" }}>
+              {misc.capitalize(step_verb(step))} this handout{" "}
+              {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
+              {step_ready(step)}?
+            </div>
+            <ButtonToolbar>
+              <Button
+                key="yes"
+                bsStyle="primary"
+                onClick={() => this.copy_handout(step, false)}
+              >
+                Yes
+              </Button>
+              {this.render_copy_cancel(step)}
+            </ButtonToolbar>
+          </div>
+        }
+      />
     );
   }
 
@@ -628,47 +633,52 @@ Select "Replace student files!" in case you do not want to create any backups an
     const m = n + status[step];
     return (
       <Alert
-        bsStyle="warning"
+        type="warning"
         key={`${step}_confirm_to_all_or_new`}
         style={{ marginTop: "15px" }}
-      >
-        <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this handout {step_direction(step)}
-          ...
-        </div>
-        <ButtonToolbar>
-          <Button
-            key="all"
-            bsStyle="danger"
-            onClick={() =>
-              this.setState({
-                [`copy_confirm_all_${step}`]: true,
-                copy_confirm: true
-              } as any)
-            }
-            disabled={this.state[`copy_confirm_all_${step}`]}
-          >
-            {step === "handout" ? "All" : "The"} {m} students{step_ready(step)}
-            ...
-          </Button>
-          {n ? (
-            <Button
-              key="new"
-              bsStyle="primary"
-              onClick={() => this.copy_handout(step, true)}
-            >
-              The {n} student{n > 1 ? "s" : ""} not already{" "}
-              {past_tense(step_verb(step))} {step_direction(step)}
-            </Button>
-          ) : (
-            undefined
-          )}
-          {this.render_copy_cancel(step)}
-        </ButtonToolbar>
-        {this.state[`copy_confirm_all_${step}`]
-          ? this.render_copy_confirm_overwrite_all(step)
-          : undefined}
-      </Alert>
+        message={
+          <div>
+            <div style={{ marginBottom: "15px" }}>
+              {misc.capitalize(step_verb(step))} this handout{" "}
+              {step_direction(step)}
+              ...
+            </div>
+            <ButtonToolbar>
+              <Button
+                key="all"
+                bsStyle="danger"
+                onClick={() =>
+                  this.setState({
+                    [`copy_confirm_all_${step}`]: true,
+                    copy_confirm: true
+                  } as any)
+                }
+                disabled={this.state[`copy_confirm_all_${step}`]}
+              >
+                {step === "handout" ? "All" : "The"} {m} students
+                {step_ready(step)}
+                ...
+              </Button>
+              {n ? (
+                <Button
+                  key="new"
+                  bsStyle="primary"
+                  onClick={() => this.copy_handout(step, true)}
+                >
+                  The {n} student{n > 1 ? "s" : ""} not already{" "}
+                  {past_tense(step_verb(step))} {step_direction(step)}
+                </Button>
+              ) : (
+                undefined
+              )}
+              {this.render_copy_cancel(step)}
+            </ButtonToolbar>
+            {this.state[`copy_confirm_all_${step}`]
+              ? this.render_copy_confirm_overwrite_all(step)
+              : undefined}
+          </div>
+        }
+      />
     );
   }
 
@@ -725,22 +735,28 @@ Select "Replace student files!" in case you do not want to create any backups an
 
   private render_confirm_delete(): Rendered {
     return (
-      <Alert bsStyle="warning" key="confirm_delete">
-        Are you sure you want to delete this handout (you can undelete it
-        later)?
-        <br /> <br />
-        <ButtonToolbar>
-          <Button key="yes" onClick={this.delete_handout} bsStyle="danger">
-            <Icon name="trash" /> Delete
-          </Button>
-          <Button
-            key="no"
-            onClick={() => this.setState({ confirm_delete: false })}
-          >
-            Cancel
-          </Button>
-        </ButtonToolbar>
-      </Alert>
+      <Alert
+        type="warning"
+        key="confirm_delete"
+        message={
+          <div>
+            Are you sure you want to delete this handout (you can undelete it
+            later)?
+            <br /> <br />
+            <ButtonToolbar>
+              <Button key="yes" onClick={this.delete_handout} bsStyle="danger">
+                <Icon name="trash" /> Delete
+              </Button>
+              <Button
+                key="no"
+                onClick={() => this.setState({ confirm_delete: false })}
+              >
+                Cancel
+              </Button>
+            </ButtonToolbar>
+          </div>
+        }
+      />
     );
   }
 

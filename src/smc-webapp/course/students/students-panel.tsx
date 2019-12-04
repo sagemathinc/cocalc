@@ -38,7 +38,6 @@ import {
 } from "../../app-framework";
 
 import {
-  Alert,
   Button,
   ButtonToolbar,
   ButtonGroup,
@@ -49,7 +48,7 @@ import {
   Form
 } from "react-bootstrap";
 
-import { Card, Row, Col } from "antd";
+import { Alert, Card, Row, Col } from "antd";
 
 // CoCalc components
 import { User } from "../../users";
@@ -815,17 +814,20 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     private render_no_students(): Rendered {
       return (
         <Alert
-          bsStyle="info"
+          type="info"
           style={{
             margin: "auto",
             fontSize: "12pt",
             maxWidth: "800px"
           }}
-        >
-          <h3>Add Students to your Course</h3>
-          Add some students to your course by entering their email addresses in
-          the box in the upper right, then click on Search.
-        </Alert>
+          message={
+            <div>
+              <h3>Add Students to your Course</h3>
+              Add some students to your course by entering their email addresses
+              in the box in the upper right, then click on Search.
+            </div>
+          }
+        />
       );
     }
 
