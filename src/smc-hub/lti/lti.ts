@@ -3,6 +3,36 @@ import * as LTIDatabase from "ltijs-postgresql";
 
 import { read_db_password_from_disk } from "../utils";
 
+function endpoint_body(appUrl: string, locals: any): string {
+  const ret: string[] = [];
+  ret.push(`<p>User ID ${locals.token.user}</p>`);
+  const href = `${appUrl}/work?ltik=${locals.contextToken}`;
+  ret.push(`<p><a href="${href}">work link</a></p>`);
+  ret.push(
+    `<pre style="font-size:75%">token = ${JSON.stringify(
+      locals,
+      null,
+      2
+    )}</pre>`
+  );
+  return ret.join("\n");
+}
+
+function derive_key(locals: any, mode: "teacher" | "student") {
+  const iss = locals.token.iss;
+  const ctx = locals.token.platformContext;
+  const course = ctx.context[0].id;
+  const assign = ctx.resource.id;
+  const user = locals.token.user;
+
+  switch (mode) {
+    case "teacher":
+      return JSON.stringify({ iss, course, assign, user }, null, 2);
+    case "student":
+      return JSON.stringify({ iss, course, assign, user }, null, 2);
+  }
+}
+
 export async function lti_service({ base_url, port }) {
   // Instantiate and configure plugin
   const db = new LTIDatabase({
@@ -82,9 +112,10 @@ export async function lti_service({ base_url, port }) {
   // Set connection callback
   lti.onConnect(
     (conn, _req, res) => {
-      console.log("onConnect conn", conn);
-      console.log("onConnect conn.platformContext:", conn.platformContext);
-      console.log("onConnect conn.userInfo:", conn.userInfo);
+      // console.log("onConnect res.locals", res.locals);
+      // console.log("onConnect conn", conn);
+      // console.log("onConnect conn.platformContext:", conn.platformContext);
+      // console.log("onConnect conn.userInfo:", conn.userInfo);
       //console.log("onConnect req", req);
       //console.log("onConnect req.baseUrl", req.baseUrl);
       //console.log("onConnect req.path", req.path);
@@ -100,13 +131,13 @@ export async function lti_service({ base_url, port }) {
 
       if (conn.roles.includes(student_role)) {
         lti.redirect(res, appUrl + "/student", {
-          //  isNewResource: true,
-          //  ignoreRoot: true
+          isNewResource: true,
+          ignoreRoot: true
         });
       } else if (conn.roles.includes(teacher_role)) {
         lti.redirect(res, appUrl + "/teacher", {
-          //  isNewResource: true,
-          //  ignoreRoot: true
+          isNewResource: true,
+          ignoreRoot: true
         });
       } else {
         console.log(
@@ -123,28 +154,28 @@ export async function lti_service({ base_url, port }) {
     res.send("appUrl is alive");
   });
 
-  const endpoint_body = (locals): string => {
-    const ret: string[] = [];
-    ret.push(`<p>User ID ${locals.token.user}</p>`);
-    const href = `${appUrl}/work?ltik=${locals.contextToken}`;
-    ret.push(`<p><a href="${href}">work link</a></p>`);
-    ret.push(`<pre style="font-size:75%">token = ${JSON.stringify(locals, null, 2)}</pre>`);
-    return ret.join("\n");
-  };
-
   // Set student route
   lti.app.get(appUrl + "/student", (_req, res) => {
-    console.log("appUrl/student:", res.locals);
+    console.log("appUrl/student", res.locals);
     let body = "appUrl/student mode!\n";
-    body += endpoint_body(res.locals);
+    const student_id = derive_key(res.locals, "student");
+    const teacher_id = derive_key(res.locals, "teacher");
+    body += `student project key: ${student_id} with files from ${teacher_id}\n`;
+    body += endpoint_body(appUrl, res.locals);
     res.send(body);
   });
 
   // Set content selection route
   lti.app.get(appUrl + "/teacher", (_req, res) => {
-    console.log("appUrl/teacher:", res.locals);
+    console.log("appUrl/teacher", res.locals);
+    console.log(
+      "appUrl/teacher platformContext",
+      res.locals.token.platformContext
+    );
     let body = "appUrl/teacher mode!\n";
-    body += endpoint_body(res.locals);
+    const teacher_id = derive_key(res.locals, "teacher");
+    body += `project key: ${teacher_id}\n`;
+    body += endpoint_body(appUrl, res.locals);
     res.send(body);
   });
 
