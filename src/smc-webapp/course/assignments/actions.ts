@@ -19,6 +19,9 @@ import {
   defaults
 } from "smc-util/misc";
 import { map } from "awaiting";
+
+import { nbgrader } from "../../jupyter/nbgrader/api";
+
 import { previous_step, assignment_identifier } from "../util";
 import {
   AssignmentCopyType,
@@ -1230,5 +1233,18 @@ You can find the comments they made in the folders below.\
     student_id: string
   ): Promise<void> {
     console.log("run_nbgrader_for_one_student", assignment_id, student_id);
+
+    // quick test
+    const store = this.get_store();
+    const project_id = store.get("course_project_id");
+    const student_ipynb = "{}";
+    const instructor_ipynb = "{}";
+
+    const r = await nbgrader(project_id, {
+      timeout_ms: 15000,
+      student_ipynb,
+      instructor_ipynb
+    });
+    console.log("running nbgrader got ", r);
   }
 }

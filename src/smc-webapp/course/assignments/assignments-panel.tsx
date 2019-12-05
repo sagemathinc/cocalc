@@ -644,8 +644,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       const b2 = this.render_skip_grading_button(status);
       return buttons.push(
         <Col md={width} key={key}>
-          {b2}
           {this.render_nbgrader_button(status)}
+          {b2}
         </Col>
       );
     };

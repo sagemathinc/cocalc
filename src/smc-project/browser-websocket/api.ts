@@ -7,12 +7,20 @@ All functionality here is of the form:
 
 */
 
+// This require is just because typescript is confused by
+// the path for now.  Growing pains.
 const { callback_opts } = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
-
 import { canonical_paths } from "./canonical-path";
 import { eval_code } from "./eval-code";
+import { terminal } from "../terminal/server";
+import { lean, lean_channel } from "../lean/server";
+import { nbgrader } from "../nbgrader/api";
+import { x11_channel } from "../x11/server";
+import { synctable_channel } from "../sync/server";
+import { syncdoc_call } from "../sync/sync-doc";
+import { get_configuration } from "../configuration";
 
 export function init_websocket_api(
   primus: any,
@@ -89,6 +97,8 @@ async function handle_api_call(
       return await terminal(primus, logger, data.path, data.options);
     case "lean":
       return await lean(client, primus, logger, data.opts);
+    case "nbgrader":
+      return await nbgrader(client, logger, data.opts);
     case "lean_channel":
       return await lean_channel(client, primus, logger, data.path);
     case "x11_channel":
@@ -134,15 +144,3 @@ interface ExecuteOutput {
 async function exec(opts: any): Promise<ExecuteOutput> {
   return await callback_opts(execute_code)(opts);
 }
-
-import { terminal } from "../terminal/server";
-
-import { lean, lean_channel } from "../lean/server";
-
-import { x11_channel } from "../x11/server";
-
-import { synctable_channel } from "../sync/server";
-
-import { syncdoc_call } from "../sync/sync-doc";
-
-import { get_configuration } from "../configuration";
