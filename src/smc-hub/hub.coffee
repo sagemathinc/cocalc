@@ -79,7 +79,7 @@ MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
-{lti_service} = require('./lti/lti')
+{LTIService} = require('./lti/lti')
 
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
@@ -566,11 +566,6 @@ exports.start_server = start_server = (cb) ->
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
-        #(cb) ->
-        #    f = =>
-        #        await lti_service(base_url:BASE_URL, port:program.port)
-        #        cb()
-        #    f()
         (cb) ->
             if not program.share_port
                 cb(); return
@@ -771,7 +766,8 @@ command_line = () ->
                 process.exit()
         else if program.lti
             console.log("LTI MODE")
-            await lti_service(port:program.port)
+            lti_service = new LTIService(port:program.port)
+            await lti_service.start()
             #process.exit()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
