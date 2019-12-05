@@ -18,10 +18,10 @@
 //
 //#############################################################################
 
-import { React } from "../app-framework";
-import { Card } from "cocalc-ui";
-import { Icon } from "../r_misc";
-const { SITE_NAME, LIVE_DEMO_REQUEST } = require("smc-util/theme");
+import { Card } from "antd";
+import { React } from "../../app-framework";
+import { Icon } from "../../r_misc";
+import { SITE_NAME, LIVE_DEMO_REQUEST } from "smc-util/theme";
 
 export function HelpBox() {
   return (

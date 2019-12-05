@@ -9,6 +9,7 @@ import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
 import { path_split } from "smc-util/misc2";
+import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;
@@ -121,14 +122,14 @@ export class NBGraderActions {
     const path = this.jupyter_actions.store.get("path");
     let { head, tail } = path_split(path);
     if (head == "") {
-      head = "student/";
+      head = `${STUDENT_SUBDIR}/`;
     } else {
-      head = head + "/student/";
+      head = `${head}/${STUDENT_SUBDIR}/`;
     }
     const target = head + tail;
     const choice = await this.jupyter_actions.confirm_dialog({
-      title: "Create student version?",
-      body: `Creating the student version of the notebook will make a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)`,
+      title: "Generate Student Version of Notebook",
+      body: `Generating the student version of the notebook will create a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)  The CoCalc course management system will *only* copy the ${STUDENT_SUBDIR} subdirectory that contains this generated notebook to students.`,
       choices: [
         { title: "Cancel" },
         {

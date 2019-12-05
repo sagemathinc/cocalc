@@ -1,23 +1,16 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Skip assigning or collecting an assignment, so next step can be attempted.
 */
 
-import { React, Component } from "../app-framework";
-import { CourseActions } from "./actions";
-import { AssignmentRecord } from "./store";
-
-import { Icon, Space, Tip } from "../r_misc";
-const { Button } = require("react-bootstrap");
+import { React, Component, Rendered } from "../../app-framework";
+import { CourseActions } from "../actions";
+import { AssignmentRecord } from "../store";
+import { Icon, Space, Tip } from "../../r_misc";
+import { Button } from "../../antd-bootstrap";
 
 interface SkipCopyProps {
   assignment: AssignmentRecord;
-  step?: string;
+  step: string;
   actions: CourseActions;
   not_done?: number;
 }
@@ -35,23 +28,19 @@ export class SkipCopy extends Component<SkipCopyProps> {
   }
 
   click = () => {
-    return this.props.actions.set_skip(
-      this.props.assignment,
+    this.props.actions.assignments.set_skip(
+      this.props.assignment.get("assignment_id"),
       this.props.step,
       !this.props.assignment.get(`skip_${this.props.step}` as any)
     );
   };
 
   render() {
-    let icon;
-    let extra: any = undefined;
+    let icon: string;
+    let extra: Rendered = undefined;
     if (this.props.assignment.get(`skip_${this.props.step}` as any)) {
       icon = "check-square-o";
-      if (
-        __guard__(this.props.assignment.get("peer_grade"), x =>
-          x.get("enabled")
-        )
-      ) {
+      if (this.props.assignment.getIn(["peer_grade", "enabled"])) {
         // don't bother even trying to implement skip and peer grading at once.
         extra = (
           <span>
@@ -74,10 +63,4 @@ export class SkipCopy extends Component<SkipCopyProps> {
       </Tip>
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

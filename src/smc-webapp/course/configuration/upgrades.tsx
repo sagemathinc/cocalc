@@ -1,12 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -29,9 +20,10 @@
 // Upgrading quotas for all student projects
 //#############################################################################
 
-const misc = require("smc-util/misc");
+import { UpgradeGoal } from "../types";
+import * as misc from "smc-util/misc";
 
-const schema = require("smc-util/schema");
+import * as schema from "smc-util/schema";
 
 import {
   Component,
@@ -41,11 +33,11 @@ import {
   rtypes,
   redux,
   rclass,
-  Rendered
-} from "../app-framework";
-import { CourseActions } from "./actions";
-import { CourseStore } from "./store";
-import { Map } from "immutable";
+  Rendered,
+  TypedMap
+} from "../../app-framework";
+import { CourseActions } from "../actions";
+import { CourseStore } from "../store";
 
 import {
   A,
@@ -54,27 +46,26 @@ import {
   NoUpgrades,
   Tip,
   UPGRADE_ERROR_STYLE
-} from "../r_misc";
+} from "../../r_misc";
 
-const { UpgradeRestartWarning } = require("../upgrade_restart_warning");
+import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 
-const {
-  Alert,
+import {
   Button,
-  ButtonToolbar,
+  ButtonGroup,
   Checkbox,
   FormGroup,
   FormControl,
   Row,
   Col
-} = require("react-bootstrap");
+} from "../../antd-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Alert, Card } from "antd";
 
 interface StudentProjectUpgradesProps {
   name: string;
   redux: AppRedux;
-  upgrade_goal?: Map<any, any>;
+  upgrade_goal?: TypedMap<UpgradeGoal>;
   institute_pay?: boolean;
   student_pay?: boolean;
 
@@ -125,7 +116,7 @@ class StudentProjectUpgrades extends Component<
     return redux.getStore(this.props.name) as any;
   }
 
-  upgrade_goal() {
+  upgrade_goal(): UpgradeGoal {
     const goal = {};
     for (const quota in this.state.upgrades) {
       let val = this.state.upgrades[quota];
@@ -140,8 +131,8 @@ class StudentProjectUpgrades extends Component<
     this.setState({ upgrade_quotas: false });
     const a = this.get_actions();
     const upgrade_goal = this.upgrade_goal();
-    a.set_upgrade_goal(upgrade_goal);
-    return a.upgrade_all_student_projects(upgrade_goal);
+    a.configuration.set_upgrade_goal(upgrade_goal);
+    a.student_projects.upgrade_all_student_projects(upgrade_goal);
   };
 
   render_upgrade_heading(num_projects) {
@@ -175,7 +166,7 @@ class StudentProjectUpgrades extends Component<
     let label, val;
     const ref = `upgrade_${quota}`;
     if (input_type === "number") {
-      let bs_style;
+      let style;
       val =
         this.state.upgrades[quota] != null
           ? this.state.upgrades[quota]
@@ -187,7 +178,7 @@ class StudentProjectUpgrades extends Component<
       }
 
       if (!this.is_upgrade_input_valid(val, limit)) {
-        bs_style = "error";
+        style = UPGRADE_ERROR_STYLE;
         this._upgrade_is_invalid = true;
         if (misc.parse_number_input(val) != null) {
           label = (
@@ -206,8 +197,8 @@ class StudentProjectUpgrades extends Component<
           <FormControl
             type="text"
             ref={ref}
+            style={style}
             value={val}
-            bsStyle={bs_style}
             onChange={() => {
               const u = this.state.upgrades;
               u[quota] = ReactDOM.findDOMNode(this.refs[ref]).value;
@@ -234,22 +225,20 @@ class StudentProjectUpgrades extends Component<
           </div>
         );
       } else {
-        label = val === 0 ? "Enable" : "Enabled";
+        label = val === 0 ? "Disabled" : "Enabled";
       }
       return (
-        <form>
-          <Checkbox
-            ref={ref}
-            checked={val > 0}
-            onChange={e => {
-              const u = this.state.upgrades;
-              u[quota] = e.target.checked ? 1 : 0;
-              this.setState({ upgrades: u });
-              this.update_plan();
-            }}
-          />
+        <Checkbox
+          checked={val > 0}
+          onChange={e => {
+            const u = this.state.upgrades;
+            u[quota] = (e.target as any).checked ? 1 : 0;
+            this.setState({ upgrades: u });
+            this.update_plan();
+          }}
+        >
           {label}
-        </form>
+        </Checkbox>
       );
     } else {
       console.warn(
@@ -268,7 +257,6 @@ class StudentProjectUpgrades extends Component<
     // current   -- Sum of total upgrades currently allocated by anybody to the course projects
     // yours     -- How much of this quota this user has allocated to this quota total.
     // num_projects -- How many student projects there are.
-    let left;
     const {
       display,
       desc,
@@ -281,12 +269,17 @@ class StudentProjectUpgrades extends Component<
     current *= display_factor;
 
     const x = this.state.upgrades[quota];
-    let input =
-      x === ""
-        ? 0
-        : (left = misc.parse_number_input(x)) != null
-        ? left
-        : yours / num_projects; // currently typed in
+    let input: number;
+    if (x == "") {
+      input = 0;
+    } else {
+      const n = misc.parse_number_input(x);
+      if (n == null) {
+        input = n;
+      } else {
+        input = yours / num_projects; // currently typed in
+      }
+    }
     if (input_type === "checkbox") {
       input = input > 0 ? 1 : 0;
     }
@@ -387,10 +380,7 @@ class StudentProjectUpgrades extends Component<
     }
 
     // Get non-deleted student projects
-    const project_ids = course_store.get_student_project_ids();
-    if (!project_ids) {
-      return <Loading />;
-    }
+    const project_ids: string[] = course_store.get_student_project_ids();
     const num_projects = project_ids.length;
     if (!num_projects) {
       return (
@@ -425,28 +415,34 @@ class StudentProjectUpgrades extends Component<
     }
 
     return (
-      <Alert bsStyle="warning">
-        <h3>
-          <Icon name="arrow-circle-up" /> Adjust your contributions to the
-          student project upgrades
-        </h3>
-        <hr />
-        {this.render_upgrade_heading(num_projects)}
-        <hr />
-        {this.render_upgrade_rows(
-          purchased_upgrades,
-          applied_upgrades,
-          num_projects,
-          total_upgrades,
-          your_upgrades
-        )}
-        <UpgradeRestartWarning />
-        {this.render_upgrade_submit_buttons()}
-        <div style={{ marginTop: "15px", color: "#333" }}>
-          {this.render_upgrade_plan()}
-        </div>
-        {this.render_admin_upgrade()}
-      </Alert>
+      <Alert
+        type="warning"
+        message={
+          <div>
+            <h3>
+              <Icon name="arrow-circle-up" /> Adjust your contributions to the
+              student project upgrades
+            </h3>
+            <hr />
+            {this.render_upgrade_heading(num_projects)}
+            <hr />
+            {this.render_upgrade_rows(
+              purchased_upgrades,
+              applied_upgrades,
+              num_projects,
+              total_upgrades,
+              your_upgrades
+            )}
+            <UpgradeRestartWarning />
+            <br />
+            {this.render_upgrade_submit_buttons()}
+            <div style={{ marginTop: "15px", color: "#333" }}>
+              {this.render_upgrade_plan()}
+            </div>
+            {this.render_admin_upgrade()}
+          </div>
+        }
+      />
     );
   }
 
@@ -454,9 +450,12 @@ class StudentProjectUpgrades extends Component<
     e.preventDefault();
     const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
     const quotas = JSON.parse(s);
-    // This console.log is intentional.
+    // This console.log is intentional... because admin upgrade is only
+    // for really advanced users (i.e., William).
     console.log(`admin upgrade '${s}' -->`, quotas);
-    this.get_actions().admin_upgrade_all_student_projects(quotas);
+    this.get_actions().student_projects.admin_upgrade_all_student_projects(
+      quotas
+    );
     return false;
   };
 
@@ -492,7 +491,7 @@ class StudentProjectUpgrades extends Component<
 
   render_upgrade_submit_buttons() {
     return (
-      <ButtonToolbar>
+      <ButtonGroup>
         <Button
           bsStyle="primary"
           onClick={this.save_upgrade_quotas}
@@ -506,7 +505,7 @@ class StudentProjectUpgrades extends Component<
         <Button onClick={() => this.setState({ upgrade_quotas: false })}>
           Cancel
         </Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     );
   }
 
@@ -586,7 +585,10 @@ class StudentProjectUpgrades extends Component<
   }
 
   handle_institute_pay_checkbox = e => {
-    return this.get_actions().set_pay_choice("institute", e.target.checked);
+    return this.get_actions().configuration.set_pay_choice(
+      "institute",
+      e.target.checked
+    );
   };
 
   render_checkbox() {

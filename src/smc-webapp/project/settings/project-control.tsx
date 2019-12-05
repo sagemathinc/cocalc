@@ -29,7 +29,7 @@ import {
 import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
-import { Popconfirm, Icon as AntIcon } from "cocalc-ui";
+import { Popconfirm, Icon as AntIcon } from "antd";
 
 let {
   COMPUTE_IMAGES,

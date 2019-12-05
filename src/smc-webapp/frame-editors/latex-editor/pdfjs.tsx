@@ -10,7 +10,7 @@ const WINDOW_SIZE: number = 3000;
 const HIGHLIGHT_TIME_S: number = 6;
 
 import { Icon, Loading, Markdown } from "smc-webapp/r_misc";
-import { Alert } from "cocalc-ui";
+import { Alert } from "antd";
 
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";

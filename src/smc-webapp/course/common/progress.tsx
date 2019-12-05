@@ -1,24 +1,18 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
-import { React, Component } from "../app-framework";
-import { Icon, Space } from "../r_misc";
+import { React, Component } from "../../app-framework";
+import { Icon, Space } from "../../r_misc";
 
-const { COLORS } = require("smc-util/theme");
+import { COLORS } from "smc-util/theme";
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 
 const progress_info = {
   color: COLORS.GRAY_D,
   marginLeft: "10px",
-  whiteSpace: "nowrap"
+  whiteSpace: "normal"
 };
 
 const progress_info_done = misc.copy(progress_info);
@@ -28,7 +22,7 @@ interface ProgressProps {
   done: number;
   not_done: number;
   step: string;
-  skipped: boolean;
+  skipped?: boolean;
 }
 
 export class Progress extends Component<ProgressProps> {
@@ -71,10 +65,10 @@ export class Progress extends Component<ProgressProps> {
       style = progress_info;
     }
     return (
-      <span style={style}>
+      <div style={style}>
         {this.render_checkbox()}
         {this.render_status()}
-      </span>
+      </div>
     );
   }
 }

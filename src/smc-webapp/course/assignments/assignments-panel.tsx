@@ -1,12 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -29,8 +20,11 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("../webapp_client");
+import * as misc from "smc-util/misc";
+import { webapp_client } from "../../webapp-client";
+
+import { STUDENT_SUBDIR } from "./actions";
+import { AssignmentCopyStep, AssignmentStatus } from "../types";
 
 // React libraries
 import {
@@ -40,69 +34,62 @@ import {
   rtypes,
   redux,
   AppRedux,
-  Rendered,
-  UNSAFE_NONNULLABLE
-} from "../app-framework";
+  Rendered
+} from "../../app-framework";
 
 import {
-  Alert,
   Button,
-  ButtonToolbar,
+  ButtonGroup,
   FormControl,
-  FormGroup,
-  Checkbox,
-  Row,
-  Col,
-  Grid
-} from "react-bootstrap";
+  FormGroup
+} from "../../antd-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Alert, Card, Row, Col } from "antd";
 
 import { Set, Map } from "immutable";
 
 // CoCalc and course components
-import * as util from "./util";
-import * as styles from "./styles";
+import * as util from "../util";
+import * as styles from "../styles";
 import {
   StudentRecord,
   AssignmentRecord,
   SortDescription,
   CourseStore,
   IsGradingMap
-} from "./store";
-import { CourseActions } from "./actions";
+} from "../store";
+import { CourseActions } from "../actions";
 import { ReactElement } from "react";
 import {
   DateTimePicker,
   Icon,
-  LabeledRow,
   Loading,
   MarkdownInput,
   Space,
   Tip,
-  NumberInput,
   WindowedList
-} from "../r_misc";
+} from "../../r_misc";
 
-const { STEPS, step_direction, step_verb, step_ready } = util;
+import { STEPS, step_direction, step_verb, step_ready } from "../util";
+
 import {
   BigTime,
   FoldersToolbar,
   StudentAssignmentInfo,
   StudentAssignmentInfoHeader
-} from "./common";
+} from "../common";
 
-const { Progress } = require("./progress");
-//import { Progress } from "./progress";
-const { SkipCopy } = require("./skip");
-//import { SkipCopy } from "./skip";
+import { Progress } from "../common/progress";
+import { SkipCopy } from "./skip";
+
+import { ConfigurePeerGrading } from "./configure-peer";
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;
   name: string;
   project_id: string;
   redux: AppRedux;
-  actions: object;
+  actions: CourseActions;
   assignments: Map<string, AssignmentRecord>;
   students: Map<string, StudentRecord>;
   user_map: object;
@@ -135,7 +122,6 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         show_deleted: false // whether or not to show deleted assignments on the bottom
       };
     }
-    displayName: "CourseEditorAssignments";
 
     static reduxProps = ({ name }) => {
       return {
@@ -208,13 +194,18 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       };
     }
 
-    private render_sort_link(column_name, display_name): Rendered {
+    private render_sort_link(
+      column_name: string,
+      display_name: string
+    ): Rendered {
       return (
         <a
           href=""
           onClick={e => {
             e.preventDefault();
-            return this.get_actions().set_active_assignment_sort(column_name);
+            return this.get_actions().assignments.set_active_assignment_sort(
+              column_name
+            );
           }}
         >
           {display_name}
@@ -238,17 +229,14 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
     private render_assignment_table_header(): Rendered {
       return (
-        <Grid
-          fluid={true}
-          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
-        >
+        <div style={{ borderBottom: "1px solid #e5e5e5" }}>
           <Row style={{ marginRight: "0px" }}>
-            <Col md={6}>
+            <Col md={12}>
               {this.render_sort_link("dir_name", "Assignment Name")}
             </Col>
-            <Col md={6}>{this.render_sort_link("due_date", "Due Date")}</Col>
+            <Col md={12}>{this.render_sort_link("due_date", "Due Date")}</Col>
           </Row>
-        </Grid>
+        </div>
       );
     }
 
@@ -274,7 +262,9 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
     }
 
-    private render_assignments(assignments): Rendered {
+    private render_assignments(
+      assignments: { assignment_id: string }[]
+    ): Rendered {
       if (assignments.length == 0) {
         return this.render_no_assignments();
       }
@@ -295,11 +285,8 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
 
     private render_no_assignments(): Rendered {
-      return (
-        <Alert
-          bsStyle="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-        >
+      const message = (
+        <div>
           <h3>Add an Assignment to your Course</h3>
           <p>
             An assignment is a <i>directory</i> of files somewhere in your
@@ -313,11 +300,22 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
             Files tab, then type the name of the directory in the box in the
             upper right and click to search.
           </p>
-        </Alert>
+        </div>
+      );
+
+      return (
+        <Alert
+          type="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
+          message={message}
+        />
       );
     }
 
-    private render_show_deleted(num_deleted, num_shown): Rendered {
+    private render_show_deleted(
+      num_deleted: number,
+      num_shown: number
+    ): Rendered {
       if (this.state.show_deleted) {
         return (
           <Button
@@ -351,19 +349,21 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       }
     }
 
-    private yield_adder(deleted_assignments) {
+    private yield_adder(deleted_assignments): (string) => void {
       const deleted_paths = {};
       deleted_assignments.map(obj => {
         if (obj.path) {
-          return (deleted_paths[obj.path] = obj.assignment_id);
+          deleted_paths[obj.path] = obj.assignment_id;
         }
       });
 
       return path => {
         if (deleted_paths[path] != null) {
-          return this.get_actions().undelete_assignment(deleted_paths[path]);
+          this.get_actions().assignments.undelete_assignment(
+            deleted_paths[path]
+          );
         } else {
-          return this.get_actions().add_assignment(path);
+          this.get_actions().assignments.add_assignment(path);
         }
       };
     }
@@ -375,6 +375,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         num_omitted,
         num_deleted
       } = this.compute_assignment_list();
+
       const add_assignment = this.yield_adder(deleted_assignments);
 
       const header = (
@@ -393,7 +394,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
       );
 
       return (
-        <div className={"smc-vfill"}>
+        <div className={"smc-vfill"} style={{ margin: "0 15px" }}>
           {header}
           {shown_assignments.length > 0
             ? this.render_assignment_table_header()
@@ -454,8 +455,6 @@ interface AssignmentState {
 }
 
 class Assignment extends Component<AssignmentProps, AssignmentState> {
-  displayName: "CourseEditor-Assignment";
-
   constructor(props) {
     super(props);
     this.state = {
@@ -512,7 +511,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_due() {
     return (
       <Row>
-        <Col xs={1} style={{ marginTop: "8px", color: "#666" }}>
+        <Col xs={2} style={{ marginTop: "8px", color: "#666" }}>
           <Tip
             placement="top"
             title="Set the due date"
@@ -521,12 +520,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             Due
           </Tip>
         </Col>
-        <Col xs={11}>
+        <Col xs={22}>
           <DateTimePicker
-            value={this._due_date()}
-            on_change={this.date_change}
-            autoFocus={false}
-            defaultOpen={false}
+            placeholder={"Set Assignment Due Date"}
+            value={this.props.assignment.get("due_date")}
+            onChange={this.date_change}
           />
         </Col>
       </Row>
@@ -534,11 +532,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   date_change = date => {
-    if (date == null) {
-      date = this._due_date();
-    }
-    return this.get_actions().set_due_date(
-      this.props.assignment,
+    this.get_actions().assignments.set_due_date(
+      this.props.assignment.get("assignment_id"),
       date != null ? date.toISOString() : undefined
     );
   };
@@ -546,7 +541,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_note() {
     return (
       <Row key="note" style={styles.note}>
-        <Col xs={2}>
+        <Col xs={4}>
           <Tip
             title="Notes about this assignment"
             tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment."
@@ -556,7 +551,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
-        <Col xs={10}>
+        <Col xs={20}>
           <MarkdownInput
             persist_id={
               this.props.assignment.get("path") +
@@ -568,8 +563,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             placeholder="Private notes about this assignment (not visible to students)"
             default_value={this.props.assignment.get("note")}
             on_save={value =>
-              this.get_actions().set_assignment_note(
-                this.props.assignment,
+              this.get_actions().assignments.set_assignment_note(
+                this.props.assignment.get("assignment_id"),
                 value
               )
             }
@@ -581,8 +576,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_more_header() {
     let width;
-    const status = this.get_store().get_assignment_status(
-      this.props.assignment
+    const status:
+      | AssignmentStatus
+      | undefined = this.get_store().get_assignment_status(
+      this.props.assignment.get("assignment_id")
     );
     if (status == null) {
       return <Loading key="loading_more" />;
@@ -596,16 +593,16 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     };
     v.push(
       <Row key="header3" style={bottom}>
-        <Col md={2}>{this.render_open_button()}</Col>
-        <Col md={10}>
+        <Col md={4}>{this.render_open_button()}</Col>
+        <Col md={20}>
           <Row>
-            <Col md={6} style={{ fontSize: "14px" }} key="due">
+            <Col md={12} style={{ fontSize: "14px" }} key="due">
               {this.render_due()}
             </Col>
-            <Col md={6} key="delete">
+            <Col md={12} key="delete">
               <Row>
-                <Col md={7}>{this.render_peer_button()}</Col>
-                <Col md={5}>
+                <Col md={14}>{this.render_peer_button()}</Col>
+                <Col md={10}>
                   <span className="pull-right">
                     {this.render_delete_button()}
                   </span>
@@ -620,7 +617,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (this.props.expand_peer_config) {
       v.push(
         <Row key="header2-peer" style={bottom}>
-          <Col md={10} mdOffset={2}>
+          <Col md={20} offset={4}>
             {this.render_configure_peer()}
           </Col>
         </Row>
@@ -629,7 +626,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     if (this.state.confirm_delete) {
       v.push(
         <Row key="header2-delete" style={bottom}>
-          <Col md={10} mdOffset={2}>
+          <Col md={20} offset={4}>
             {this.render_confirm_delete()}
           </Col>
         </Row>
@@ -638,9 +635,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
     const peer = this.is_peer_graded();
     if (peer) {
-      width = 2;
+      width = 4;
     } else {
-      width = 3;
+      width = 6;
     }
     const buttons: ReactElement<any>[] = [];
     const insert_skip_button = (key: string) => {
@@ -672,7 +669,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
     v.push(
       <Row key="header-control">
-        <Col md={10} mdOffset={2} key="buttons">
+        <Col md={20} offset={4} key="buttons">
           <Row>{buttons}</Row>
         </Col>
       </Row>
@@ -680,7 +677,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
     v.push(
       <Row key="header2-copy">
-        <Col md={10} mdOffset={2}>
+        <Col md={20} offset={4}>
           {this.render_copy_confirms(status)}
         </Col>
       </Row>
@@ -692,7 +689,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_more() {
     return (
       <Row key="more">
-        <Col sm={12}>
+        <Col sm={24}>
           <Card title={this.render_more_header()}>
             <StudentListForAssignment
               redux={this.props.redux}
@@ -735,6 +732,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
+  private show_copy_confirm(): void {
+    this.setState({ copy_confirm_assignment: true, copy_confirm: true });
+    const actions = this.get_actions();
+    const assignment_id: string | undefined = this.props.assignment.get(
+      "assignment_id"
+    );
+    actions.assignments.has_student_subdir(assignment_id);
+  }
+
   render_assignment_button(status) {
     let bsStyle;
     const last_assignment = this.props.assignment.get("last_assignment");
@@ -755,9 +761,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       <Button
         key="assign"
         bsStyle={bsStyle}
-        onClick={() =>
-          this.setState({ copy_confirm_assignment: true, copy_confirm: true })
-        }
+        onClick={this.show_copy_confirm.bind(this)}
         disabled={this.state.copy_confirm}
       >
         <Tip
@@ -852,7 +856,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             style={{ marginTop: "1ex" }}
           />
         </FormGroup>
-        <ButtonToolbar style={{ textAlign: "center", marginTop: "15px" }}>
+        <ButtonGroup style={{ textAlign: "center", marginTop: "15px" }}>
           <Button
             disabled={
               this.state.copy_assignment_confirm_overwrite_text !== "OVERWRITE"
@@ -863,37 +867,44 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             <Icon name="exclamation-triangle" /> Confirm replacing files
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
       </div>
     );
   }
 
-  copy_assignment(step, new_only, overwrite?) {
+  copy_assignment(step, new_only: boolean, overwrite: boolean = false) {
     // assign assignment to all (non-deleted) students
     const actions = this.get_actions();
+    const assignment_id: string | undefined = this.props.assignment.get(
+      "assignment_id"
+    );
+    if (assignment_id == null) throw Error("bug");
     switch (step) {
       case "assignment":
-        actions.copy_assignment_to_all_students(
-          this.props.assignment,
+        actions.assignments.copy_assignment_to_all_students(
+          assignment_id,
           new_only,
           overwrite
         );
         break;
       case "collect":
-        actions.copy_assignment_from_all_students(
-          this.props.assignment,
+        actions.assignments.copy_assignment_from_all_students(
+          assignment_id,
           new_only
         );
         break;
       case "peer_assignment":
-        actions.peer_copy_to_all_students(this.props.assignment, new_only);
+        actions.assignments.peer_copy_to_all_students(assignment_id, new_only);
         break;
       case "peer_collect":
-        actions.peer_collect_from_all_students(this.props.assignment, new_only);
+        actions.assignments.peer_collect_from_all_students(
+          assignment_id,
+          new_only
+        );
         break;
       case "return_graded":
-        actions.return_assignment_to_all_students(
-          this.props.assignment,
+        actions.assignments.return_assignment_to_all_students(
+          assignment_id,
           new_only
         );
         break;
@@ -907,7 +918,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     } as any);
   }
 
-  render_skip(step) {
+  private render_skip(step: AssignmentCopyStep): Rendered {
     if (step === "return_graded") {
       return;
     }
@@ -922,21 +933,37 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  render_copy_confirm_to_all(step, status) {
-    const n = status[`not_${step}`];
+  private render_has_student_subdir(step: AssignmentCopyStep): Rendered {
+    if (
+      step != "assignment" ||
+      !this.props.assignment.get("has_student_subdir")
+    )
+      return;
     return (
       <Alert
-        bsStyle="warning"
-        key={`${step}_confirm_to_all`}
-        style={{ marginTop: "15px" }}
-      >
+        style={{ marginBottom: "15px" }}
+        type="info"
+        message={`NOTE: Only the ${STUDENT_SUBDIR}/ subdirectory will be copied to the students.`}
+      />
+    );
+  }
+
+  private render_copy_confirm_to_all(
+    step: AssignmentCopyStep,
+    status
+  ): Rendered {
+    const n = status[`not_${step}`];
+    const message = (
+      <div>
+        {" "}
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this homework{" "}
           {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
           {step_ready(step, n)}?
         </div>
+        {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key="yes"
             bsStyle="primary"
@@ -945,12 +972,22 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             Yes
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
-      </Alert>
+        </ButtonGroup>
+      </div>
+    );
+    return (
+      <Alert
+        type="warning"
+        key={`${step}_confirm_to_all`}
+        style={{ marginTop: "15px" }}
+        message={message}
+      />
     );
   }
 
-  copy_confirm_all_caution(step) {
+  private copy_confirm_all_caution(
+    step: AssignmentCopyStep
+  ): Rendered | string {
     switch (step) {
       case "assignment":
         return (
@@ -981,13 +1018,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  render_copy_confirm_overwrite_all(step) {
+  private render_copy_confirm_overwrite_all(
+    step: AssignmentCopyStep
+  ): Rendered {
     return (
       <div key={"copy_confirm_overwrite_all"} style={{ marginTop: "15px" }}>
         <div style={{ marginBottom: "15px" }}>
           {this.copy_confirm_all_caution(step)}
         </div>
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key={"all"}
             bsStyle={"warning"}
@@ -1011,27 +1050,27 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             undefined
           )}
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
         {this.render_copy_assignment_confirm_overwrite(step)}
       </div>
     );
   }
 
-  render_copy_confirm_to_all_or_new(step, status) {
+  private render_copy_confirm_to_all_or_new(
+    step: AssignmentCopyStep,
+    status
+  ): Rendered {
     const n = status[`not_${step}`];
     const m = n + status[step];
-    return (
-      <Alert
-        bsStyle="warning"
-        key={`${step}_confirm_to_all_or_new`}
-        style={{ marginTop: "15px" }}
-      >
+    const message = (
+      <div>
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this homework{" "}
           {step_direction(step)}...
         </div>
+        {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key="all"
             bsStyle="danger"
@@ -1059,11 +1098,19 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             undefined
           )}
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
         {this.state[`copy_confirm_all_${step}`]
           ? this.render_copy_confirm_overwrite_all(step)
           : undefined}
-      </Alert>
+      </div>
+    );
+    return (
+      <Alert
+        type="warning"
+        key={`${step}_confirm_to_all_or_new`}
+        style={{ marginTop: "15px" }}
+        message={message}
+      />
     );
   }
 
@@ -1256,33 +1303,29 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   return_assignment = () => {
-    // Assign assignment to all (non-deleted) students.
-    return this.get_actions().return_assignment_to_all_students(
-      this.props.assignment
+    // Return assignment to all (non-deleted) students.
+    this.get_actions().assignments.return_assignment_to_all_students(
+      this.props.assignment.get("assignment_id"),
+      false
     );
   };
 
   toggle_skip_grading = () => {
-    return this.get_actions().set_skip(
-      this.props.assignment,
+    this.get_actions().assignments.set_skip(
+      this.props.assignment.get("assignment_id"),
       "grading",
       !this.props.assignment.get("skip_grading")
     );
   };
 
   render_skip_grading_button(status) {
-    let icon, left;
     if (status.collect === 0) {
       // No button if nothing collected.
       return;
     }
-    const is_skip_grading =
-      (left = this.props.assignment.get("skip_grading")) != null ? left : false;
-    if (is_skip_grading) {
-      icon = "check-square-o";
-    } else {
-      icon = "square-o";
-    }
+    const icon: string = this.props.assignment.get("skip_grading")
+      ? "check-square-o"
+      : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
         <Icon name={icon} /> Skip Grading
@@ -1291,7 +1334,6 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_return_graded_button(status) {
-    let bsStyle, left;
     if (status.collect === 0) {
       // No button if nothing collected.
       return;
@@ -1300,15 +1342,15 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       // Peer grading enabled, but we didn't collect anything yet
       return;
     }
-    const skip_grading =
-      (left = this.props.assignment.get("skip_grading")) != null ? left : false;
     if (
-      !skip_grading &&
-      status.not_return_graded === 0 && status.return_graded === 0
+      !this.props.assignment.get("skip_grading") &&
+      status.not_return_graded === 0 &&
+      status.return_graded === 0
     ) {
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
     }
+    let bsStyle: string;
     if (status.return_graded > 0) {
       // Have already returned some
       if (status.not_return_graded === 0) {
@@ -1353,21 +1395,25 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   delete_assignment = () => {
-    this.get_actions().delete_assignment(this.props.assignment);
+    this.get_actions().assignments.delete_assignment(
+      this.props.assignment.get("assignment_id")
+    );
     return this.setState({ confirm_delete: false });
   };
 
   undelete_assignment = () => {
-    return this.get_actions().undelete_assignment(this.props.assignment);
+    return this.get_actions().assignments.undelete_assignment(
+      this.props.assignment.get("assignment_id")
+    );
   };
 
   render_confirm_delete() {
-    return (
-      <Alert bsStyle="warning" key="confirm_delete">
+    const message = (
+      <div>
         Are you sure you want to delete this assignment (you can undelete it
         later)?
         <br /> <br />
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button key="yes" onClick={this.delete_assignment} bsStyle="danger">
             <Icon name="trash" /> Delete
           </Button>
@@ -1377,9 +1423,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           >
             Cancel
           </Button>
-        </ButtonToolbar>
-      </Alert>
+        </ButtonGroup>
+      </div>
     );
+    return <Alert type="warning" key="confirm_delete" message={message} />;
   }
 
   render_delete_button() {
@@ -1415,161 +1462,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  set_peer_grade = config => {
-    return this.get_actions().set_peer_grade(this.props.assignment, config);
-  };
-
-  render_configure_peer_checkbox(config) {
-    return (
-      <div>
-        <Checkbox
-          checked={config.enabled != null ? config.enabled : false}
-          key="peer_grade_checkbox"
-          ref="peer_grade_checkbox"
-          onChange={e =>
-            this.set_peer_grade({ enabled: (e.target as any).checked })
-          }
-          style={{ display: "inline-block", verticalAlign: "middle" }}
-        />
-        Enable Peer Grading
-      </div>
-    );
-  }
-
-  _peer_due(date): Date | undefined {
-    if (date == null) {
-      date = this.props.assignment.getIn(["peer_grade", "due_date"]);
-    }
-    if (date != null) {
-      return new Date(date);
-    } else {
-      return misc.server_days_ago(-7);
-    }
-  }
-
-  peer_due_change = date => {
-    const due_date = this._peer_due(date);
-    let due_date_string: string | undefined;
-    if (due_date != undefined) {
-      due_date_string = due_date.toISOString();
-    }
-    return this.set_peer_grade({
-      due_date: due_date_string
-    });
-  };
-
-  render_configure_peer_due(config) {
-    const label = (
-      <Tip
-        placement="top"
-        title="Set the due date"
-        tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading."
-      >
-        Due
-      </Tip>
-    );
-    return (
-      <LabeledRow label_cols={6} label={label}>
-        <DateTimePicker
-          value={this._peer_due(config.due_date)}
-          on_change={this.peer_due_change}
-          autoFocus={false}
-          defaultOpen={false}
-        />
-      </LabeledRow>
-    );
-  }
-
-  render_configure_peer_number(config) {
-    let left;
-    const store = this.get_store();
-    return (
-      <LabeledRow
-        label_cols={6}
-        label="Number of students who will grade each assignment"
-      >
-        <NumberInput
-          on_change={n => this.set_peer_grade({ number: n })}
-          min={1}
-          max={
-            ((left = store != null ? store.num_students() : undefined) != null
-              ? left
-              : 2) - 1
-          }
-          number={config.number != null ? config.number : 1}
-        />
-      </LabeledRow>
-    );
-  }
-
-  render_configure_grading_guidelines(config) {
-    return (
-      <div style={{ marginTop: "10px" }}>
-        <LabeledRow
-          label_cols={6}
-          label="Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines."
-        >
-          <div
-            style={{
-              background: "white",
-              padding: "10px",
-              border: "1px solid #ccc",
-              borderRadius: "3px"
-            }}
-          >
-            <MarkdownInput
-              persist_id={
-                this.props.assignment.get("path") +
-                this.props.assignment.get("assignment_id") +
-                "grading-guidelines"
-              }
-              attach_to={this.props.name}
-              rows={16}
-              placeholder="Enter your grading guidelines for this assignment..."
-              default_value={config.guidelines}
-              on_save={x => this.set_peer_grade({ guidelines: x })}
-            />
-          </div>
-        </LabeledRow>
-      </div>
-    );
-  }
-
   render_configure_peer() {
-    const peer_info = this.props.assignment.get("peer_grade");
-    let config: { enabled?: boolean } = {};
-    if (peer_info) {
-      config = peer_info.toJS();
-    }
     return (
-      <Alert bsStyle="warning">
-        <h3>
-          <Icon name="users" /> Peer grading
-        </h3>
-
-        <div style={{ color: "#666" }}>
-          Use peer grading to randomly (and anonymously) redistribute collected
-          homework to your students, so that they can grade it for you.
-        </div>
-
-        {this.render_configure_peer_checkbox(config)}
-        {config.enabled ? this.render_configure_peer_number(config) : undefined}
-        {config.enabled ? this.render_configure_peer_due(config) : undefined}
-        {config.enabled
-          ? this.render_configure_grading_guidelines(config)
-          : undefined}
-
-        <Button
-          onClick={() =>
-            this.get_actions().toggle_item_expansion(
-              "peer_config",
-              this.props.assignment.get("assignment_id")
-            )
-          }
-        >
-          Close
-        </Button>
-      </Alert>
+      <ConfigurePeerGrading
+        actions={this.get_actions()}
+        assignment={this.props.assignment}
+      />
     );
   }
 
@@ -1639,28 +1537,28 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_summary_line() {
     return (
       <Row key="summary" style={{ backgroundColor: this.props.background }}>
-        <Col md={6}>
+        <Col md={12}>
           <h5>{this.render_assignment_title_link()}</h5>
         </Col>
-        <Col md={6}>{this.render_summary_due_date()}</Col>
+        <Col md={12}>{this.render_summary_due_date()}</Col>
       </Row>
     );
   }
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={
             this.props.is_expanded ? styles.selected_entry : styles.entry_style
           }
         >
-          <Col xs={12}>
+          <Col xs={24}>
             {this.render_summary_line()}
             {this.props.is_expanded ? this.render_more() : undefined}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
@@ -1709,9 +1607,10 @@ class StudentListForAssignment extends Component<
   private render_student_info(student_id: string): Rendered {
     const store = this.get_store();
     const student = store.get_student(student_id);
+    if (student == null) return; // no such student
     const key = util.assignment_identifier(
-      this.props.assignment,
-      UNSAFE_NONNULLABLE(student)
+      this.props.assignment.get("assignment_id"),
+      student_id
     );
     const edited_feedback = this.props.active_feedback_edits.get(key);
     let edited_comments: string | undefined;
@@ -1725,11 +1624,20 @@ class StudentListForAssignment extends Component<
         key={student_id}
         title={misc.trunc_middle(store.get_student_name(student_id), 40)}
         name={this.props.name}
-        student={UNSAFE_NONNULLABLE(student)}
+        student={student}
         assignment={this.props.assignment}
-        grade={store.get_grade(this.props.assignment, student_id)}
-        comments={store.get_comments(this.props.assignment, student_id)}
-        info={store.student_assignment_info(student_id, this.props.assignment)}
+        grade={store.get_grade(
+          this.props.assignment.get("assignment_id"),
+          student_id
+        )}
+        comments={store.get_comments(
+          this.props.assignment.get("assignment_id"),
+          student_id
+        )}
+        info={store.student_assignment_info(
+          student_id,
+          this.props.assignment.get("assignment_id")
+        )}
         is_editing={!!edited_feedback}
         edited_comments={edited_comments}
         edited_grade={edited_grade}

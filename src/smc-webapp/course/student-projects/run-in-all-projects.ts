@@ -1,6 +1,6 @@
 /* Run a shell command (mini terminal) in projects with given id. */
 
-import { start_project, exec } from "../frame-editors/generic/client";
+import { start_project, exec } from "../../frame-editors/generic/client";
 
 async function run_in_project(
   project_id: string,
