@@ -63,10 +63,10 @@ interface ReactProps {
   project_id: string;
   actions: ProjectActions;
   redux: any;
+  name: string;
 }
 
 interface ReduxProps {
-  name: string;
   project_map?: ProjectMap;
   date_when_course_payment_required: (project_id: string) => number;
   get_my_group: (project_id: string) => "admin" | "public";
@@ -554,7 +554,7 @@ export const Explorer = rclass<ReactProps>(
             }}
           >
             <FileListing
-              name={name}
+              name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
               file_map={file_map}

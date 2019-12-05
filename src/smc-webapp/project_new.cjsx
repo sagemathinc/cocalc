@@ -167,6 +167,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
         create_folder      : rtypes.func  #.required
         styles             : rtypes.object
         project_id         : rtypes.string
+        name               : rtypes.string.isRequired
 
     getInitialState :->
         show_jupyter_server_panel : false
@@ -290,6 +291,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         actions     : rtypes.object.isRequired
         close       : rtypes.func
         show_header : rtypes.bool
+        name        : rtypes.string.isRequired
 
     getInitialState: ->
         filename           : @props.default_filename ? @default_filename()
