@@ -100,13 +100,13 @@ export async function lti_service({ base_url, port }) {
 
       if (conn.roles.includes(student_role)) {
         lti.redirect(res, appUrl + "/student", {
-          isNewResource: true,
-          ignoreRoot: true
+          //  isNewResource: true,
+          //  ignoreRoot: true
         });
       } else if (conn.roles.includes(teacher_role)) {
         lti.redirect(res, appUrl + "/teacher", {
-          isNewResource: true,
-          ignoreRoot: true
+          //  isNewResource: true,
+          //  ignoreRoot: true
         });
       } else {
         console.log(
@@ -123,21 +123,37 @@ export async function lti_service({ base_url, port }) {
     res.send("appUrl is alive");
   });
 
+  const endpoint_body = (locals): string => {
+    const ret: string[] = [];
+    ret.push(`<p>User ID ${locals.token.user}</p>`);
+    const href = `${appUrl}/work?ltik=${locals.contextToken}`;
+    ret.push(`<p><a href="${href}">work link</a></p>`);
+    ret.push(`<pre style="font-size:75%">token = ${JSON.stringify(locals, null, 2)}</pre>`);
+    return ret.join("\n");
+  };
+
   // Set student route
   lti.app.get(appUrl + "/student", (_req, res) => {
-    // Id token
     console.log("appUrl/student:", res.locals);
     let body = "appUrl/student mode!\n";
-    body += `<pre>token = ${JSON.stringify(res.locals, null, 2)}</pre>`;
+    body += endpoint_body(res.locals);
     res.send(body);
   });
 
   // Set content selection route
   lti.app.get(appUrl + "/teacher", (_req, res) => {
-    // Id token
     console.log("appUrl/teacher:", res.locals);
     let body = "appUrl/teacher mode!\n";
-    body += `<pre>token = ${JSON.stringify(res.locals, null, 2)}</pre>`;
+    body += endpoint_body(res.locals);
     res.send(body);
+  });
+
+  // some imaginary endpoint, where the client sets/gets some information
+  lti.app.get(appUrl + "/work", (_req, res) => {
+    console.log("appUrl/work:", res.locals);
+    res.send(`
+      <h1>Hi ${res.locals.token.userInfo.name}</h1>
+      <p>this is your work to do</p>
+      <p><button onclick='window.history.back();'>back to previous page</button>`);
   });
 }
