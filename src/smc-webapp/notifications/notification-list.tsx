@@ -36,17 +36,18 @@ export function NotificationList({
   mentions
     .filter(notification => notification.get("target") === account_id)
     .filter(notification => {
-      const status = notification.getIn(["users", account_id]);
-      if (!status) {
-        return true; // No status logged yet. Show the notification
-      }
+      const status = notification.getIn(["users", account_id])?.toJS() ?? {
+        read: false,
+        saved: false
+      };
+
       switch (filter) {
         case "unread":
-          return status.get("read") === false;
+          return status.read === false;
         case "read":
-          return status.get("read") === true;
+          return status.read === true;
         case "saved":
-          return status.get("saved") === true;
+          return status.saved === true;
         case "all":
           return true;
         default:
