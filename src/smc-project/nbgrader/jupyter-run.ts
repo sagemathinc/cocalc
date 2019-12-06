@@ -5,5 +5,5 @@ export async function jupyter_run_notebook(
 ): Promise<string> {
   logger.debug("jupyter_run_notebook", opts);
   client = client;
-  return JSON.stringify({'notebook':'that has run'});
+  return opts.ipynb;
 }
