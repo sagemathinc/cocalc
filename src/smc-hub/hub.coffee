@@ -391,11 +391,14 @@ blob_maintenance = (cb) ->
     ], cb)
 
 start_lti_service = (cb) ->
+    BASE_URL = base_url.init(program.base_url)
     async.series([
         (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
-            lti_service = new LTIService(port:program.port, db:database)
+            init_compute_server(cb)
+        (cb) ->
+            lti_service = new LTIService(port:program.port, db:database, base_url:BASE_URL, compute_server:compute_server)
             await lti_service.start()
     ], cb)
 

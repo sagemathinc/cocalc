@@ -298,7 +298,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             email_address     : undefined
             allow_empty_email : false
             password_hash     : undefined
-            lti               : undefined  # 2-tuple <string[]>[iss, user_id]
+            lti_id            : undefined  # 2-tuple <string[]>[iss, user_id]
 
             passport_strategy : undefined
             passport_id       : undefined
@@ -306,7 +306,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
+        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         for name in ['first_name', 'last_name']
@@ -366,7 +366,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'account_id     :: UUID'      : account_id
                         'first_name     :: TEXT'      : opts.first_name
                         'last_name      :: TEXT'      : opts.last_name
-                        'lti            :: TEXT[]'    : opts.lti
+                        'lti_id         :: TEXT[]'    : opts.lti_id
                         'created        :: TIMESTAMP' : new Date()
                         'created_by     :: INET'      : opts.created_by
                         'password_hash  :: CHAR(173)' : opts.password_hash
@@ -536,12 +536,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     lti_account_exists: (opts) =>
         opts = defaults opts,
-            lti           : required
-            cb            : required   # cb(err, account_id or undefined) -- actual lti if it exists; err = problem with db connection...
+            lti_id        : required
+            cb            : required   # cb(err, account_id or undefined) -- actual lti_id if it exists; err = problem with db connection...
         @_query
-            query : 'SELECT lti FROM accounts'
-            where : "lti = $::TEXT[]" : opts.lti
-            cb    : one_result('lti', opts.cb)
+            query : 'SELECT lti_id FROM accounts'
+            where : "lti_id = $::TEXT[]" : opts.lti_id
+            cb    : one_result('lti_id', opts.cb)
 
     # set an account creation action, or return all of them for the given email address
     account_creation_actions: (opts) =>
@@ -1106,21 +1106,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             )
 
     _account_where: (opts) =>
-        # account_id > email_address > lti
+        # account_id > email_address > lti_id
         if opts.account_id?
             return {"account_id = $::UUID" : opts.account_id}
         else if opts.email_address?
             return {"email_address = $::TEXT" : opts.email_address}
-        else if opts.lti?
-            return {"lti = $::TEXT[]" : opts.lti}
+        else if opts.lti_id?
+            return {"lti_id = $::TEXT[]" : opts.lti_id}
         else
-            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti specified")
+            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti_id specified")
 
     get_account: (opts) =>
         opts = defaults opts,
-            email_address : undefined     # provide either email XOR account_id (not both) XOR lti
+            email_address : undefined     # provide either email XOR account_id (not both) XOR lti_id
             account_id    : undefined
-            lti           : undefined
+            lti_id        : undefined
             columns       : ['account_id',
                              'password_hash',
                              'password_is_set',  # true or false, depending on whether a password is set (since don't send password_hash to user!)
@@ -1664,6 +1664,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id  : required    # initial owner
             title       : undefined
             description : undefined
+            lti_id      : undefined   # array of strings
             image       : 'default'   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
@@ -1676,6 +1677,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 title         : opts.title
                 description   : opts.description
                 compute_image : opts.image
+                lti_id        : opts.lti_id
                 created       : now
                 last_edited   : now
                 users         : {"#{opts.account_id}":{group:'owner'}}
@@ -1747,7 +1749,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _validate_opts: (opts) =>
         for k, v of opts
-            if k.slice(k.length-2) == 'id'
+            if k == 'lti_id'
+                for x in v
+                    if not (typeof x == 'string' and x.length > 0)
+                        opts.cb?("invalid #{k} -- #{v}")
+                        return false
+            else if k.slice(k.length-2) == 'id'
                 if v? and not misc.is_valid_uuid_string(v)
                     opts.cb?("invalid #{k} -- #{v}")
                     return false
@@ -1775,6 +1782,16 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query : "SELECT #{opts.columns.join(',')} FROM projects"
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result(opts.cb)
+
+    get_project_lti: (opts) =>
+        opts = defaults opts,
+            lti_id     : required   # an array of strings
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @_query
+            query : "SELECT project_id FROM projects"
+            where : 'lti_id :: TEXT[] = $' : opts.lti_id
+            cb    : one_result 'project_id', opts.cb
 
     _get_project_column: (column, project_id, cb) =>
         if not misc.is_valid_uuid_string(project_id)
@@ -1880,6 +1897,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query : "SELECT DISTINCT jsonb_object_keys(users) FROM projects"
             where : "users ? $::TEXT" : opts.account_id
             cb    : all_results('jsonb_object_keys', opts.cb)
+
+    # get list of project collaborator IDs
+    get_collaborators: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        dbg = @_dbg("get_collaborators")
+        @_query
+            query : "SELECT DISTINCT jsonb_object_keys(users) FROM projects"
+            where : "project_id = $::UUID" : opts.project_id
+            cb    : all_results('jsonb_object_keys', opts.cb)
+
 
     # return list of paths that are public and not disabled in the given project
     get_public_paths: (opts) =>

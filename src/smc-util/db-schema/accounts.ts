@@ -148,10 +148,14 @@ export const accounts = create({
       type: "string",
       desc: "What user intended to use CoCalc for at sign up"
     },
-    lti: {
+    lti_id: {
       type: "array",
       pg_type: "TEXT[]",
       desc: "LTI ISS and user ID"
+    },
+    lti_data: {
+      type: "map",
+      desc: "extra information related to LTI"
     }
   },
   rules: {
@@ -165,7 +169,7 @@ export const accounts = create({
       "created",
       "api_key",
       "last_active DESC NULLS LAST",
-      "lti",
+      "lti_id"
     ],
     user_query: {
       get: {
