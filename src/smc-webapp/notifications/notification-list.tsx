@@ -38,7 +38,7 @@ export function NotificationList({
     .filter(notification => {
       const status = notification.getIn(["users", account_id]);
       if (!status) {
-        return false;
+        return true; // No status logged yet. Show the notification
       }
       switch (filter) {
         case "unread":
