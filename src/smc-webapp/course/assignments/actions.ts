@@ -20,7 +20,7 @@ import {
 } from "smc-util/misc";
 import { map } from "awaiting";
 
-import { nbgrader } from "../../jupyter/nbgrader/api";
+import { nbgrader, jupyter_stripped } from "../../jupyter/nbgrader/api";
 
 import { previous_step, assignment_identifier } from "../util";
 import {
@@ -1111,7 +1111,7 @@ You can find the comments they made in the folders below.\
       assignment_id,
       student_id
     });
-    if (store == null || assignment == null || student == null) return;
+    if (assignment == null || student == null) return;
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       this.course_actions.set_error(
@@ -1220,6 +1220,55 @@ You can find the comments they made in the folders below.\
       })).stdout
     );
     return cnt > 0;
+  }
+
+  // Read in the (stripped) contents of all nbgrader instructor ipynb
+  // files for this assignment.  These are:
+  //  - Nothing if has_student_subdir isn't set.
+  //  - Every ipynb in the assignment directory that contains
+  //    the string 'nbgrader'.
+  //  - Exception if any ipynb file that is mangled, i.e., JSON.parse fails...
+  public async nbgrader_instructor_ipynb_files(
+    assignment_id: string
+  ): Promise<{ [path: string]: string }> {
+    const { store, assignment } = this.course_actions.resolve({
+      assignment_id
+    });
+    if (assignment == null || !assignment.get("has_student_subdir")) {
+      return {}; // nothing case.
+    }
+    const path = assignment.get("path");
+    const project_id = store.get("course_project_id");
+    const command = "ls";
+    // The F options make it so we won't get tricked by a directory
+    // whose name ends in .ipynb
+    const args = ["--color=never", "-1F"];
+    const files: string[] = (await exec({
+      project_id,
+      path,
+      command,
+      args
+    })).stdout.split("\n");
+
+    const to_read: string[] = [];
+    for (const file of files) {
+      if (file.endsWith(".ipynb")) {
+        to_read.push(file);
+      }
+    }
+
+    const result: { [path: string]: string } = {};
+
+    async function f(file: string): Promise<void> {
+      const fullpath = path != "" ? path + "/" + file : file;
+      const content = await jupyter_stripped(project_id, fullpath);
+      if (content.indexOf("nbgrader") != -1) {
+        result[file] = content;
+      }
+    }
+
+    await map(to_read, PARALLEL_LIMIT, f);
+    return result;
   }
 
   public async run_nbgrader_for_all_students(

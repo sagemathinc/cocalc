@@ -29,3 +29,11 @@ export async function nbgrader(
   const api = await project_api(project_id);
   return await api.nbgrader(opts);
 }
+
+export async function jupyter_stripped(
+  project_id: string,
+  path: string
+): Promise<string> {
+  const api = await project_api(project_id);
+  return await api.jupyter_stripped(path);
+}
