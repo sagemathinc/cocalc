@@ -390,6 +390,15 @@ blob_maintenance = (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
 
+start_lti_service = (cb) ->
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            lti_service = new LTIService(port:program.port, db:database)
+            await lti_service.start()
+    ], cb)
+
 update_stats = (cb) ->
     # This calculates and updates the statistics for the /stats endpoint.
     # It's important that we call this periodically, because otherwise the /stats data is outdated.
@@ -766,9 +775,9 @@ command_line = () ->
                 process.exit()
         else if program.lti
             console.log("LTI MODE")
-            lti_service = new LTIService(port:program.port)
-            await lti_service.start()
-            #process.exit()
+            start_lti_service (err) ->
+                winston.debug("DONE", err)
+                process.exit()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile

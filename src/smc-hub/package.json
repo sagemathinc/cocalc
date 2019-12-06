@@ -33,8 +33,6 @@
     "jquery": "^3.4.0",
     "jsdom": "^15.2.1",
     "json-stable-stringify": "^1.0.1",
-    "ltijs": "^2.2.0",
-    "ltijs-postgresql": "^1.0.0",
     "mime": "^1.3.4",
     "mkdirp": "^0.5.1",
     "moment": "^2.10.6",

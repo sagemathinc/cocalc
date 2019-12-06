@@ -296,7 +296,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             created_by        : undefined  #  ip address of computer creating this account
 
             email_address     : undefined
+            allow_empty_email : false
             password_hash     : undefined
+            lti               : undefined  # 2-tuple <string[]>[iss, user_id]
 
             passport_strategy : undefined
             passport_id       : undefined
@@ -304,7 +306,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
+        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         for name in ['first_name', 'last_name']
@@ -317,8 +319,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.email_address = misc.lower_email_address(opts.email_address)
 
         if not opts.email_address? and not opts.passport_strategy?
-            opts.cb("email_address or passport must be given")
-            return
+            if not opts.allow_empty_email
+                opts.cb("email_address or passport must be given")
+                return
 
         account_id = misc.uuid()
 
@@ -363,6 +366,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'account_id     :: UUID'      : account_id
                         'first_name     :: TEXT'      : opts.first_name
                         'last_name      :: TEXT'      : opts.last_name
+                        'lti            :: TEXT[]'    : opts.lti
                         'created        :: TIMESTAMP' : new Date()
                         'created_by     :: INET'      : opts.created_by
                         'password_hash  :: CHAR(173)' : opts.password_hash
@@ -529,6 +533,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query : 'SELECT account_id FROM accounts'
             where : "email_address = $::TEXT" : opts.email_address
             cb    : one_result('account_id', opts.cb)
+
+    lti_account_exists: (opts) =>
+        opts = defaults opts,
+            lti           : required
+            cb            : required   # cb(err, account_id or undefined) -- actual lti if it exists; err = problem with db connection...
+        @_query
+            query : 'SELECT lti FROM accounts'
+            where : "lti = $::TEXT[]" : opts.lti
+            cb    : one_result('lti', opts.cb)
 
     # set an account creation action, or return all of them for the given email address
     account_creation_actions: (opts) =>
@@ -1093,21 +1106,32 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             )
 
     _account_where: (opts) =>
+        # account_id > email_address > lti
         if opts.account_id?
             return {"account_id = $::UUID" : opts.account_id}
-        else
+        else if opts.email_address?
             return {"email_address = $::TEXT" : opts.email_address}
+        else if opts.lti?
+            return {"lti = $::TEXT[]" : opts.lti}
+        else
+            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti specified")
 
     get_account: (opts) =>
         opts = defaults opts,
-            email_address : undefined     # provide either email or account_id (not both)
+            email_address : undefined     # provide either email XOR account_id (not both) XOR lti
             account_id    : undefined
+            lti           : undefined
             columns       : ['account_id',
                              'password_hash',
                              'password_is_set',  # true or false, depending on whether a password is set (since don't send password_hash to user!)
-                             'first_name', 'last_name',
+                             'first_name',
+                             'last_name',
                              'email_address',
-                             'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+                             'evaluate_key',
+                             'autosave',
+                             'terminal',
+                             'editor_settings',
+                             'other_settings',
                              'groups',
                              'passports'
                             ]
