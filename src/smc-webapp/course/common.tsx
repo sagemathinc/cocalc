@@ -409,26 +409,31 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  private render_grade_col(): Rendered {
-    const grade = this.props.grade || "";
-    const bsStyle = !grade.trim() ? "primary" : undefined;
-    const text = grade.trim() ? "Edit grade" : "Enter grade";
+  private render_enter_grade(): Rendered {
+    const grade = (this.props.grade || "").trim();
+    const bsStyle = !grade ? "primary" : undefined;
+    const text = !!grade ? "Edit grade" : "Enter grade";
+    return (
+      <Tip
+        title="Enter student's grade"
+        tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
+      >
+        <Button
+          key="edit"
+          onClick={() => this.set_edited_feedback()}
+          bsStyle={bsStyle}
+        >
+          {text}
+        </Button>
+      </Tip>
+    );
+  }
 
+  private render_grade_col(): Rendered {
     return (
       <>
-        <Tip
-          title="Enter student's grade"
-          tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
-        >
-          <Button
-            key="edit"
-            onClick={() => this.set_edited_feedback()}
-            bsStyle={bsStyle}
-          >
-            {text}
-          </Button>
-        </Tip>
         {this.render_nbgrader()}
+        {this.render_enter_grade()}
         {this.render_grade()}
         {this.render_comments()}
       </>

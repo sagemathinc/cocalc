@@ -17,6 +17,7 @@ import { eval_code } from "./eval-code";
 import { terminal } from "../terminal/server";
 import { lean, lean_channel } from "../lean/server";
 import { nbgrader } from "../nbgrader/api";
+import { jupyter_stripped } from "../nbgrader/jupyter-parse";
 import { x11_channel } from "../x11/server";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
@@ -99,6 +100,8 @@ async function handle_api_call(
       return await lean(client, primus, logger, data.opts);
     case "nbgrader":
       return await nbgrader(client, logger, data.opts);
+    case "jupyter_stripped":
+      return await jupyter_stripped(data.ipynb_path);
     case "lean_channel":
       return await lean_channel(client, primus, logger, data.path);
     case "x11_channel":

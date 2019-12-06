@@ -212,6 +212,11 @@ export class API {
     return await this.call({ cmd: "nbgrader", opts }, opts.timeout_ms + 5000);
   }
 
+  // Get contents of an ipynb file, but with output and attachments removed (to save space)
+  async jupyter_stripped(ipynb_path: string): Promise<any> {
+    return await this.call({ cmd: "jupyter_stripped", ipynb_path }, 15000);
+  }
+
   // I think this isn't used.  It was going to support
   // sync_channel, but obviously a more nuanced protocol
   // was required.
