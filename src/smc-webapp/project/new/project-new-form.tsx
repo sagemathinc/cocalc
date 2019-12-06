@@ -53,16 +53,16 @@ interface State {
   extension_warning: boolean;
 }
 
-export const ProjectNewForm = rclass(
+export const ProjectNewForm = rclass<ReactProps>(
   class ProjectNewForm extends React.Component<ReactProps & ReduxProps, State> {
-    static reduxProps({ name }): any {
+    public static reduxProps = ({ name }): any => {
       return {
         [name]: {
           current_path: rtypes.string,
           default_filename: rtypes.string,
           file_creation_error: rtypes.string,
           available_features: rtypes.immutable,
-          downloading_file: rtypes.boolean
+          downloading_file: rtypes.bool
         },
         projects: {
           project_map: rtypes.immutable,
