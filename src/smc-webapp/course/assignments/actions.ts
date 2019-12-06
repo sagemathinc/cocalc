@@ -1306,11 +1306,22 @@ You can find the comments they made in the folders below.\
   ): Promise<void> {
     console.log("run_nbgrader_for_one_student", assignment_id, student_id);
 
-    const { store, assignment } = this.course_actions.resolve({
-      assignment_id
+    const { assignment, student } = this.course_actions.resolve({
+      assignment_id,
+      student_id
     });
-    if (assignment == null || !assignment.get("has_student_subdir")) {
+    if (
+      student == null ||
+      assignment == null ||
+      !assignment.get("has_student_subdir")
+    ) {
       return; // nothing case.
+    }
+    const project_id = student.get("project_id");
+    if (project_id == null) {
+      // This would happen if maybe instructor deletes student project at
+      // the exact wrong time.
+      throw Error("student has no project, so can't run nbgrader");
     }
 
     if (instructor_ipynb_files == null) {
@@ -1323,12 +1334,11 @@ You can find the comments they made in the folders below.\
       return; // nothing to do
     }
 
-    let path = assignment.get("path");
-    path = path != "" ? path + "/" + STUDENT_SUBDIR : STUDENT_SUBDIR;
-    const project_id = store.get("course_project_id");
+    const path = assignment.get("path");
+    const student_path = assignment.get("target_path");
     const result: { [path: string]: any } = {};
     async function one_file(file: string): Promise<void> {
-      const fullpath = path + "/" + file;
+      const fullpath = path != "" ? path + "/" + file : file
       try {
         const student_ipynb: string = await jupyter_stripped(
           project_id,
@@ -1340,7 +1350,8 @@ You can find the comments they made in the folders below.\
         const r = await nbgrader(project_id, {
           timeout_ms: 60000, // ???
           student_ipynb,
-          instructor_ipynb
+          instructor_ipynb,
+          student_path
         });
         console.log("ran nbgrader", { student_id, file, r });
         result[file] = r;
