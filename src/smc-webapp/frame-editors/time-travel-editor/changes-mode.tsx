@@ -2,7 +2,7 @@
 
 import { Rendered, Component, React } from "../../app-framework";
 
-import { Checkbox, Tooltip } from "cocalc-ui";
+import { Checkbox, Tooltip } from "antd";
 
 import { TimeTravelActions } from "./actions";
 

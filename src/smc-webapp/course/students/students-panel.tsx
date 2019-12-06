@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -28,10 +20,11 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("../webapp_client");
-
+import * as misc from "smc-util/misc";
+import { webapp_client } from "../../webapp-client";
 import { is_different } from "smc-util/misc2";
+import { keys } from "underscore";
+import { callback2 } from "smc-util/async-utils";
 
 // React libraries and components
 import {
@@ -42,27 +35,23 @@ import {
   rtypes,
   AppRedux,
   Rendered
-} from "../app-framework";
+} from "../../app-framework";
 
-const {
-  Alert,
+import {
   Button,
   ButtonToolbar,
   ButtonGroup,
   FormGroup,
   FormControl,
   InputGroup,
-  Row,
-  Col,
-  Grid,
   Well,
   Form
-} = require("react-bootstrap");
+} from "../../antd-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Alert, Card, Row, Col } from "antd";
 
 // CoCalc components
-const { User } = require("../users");
+import { User } from "../../users";
 import {
   MarkdownInput,
   SearchInput,
@@ -72,23 +61,22 @@ import {
   Icon,
   Space,
   Tip
-} from "../r_misc";
+} from "../../r_misc";
 
-import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "./common";
-import * as util from "./util";
-import * as styles from "./styles";
-import { ProjectMap, UserMap } from "../todo-types";
+import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
+import * as util from "../util";
+import * as styles from "../styles";
+import { ProjectMap, UserMap } from "../../todo-types";
 import {
   StudentsMap,
   AssignmentsMap,
   SortDescription,
   StudentRecord,
-  CourseStore,
   IsGradingMap
-} from "./store";
-import { literal } from "../app-framework/literal";
-import { redux } from "../frame-editors/generic/test/util";
-import { CourseActions } from "./actions";
+} from "../store";
+import { literal } from "../../app-framework/literal";
+import { redux } from "../../frame-editors/generic/test/util";
+import { CourseActions } from "../actions";
 import { Set } from "immutable";
 
 interface StudentNameDescription {
@@ -111,7 +99,6 @@ interface StudentsPanelReactProps {
 interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
   active_student_sort?: SortDescription;
-  get_student_name: (id: string) => string;
   active_feedback_edits: IsGradingMap;
 }
 
@@ -131,6 +118,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     StudentsPanelReactProps & StudentsPanelReduxProps,
     StudentsPanelState
   > {
+    private is_unmounted: boolean;
+    componentWillUnmount(): void {
+      this.is_unmounted = true;
+    }
+
     // student_list not a list, but has one, plus some extra info.
     private student_list:
       | {
@@ -154,14 +146,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       };
     }
 
-    displayName: "CourseEditorStudents";
-
     static reduxProps = ({ name }) => {
       return {
         [name]: {
           expanded_students: rtypes.immutable.Set,
           active_student_sort: rtypes.immutable.Map,
-          get_student_name: rtypes.func,
           active_feedback_edits: rtypes.immutable.Map
         }
       };
@@ -195,7 +184,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    do_add_search = e => {
+    private async do_add_search(e): Promise<void> {
       // Search for people to add to the course
       if (e != null) {
         e.preventDefault();
@@ -224,90 +213,79 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         selected_option_nodes: undefined
       });
       const { add_search } = this.state;
-      return webapp_client.user_search({
-        query: add_search,
-        limit: 100,
-        cb: (err, select) => {
-          let x;
-          if (err) {
-            this.setState({
-              add_searching: false,
-              err,
-              add_select: undefined,
-              existing_students: undefined
-            });
-            return;
+      let select;
+      try {
+        select = await callback2(webapp_client.user_search, {
+          query: add_search,
+          limit: 150
+        });
+      } catch (err) {
+        if (this.is_unmounted) return;
+        this.setState({
+          add_searching: false,
+          err,
+          add_select: undefined,
+          existing_students: undefined
+        });
+        return;
+      }
+      if (this.is_unmounted) return;
+
+      // Get the current collaborators/owners of the project that contains the course.
+      const users = this.props.redux
+        .getStore("projects")
+        .get_users(this.props.project_id);
+      // Make a map with keys the email or account_id is already part of the course.
+      const already_added = users.toJS(); // start with collabs on project
+      // also track **which** students are already part of the course
+      const existing_students: any = {};
+      existing_students.account = {};
+      existing_students.email = {};
+      // For each student in course add account_id and/or email_address:
+      this.props.students.map(val => {
+        for (const n of literal(["account_id", "email_address"])) {
+          if (val.get(n) != null) {
+            already_added[val.get(n)] = true;
           }
-          // Get the current collaborators/owners of the project that contains the course.
-          const users = this.props.redux
-            .getStore("projects")
-            .get_users(this.props.project_id);
-          // Make a map with keys the email or account_id is already part of the course.
-          const already_added = users.toJS(); // start with collabs on project
-          // also track **which** students are already part of the course
-          const existing_students: any = {};
-          existing_students.account = {};
-          existing_students.email = {};
-          // For each student in course add account_id and/or email_address:
-          this.props.students.map(val => {
-            return (() => {
-              const result: any[] = [];
-              for (const n of literal(["account_id", "email_address"])) {
-                if (val.get(n) != null) {
-                  result.push((already_added[val.get(n)] = true));
-                } else {
-                  result.push(undefined);
-                }
-              }
-              return result;
-            })();
-          });
-          // This function returns true if we shouldn't list the given account_id or email_address
-          // in the search selector for adding to the class.
-          const exclude_add = (account_id, email_address) => {
-            const aa =
-              already_added[account_id] || already_added[email_address];
-            if (aa) {
-              if (account_id != null) {
-                existing_students.account[account_id] = true;
-              }
-              if (email_address != null) {
-                existing_students.email[email_address] = true;
-              }
-            }
-            return aa;
-          };
-          const select2 = (() => {
-            const result: any[] = [];
-            for (x of select) {
-              if (!exclude_add(x.account_id, x.email_address)) {
-                result.push(x);
-              }
-            }
-            return result;
-          })();
-          // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
-          // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
-          // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
-          // bringing back everything in the search, which is a bug.
-          const select3 = (() => {
-            const result1: any[] = [];
-            for (x of noncloud_emails(select, add_search)) {
-              if (!exclude_add(null, x.email_address)) {
-                result1.push(x);
-              }
-            }
-            return result1;
-          })().concat(select2);
-          // We are no longer searching, but now show an options selector.
-          this.setState({
-            add_searching: false,
-            add_select: select3,
-            existing_students
-          });
         }
       });
-    };
+      // This function returns true if we shouldn't list the given account_id or email_address
+      // in the search selector for adding to the class.
+      const exclude_add = (account_id, email_address): boolean => {
+        const aa = already_added[account_id] || already_added[email_address];
+        if (aa) {
+          if (account_id != null) {
+            existing_students.account[account_id] = true;
+          }
+          if (email_address != null) {
+            existing_students.email[email_address] = true;
+          }
+        }
+        return aa;
+      };
+      const select2: any[] = [];
+      for (const x of select) {
+        if (!exclude_add(x.account_id, x.email_address)) {
+          select2.push(x);
+        }
+      }
+      // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
+      // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
+      // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
+      // bringing back everything in the search, which is a bug.
+      const select3: any[] = select2;
+      for (const x of noncloud_emails(select, add_search)) {
+        if (!exclude_add(null, x.email_address)) {
+          select3.unshift(x);
+        }
+      }
+      // We are no longer searching, but now show an options selector.
+      this.setState({
+        add_searching: false,
+        add_select: select3,
+        existing_students
+      });
+    }
 
     student_add_button() {
       const icon = this.state.add_searching ? (
@@ -317,7 +295,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
 
       return (
-        <Button onClick={this.do_add_search}>
+        <Button onClick={this.do_add_search.bind(this)}>
           {icon} Search (shift+enter)
         </Button>
       );
@@ -365,7 +343,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           students.push({ email_address: y });
         }
       }
-      this.get_actions().add_students(students);
+      this.get_actions().students.add_students(students);
       return this.setState({
         err: undefined,
         add_select: undefined,
@@ -387,7 +365,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           students.push({ email_address: entry.email_address });
         }
       }
-      this.get_actions().add_students(students);
+      this.get_actions().students.add_students(students);
       return this.setState({
         err: undefined,
         add_select: undefined,
@@ -434,11 +412,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          <Grid fluid={true} style={{ width: "100%" }}>
+          <div>
             {this.render_add_selector_button(options)}
             <Space />
             {this.render_add_all_students_button(options)}
-          </Grid>
+          </div>
         </FormGroup>
       );
     }
@@ -453,10 +431,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             ? this.state.selected_option_nodes.length
             : undefined
           : 0;
-      const _ = require("underscore");
       const es = this.state.existing_students;
       if (es != null) {
-        existing = _.keys(es.email).length + _.keys(es.account).length > 0;
+        existing = keys(es.email).length + keys(es.account).length > 0;
       } else {
         // es not defined when user clicks the close button on the warning.
         existing = 0;
@@ -534,9 +511,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         if (existing.length > 0) {
           let msg;
           if (existing.length > 1) {
-            msg = "Already added students or project collaborators: ";
+            msg =
+              "Already added (or deleted) students or project collaborators: ";
           } else {
-            msg = "Already added student or project collaborator: ";
+            msg =
+              "Already added (or deleted) student or project collaborator: ";
           }
           msg += existing.join(", ");
           ed = (
@@ -550,16 +529,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (ed != null) {
         return (
-          <Grid
-            fluid={true}
-            style={{ width: "100%", marginTop: "1em", marginBottom: "-10px" }}
-          >
+          <div style={{ marginTop: "1em", marginBottom: "-10px" }}>
             <Row>
-              <Col md={5} lgOffset={7}>
+              <Col md={10} offset={14}>
                 {ed}
               </Col>
             </Row>
-          </Grid>
+          </div>
         );
       }
     }
@@ -590,28 +566,25 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
     render_header(num_omitted) {
       return (
-        <Grid
-          fluid={true}
-          style={{ width: "100%", borderBottom: "1px solid #e5e5e5" }}
-        >
+        <div style={{ borderBottom: "1px solid #e5e5e5" }}>
           <Row>
-            <Col md={3}>
+            <Col md={6}>
               <SearchInput
                 placeholder="Find students..."
                 default_value={this.state.search}
                 on_change={value => this.setState({ search: value })}
               />
             </Col>
-            <Col md={4}>
+            <Col md={8}>
               {num_omitted ? (
                 <h5>(Omitting {num_omitted} students)</h5>
               ) : (
                 undefined
               )}
             </Col>
-            <Col md={5}>
-              <Form onSubmit={this.do_add_search} horizontal>
-                <Col md={9}>
+            <Col md={10}>
+              <Form onSubmit={this.do_add_search.bind(this)} horizontal>
+                <Col md={18}>
                   <FormGroup>
                     <FormControl
                       ref="student_add_input"
@@ -623,7 +596,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                     />
                   </FormGroup>
                 </Col>
-                <Col md={3}>
+                <Col md={6}>
                   <InputGroup.Button>
                     {this.student_add_button()}
                   </InputGroup.Button>
@@ -633,7 +606,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
           </Row>
           {this.render_error()}
-        </Grid>
+        </div>
       );
     }
 
@@ -650,7 +623,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
       // student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
       // last_active    : 2357025
-      // create_project : True
+      // create_project : number -- server timestamp of when create started
       // deleted        : False
       // note           : "Is younger sister of Abby Florence (TA)"
       if (this.student_list != null) return this.student_list;
@@ -745,7 +718,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           href=""
           onClick={e => {
             e.preventDefault();
-            return this.get_actions().set_active_student_sort(column_name);
+            return this.get_actions().students.set_active_student_sort(
+              column_name
+            );
           }}
         >
           {display_name}
@@ -761,9 +736,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       // to make an extension to our WindowedList that supports explicit
       // headers (and uses css grid).
       return (
-        <Grid fluid={true} style={{ width: "100%" }}>
+        <div>
           <Row style={{ marginRight: 0 }}>
-            <Col md={3}>
+            <Col md={6}>
               <div style={{ display: "inline-block", width: "50%" }}>
                 {this.render_sort_link("first_name", "First Name")}
               </div>
@@ -771,13 +746,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                 {this.render_sort_link("last_name", "Last Name")}
               </div>
             </Col>
-            <Col md={2}>{this.render_sort_link("email", "Email Address")}</Col>
-            <Col md={4}>
+            <Col md={4}>{this.render_sort_link("email", "Email Address")}</Col>
+            <Col md={8}>
               {this.render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md={3}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
+            <Col md={6}>{this.render_sort_link("hosting", "Hosting Type")}</Col>
           </Row>
-        </Grid>
+        </div>
       );
     }
 
@@ -792,8 +767,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     private render_student(student_id: string, index: number): Rendered {
       const x = this.get_student_list().students[index];
       if (x == null) return;
+      const store = this.get_actions().get_store();
+      if (store == null) return;
       const name: StudentNameDescription = {
-        full: this.props.get_student_name(x.student_id),
+        full: store.get_student_name(x.student_id),
         first: x.first_name,
         last: x.last_name
       };
@@ -837,17 +814,20 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     private render_no_students(): Rendered {
       return (
         <Alert
-          bsStyle="info"
+          type="info"
           style={{
             margin: "auto",
             fontSize: "12pt",
             maxWidth: "800px"
           }}
-        >
-          <h3>Add Students to your Course</h3>
-          Add some students to your course by entering their email addresses in
-          the box in the upper right, then click on Search.
-        </Alert>
+          message={
+            <div>
+              <h3>Add Students to your Course</h3>
+              Add some students to your course by entering their email addresses
+              in the box in the upper right, then click on Search.
+            </div>
+          }
+        />
       );
     }
 
@@ -905,7 +885,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       const { students, num_omitted, num_deleted } = this.get_student_list();
 
       return (
-        <div className="smc-vfill">
+        <div className="smc-vfill" style={{ margin: "0 15px" }}>
           {this.render_header(num_omitted)}
           {this.render_student_info(students, num_deleted)}
         </div>
@@ -966,14 +946,14 @@ class Student extends Component<StudentProps, StudentState> {
     this.state = this.get_initial_state();
   }
 
-  displayName: "CourseEditorStudent";
-
   get_actions = (): CourseActions => {
     return redux.getActions(this.props.name);
   };
 
-  get_store = (): CourseStore => {
-    return redux.getStore(this.props.name) as any;
+  get_store = () => {
+    const store = this.get_actions().get_store();
+    if (store == null) throw Error("store must be defined");
+    return store;
   };
 
   get_initial_state() {
@@ -1053,10 +1033,12 @@ class Student extends Component<StudentProps, StudentState> {
   render_student() {
     return (
       <a href="" onClick={this.toggle_show_more}>
-        <Icon
-          style={{ marginRight: "10px" }}
-          name={this.props.is_expanded ? "caret-down" : "caret-right"}
-        />
+        <div style={{ width: "20px", display: "inline-block" }}>
+          <Icon
+            style={{ marginRight: "10px" }}
+            name={this.props.is_expanded ? "caret-down" : "caret-right"}
+          />
+        </div>
         {this.render_student_name()}
       </a>
     );
@@ -1074,7 +1056,10 @@ class Student extends Component<StudentProps, StudentState> {
         />
       );
     }
-    return <span>{this.props.student.get("email_address")} (invited)</span>;
+    const name = this.get_store().get_student_name(
+      this.props.student.get("student_id")
+    );
+    return <span>{name} (invited)</span>;
   }
 
   render_student_email() {
@@ -1093,7 +1078,9 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   create_project = () => {
-    this.get_actions().create_student_project(this.props.student_id);
+    this.get_actions().student_projects.create_student_project(
+      this.props.student_id
+    );
   };
 
   render_last_active() {
@@ -1213,9 +1200,7 @@ class Student extends Component<StudentProps, StudentState> {
               </Tip>
             </Button>
           </ButtonGroup>
-          {this.props.student.get("account_id")
-            ? this.render_edit_student()
-            : undefined}
+          {this.render_edit_student()}
         </ButtonToolbar>
       );
     } else {
@@ -1271,11 +1256,14 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   save_student_changes = () => {
-    this.get_actions().set_internal_student_info(this.props.student, {
-      first_name: this.state.edited_first_name,
-      last_name: this.state.edited_last_name,
-      email_address: this.state.edited_email_address
-    });
+    this.get_actions().students.set_internal_student_info(
+      this.props.student.get("student_id"),
+      {
+        first_name: this.state.edited_first_name,
+        last_name: this.state.edited_last_name,
+        email_address: this.state.edited_email_address
+      }
+    );
 
     this.setState({ editing_student: false });
   };
@@ -1285,12 +1273,16 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   delete_student = () => {
-    this.get_actions().delete_student(this.props.student);
+    this.get_actions().students.delete_student(
+      this.props.student.get("student_id")
+    );
     this.setState({ confirm_delete: false });
   };
 
   undelete_student = () => {
-    this.get_actions().undelete_student(this.props.student);
+    this.get_actions().students.undelete_student(
+      this.props.student.get("student_id")
+    );
   };
 
   render_confirm_delete() {
@@ -1300,14 +1292,14 @@ class Student extends Component<StudentProps, StudentState> {
           Are you sure you want to delete this student (you can always undelete
           them later)?
           <Space />
-          <ButtonToolbar>
+          <ButtonGroup>
             <Button onClick={this.delete_student} bsStyle="danger">
               <Icon name="trash" /> YES, Delete
             </Button>
             <Button onClick={() => this.setState({ confirm_delete: false })}>
               Cancel
             </Button>
-          </ButtonToolbar>
+          </ButtonGroup>
         </div>
       );
     }
@@ -1362,13 +1354,22 @@ class Student extends Component<StudentProps, StudentState> {
     const store = this.get_store();
     const result: any[] = [];
     for (const assignment of store.get_sorted_assignments()) {
-      const grade = store.get_grade(assignment, this.props.student);
-      const comments = store.get_comments(assignment, this.props.student);
-      const info = store.student_assignment_info(
-        this.props.student,
-        assignment
+      const grade = store.get_grade(
+        assignment.get("assignment_id"),
+        this.props.student.get("student_id")
       );
-      const key = util.assignment_identifier(assignment, this.props.student);
+      const comments = store.get_comments(
+        assignment.get("assignment_id"),
+        this.props.student.get("student_id")
+      );
+      const info = store.student_assignment_info(
+        this.props.student.get("student_id"),
+        assignment.get("assignment_id")
+      );
+      const key = util.assignment_identifier(
+        assignment.get("assignment_id"),
+        this.props.student.get("student_id")
+      );
       const edited_feedback = this.props.active_feedback_edits.get(key);
       let edited_comments: string | undefined;
       let edited_grade: string | undefined;
@@ -1410,7 +1411,7 @@ class Student extends Component<StudentProps, StudentState> {
   render_note() {
     return (
       <Row key="note" style={styles.note}>
-        <Col xs={2}>
+        <Col xs={4}>
           <Tip
             title="Notes about this student"
             tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc."
@@ -1418,7 +1419,7 @@ class Student extends Component<StudentProps, StudentState> {
             Private Student Notes
           </Tip>
         </Col>
-        <Col xs={10}>
+        <Col xs={20}>
           <MarkdownInput
             persist_id={this.props.student.get("student_id") + "note"}
             attach_to={this.props.name}
@@ -1426,7 +1427,10 @@ class Student extends Component<StudentProps, StudentState> {
             placeholder="Notes about student (not visible to student)"
             default_value={this.props.student.get("note")}
             on_save={value =>
-              this.get_actions().set_student_note(this.props.student, value)
+              this.get_actions().students.set_student_note(
+                this.props.student.get("student_id"),
+                value
+              )
             }
           />
         </Col>
@@ -1439,7 +1443,7 @@ class Student extends Component<StudentProps, StudentState> {
     const v: any[] = [];
     v.push(
       <Row key="more">
-        <Col md={12}>{this.render_assignments_info()}</Col>
+        <Col md={24}>{this.render_assignments_info()}</Col>
       </Row>
     );
     v.push(this.render_note());
@@ -1449,19 +1453,19 @@ class Student extends Component<StudentProps, StudentState> {
   render_basic_info() {
     return (
       <Row key="basic" style={{ backgroundColor: this.props.background }}>
-        <Col md={3}>
+        <Col md={6}>
           <h6>
             {this.render_student()}
             {this.render_deleted()}
           </h6>
         </Col>
-        <Col md={2}>
+        <Col md={4}>
           <h6 style={{ color: "#666" }}>{this.render_student_email()}</h6>
         </Col>
-        <Col md={4} style={{ paddingTop: "10px" }}>
+        <Col md={8} style={{ paddingTop: "10px" }}>
           {this.render_last_active()}
         </Col>
-        <Col md={3} style={{ paddingTop: "10px" }}>
+        <Col md={6} style={{ paddingTop: "10px" }}>
           {this.render_hosting()}
         </Col>
       </Row>
@@ -1478,12 +1482,12 @@ class Student extends Component<StudentProps, StudentState> {
     return (
       <div>
         <Row>
-          <Col md={8}>{this.render_project_access()}</Col>
-          <Col md={4}>{this.render_delete_button()}</Col>
+          <Col md={16}>{this.render_project_access()}</Col>
+          <Col md={8}>{this.render_delete_button()}</Col>
         </Row>
         {this.state.editing_student ? (
           <Row>
-            <Col md={4}>{this.render_edit_student_interface()}</Col>
+            <Col md={8}>{this.render_edit_student_interface()}</Col>
           </Row>
         ) : (
           undefined
@@ -1496,7 +1500,7 @@ class Student extends Component<StudentProps, StudentState> {
     return (
       <Well style={{ marginTop: "10px" }}>
         <Row>
-          <Col md={6}>
+          <Col md={12}>
             First Name
             <FormGroup>
               <FormControl
@@ -1508,13 +1512,13 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_first_name: e.target.value })
+                  this.setState({ edited_first_name: (e.target as any).value })
                 }
                 onKeyDown={this.on_key_down}
               />
             </FormGroup>
           </Col>
-          <Col md={6}>
+          <Col md={12}>
             Last Name
             <FormGroup>
               <FormControl
@@ -1525,7 +1529,7 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_last_name: e.target.value })
+                  this.setState({ edited_last_name: (e.target as any).value })
                 }
                 onKeyDown={this.on_key_down}
               />
@@ -1533,7 +1537,7 @@ class Student extends Component<StudentProps, StudentState> {
           </Col>
         </Row>
         <Row>
-          <Col md={12}>
+          <Col md={24}>
             Email Address
             <FormGroup>
               <FormControl
@@ -1544,7 +1548,9 @@ class Student extends Component<StudentProps, StudentState> {
                   e.preventDefault();
                 }}
                 onChange={e =>
-                  this.setState({ edited_email_address: e.target.value })
+                  this.setState({
+                    edited_email_address: (e.target as any).value
+                  })
                 }
                 onKeyDown={this.on_key_down}
               />
@@ -1567,19 +1573,19 @@ class Student extends Component<StudentProps, StudentState> {
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row style={this.state.more ? styles.selected_entry : undefined}>
-          <Col xs={12}>
+          <Col xs={24}>
             {this.render_basic_info()}
             {this.props.is_expanded ? this.render_more_panel() : undefined}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
 
-var noncloud_emails = function(v, s) {
+function noncloud_emails(v, s) {
   // Given a list v of user_search results, and a search string s,
   // return entries for each email address not in v, in order.
   let r;
@@ -1604,4 +1610,4 @@ var noncloud_emails = function(v, s) {
     }
     return result1;
   })().sort((a, b) => misc.cmp(a.email_address, b.email_address));
-};
+}

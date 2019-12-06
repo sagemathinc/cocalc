@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -37,42 +30,38 @@ import {
   rclass,
   Rendered,
   redux
-} from "../app-framework";
+} from "../../app-framework";
+
 import {
-  Alert,
   Button,
-  ButtonToolbar,
   ButtonGroup,
   FormGroup,
-  FormControl,
-  Row,
-  Col,
-  Grid
-} from "react-bootstrap";
+  FormControl
+} from "../../antd-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Alert, Card, Row, Col } from "antd";
 
 // CoCalc and course components
-import * as util from "./util";
-import * as styles from "./styles";
-import { BigTime, FoldersToolbar } from "./common";
+import * as util from "../util";
+import * as styles from "../styles";
+import { BigTime, FoldersToolbar } from "../common";
 import {
   HandoutsMap,
   StudentsMap,
   HandoutRecord,
   CourseStore,
-  StudentRecord
-} from "./store";
-import { UserMap } from "../todo-types";
+  LastCopyInfo
+} from "../store";
+import { UserMap } from "../../todo-types";
 import { Set } from "immutable";
-import { CourseActions } from "./actions";
+import { CourseActions } from "../actions";
 import {
   ErrorDisplay,
   Icon,
   Tip,
   MarkdownInput,
   WindowedList
-} from "../r_misc";
+} from "../../r_misc";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -136,8 +125,6 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
     HandoutsPanelReactProps & HandoutsPanelReduxProps,
     HandoutsPanelState
   > {
-    displayName: "Course-editor-HandoutsPanel";
-
     constructor(props) {
       super(props);
       this.state = {
@@ -250,9 +237,11 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
       return path => {
         if (deleted_paths[path] != null) {
-          return this.props.actions.undelete_handout(deleted_paths[path]);
+          return this.props.actions.handouts.undelete_handout(
+            deleted_paths[path]
+          );
         } else {
-          return this.props.actions.add_handout(path);
+          return this.props.actions.handouts.add_handout(path);
         }
       };
     }
@@ -295,22 +284,25 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
     private render_no_handouts(): Rendered {
       return (
         <Alert
-          bsStyle="info"
+          type="info"
           style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-        >
-          <h3>Add a Handout to your Course</h3>
-          <p>
-            A handout is a <i>directory</i> of files somewhere in your CoCalc
-            project, which you send to all of your students. They can then do
-            anything they want with that handout.
-          </p>
+          message={
+            <div>
+              <h3>Add a Handout to your Course</h3>
+              <p>
+                A handout is a <i>directory</i> of files somewhere in your
+                CoCalc project, which you send to all of your students. They can
+                then do anything they want with that handout.
+              </p>
 
-          <p>
-            Add a handout to your course by creating a directory using the Files
-            tab, then type the name of the directory in the box in the upper
-            right and click to search.
-          </p>
-        </Alert>
+              <p>
+                Add a handout to your course by creating a directory using the
+                Files tab, then type the name of the directory in the box in the
+                upper right and click to search.
+              </p>
+            </div>
+          }
+        />
       );
     }
 
@@ -338,7 +330,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       );
 
       return (
-        <div className={"smc-vfill"}>
+        <div className={"smc-vfill"} style={{ margin: "0 15px" }}>
           {header}
           <div style={{ marginTop: "5px" }} />
           {this.render_handouts(shown_handouts)}
@@ -425,7 +417,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
   private render_handout_notes(): Rendered {
     return (
       <Row key="note" style={styles.note}>
-        <Col xs={2}>
+        <Col xs={4}>
           <Tip
             title="Notes about this handout"
             tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout."
@@ -435,7 +427,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             <span style={{ color: "#666" }} />
           </Tip>
         </Col>
-        <Col xs={10}>
+        <Col xs={20}>
           <MarkdownInput
             persist_id={
               this.props.handout.get("path") +
@@ -447,7 +439,10 @@ class Handout extends Component<HandoutProps, HandoutState> {
             placeholder="Private notes about this handout (not visible to students)"
             default_value={this.props.handout.get("note")}
             on_save={value =>
-              this.props.actions.set_handout_note(this.props.handout, value)
+              this.props.actions.handouts.set_handout_note(
+                this.props.handout,
+                value
+              )
             }
           />
         </Col>
@@ -525,7 +520,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             style={{ marginTop: "1ex" }}
           />
         </FormGroup>
-        <ButtonToolbar style={{ textAlign: "center", marginTop: "15px" }}>
+        <ButtonGroup style={{ textAlign: "center", marginTop: "15px" }}>
           <Button
             disabled={
               this.state.copy_handout_confirm_overwrite_text !== "OVERWRITE"
@@ -536,7 +531,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
             <Icon name="exclamation-triangle" /> Confirm replacing files
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
       </div>
     );
   }
@@ -545,8 +540,8 @@ class Handout extends Component<HandoutProps, HandoutState> {
     // handout to all (non-deleted) students
     switch (step) {
       case "handout":
-        this.props.actions.copy_handout_to_all_students(
-          this.props.handout,
+        this.props.actions.handouts.copy_handout_to_all_students(
+          this.props.handout.get("handout_id"),
           new_only,
           overwrite
         );
@@ -565,26 +560,29 @@ class Handout extends Component<HandoutProps, HandoutState> {
     const n = status[`not_${step}`];
     return (
       <Alert
-        bsStyle="warning"
+        type="warning"
         key={`${step}_confirm_to_all`}
         style={{ marginTop: "15px" }}
-      >
-        <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this handout {step_direction(step)}{" "}
-          the {n} student{n > 1 ? "s" : ""}
-          {step_ready(step)}?
-        </div>
-        <ButtonToolbar>
-          <Button
-            key="yes"
-            bsStyle="primary"
-            onClick={() => this.copy_handout(step, false)}
-          >
-            Yes
-          </Button>
-          {this.render_copy_cancel(step)}
-        </ButtonToolbar>
-      </Alert>
+        message={
+          <div>
+            <div style={{ marginBottom: "15px" }}>
+              {misc.capitalize(step_verb(step))} this handout{" "}
+              {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
+              {step_ready(step)}?
+            </div>
+            <ButtonGroup>
+              <Button
+                key="yes"
+                bsStyle="primary"
+                onClick={() => this.copy_handout(step, false)}
+              >
+                Yes
+              </Button>
+              {this.render_copy_cancel(step)}
+            </ButtonGroup>
+          </div>
+        }
+      />
     );
   }
 
@@ -605,7 +603,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         <div style={{ marginBottom: "15px" }}>
           {this.copy_confirm_all_caution(step)}
         </div>
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button
             key="all"
             bsStyle="warning"
@@ -623,7 +621,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             Replace student files!
           </Button>
           {this.render_copy_cancel(step)}
-        </ButtonToolbar>
+        </ButtonGroup>
         {this.render_copy_handout_confirm_overwrite(step)}
       </div>
     );
@@ -634,47 +632,52 @@ Select "Replace student files!" in case you do not want to create any backups an
     const m = n + status[step];
     return (
       <Alert
-        bsStyle="warning"
+        type="warning"
         key={`${step}_confirm_to_all_or_new`}
         style={{ marginTop: "15px" }}
-      >
-        <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this handout {step_direction(step)}
-          ...
-        </div>
-        <ButtonToolbar>
-          <Button
-            key="all"
-            bsStyle="danger"
-            onClick={() =>
-              this.setState({
-                [`copy_confirm_all_${step}`]: true,
-                copy_confirm: true
-              } as any)
-            }
-            disabled={this.state[`copy_confirm_all_${step}`]}
-          >
-            {step === "handout" ? "All" : "The"} {m} students{step_ready(step)}
-            ...
-          </Button>
-          {n ? (
-            <Button
-              key="new"
-              bsStyle="primary"
-              onClick={() => this.copy_handout(step, true)}
-            >
-              The {n} student{n > 1 ? "s" : ""} not already{" "}
-              {past_tense(step_verb(step))} {step_direction(step)}
-            </Button>
-          ) : (
-            undefined
-          )}
-          {this.render_copy_cancel(step)}
-        </ButtonToolbar>
-        {this.state[`copy_confirm_all_${step}`]
-          ? this.render_copy_confirm_overwrite_all(step)
-          : undefined}
-      </Alert>
+        message={
+          <div>
+            <div style={{ marginBottom: "15px" }}>
+              {misc.capitalize(step_verb(step))} this handout{" "}
+              {step_direction(step)}
+              ...
+            </div>
+            <ButtonGroup>
+              <Button
+                key="all"
+                bsStyle="danger"
+                onClick={() =>
+                  this.setState({
+                    [`copy_confirm_all_${step}`]: true,
+                    copy_confirm: true
+                  } as any)
+                }
+                disabled={this.state[`copy_confirm_all_${step}`]}
+              >
+                {step === "handout" ? "All" : "The"} {m} students
+                {step_ready(step)}
+                ...
+              </Button>
+              {n ? (
+                <Button
+                  key="new"
+                  bsStyle="primary"
+                  onClick={() => this.copy_handout(step, true)}
+                >
+                  The {n} student{n > 1 ? "s" : ""} not already{" "}
+                  {past_tense(step_verb(step))} {step_direction(step)}
+                </Button>
+              ) : (
+                undefined
+              )}
+              {this.render_copy_cancel(step)}
+            </ButtonGroup>
+            {this.state[`copy_confirm_all_${step}`]
+              ? this.render_copy_confirm_overwrite_all(step)
+              : undefined}
+          </div>
+        }
+      />
     );
   }
 
@@ -717,32 +720,42 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private delete_handout = (): void => {
-    this.props.actions.delete_handout(this.props.handout);
+    this.props.actions.handouts.delete_handout(
+      this.props.handout.get("handout_id")
+    );
     this.setState({ confirm_delete: false });
   };
 
   private undelete_handout = (): void => {
-    this.props.actions.undelete_handout(this.props.handout);
+    this.props.actions.handouts.undelete_handout(
+      this.props.handout.get("handout_id")
+    );
   };
 
   private render_confirm_delete(): Rendered {
     return (
-      <Alert bsStyle="warning" key="confirm_delete">
-        Are you sure you want to delete this handout (you can undelete it
-        later)?
-        <br /> <br />
-        <ButtonToolbar>
-          <Button key="yes" onClick={this.delete_handout} bsStyle="danger">
-            <Icon name="trash" /> Delete
-          </Button>
-          <Button
-            key="no"
-            onClick={() => this.setState({ confirm_delete: false })}
-          >
-            Cancel
-          </Button>
-        </ButtonToolbar>
-      </Alert>
+      <Alert
+        type="warning"
+        key="confirm_delete"
+        message={
+          <div>
+            Are you sure you want to delete this handout (you can undelete it
+            later)?
+            <br /> <br />
+            <ButtonGroup>
+              <Button key="yes" onClick={this.delete_handout} bsStyle="danger">
+                <Icon name="trash" /> Delete
+              </Button>
+              <Button
+                key="no"
+                onClick={() => this.setState({ confirm_delete: false })}
+              >
+                Cancel
+              </Button>
+            </ButtonGroup>
+          </div>
+        }
+      />
     );
   }
 
@@ -787,7 +800,7 @@ Select "Replace student files!" in case you do not want to create any backups an
     if (!this.props.is_expanded) return;
     return (
       <Row key="more">
-        <Col sm={12}>
+        <Col sm={24}>
           <Card title={this.render_more_header()}>
             <StudentListForHandout
               frame_id={this.props.frame_id}
@@ -843,7 +856,9 @@ Select "Replace student files!" in case you do not want to create any backups an
   }
 
   private render_handout_heading(): Rendered {
-    let status = this.get_store().get_handout_status(this.props.handout);
+    let status = this.get_store().get_handout_status(
+      this.props.handout.get("handout_id")
+    );
     if (status == null) {
       status = {
         handout: 0,
@@ -855,10 +870,10 @@ Select "Replace student files!" in case you do not want to create any backups an
         key="summary"
         style={{ backgroundColor: this.props.backgroundColor }}
       >
-        <Col md={2} style={{ paddingRight: "0px" }}>
+        <Col md={4} style={{ paddingRight: "0px" }}>
           {this.render_handout_name()}
         </Col>
-        <Col md={6}>
+        <Col md={12}>
           <Row style={{ marginLeft: "8px" }}>
             {this.render_handout_button(status)}
             <span style={{ color: "#666", marginLeft: "5px" }}>
@@ -870,7 +885,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             {this.render_copy_all(status)}
           </Row>
         </Col>
-        <Col md={4}>
+        <Col md={8}>
           <Row>
             <span className="pull-right">{this.render_delete_button()}</span>
           </Row>
@@ -886,18 +901,18 @@ Select "Replace student files!" in case you do not want to create any backups an
 
   public render(): Rendered {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={
             this.props.is_expanded ? styles.selected_entry : styles.entry_style
           }
         >
-          <Col xs={12} style={{ paddingTop: "5px", paddingBottom: "5px" }}>
+          <Col xs={24} style={{ paddingTop: "5px", paddingBottom: "5px" }}>
             {this.render_handout_heading()}
             {this.render_more()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
@@ -979,15 +994,20 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
     return this.student_list;
   }
 
-  private render_student_info(id: string): Rendered {
+  private render_student_info(student_id: string): Rendered {
+    const info = this.get_store().student_handout_info(
+      student_id,
+      this.props.handout.get("handout_id")
+    );
     return (
       <StudentHandoutInfo
-        key={id}
+        key={student_id}
         actions={this.props.actions}
-        info={this.get_store().student_handout_info(id, this.props.handout)}
-        title={misc.trunc_middle(this.get_store().get_student_name(id), 40)}
-        student={id}
-        handout={this.props.handout}
+        info={info}
+        title={misc.trunc_middle(
+          this.get_store().get_student_name(student_id),
+          40
+        )}
       />
     );
   }
@@ -1009,8 +1029,6 @@ interface StudentHandoutInfoHeaderProps {
 class StudentHandoutInfoHeader extends Component<
   StudentHandoutInfoHeaderProps
 > {
-  displayName: "CourseEditor-StudentHandoutInfoHeader";
-
   render_col(step_number, key, width) {
     let tip, title;
     switch (key) {
@@ -1032,15 +1050,14 @@ class StudentHandoutInfoHeader extends Component<
   }
 
   render_headers() {
-    const w = 12;
-    return <Row>{this.render_col(1, "last_handout", w)}</Row>;
+    return <Row>{this.render_col(1, "last_handout", 24)}</Row>;
   }
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row style={{ borderBottom: "2px solid #aaa" }}>
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             <Tip
               title={this.props.title}
               tip={
@@ -1052,41 +1069,41 @@ class StudentHandoutInfoHeader extends Component<
               <b>{this.props.title}</b>
             </Tip>
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             {this.render_headers()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }
 
 interface StudentHandoutInfoProps {
   actions: CourseActions;
-  info: { handout_id: string; student_id: string; status: string };
-  title: string | object;
-  student: string | StudentRecord; // required string (student_id) or student immutable js object
-  handout: string | HandoutRecord;
+  info: { handout_id: string; student_id: string; status?: LastCopyInfo };
+  title: string;
 }
 
 class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
-  displayName: "CourseEditor-StudentHandoutInfo";
-
   constructor(props) {
     super(props);
     this.state = {};
   }
 
-  open(handout_id, student_id) {
-    return this.props.actions.open_handout(handout_id, student_id);
+  private open(handout_id: string, student_id: string): void {
+    this.props.actions.handouts.open_handout(handout_id, student_id);
   }
 
-  copy(handout_id, student_id) {
-    return this.props.actions.copy_handout_to_student(handout_id, student_id);
+  private copy(handout_id: string, student_id: string): void {
+    this.props.actions.handouts.copy_handout_to_student(
+      handout_id,
+      student_id,
+      false
+    );
   }
 
-  stop(handout_id, student_id) {
-    return this.props.actions.stop_copying_handout(handout_id, student_id);
+  private stop(handout_id: string, student_id: string): void {
+    this.props.actions.handouts.stop_copying_handout(handout_id, student_id);
   }
 
   render_last_time(time) {
@@ -1139,14 +1156,14 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
 
   render_open_recopy(name, open, copy, copy_tip, open_tip) {
     return (
-      <ButtonToolbar key="open_recopy">
+      <ButtonGroup key="open_recopy">
         {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open handout" tip={open_tip}>
             <Icon name="folder-open-o" /> Open
           </Tip>
         </Button>
-      </ButtonToolbar>
+      </ButtonGroup>
     );
   }
 
@@ -1221,9 +1238,8 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   }
 
   render() {
-    const width = 12;
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row
           style={{
             borderTop: "1px solid #aaa",
@@ -1231,12 +1247,12 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
             paddingBottom: "5px"
           }}
         >
-          <Col md={2} key="title">
+          <Col md={4} key="title">
             {this.props.title}
           </Col>
-          <Col md={10} key="rest">
+          <Col md={20} key="rest">
             <Row>
-              <Col md={width} key="last_handout">
+              <Col md={24} key="last_handout">
                 {this.render_last(
                   "Distribute",
                   this.props.info.status,
@@ -1249,7 +1265,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
             </Row>
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

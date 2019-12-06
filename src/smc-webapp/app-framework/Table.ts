@@ -9,8 +9,12 @@ export abstract class Table {
   protected redux: AppRedux;
 
   // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
-  abstract options(): any[];
+  options(): any[] {
+    return [];
+  }
+
   abstract query(): void;
+  
   protected abstract _change(table: any, keys: string[]): void;
 
   protected no_changefeed(): boolean {
@@ -19,9 +23,6 @@ export abstract class Table {
 
   constructor(name, redux) {
     this.set = this.set.bind(this);
-    if (this.options) {
-      this.options.bind(this);
-    }
     this.name = name;
     this.redux = redux;
     if (typeof Primus === "undefined" || Primus === null) {
@@ -32,13 +33,13 @@ export abstract class Table {
       // Create the table but with no changefeed.
       this._table = require("../webapp_client").webapp_client.synctable_no_changefeed(
         this.query(),
-        this.options ? this.options() : []
+        this.options()
       );
     } else {
       // Set up a changefeed
       this._table = require("../webapp_client").webapp_client.sync_table2(
         this.query(),
-        this.options ? this.options() : []
+        this.options()
       );
     }
     if (this._change != null) {

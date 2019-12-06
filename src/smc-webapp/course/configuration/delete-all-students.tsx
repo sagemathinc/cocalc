@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../r_misc";
-const { Button, ButtonToolbar, Well } = require("react-bootstrap");
-import { Card } from "cocalc-ui";
+import { Button, ButtonToolbar, Well } from "../../antd-bootstrap";
+import { Card } from "antd";
 
 interface Props {
   delete_all_students: () => void;

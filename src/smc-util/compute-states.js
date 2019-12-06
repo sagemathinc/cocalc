@@ -83,7 +83,7 @@ exports.COMPUTE_STATES = {
 
   opening: {
     desc:
-      "Project is being imported from ZFS streams; this may take several minutes depending on size and history.",
+      "Project is being imported; this may take several minutes depending on size and history.",
     icon: "gears",
     display: "Opening",
     to: {},

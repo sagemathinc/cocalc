@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -28,8 +20,8 @@
 //##############################################################################
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("../webapp_client");
+import * as misc from "smc-util/misc";
+import { webapp_client } from "../../webapp-client";
 import { contains_url } from "smc-util/misc2";
 import { debounce } from "lodash";
 
@@ -42,22 +34,14 @@ import {
   Component,
   AppRedux,
   Rendered
-} from "../app-framework";
-const {
-  Alert,
-  Button,
-  ButtonToolbar,
-  Row,
-  Col,
-  Checkbox,
-  Grid
-} = require("react-bootstrap");
+} from "../../app-framework";
+import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
 
-import { Card } from "cocalc-ui";
+import { Alert, Card, Row, Col } from "antd";
 
 // CoCalc Components
 import {
-  Calendar,
+  DateTimePicker,
   HiddenXS,
   Icon,
   LabeledRow,
@@ -68,22 +52,22 @@ import {
   TimeAgo,
   Tip,
   ErrorDisplay
-} from "../r_misc";
+} from "../../r_misc";
 
 import { StudentProjectUpgrades } from "./upgrades";
-import { CourseActions } from "./actions";
-import { ProjectMap } from "../todo-types";
-import { CourseSettingsRecord, CourseStore } from "./store";
-import { HelpBox } from "./help_box";
-import {
-  DeleteAllStudents,
-  DeleteAllStudentProjects
-} from "./configuration-components";
-import { DeleteSharedProjectPanel } from "./delete_shared_project";
+import { CourseActions } from "../actions";
+import { ProjectMap } from "../../todo-types";
+import { CourseSettingsRecord, CourseStore } from "../store";
+import { HelpBox } from "./help-box";
+
+import { DeleteAllStudentProjects } from "./delete-all-student-projects";
+import { DeleteAllStudents } from "./delete-all-students";
+
+import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
 import { TerminalCommandPanel } from "./terminal-command";
 
-const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
-  .subscription.student_course.price.month4;
+import { upgrades } from "smc-util/upgrade-spec";
+const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
 interface StartStopPanelReactProps {
   name: string;
@@ -105,8 +89,6 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     StartStopPanelReactProps & StartStopPanelReduxProps,
     StartStopPanelState
   > {
-    displayName: "CourseEditorConfiguration-StudentProjectsStartStopPanel";
-
     static reduxProps({ name }) {
       return {
         [name]: {
@@ -132,85 +114,113 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     }
 
     render_in_progress_action() {
-      let bsStyle;
+      let type;
       const state_name = this.props.action_all_projects_state;
       switch (state_name) {
         case "stopping":
           if (this.props.num_running_projects === 0) {
             return;
           }
-          bsStyle = "warning";
+          type = "warning";
           break;
         default:
           if (this.props.num_running_projects === this.props.num_students) {
             return;
           }
-          bsStyle = "info";
+          type = "info";
       }
 
       return (
-        <Alert bsStyle={bsStyle}>
-          {misc.capitalize(state_name)} all projects...{" "}
-          <Icon name="cc-icon-cocalc-ring" spin />
-        </Alert>
+        <Alert
+          type={type}
+          message={
+            <div>
+              {misc.capitalize(state_name)} all projects...{" "}
+              <Icon name="cc-icon-cocalc-ring" spin />
+              <br />
+              <Button
+                onClick={() =>
+                  this.get_actions().student_projects.cancel_action_all_student_projects()
+                }
+              >
+                Cancel
+              </Button>
+            </div>
+          }
+        />
       );
     }
 
     render_confirm_stop_all_projects() {
       return (
-        <Alert bsStyle="warning">
-          Are you sure you want to stop all student projects (this might be
-          disruptive)?
-          <br />
-          <br />
-          <ButtonToolbar>
-            <Button
-              bsStyle="warning"
-              onClick={() => {
-                this.setState({ confirm_stop_all_projects: false });
-                return this.get_actions().action_all_student_projects("stop");
-              }}
-            >
-              <Icon name="hand-stop-o" /> Stop all
-            </Button>
-            <Button
-              onClick={() =>
-                this.setState({ confirm_stop_all_projects: false })
-              }
-            >
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
+        <Alert
+          type="warning"
+          message={
+            <div>
+              Are you sure you want to stop all student projects (this might be
+              disruptive)?
+              <br />
+              <br />
+              <ButtonGroup>
+                <Button
+                  bsStyle="warning"
+                  onClick={() => {
+                    this.setState({ confirm_stop_all_projects: false });
+                    this.get_actions().student_projects.action_all_student_projects(
+                      "stop"
+                    );
+                  }}
+                >
+                  <Icon name="hand-stop-o" /> Stop all
+                </Button>
+                <Button
+                  onClick={() =>
+                    this.setState({ confirm_stop_all_projects: false })
+                  }
+                >
+                  Cancel
+                </Button>
+              </ButtonGroup>
+            </div>
+          }
+        />
       );
     }
 
     render_confirm_start_all_projects() {
       return (
-        <Alert bsStyle="info">
-          Are you sure you want to start all student projects? This will ensure
-          the projects are already running when the students open them.
-          <br />
-          <br />
-          <ButtonToolbar>
-            <Button
-              bsStyle="primary"
-              onClick={() => {
-                this.setState({ confirm_start_all_projects: false });
-                return this.get_actions().action_all_student_projects("start");
-              }}
-            >
-              <Icon name="flash" /> Start all
-            </Button>
-            <Button
-              onClick={() =>
-                this.setState({ confirm_start_all_projects: false })
-              }
-            >
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
+        <Alert
+          type="info"
+          message={
+            <div>
+              Are you sure you want to start all student projects? This will
+              ensure the projects are already running when the students open
+              them.
+              <br />
+              <br />
+              <ButtonGroup>
+                <Button
+                  bsStyle="primary"
+                  onClick={() => {
+                    this.setState({ confirm_start_all_projects: false });
+                    this.get_actions().student_projects.action_all_student_projects(
+                      "start"
+                    );
+                  }}
+                >
+                  <Icon name="flash" /> Start all
+                </Button>
+                <Button
+                  onClick={() =>
+                    this.setState({ confirm_start_all_projects: false })
+                  }
+                >
+                  Cancel
+                </Button>
+              </ButtonGroup>
+            </div>
+          }
+        />
       );
     }
 
@@ -226,13 +236,13 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
           }
         >
           <Row>
-            <Col md={9}>
+            <Col md={18}>
               {r} of {n} student projects currently running.
             </Col>
           </Row>
           <Row style={{ marginTop: "10px" }}>
-            <Col md={12}>
-              <ButtonToolbar>
+            <Col md={24}>
+              <ButtonGroup>
                 <Button
                   onClick={() =>
                     this.setState({ confirm_start_all_projects: true })
@@ -259,11 +269,11 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
                 >
                   <Icon name="hand-stop-o" /> Stop all...
                 </Button>
-              </ButtonToolbar>
+              </ButtonGroup>
             </Col>
           </Row>
           <Row style={{ marginTop: "10px" }}>
-            <Col md={12}>
+            <Col md={24}>
               {this.state.confirm_start_all_projects
                 ? this.render_confirm_start_all_projects()
                 : undefined}
@@ -297,8 +307,6 @@ interface DisableStudentCollaboratorsPanelProps {
 class DisableStudentCollaboratorsPanel extends Component<
   DisableStudentCollaboratorsPanelProps
 > {
-  displayName: "DisableStudentCollaboratorsPanel";
-
   shouldComponentUpdate(props) {
     return this.props.checked !== props.checked;
   }
@@ -321,7 +329,7 @@ class DisableStudentCollaboratorsPanel extends Component<
         >
           <Checkbox
             checked={this.props.checked}
-            onChange={e => this.props.on_change(e.target.checked)}
+            onChange={e => this.props.on_change((e.target as any).checked)}
           >
             Allow arbitrary collaborators
           </Checkbox>
@@ -363,8 +371,6 @@ export class ConfigurationPanel extends Component<
   ConfigurationPanelProps,
   ConfigurationPanelState
 > {
-  displayName: "CourseEditorConfiguration";
-
   constructor(props) {
     super(props);
     this.state = {
@@ -420,7 +426,9 @@ export class ConfigurationPanel extends Component<
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
-            on_change={title => this.get_actions().set_title(title)}
+            on_change={title =>
+              this.get_actions().configuration.set_title(title)
+            }
           />
         </LabeledRow>
         <LabeledRow label="Description">
@@ -430,7 +438,9 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.props.settings.get("description")}
-            on_save={desc => this.get_actions().set_description(desc)}
+            on_save={desc =>
+              this.get_actions().configuration.set_description(desc)
+            }
           />
         </LabeledRow>
         <hr />
@@ -457,187 +467,26 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  path(ext) {
-    // make path more likely to be python-readable...
-    let p = misc.replace_all(this.props.path, "-", "_");
-    p = misc.split(p).join("_");
-    const i = p.lastIndexOf(".");
-    return `export_${p.slice(0, i)}.${ext}`;
-  }
-
-  open_file = path => {
-    return redux.getActions({ project_id: this.props.project_id }).open_file({
-      path,
-      foreground: true
-    });
+  save_grades_to_csv = async () => {
+    await this.get_actions().export.to_csv();
   };
 
-  write_file = (path, content) => {
-    const actions = this.get_actions();
-    const id = actions.set_activity({ desc: `Writing ${path}` });
-    return webapp_client.write_text_file_to_project({
-      project_id: this.props.project_id,
-      path,
-      content,
-      cb: err => {
-        actions.set_activity({ id });
-        if (!err) {
-          return this.open_file(path);
-        } else {
-          return actions.set_error(`Error writing '${path}' -- '${err}'`);
-        }
-      }
-    });
-  };
-
-  // newlines and duplicated double-quotes
-  _sanitize_csv_entry = (s: string): string => {
-    return s.replace(/\n/g, "\\n").replace(/"/g, '""');
-  };
-
-  save_grades_to_csv = () => {
-    let assignment;
-    const store = this.get_store();
-    const assignments = store.get_sorted_assignments();
-    // CSV definition: http://edoceo.com/utilitas/csv-file-format
-    // i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
-    const timestamp = webapp_client.server_time().toISOString();
-    let content = `# Course '${this.props.settings.get("title")}'\n`;
-    content += `# exported ${timestamp}\n`;
-    content += "Name,Id,Email,";
-    content +=
-      (() => {
-        const result: any[] = [];
-        for (assignment of assignments) {
-          result.push(`\"grade: ${assignment.get("path")}\"`);
-        }
-        return result;
-      })().join(",") + ",";
-    content +=
-      (() => {
-        const result1: any[] = [];
-        for (assignment of assignments) {
-          result1.push(`\"comments: ${assignment.get("path")}\"`);
-        }
-        return result1;
-      })().join(",") + "\n";
-    for (var student of store.get_sorted_students()) {
-      var left2;
-      const grades = (() => {
-        const result2: any[] = [];
-        for (assignment of assignments) {
-          let grade = store.get_grade(assignment, student);
-          grade = grade != null ? grade : "";
-          grade = this._sanitize_csv_entry(grade);
-          result2.push(`\"${grade}\"`);
-        }
-        return result2;
-      })().join(",");
-
-      const comments = (() => {
-        const result3: any[] = [];
-        for (assignment of assignments) {
-          let comment = store.get_comments(assignment, student);
-          comment = comment != null ? comment : "";
-          comment = this._sanitize_csv_entry(comment);
-          result3.push(`\"${comment}\"`);
-        }
-        return result3;
-      })().join(",");
-      const name = `\"${this._sanitize_csv_entry(
-        store.get_student_name(student)
-      )}\"`;
-      const email = `\"${
-        (left2 = store.get_student_email(student)) != null ? left2 : ""
-      }\"`;
-      const id = `\"${student.get("student_id")}\"`;
-      const line = [name, id, email, grades, comments].join(",");
-      content += line + "\n";
-    }
-    return this.write_file(this.path("csv"), content);
-  };
-
-  save_grades_to_py = () => {
-    /*
-        example:
-        course = 'title'
-        exported = 'iso date'
-        assignments = ['Assignment 1', 'Assignment 2']
-        students=[
-            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37], 'comments':['Good job', 'Not as good as assignment one :(']},
-            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50], 'comments':['some_comments','Better!']},
-        ]
-        */
-    let assignment;
-    const timestamp = webapp_client.server_time().toISOString();
-    const store = this.get_store();
-    const assignments = store.get_sorted_assignments();
-    let content = `course = '${this.props.settings.get("title")}'\n`;
-    content += `exported = '${timestamp}'\n`;
-    content += "assignments = [";
-    content +=
-      (() => {
-        const result: any[] = [];
-        for (assignment of assignments) {
-          result.push(`'${assignment.get("path")}'`);
-        }
-        return result;
-      })().join(",") + "]\n";
-
-    content += "students = [\n";
-
-    for (var student of store.get_sorted_students()) {
-      let grades = (() => {
-        const result1: any[] = [];
-        for (assignment of assignments) {
-          var left;
-          result1.push(
-            `'${
-              (left = store.get_grade(assignment, student)) != null ? left : ""
-            }'`
-          );
-        }
-        return result1;
-      })().join(",");
-      grades = grades.replace(/\n/g, "\\n");
-      let comments = (() => {
-        const result2: any[] = [];
-        for (assignment of assignments) {
-          var left1;
-          result2.push(
-            `'${
-              (left1 = store.get_comments(assignment, student)) != null
-                ? left1
-                : ""
-            }'`
-          );
-        }
-        return result2;
-      })().join(",");
-      comments = comments.replace(/\n/g, "\\n");
-      const name = store.get_student_name(student);
-      let email = store.get_student_email(student);
-      email = email != null ? `'${email}'` : "None";
-      const id = student.get("student_id");
-      const line = `    {'name':'${name}', 'id':'${id}', 'email':${email}, 'grades':[${grades}], 'comments':[${comments}]},`;
-      content += line + "\n";
-    }
-    content += "]\n";
-    return this.write_file(this.path("py"), content);
+  save_grades_to_py = async () => {
+    await this.get_actions().export.to_py();
   };
 
   render_save_grades() {
     return (
       <Card title={this.render_grades_header()}>
         <div style={{ marginBottom: "10px" }}>Save grades to... </div>
-        <ButtonToolbar>
+        <ButtonGroup>
           <Button onClick={this.save_grades_to_csv}>
             <Icon name="file-text-o" /> CSV file...
           </Button>
           <Button onClick={this.save_grades_to_py}>
             <Icon name="file-code-o" /> Python file...
           </Button>
-        </ButtonToolbar>
+        </ButtonGroup>
         <hr />
         <div style={{ color: "#666" }}>
           Export all the grades you have recorded for students in your course to
@@ -703,7 +552,9 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.get_store().get_email_invite()}
-            on_save={body => this.get_actions().set_email_invite(body)}
+            on_save={body =>
+              this.get_actions().configuration.set_email_invite(body)
+            }
             save_disabled={this.state.email_body_error != null}
             on_change={this.check_email_body}
             on_cancel={() => this.setState({ email_body_error: undefined })}
@@ -734,7 +585,9 @@ export class ConfigurationPanel extends Component<
         <hr />
         <Button
           disabled={this.props.configuring_projects}
-          onClick={() => this.get_actions().configure_all_projects(true)}
+          onClick={() =>
+            this.get_actions().student_projects.configure_all_projects(true)
+          }
         >
           {this.props.configuring_projects ? (
             <Icon name="cc-icon-cocalc-ring" spin />
@@ -805,7 +658,10 @@ export class ConfigurationPanel extends Component<
   }
 
   handle_student_pay_choice = e => {
-    return this.get_actions().set_pay_choice("student", e.target.checked);
+    return this.get_actions().configuration.set_pay_choice(
+      "student",
+      e.target.checked
+    );
   };
 
   render_require_students_pay_desc() {
@@ -843,9 +699,15 @@ export class ConfigurationPanel extends Component<
     return (
       <div style={{ marginBottom: "1em" }}>
         <div style={{ width: "50%", marginLeft: "3em", marginBottom: "1ex" }}>
-          <Calendar
+          <DateTimePicker
+            style={{ width: "20em" }}
+            placeholder={"Student Pay Deadline"}
             value={value != null ? value : this.props.settings.get("pay")}
-            on_change={date => this.get_actions().set_course_info(date)}
+            onChange={date => {
+              this.get_actions().configuration.set_course_info(
+                date != null ? date.toISOString() : undefined
+              );
+            }}
           />
         </div>
         {this.props.settings.get("pay")
@@ -867,9 +729,11 @@ export class ConfigurationPanel extends Component<
 
   handle_students_pay_checkbox = e => {
     if (e.target.checked) {
-      this.get_actions().set_course_info(this.get_student_pay_when());
+      this.get_actions().configuration.set_course_info(
+        this.get_student_pay_when()
+      );
     } else {
-      this.get_actions().set_course_info("");
+      this.get_actions().configuration.set_course_info("");
     }
   };
 
@@ -905,27 +769,32 @@ export class ConfigurationPanel extends Component<
 
   render_students_pay_dialog() {
     return (
-      <Alert bsStyle="warning">
-        <h3>
-          <Icon name="arrow-circle-up" /> Require students to upgrade
-        </h3>
-        <hr />
-        <span>
-          Click the following checkbox to require that all students in the
-          course pay a special discounted{" "}
-          <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their projects
-          from trial servers to members-only computers, enable full internet
-          access, and do not see a large red warning message. This lasts four
-          months, and{" "}
-          <em>you will not be charged (only students are charged).</em>
-        </span>
+      <Alert
+        type="warning"
+        message={
+          <div>
+            <h3>
+              <Icon name="arrow-circle-up" /> Require students to upgrade
+            </h3>
+            <hr />
+            <span>
+              Click the following checkbox to require that all students in the
+              course pay a special discounted{" "}
+              <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their project
+              from trial servers to better members-only servers, enable full
+              internet access, and not see a large red warning message. This
+              lasts four months, and{" "}
+              <em>you will not be charged (only students are charged).</em>
+            </span>
 
-        {this.render_students_pay_checkbox()}
-        {this.props.settings.get("pay")
-          ? this.render_require_students_pay_when()
-          : undefined}
-        {this.render_students_pay_submit_buttons()}
-      </Alert>
+            {this.render_students_pay_checkbox()}
+            {this.props.settings.get("pay")
+              ? this.render_require_students_pay_when()
+              : undefined}
+            {this.render_students_pay_submit_buttons()}
+          </div>
+        }
+      />
     );
   }
 
@@ -1030,7 +899,7 @@ export class ConfigurationPanel extends Component<
     if (this.props.settings.get("shared_project_id")) {
       return (
         <DeleteSharedProjectPanel
-          delete={this.get_actions().delete_shared_project}
+          delete={() => this.get_actions().shared_project.delete()}
         />
       );
     }
@@ -1039,7 +908,9 @@ export class ConfigurationPanel extends Component<
   render_delete_student_projects() {
     return (
       <DeleteAllStudentProjects
-        delete_projects={this.get_actions().delete_all_student_projects}
+        delete_projects={() =>
+          this.get_actions().student_projects.delete_all_student_projects()
+        }
       />
     );
   }
@@ -1047,7 +918,9 @@ export class ConfigurationPanel extends Component<
   render_delete_all_students() {
     return (
       <DeleteAllStudents
-        delete_all_students={this.get_actions().delete_all_students}
+        delete_all_students={() =>
+          this.get_actions().students.delete_all_students()
+        }
       />
     );
   }
@@ -1062,20 +935,18 @@ export class ConfigurationPanel extends Component<
     return (
       <DisableStudentCollaboratorsPanel
         checked={!!this.props.settings.get("allow_collabs")}
-        on_change={this.get_actions().set_allow_collabs}
+        on_change={val =>
+          this.get_actions().configuration.set_allow_collabs(val)
+        }
       />
     );
   }
 
   render() {
     return (
-      <Grid
-        fluid={true}
-        className="smc-vfill"
-        style={{ width: "100%", overflowY: "scroll" }}
-      >
+      <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
-          <Col md={6}>
+          <Col md={12} style={{ padding: "15px" }}>
             {this.render_require_students_pay()}
             <br />
             {this.render_require_institute_pay()}
@@ -1092,7 +963,7 @@ export class ConfigurationPanel extends Component<
             <br />
             {this.render_delete_shared_project()}
           </Col>
-          <Col md={6}>
+          <Col md={12} style={{ padding: "15px" }}>
             <HelpBox />
             <br />
             {this.render_title_description()}
@@ -1104,7 +975,7 @@ export class ConfigurationPanel extends Component<
             {this.render_configure_all_projects()}
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

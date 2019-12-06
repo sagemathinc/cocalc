@@ -1,4 +1,4 @@
-import { Menu, Dropdown, Button, Icon } from "cocalc-ui";
+import { Menu, Dropdown, Button, Icon } from "antd";
 import { merge } from "smc-util/misc2";
 import { Component, React } from "../app-framework";
 

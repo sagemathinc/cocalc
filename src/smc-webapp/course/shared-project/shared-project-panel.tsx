@@ -1,8 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -23,12 +18,12 @@
 //
 //#############################################################################
 
-import { React, Component, AppRedux, Rendered } from "../app-framework";
-import { CourseActions } from "./actions";
-import { CourseSettingsRecord } from "./store";
-import { HiddenXS, Icon, Tip, VisibleMDLG } from "../r_misc";
+import { React, Component, AppRedux, Rendered } from "../../app-framework";
+import { CourseActions } from "../actions";
+import { CourseSettingsRecord } from "../store";
+import { HiddenXS, Icon, Tip, VisibleMDLG } from "../../r_misc";
 
-import { Button, Popconfirm } from "cocalc-ui";
+import { Button, Popconfirm } from "antd";
 
 interface SharedProjectPanelProps {
   settings: CourseSettingsRecord;
@@ -37,8 +32,6 @@ interface SharedProjectPanelProps {
 }
 
 export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
-  displayName: "CourseEditor-SharedProject";
-
   public shouldComponentUpdate(props): boolean {
     return (
       this.props.settings.get("shared_project_id") !==
@@ -127,7 +120,7 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
             const actions = this.props.redux.getActions(
               this.props.name
             ) as CourseActions;
-            if (actions != null) actions.create_shared_project();
+            if (actions != null) actions.shared_project.create();
           }}
           okText="Create Shared Project"
           cancelText="Cancel"
