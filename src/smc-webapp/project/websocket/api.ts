@@ -213,8 +213,22 @@ export class API {
   }
 
   // Get contents of an ipynb file, but with output and attachments removed (to save space)
-  async jupyter_stripped(ipynb_path: string): Promise<any> {
-    return await this.call({ cmd: "jupyter_stripped", ipynb_path }, 15000);
+  async jupyter_strip_notebook(ipynb_path: string): Promise<any> {
+    return await this.call(
+      { cmd: "jupyter_strip_notebook", ipynb_path },
+      15000
+    );
+  }
+
+  // Run the notebook filling in the output of all cells, then return the
+  // result as a string.  Note that the output size (per cell and total)
+  // and run time is bounded to avoid the output being HUGE, even if the
+  // input is dumb.
+  async jupyter_run_notebook(opts: any): Promise<string> {
+    return await this.call(
+      { cmd: "jupyter_run_notebook", opts },
+      5000 + opts.timeout_ms
+    );
   }
 
   // I think this isn't used.  It was going to support

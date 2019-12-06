@@ -22,7 +22,7 @@ import {
 } from "smc-util/misc";
 import { map } from "awaiting";
 
-import { nbgrader, jupyter_stripped } from "../../jupyter/nbgrader/api";
+import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
 
 import { previous_step, assignment_identifier } from "../util";
 import {
@@ -1264,7 +1264,7 @@ You can find the comments they made in the folders below.\
     async function f(file: string): Promise<void> {
       if (this.course_actions.is_closed()) return;
       const fullpath = path != "" ? path + "/" + file : file;
-      const content = await jupyter_stripped(project_id, fullpath);
+      const content = await jupyter_strip_notebook(project_id, fullpath);
       if (content.indexOf("nbgrader") != -1) {
         result[file] = content;
       }
@@ -1338,20 +1338,22 @@ You can find the comments they made in the folders below.\
     const student_path = assignment.get("target_path");
     const result: { [path: string]: any } = {};
     async function one_file(file: string): Promise<void> {
-      const fullpath = path != "" ? path + "/" + file : file
+      const fullpath = path != "" ? path + "/" + file : file;
       try {
-        const student_ipynb: string = await jupyter_stripped(
+        const student_ipynb: string = await jupyter_strip_notebook(
           project_id,
           fullpath
         );
         if (instructor_ipynb_files == null) throw Error("BUG");
         const instructor_ipynb: string = instructor_ipynb_files[file];
         if (this.course_actions.is_closed()) return;
-        const r = await nbgrader(project_id, {
-          timeout_ms: 60000, // ???
+        const r = await nbgrader({
+          timeout_ms: 120000, // timeout for total notebook
+          cell_timeout_ms: 30000, // per cell timeout
           student_ipynb,
           instructor_ipynb,
-          student_path
+          path: student_path,
+          project_id
         });
         console.log("ran nbgrader", { student_id, file, r });
         result[file] = r;
