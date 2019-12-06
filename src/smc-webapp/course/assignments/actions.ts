@@ -12,6 +12,8 @@ import { exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import {
+  len,
+  keys,
   path_split,
   uuid,
   peer_grading,
@@ -1260,6 +1262,7 @@ You can find the comments they made in the folders below.\
     const result: { [path: string]: string } = {};
 
     async function f(file: string): Promise<void> {
+      if (this.course_actions.is_closed()) return;
       const fullpath = path != "" ? path + "/" + file : file;
       const content = await jupyter_stripped(project_id, fullpath);
       if (content.indexOf("nbgrader") != -1) {
@@ -1267,7 +1270,7 @@ You can find the comments they made in the folders below.\
       }
     }
 
-    await map(to_read, PARALLEL_LIMIT, f);
+    await map(to_read, PARALLEL_LIMIT, f.bind(this));
     return result;
   }
 
@@ -1275,25 +1278,83 @@ You can find the comments they made in the folders below.\
     assignment_id: string
   ): Promise<void> {
     console.log("run_nbgrader_for_all_students", assignment_id);
+
+    const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
+      assignment_id
+    );
+    if (this.course_actions.is_closed()) return;
+    async function one_student(student_id: string): Promise<void> {
+      if (this.course_actions.is_closed()) return;
+      this.run_nbgrader_for_one_student(
+        assignment_id,
+        student_id,
+        instructor_ipynb_files
+      );
+    }
+
+    await map(
+      this.get_store().get_student_ids({ deleted: false }),
+      PARALLEL_LIMIT,
+      one_student.bind(this)
+    );
   }
 
   public async run_nbgrader_for_one_student(
     assignment_id: string,
-    student_id: string
+    student_id: string,
+    instructor_ipynb_files?: { [path: string]: string }
   ): Promise<void> {
     console.log("run_nbgrader_for_one_student", assignment_id, student_id);
 
-    // quick test
-    const store = this.get_store();
-    const project_id = store.get("course_project_id");
-    const student_ipynb = "{}";
-    const instructor_ipynb = "{}";
-
-    const r = await nbgrader(project_id, {
-      timeout_ms: 15000,
-      student_ipynb,
-      instructor_ipynb
+    const { store, assignment } = this.course_actions.resolve({
+      assignment_id
     });
-    console.log("running nbgrader got ", r);
+    if (assignment == null || !assignment.get("has_student_subdir")) {
+      return; // nothing case.
+    }
+
+    if (instructor_ipynb_files == null) {
+      instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
+        assignment_id
+      );
+      if (this.course_actions.is_closed()) return;
+    }
+    if (len(instructor_ipynb_files) == 0) {
+      return; // nothing to do
+    }
+
+    let path = assignment.get("path");
+    path = path != "" ? path + "/" + STUDENT_SUBDIR : STUDENT_SUBDIR;
+    const project_id = store.get("course_project_id");
+    const result: { [path: string]: any } = {};
+    async function one_file(file: string): Promise<void> {
+      const fullpath = path + "/" + file;
+      try {
+        const student_ipynb: string = await jupyter_stripped(
+          project_id,
+          fullpath
+        );
+        if (instructor_ipynb_files == null) throw Error("BUG");
+        const instructor_ipynb: string = instructor_ipynb_files[file];
+        if (this.course_actions.is_closed()) return;
+        const r = await nbgrader(project_id, {
+          timeout_ms: 60000, // ???
+          student_ipynb,
+          instructor_ipynb
+        });
+        console.log("ran nbgrader", { student_id, file, r });
+        result[file] = r;
+      } catch (err) {
+        // TODO: put error report in
+        console.log("error running nbgrader", { student_id, file, err });
+      }
+    }
+
+    await map(
+      keys(instructor_ipynb_files),
+      PARALLEL_LIMIT,
+      one_file.bind(this)
+    );
+    console.log("ran nbgrader for student totally", { student_id, result });
   }
 }

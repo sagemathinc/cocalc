@@ -10,5 +10,5 @@ export async function nbgrader(
 ): Promise<NBGraderAPIResponse> {
   logger.debug("nbgrader", opts);
   client = client;
-  return { output: "hello world" };
+  return { output: opts };
 }
