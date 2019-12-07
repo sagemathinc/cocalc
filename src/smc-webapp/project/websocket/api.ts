@@ -13,7 +13,10 @@ import {
 import { redux } from "../../app-framework";
 import { parser2tool } from "../../../smc-util/code-formatter";
 import { Options as FormatterOptions } from "../../../smc-project/formatters/prettier";
-import { NBGraderAPIOptions } from "../../jupyter/nbgrader/api";
+import {
+  NBGraderAPIOptions,
+  RunNotebookOptions
+} from "../../jupyter/nbgrader/api";
 
 export class API {
   private conn: any;
@@ -224,10 +227,11 @@ export class API {
   // result as a string.  Note that the output size (per cell and total)
   // and run time is bounded to avoid the output being HUGE, even if the
   // input is dumb.
-  async jupyter_run_notebook(opts: any): Promise<string> {
+
+  async jupyter_run_notebook(opts: RunNotebookOptions): Promise<string> {
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
-      5000 + opts.timeout_ms
+      60000   // TODO: implement timeout taking into account opts.limits as second option
     );
   }
 

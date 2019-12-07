@@ -1369,5 +1369,6 @@ You can find the comments they made in the folders below.\
       one_file.bind(this)
     );
     console.log("ran nbgrader for student totally", { student_id, result });
+    (window as any).nb = result;
   }
 }

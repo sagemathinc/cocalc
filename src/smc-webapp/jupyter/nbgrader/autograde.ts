@@ -37,8 +37,26 @@ interface Cell {
   outputs?: object[];
 }
 
-interface JupyterNotebook {
-  metadata: object;
+interface NotebookMetadata {
+  kernelspec: {
+    display_name: string;
+    language: string;
+    metadata?: object;
+    name: string;
+  };
+  language_info: {
+    codemirror_mode?: { name: string; version: number };
+    file_extension: string;
+    mimetype: string;
+    name: string;
+    nbconvert_exporter: string;
+    pygments_lexer: string;
+    version: string;
+  };
+}
+
+export interface JupyterNotebook {
+  metadata: NotebookMetadata;
   nbformat: number;
   nbformat_minor: number;
   cells: Cell[];
@@ -61,7 +79,11 @@ export function create_autograde_ipynb(
     if (student_cell == null) {
       // Something bad happened -- the student deleted this locked cell.  We just insert the instructor
       // version at the bottom for now (?).
-      // TODO: be more clever within inserting this...
+      // TODO: be more clever within inserting this...?  What does nbgrader upstream do?
+      console.warn(
+        "WARNING: student deleted locked cell with grade_id (inserting at end for now)",
+        grade_id
+      );
       student.cells.push(copy(instructor_cell));
     } else {
       // Student cell exists as it should, so replace content by the instructor version.
@@ -71,8 +93,8 @@ export function create_autograde_ipynb(
     }
   }
 
-  console.log("create_autograde_ipynb --> ", student);
-  return student_ipynb;
+  const autograde_ipynb = JSON.stringify(student);
+  return autograde_ipynb;
 }
 
 // Return a map from grade_id to reference to actual cell in the given notebook.

@@ -42,6 +42,7 @@ export async function nbgrader(
   const graded_ipynb = await jupyter_run_notebook(opts.project_id, {
     path: opts.path,
     ipynb: autograde_ipynb,
+    nbgrader: true,
     limits: {
       max_total_output: 3000000,
       max_output_per_cell: 500000,
@@ -49,6 +50,9 @@ export async function nbgrader(
       max_total_time_ms: opts.timeout_ms
     }
   });
+
+  (window as any).graded_ipynb = JSON.parse(graded_ipynb);
+  console.log("graded_ipynb = ", (window as any).graded_ipynb);
   return { output: graded_ipynb };
 }
 
@@ -71,6 +75,7 @@ export interface RunNotebookLimits {
 export interface RunNotebookOptions {
   path: string;
   ipynb: string;
+  nbgrader?: boolean; // if true, only record outputs for nbgrader autograder cells (all cells are run, but only these get output)
   limits?: RunNotebookLimits;
 }
 
