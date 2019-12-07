@@ -36,7 +36,12 @@ import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 
-import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
+import {
+  AssignmentCopyStep,
+  AssignmentStatus,
+  UpgradeGoal,
+  NBGraderGrades
+} from "./types";
 
 import { CourseActions } from "./actions";
 
@@ -99,6 +104,10 @@ export type AssignmentRecord = TypedMap<{
   target_path: string;
   collect_path: string;
   graded_path: string;
+
+  grades?: { [student_id: string]: string };
+  comments?: { [student_id: string]: string };
+  nbgrader?: { [student_id: string]: { [ipynb: string]: NBGraderGrades } };
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;

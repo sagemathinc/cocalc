@@ -10,6 +10,8 @@ export interface SyncDBRecordSettings {
   pay?: string;
 }
 
+// This is closely related to store.AssignmentRecord...
+
 export interface SyncDBRecordAssignment {
   table: string;
   assignment_id?: string;
@@ -123,4 +125,9 @@ export interface AssignmentStatus {
   not_peer_assignment: number;
   not_peer_collect: number;
   not_return_graded: number;
+}
+
+export interface NBGraderGrades {
+  
+  
 }
