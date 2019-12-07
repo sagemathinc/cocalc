@@ -1783,16 +1783,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result(opts.cb)
 
-    get_project_lti: (opts) =>
-        opts = defaults opts,
-            lti_id     : required   # an array of strings
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query : "SELECT project_id FROM projects"
-            where : 'lti_id :: TEXT[] = $' : opts.lti_id
-            cb    : one_result 'project_id', opts.cb
-
     _get_project_column: (column, project_id, cb) =>
         if not misc.is_valid_uuid_string(project_id)
             cb("invalid project_id -- #{project_id}: getting column #{column}")

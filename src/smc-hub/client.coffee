@@ -425,7 +425,7 @@ class exports.Client extends EventEmitter
         ###
         Remember me.  There are many ways to implement
         "remember me" functionality in a web app. Here's how
-        we do it with SMC:    We generate a random uuid,
+        we do it with CoCalc:    We generate a random uuid,
         which along with salt, is stored in the user's
         browser as an httponly cookie.  We password hash the
         random uuid and store that in our database.  When
