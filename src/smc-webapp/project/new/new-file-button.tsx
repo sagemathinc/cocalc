@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Button } from "cocalc-ui";
+import { Button } from "antd";
 import { Icon, Space } from "../../r_misc";
 
 interface Props {
