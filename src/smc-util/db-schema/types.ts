@@ -44,6 +44,7 @@ interface TableSchema<F extends Fields> {
       fields: { [key in keyof Partial<F>]: any };
       throttle_changes?: number;
       pg_where?: string[] | { [key: string]: string }[];
+      admin?: boolean;
       options?: any; // [{ limit: 1 }]
       instead_of_query?: (
         database,
@@ -54,6 +55,7 @@ interface TableSchema<F extends Fields> {
     };
     set?: {
       fields: { [key in keyof Partial<F>]: any };
+      admin?: boolean;
       check_hook?: (
         database,
         obj,
