@@ -357,6 +357,8 @@ exports.init_express_http_server = (opts) ->
         res.send('')
     ###
 
+    router.use("/retention-app", require('./retention-app').init())
+
     # Get the http server and return it.
     if opts.base_url
         app.use(opts.base_url, router)

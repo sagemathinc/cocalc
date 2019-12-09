@@ -131,6 +131,7 @@ const DEBUG = process.argv.includes("--debug");
 const { MEASURE } = process.env;
 const SOURCE_MAP = !!process.env.SOURCE_MAP;
 const STATICPAGES = !!process.env.CC_STATICPAGES; // special mode where just the landing page is built
+const RETENTION_APP = !!process.env.RETENTION_APP;
 const date = new Date();
 const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
@@ -276,7 +277,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
-  const order = ["css", "fill", "vendor", "smc"];
+  const order = ["css", "fill", "vendor", "smc", "retention"];
   if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
     return -1;
   } else {
@@ -324,6 +325,24 @@ const pug2app = new HtmlWebpackPlugin({
   GOOGLE_ANALYTICS
 });
 
+const retention_app = new HtmlWebpackPlugin({
+  chunks: ["retention"],
+  date: BUILD_DATE,
+  title: TITLE,
+  description: DESCRIPTION,
+  BASE_URL: base_url_html,
+  theme,
+  COMP_ENV,
+  components: {}, // no data needed, empty is fine
+  inventory: {}, // no data needed, empty is fine
+  git_rev: GIT_REV,
+  filename: "retention-app.html",
+  inject: "body",
+  hash: PRODMODE,
+  template: path.join(INPUT, "retention.pug"),
+  minify: htmlMinifyOpts,
+  GOOGLE_ANALYTICS
+});
 // static html pages
 // they only depend on the css chunk
 const staticPages = [];
@@ -540,6 +559,11 @@ plugins = plugins.concat([setNODE_ENV, banner, loaderOptions]);
 if (STATICPAGES) {
   plugins = plugins.concat(staticPages);
   entries = { css: "webapp-css.coffee" };
+} else if (RETENTION_APP) {
+  entries = {
+    retention: "retention-app/index.tsx"
+  };
+  plugins = plugins.concat(retention_app);
 } else {
   // ATTN don't alter or add names here, without changing the sorting function above!
   entries = {
@@ -640,7 +664,7 @@ if (CDN_BASE_URL != null) {
   publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + "/";
 }
 
-if (MEASURE) {
+if (MEASURE || true) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
   const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
     analyzerMode: "static"
@@ -661,15 +685,17 @@ module.exports = {
   optimization: {
     minimizer: [minimizer],
 
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendor",
-          chunks: "all"
+    splitChunks: RETENTION_APP
+      ? undefined
+      : {
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendor",
+              chunks: "all"
+            }
+          }
         }
-      }
-    }
   },
 
   entry: entries,
@@ -806,7 +832,8 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
-      path.resolve(__dirname, "node_modules")
+      path.resolve(__dirname, "node_modules"),
+      path.resolve(__dirname, "retention-app")
     ]
   },
 
