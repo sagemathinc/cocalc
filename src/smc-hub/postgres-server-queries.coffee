@@ -534,15 +534,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : "email_address = $::TEXT" : opts.email_address
             cb    : one_result('account_id', opts.cb)
 
-    lti_account_exists: (opts) =>
-        opts = defaults opts,
-            lti_id        : required
-            cb            : required   # cb(err, account_id or undefined) -- actual lti_id if it exists; err = problem with db connection...
-        @_query
-            query : 'SELECT lti_id FROM accounts'
-            where : "lti_id = $::TEXT[]" : opts.lti_id
-            cb    : one_result('lti_id', opts.cb)
-
     # set an account creation action, or return all of them for the given email address
     account_creation_actions: (opts) =>
         opts = defaults opts,
