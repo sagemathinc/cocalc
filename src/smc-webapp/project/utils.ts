@@ -22,7 +22,7 @@ export type NewFilenameTypes =
   | "ymd_semantic";
 
 export const NewFilenameFamilies = Object.freeze<
-  Readonly<{ [name in NewFilenameTypes]: string }>
+  { [name in NewFilenameTypes]: string }
 >({
   iso: "Current time",
   heroku: "Heroku-like",

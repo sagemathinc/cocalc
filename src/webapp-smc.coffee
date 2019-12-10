@@ -68,7 +68,7 @@ require("script-loader!jsbeautify/beautify-html.min.js")
 # after this lib.js package, the real smc.js app starts loading
 window.smcLoadStatus("Starting main application ...")
 
-require('cocalc-ui/dist/antd.css')
+require('antd/dist/antd.css')
 
 # SASS style file for CoCalc
 require('./smc-webapp/index.sass')

@@ -14,7 +14,7 @@ interface Props {
   inverse?: boolean;
   Component?: JSX.Element | JSX.Element[];
   style?: any;
-  onClick?: () => void;
+  onClick?: (event?: React.MouseEvent) => void; // https://fettblog.eu/typescript-react/events/
   onMouseOver?: () => void;
   onMouseOut?: () => void;
 }

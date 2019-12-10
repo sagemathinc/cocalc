@@ -17,7 +17,6 @@
     "enchannel-zmq-backend": "^4",
     "expect": "^1.20",
     "kernelspecs": "^2",
-    "node-cleanup": "^2.1",
     "spawnteract": "^5.1.0"
   }
 }

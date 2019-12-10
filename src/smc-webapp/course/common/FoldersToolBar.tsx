@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -29,21 +22,17 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("smc-webapp/webapp_client");
+import { is_different } from "smc-util/misc";
+import { webapp_client } from "../../webapp-client";
 
 // React libraries
-import { React, ReactDOM, Component } from "smc-webapp/app-framework";
-const { Icon, SearchInput, SkinnyError } = require("smc-webapp/r_misc");
-const {
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  Row,
-  Col,
-  Grid
-} = require("react-bootstrap");
+import { React, ReactDOM, Component } from "../../app-framework";
+import { Icon, SearchInput, SkinnyError } from "../../r_misc";
+import { Button, ButtonGroup, FormControl, FormGroup } from "../../antd-bootstrap";
+
+import { Row, Col } from "antd";
+
+import { callback2 } from "smc-util/async-utils";
 
 const SEARCH_STYLE = { marginBottom: "0px" };
 
@@ -82,7 +71,7 @@ class MultipleAddSearch extends Component<
 
   shouldComponentUpdate(newProps, newState) {
     return (
-      misc.is_different(this.props, newProps, [
+      is_different(this.props, newProps, [
         "search_results",
         "item_name",
         "is_searching",
@@ -178,10 +167,10 @@ class MultipleAddSearch extends Component<
         >
           {this.render_results_list()}
         </FormControl>
-        <ButtonToolbar style={{ marginTop: "15px" }}>
+        <ButtonGroup style={{ marginTop: "15px" }}>
           {this.render_add_selector_button()}
           <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
-        </ButtonToolbar>
+        </ButtonGroup>
       </FormGroup>
     );
   }
@@ -286,7 +275,7 @@ interface FoldersToolbarProps {
   num_omitted?: number;
   project_id?: string;
   items: object;
-  add_folders: (folders: Iterable<string>) => void; // add_folders (Iterable<T>)
+  add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
   plural_item_name: string;
 }
@@ -305,6 +294,11 @@ export class FoldersToolbar extends Component<
   FoldersToolbarProps,
   FoldersToolbarState
 > {
+  private is_unmounted: boolean;
+  componentWillUnmount(): void {
+    this.is_unmounted = true;
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -321,7 +315,7 @@ export class FoldersToolbar extends Component<
     plural_item_name: "items"
   };
 
-  do_add_search = search => {
+  private async do_add_search(search): Promise<void> {
     search = search.trim();
 
     if (this.state.add_is_searching && search === this.state.last_add_search) {
@@ -330,60 +324,59 @@ export class FoldersToolbar extends Component<
 
     this.setState({ add_is_searching: true, last_add_search: search });
 
-    return webapp_client.find_directories({
-      project_id: this.props.project_id,
-      query: `*${search}*`,
-      cb: (err, resp) => {
-        // Disregard the results of this search of a new one was already submitted
-        if (this.state.last_add_search !== search) {
-          return;
-        }
-
-        if (err) {
-          this.setState({
-            add_is_searching: false,
-            err,
-            add_search_results: undefined
-          });
-          return;
-        }
-
-        if (resp.directories.length === 0) {
-          this.setState({
-            add_is_searching: false,
-            add_search_results: immutable.List([]),
-            none_found: true
-          });
-          return;
-        }
-
-        return this.setState(function(state, props) {
-          let merged;
-          const filtered_results = filter_results(
-            resp.directories,
-            search,
-            props.items
-          );
-
-          // Merge to prevent possible massive list alterations
-          if (
-            state.add_search_results &&
-            filtered_results.length === state.add_search_results.size
-          ) {
-            merged = state.add_search_results.merge(filtered_results);
-          } else {
-            merged = immutable.List(filtered_results);
-          }
-
-          return {
-            add_is_searching: false,
-            add_search_results: merged,
-            none_found: false
-          };
-        });
+    let resp;
+    try {
+      resp = await callback2(webapp_client.find_directories, {
+        project_id: this.props.project_id,
+        query: `*${search}*`
+      });
+      // Disregard the results of this search of a new one was already submitted
+      if (this.is_unmounted || this.state.last_add_search !== search) {
+        return;
       }
+    } catch (err) {
+      if (this.is_unmounted) return;
+      this.setState({
+        add_is_searching: false,
+        err,
+        add_search_results: undefined
+      });
+    }
+
+    if (resp.directories.length === 0) {
+      this.setState({
+        add_is_searching: false,
+        add_search_results: immutable.List([]),
+        none_found: true
+      });
+      return;
+    }
+
+    this.setState(function(state, props) {
+      let merged;
+      const filtered_results = filter_results(
+        resp.directories,
+        search,
+        props.items
+      );
+
+      // Merge to prevent possible massive list alterations
+      if (
+        state.add_search_results &&
+        filtered_results.length === state.add_search_results.size
+      ) {
+        merged = state.add_search_results.merge(filtered_results);
+      } else {
+        merged = immutable.List(filtered_results);
+      }
+
+      return {
+        add_is_searching: false,
+        add_search_results: merged,
+        none_found: false
+      };
     });
-  };
+  }
 
   submit_selected = path_list => {
     if (path_list != null) {
@@ -396,18 +389,18 @@ export class FoldersToolbar extends Component<
     return this.clear_add_search();
   };
 
-  clear_add_search = () => {
-    return this.setState({
+  private clear_add_search(): void {
+    this.setState({
       add_search_results: immutable.List([]),
       none_found: false
     });
-  };
+  }
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row>
-          <Col md={3}>
+          <Col md={6}>
             <SearchInput
               placeholder={`Find ${this.props.plural_item_name}...`}
               default_value={this.props.search}
@@ -415,9 +408,11 @@ export class FoldersToolbar extends Component<
               style={SEARCH_STYLE}
             />
           </Col>
-          <Col md={4}>
+          <Col md={8}>
             {this.props.num_omitted ? (
-              <h5>
+              <h5
+                style={{ textAlign: "center", color: "#666", marginTop: "5px" }}
+              >
                 (Omitting {this.props.num_omitted}{" "}
                 {this.props.num_omitted > 1
                   ? this.props.plural_item_name
@@ -428,11 +423,11 @@ export class FoldersToolbar extends Component<
               undefined
             )}
           </Col>
-          <Col md={5}>
+          <Col md={10}>
             <MultipleAddSearch
-              add_selected={this.submit_selected}
-              do_search={this.do_add_search}
-              clear_search={this.clear_add_search}
+              add_selected={this.submit_selected.bind(this)}
+              do_search={this.do_add_search.bind(this)}
+              clear_search={this.clear_add_search.bind(this)}
               is_searching={this.state.add_is_searching}
               item_name={this.props.item_name}
               err={undefined}
@@ -441,7 +436,7 @@ export class FoldersToolbar extends Component<
             />
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

@@ -6,8 +6,7 @@ import { React, Component } from "../app-framework";
 import { Map } from "immutable";
 const Inspector = require("react-json-inspector");
 import { JupyterActions } from "./browser-actions";
-
-const { Loading } = require("../r_misc"); // TODO: import types
+import { Loading } from "../r_misc";
 
 interface JSONViewProps {
   actions: JupyterActions;

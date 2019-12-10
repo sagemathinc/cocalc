@@ -5,7 +5,7 @@ The tag editing toolbar functionality for cells.
 import { Button, FormControl } from "react-bootstrap";
 import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 const misc = require("smc-util/misc");
 import { JupyterActions } from "./browser-actions";
 

@@ -1,5 +1,5 @@
 import { Component, React, Rendered, redux } from "../app-framework";
-import { Button, Popconfirm } from "cocalc-ui";
+import { Button, Popconfirm } from "antd";
 
 export class SignOut extends Component<{ everywhere?: boolean }, {}> {
   private sign_out(): void {

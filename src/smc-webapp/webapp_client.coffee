@@ -19,6 +19,11 @@
 #
 ###############################################################################
 
+###
+# DEPRECATED
+# ** If at all possible, use webapp-client.ts instead! **
+###
+
 
 ############################################
 # connection to back-end hub

@@ -25,7 +25,7 @@ const {
   ErrorDisplay
 } = require("react-bootstrap");
 
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
 const misc = require("smc-util/misc");
 
@@ -273,7 +273,8 @@ export class NewProjectCreator extends Component<Props, State> {
               you can share with others.
               <br />
               <br />
-              You can easily change the project's title at any time in project settings.
+              You can easily change the project's title at any time in project
+              settings.
             </div>
           </Col>
         </Row>

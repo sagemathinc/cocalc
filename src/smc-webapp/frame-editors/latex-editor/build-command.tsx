@@ -5,11 +5,11 @@ Customization and selection of the build command.
 
 import { List, fromJS } from "immutable";
 
-const { Loading } = require("smc-webapp/r_misc");
+import { Loading } from "smc-webapp/r_misc";
 
 import { Alert, FormControl } from "react-bootstrap";
 
-import { Menu, Dropdown, Button, Icon } from "cocalc-ui";
+import { Menu, Dropdown, Button, Icon } from "antd";
 
 import { React, Rendered, Component } from "../../app-framework";
 

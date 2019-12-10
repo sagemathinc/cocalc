@@ -14,7 +14,7 @@ const { register_file_editor } = require("../project_file");
 
 import { Well } from "react-bootstrap";
 
-const { Markdown } = require("../r_misc");
+import { Markdown } from "../r_misc";
 const { webapp_client } = require("../webapp_client");
 
 import { keys, filename_extension } from "smc-util/misc2";
