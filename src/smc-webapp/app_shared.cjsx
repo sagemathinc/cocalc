@@ -78,10 +78,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
                 v.push <ProjectsPage key={'projects'}/>
             when 'account'
                 v.push <AccountPage key={'account'}/>
-            when 'about'
+            when 'help', 'about'
                 v.push <HelpPage key={'about'}/>
-            when 'help'
-                v.push <div key={'help'}>To be implemented</div>
             when 'file-use'
                 v.push <FileUsePage redux={redux} key={'file-use'}/>
             when 'notifications'
@@ -89,7 +87,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
             when 'admin'
                 v.push <AdminPage redux={redux} key={'admin'}/>
             when undefined
-                v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+                v.push <div key={'broken'}>Please click a button on the top tab.</div>
 
     if v.length == 0
         # this happens upon loading a URL for a project, but the project isn't open yet.

@@ -23,7 +23,7 @@ async = require('async')
 {Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('../app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
-{UpgradeRestartWarning} = require('../upgrade_restart_warning')
+{UpgradeRestartWarning} = require('../upgrade-restart-warning')
 copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -829,46 +829,6 @@ Globalize = require('globalize')
 globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
 
-DateTimePicker = require('react-widgets/lib/DateTimePicker')
-
-DATETIME_PARSE_FORMATS = [
-    'MMM d, yyyy h:mm tt'
-    'MMMM d, yyyy h:mm tt'
-    'MMM d, yyyy'
-    'MMM d, yyyy H:mm'
-    'MMMM d, yyyy'
-    'MMMM d, yyyy H:mm'
-]
-
-exports.DateTimePicker = rclass
-    displayName : 'Misc-DateTimePicker'
-
-    propTypes :
-        value       : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change   : rtypes.func.isRequired
-        on_focus    : rtypes.func
-        on_blur     : rtypes.func
-        autoFocus   : rtypes.bool
-        onKeyDown   : rtypes.func
-        defaultOpen : rtypes.oneOf([false, 'time', 'date'])
-
-    getDefaultProps: ->
-        defaultOpen : 'date'
-
-    render: ->
-        <DateTimePicker
-            step        = {60}
-            editFormat  = {'MMM d, yyyy h:mm tt'}
-            format      = {'MMM d, yyyy h:mm tt'}
-            parse       = {DATETIME_PARSE_FORMATS}
-            value       = {@props.value}
-            onChange    = {@props.on_change}
-            onFocus     = {@props.on_focus}
-            onBlur      = {@props.on_blur}
-            autoFocus   = {@props.autoFocus}
-            defaultOpen = {@props.defaultOpen}
-        />
-
 Calendar = require('react-widgets/lib/Calendar')
 
 exports.Calendar = rclass
@@ -1346,7 +1306,7 @@ exports.UpgradeAdjustor = rclass
                 reason = reasons.join(' and ')
                 label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: {reason}</div>
             else
-                label = if val == 0 then 'Enable' else 'Enabled'
+                label = if val == 0 then 'Disabled' else 'Enabled'
 
             is_upgraded = if total >= 1 then '(already upgraded)' else '(not upgraded)'
 

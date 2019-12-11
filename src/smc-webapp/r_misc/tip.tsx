@@ -4,8 +4,8 @@ import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 //import { unreachable } from "smc-util/misc2";
 import * as feature from "../feature";
-import { Tooltip, Popover } from "cocalc-ui";
-import { TooltipPlacement } from "cocalc-ui/es/tooltip";
+import { Tooltip, Popover } from "antd";
+import { TooltipPlacement } from "antd/es/tooltip";
 
 const TIP_STYLE: React.CSSProperties = {
   wordWrap: "break-word",

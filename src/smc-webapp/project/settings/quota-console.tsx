@@ -297,7 +297,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             this.setState({ [label]: e.target.checked ? 1 : 0 } as any)
           }
         >
-          {this.state[label] ? "Enabled" : "Enable"}
+          {this.state[label] ? "Enabled" : "Disabled"}
         </Checkbox>
       );
     } else {

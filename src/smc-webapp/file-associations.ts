@@ -344,7 +344,7 @@ file_associations["tasks"] = {
   editor: "tasks",
   icon: "fa-tasks",
   opts: {},
-  name: "task list"
+  name: "to do list"
 };
 
 file_associations["course"] = {

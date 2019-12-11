@@ -19,7 +19,7 @@
 //
 //##############################################################################
 
-import { notification } from "cocalc-ui";
+import { notification } from "antd";
 import { ReactElement } from "react";
 
 // import { redux } from "./app-framework";
