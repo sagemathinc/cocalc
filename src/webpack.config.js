@@ -539,13 +539,12 @@ plugins = plugins.concat([setNODE_ENV, banner, loaderOptions]);
 
 if (STATICPAGES) {
   plugins = plugins.concat(staticPages);
-  entries = { css: "webapp-css.coffee" };
+  entries = { css: "webapp-css.js" };
 } else {
   // ATTN don't alter or add names here, without changing the sorting function above!
   entries = {
-    css: "webapp-css.coffee",
     fill: "@babel/polyfill",
-    smc: "webapp-smc.coffee",
+    smc: "webapp.js",
     // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
     // this way it will have better caching/cache hits since it changes infrequently
     vendor: [
@@ -648,6 +647,16 @@ if (MEASURE) {
   plugins = plugins.concat([bundleAnalyzerPlugin]);
 }
 
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+plugins = plugins.concat([
+  new MiniCssExtractPlugin({
+    // Options similar to the same options in webpackOptions.output
+    // both options are optional
+    filename: PRODMODE ? "[name].[hash].css" : "[name].css",
+    chunkFilename: PRODMODE ? "[id].[hash].css" : "[id].css"
+  })
+]);
+
 module.exports = {
   cache: true,
 
@@ -659,17 +668,7 @@ module.exports = {
   mode: PRODMODE ? "production" : "development",
 
   optimization: {
-    minimizer: [minimizer],
-
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: "vendor",
-          chunks: "all"
-        }
-      }
-    }
+    minimizer: [minimizer]
   },
 
   entry: entries,
@@ -707,7 +706,7 @@ module.exports = {
       {
         test: /\.less$/,
         use: [
-          "style-loader",
+          MiniCssExtractPlugin.loader,
           {
             loader: "css-loader",
             options: {
@@ -721,7 +720,7 @@ module.exports = {
       {
         test: /\.scss$/i,
         use: [
-          "style-loader",
+          MiniCssExtractPlugin.loader,
           {
             loader: "css-loader",
             options: {
@@ -735,7 +734,7 @@ module.exports = {
       {
         test: /\.sass$/i,
         use: [
-          "style-loader",
+          MiniCssExtractPlugin.loader,
           {
             loader: "css-loader",
             options: {
@@ -772,7 +771,7 @@ module.exports = {
       {
         test: /\.css$/i,
         use: [
-          "style-loader",
+          MiniCssExtractPlugin.loader,
           {
             loader: "css-loader",
             options: {
