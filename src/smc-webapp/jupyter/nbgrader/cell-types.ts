@@ -2,6 +2,11 @@ import { Metadata } from "./types";
 
 type Language = "python" | "julia" | "r" | "sage";
 
+// I think the default points in official nbgrader is 0, but I find that very confusing
+// and it forces you to think.  Since partial credit with autograder doesn't exist, just
+// defaulting to 1 is probably often a much better choice.
+const DEFAULT_POINTS : number = 1;
+
 interface CelltypeInfo {
   title: string; // human readable title for this type of cell
   student_title: string;
@@ -167,7 +172,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: false,
     solution: true,
     task: false,
-    points: 0
+    points: DEFAULT_POINTS
   },
   {
     // The official docs so this is only for markdown cells only and that is all that makes sense,
@@ -189,7 +194,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     solution: false,
     task: true,
     template: TASK_TEMPLATE,
-    points: 0,
+    points: DEFAULT_POINTS,
     markdown_only: true
   },
   {
@@ -229,7 +234,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     locked: true,
     solution: false,
     task: false,
-    points: 0,
+    points: DEFAULT_POINTS,
     code_only: true,
     template: {
       python: PY_TEST,
