@@ -34,7 +34,7 @@ export function FileTypeSelector({
     return obj.getIn([name, "available_features"]);
   });
 
-  if (!create_file || !create_file || !project_id) {
+  if (!create_file || !project_id) {
     return null;
   }
   const row_style = { marginBottom: "8px" };
