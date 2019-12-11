@@ -48,7 +48,7 @@ export class NewFilenames {
     this.fullname = fullname;
   }
 
-  public set_ext(ext: string): void {
+  public set_ext(ext?: string): void {
     if (this.ext != ext || ext == null) {
       this.start = 0;
     }

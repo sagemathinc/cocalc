@@ -36,7 +36,7 @@ Draggable = require('react-draggable')
 # CoCalc Libraries
 {SideChat}         = require('./side_chat')
 {Explorer}         = require('./project/explorer')
-{ProjectNew}       = require('./project_new')
+{ProjectNew}       = require('./project/new')
 {ProjectLog}       = require('./project/history')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project/settings')
@@ -392,7 +392,7 @@ ProjectContentViewer = rclass
             when 'files'
                 <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
             when 'new'
-                <ProjectNew name={@props.project_name} project_id={@props.project_id} />
+                <ProjectNew name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)}/>
             when 'log'
                 <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'

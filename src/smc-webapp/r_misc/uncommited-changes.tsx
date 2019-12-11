@@ -2,7 +2,6 @@
  * Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
  */
 
-
 import * as React from "react";
 
 interface Props {
