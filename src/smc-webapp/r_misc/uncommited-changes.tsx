@@ -2,7 +2,6 @@
  * Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
  */
 
-
 import * as React from "react";
 
 interface Props {
@@ -30,7 +29,7 @@ export function UncommittedChanges({
   has_uncommitted_changes,
   delay_ms = 5000
 }: Props) {
-  const [show_error, set_error] = React.useState(false);
+  const [show_error, set_error] = React.useState(!!has_uncommitted_changes);
 
   // A new interval is created iff has_uncommitted_changes or delay_ms change
   // So error is only set to true when the prop doesn't change for ~delay_ms time
