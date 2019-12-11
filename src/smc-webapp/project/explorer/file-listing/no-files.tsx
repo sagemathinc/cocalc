@@ -7,8 +7,8 @@ import { ProjectActions } from "../../../project_actions";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
 
-const { FileTypeSelector } = require("../../../project_new");
-const { Button, Row, Col } = require("react-bootstrap");
+import { FileTypeSelector } from "../../new";
+import { Button, Row, Col } from "react-bootstrap";
 
 import { MainConfiguration } from "../../../project_configuration";
 
@@ -24,7 +24,7 @@ interface Props {
   configuration_main?: MainConfiguration;
 }
 
-const row_style = {
+const row_style: React.CSSProperties = {
   textAlign: "left",
   color: "#888",
   marginTop: "20px",
@@ -69,7 +69,12 @@ export class NoFiles extends React.PureComponent<Props> {
     }
 
     return (
-      <Button style={create_button_style} onClick={() => this.handle_click()}>
+      <Button
+        style={create_button_style}
+        onClick={(): void => {
+          this.handle_click();
+        }}
+      >
         <Icon name="plus-circle" /> {button_text}
       </Button>
     );
@@ -83,7 +88,6 @@ export class NoFiles extends React.PureComponent<Props> {
           name={this.props.name}
           project_id={this.props.project_id}
           create_file={this.props.create_file}
-          create_folder={this.props.create_folder}
         />
       </div>
     );
