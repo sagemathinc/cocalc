@@ -3,6 +3,7 @@ import { AccountState } from "./types";
 import { get_total_upgrades } from "smc-util/upgrades";
 import * as misc from "smc-util/misc2";
 import * as lodash from "lodash";
+import { Map } from "immutable";
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -43,11 +44,15 @@ export class AccountStore extends Store<AccountState> {
     return !!groups && groups.includes("admin");
   }
 
-  get_terminal_settings(): {[key: string]: any} | undefined {
+  public is_anonymous(): boolean {
+    return is_anonymous(this.get("email_address"), this.get("passports"));
+  }
+
+  get_terminal_settings(): { [key: string]: any } | undefined {
     return this.get("terminal") ? this.get("terminal").toJS() : undefined;
   }
 
-  get_editor_settings(): {[key: string]: any} | undefined {
+  get_editor_settings(): { [key: string]: any } | undefined {
     return this.get("editor_settings")
       ? this.get("editor_settings").toJS()
       : undefined;
@@ -56,19 +61,19 @@ export class AccountStore extends Store<AccountState> {
   get_fullname(): string {
     const first_name = this.get("first_name");
     const last_name = this.get("last_name");
-    if (first_name == undefined && last_name == undefined) {
-      return "";
+    if (first_name == null && last_name == null) {
+      return "Anonymous";
     } else if (first_name == undefined) {
-      return last_name;
+      return last_name ?? "";
     } else if (last_name == undefined) {
-      return first_name;
+      return first_name ?? "";
     } else {
       return `${first_name} ${last_name}`;
     }
   }
 
   get_first_name(): string {
-    return this.get("first_name", "");
+    return this.get("first_name", "Anonymous");
   }
 
   get_color(): string {
@@ -82,7 +87,7 @@ export class AccountStore extends Store<AccountState> {
     return misc.make_valid_name(this.get_fullname());
   }
 
-  get_email_address(): string {
+  get_email_address(): string | undefined {
     return this.get("email_address");
   }
 
@@ -111,4 +116,20 @@ export class AccountStore extends Store<AccountState> {
   get_page_size(): number {
     return this.getIn(["other_settings", "page_size"], 500);
   }
+}
+
+// A user is anonymous if they have not provided a way to sign
+// in later (besides their cookie), i.e., if they have no
+// passport strategies and have not provided an email address.
+export function is_anonymous(
+  email_address: string | undefined | null,
+  passports: Map<string, any> | undefined | null
+): boolean {
+  if (email_address) {
+    return false;
+  }
+  if (passports != null && passports.size > 0) {
+    return false;
+  }
+  return true;
 }

@@ -34,6 +34,7 @@
 {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
+{is_anonymous} = require('./account/store')
 
 {SignOut} =require('./account/sign-out')
 
@@ -162,7 +163,7 @@ EmailAddressSetting = rclass
     start_editing: ->
         @setState
             state    : 'edit'
-            email_address : @props.email_address
+            email_address : @props.email_address ? ''
             error    : ''
             password : ''
 
@@ -191,19 +192,17 @@ EmailAddressSetting = rclass
                         error    : ''
                         password : ''
     is_submittable: ->
-        return @state.password and @state.email_address != @props.email_address
+        return @state.password != '' and @state.email_address != @props.email_address
 
     change_button: ->
-        if @is_submittable()
-            <Button onClick={@save_editing} bsStyle='success'>Change Email Address</Button>
-        else
-            <Button disabled bsStyle='success'>Change Email Address</Button>
+        <Button disabled={not @is_submittable()} onClick={@save_editing} bsStyle='success'>{@button_label()}</Button>
 
     render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
     render_edit: ->
+        password_label = if @state.email_address then "Current password" else "Choose a password"
         <Well style={marginTop: '3ex'}>
             <FormGroup>
                 New email address
@@ -217,14 +216,14 @@ EmailAddressSetting = rclass
                     maxLength   = {254}
                 />
             </FormGroup>
-            Current password
+            {password_label}
             <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
                 <FormGroup>
                     <FormControl
                         type        = 'password'
                         ref         = 'password'
                         value       = {@state.password}
-                        placeholder = 'Current password'
+                        placeholder = {password_label}
                         onChange    = {=>@setState(password : ReactDOM.findDOMNode(@refs.password).value)}
                     />
                 </FormGroup>
@@ -241,11 +240,17 @@ EmailAddressSetting = rclass
         if @state.state == 'saving'
             <Saving />
 
+    button_label: ->
+        if @props.email_address
+            return "Change email address"
+        else
+            return "Set email address"
+
     render: ->
         <LabeledRow label='Email address'  style={marginBottom: '15px'}>
             <div>
                 {@props.email_address}
-                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change Email...</Button>
+                {if @state.state == 'view' then <Button className='pull-right' onClick={@start_editing}>{@button_label()}...</Button>}
             </div>
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
@@ -532,11 +537,11 @@ AccountSettings = rclass
             onClose={=>@actions('account').setState(sign_out_error : '')}
         />
 
-    render_sign_out_buttons: ->
+    render_sign_out_buttons: (is_anon) ->
         <div className='pull-right'>
             <SignOut everywhere={false}/>
-            <Space/>
-            <SignOut everywhere={true}/>
+            {if not is_anon then <Space/>}
+            {if not is_anon then <SignOut everywhere={true}/>}
         </div>
 
     render_sign_in_strategies: ->
@@ -545,7 +550,7 @@ AccountSettings = rclass
         strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
         <div>
             <hr key='hr0' />
-            <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
+            <h5 style={color:"#666"}>Linked external accounts</h5>
             <ButtonToolbar style={marginBottom:'10px'} >
                 {(@render_strategy(strategy, strategies) for strategy in STRATEGIES)}
             </ButtonToolbar>
@@ -553,8 +558,54 @@ AccountSettings = rclass
             {@render_remove_strategy_button()}
         </div>
 
+    render_anonymous_warning:  (is_anon)  ->
+        if is_anon
+            # makes no sense to delete an account that is anonymous; it'll
+            # get automatically deleted.
+            <div>
+                <Alert bsStyle='warning' style={marginTop:'10px'}>
+                    <h3>WARNING: This is a <i>temporary account!</i>
+                    </h3>
+                    Sign up below!
+                    <ul>
+                        <li>Avoid losing all your work</li>
+                        <li>Get added to any courses or projects you were invited to</li>
+                    </ul>
+                </Alert>
+                <hr/>
+            </div>
+
+    render_delete_account: (is_anon) ->
+        if not is_anon
+            <DeleteAccount
+                style={marginTop:'1ex'}
+                initial_click = {=>@setState(show_delete_confirmation:true)}
+                confirm_click = {=>@actions('account').delete_account()}
+                cancel_click  = {=>@setState(show_delete_confirmation:false)}
+                user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
+                show_confirmation={@state.show_delete_confirmation}
+                />
+
+    render_password: () ->
+        if not @props.email_address
+            # makes no sense to change password if don't have an email address
+            return
+        <PasswordSetting
+            ref   = 'password'
+            maxLength = {64}
+            />
+
+    render_newsletter: ->
+        return # disabling this since we don't have a newsletter these days...
+        <NewsletterSetting
+            redux          = {@props.redux}
+            email_address  = {@props.email_address}
+            other_settings = {@props.other_settings}
+            />
     render: ->
+        is_anon = is_anonymous(this.props.email_address, this.props.passports)
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
+            {@render_anonymous_warning(is_anon)}
             <TextSetting
                 label     = 'First name'
                 value     = {@props.first_name}
@@ -583,32 +634,18 @@ AccountSettings = rclass
                 email_address_verified = {@props.email_address_verified}
                 ref                    = 'email_address_verified'
                 />
-            <NewsletterSetting
-                redux          = {@props.redux}
-                email_address  = {@props.email_address}
-                other_settings = {@props.other_settings}
-                />
-            <PasswordSetting
-                ref   = 'password'
-                maxLength = {64}
-                />
-            <APIKeySetting />
+            {@render_newsletter()}
+            {@render_password(is_anon)}
+            {if not is_anon then <APIKeySetting />}
             <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
                 <Col xs={12}>
-                    {@render_sign_out_buttons()}
+                    {@render_sign_out_buttons(is_anon)}
                 </Col>
             </Row>
             {@render_sign_out_error()}
             <Row>
                 <Col xs={12}>
-                    <DeleteAccount
-                        style={marginTop:'1ex'}
-                        initial_click = {=>@setState(show_delete_confirmation:true)}
-                        confirm_click = {=>@actions('account').delete_account()}
-                        cancel_click  = {=>@setState(show_delete_confirmation:false)}
-                        user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
-                        show_confirmation={@state.show_delete_confirmation}
-                        />
+                {@render_delete_account(is_anon)}
                 </Col>
             </Row>
             {@render_sign_in_strategies()}

@@ -7,10 +7,10 @@ export interface AccountState {
   account_id: string;
   groups?: string[];
   terminal: immutable.Map<string, any>;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   profile: { color: string };
-  email_address: string;
+  email_address?: string;
   editor_settings: {
     jupyter_classic?: boolean;
     jupyter?: { kernel: string };
@@ -39,4 +39,5 @@ export interface AccountState {
   hub?: string;
   remember_me?: boolean;
   has_remember_me?: boolean;
+  passports?: immutable.Map<string, any>;
 }

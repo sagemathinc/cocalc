@@ -12,7 +12,8 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
   public render(): Rendered {
     // I think not using reduxProps is fine for this, since it's only rendered once
     // you are signed in, and falling back to "your account" isn't bad.
-    let account: string = redux.getStore("account").get("email_address");
+    const store = redux.getStore("account");
+    let account: string | undefined = store.get("email_address");
     if (!account) {
       account = "your account";
     }
@@ -22,6 +23,9 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
         "on all web browsers? Every web browser will have to reauthenticate before using this account again.";
     } else {
       title += "on this web browser?";
+    }
+    if (store.is_anonymous()) {
+      title += '\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work, click cancel and sign up above.'
     }
     return (
       <Popconfirm
