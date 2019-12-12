@@ -1723,27 +1723,18 @@ exports.ProjectTitle = ProjectTitle = rclass
     shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
+    handle_click: (e) ->
+        if @props.handle_click?
+            @props.handle_click(e)
+        else
+            # fallback behavior
+            redux.getActions('projects').open_project(project_id : @props.project_id)
+
     render: ->
         if not @props.project_map?
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@props.handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
+            <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
             <span style={@props.style}>(Private project)</span>
-
-exports.ProjectTitleAuto = rclass
-    displayName: 'Projects-ProjectTitleAuto'
-
-    propTypes:
-        project_id : rtypes.string.isRequired
-        style      : rtypes.object
-
-    handle_click: ->
-        @actions('projects').open_project(project_id : @props.project_id)
-
-    render: ->
-        <Redux redux={redux}>
-            <ProjectTitle style={@props.style} project_id={@props.project_id} handle_click={@handle_click} />
-        </Redux>
-
