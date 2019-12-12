@@ -290,8 +290,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     ###
     create_account: (opts={}) =>
         opts = defaults opts,
-            first_name        : required
-            last_name         : required
+            first_name        : undefined
+            last_name         : undefined
 
             created_by        : undefined  #  ip address of computer creating this account
 
@@ -308,17 +308,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg()
 
         for name in ['first_name', 'last_name']
-            test = misc2_node.is_valid_username(opts[name])
-            if test?
-                opts.cb("#{name} not valid: #{test}")
-                return
+            if opts[name]
+                test = misc2_node.is_valid_username(opts[name])
+                if test?
+                    opts.cb("#{name} not valid: #{test}")
+                    return
 
-        if opts.email_address? # canonicalize the email address, if given
+        if opts.email_address # canonicalize the email address, if given
             opts.email_address = misc.lower_email_address(opts.email_address)
-
-        if not opts.email_address? and not opts.passport_strategy?
-            opts.cb("email_address or passport must be given")
-            return
 
         account_id = misc.uuid()
 
