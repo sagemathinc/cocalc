@@ -2991,7 +2991,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } else {
         max_depth = "--max-depth=0";
       }
-      cmd = `git rev-parse --is-inside-work-tree && git grep -n -I -H ${ins} ${max_depth} ${search_query} || `;
+      // The || true is so that if git rev-parse has exit code 0,
+      // but "git grep" finds nothing (hence has exit code 1), we don't
+      // fall back to normal git (the other side of the ||). See
+      //    https://github.com/sagemathinc/cocalc/issues/4276
+      cmd = `git rev-parse --is-inside-work-tree && (git grep -n -I -H ${ins} ${max_depth} ${search_query} || true) || `;
     } else {
       cmd = "";
     }
