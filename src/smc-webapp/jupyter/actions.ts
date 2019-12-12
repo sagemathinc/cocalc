@@ -718,8 +718,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  /*
+  WARNING: Changes via set that are made when the actions
+  are not 'ready' or the syncdb is not ready are ignored.
+  These might happen right now if the user were to try to do
+  some random thing at the exact moment they are closing the
+  notebook. See https://github.com/sagemathinc/cocalc/issues/4274
+  */
   _set = (obj: any, save: boolean = true) => {
-    if (this._state === "closed" || this.store.get("read_only")) {
+    if (
+      this._state !== "ready" ||
+      this.store.get("read_only") ||
+      (this.syncdb != null && this.syncdb.get_state() != "ready")
+    ) {
+      // no possible way to do anything.
       return;
     }
     // check write protection regarding specific keys to be set
