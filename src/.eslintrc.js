@@ -24,7 +24,10 @@ module.exports = {
     "react-hooks/exhaustive-deps": "warn",
 
     "arrow-body-style": ["error", "always"],
-    "no-console": ["error", { allow: ["warn", "error"] }]
+    "no-console": ["error", { allow: ["warn", "error"] }],
+
+    "react/prop-types": "off",
+    "react/display-name": "off"
   },
   settings: {
     react: {
