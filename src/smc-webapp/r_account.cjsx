@@ -608,7 +608,8 @@ AccountSettings = rclass
                 <ul>
                     <li>FREE</li>
                     <li>Avoid losing all your work</li>
-                    <li>Get added to anything you were invited to</li>
+                    <li>Get added to courses and projects that you were invited to</li>
+                    <li>Create support tickets</li>
                 </ul>
             </Alert>
             <hr/>

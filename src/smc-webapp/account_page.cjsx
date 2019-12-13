@@ -158,6 +158,10 @@ exports.AccountPage = rclass
 
     render_commercial_tabs: ->
         if not require('./customize').commercial
+            # obviously don't render these if not commercial
+            return null
+        if @props.is_anonymous
+            # Also, none of these make any sense for a temporary anonymous account.
             return null
         v = []
         v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions and Course Packages'}</span>}>
