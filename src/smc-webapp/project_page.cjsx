@@ -215,16 +215,19 @@ fixed_project_pages =
         icon      : 'plus-circle'
         tooltip   : 'Create new file, folder, worksheet or terminal'
         is_public : false
+        no_anonymous : true
     log:
         label     : 'Log'
         icon      : 'history'
         tooltip   : 'Log of project activity'
         is_public : false
+        no_anonymous : true
     search :
         label     : 'Find'
         icon      : 'search'
         tooltip   : 'Search files in the project'
         is_public : false
+        no_anonymous : true
     settings :
         label     : 'Settings'
         icon      : 'wrench'
@@ -495,6 +498,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         />
 
     render_chat_indicator: (shrink_fixed_tabs) ->
+        if @props.is_anonymous  # no possibility to chat
+            return
         if @props.active_project_tab?.slice(0,7) != 'editor-'
             # TODO: This is the case where we would support project-wide side chat, or side chats
             # for each individual Files/Search, etc. page (not clear!)
@@ -511,6 +516,9 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         </div>
 
     render_share_indicator: (shrink_fixed_tabs) ->
+        if @props.is_anonymous
+            # anon users can't share anything
+            return
         if @props.active_project_tab == 'files'
             path = @props.current_path
         else
