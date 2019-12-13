@@ -499,6 +499,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       // https://github.com/sagemathinc/cocalc/issues/4158
       return;
     }
+    if (rows == Infinity || cols == Infinity) {
+      // This also happens sometimes, evidently.  Just ignore it.
+      // https://github.com/sagemathinc/cocalc/issues/4266
+      return;
+    }
     // Yes, this can throw an exception, thus breaking everything (resulting in
     // a blank page for the user).  This is probably an upstream xterm.js bug,
     // but we still have to work around it.
