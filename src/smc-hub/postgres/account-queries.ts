@@ -36,9 +36,11 @@ export async function set_account_info_if_possible(opts: {
   first_name: string | undefined;
   last_name: string | undefined;
 }): Promise<void> {
-  const columns = ["email_address, first_name, last_name"];
+  const columns = ["email_address", "first_name", "last_name"];
   const account = await get_account(opts.db, opts.account_id, columns);
-  const do_set: { [field: string]: string } = {};
+  const do_set: {
+    [field: string]: string;
+  } = {};
   for (const field of columns) {
     if (!!opts[field] && !account[field]) {
       do_set[field] = opts[field];

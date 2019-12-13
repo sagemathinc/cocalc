@@ -1184,9 +1184,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             first_name    : undefined
             last_name     : undefined
             cb         : required   # cb(err)
-        @_dbg('create_passport')(misc.to_json(opts.profile))
+        dbg = @_dbg('create_passport')
+        dbg(misc.to_json(opts.profile))
         async.series([
             (cb) =>
+                dbg("setting the passport for the account")
                 @_query
                     query     : "UPDATE accounts"
                     jsonb_set :
@@ -1195,6 +1197,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         "account_id = $::UUID" : opts.account_id
                     cb        : cb
             (cb) =>
+                dbg("setting other account info #{opts.email_address}, #{opts.first_name}, #{opts.last_name}")
                 try
                     await set_account_info_if_possible
                         db            : @
