@@ -48,9 +48,13 @@ export class AccountStore extends Store<AccountState> {
   selectors: any = {
     is_anonymous: {
       fn: () => {
-        return is_anonymous(this.get("email_address"), this.get("passports"));
+        return is_anonymous(
+          this.get("is_logged_in"),
+          this.get("email_address"),
+          this.get("passports")
+        );
       },
-      dependencies: literal(["email_address", "passports"])
+      dependencies: literal(["email_address", "passports", "is_logged_in"])
     }
   };
 
@@ -127,10 +131,14 @@ export class AccountStore extends Store<AccountState> {
 // A user is anonymous if they have not provided a way to sign
 // in later (besides their cookie), i.e., if they have no
 // passport strategies and have not provided an email address.
-export function is_anonymous(
+function is_anonymous(
+  is_logged_in: boolean,
   email_address: string | undefined | null,
   passports: Map<string, any> | undefined | null
 ): boolean {
+  if (!is_logged_in) {
+    return false;
+  }
   if (email_address) {
     return false;
   }
