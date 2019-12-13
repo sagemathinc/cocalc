@@ -648,7 +648,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 fullscreen      = {@props.fullscreen}
                 />
 
-        v.concat(@render_editor_tabs(active_path, group))
+        v = v.concat(@render_editor_tabs(active_path, group))
+
 
         if @props.active_top_tab == "account" and @props.is_anonymous
             v.push(<AccountPage key={'account'}/>)

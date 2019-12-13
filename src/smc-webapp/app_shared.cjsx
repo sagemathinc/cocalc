@@ -45,7 +45,7 @@ feature = require('./feature')
 # same as nav bar height?
 exports.announce_bar_offset = announce_bar_offset = 40
 
-exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_mode}) ->
+exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_mode, is_anonymous}) ->
     v = []
     if open_projects?
         open_projects.forEach (project_id) ->
@@ -54,9 +54,9 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
             if render_small
                 x = <MobileProjectPage name={project_name} project_id={project_id} is_active={is_active} />
             else
-                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active} />
+                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active} active_top_tab={active_top_tab} />
             cls = 'smc-vfill'
-            if project_id != active_top_tab
+            if project_id != active_top_tab and not is_anonymous
                 cls += ' hide'
             v.push(<div key={project_id} className={cls}>{x}</div>)
     else  # open_projects not used (e.g., on mobile).
@@ -72,7 +72,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
     # in kiosk mode: if no file is opened show a banner
     if kiosk_mode and v.length == 0
         v.push <KioskModeBanner key={'kiosk'} />
-    else
+    else if !is_anonymous
         switch active_top_tab
             when 'projects'
                 v.push <ProjectsPage key={'projects'}/>
@@ -93,7 +93,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
         # this happens upon loading a URL for a project, but the project isn't open yet.
         # implicitly, this waits for a websocket connection, hence show the same banner as for the landing page
         v.push <Connecting key={'connecting'} />
-    return v
+
+    return <div style={padding: "20px"}>{v}</div>
 
 exports.NavTab = rclass
     displayName : "NavTab"
