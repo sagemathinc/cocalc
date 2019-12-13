@@ -448,9 +448,13 @@ AccountSettings = rclass
     handle_change: (evt, field) ->
         # value = ReactDOM.findDOMNode(@refs[field]).value
         value = evt.target.value
-        if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
-            # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
-            return
+        if not value and (field == 'first_name' or field == 'last_name')
+            if not is_anonymous(this.props.email_address, this.props.passports)
+                # special case -- don't let them make their name empty;
+                # that's just annoying (not enforced server side).
+                # For anonymous users we do allow this, since they may start typing
+                # their name, then want to backspace it away.
+                return
         @actions('account').setState("#{field}": value)
 
     save_change: (evt, field) ->
