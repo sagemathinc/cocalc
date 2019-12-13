@@ -175,6 +175,11 @@ EmailAddressSetting = rclass
             password : ''  # more secure...
 
     save_editing: ->
+        if @state.password.length < 6
+            @setState
+                state : 'edit'
+                error : 'Password must be at least 6 characters long.'
+            return
         @setState
             state : 'saving'
         webapp_client.change_email
@@ -246,7 +251,7 @@ EmailAddressSetting = rclass
         if @props.email_address
             return "Change email address"
         else
-            return "Set email address"
+            return "Set email address and password"
 
     render: ->
         <LabeledRow label='Email address'  style={if @props.disabled then {color:"#666"}}>
@@ -349,7 +354,7 @@ PasswordSetting = rclass
                         strength     : 0
 
     is_submittable: ->
-        return @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+        return @state.new_password.length >= 6 and @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
 
     change_button: ->
         if @is_submittable()
