@@ -156,6 +156,7 @@ EmailAddressSetting = rclass
         email_address : rtypes.string
         redux         : rtypes.object
         disabled      : rtypes.bool
+        is_anonymous  : rtypes.bool
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -248,7 +249,9 @@ EmailAddressSetting = rclass
             <Saving />
 
     button_label: ->
-        if @props.email_address
+        if @props.is_anonymous
+            return "Sign up using an email address and password"
+        else if @props.email_address
             return "Change email address"
         else
             return "Set email address and password"
@@ -689,6 +692,7 @@ AccountSettings = rclass
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = {254}
+                is_anonymous = {@props.is_anonymous}
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <div style={marginBottom:'15px'}></div>
