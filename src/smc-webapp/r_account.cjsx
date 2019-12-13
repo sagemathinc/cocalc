@@ -1484,11 +1484,11 @@ exports.AccountSettingsTop = rclass
                         other_settings     = {@props.other_settings}
                         is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
                         redux              = {@props.redux} />
-                    <ProfileSettings
+                    {if not @props.is_anonymous then <ProfileSettings
                         email_address = {@props.email_address}
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
-                        redux         = {@props.redux} />
+                        redux         = {@props.redux} />}
                 </Col>
                 <Col xs={12} md={6}>
                     <EditorSettings

@@ -96,6 +96,7 @@ PAGE_REDUX_PROPS =
         is_logged_in           : rtypes.bool
         show_global_info       : rtypes.bool
         groups                 : rtypes.immutable.List
+        is_anonymous           : rtypes.bool
     support :
         show                   : rtypes.bool
 
@@ -136,7 +137,8 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {'Account'}
+            label          = {if @props.is_anonymous then 'Temporary Account' else 'Account'}
+            style          = {if @props.is_anonymous then {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}}
             label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
