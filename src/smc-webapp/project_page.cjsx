@@ -90,6 +90,7 @@ FreeProjectWarning = rclass ({name}) ->
     reduxProps:
         account :
             other_settings : rtypes.immutable.Map
+            is_anonymous   : rtypes.bool
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
@@ -157,6 +158,11 @@ FreeProjectWarning = rclass ({name}) ->
         if @props.other_settings?.get('no_free_warnings')
             return null
         if not require('./customize').commercial
+            return null
+        if @props.is_anonymous
+            # No need to provide all these warnings and scare anonymous users, who are just
+            # playing around for the first time (and probably wouldn't read this, and should
+            # assume strong limitations since they didn't even make an account).
             return null
         if @props.free_warning_closed
             return null

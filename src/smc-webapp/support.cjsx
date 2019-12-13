@@ -593,7 +593,7 @@ exports.Support = rclass
 
     render_form: (show_form)->
         if @props.is_anonymous
-            return <h3>In order to create a support ticket you must <a onClick={=>@show_account()}>create a non-temporary account.</a></h3>
+            return <h3>In order to create a support ticket first <a onClick={=>@show_account()}>create an account...</a></h3>
         else
             <SupportForm
                 actions   = {@props.actions}

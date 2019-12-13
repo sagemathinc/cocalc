@@ -125,7 +125,7 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        if @props.account_id
+        if @props.account_id and not @props.is_anonymous
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -137,8 +137,8 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {if @props.is_anonymous then 'Temporary Account' else 'Account'}
-            style          = {if @props.is_anonymous then {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}}
+            label          = {if @props.is_anonymous then 'Create Account!' else 'Account'}
+            style          = {if @props.is_anonymous then {fontWeight:'bold', fontSize:'16px'}}
             label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
@@ -199,7 +199,7 @@ Page = rclass
         />
 
     render_bell: ->
-        if not @props.is_logged_in
+        if not @props.is_logged_in or @props.is_anonymous
             return
         <NotificationBell
             count  = {@props.notify_count}
