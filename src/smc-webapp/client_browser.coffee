@@ -326,7 +326,18 @@ class Connection extends client.Connection
         require('./alerts').alert_message(args...)
 
     do_anonymous_setup: () =>
-        await callback2(@create_account, {})
+        try
+            x = await callback2(@create_account, {})
+            if x?.event == 'account_creation_failed'
+                throw Error("failed")
+        catch err
+            # This happens if, e.g., a token is required,
+            # or maybe this ip is blocked. Falling back
+            # to normal sign up makes sense in this case.
+            i = window.location.href.indexOf('?')
+            if i != -1
+                window.history.pushState("", "", window.location.href.slice(0,i))
+            return
         if not @is_signed_in()
             await once(@, "signed_in")
         actions = @_redux.getActions('projects')
