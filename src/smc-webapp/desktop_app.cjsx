@@ -224,7 +224,7 @@ Page = rclass
             {@render_support()}
             {@render_account_tab() if logged_in}
             {@render_bell()}
-            <ConnectionIndicator actions={@actions('page')} />
+            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
         </Nav>
 
     render_project_nav_button: ->
@@ -297,12 +297,12 @@ Page = rclass
             {<LocalStorageWarning /> if @props.local_storage_warning}
             {<GlobalInformationMessage /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
-                {@render_project_nav_button() if @props.is_logged_in}
-                {<ProjectsNav dropdown={false} /> if not @props.is_anonymous}
+                {@render_project_nav_button() if @props.is_logged_in and not @props.is_anonymous}
+                <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div> if not @props.fullscreen}
-            {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
+            {<FullscreenButton /> if (@props.fullscreen != 'kiosk' and not @props.is_anonymous)}
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
             <ErrorBoundary>
