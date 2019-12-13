@@ -25,7 +25,7 @@
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
-{SiteName} = require('./customize')
+{SiteName, TermsOfService} = require('./customize')
 
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
@@ -70,12 +70,13 @@ TextSetting = rclass
         onChange  : rtypes.func.isRequired
         onBlur    : rtypes.func
         maxLength : rtypes.number
+        disabled  : rtypes.bool
 
     getValue: ->
         ReactDOM.findDOMNode(@refs.input).value
 
     render: ->
-        <LabeledRow label={@props.label}>
+        <LabeledRow label={@props.label} style={if @props.disabled then {color:"#666"}}>
             <FormGroup>
                 <FormControl
                     ref      = 'input'
@@ -84,6 +85,7 @@ TextSetting = rclass
                     onChange = {@props.onChange}
                     onBlur   = {@props.onBlur}
                     maxLength= {@props.maxLength}
+                    disabled = {@props.disabled}
                 />
             </FormGroup>
         </LabeledRow>
@@ -154,6 +156,7 @@ EmailAddressSetting = rclass
     propTypes :
         email_address : rtypes.string
         redux         : rtypes.object
+        disabled      : rtypes.bool
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -202,7 +205,7 @@ EmailAddressSetting = rclass
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
     render_edit: ->
-        password_label = if @state.email_address then "Current password" else "Choose a password"
+        password_label = if @props.email_address then "Current password" else "Choose a password"
         <Well style={marginTop: '3ex'}>
             <FormGroup>
                 New email address
@@ -247,10 +250,10 @@ EmailAddressSetting = rclass
             return "Set email address"
 
     render: ->
-        <LabeledRow label='Email address'  style={marginBottom: '15px'}>
+        <LabeledRow label='Email address'  style={if @props.disabled then {color:"#666"}}>
             <div>
                 {@props.email_address}
-                {if @state.state == 'view' then <Button className='pull-right' onClick={@start_editing}>{@button_label()}...</Button>}
+                {if @state.state == 'view' then <Button disabled={@props.disabled} className='pull-right' onClick={@start_editing}>{@button_label()}...</Button>}
             </div>
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
@@ -440,6 +443,7 @@ AccountSettings = rclass
     getInitialState: ->
         add_strategy_link      : undefined
         remote_strategy_button : undefined
+        terms_checkbox         : false
 
     handle_change: (evt, field) ->
         # value = ReactDOM.findDOMNode(@refs[field]).value
@@ -520,9 +524,10 @@ AccountSettings = rclass
                 </ButtonToolbar>
             </Well>
 
-    render_strategy: (strategy, strategies) ->
+    render_strategy: (is_anon, strategy, strategies) ->
         if strategy != 'email'
             <Button
+                disabled={is_anon and not @state.terms_checkbox}
                 onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
                 key     = {strategy}
                 bsStyle = {if strategy in strategies then 'info' else 'default'}>
@@ -538,24 +543,49 @@ AccountSettings = rclass
         />
 
     render_sign_out_buttons: (is_anon) ->
-        <div className='pull-right'>
-            <SignOut everywhere={false}/>
-            {if not is_anon then <Space/>}
-            {if not is_anon then <SignOut everywhere={true}/>}
-        </div>
+        <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
+            <Col xs={12}>
+                <div className='pull-right'>
+                    <SignOut everywhere={false}/>
+                    {if not is_anon then <Space/>}
+                    {if not is_anon then <SignOut everywhere={true}/>}
+                </div>
+            </Col>
+        </Row>
 
-    render_sign_in_strategies: ->
+    render_linked_external_accounts: (is_anon) ->
         if not STRATEGIES? or STRATEGIES.length <= 1
+            # not configured by server
             return
-        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
+        configured_strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
+        linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy in configured_strategies)
+        if linked.length == 0
+            return
         <div>
             <hr key='hr0' />
-            <h5 style={color:"#666"}>Linked external accounts</h5>
+            <h5 style={color:"#666"}>Your account is linked with (click to unlink)</h5>
             <ButtonToolbar style={marginBottom:'10px'} >
-                {(@render_strategy(strategy, strategies) for strategy in STRATEGIES)}
+                {(@render_strategy(is_anon, strategy, configured_strategies) for strategy in linked)}
+            </ButtonToolbar>
+            {@render_remove_strategy_button()}
+        </div>
+
+    render_available_to_link: (is_anon) ->
+        if not STRATEGIES? or STRATEGIES.length <= 1
+            # not configured by server
+            return
+        configured_strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
+        not_linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy not in configured_strategies)
+        if not_linked.length == 0
+            return
+        heading = if is_anon then "Or sign up using your account at" else "Click to link your account"
+        <div>
+            <hr key='hr0' />
+            <h5 style={color:"#666"}>{heading}</h5>
+            <ButtonToolbar style={marginBottom:'10px'} >
+                {(@render_strategy(is_anon, strategy, configured_strategies) for strategy in not_linked)}
             </ButtonToolbar>
             {@render_add_strategy_link()}
-            {@render_remove_strategy_button()}
         </div>
 
     render_anonymous_warning:  (is_anon)  ->
@@ -568,23 +598,29 @@ AccountSettings = rclass
                     </h3>
                     Sign up below!
                     <ul>
+                        <li>FREE</li>
                         <li>Avoid losing all your work</li>
-                        <li>Get added to any courses or projects you were invited to</li>
+                        <li>Get added to anything you were invited to</li>
                     </ul>
                 </Alert>
                 <hr/>
             </div>
 
     render_delete_account: (is_anon) ->
-        if not is_anon
-            <DeleteAccount
-                style={marginTop:'1ex'}
-                initial_click = {=>@setState(show_delete_confirmation:true)}
-                confirm_click = {=>@actions('account').delete_account()}
-                cancel_click  = {=>@setState(show_delete_confirmation:false)}
-                user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
-                show_confirmation={@state.show_delete_confirmation}
-                />
+        if is_anon
+            return
+        <Row>
+            <Col xs={12}>
+                <DeleteAccount
+                    style={marginTop:'1ex'}
+                    initial_click = {=>@setState(show_delete_confirmation:true)}
+                    confirm_click = {=>@actions('account').delete_account()}
+                    cancel_click  = {=>@setState(show_delete_confirmation:false)}
+                    user_name     = {(@props.first_name + ' ' + @props.last_name).trim()}
+                    show_confirmation={@state.show_delete_confirmation}
+                    />
+            </Col>
+        </Row>
 
     render_password: () ->
         if not @props.email_address
@@ -602,10 +638,23 @@ AccountSettings = rclass
             email_address  = {@props.email_address}
             other_settings = {@props.other_settings}
             />
+
+    render_terms_of_service: (is_anon) ->
+        if not is_anon
+            return
+        <FormGroup style={ fontSize: "12pt", margin: "20px" }>
+            <Checkbox
+              onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
+            >
+                 <TermsOfService />
+            </Checkbox>
+        </FormGroup>
+
     render: ->
         is_anon = is_anonymous(this.props.email_address, this.props.passports)
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             {@render_anonymous_warning(is_anon)}
+            {@render_terms_of_service(is_anon)}
             <TextSetting
                 label     = 'First name'
                 value     = {@props.first_name}
@@ -613,6 +662,7 @@ AccountSettings = rclass
                 onChange  = {(e)=>@handle_change(e, 'first_name')}
                 onBlur    = {(e)=>@save_change(e, 'first_name')}
                 maxLength = {254}
+                disabled  = {is_anon and not @state.terms_checkbox}
                 />
             <TextSetting
                 label    = 'Last name'
@@ -621,13 +671,16 @@ AccountSettings = rclass
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
                 maxLength = {254}
+                disabled  = {is_anon and not @state.terms_checkbox}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = {254}
+                disabled  = {is_anon and not @state.terms_checkbox}
                 />
+            <div style={marginBottom:'15px'}></div>
             <EmailVerification
                 account_id             = {@props.account_id}
                 email_address          = {@props.email_address}
@@ -637,18 +690,11 @@ AccountSettings = rclass
             {@render_newsletter()}
             {@render_password(is_anon)}
             {if not is_anon then <APIKeySetting />}
-            <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
-                <Col xs={12}>
-                    {@render_sign_out_buttons(is_anon)}
-                </Col>
-            </Row>
+            {@render_delete_account(is_anon)}
+            {@render_linked_external_accounts(is_anon)}
+            {@render_available_to_link(is_anon)}
+            {@render_sign_out_buttons(is_anon)}
             {@render_sign_out_error()}
-            <Row>
-                <Col xs={12}>
-                {@render_delete_account(is_anon)}
-                </Col>
-            </Row>
-            {@render_sign_in_strategies()}
         </Panel>
 
 DeleteAccount = rclass
