@@ -187,6 +187,8 @@ exports.AccountPage = rclass
     render_logged_in_view: ->
         if not @props.account_id
             return @render_loading_view()
+        if @props.is_anonymous
+            return <div style={margin:'5% 10%'}>{@render_account_settings()}</div>
         <Row>
             <Col md={12}>
                 <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">

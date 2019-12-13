@@ -125,7 +125,9 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        if @props.account_id and not @props.is_anonymous
+        if @props.is_anonymous
+            a = undefined
+        else if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -137,7 +139,7 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {if @props.is_anonymous then 'Create Account!' else 'Account'}
+            label          = {if @props.is_anonymous then 'Sign up' else 'Account'}
             style          = {if @props.is_anonymous then {fontWeight:'bold', fontSize:'16px'}}
             label_class    = {nav_class}
             icon           = {a}

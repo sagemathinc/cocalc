@@ -257,7 +257,8 @@ EmailAddressSetting = rclass
             return "Set email address and password"
 
     render: ->
-        <LabeledRow label='Email address'  style={if @props.disabled then {color:"#666"}}>
+        label = if @props.is_anonymous then <h5 style={color:"#666"}>Sign up using an email address and password</h5> else 'Email address'
+        <LabeledRow label={label}  style={if @props.disabled then {color:"#666"}}>
             <div>
                 {@props.email_address}
                 {if @state.state == 'view' then <Button disabled={@props.disabled} className='pull-right' onClick={@start_editing}>{@button_label()}...</Button>}
@@ -590,7 +591,7 @@ AccountSettings = rclass
         not_linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy not in configured_strategies)
         if not_linked.length == 0
             return
-        heading = if @props.is_anonymous then "Or sign up using your account at" else "Click to link your account"
+        heading = if @props.is_anonymous then "Sign up using your account at" else "Click to link your account"
         <div>
             <hr key='hr0' />
             <h5 style={color:"#666"}>{heading}</h5>
@@ -607,8 +608,7 @@ AccountSettings = rclass
         # get automatically deleted.
         <div>
             <Alert bsStyle='warning' style={marginTop:'10px'}>
-                <h3>Thank you for using CoCalc!</h3>
-                Sign up below:
+                <h4>Sign up below:</h4>
                 <ul>
                     <li>It is free</li>
                     <li>Avoid losing all your work</li>
@@ -669,8 +669,14 @@ AccountSettings = rclass
             </Checkbox>
         </FormGroup>
 
+    render_header: ->
+        if @props.is_anonymous
+            return <h2><b>Thank you for using CoCalc!</b></h2>
+        else
+            return <h2> <Icon name='user' /> Account settings</h2>
+
     render: ->
-        <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
+        <Panel header={@render_header()}>
             {@render_anonymous_warning()}
             {@render_terms_of_service()}
             <TextSetting
@@ -1478,31 +1484,37 @@ exports.AccountSettingsTop = rclass
         stripe_customer        : rtypes.immutable.Map
         is_anonymous           : rtypes.bool
 
+    render_account_settings: ->
+        <AccountSettings
+            account_id             = {@props.account_id}
+            first_name             = {@props.first_name}
+            last_name              = {@props.last_name}
+            email_address          = {@props.email_address}
+            email_address_verified = {@props.email_address_verified}
+            passports              = {@props.passports}
+            sign_out_error         = {@props.sign_out_error}
+            everywhere             = {@props.everywhere}
+            other_settings         = {@props.other_settings}
+            is_anonymous           = {@props.is_anonymous}
+            redux                  = {@props.redux} />
+
+
     render: ->
+        if @props.is_anonymous
+            return @render_account_settings()
         <div style={marginTop:'1em'}>
             <Row>
                 <Col xs={12} md={6}>
-                    <AccountSettings
-                        account_id             = {@props.account_id}
-                        first_name             = {@props.first_name}
-                        last_name              = {@props.last_name}
-                        email_address          = {@props.email_address}
-                        email_address_verified = {@props.email_address_verified}
-                        passports              = {@props.passports}
-                        sign_out_error         = {@props.sign_out_error}
-                        everywhere             = {@props.everywhere}
-                        other_settings         = {@props.other_settings}
-                        is_anonymous           = {@props.is_anonymous}
-                        redux                  = {@props.redux} />
+                    {@render_account_settings()}
                     <OtherSettings
                         other_settings     = {@props.other_settings}
                         is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
                         redux              = {@props.redux} />
-                    {if not @props.is_anonymous then <ProfileSettings
+                    <ProfileSettings
                         email_address = {@props.email_address}
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
-                        redux         = {@props.redux} />}
+                        redux         = {@props.redux} />
                 </Col>
                 <Col xs={12} md={6}>
                     <EditorSettings
