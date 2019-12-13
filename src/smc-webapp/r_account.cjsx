@@ -607,11 +607,10 @@ AccountSettings = rclass
         # get automatically deleted.
         <div>
             <Alert bsStyle='warning' style={marginTop:'10px'}>
-                <h3>WARNING: You are using a <i>temporary account!</i>
-                </h3>
+                <h3>Thank you for using CoCalc!</h3>
                 Sign up below:
                 <ul>
-                    <li>FREE</li>
+                    <li>It is free</li>
                     <li>Avoid losing all your work</li>
                     <li>Get added to courses and projects that you were invited to</li>
                     <li>Create support tickets</li>
