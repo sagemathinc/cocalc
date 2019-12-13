@@ -224,6 +224,7 @@ fixed_project_pages =
         icon      : 'wrench'
         tooltip   : 'Project settings and controls'
         is_public : false
+        no_anonymous : true
 
 # Children must define their own padding from navbar and screen borders
 ProjectContentViewer = rclass
@@ -437,6 +438,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             num_ghost_file_tabs   : rtypes.number
             current_path          : rtypes.string
             show_new              : rtypes.bool
+        account:
+            is_anonymous          : rtypes.bool
 
     propTypes :
         project_id : rtypes.string
@@ -519,16 +522,14 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             />
         </div>
 
-    render_file_tabs: (is_public) ->
-        shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
-
-        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
-            <div style={display:'flex'}>
-                {<Nav
-                    bsStyle   = "pills"
-                    className = "smc-file-tabs-fixed-desktop"
-                    style     = {overflow:'hidden', float:'left'} >
-                    {[<FileTab
+    fixed_tabs_array: (is_public, shrink_fixed_tabs) ->
+        tabs = []
+        for k, v of fixed_project_pages
+            if @props.is_anonymous and v.no_anonymous
+                continue
+            if (is_public and v.is_public) or (not is_public)
+                tab = <FileTab
+                        key        = {k}
                         name       = {k}
                         label      = {v.label}
                         icon       = {v.icon}
@@ -536,7 +537,21 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         project_id = {@props.project_id}
                         is_active  = {@props.active_project_tab == k}
                         shrink     = {shrink_fixed_tabs}
-                    /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
+                    />
+                tabs.push(tab)
+        return tabs
+
+    render_file_tabs: (is_public) ->
+        shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
+        fixed_tabs = @fixed_tabs_array(is_public, shrink_fixed_tabs)
+
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
+            <div style={display:'flex'}>
+                {<Nav
+                    bsStyle   = "pills"
+                    className = "smc-file-tabs-fixed-desktop"
+                    style     = {overflow:'hidden', float:'left'} >
+                    {fixed_tabs}
                 </Nav> if (@props.fullscreen != 'kiosk')}
                 <div
                     style = {display:'flex', overflow:'hidden', flex: 1}
