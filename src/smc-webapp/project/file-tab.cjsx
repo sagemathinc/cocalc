@@ -68,6 +68,7 @@ exports.FileTab = rclass
                 new_browser_window : true
         else
             actions.set_active_tab(@props.name)
+        @props.on_click?()
 
         if @props.file_tab
             analytics_event('project_navigation', 'opened_a_file', misc.filename_extension(@props.name))

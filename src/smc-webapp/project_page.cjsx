@@ -34,6 +34,7 @@ feature = require('./feature')
 Draggable = require('react-draggable')
 
 # CoCalc Libraries
+{AccountPage} = require('./account_page')
 {SideChat}         = require('./side_chat')
 {Explorer}         = require('./project/explorer')
 {ProjectNew}       = require('./project/new')
@@ -496,6 +497,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             file_tab     = {true}
             has_activity = {@props.open_files.getIn([path, 'has_activity'])}
             is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
+            on_click     = {() =>
+                console.log("Clicked", path)
+                if @props.is_anonymous
+                    redux.getActions('page').set_active_tab(@props.project_id)
+            }
         />
 
     render_chat_indicator: (shrink_fixed_tabs) ->
@@ -587,7 +593,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     </SortableNav>
                 </div>
                 <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
-                    {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                    {@render_chat_indicator(shrink_fixed_tabs) if not is_public and not @props.is_anonymous}
+                    {<Button onClick={() => redux.getActions('page').set_active_tab('account')}>Log in</Button> if @props.is_anonymous}
                     {@render_share_indicator(shrink_fixed_tabs) if not is_public}
                 </div>
             </div>
@@ -617,7 +624,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     render_project_content: (active_path, group) ->
         v = []
-        if @props.active_project_tab.slice(0, 7) != 'editor-'  # fixed tab
+        if @props.active_project_tab.slice(0, 7) != 'editor-'
+            # rendering fixed tabs
             if !@props.is_active
                 # see https://github.com/sagemathinc/cocalc/issues/3799
                 # Some of the fixed project tabs (none editors) are hooked
@@ -639,7 +647,13 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
                 fullscreen      = {@props.fullscreen}
                 />
-        return v.concat(@render_editor_tabs(active_path, group))
+
+        v.concat(@render_editor_tabs(active_path, group))
+
+        if @props.active_top_tab == "account" and @props.is_anonymous
+            v.push(<AccountPage key={'account'}/>)
+
+        return v
 
     render : ->
         if not @props.open_files_order?
