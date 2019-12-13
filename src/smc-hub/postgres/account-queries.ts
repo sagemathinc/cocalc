@@ -51,6 +51,14 @@ export async function set_account_info_if_possible(opts: {
     return;
   }
   await set_account(opts.db, opts.account_id, do_set);
+  if (do_set["email_address"]) {
+    // Just changed email address - might be added to a project...
+    // Note -- this functionality will go away completely and be replaced by "add codes"...
+    await callback2(opts.db.do_account_creation_actions.bind(opts.db), {
+      email_address: opts.email_address,
+      account_id: opts.account_id
+    });
+  }
 }
 
 export async function set_account(
