@@ -566,7 +566,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
         fixed_tabs = @fixed_tabs_array(is_public, shrink_fixed_tabs)
 
-        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height: @props.is_anonymous ? '34px' : '32px', borderBottom: "1px solid #e1e1e1"}>
             <div style={display:'flex'}>
                 {<Nav
                     bsStyle   = "pills"
@@ -649,7 +649,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 />
 
         v = v.concat(@render_editor_tabs(active_path, group))
-
 
         if @props.active_top_tab == "account" and @props.is_anonymous
             v.push(<AccountPage key={'account'}/>)

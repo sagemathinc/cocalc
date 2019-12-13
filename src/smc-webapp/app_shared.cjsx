@@ -94,7 +94,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
         # implicitly, this waits for a websocket connection, hence show the same banner as for the landing page
         v.push <Connecting key={'connecting'} />
 
-    return <div style={padding: "20px"}>{v}</div>
+    return v
 
 exports.NavTab = rclass
     displayName : "NavTab"
