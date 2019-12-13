@@ -593,11 +593,8 @@ AccountSettings = rclass
         </div>
 
     render_anonymous_warning:  ()  ->
-        console.log("render_anonymous_warning", @props.is_anonymous)
         if not @props.is_anonymous
-            console.log("not anonymous so returning")
             return
-        console.log("rendering the warning")
         # makes no sense to delete an account that is anonymous; it'll
         # get automatically deleted.
         <div>
