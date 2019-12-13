@@ -594,7 +594,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 </div>
                 <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
                     {@render_chat_indicator(shrink_fixed_tabs) if not is_public and not @props.is_anonymous}
-                    {<Button onClick={() => redux.getActions('page').set_active_tab('account')}>Log in</Button> if @props.is_anonymous}
+                    {<Button bsStyle={'success'} onClick={() => redux.getActions('page').set_active_tab('account')}>Sign Up</Button> if @props.is_anonymous}
                     {@render_share_indicator(shrink_fixed_tabs) if not is_public}
                 </div>
             </div>
