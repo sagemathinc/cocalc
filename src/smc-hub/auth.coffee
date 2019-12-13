@@ -211,6 +211,9 @@ passport_login = (opts) ->
                                 strategy   : opts.strategy
                                 id         : opts.id
                                 profile    : opts.profile
+                                email_address : opts.emails?[0]
+                                first_name    : opts.first_name
+                                last_name     : opts.last_name
                                 cb         : cb
                         else
                             if locals.has_valid_remember_me and locals.account_id != _account_id

@@ -30,6 +30,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
+{set_account_info_if_possible} = require('./postgres/account-queries')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -1175,19 +1176,36 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     create_passport: (opts) =>
         opts= defaults opts,
-            account_id : required
-            strategy   : required
-            id         : required
-            profile    : required
+            account_id    : required
+            strategy      : required
+            id            : required
+            profile       : required
+            email_address : undefined   # if not set in database and set here (and doesn't conflict with existing account), gets set in database; same for first and last name.
+            first_name    : undefined
+            last_name     : undefined
             cb         : required   # cb(err)
         @_dbg('create_passport')(misc.to_json(opts.profile))
-        @_query
-            query     : "UPDATE accounts"
-            jsonb_set :
-                passports : "#{@_passport_key(opts)}" : opts.profile
-            where     :
-                "account_id = $::UUID" : opts.account_id
-            cb        : opts.cb
+        async.series([
+            (cb) =>
+                @_query
+                    query     : "UPDATE accounts"
+                    jsonb_set :
+                        passports : "#{@_passport_key(opts)}" : opts.profile
+                    where     :
+                        "account_id = $::UUID" : opts.account_id
+                    cb        : cb
+            (cb) =>
+                try
+                    await set_account_info_if_possible
+                        db            : @
+                        account_id    : opts.account_id
+                        email_address : opts.email_address
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                    cb()
+                catch err
+                    cb(err)
+        ], opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
