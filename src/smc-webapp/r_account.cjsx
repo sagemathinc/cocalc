@@ -192,13 +192,13 @@ EmailAddressSetting = rclass
                 if err
                     @setState
                         state    : 'edit'
-                        error    : "Error saving -- #{err}"
+                        error    : "Error -- #{err}"
                 else
-                    set_account_table(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
                         password : ''
+
     is_submittable: ->
         return @state.password != '' and @state.email_address != @props.email_address
 
