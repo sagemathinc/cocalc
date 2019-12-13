@@ -332,6 +332,10 @@ class Connection extends client.Connection
         actions = @_redux.getActions('projects')
         project_id = await actions.create_project({title:'Welcome to CoCalc!', start:true, description:''})
         actions.open_project({ project_id:project_id, switch_to: true })
+        # Also change default account settings to not ask for the kernel,
+        # since that adds friction
+        @_redux.getTable("account").set({editor_settings: { ask_jupyter_kernel: false , jupyter:{kernel:'python3'}}})
+        # Open a new Jupyter notebook:
         project_actions = @_redux.getProjectActions(project_id)
         project_actions.open_file({path:"Welcome to CoCalc.ipynb", foreground:true})
 
