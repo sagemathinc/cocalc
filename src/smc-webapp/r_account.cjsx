@@ -607,15 +607,15 @@ AccountSettings = rclass
         # get automatically deleted.
         <div>
             <Alert bsStyle='warning' style={marginTop:'10px'}>
-                <h3>WARNING: This is a <i>temporary account!</i>
+                <h3>WARNING: You are using a <i>temporary account!</i>
                 </h3>
-                Sign up below!
+                Sign up below:
                 <ul>
                     <li>FREE</li>
                     <li>Avoid losing all your work</li>
                     <li>Get added to courses and projects that you were invited to</li>
                     <li>Create support tickets</li>
-                    <li>Unlock additional features and controls</li>
+                    <li>Unlock additional features and controls, including unlimited additional projects, realtime collaboration and much, much more</li>
                 </ul>
             </Alert>
             <hr/>
@@ -657,7 +657,12 @@ AccountSettings = rclass
     render_terms_of_service: () ->
         if not @props.is_anonymous
             return
-        <FormGroup style={ fontSize: "12pt", margin: "20px" }>
+        style = {padding:'10px 20px'}
+        if @state.terms_checkbox
+            style.border = '2px solid #ccc'
+        else
+            style.border = '2px solid red'
+        <FormGroup style={ style }>
             <Checkbox
               onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
             >
