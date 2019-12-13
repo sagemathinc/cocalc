@@ -210,6 +210,7 @@ fixed_project_pages =
         icon      : 'folder-open-o'
         tooltip   : 'Browse files'
         is_public : true
+        no_anonymous : true
     new :
         label     : 'New'
         icon      : 'plus-circle'
