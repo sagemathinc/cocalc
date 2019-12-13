@@ -4,6 +4,7 @@ import { get_total_upgrades } from "smc-util/upgrades";
 import * as misc from "smc-util/misc2";
 import * as lodash from "lodash";
 import { Map } from "immutable";
+import { literal } from "../app-framework/literal";
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -44,9 +45,14 @@ export class AccountStore extends Store<AccountState> {
     return !!groups && groups.includes("admin");
   }
 
-  public is_anonymous(): boolean {
-    return is_anonymous(this.get("email_address"), this.get("passports"));
-  }
+  selectors: any = {
+    is_anonymous: {
+      fn: () => {
+        return is_anonymous(this.get("email_address"), this.get("passports"));
+      },
+      dependencies: literal(["email_address", "passports"])
+    }
+  };
 
   get_terminal_settings(): { [key: string]: any } | undefined {
     return this.get("terminal") ? this.get("terminal").toJS() : undefined;

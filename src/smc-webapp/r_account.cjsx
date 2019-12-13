@@ -34,7 +34,6 @@
 {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 {NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
 {NEW_FILENAMES} = require('smc-util/db-schema')
-{is_anonymous} = require('./account/store')
 
 {SignOut} =require('./account/sign-out')
 
@@ -439,6 +438,7 @@ AccountSettings = rclass
         redux                  : rtypes.object
         delete_account_error   : rtypes.string
         other_settings         : rtypes.object
+        is_anonymous           : rtypes.bool
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -449,7 +449,7 @@ AccountSettings = rclass
         # value = ReactDOM.findDOMNode(@refs[field]).value
         value = evt.target.value
         if not value and (field == 'first_name' or field == 'last_name')
-            if not is_anonymous(this.props.email_address, this.props.passports)
+            if not @props.is_anonymous
                 # special case -- don't let them make their name empty;
                 # that's just annoying (not enforced server side).
                 # For anonymous users we do allow this, since they may start typing
@@ -528,10 +528,10 @@ AccountSettings = rclass
                 </ButtonToolbar>
             </Well>
 
-    render_strategy: (is_anon, strategy, strategies) ->
+    render_strategy: (strategy, strategies) ->
         if strategy != 'email'
             <Button
-                disabled={is_anon and not @state.terms_checkbox}
+                disabled={@props.is_anonymous and not @state.terms_checkbox}
                 onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
                 key     = {strategy}
                 bsStyle = {if strategy in strategies then 'info' else 'default'}>
@@ -546,18 +546,18 @@ AccountSettings = rclass
             onClose={=>@actions('account').setState(sign_out_error : '')}
         />
 
-    render_sign_out_buttons: (is_anon) ->
+    render_sign_out_buttons: ->
         <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
             <Col xs={12}>
                 <div className='pull-right'>
                     <SignOut everywhere={false}/>
-                    {if not is_anon then <Space/>}
-                    {if not is_anon then <SignOut everywhere={true}/>}
+                    {if not @props.is_anonymous then <Space/>}
+                    {if not @props.is_anonymous then <SignOut everywhere={true}/>}
                 </div>
             </Col>
         </Row>
 
-    render_linked_external_accounts: (is_anon) ->
+    render_linked_external_accounts: () ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             # not configured by server
             return
@@ -569,12 +569,12 @@ AccountSettings = rclass
             <hr key='hr0' />
             <h5 style={color:"#666"}>Your account is linked with (click to unlink)</h5>
             <ButtonToolbar style={marginBottom:'10px'} >
-                {(@render_strategy(is_anon, strategy, configured_strategies) for strategy in linked)}
+                {(@render_strategy(strategy, configured_strategies) for strategy in linked)}
             </ButtonToolbar>
             {@render_remove_strategy_button()}
         </div>
 
-    render_available_to_link: (is_anon) ->
+    render_available_to_link: () ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             # not configured by server
             return
@@ -582,36 +582,40 @@ AccountSettings = rclass
         not_linked = (strategy for strategy in STRATEGIES when strategy != 'email' and strategy not in configured_strategies)
         if not_linked.length == 0
             return
-        heading = if is_anon then "Or sign up using your account at" else "Click to link your account"
+        heading = if @props.is_anonymous then "Or sign up using your account at" else "Click to link your account"
         <div>
             <hr key='hr0' />
             <h5 style={color:"#666"}>{heading}</h5>
             <ButtonToolbar style={marginBottom:'10px'} >
-                {(@render_strategy(is_anon, strategy, configured_strategies) for strategy in not_linked)}
+                {(@render_strategy(strategy, configured_strategies) for strategy in not_linked)}
             </ButtonToolbar>
             {@render_add_strategy_link()}
         </div>
 
-    render_anonymous_warning:  (is_anon)  ->
-        if is_anon
-            # makes no sense to delete an account that is anonymous; it'll
-            # get automatically deleted.
-            <div>
-                <Alert bsStyle='warning' style={marginTop:'10px'}>
-                    <h3>WARNING: This is a <i>temporary account!</i>
-                    </h3>
-                    Sign up below!
-                    <ul>
-                        <li>FREE</li>
-                        <li>Avoid losing all your work</li>
-                        <li>Get added to anything you were invited to</li>
-                    </ul>
-                </Alert>
-                <hr/>
-            </div>
+    render_anonymous_warning:  ()  ->
+        console.log("render_anonymous_warning", @props.is_anonymous)
+        if not @props.is_anonymous
+            console.log("not anonymous so returning")
+            return
+        console.log("rendering the warning")
+        # makes no sense to delete an account that is anonymous; it'll
+        # get automatically deleted.
+        <div>
+            <Alert bsStyle='warning' style={marginTop:'10px'}>
+                <h3>WARNING: This is a <i>temporary account!</i>
+                </h3>
+                Sign up below!
+                <ul>
+                    <li>FREE</li>
+                    <li>Avoid losing all your work</li>
+                    <li>Get added to anything you were invited to</li>
+                </ul>
+            </Alert>
+            <hr/>
+        </div>
 
-    render_delete_account: (is_anon) ->
-        if is_anon
+    render_delete_account: () ->
+        if @props.is_anonymous
             return
         <Row>
             <Col xs={12}>
@@ -643,8 +647,8 @@ AccountSettings = rclass
             other_settings = {@props.other_settings}
             />
 
-    render_terms_of_service: (is_anon) ->
-        if not is_anon
+    render_terms_of_service: () ->
+        if not @props.is_anonymous
             return
         <FormGroup style={ fontSize: "12pt", margin: "20px" }>
             <Checkbox
@@ -655,10 +659,9 @@ AccountSettings = rclass
         </FormGroup>
 
     render: ->
-        is_anon = is_anonymous(this.props.email_address, this.props.passports)
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
-            {@render_anonymous_warning(is_anon)}
-            {@render_terms_of_service(is_anon)}
+            {@render_anonymous_warning()}
+            {@render_terms_of_service()}
             <TextSetting
                 label     = 'First name'
                 value     = {@props.first_name}
@@ -666,7 +669,7 @@ AccountSettings = rclass
                 onChange  = {(e)=>@handle_change(e, 'first_name')}
                 onBlur    = {(e)=>@save_change(e, 'first_name')}
                 maxLength = {254}
-                disabled  = {is_anon and not @state.terms_checkbox}
+                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <TextSetting
                 label    = 'Last name'
@@ -675,14 +678,14 @@ AccountSettings = rclass
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
                 maxLength = {254}
-                disabled  = {is_anon and not @state.terms_checkbox}
+                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = {254}
-                disabled  = {is_anon and not @state.terms_checkbox}
+                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <div style={marginBottom:'15px'}></div>
             <EmailVerification
@@ -692,12 +695,12 @@ AccountSettings = rclass
                 ref                    = 'email_address_verified'
                 />
             {@render_newsletter()}
-            {@render_password(is_anon)}
-            {if not is_anon then <APIKeySetting />}
-            {@render_delete_account(is_anon)}
-            {@render_linked_external_accounts(is_anon)}
-            {@render_available_to_link(is_anon)}
-            {@render_sign_out_buttons(is_anon)}
+            {@render_password()}
+            {if not @props.is_anonymous then <APIKeySetting />}
+            {@render_delete_account()}
+            {@render_linked_external_accounts()}
+            {@render_available_to_link()}
+            {@render_sign_out_buttons()}
             {@render_sign_out_error()}
         </Panel>
 
@@ -1461,6 +1464,7 @@ exports.AccountSettingsTop = rclass
         other_settings         : rtypes.immutable.Map
         groups                 : rtypes.immutable.List
         stripe_customer        : rtypes.immutable.Map
+        is_anonymous           : rtypes.bool
 
     render: ->
         <div style={marginTop:'1em'}>
@@ -1476,6 +1480,7 @@ exports.AccountSettingsTop = rclass
                         sign_out_error         = {@props.sign_out_error}
                         everywhere             = {@props.everywhere}
                         other_settings         = {@props.other_settings}
+                        is_anonymous           = {@props.is_anonymous}
                         redux                  = {@props.redux} />
                     <OtherSettings
                         other_settings     = {@props.other_settings}

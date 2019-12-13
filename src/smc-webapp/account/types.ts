@@ -40,4 +40,5 @@ export interface AccountState {
   remember_me?: boolean;
   has_remember_me?: boolean;
   passports?: immutable.Map<string, any>;
+  is_anonymous: boolean;
 }

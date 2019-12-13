@@ -24,8 +24,9 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
     } else {
       title += "on this web browser?";
     }
-    if (store.is_anonymous()) {
-      title += '\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work, click cancel and sign up above.'
+    if (store.get('is_anonymous')) {
+      title +=
+        "\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work, click cancel and sign up above.";
     }
     return (
       <Popconfirm
