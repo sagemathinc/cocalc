@@ -243,7 +243,7 @@ Page = rclass
             >
                 {<div style={projects_styles} cocalc-test="project-button" className={nav_class}>
                     Projects
-                </div> if @state.show_label}
+                </div> if @state.show_label and not @props.is_anonymous}
                 <AppLogo />
             </NavTab>
         </Nav>
@@ -298,7 +298,7 @@ Page = rclass
             {<GlobalInformationMessage /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in}
-                <ProjectsNav dropdown={false} />
+                {<ProjectsNav dropdown={false} /> and not @props.is_anonymous}
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div> if not @props.fullscreen}
