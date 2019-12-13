@@ -1058,6 +1058,7 @@ class exports.Connection extends EventEmitter
             start       : false
             cb          : undefined
         @call
+            allow_post : false  # since gets called for anonymous and cookie not yet set.
             message: message.create_project(title:opts.title, description:opts.description, image:opts.image, start:opts.start)
             cb     : (err, resp) =>
                 if err

@@ -309,7 +309,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           );
           window.location.hash = "";
           ({ APP_BASE_URL } = require("../misc_page"));
-          window.location = (APP_BASE_URL + "/app?signed_out") as any;
+          window.location = (APP_BASE_URL + "/") as any;
         }
       }
     }); // redirect to sign in page

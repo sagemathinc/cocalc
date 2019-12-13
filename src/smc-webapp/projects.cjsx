@@ -279,6 +279,8 @@ class ProjectsActions extends Actions
         catch err
             if token
                 _create_project_tokens[token] = {err:err}
+            else
+                throw err
 
         # At this point we know the project_id and that the project exists.
         # However, various code (e.g., setting the title) depends on the

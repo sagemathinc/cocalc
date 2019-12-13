@@ -31,8 +31,12 @@ prom_client = require('./prom-client')
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
+misc = require('smc-util/misc')
 
 {APP_LOGO_WHITE} = require('./art')
+
+{callback2, once} = require('smc-util/async-utils')
+{delay} = require('awaiting')
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -69,6 +73,7 @@ idle_notification = (show) ->
 # end idle notifications
 
 auth_token = misc_page.get_query_param('auth_token')
+is_anonymous = misc_page.get_query_param('anonymous')?  # true if defined at all; will equal an empty string ""
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -245,11 +250,13 @@ class Connection extends client.Connection
             conn.removeAllListeners('data')
             conn.on("data", ondata)
 
-            if auth_token?
+            if auth_token
                 @sign_in_using_auth_token
                     auth_token : auth_token
                     cb         : (err, resp) ->
                         auth_token = undefined
+            else if is_anonymous
+                @do_anonymous_setup()
 
         conn.on 'outgoing::open', (evt) =>
             log("connecting")
@@ -317,6 +324,17 @@ class Connection extends client.Connection
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)
+
+    do_anonymous_setup: () =>
+        await callback2(@create_account, {})
+        if not @is_signed_in()
+            await once(@, "signed_in")
+        actions = @_redux.getActions('projects')
+        project_id = await actions.create_project({title:'Welcome to CoCalc!', start:true, description:''})
+        actions.open_project({ project_id:project_id, switch_to: true })
+        project_actions = @_redux.getProjectActions(project_id)
+        project_actions.open_file({path:"Welcome to CoCalc.ipynb", foreground:true})
+
 
 connection = undefined
 exports.connect = (url) ->

@@ -612,6 +612,7 @@ AccountSettings = rclass
                     <li>Avoid losing all your work</li>
                     <li>Get added to courses and projects that you were invited to</li>
                     <li>Create support tickets</li>
+                    <li>Unlock additional features and controls</li>
                 </ul>
             </Alert>
             <hr/>
