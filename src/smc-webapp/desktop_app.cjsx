@@ -24,8 +24,9 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
+misc_page = require('./misc_page')
 
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -273,6 +274,12 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
             background    : 'white'
+
+        if misc_page.get_query_param('anonymous')
+            # Don't show the login screen or top navbar for a second while creating
+            # their anonymous account, since that would just be ugly/confusing/and annoying.
+            # Have to use above style to *hide* the crash warning.
+            return <div style={style}><h1 style={margin:'auto', color:'#666'}><Loading/></h1></div>
 
         top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 

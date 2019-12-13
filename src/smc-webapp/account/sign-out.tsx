@@ -36,7 +36,7 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
         cancelText={"Cancel"}
       >
         <Button icon={"logout"}>
-          Sign Out{this.props.everywhere ? " Everywhere" : ""}...
+          Sign out{this.props.everywhere ? " everywhere" : ""}...
         </Button>
       </Popconfirm>
     );
