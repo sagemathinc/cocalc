@@ -1,14 +1,26 @@
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Button, Popconfirm } from "antd";
 
-export class SignOut extends Component<{ everywhere?: boolean }, {}> {
+export class SignOut extends Component<
+  { everywhere?: boolean; sign_in?: boolean },
+  {}
+> {
   private sign_out(): void {
     const account = redux.getActions("account");
     if (account != null) {
-      account.sign_out(!!this.props.everywhere);
+      account.sign_out(!!this.props.everywhere, !!this.props.sign_in);
     }
   }
 
+  private render_body(): Rendered {
+    if (this.props.sign_in) {
+      return <span>Sign in to your account...</span>;
+    } else {
+      return (
+        <span>Sign out{this.props.everywhere ? " everywhere" : ""}...</span>
+      );
+    }
+  }
   public render(): Rendered {
     // I think not using reduxProps is fine for this, since it's only rendered once
     // you are signed in, and falling back to "your account" isn't bad.
@@ -24,7 +36,7 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
     } else {
       title += "on this web browser?";
     }
-    if (store.get('is_anonymous')) {
+    if (store.get("is_anonymous")) {
       title +=
         "\n Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work, click cancel and sign up above.";
     }
@@ -35,9 +47,7 @@ export class SignOut extends Component<{ everywhere?: boolean }, {}> {
         okText={`Yes, sign out${this.props.everywhere ? " everywhere" : ""}`}
         cancelText={"Cancel"}
       >
-        <Button icon={"logout"}>
-          Sign out{this.props.everywhere ? " everywhere" : ""}...
-        </Button>
+        <Button icon={"logout"}>{this.render_body()}</Button>
       </Popconfirm>
     );
   }

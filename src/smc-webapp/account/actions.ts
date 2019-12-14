@@ -43,7 +43,7 @@ export class AccountActions extends Actions<AccountState> {
 
   private help(): string {
     return this.redux.getStore("customize").get("help_email");
-  };
+  }
 
   derive_show_global_info(store): void {
     // TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
@@ -263,7 +263,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
 
-  sign_out(everywhere: boolean): void {
+  sign_out(everywhere: boolean, sign_in: boolean = false): void {
     misc.delete_local_storage(remember_me);
 
     // disable redirection from main index page to landing page
@@ -309,7 +309,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           );
           window.location.hash = "";
           ({ APP_BASE_URL } = require("../misc_page"));
-          window.location = (APP_BASE_URL + "/") as any;
+          window.location = (APP_BASE_URL +
+            "/" +
+            (sign_in ? "app/" : "")) as any;
         }
       }
     }); // redirect to sign in page

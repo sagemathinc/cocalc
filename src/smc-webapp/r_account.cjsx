@@ -608,7 +608,7 @@ AccountSettings = rclass
         # get automatically deleted.
         <div>
             <Alert bsStyle='warning' style={marginTop:'10px'}>
-                <h4>Sign up below:</h4>
+                <h4>Sign up</h4>
                 <ul>
                     <li>It is free</li>
                     <li>Avoid losing all your work</li>
@@ -616,6 +616,9 @@ AccountSettings = rclass
                     <li>Create support tickets</li>
                     <li>Unlock additional features and controls, including unlimited additional projects, realtime collaboration and much, much more</li>
                 </ul>
+                <br/>
+                <h4>Sign in</h4>
+                If you already have a <SiteName/> account,                     <SignOut sign_in={true}/>
             </Alert>
             <hr/>
         </div>
