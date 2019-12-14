@@ -311,7 +311,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           ({ APP_BASE_URL } = require("../misc_page"));
           window.location = (APP_BASE_URL +
             "/" +
-            (sign_in ? "app/" : "")) as any;
+            (sign_in ? "app" : "")) as any;
         }
       }
     }); // redirect to sign in page

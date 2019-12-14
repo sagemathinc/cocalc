@@ -141,7 +141,7 @@ Page = rclass
         <NavTab
             name           = 'account'
             label          = {if @props.is_anonymous then 'Sign up' else 'Account'}
-            style          = {if @props.is_anonymous then {fontWeight:'bold', fontSize:'16px'}}
+            style          = {if @props.is_anonymous then {fontWeight:'bold', fontSize:'16px', backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}}
             label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
