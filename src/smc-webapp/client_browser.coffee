@@ -73,7 +73,12 @@ idle_notification = (show) ->
 # end idle notifications
 
 auth_token = misc_page.get_query_param('auth_token')
-is_anonymous = misc_page.get_query_param('anonymous')?  # true if defined at all; will equal an empty string ""
+
+# is_anonymous = true if anonymous defined at all; will equal an empty string
+# ""; and also do NOT make true of has_remember_me is set, since then probably
+# the user has an account.
+is_anonymous = misc_page.get_query_param('anonymous')? and \
+     misc_page.get_cookie("#{misc_page.APP_BASE_URL}has_remember_me") != "true"
 
 class Connection extends client.Connection
     constructor: (opts) ->
