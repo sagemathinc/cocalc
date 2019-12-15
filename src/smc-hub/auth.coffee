@@ -730,7 +730,16 @@ exports.is_password_correct = (opts) ->
                     opts.cb(error)
                 else
                     if opts.allow_empty_password and not account.password_hash
-                        opts.cb(undefined, true)
+                        if opts.password and opts.account_id
+                            # Set opts.password as the password, since we're actually
+                            # setting the email address and password at the same time.
+                            opts.database.change_password
+                                account_id             : opts.account_id
+                                password_hash          : password_hash(opts.password)
+                                invalidate_remember_me : false
+                                cb                     : (err) => opts.cb(err, true)
+                        else
+                            opts.cb(undefined, true)
                     else
                         opts.cb(undefined, password_hash_library.verify(opts.password, account.password_hash))
     else
