@@ -839,20 +839,20 @@ class exports.Connection extends EventEmitter
     #################################################
     create_account: (opts) =>
         opts = defaults opts,
-            first_name       : required
-            last_name        : required
-            email_address    : required
-            password         : required
-            agreed_to_terms  : required
+            first_name       : undefined
+            last_name        : undefined
+            email_address    : undefined
+            password         : undefined
+            agreed_to_terms  : undefined
             usage_intent     : undefined
             get_api_key      : undefined       # if given, will create/get api token in response message
             token            : undefined       # only required if an admin set the account creation token.
             timeout          : 40
             cb               : required
 
-        if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
-            return
+        #if not opts.agreed_to_terms
+        #    opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
+        #    return
 
         if @_create_account_lock
             # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
@@ -1058,6 +1058,7 @@ class exports.Connection extends EventEmitter
             start       : false
             cb          : undefined
         @call
+            allow_post : false  # since gets called for anonymous and cookie not yet set.
             message: message.create_project(title:opts.title, description:opts.description, image:opts.image, start:opts.start)
             cb     : (err, resp) =>
                 if err
@@ -2213,17 +2214,12 @@ exports.is_valid_password = (password) ->
 
 exports.issues_with_create_account = (mesg) ->
     issues = {}
-    if not mesg.agreed_to_terms
-        issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
-    if mesg.first_name == ''
-        issues.first_name = 'Enter your first name.'
-    if mesg.last_name == ''
-        issues.last_name = 'Enter your last name.'
-    if not misc.is_valid_email_address(mesg.email_address)
+    if mesg.email_address and not misc.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
-    [valid, reason] = exports.is_valid_password(mesg.password)
-    if not valid
-        issues.password = reason
+    if mesg.password
+        [valid, reason] = exports.is_valid_password(mesg.password)
+        if not valid
+            issues.password = reason
     return issues
 
 

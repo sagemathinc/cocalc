@@ -198,7 +198,6 @@ _sign_in = (opts, done) ->
                 hub               : opts.host + ':' + opts.port
             client.remember_me
                 account_id    : signed_in_mesg.account_id
-                email_address : signed_in_mesg.email_address
                 cb            : cb
         (cb) ->
             if not mesg.get_api_key
@@ -324,7 +323,6 @@ _sign_in_using_auth_token = (opts, done) ->
                 hub           : opts.host + ':' + opts.port
             client.remember_me
                 account_id    : signed_in_mesg.account_id
-                email_address : signed_in_mesg.email_address
                 lti_id        : signed_in_mesg.lti_id
                 ttl           : 12*3600
                 cb            : cb

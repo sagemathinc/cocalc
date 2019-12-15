@@ -53,6 +53,8 @@ ProjectTab = rclass
         projects:
             public_project_titles : rtypes.immutable.Map
             project_websockets : rtypes.immutable.Map
+        account:
+            is_anonymous : rtypes.bool
 
     propTypes:
         project        : rtypes.immutable.Map
@@ -96,6 +98,18 @@ ProjectTab = rclass
             <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
         </span>
 
+    render_close_x: ->
+        if @props.is_anonymous
+            # you have one project and you can't close it.
+            return
+        <Icon
+            name        = 'times'
+            onClick     = {@close_tab}
+            onMouseOver = {(e)=>@setState(x_hovered:true)}
+            onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+        />
+
+
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
         if not title?
@@ -134,12 +148,7 @@ ProjectTab = rclass
         >
             <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
                 {@render_websocket_indicator()}
-                <Icon
-                    name        = 'times'
-                    onClick     = {@close_tab}
-                    onMouseOver = {(e)=>@setState(x_hovered:true)}
-                    onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
-                />
+                {@render_close_x()}
             </div>
             <div style={project_name_styles}>
                 <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
