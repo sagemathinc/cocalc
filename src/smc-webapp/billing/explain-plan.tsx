@@ -67,21 +67,6 @@ export class ExplainPlan extends Component<Props> {
             {"'s"} real-time collaboration makes it easy to help students
             directly where they work.
           </p>
-          <p>
-            <b>Purchasing course packages is mandatory!</b> Either you buy
-            course packages <b>starting at $4 per student</b> to distribute
-            across your and your student's projects &mdash; or each of your
-            students pays ${STUDENT_COURSE_PRICE}. Any course package offering
-            starts right after the purchase, lasts for the indicated period, and
-            does <b>not auto-renew</b> when it ends.
-          </p>
-          <p>
-            <b>Start right now:</b>{" "}
-            <i>
-              you can fully set up your class and add students immediately
-              before you pay anything!
-            </i>
-          </p>
           <h4>Payment options</h4>
           <ul style={{ paddingLeft: "20px" }}>
             <li>
@@ -91,6 +76,8 @@ export class ExplainPlan extends Component<Props> {
               for one or more course plans. You distribute the quota upgrades to
               all projects of the course via the configuration frame of the
               course management file.
+              Course packages start immediately after purchase, last for the indicated
+              period, and do <b>not auto-renew</b> when they end.
             </li>
 
             <li>
@@ -110,12 +97,12 @@ export class ExplainPlan extends Component<Props> {
           </p>
           <p>
             However, we find that many data and computational science courses
-            run much smoother with the additional RAM and CPU found in the
+            run better with the additional RAM and CPU found in the
             standard or premium plans.
           </p>
           <h4>Custom Course Plans</h4>
           <p>
-            In addition to the plans listed on this page, we can offer the
+            In addition to the plans listed on this page, we offer the
             following on a custom basis:
           </p>
           <ul style={{ paddingLeft: "20px" }}>

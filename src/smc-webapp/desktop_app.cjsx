@@ -24,8 +24,9 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
+misc_page = require('./misc_page')
 
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -100,6 +101,7 @@ PAGE_REDUX_PROPS =
         account_id             : rtypes.string
         is_logged_in           : rtypes.bool
         groups                 : rtypes.immutable.List
+        is_anonymous           : rtypes.bool
     support :
         show                   : rtypes.bool
 
@@ -128,7 +130,9 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        if @props.account_id
+        if @props.is_anonymous
+            a = undefined
+        else if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -140,7 +144,8 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {'Account'}
+            label          = {if @props.is_anonymous then 'Sign up' else 'Account'}
+            style          = {if @props.is_anonymous then {fontWeight:'bold', fontSize:'16px', backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}}
             label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
@@ -201,7 +206,7 @@ Page = rclass
         />
 
     render_bell: ->
-        if not @props.is_logged_in
+        if not @props.is_logged_in or @props.is_anonymous
             return
         <NotificationBell
             count  = {@props.notify_count}
@@ -236,7 +241,7 @@ Page = rclass
             {@render_global_information_toggle()}
             {@render_mentions_button()}
             {@render_bell()}
-            <ConnectionIndicator actions={@actions('page')} />
+            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
             <FullscreenButton />
         </Nav>
 
@@ -256,7 +261,7 @@ Page = rclass
             >
                 {<div style={projects_styles} cocalc-test="project-button" className={nav_class}>
                     Projects
-                </div> if @state.show_label}
+                </div> if @state.show_label and not @props.is_anonymous}
                 <AppLogo />
             </NavTab>
         </Nav>
@@ -277,16 +282,20 @@ Page = rclass
                 message  : 'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.'
 
     render: ->
-
-        style_top_bar =
-            flex          : '0 0 auto'
+        style =
             display       : 'flex'
-            marginBottom  : 0
-            width         : '100%'
-            minHeight     : "#{NAV_HEIGHT}px"
-            right         : 0
-            zIndex        : '100'
-            borderRadius  : 0
+            flexDirection : 'column'
+            height        : '100vh'
+            width         : '100vw'
+            overflow      : 'hidden'
+            background    : 'white'
+
+        if misc_page.get_query_param('anonymous')
+            # Don't show the login screen or top navbar for a second while creating
+            # their anonymous account, since that would just be ugly/confusing/and annoying.
+            # Have to use above style to *hide* the crash warning.
+            return <div style={style}><h1 style={margin:'auto', color:'#666'}><Loading/></h1></div>
+
 
         <React.Fragment>
             {<div className={"cocalc-announce"} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
@@ -299,12 +308,12 @@ Page = rclass
                 onDragOver={(e) -> e.preventDefault()}
                 onDrop={@drop}
             >
-                    {@render_project_nav_button() if @props.is_logged_in}
+                    {@render_project_nav_button() if @props.is_logged_in and not @props.is_anonymous}
                     <ProjectsNav dropdown={false} />
                     {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
 
-            {<FullscreenButton /> if @props.fullscreen}
+            {<FullscreenButton /> if (@props.fullscreen != 'kiosk' and not @props.is_anonymous)}
 
             <div
                 ref={"page"}
@@ -327,7 +336,7 @@ Page = rclass
                 {### Children must define their own padding from navbar and screen borders ###}
                 {### Note that the parent is a flex container ###}
                 <ErrorBoundary>
-                    <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
+                    <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} kiosk_mode={@props.fullscreen == 'kiosk'} />
                 </ErrorBoundary>
             </div>
         </React.Fragment>

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { act } from 'react-dom/test-utils';
+import { act } from "react-dom/test-utils";
 import { render, mount } from "enzyme";
 import { UncommittedChanges } from "../uncommited-changes";
 
@@ -19,7 +19,7 @@ test("Doesn't show error before 5000ms", () => {
   expect(wrapper.text()).toBe("");
   wrapper.update();
   expect(wrapper).toMatchSnapshot("Should have no warning");
-})
+});
 
 test("Setting it to true and letting it sit", () => {
   const wrapper = mount(<UncommittedChanges has_uncommitted_changes={true} />);
@@ -27,8 +27,20 @@ test("Setting it to true and letting it sit", () => {
     jest.advanceTimersByTime(6000);
   });
   expect(wrapper.text()).toBe("NOT saved!");
-  wrapper.update()
+  wrapper.update();
   expect(wrapper).toMatchSnapshot("Should now have a warning");
+});
+
+test("Setting it to true, waiting to trigger a warning, and then switching back", () => {
+  const wrapper = mount(<UncommittedChanges has_uncommitted_changes={true} />);
+  act(() => {
+    jest.advanceTimersByTime(6000);
+  });
+  wrapper.update();
+  wrapper.setProps({ has_uncommitted_changes: false });
+
+  expect(wrapper.text()).toBe("");
+  expect(wrapper).toMatchSnapshot("Should have no warning after committing changes");
 });
 
 test("Setting it to true but switching it back early", () => {
@@ -37,7 +49,7 @@ test("Setting it to true but switching it back early", () => {
     jest.advanceTimersByTime(2000);
   });
   wrapper.update();
-  wrapper.setProps({has_uncommitted_changes: false});
+  wrapper.setProps({ has_uncommitted_changes: false });
   act(() => {
     jest.advanceTimersByTime(6000);
   });

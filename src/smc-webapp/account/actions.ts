@@ -248,7 +248,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     });
   }
 
-  sign_out(everywhere: boolean): void {
+  sign_out(everywhere: boolean, sign_in: boolean = false): void {
     misc.delete_local_storage(remember_me);
 
     // disable redirection from main index page to landing page
@@ -294,7 +294,9 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
           );
           window.location.hash = "";
           ({ APP_BASE_URL } = require("../misc_page"));
-          window.location = (APP_BASE_URL + "/app?signed_out") as any;
+          window.location = (APP_BASE_URL +
+            "/" +
+            (sign_in ? "app" : "")) as any;
         }
       }
     }); // redirect to sign in page

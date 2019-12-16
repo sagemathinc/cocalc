@@ -93,7 +93,7 @@ export class TopBar extends Component<TopBarProps> {
         i = path.slice(1).indexOf("/");
         const proj_url = `${top}/../projects/${project_id}/files/${path.slice(
           2 + i
-        )}?session=share`;
+        )}?session=share&anonymous`;
         project_link = (
           <a
             target="_blank"
