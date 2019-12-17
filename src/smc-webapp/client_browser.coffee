@@ -35,8 +35,7 @@ misc = require('smc-util/misc')
 
 {APP_LOGO_WHITE} = require('./art')
 
-{callback2, once} = require('smc-util/async-utils')
-{delay} = require('awaiting')
+{do_anonymous_setup} = require('./client/anonymous-setup')
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -331,32 +330,7 @@ class Connection extends client.Connection
         require('./alerts').alert_message(args...)
 
     do_anonymous_setup: () =>
-        try
-            x = await callback2(@create_account, {})
-            if x?.event == 'account_creation_failed'
-                throw Error("failed")
-            if not @is_signed_in()
-                await once(@, "signed_in")
-            actions = @_redux.getActions('projects')
-            project_id = await actions.create_project({title:'Welcome to CoCalc!', start:true, description:''})
-            actions.open_project({ project_id:project_id, switch_to: true })
-            # Also change default account settings to not ask for the kernel,
-            # since that adds friction
-            @_redux.getTable("account").set({editor_settings: { ask_jupyter_kernel: false , jupyter:{kernel:'python3'}}})
-            # Open a new Jupyter notebook:
-            project_actions = @_redux.getProjectActions(project_id)
-            project_actions.open_file({path:"Welcome to CoCalc.ipynb", foreground:true})
-        catch err
-            return # will fall back to sign in page.
-        finally
-            # This happens if, e.g., a token is required,
-            # or maybe this ip is blocked. Falling back
-            # to normal sign up makes sense in this case.
-            i = window.location.href.indexOf('?')
-            if i != -1
-                window.history.pushState("", "", window.location.href.slice(0,i))
-            return
-
+        do_anonymous_setup(@)
 
 
 connection = undefined
