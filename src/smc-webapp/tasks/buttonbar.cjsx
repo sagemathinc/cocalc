@@ -13,8 +13,7 @@ Button bar:
 
 {React, rclass, rtypes} = require('../app-framework')
 {ButtonGroup, Button}   = require('react-bootstrap')
-{Icon, Space}           = require('../r_misc')
-{UncommittedChanges}    = require('../jupyter/uncommitted-changes')
+{Icon, Space, UncommittedChanges} = require('../r_misc')
 
 exports.ButtonBar = rclass
     propTypes :

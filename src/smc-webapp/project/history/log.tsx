@@ -182,7 +182,18 @@ export const ProjectLog = rclass<ReactProps>(
         logs_seq = logs_seq.filter(match);
       }
       logs_seq = logs_seq.sort((a, b) => {
-        return b.get("time").valueOf() - a.get("time").valueOf();
+        // time might not be defined at all -- see https://github.com/sagemathinc/cocalc/issues/4271
+        // In this case we don't really care what happens with this log entry, only that we don't
+        // completely crash cocalc!
+        const t0 = b.get("time");
+        if (!t0) {
+          return -1; // push to the past -- otherwise it would be annoyingly in your face all the time.
+        }
+        const t1 = a.get("time");
+        if (!t1) {
+          return 1; // push to the past
+        }
+        return t0.valueOf() - t1.valueOf();
       });
       this._log = logs_seq;
       return this._log;

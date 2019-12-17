@@ -161,9 +161,9 @@ passport_login = (opts) ->
             opts.first_name = name.slice(0,i).trim()
             opts.last_name = name.slice(i).trim()
     if not opts.first_name?
-        opts.first_name = "Anonymous"
+        opts.first_name = ""
     if not opts.last_name?
-        opts.last_name = "User"
+        opts.last_name = ""
 
     if opts.emails?
         opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and misc.is_valid_email_address(x)))
@@ -209,11 +209,14 @@ passport_login = (opts) ->
                         if not _account_id and locals.has_valid_remember_me
                             dbg("passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them.")
                             opts.database.create_passport
-                                account_id : locals.account_id
-                                strategy   : opts.strategy
-                                id         : opts.id
-                                profile    : opts.profile
-                                cb         : cb
+                                account_id    : locals.account_id
+                                strategy      : opts.strategy
+                                id            : opts.id
+                                profile       : opts.profile
+                                email_address : opts.emails?[0]
+                                first_name    : opts.first_name
+                                last_name     : opts.last_name
+                                cb            : cb
                         else
                             if locals.has_valid_remember_me and locals.account_id != _account_id
                                 dbg("passport exists but is associated with another account already")
@@ -729,7 +732,16 @@ exports.is_password_correct = (opts) ->
                     opts.cb(error)
                 else
                     if opts.allow_empty_password and not account.password_hash
-                        opts.cb(undefined, true)
+                        if opts.password and opts.account_id
+                            # Set opts.password as the password, since we're actually
+                            # setting the email address and password at the same time.
+                            opts.database.change_password
+                                account_id             : opts.account_id
+                                password_hash          : password_hash(opts.password)
+                                invalidate_remember_me : false
+                                cb                     : (err) => opts.cb(err, true)
+                        else
+                            opts.cb(undefined, true)
                     else
                         opts.cb(undefined, password_hash_library.verify(opts.password, account.password_hash))
     else

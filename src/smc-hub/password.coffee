@@ -305,6 +305,10 @@ exports.change_email_address = (opts) ->
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
             # TODO: move to hook this only after validation of the email address?
+            # TODO: NO -- instead this should get completely removed and these actions
+            #       should be replaced by special URL's (e.g., a URL that when visited
+            #       makes it so you get added to a project, or a code you enter on the page).
+            #       That would be way more secure *and* flexible.
             opts.database.do_account_creation_actions
                 email_address : opts.mesg.new_email_address
                 account_id    : opts.mesg.account_id

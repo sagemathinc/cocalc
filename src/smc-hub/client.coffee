@@ -457,7 +457,6 @@ class exports.Client extends EventEmitter
         # passport_login.
 
         opts = defaults opts,
-            email_address : required
             account_id    : required
             ttl           : 24*3600 *30     # 30 days, by default
             cb            : undefined

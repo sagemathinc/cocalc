@@ -2790,7 +2790,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       d = "root directory of project";
     }
     const id = misc.uuid();
-    this.set_active_tab("files", { update_file_listing: false });
+    this.setState({ downloading_file: true });
     this.set_activity({
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
@@ -2803,6 +2803,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: err => {
         this.fetch_directory_listing();
         this.set_activity({ id, stop: "" });
+        this.setState({ downloading_file: false });
+        this.set_active_tab("files", { update_file_listing: false });
         typeof cb === "function" ? cb(err) : undefined;
       }
     });
@@ -2989,7 +2991,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } else {
         max_depth = "--max-depth=0";
       }
-      cmd = `git rev-parse --is-inside-work-tree && git grep -n -I -H ${ins} ${max_depth} ${search_query} || `;
+      // The || true is so that if git rev-parse has exit code 0,
+      // but "git grep" finds nothing (hence has exit code 1), we don't
+      // fall back to normal git (the other side of the ||). See
+      //    https://github.com/sagemathinc/cocalc/issues/4276
+      cmd = `git rev-parse --is-inside-work-tree && (git grep -n -I -H ${ins} ${max_depth} ${search_query} || true) || `;
     } else {
       cmd = "";
     }

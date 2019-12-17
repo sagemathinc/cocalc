@@ -28,7 +28,7 @@ underscore = require('underscore')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
-{PathLink} = require('./project_new')
+{PathLink} = require('./project/new')
 
 
 ProjectSearchInput = rclass
