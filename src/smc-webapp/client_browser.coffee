@@ -31,7 +31,7 @@ prom_client = require('./prom-client')
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
-{QueryParams} = require('./misc_page2')
+{QueryParams} = require('./misc/query-params')
 misc = require('smc-util/misc')
 
 {APP_LOGO_WHITE} = require('./art')

@@ -77,7 +77,7 @@ The URI schema is as follows:
 ###
 
 {redux} = require('./app-framework')
-{QueryParams} = require('./misc_page2')
+{QueryParams} = require('./misc/query-params')
 {keys} = require('smc-util/misc')
 query_string = require('query-string')
 

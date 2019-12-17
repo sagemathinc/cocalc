@@ -17,7 +17,7 @@ the "Open in CoCalc" link on the share server, with minimal friction.
 
 import { redux, Actions, Store } from "../app-framework";
 import * as LS from "../misc/local-storage";
-import { QueryParams } from "../misc_page2";
+import { QueryParams } from "../misc/query-params";
 import { launch_share } from "./share";
 import { launch_custom_software_image } from "./custom-image";
 import { launch_binder } from "./binder";
@@ -38,20 +38,20 @@ class LaunchActionsStore extends Store<LaunchData> {}
 
 class LaunchActions<LaunchData> extends Actions<LaunchData> {}
 
-redux.createStore<LaunchData, LaunchActionsStore>(
-  NAME,
-  LaunchActionsStore,
-  {}
-);
+redux.createStore<LaunchData, LaunchActionsStore>(NAME, LaunchActionsStore, {});
 const actions = redux.createActions(NAME, LaunchActions);
-
 
 // persist any launch action information in local storage (e.g. it's lost via SSO)
 export function store() {
   const params = QueryParams.get_all();
   // console.log("launch-actions: params =", params);
   const launch = params.launch;
-  if (launch != null && typeof launch === "string") {
+  if (launch === undefined) return;
+  try {
+    if (typeof launch !== "string") {
+      console.warn("WARNING: launch query param must be a string");
+      return;
+    }
     const type = launch.split("/")[0] as LaunchTypes;
     const data: LaunchData = {
       launch,
@@ -71,6 +71,10 @@ export function store() {
     }
     LS.set(LS_KEY, data);
     actions.setState(data);
+  } finally {
+    // Remove the launch parameters from the URL, since they are now known (in localStorage) and
+    // we don't want to repeat them any time the user refreshes their browser, etc.
+    QueryParams.remove(["launch", "filepath", "urlpath"]);
   }
 }
 

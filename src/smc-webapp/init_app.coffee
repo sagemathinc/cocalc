@@ -29,7 +29,7 @@ history                 = require('./history')
 
 {alert_message}         = require('./alerts')
 
-{QueryParams} = require('./misc_page2')
+{QueryParams} = require('./misc/query-params')
 {COCALC_FULLSCREEN, COCALC_MINIMAL} = require('./fullscreen')
 
 # Ephemeral websockets mean a browser that kills the websocket whenever

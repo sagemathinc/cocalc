@@ -27,7 +27,7 @@ misc        = require('smc-util/misc')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
-{QueryParams} = require('./misc_page2')
+{QueryParams} = require('./misc/query-params')
 
 get_inspect_dialog = (editor) ->
     dialog = $('''
