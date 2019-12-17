@@ -9,14 +9,14 @@ import * as ReactDOMServer from "react-dom/server";
 // by the Docker container when running in kubernetes.
 //# process.NODE_ENV="production"
 
-import { set_share_server } from "smc-webapp/r_misc/share-server";
+import { set_share_server } from "../r_misc/share-server";
 
 set_share_server(true);
 
 // Load katex jQuery plugin.
-require("smc-webapp/jquery-plugins/katex");
+require("../jquery-plugins/katex");
 
-export function react(res, component, extra: any = ""): void {
+export function render(res, component, extra: any = ""): void {
   res.type("html");
   res.write("<!DOCTYPE html>");
   const t0 = new Date().valueOf();

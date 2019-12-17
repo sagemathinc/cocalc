@@ -1479,8 +1479,14 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   render_panel_header() {
+    // The whiteSpace normal is because the title of an
+    // antd Card doesn't wrap, and I don't want to restructure
+    // this whole student delete code right now to not put
+    // confirmation in the title.  When it is restructured
+    // it'll be the antd modal popup anyways...
+    // See https://github.com/sagemathinc/cocalc/issues/4286
     return (
-      <div>
+      <div style={{whiteSpace:'normal'}}>
         <Row>
           <Col md={16}>{this.render_project_access()}</Col>
           <Col md={8}>{this.render_delete_button()}</Col>
