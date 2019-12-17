@@ -31,11 +31,12 @@ prom_client = require('./prom-client')
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
+{QueryParams} = require('./misc_page2')
 misc = require('smc-util/misc')
 
 {APP_LOGO_WHITE} = require('./art')
 
-{do_anonymous_setup} = require('./client/anonymous-setup')
+{do_anonymous_setup, should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -71,13 +72,7 @@ idle_notification = (show) ->
 
 # end idle notifications
 
-auth_token = misc_page.get_query_param('auth_token')
-
-# is_anonymous = true if anonymous defined at all; will equal an empty string
-# ""; and also do NOT make true of has_remember_me is set, since then probably
-# the user has an account.
-is_anonymous = misc_page.get_query_param('anonymous')? and \
-     misc_page.get_cookie("#{misc_page.APP_BASE_URL}has_remember_me") != "true"
+auth_token = QueryParams.get('auth_token')
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -259,8 +254,8 @@ class Connection extends client.Connection
                     auth_token : auth_token
                     cb         : (err, resp) ->
                         auth_token = undefined
-            else if is_anonymous
-                @do_anonymous_setup()
+            else if should_do_anonymous_setup()
+                do_anonymous_setup(@)
 
         conn.on 'outgoing::open', (evt) =>
             log("connecting")
@@ -328,9 +323,6 @@ class Connection extends client.Connection
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)
-
-    do_anonymous_setup: () =>
-        do_anonymous_setup(@)
 
 
 connection = undefined

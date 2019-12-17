@@ -27,6 +27,7 @@
 {ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 misc_page = require('./misc_page')
+{should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -275,7 +276,7 @@ Page = rclass
             overflow      : 'hidden'
             background    : 'white'
 
-        if misc_page.get_query_param('anonymous')
+        if should_do_anonymous_setup()
             # Don't show the login screen or top navbar for a second while creating
             # their anonymous account, since that would just be ugly/confusing/and annoying.
             # Have to use above style to *hide* the crash warning.

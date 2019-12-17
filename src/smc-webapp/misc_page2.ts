@@ -1,5 +1,7 @@
 // functions ported from misc_page.coffee
 
+import * as query_string from "query-string";
+
 // see entry-point, and via this useful in all TS files
 declare global {
   interface Window {
@@ -9,43 +11,42 @@ declare global {
 }
 
 export namespace QueryParams {
-  export interface Params {
-    [k: string]: string | boolean | (string | boolean)[];
-  }
+  export type Params = query_string.ParsedQuery<string>;
 
-  /* read the query string of the URL and transform it to a key/value map
-   * based on: https://stackoverflow.com/a/4656873/54236
-   * the main difference is that multiple identical keys are collected in an array
-   * test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
-   * NOTE: the comments on that stackoverflow are very critical of this; in particular,
-   * there's no URI decoding, so I added that below...
-   *
-   * Example: URL ending in  "?session=default&x=123&x=foo&launch=foo"
-   *          transformed to {"session":"default","x":["123","foo"],"launch":"foo"}
-   */
   export function get_all(): Params {
-    const vars: Params = {};
-    const { href } = window.location;
-    const parts = Array.from(href.slice(href.indexOf("?") + 1).split("&"));
-    for (const part of parts) {
-      const [k, v_enc] = Array.from(part.split("="));
-      const v = decodeURIComponent(v_enc);
-      // if key is already set, change to array and add the value
-      if (vars[k] != null) {
-        const val = vars[k];
-        let val_new: (boolean | string)[] = [];
-        if (!Array.isArray(val)) {
-          val_new = [val];
-        }
-        vars[k] = val_new.concat(v);
-      } else {
-        vars[k] = v != null ? v : true;
-      }
-    }
-    return vars;
+    return query_string.parse(location.search);
   }
 
   export function get(p: string) {
     return get_all()[p];
+  }
+
+  // Remove the given query parameter from the URL
+  export function remove(p: string): void {
+    this.set(p, undefined);
+  }
+
+  // val = undefined means to remove it, since won't be represented in query param anyways.
+  export function set(
+    p: string,
+    val: string | string[] | null | undefined
+  ): void {
+    const parsed = query_string.parse(location.search);
+    if (val === undefined) { // we don't really have to special case this, but I think this is clearer code.
+      delete parsed[p];
+    } else {
+      parsed[p] = val;
+    }
+    const search = query_string.stringify(parsed);
+    const i = window.location.href.indexOf("?");
+    if (i !== -1) {
+      window.history.pushState(
+        "",
+        "",
+        window.location.href.slice(0, i) + "?" + search
+      );
+    } else {
+      window.history.pushState("", "", window.location.href + "?" + search);
+    }
   }
 }

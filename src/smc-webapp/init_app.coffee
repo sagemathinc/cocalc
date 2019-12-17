@@ -288,7 +288,7 @@ class PageActions extends Actions
         false
 
 {parse_target} = require("./history2")
-redux.createStore('page', {active_top_tab: parse_target(window.smc_target).page})
+redux.createStore('page', {active_top_tab: parse_target(window.cocalc_target).page})
 redux.createActions('page', PageActions)
 ###
     name: 'page'
@@ -454,7 +454,7 @@ if COCALC_FULLSCREEN
         # (which is the only thing they should ever do!), and in that
         # case we record the project_id, so that we can make various
         # query optimizations elsewhere.
-        x = parse_target(window.smc_target)
+        x = parse_target(window.cocalc_target)
         if x.page == 'project' and x.target?
             kiosk_project_id = x.target.slice(0,36)
             if misc.is_valid_uuid_string(kiosk_project_id)
