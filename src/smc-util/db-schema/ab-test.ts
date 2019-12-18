@@ -27,6 +27,7 @@ export const abtest = create({
 
     user_query: {
       get: {
+        admin: true,
         pg_where: ["time >= NOW() - interval '14 days'"],
         fields: {
           account_id: null,
