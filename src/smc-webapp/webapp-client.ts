@@ -31,7 +31,9 @@ import { handle_hash_url } from "./client/handle-hash-url";
 // at least prevent a typo.  When something you need from the
 // actual webapp client isn't here, add it (there api is huge).
 
-interface WebappClient {
+import { EventEmitter } from "events";
+
+interface WebappClient extends EventEmitter {
   user_search: Function;
   server_time: Function;
   project_set_quotas: Function;
@@ -41,6 +43,7 @@ interface WebappClient {
   find_directories: Function;
   sync_db2: Function;
   get_username: Function;
+  is_signed_in: () => boolean;
 }
 
 export let webapp_client: WebappClient;

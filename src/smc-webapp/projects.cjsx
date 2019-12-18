@@ -294,6 +294,8 @@ class ProjectsActions extends Actions
 
 
     # Open the given project
+    # This is an ASYNC function, sort of...
+    # at least in that it might have to load all projects...
     open_project: (opts) =>
         opts = defaults opts,
             project_id      : required  # string  id of the project to open
@@ -308,7 +310,7 @@ class ProjectsActions extends Actions
             if COCALC_MINIMAL
                 await switch_to_project(opts.project_id)
             else
-                # trying to open a not-known project -- maybe
+                # trying to open a nogt-known project -- maybe
                 # we have not yet loaded the full project list?
                 await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)

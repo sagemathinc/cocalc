@@ -40,8 +40,11 @@
      "launch/[shared_id]/path/to/doc/in/a/share"
 */
 
+import { delay } from "awaiting";
 import { redux } from "../app-framework";
 import { query } from "../frame-editors/generic/client";
+import { webapp_client } from "../webapp-client";
+import { callback2, once } from "smc-util/async-utils";
 
 export async function launch_share(launch: string): void {
   const log = (...args) => console.log("launch_share", ...args);
@@ -52,9 +55,12 @@ export async function launch_share(launch: string): void {
   log("share_id=", share_id);
   log("path=", path);
 
+  if (!webapp_client.is_signed_in()) await once(webapp_client, "signed_in");
+
   // Look up the project_id and path for the share from the database.
   const public_path = (
     await query({
+      no_post: true, // (ugly) since this call is *right* after making an account, so we need to avoid racing for cookie to be set.
       query: {
         public_paths_by_id: {
           id: share_id,
@@ -78,23 +84,33 @@ export async function launch_share(launch: string): void {
 
   console.log("relationship = ", relationship);
 
-  // Figure out to where we are going to copy the shared files.
-  if (relationship == "collaborator") {
-    // Easy: just open it and done!
-    redux.getActions("projects").open_project({
-      project_id: public_path.project_id,
-      switch_to: true,
-      target: "files/" + public_path.path
-    });
-    return;
+  switch (relationship) {
+    case "collaborator":
+      await open_share_as_collaborator(
+        public_path.project_id,
+        public_path.path
+      );
+      break;
+    case "anonymous":
+      await open_share_in_the_anonymous_project(
+        public_path.project_id,
+        public_path.path
+      );
+      break;
+    case "fork":
+      await open_share_in_a_new_project(
+        public_path.project_id,
+        public_path.path,
+        public_path.description,
+        public_path.license
+      );
+      break;
+    default:
+      throw Error(`unknown relationship "${relationship}"`);
   }
-  throw Error("not implemented");
 
-  // Open the target project
-
-  // Copy the shared files to that project
-
-  // Open path or directory with the shared files...
+  // TODO -- maybe -- write some sort of metadata or a markdown file (e.g., source.md)
+  // somewhere explaining where this shared file came from (share link, description, etc.).
 }
 
 type Relationship =
@@ -129,4 +145,90 @@ async function get_relationship_to_share(project_id: string): Relationship {
     await query({ query: { projects: { project_id, last_active: null } } })
   ).query.projects;
   return project == null ? "fork" : "collaborator";
+}
+
+// Easy: just open it and done!
+function open_share_as_collaborator(project_id: string, path: string): void {
+  const target = "files/" + path;
+  redux.getActions("projects").open_project({
+    project_id,
+    switch_to: true,
+    target
+  });
+}
+
+async function anonymous_project_id(max_time_s: number = 30): Promise<string> {
+  // Anonymous users should have precisely one project, so
+  // we copy the files to that project.  The issue is just
+  // that the project is being created at almost the exact
+  // same time that this launch action is being handled.
+  // So we'll try waiting for there to be a project for up to
+  // 30 seconds, then give up.
+  for (let t = 0; t < max_time_s; t++) {
+    const account_store = redux.getStore("account");
+    const projects_store = redux.getStore("projects");
+    if (
+      account_store != null &&
+      projects_store != null &&
+      account_store.get("is_anonymous")
+    ) {
+      const project_map = projects_store.get("project_map");
+      if (project_map != null && project_map.size > 0) {
+        for (const x of project_map) {
+          return x[0];
+        }
+      }
+    }
+    await delay(1000);
+  }
+  throw Error(
+    `unable to determine anonymous project after waiting ${max_time_s} seconds -- something is wrong`
+  );
+}
+
+async function open_share_in_the_anonymous_project(
+  project_id: string,
+  path: string
+): Promise<void> {
+  const target_project_id = await anonymous_project_id();
+  open_share_in_project(project_id, path, target_project_id);
+}
+
+async function open_share_in_project(
+  project_id: string,
+  path: string,
+  target_project_id: string
+): Promise<void> {
+  // Copy the share to the target project.
+  await callback2(webapp_client.copy_path_between_projects, {
+    public: true,
+    src_project_id: project_id,
+    src_path: path,
+    target_project_id,
+    target_path: path,
+    timeout: 120
+  });
+
+  // Then open it.
+  const actions = redux.getProjectActions(target_project_id);
+  if (actions == null) {
+    throw Error("target project must exist");
+  }
+  await actions.open_file({ path, foreground: true, foreground_project: true });
+}
+
+async function open_share_in_a_new_project(
+  project_id: string,
+  path: string,
+  description: string | undefined,
+  license: string | undefined
+): Promise<void> {
+  // Create a new project
+  const actions = redux.getActions("projects");
+  const target_project_id = await actions.create_project({
+    title: `${description} - Share`,
+    start: true,
+    description: license // TODO - pretty lame
+  });
+  await open_share_in_project(project_id, path, target_project_id);
 }

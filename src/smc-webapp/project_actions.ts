@@ -2385,14 +2385,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       public: false,
       src_project_id: required, // id of source project
       src: required, // list of relative paths of directors or files in the source project
-      target_project_id: required, // if of target project
+      target_project_id: required, // id of target project
       target_path: undefined, // defaults to src_path
       overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
       delete_missing: false, // delete files in dest that are missing from source (destructive)
       backup: false, // make ~ backup files instead of overwriting changed files
       timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
       exclude_history: false, // if true, exclude all files of the form *.sage-history
-      id: undefined
+      id: undefined,
     });
     // TODO: wrote this but *NOT* tested yet -- needed "copy_click".
     const id = opts.id != null ? opts.id : misc.uuid();

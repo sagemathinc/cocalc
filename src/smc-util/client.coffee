@@ -1181,7 +1181,7 @@ class exports.Connection extends EventEmitter
             delete_missing    : false       # delete files in dest that are missing from source (destructive)
             backup            : false       # make ~ backup files instead of overwriting changed files
             timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-            exclude_history   : false       # if true, exclude all files of the form *.sage-history
+            exclude_history   : false       # if true, exclude all files of the form *.sage-history (these files are deprecated so this is pointless...)
             cb                : undefined   # cb(err)
 
         is_public = opts.public
@@ -1985,12 +1985,13 @@ class exports.Connection extends EventEmitter
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
             standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
+            no_post : false        # if true, will not use a post query
             cb      : undefined
         # console.log("QUERY ", JSON.stringify(opts.query))
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if @_signed_in and not opts.changes and $?.post? and @_enable_post
+        if not opts.no_post and @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
             # (NOTE: signed_in required because POST fails everything when
             # user is not signed in.)
