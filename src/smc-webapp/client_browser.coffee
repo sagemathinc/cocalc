@@ -72,8 +72,6 @@ idle_notification = (show) ->
 
 # end idle notifications
 
-auth_token = QueryParams.get('auth_token')
-
 class Connection extends client.Connection
     constructor: (opts) ->
         # Security note: not easily exposing this to the global scope would make it harder
@@ -249,11 +247,10 @@ class Connection extends client.Connection
             conn.removeAllListeners('data')
             conn.on("data", ondata)
 
-            if auth_token
-                @sign_in_using_auth_token
-                    auth_token : auth_token
-                    cb         : (err, resp) ->
-                        auth_token = undefined
+            auth_token = QueryParams.get('auth_token')
+            if not @_signed_in and auth_token
+                QueryParams.remove('auth_token')
+                @sign_in_using_auth_token(auth_token : auth_token)
             else if should_do_anonymous_setup()
                 do_anonymous_setup(@)
 
