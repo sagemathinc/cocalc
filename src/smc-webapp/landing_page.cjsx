@@ -31,7 +31,7 @@ The Landing Page
 {SignUp} = require('./landing-page/sign-up')
 {SignIn} = require('./landing-page/sign-in')
 {ForgotPassword} = require('./landing-page/forgot-password')
-LA_NAME = require('./landing-actions').NAME
+LA_NAME = require('./launch/actions').NAME
 
 DESC_FONT = 'sans-serif'
 
