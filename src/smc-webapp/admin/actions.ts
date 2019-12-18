@@ -3,6 +3,7 @@ import { user_search, User } from "smc-webapp/frame-editors/generic/client";
 import { cmp } from "smc-util/misc2";
 import { AdminStoreState, User as ImmutableUser } from "./store";
 import { fromJS, List } from "immutable";
+import { get_ab_test } from "./ab-test";
 
 function user_sort_key(user: User): string {
   if (user.last_active) {
@@ -27,6 +28,15 @@ export class AdminActions extends Actions<AdminStoreState> {
 
   set_user_search_status = (status: string): void => {
     this.setState({ user_search_status: status });
+  };
+
+  set_ab_test_name = (name: string): void => {
+    this.setState({ ab_test_name: name });
+  };
+
+  fetch_ab_test = async (): void => {
+    const tests = await get_ab_test(this.store.get("ab_test"));
+    this.setState({ ab_test_results: tests });
   };
 
   fetch_for_user_search = async (): Promise<void> => {
