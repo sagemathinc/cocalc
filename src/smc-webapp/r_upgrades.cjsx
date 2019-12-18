@@ -54,9 +54,6 @@ exports.UpgradesPage = rclass
             <Space/>
             <DedicatedVM />
 
-            <Space/>
-            <DedicatedVM/>
-
             <hr/>
             <FAQ/>
 
