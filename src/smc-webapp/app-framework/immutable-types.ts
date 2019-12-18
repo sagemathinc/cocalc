@@ -1,6 +1,10 @@
 import * as Immutable from "immutable";
 import { TypedMap } from "./TypedMap";
 
+export function fromJS<T>(obj: T): DeepImmutable<T> {
+  return (Immutable.fromJS(obj) as unknown) as any;
+}
+
 type Maybe<T> = T | undefined;
 // Return Maybe<U> iff T is a Maybe<?>
 type CopyMaybe<T, U> = Maybe<T> extends T ? Maybe<U> : U;

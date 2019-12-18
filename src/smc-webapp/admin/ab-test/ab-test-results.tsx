@@ -1,8 +1,8 @@
 import * as React from "react";
-import { Map } from "immutable";
+import { List } from "immutable";
 
 interface Props {
-  ab_test_entries: Map<string, any>;
+  ab_test_entries: List<any>;
 }
 
 export const ABTestResults: React.FC<Props> = ({ ab_test_entries }) => {

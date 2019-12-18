@@ -7,8 +7,8 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
-import { ABTestResults, log } from "./ab-test";
-import { List, Map } from "immutable";
+import { ABTestBrowser, log } from "./ab-test";
+import { List } from "immutable";
 
 import { User } from "./store";
 
@@ -18,7 +18,7 @@ interface ReduxProps {
   user_search_query: string;
   user_search_result: List<User>;
   ab_test_name: string;
-  ab_test_results: Map<string, any>;
+  ab_test_results: List<any>;
 }
 
 require("./init").init(redux);
@@ -69,7 +69,12 @@ export const AdminPage = rclass(
           <Button onClick={() => admin_actions.fetch_ab_test()}>
             Fetch AB Test Placeholder
           </Button>
-          <ABTestResults ab_test_entries={this.props.ab_test_results} />
+          <ABTestBrowser
+            search={this.props.ab_test_name}
+            on_search_change={admin_actions.set_ab_test_name}
+            submit_search={admin_actions.fetch_ab_test}
+            ab_test_results={this.props.ab_test_results}
+          />
           <hr />
           <SiteSettings />
           <hr />
