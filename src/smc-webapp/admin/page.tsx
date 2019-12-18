@@ -1,5 +1,4 @@
 import { React, Component, redux, rclass, rtypes } from "../app-framework";
-import { Button } from "antd";
 
 import { AccountCreationToken } from "./account-creation-token";
 import { SiteSettings } from "./site-settings";
@@ -7,7 +6,7 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
-import { ABTestBrowser, log } from "./ab-test";
+import { ABTestBrowser } from "./ab-test";
 import { List } from "immutable";
 
 import { User } from "./store";
@@ -60,15 +59,6 @@ export const AdminPage = rclass(
             clear_status={admin_actions.clear_user_search_status}
           />
           <hr />
-          <Button
-            onClick={() => log(redux.getStore("account").get("account_id"))}
-          >
-            Make a ab test log. Clicking the next button should fetch the
-            result.
-          </Button>
-          <Button onClick={() => admin_actions.fetch_ab_test()}>
-            Fetch AB Test Placeholder
-          </Button>
           <ABTestBrowser
             search={this.props.ab_test_name}
             on_search_change={admin_actions.set_ab_test_name}
