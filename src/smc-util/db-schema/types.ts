@@ -42,6 +42,7 @@ interface TableSchema<F extends Fields> {
   user_query?: {
     get?: {
       fields: { [key in keyof Partial<F>]: any };
+      admin?: boolean;
       throttle_changes?: number;
       pg_where?: string[] | { [key: string]: string }[];
       options?: any; // [{ limit: 1 }]
@@ -54,6 +55,7 @@ interface TableSchema<F extends Fields> {
     };
     set?: {
       fields: { [key in keyof Partial<F>]: any };
+      admin?: boolean; // Whether it requires being an admin to set
       check_hook?: (
         database,
         obj,

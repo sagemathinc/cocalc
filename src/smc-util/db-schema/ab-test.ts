@@ -23,13 +23,24 @@ export const abtest = create({
     desc: "Events from ab-tests",
     primary_key: ["account_id", "time", "test_name"],
     db_standby: "unsafe",
+    durability: "soft", // loss of some log data not serious, since used only for analytics
 
     user_query: {
       get: {
+        pg_where: ["time >= NOW() - interval '14 days'"],
         fields: {
+          account_id: null,
           test_name: null,
           time: null,
           payload: null
+        }
+      },
+      set: {
+        fields: {
+          account_id: true,
+          test_name: true,
+          time: true,
+          payload: true
         }
       }
     }

@@ -35,8 +35,13 @@ export class AdminActions extends Actions<AdminStoreState> {
   };
 
   fetch_ab_test = async (): void => {
-    const tests = await get_ab_test(this.store.get("ab_test"));
-    this.setState({ ab_test_results: tests });
+    const [ err, result ] = await get_ab_test(
+      this.store.get("ab_test_name")
+    );
+    if (err) {
+      this.setState({ ab_test_err: err ?? "" });
+    }
+    this.setState({ ab_test_results: result });
   };
 
   fetch_for_user_search = async (): Promise<void> => {

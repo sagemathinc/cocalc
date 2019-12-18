@@ -8,7 +8,7 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import { ABTestResults, log } from "./ab-test";
-import { List } from "immutable";
+import { List, Map } from "immutable";
 
 import { User } from "./store";
 
