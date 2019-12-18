@@ -5,7 +5,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 const puppeteer = require("puppeteer");
 import chalk from "chalk";
 import { Creds, Opts, PassFail, TestGetBoolean } from "./types";
-import { time_log } from "./time_log";
+import { time_log, time_log2 } from "./time_log";
 import { test_tex } from "./test_tex";
 import { test_widget } from "./test_widget";
 import { test_sage_ker } from "./test_sage_ker";
@@ -46,6 +46,7 @@ export const login_tests = async function(
     debuglog("browser", version);
 
     time_log("launch browser", tm_launch_browser);
+    await time_log2("launch browser", tm_launch_browser, creds, opts);
     const tm_login = process.hrtime.bigint();
     await page.setDefaultTimeout(LONG_TIMEOUT);
 

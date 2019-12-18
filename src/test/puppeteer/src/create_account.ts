@@ -44,6 +44,7 @@ const cli_parse = function() {
       headless: program.headless,
       screenshot: program.screenshot,
       path: cpath,
+      csv_log: "/dev/null",
       skip: skip
     };
     debuglog("opts", opts);

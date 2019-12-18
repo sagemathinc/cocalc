@@ -1,3 +1,4 @@
+// contents of credentials yaml file
 export interface Creds {
   readonly sitename: string;
   readonly url: string;
@@ -11,10 +12,12 @@ export interface Creds {
   readonly shared_file?: string;
 }
 
+// command-line options and derived objects
 export interface Opts {
   headless?: string;
   screenshot?: string;
   path?: string | boolean;
+  csv_log: string;
   skip?: RegExp;
   xprj?: string;
 }

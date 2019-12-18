@@ -76,6 +76,7 @@ const install_api_session = async function(
     const tm_start = process.hrtime.bigint();
     const opts: Opts = {
       headless: iopts.headless,
+      csv_log: "/dev/null",
       path: iopts.path
     };
     let ags: TestGetString = await get_api_key(creds, opts);
