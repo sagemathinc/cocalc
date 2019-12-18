@@ -74,6 +74,12 @@ idle_notification = (show) ->
 
 auth_token = QueryParams.get('auth_token')
 
+# if auth_token isn't set, it's maybe hiding in the url-hash
+if not auth_token? and document.location.href.indexOf('auth_token') > 0
+    queryString = require('query-string')
+    auth_token = queryString.parse(document.location.hash.split("?", 2)[1]).auth_token
+
+
 class Connection extends client.Connection
     constructor: (opts) ->
         # Security note: not easily exposing this to the global scope would make it harder

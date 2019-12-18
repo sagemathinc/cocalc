@@ -178,6 +178,7 @@ export const accounts = create({
         fields: {
           account_id: null,
           email_address: null,
+          lti_id: null,
           email_address_verified: null,
           email_address_problem: null,
           editor_settings: {
