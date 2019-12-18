@@ -21,7 +21,7 @@ export const abtest = create({
   },
   rules: {
     desc: "Events from ab-tests",
-    primary_key: ["account_id", "time", "test_name"],
+    primary_key: ["account_id", "test_name"],
     db_standby: "unsafe",
     durability: "soft", // loss of some log data not serious, since used only for analytics
 

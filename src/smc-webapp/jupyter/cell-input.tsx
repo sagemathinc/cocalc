@@ -19,6 +19,7 @@ import { CellHiddenPart } from "./cell-hidden-part";
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { log_test1 } from "../ab-test";
 
 function href_transform(
   project_id: string | undefined,
@@ -115,6 +116,10 @@ export class CellInput extends Component<CellInputProps> {
       (nextProps.cell_toolbar === "slideshow" &&
         nextProps.cell.get("slide") !== this.props.cell.get("slide"))
     );
+  }
+
+  public componentDidMount(): void {
+    log_test1("Load Jupyter");
   }
 
   private render_input_prompt(type: string): Rendered {

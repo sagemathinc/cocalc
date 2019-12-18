@@ -3,10 +3,10 @@ import { fromJS } from "../../app-framework/immutable-types";
 import { List } from "immutable";
 
 export async function log(
-  account_id = "a1fdad63-8a72-4cec-af94-52fa0a32b38d",
-  test_name = "test2",
-  payload = { test: false },
-  time = new Date()
+  account_id: string = "a1fdad63-8a72-4cec-af94-52fa0a32b38d",
+  test_name: string = "test2",
+  payload: Record<string, any> = { test: false },
+  time: Date = new Date()
 ) {
   await query({
     query: {
@@ -21,7 +21,7 @@ export async function log(
 }
 
 export async function get_ab_test(
-  _ab_test: string
+  ab_test: string
 ): [string | undefined, List<any>] {
   let result: { query: { abtest: any[] } };
   try {
@@ -29,7 +29,7 @@ export async function get_ab_test(
       query: {
         abtest: [
           {
-            test_name: "test2",
+            test_name: ab_test,
             account_id: null,
             time: null,
             payload: null

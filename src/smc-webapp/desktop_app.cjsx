@@ -46,6 +46,8 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
 
+{log_test1} = require('./ab-test')
+
 nav_class = 'hidden-xs'
 
 HIDE_LABEL_THOLD = 6
@@ -119,6 +121,9 @@ Page = rclass
 
     getInitialState: ->
         show_label : true
+
+    componentDidMount: () ->
+        log_test1("Load webapp");
 
     componentWillReceiveProps: (next) ->
         @setState(show_label : next.open_projects.size <= HIDE_LABEL_THOLD)
