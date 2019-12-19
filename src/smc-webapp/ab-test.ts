@@ -33,16 +33,7 @@ const log_abtest = (payload, test_name: TESTNAME, time = new Date()): void => {
     abtest?.get("is_active") &&
     abtest.get("name") === test_name
   ) {
-    log(
-      account.get("account_id"),
-      test_name,
-      {
-        version: abtest.get("version"),
-        referrer: document.referrer,
-        ...payload
-      },
-      time
-    );
+    log(account.get("account_id"), test_name, payload, time);
   }
   // No-op if test isn't active
 };
