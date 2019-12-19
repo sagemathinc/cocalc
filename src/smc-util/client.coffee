@@ -880,7 +880,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : required
             timeout       : 40
-            cb            : required
+            cb            : undefined
 
         @call
             allow_post : false
@@ -892,7 +892,7 @@ class exports.Connection extends EventEmitter
     sign_in_using_auth_token: (opts) ->
         opts = defaults opts,
             auth_token : required
-            cb         : required
+            cb         : undefined
         @call
             allow_post : false
             message : message.sign_in_using_auth_token
@@ -905,7 +905,7 @@ class exports.Connection extends EventEmitter
             email_address   : required
             password        : required
             remember_me     : false
-            cb              : required
+            cb              : undefined
             timeout         : 40
             get_api_key     : undefined       # if given, will create/get api token in response message
 

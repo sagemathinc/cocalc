@@ -1949,7 +1949,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // function used internally by things that call webapp_client.exec
-  private _finish_exec(id) {
+  private _finish_exec(id, cb?) {
     // returns a function that takes the err and output and does the right activity logging stuff.
     return (err, output) => {
       this.fetch_directory_listing();
@@ -1962,6 +1962,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_activity({ id, error: output.error });
       }
       this.set_activity({ id, stop: "" });
+      if (cb != null) {
+        cb(err);
+      }
     };
   }
 
@@ -2384,7 +2387,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts = defaults(opts, {
       public: false,
       src_project_id: required, // id of source project
-      src: required, // list of relative paths of directors or files in the source project
+      src: required, // list of relative paths of directories or files in the source project
       target_project_id: required, // id of target project
       target_path: undefined, // defaults to src_path
       overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
@@ -2393,15 +2396,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
       exclude_history: false, // if true, exclude all files of the form *.sage-history
       id: undefined,
+      cb: undefined // optional callback when all done.
     });
-    // TODO: wrote this but *NOT* tested yet -- needed "copy_click".
     const id = opts.id != null ? opts.id : misc.uuid();
     this.set_activity({
       id,
       status: `Copying ${opts.src.length} ${misc.plural(
         opts.src.length,
         "path"
-      )} to another project`
+      )} to a project`
     });
     const { src } = opts;
     delete opts.src;
@@ -2424,7 +2427,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       );
       webapp_client.copy_path_between_projects(opts0);
     };
-    return async.mapLimit(src, 3, f, this._finish_exec(id));
+    async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }
 
   private _move_files(opts) {

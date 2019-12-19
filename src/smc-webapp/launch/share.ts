@@ -45,17 +45,31 @@ import { redux } from "../app-framework";
 import { query } from "../frame-editors/generic/client";
 import { webapp_client } from "../webapp-client";
 import { callback2, once } from "smc-util/async-utils";
+import { len, uuid } from "smc-util/misc";
+import { alert_message } from "../alerts";
+
+interface ShareInfo {
+  id: string;
+  project_id: string;
+  path: string;
+  description?: string;
+  license?: string;
+}
 
 export async function launch_share(launch: string): void {
-  const log = (...args) => console.log("launch_share", ...args);
-  log(launch);
   const v = launch.split("/");
   const share_id = v[1];
   const path = v.slice(2).join("/");
-  log("share_id=", share_id);
-  log("path=", path);
+  alert_message({
+    type: "info",
+    title: "Opening a copy of this shared content in a project...",
+    timeout: 5
+  });
 
-  if (!webapp_client.is_signed_in()) await once(webapp_client, "signed_in");
+  const store = redux.getStore("account");
+  if (!store.get("is_ready")) {
+    await once(store, "is_ready");
+  }
 
   // Look up the project_id and path for the share from the database.
   const public_path = (
@@ -72,9 +86,15 @@ export async function launch_share(launch: string): void {
       }
     })
   ).query.public_paths_by_id;
-  log("public_path = ", public_path);
+  //console.log("public_path = ", public_path);
   if (public_path == null) {
     throw Error(`there is no public share with id ${share_id}`);
+  }
+
+  // Actual path is in the URL and can be much more refined than the share path.
+  public_path.path = path;
+  if (public_path.path.endsWith("/")) {
+    public_path.path = public_path.path.slice(0, public_path.path.length - 1);
   }
 
   // What is our relationship to this public_path?
@@ -82,7 +102,7 @@ export async function launch_share(launch: string): void {
     public_path.project_id
   );
 
-  console.log("relationship = ", relationship);
+  //console.log("relationship = ", relationship);
 
   switch (relationship) {
     case "collaborator":
@@ -90,20 +110,33 @@ export async function launch_share(launch: string): void {
         public_path.project_id,
         public_path.path
       );
+      alert_message({
+        type: "info",
+        title: "Opened project with the shared content.",
+        message:
+          "Since your account already has edit access to this shared content, it has been opened for you.",
+        block: true
+      });
       break;
     case "anonymous":
-      await open_share_in_the_anonymous_project(
-        public_path.project_id,
-        public_path.path
-      );
+      await open_share_in_the_anonymous_project(public_path);
+      alert_message({
+        type: "info",
+        title: `Shared content opened - ${public_path.description}`,
+        message:
+          "You can edit and run this share!  Create an account in order to save your changes, collaborate with other people (and much more!).",
+        block: true
+      });
       break;
     case "fork":
-      await open_share_in_a_new_project(
-        public_path.project_id,
-        public_path.path,
-        public_path.description,
-        public_path.license
-      );
+      await open_share_in_a_new_project(public_path);
+      alert_message({
+        type: "info",
+        title: `Shared content opened in a new project - ${public_path.description}`,
+        message:
+          "You can edit and run this share in this new project.  You may want to upgrade this project or copy files to another one of your projects.",
+        block: true
+      });
       break;
     default:
       throw Error(`unknown relationship "${relationship}"`);
@@ -141,10 +174,16 @@ async function get_relationship_to_share(project_id: string): Relationship {
   // object back (since it is outside of our "universe").  Also, we include
   // last_active in the query, since otherwise the query always just comes back
   // empty as a sort of no-op (probably an edge case bug).
-  const project = (
-    await query({ query: { projects: { project_id, last_active: null } } })
-  ).query.projects;
-  return project == null ? "fork" : "collaborator";
+  try {
+    const project = (
+      await query({ query: { projects: { project_id, last_active: null } } })
+    ).query.projects;
+    return project == null || len(project) == 0 ? "fork" : "collaborator";
+  } catch (err) {
+    // For non admin get an err when trying to get info about a project that
+    // we don't have access to.
+    return "fork";
+  }
 }
 
 // Easy: just open it and done!
@@ -187,11 +226,13 @@ async function anonymous_project_id(max_time_s: number = 30): Promise<string> {
 }
 
 async function open_share_in_the_anonymous_project(
-  project_id: string,
-  path: string
+  info: ShareInfo
 ): Promise<void> {
   const target_project_id = await anonymous_project_id();
-  open_share_in_project(project_id, path, target_project_id);
+  // Change the project title and description to be related to the share, since
+  // this is very likely the only way it is used (opening this project).
+  await open_share_in_project(info.project_id, info.path, target_project_id);
+  set_project_metadata(target_project_id, info);
 }
 
 async function open_share_in_project(
@@ -199,36 +240,81 @@ async function open_share_in_project(
   path: string,
   target_project_id: string
 ): Promise<void> {
+  // Open the project itself.
+  const projects_actions = redux.getActions("projects");
+  projects_actions.open_project({
+    project_id: target_project_id,
+    switch_to: true
+  });
+
   // Copy the share to the target project.
-  await callback2(webapp_client.copy_path_between_projects, {
+  const actions = redux.getProjectActions(target_project_id);
+  const id = uuid();
+  actions.set_activity({
+    id,
+    status: "Copying shared content to your project..."
+  });
+
+  await callback2(webapp_client.copy_path_between_projects.bind(actions), {
     public: true,
     src_project_id: project_id,
     src_path: path,
     target_project_id,
-    target_path: path,
     timeout: 120
   });
 
-  // Then open it.
-  const actions = redux.getProjectActions(target_project_id);
+  actions.set_activity({ id, status: "Opening the shared content..." });
+
+  // Then open the share:
   if (actions == null) {
     throw Error("target project must exist");
   }
-  await actions.open_file({ path, foreground: true, foreground_project: true });
+  // We have to get the directory listing so we know whether we are opening
+  // a directory or a file, since unfortunately that info is not part of the share.
+  const i = path.lastIndexOf("/");
+  const containing_path = i == -1 ? "" : path.slice(0, i);
+  const filename = i == -1 ? path : path.slice(i + 1);
+  await actions.set_current_path(containing_path);
+  const store = redux.getProjectStore(target_project_id);
+  await callback2(store.wait.bind(store), {
+    until: () => store.getIn(["directory_listings", containing_path]) != null
+  });
+  const listing = store.getIn(["directory_listings", containing_path]);
+  let isdir: boolean = false;
+  for (const x of listing) {
+    if (x.get("name") == filename) {
+      isdir = !!x.get("isdir");
+      break;
+    }
+  }
+  if (isdir) {
+    await actions.set_current_path(path);
+  } else {
+    await actions.open_file({
+      path,
+      foreground: true,
+      foreground_project: true
+    });
+  }
+  actions.set_activity({ id, stop: "" });
 }
 
-async function open_share_in_a_new_project(
-  project_id: string,
-  path: string,
-  description: string | undefined,
-  license: string | undefined
-): Promise<void> {
+async function open_share_in_a_new_project(info: ShareInfo): Promise<void> {
   // Create a new project
   const actions = redux.getActions("projects");
   const target_project_id = await actions.create_project({
-    title: `${description} - Share`,
+    title: "Share", // gets changed in a moment by set_project_metadata
     start: true,
-    description: license // TODO - pretty lame
+    description: ""
   });
-  await open_share_in_project(project_id, path, target_project_id);
+  set_project_metadata(target_project_id, info);
+  await open_share_in_project(info.project_id, info.path, target_project_id);
+}
+
+function set_project_metadata(project_id: string, info: ShareInfo): void {
+  const actions = redux.getActions("projects");
+  const title = `Share - ${info.description ? info.description : info.path}`; // lame
+  const description = `${info.path}\n\n${info.license}`;
+  actions.set_project_title(project_id, title);
+  actions.set_project_description(project_id, description);
 }

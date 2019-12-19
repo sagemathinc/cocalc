@@ -769,14 +769,14 @@ class ProjectsStore extends Store
             return
         project = @getIn(['project_map', project_id])
         if not project?
-            if account_store.is_admin()
+            if account_store.get('is_admin')
                 return 'admin'
             else
                 return 'public'
         users = project.get('users')
         me = users?.get(account_store.get_account_id())
         if not me?
-            if account_store.is_admin()
+            if account_store.get('is_admin')
                 return 'admin'
             else
                 return 'public'
