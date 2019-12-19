@@ -14,7 +14,7 @@ export async function log(
         account_id,
         test_name,
         time,
-        payload
+        events: { [time.toString()]: payload }
       }
     }
   });
@@ -32,7 +32,7 @@ export async function get_ab_test(
             test_name: ab_test,
             account_id: null,
             time: null,
-            payload: null
+            events: null
           }
         ]
       }

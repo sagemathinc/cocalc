@@ -6,22 +6,22 @@ export const abtest = create({
       type: "string",
       desc: "Name of the A/B Test this event is relevant to"
     },
-    time: {
-      type: "timestamp",
-      desc: "when this event happened"
-    },
-    payload: {
-      type: "map",
-      desc: "Data relevant to this A/B Test"
-    },
     account_id: {
       type: "uuid",
       desc: "The uuid that determines the user account"
+    },
+    events: {
+      type: "map",
+      desc: "{Timestamp: Data relevant to this A/B Test}"
+    },
+    time: {
+      type: "timestamp",
+      desc: "last touch time"
     }
   },
   rules: {
     desc: "Events from ab-tests",
-    primary_key: ["account_id", "time", "test_name"],
+    primary_key: ["account_id", "test_name"],
     db_standby: "unsafe",
     durability: "soft", // loss of some log data not serious, since used only for analytics
 
@@ -33,7 +33,7 @@ export const abtest = create({
           account_id: null,
           test_name: null,
           time: null,
-          payload: null
+          events: null
         }
       },
       set: {
@@ -41,7 +41,7 @@ export const abtest = create({
           account_id: true,
           test_name: true,
           time: true,
-          payload: true
+          events: true
         }
       }
     }
