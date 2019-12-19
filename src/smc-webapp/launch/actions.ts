@@ -83,9 +83,12 @@ export function launch() {
   // console.log("launch-actions data=", data);
   if (data == null) return;
   const { type, launch } = data;
-  if (launch != null && type != null && typeof launch === "string") {
-    actions.setState(data);
-    // the first token selects share server or custom software image
+  if (launch == null || type == null || typeof launch != "string") {
+    // nothing we can do with this.
+    return;
+  }
+  actions.setState(data);
+  try {
     switch (type) {
       case "binder":
         launch_binder(launch, data.filepath, data.urlpath);
@@ -100,5 +103,9 @@ export function launch() {
         console.warn(`launch type "${type}" unknown`);
         return;
     }
+  } catch (err) {
+    console.warn(
+      `WARNING: launch action "${launch}" of type "${type}" failed -- ${err}`
+    );
   }
 }

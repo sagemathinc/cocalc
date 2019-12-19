@@ -23,7 +23,7 @@ export class TopBar extends Component<TopBarProps> {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} /> Shared
+          <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name} Shared Files
         </a>
       </span>
     );
@@ -90,19 +90,22 @@ export class TopBar extends Component<TopBarProps> {
       );
 
       if (project_id) {
-        i = path.slice(1).indexOf("/");
-        const proj_url = `${top}/../projects/${project_id}/files/${path.slice(
-          2 + i
-        )}?session=share&anonymous=true`;
+        // We put in anonymous=true so that an anonymous account will get created if the
+        // user is not already signed in (they usually are if they have an account, so this
+        // should cause minimal confusion and friction, but might cause some -- we have to balance
+        // friction from asking questions -- which kills like 80% of users -- with friction
+        // for existing users).  Also note that path has the leading slash so that's why
+        // it isn't "share/" below.
+        const cocalc_url = `${top}/../app?anonymous=true&launch=share${path}`;
         project_link = (
           <a
             target="_blank"
-            href={proj_url}
-            className="pull-right"
+            href={cocalc_url}
+            className="btn btn-success"
             rel="nofollow"
-            style={{ textDecoration: "none" }}
+            style={{ marginLeft: "30px" }}
           >
-            Open in {site_name}
+            Open in {site_name} (no account required!)
           </a>
         );
       }

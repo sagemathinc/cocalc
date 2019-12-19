@@ -48,22 +48,18 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     });
     // log("opening project");
     actions.open_project({ project_id, switch_to: true });
-    // Also change default account settings to not ask for the kernel,
-    // since that adds friction.
-    // log("do not ask for jupyter kernel");
-    redux.getTable("account").set({
-      editor_settings: {
-        ask_jupyter_kernel: false,
-        jupyter: { kernel: "python3" }
-      }
-    });
-    // Open a new Jupyter notebook:
-    // log("open jupyter notebook");
-    const project_actions = redux.getProjectActions(project_id);
-    project_actions.open_file({
-      path: "Welcome to CoCalc.ipynb",
-      foreground: true
-    });
+
+    const launch_actions = redux.getStore("launch-actions");
+    if (launch_actions != null && launch_actions.get("launch")) {
+      console.log(
+        "anonymous setup: do nothing further since there is a launch action"
+      );
+      return;
+    }
+
+    // This does not seem like a good idea -- nobody uses it. Better
+    // it turns out to maybe show the files page.  We will see...
+    open_default_jupyter_notebook(project_id);
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
     // log("err", err);
@@ -80,4 +76,23 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     // they refresh their browser it won't cause confusion.
     QueryParams.remove("anonymous");
   }
+}
+
+function open_default_jupyter_notebook(project_id: string): void {
+  // Also change default account settings to not ask for the kernel,
+  // since that adds friction.
+  // log("do not ask for jupyter kernel");
+  redux.getTable("account").set({
+    editor_settings: {
+      ask_jupyter_kernel: false,
+      jupyter: { kernel: "python3" }
+    }
+  });
+  // Open a new Jupyter notebook:
+  // log("open jupyter notebook");
+  const project_actions = redux.getProjectActions(project_id);
+  project_actions.open_file({
+    path: "Welcome to CoCalc.ipynb",
+    foreground: true
+  });
 }
