@@ -49,6 +49,8 @@ smc_version = require('smc-util/smc-version')
 
 {APIKeySetting} = require('./api-key')
 
+abtest = require('./ab-test')
+
 
 # Define a component for working with the user's basic
 # account information.
@@ -176,6 +178,8 @@ EmailAddressSetting = rclass
             password : ''  # more secure...
 
     save_editing: ->
+        if @props.is_anonymous
+            abtest.current_test.log("Signed up")
         if @state.password.length < 6
             @setState
                 state : 'edit'

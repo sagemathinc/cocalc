@@ -3,9 +3,9 @@ import { fromJS } from "../../app-framework/immutable-types";
 import { List } from "immutable";
 
 export async function log(
-  account_id: string = "a1fdad63-8a72-4cec-af94-52fa0a32b38d",
-  test_name: string = "test2",
-  payload: Record<string, any> = { test: false },
+  account_id: string,
+  test_name: string,
+  payload: Record<string, any>,
   time: Date = new Date()
 ) {
   await query({

@@ -2,6 +2,8 @@
 # Global app initialization
 ###
 
+
+
 fullscreen = require('./fullscreen')
 
 # FUTURE: This is needed only for the old non-react editors; will go away.

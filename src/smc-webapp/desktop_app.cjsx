@@ -46,7 +46,8 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
 
-{log_test1} = require('./ab-test')
+{current_test} = require('./ab-test')
+{AnonymousSignUpButton} = require('./anonymous-sign-up-button')
 
 nav_class = 'hidden-xs'
 
@@ -122,9 +123,6 @@ Page = rclass
     getInitialState: ->
         show_label : true
 
-    componentDidMount: () ->
-        log_test1("Load webapp");
-
     componentWillReceiveProps: (next) ->
         @setState(show_label : next.open_projects.size <= HIDE_LABEL_THOLD)
 
@@ -145,7 +143,7 @@ Page = rclass
             a = 'cog'
 
         if @props.is_anonymous
-            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            label = <AnonymousSignUpButton />
             style = {marginTop:'-10px'}  # compensate for using a button
         else
             label = "Account"
@@ -160,6 +158,7 @@ Page = rclass
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             show_label     = {@state.show_label}
+            on_click       = {() => current_test.log("Clicked Button")}
         />
 
     render_admin_tab: ->
