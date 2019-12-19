@@ -112,7 +112,7 @@ exports.forgot_password = (opts) ->
                 <div>&nbsp;</div>
                 <div style="text-align: center;">
                 <span style="font-size:12px;"><b>
-                  <a href="#{DOMAIN_NAME}/app#forgot-#{id}">#{DOMAIN_NAME}/app#forgot-#{id}</a>
+                  <a href="#{DOMAIN_NAME}/app?forgot=#{id}">#{DOMAIN_NAME}/app?forgot=#{id}</a>
                 </b></span>
                 </div>
                 <div>&nbsp;</div>

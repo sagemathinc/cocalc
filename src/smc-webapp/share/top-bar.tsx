@@ -23,7 +23,8 @@ export class TopBar extends Component<TopBarProps> {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name} Shared Files
+          <CoCalcLogo base_url={this.props.base_url} /> {this.props.site_name}{" "}
+          Shared Files
         </a>
       </span>
     );
@@ -103,9 +104,9 @@ export class TopBar extends Component<TopBarProps> {
             href={cocalc_url}
             className="btn btn-success"
             rel="nofollow"
-            style={{ marginLeft: "30px" }}
+            style={{ marginLeft: "30px", fontSize: "14pt" }}
           >
-            Open in {site_name} (no account required!)
+            Open in {site_name} with one click!
           </a>
         );
       }

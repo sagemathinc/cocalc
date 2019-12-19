@@ -94,7 +94,7 @@ export class PasswordReset extends Component<Props, State> {
           </a>
           <br />
           Tell them to visit the link to reset their password sometime within
-          the next 8 hours.
+          the next 24 hours.
           <br />
           This link can only be used once.
         </div>
