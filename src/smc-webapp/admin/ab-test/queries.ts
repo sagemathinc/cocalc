@@ -22,7 +22,7 @@ export async function log(
 
 export async function get_ab_test(
   ab_test: string
-): [string | undefined, List<any>] {
+): Promise<[string | undefined, List<any> | undefined]> {
   let result: { query: { abtest: any[] } };
   try {
     result = await query({
@@ -38,7 +38,7 @@ export async function get_ab_test(
       }
     });
   } catch {
-    return ["Something bad happened", []];
+    return ["Something bad happened", undefined];
   }
   return [undefined, fromJS(result.query.abtest)];
 }
