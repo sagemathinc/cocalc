@@ -46,7 +46,7 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
 
-{current_test} = require('./ab-test')
+{current_test} = require('./ab-testing')
 {AnonymousSignUpButton} = require('./anonymous-sign-up-button')
 
 nav_class = 'hidden-xs'

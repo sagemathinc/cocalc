@@ -1,5 +1,6 @@
-import { redux, Store } from "./app-framework";
-import { log } from "./admin/ab-test";
+import { redux, Store } from "../app-framework";
+import { log } from "../admin/ab-test";
+import { computeVersion } from "./compute-version";
 
 interface ABTestStoreState {
   is_active: boolean;
@@ -38,20 +39,12 @@ const log_abtest = (payload, test_name: TESTNAME, time = new Date()): void => {
   // No-op if test isn't active
 };
 
-export function computeVersion(id?: string): "A" | "B" {
-  if (id) {
-    return parseInt(id[0], 16) < 8 ? "B" : "A";
-  } else {
-    return "A";
-  }
-}
-
 export const current_test = new SignUpTest();
 
-export const start = (): void => {
-  const version = computeVersion(redux.getStore("account")?.get("account_id"));
+export const start = (): Store<ABTestStoreState> => {
+  const version = computeVersion(redux.getStore("account").get("account_id"));
 
-  redux.createStore<ABTestStoreState, Store<ABTestStoreState>>(
+  return redux.createStore<ABTestStoreState, Store<ABTestStoreState>>(
     "abtest",
     Store,
     {

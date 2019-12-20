@@ -1,6 +1,6 @@
 import * as React from "react";
 import { List } from "immutable";
-import { computeVersion } from "../../ab-test";
+import { computeVersion } from "../../ab-testing";
 
 interface Props {
   ab_test_entries: List<any>;

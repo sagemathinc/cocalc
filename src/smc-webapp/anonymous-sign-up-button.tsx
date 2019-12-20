@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Button } from "react-bootstrap";
-import { ABTestSplitter } from "./ab-test-splitter";
+import { ABTestSplitter } from "./ab-testing";
 
 export const AnonymousSignUpButton: React.FC = () => {
   const sign_up = (

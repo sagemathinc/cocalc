@@ -49,7 +49,7 @@ smc_version = require('smc-util/smc-version')
 
 {APIKeySetting} = require('./api-key')
 
-abtest = require('./ab-test')
+abtest = require('./ab-testing')
 
 
 # Define a component for working with the user's basic
