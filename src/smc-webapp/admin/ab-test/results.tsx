@@ -34,6 +34,7 @@ export const Results: React.FC<Props> = React.memo(({ ab_test_entries }) => {
       B: { signed_up: 0, clicked_button: 0, total: 0 }
     }
   );
+  console.log(results);
 
   const A = results.A;
   const B = results.B;
@@ -63,7 +64,6 @@ export const Results: React.FC<Props> = React.memo(({ ab_test_entries }) => {
   return (
     <div>
       <h2>{test_name}</h2>
-      {JSON.stringify(results)}
       Chi sum: {chi_sum}
       <br />A sign up percent: {A_sign_up_percent}% <br />B sign up percent:{" "}
       {B_sign_up_percent}% <br />
