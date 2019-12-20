@@ -38,16 +38,19 @@ const log_abtest = (payload, test_name: TESTNAME, time = new Date()): void => {
   // No-op if test isn't active
 };
 
+export function computeVersion(id?: string): "A" | "B" {
+  if (id) {
+    return parseInt(id[0], 16) < 8 ? "B" : "A";
+  } else {
+    return "A";
+  }
+}
+
 export const current_test = new SignUpTest();
 
 export const start = (): void => {
-  let version: "A" | "B" = "A";
-  if (
-    // If first digit less than 8 (uuids are made up of hex digits)
-    parseInt(redux.getStore("account")?.get("account_id")[0] ?? 0, 16) < 8
-  ) {
-    version = "B";
-  }
+  const version = computeVersion(redux.getStore("account")?.get("account_id"));
+
   redux.createStore<ABTestStoreState, Store<ABTestStoreState>>(
     "abtest",
     Store,

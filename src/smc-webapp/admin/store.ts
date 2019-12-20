@@ -20,7 +20,7 @@ export const initial_state: AdminStoreState = {
   user_search_query: "",
   user_search_result: List([]),
   ab_test_err: "",
-  ab_test_name: "test",
+  ab_test_name: "sign_up_button",
   ab_test_results: List([])
 };
 

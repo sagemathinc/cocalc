@@ -1,7 +1,7 @@
 import * as React from "react";
 import { List } from "immutable";
 
-import { ABTestResults } from "./ab-test-results";
+import { Results } from "./results";
 
 interface Props {
   search: string;
@@ -37,7 +37,7 @@ export const ABTestBrowser: React.FC<Props> = ({
           />
         </label>
       </form>
-      <ABTestResults ab_test_entries={ab_test_results} />
+      <Results ab_test_entries={ab_test_results} />
     </div>
   );
 };

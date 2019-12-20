@@ -2,6 +2,7 @@ import { callback2, once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
+import * as abtest from "../ab-test"
 
 /*
 true if anonymous query param set at all (doesn't matter to what) during
@@ -39,6 +40,8 @@ export async function do_anonymous_setup(client: any): Promise<void> {
       // log("waiting to be signed in");
       await once(this, "signed_in");
     }
+    // Start abtests
+    abtest.start();
     const actions = redux.getActions("projects");
     // log("creating project");
     const project_id = await actions.create_project({
