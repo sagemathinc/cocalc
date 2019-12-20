@@ -1274,6 +1274,11 @@ schema.copy_paths = {
       type: "boolean",
       desc: "if true, make backup of files before overwriting"
     },
+    public: {
+      type: "boolean",
+      desc:
+        "if true, use files from the public share server instead of starting up the project"
+    },
     bwlimit: {
       type: "string",
       desc:

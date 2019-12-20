@@ -1707,6 +1707,9 @@ class exports.Client extends EventEmitter
                         else
                             cb()
             (cb) =>
+                # Obviously, no need to check write access about the source project,
+                # since we are only granting access to public files.  This function
+                # should ensure that the path is public:
                 @get_public_project
                     project_id : mesg.src_project_id
                     path       : mesg.src_path
@@ -1723,6 +1726,7 @@ class exports.Client extends EventEmitter
                     timeout         : mesg.timeout
                     exclude_history : mesg.exclude_history
                     backup          : mesg.backup
+                    public          : true
                     cb              : cb
         ], (err) =>
             if err
