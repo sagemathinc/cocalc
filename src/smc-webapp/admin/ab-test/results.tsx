@@ -58,8 +58,8 @@ export const Results: React.FC<Props> = React.memo(({ ab_test_entries }) => {
 
   const chi_sum = chi_A_sign_up + chi_A_fail + chi_B_sign_up + chi_B_fail;
 
-  const A_sign_up_percent = (A.signed_up / A.total) * 100;
-  const B_sign_up_percent = (B.signed_up / B.total) * 100;
+  const A_sign_up_percent = Math.trunc((A.signed_up / A.total) * 10000)/100;
+  const B_sign_up_percent = Math.trunc((B.signed_up / B.total) * 10000)/100;
 
   return (
     <div>
