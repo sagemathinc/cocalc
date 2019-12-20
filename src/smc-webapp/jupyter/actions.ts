@@ -181,7 +181,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Browser Client: Wait until the .ipynb file has actually been parsed into
     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
     // then set the kernel, if necessary.
-    await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+    try {
+      await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+    } catch (err) {
+      if (this._state != "ready") {
+        // Probably user just closed the notebook before it finished
+        // loading, so we don't need to set the kernel.
+        return;
+      }
+      throw Error("error waiting for ipynb file to load");
+    }
     this._syncdb_init_kernel();
   }
 
@@ -2367,9 +2376,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public set_raw_ipynb(): void {
-    if (this._state === "load") {
+    if (this._state != "ready") {
+      // lies otherwise...
       return;
     }
+
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });
