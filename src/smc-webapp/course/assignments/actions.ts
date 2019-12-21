@@ -13,7 +13,6 @@ import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import {
   len,
-  keys,
   path_split,
   uuid,
   peer_grading,
@@ -1336,6 +1335,12 @@ You can find the comments they made in the folders below.\
       if (this.course_actions.is_closed()) return;
     }
     if (len(instructor_ipynb_files) == 0) {
+      console.log(
+        "run_nbgrader_for_one_student",
+        assignment_id,
+        student_id,
+        "done -- no ipynb files"
+      );
       return; // nothing to do
     }
 
@@ -1352,6 +1357,7 @@ You can find the comments they made in the folders below.\
         if (instructor_ipynb_files == null) throw Error("BUG");
         const instructor_ipynb: string = instructor_ipynb_files[file];
         if (this.course_actions.is_closed()) return;
+        console.log("launching nbgrader...", { student_id, file });
         const r = await nbgrader({
           timeout_ms: 120000, // timeout for total notebook
           cell_timeout_ms: 30000, // per cell timeout
@@ -1360,20 +1366,23 @@ You can find the comments they made in the folders below.\
           path: student_path,
           project_id
         });
-        console.log("ran nbgrader", { student_id, file, r });
+        console.log("nbgrader finished successfully", { student_id, file, r });
         result[file] = r;
       } catch (err) {
         // TODO: put error report in
-        console.log("error running nbgrader", { student_id, file, err });
+        console.log("nbgrader failed", { student_id, file, err });
       }
     }
 
-    await map(
-      keys(instructor_ipynb_files),
-      PARALLEL_LIMIT,
-      one_file.bind(this)
-    );
-    console.log("ran nbgrader for student totally", { student_id, result });
+    // NOTE: we *could* run these in parallel, but that causes
+    // trouble for very little benefit (it's better to run across all students in parallel).
+    for (const file in instructor_ipynb_files) {
+      await one_file.bind(this)(file);
+    }
+    console.log("ran nbgrader for all files for a student", {
+      student_id,
+      result
+    });
     (window as any).nb = result;
     const scores: { [filename: string]: Scores } = {};
     for (const filename in result) {

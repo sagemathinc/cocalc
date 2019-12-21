@@ -1,6 +1,6 @@
 import { RunNotebookOptions } from "../smc-webapp/jupyter/nbgrader/api";
 import { JupyterNotebook } from "../smc-webapp/jupyter/nbgrader/autograde";
-import { is_object, len } from "../smc-util/misc";
+import { is_object, len, uuid } from "../smc-util/misc";
 
 import { kernel } from "../jupyter/jupyter";
 
@@ -15,7 +15,7 @@ export async function jupyter_run_notebook(
   const jupyter = kernel({
     name,
     client,
-    path: opts.path + "/autograde.ipynb"
+    path: opts.path + `/${uuid()}.ipynb`  // critical that this doesn't randomly conflict with something else running at the same time.
   });
   try {
     await jupyter.spawn();
