@@ -154,11 +154,12 @@ export async function handle_path_request(opts: {
           false,
           viewer,
           public_paths.is_public,
-          description
+          description,
+          `/${info.get("id")}/${path}`
         ),
         viewer,
         hidden: req.query.hidden,
-        sort: req.query.sort != null ? req.query.sort : "-mtime",
+        sort: req.query.sort != null ? req.query.sort : "name",
         authors,
         base_url,
         views

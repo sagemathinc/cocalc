@@ -41,4 +41,6 @@ export interface AccountState {
   has_remember_me?: boolean;
   passports?: immutable.Map<string, any>;
   is_anonymous: boolean;
+  is_admin: boolean;
+  is_ready: boolean; // user signed in and account settings have been loaded.
 }

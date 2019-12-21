@@ -74,8 +74,8 @@ class SessionManager {
     // and project tabs are in correct order (or nothing is opened yet)
     // we open up the URL target and put it into foreground
     if (misc_page.should_load_target_url()) {
-      require("./history").load_target((window as any).smc_target, true);
-      (window as any).smc_target = "";
+      require("./history").load_target((window as any).cocalc_target, true);
+      (window as any).cocalc_target = "";
     }
   }
 

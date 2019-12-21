@@ -100,7 +100,7 @@ exports.NavTab = rclass
 
     propTypes :
         name            : rtypes.string
-        label           : rtypes.string
+        label           : rtypes.oneOfType([rtypes.string,rtypes.element])
         label_class     : rtypes.string
         icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
         close           : rtypes.bool
@@ -124,7 +124,7 @@ exports.NavTab = rclass
 
     render_label: ->
         if @props.show_label and @props.label?
-            <span style={marginLeft: 5} className={@props.label_class} cocalc-test={@props.label}>
+            <span style={marginLeft: 5} className={@props.label_class} cocalc-test={@props.name}>
                 {@props.label}
             </span>
 

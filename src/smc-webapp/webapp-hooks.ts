@@ -7,14 +7,16 @@ import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
 import * as misc from "smc-util/misc";
 
-const { webapp_client } = require("./webapp_client");
+import { webapp_client } from "./webapp-client";
+
 const {
   analytics_event,
   APP_BASE_URL,
   should_load_target_url,
   get_cookie
 } = require("./misc_page");
-const { reset_password_key } = require("./password-reset");
+
+import { reset_password_key } from "./client/password-reset";
 
 let first_login = true;
 
