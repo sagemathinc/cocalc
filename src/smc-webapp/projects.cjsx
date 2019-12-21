@@ -22,6 +22,7 @@
 $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
+json_stable = require("json-stable-stringify")
 
 {COCALC_MINIMAL} = require('./fullscreen')
 
@@ -42,8 +43,8 @@ markdown = require('./markdown')
 {VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
-{BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
+{recreate_users_table} = require('./users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {fromPairs} = require('lodash')
 ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
@@ -193,6 +194,7 @@ class ProjectsActions extends Actions
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
     # configurable by the user.
+    # **THIS IS AN ASYNC FUNCTION!**
     apply_default_upgrades: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -207,13 +209,15 @@ class ProjectsActions extends Actions
             if avail > 0
                 to_upgrade[quota] = 1
         if misc.len(to_upgrade) > 0
-            @apply_upgrades_to_project(opts.project_id, to_upgrade)
+            await @apply_upgrades_to_project(opts.project_id, to_upgrade)
 
+    ###
+    # See comment in db-schema.ts about projects_owner table.
     # only owner can set course description.
     # **THIS IS AN ASYNC FUNCTION!**
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not await @have_project(project_id)
-            msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
+            msg = "Can't set course info -- you are not a collaborator on project '#{project_id}'."
             console.warn(msg)
             return
         course_info = store.get_course_info(project_id)?.toJS()
@@ -232,6 +236,27 @@ class ProjectsActions extends Actions
                         pay           : pay
                         account_id    : account_id
                         email_address : email_address)
+    ###
+
+    set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
+        if not await @have_project(project_id)
+            msg = "Can't set course info -- you are not a collaborator on project '#{project_id}'."
+            console.warn(msg)
+            return
+        course_info = store.get_course_info(project_id)?.toJS()
+        # pay is either a Date or the string "".
+        course =
+            project_id    : course_project_id
+            path          : path
+            pay           : pay
+            account_id    : account_id
+            email_address : email_address
+        # json_stable -- I'm tired and this needs to just work for comparing.
+        if json_stable(course_info) == json_stable(course)
+            # already set as required; do nothing
+            return
+        await @projects_table_set({project_id, course})
+
 
     # Create a new project
     # **THIS IS AN ASYNC FUNCTION!**
@@ -240,15 +265,22 @@ class ProjectsActions extends Actions
             title       : 'No Title'
             description : 'No Description'
             image       : undefined  # if given, sets the compute image (the ID string)
+            start       : false      # immediately start on create
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token
             delete opts.token
         else
             token = false
-        project_id = await callback2(webapp_client.create_project, opts)
-        if token
-            _create_project_tokens[token] = {err:err, project_id:project_id}
+        try
+            project_id = await callback2(webapp_client.create_project, opts)
+            if token
+                _create_project_tokens[token] = {project_id:project_id}
+        catch err
+            if token
+                _create_project_tokens[token] = {err:err}
+            else
+                throw err
 
         # At this point we know the project_id and that the project exists.
         # However, various code (e.g., setting the title) depends on the
@@ -262,6 +294,8 @@ class ProjectsActions extends Actions
 
 
     # Open the given project
+    # This is an ASYNC function, sort of...
+    # at least in that it might have to load all projects...
     open_project: (opts) =>
         opts = defaults opts,
             project_id      : required  # string  id of the project to open
@@ -271,10 +305,14 @@ class ProjectsActions extends Actions
             ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
             change_history  : true      # bool    Whether or not to alter browser history
             restore_session : true      # bool    Opens up previously closed editor tabs
+
         if not store.get_project(opts.project_id)?
-            # trying to open a not-known project -- maybe
-            # we have not yet loaded the full project list?
-            await @load_all_projects()
+            if COCALC_MINIMAL
+                await switch_to_project(opts.project_id)
+            else
+                # trying to open a nogt-known project -- maybe
+                # we have not yet loaded the full project list?
+                await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -395,8 +433,8 @@ class ProjectsActions extends Actions
     ###
     # **THIS IS AN ASYNC FUNCTION!**
     remove_collaborator: (project_id, account_id) =>
+        name = redux.getStore('users').get_name(account_id)
         f = (cb) =>
-            name = redux.getStore('users').get_name(account_id)
             webapp_client.project_remove_collaborator
                 project_id : project_id
                 account_id : account_id
@@ -442,7 +480,7 @@ class ProjectsActions extends Actions
                 cb         : (err) =>
                     if not silent
                         if err # TODO: -- set error in store for this project...
-                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{JSON.stringify(err)}"
                             alert_message(type:'error', message:err)
                     cb(err)
         await callback(f)
@@ -508,9 +546,11 @@ class ProjectsActions extends Actions
             event    : 'upgrade'
             upgrades : upgrades
 
+    # Throws on project_id is not a valid UUID (why? I don't remember)
+    # **THIS IS AN ASYNC FUNCTION!**
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
-        @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+        await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
@@ -576,7 +616,7 @@ class ProjectsActions extends Actions
     toggle_delete_project: (project_id) =>
         is_deleted = @redux.getStore('projects').is_deleted(project_id)
         if not is_deleted
-            @clear_project_upgrades(project_id)
+            await @clear_project_upgrades(project_id)
 
         await @projects_table_set
             project_id : project_id
@@ -729,14 +769,14 @@ class ProjectsStore extends Store
             return
         project = @getIn(['project_map', project_id])
         if not project?
-            if account_store.is_admin()
+            if account_store.get('is_admin')
                 return 'admin'
             else
                 return 'public'
         users = project.get('users')
         me = users?.get(account_store.get_account_id())
         if not me?
-            if account_store.is_admin()
+            if account_store.get('is_admin')
                 return 'admin'
             else
                 return 'public'
@@ -845,6 +885,16 @@ class ProjectsStore extends Store
         upgrades = @get_total_project_upgrades(project_id)
         return misc.map_sum(base_values, upgrades)
 
+    # we allow URLs in projects, which have member hosting or internet access
+    # this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators
+    allow_urls_in_emails: (project_id) =>
+        quotas = @get_total_project_quotas(project_id)
+        if not quotas?
+            return false
+        else
+            return !!(quotas.network or quotas.member_host)
+
+
     # Return javascript mapping from project_id's to the upgrades for the given projects.
     # Only includes projects with at least one upgrade
     get_upgraded_projects: =>
@@ -900,16 +950,36 @@ require('./process-links')
 # synchronized with the server.
 class ProjectsTable extends Table
     query: ->
-        return 'projects'
+        project_id = redux.getStore('page').get('kiosk_project_id')
+        if project_id?
+            # In kiosk mode we load only the relevant project.
+            query = require('smc-util/sync/table/util').parse_query('projects_all')
+            query.projects_all[0].project_id = project_id
+            return query
+        else
+            return 'projects'
 
     _change: (table, keys) =>
-        actions.setState(project_map: table.get())
+        # in kiosk mode, merge in the new project table into the known project map
+        project_id = redux.getStore('page').get('kiosk_project_id')
+        if project_id?
+            project_map = redux.getStore("projects")?.get("project_map")
+            if project_map?
+                new_project_map = project_map.merge(table.get())
+            else
+                new_project_map = table.get()
+            actions.setState(project_map: new_project_map)
+        else
+            actions.setState(project_map: table.get())
 
 class ProjectsAllTable extends Table
     query: ->
         return 'projects_all'
+
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
+
+
 
 # We define functions below that load all projects or just the recent
 # ones.  First we try loading the recent ones.  If this is *empty*,
@@ -919,7 +989,9 @@ class ProjectsAllTable extends Table
 
 all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
-    if all_projects_have_been_loaded # or COCALC_MINIMAL
+    if DEBUG and COCALC_MINIMAL
+        console.error("projects/load_all_projects was called in kiosk/minimal mode")
+    if all_projects_have_been_loaded
         return
     all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
@@ -933,8 +1005,30 @@ load_recent_projects = =>
     if redux.getTable('projects')._table.get().size == 0
         await load_all_projects()
 
-#if not COCALC_MINIMAL
-load_recent_projects()
+
+if not COCALC_MINIMAL
+    load_recent_projects()
+
+
+_project_tables = {}
+_previous_project_id = undefined
+
+# This function makes it possible to switch between projects in kiosk mode.
+# If the project changes, it also recreates the users table.
+# Warning: https://github.com/sagemathinc/cocalc/pull/3985#discussion_r336828374
+switch_to_project = (project_id) =>
+    redux.getActions('page').setState({kiosk_project_id:project_id})
+    if _previous_project_id != project_id
+        recreate_users_table()
+        _previous_project_id = project_id
+    pt_cached = _project_tables[project_id]
+    if pt_cached
+        redux._tables[project_id] = pt_cached
+    else
+        redux.removeTable('projects')
+        pt = redux.createTable('projects', ProjectsTable)
+        _project_tables[project_id] = pt
+        await once(redux.getTable('projects')._table, "connected")
 
 
 ProjectsSearch = rclass
@@ -1337,6 +1431,8 @@ exports.ProjectsPage = ProjectsPage = rclass
             customer      : rtypes.object
         compute_images :
             images        : rtypes.immutable.Map
+        account:
+            is_anonymous : rtypes.bool
 
     propTypes :
         redux             : rtypes.object
@@ -1506,75 +1602,76 @@ exports.ProjectsPage = ProjectsPage = rclass
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
-        <div className='container-content smc-vfill'>
-            <Grid fluid className='constrained smc-vfill' style={{minWidth:'90%'}}>
-                <Well className="smc-vfill" style={marginTop:'15px'}>
-                    <Row>
-                        <Col sm={4}>
-                            {@render_projects_title()}
-                        </Col>
-                        <Col sm={4}>
-                            <ProjectsFilterButtons
-                                hidden  = {@props.hidden}
-                                deleted = {@props.deleted}
-                                show_hidden_button = {@has_hidden_projects() or @props.hidden}
-                                show_deleted_button = {@has_deleted_projects() or @props.deleted} />
-                        </Col>
-                        <Col sm={4}>
-                            <UsersViewing style={width:'100%'}/>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={4}>
-                            <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
-                        </Col>
-                        <Col sm={8}>
-                            <HashtagGroup
-                                hashtags          = {@hashtags()}
-                                selected_hashtags = {@props.selected_hashtags[@filter()]}
-                                toggle_hashtag    = {@toggle_hashtag} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12} style={marginTop:'1ex'}>
-                            <VisibleMDLG>
-                                <div style={maxWidth:'50%', float:'right'}>
-                                    <UpgradeStatus />
-                                </div>
-                            </VisibleMDLG>
-                            <NewProjectCreator
-                                start_in_edit_mode = {@project_list().length == 0}
-                                default_value={@props.search}
-                                images = {@props.images}
-                            />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12}>
-                            <ProjectsListingDescription
-                                nb_projects       = {@project_list().length}
-                                visible_projects  = {visible_projects}
-                                hidden            = {@props.hidden}
-                                deleted           = {@props.deleted}
-                                search            = {@props.search}
-                                selected_hashtags = {@props.selected_hashtags[@filter()]}
-                                on_cancel         = {@clear_filters_and_focus_search_input}
-                            />
-                        </Col>
-                    </Row>
-                    <Row className="smc-vfill">
-                        <Col sm={12} className="smc-vfill">
-                            <ProjectList
-                                projects    = {visible_projects}
-                                user_map    = {@props.user_map}
-                                images      = {@props.images}
-                                load_all_projects_done = {@props.load_all_projects_done}
-                                redux       = {redux} />
-                        </Col>
-                    </Row>
-                </Well>
-            </Grid>
-        </div>
+        <Col sm={12} md={12} lg={10} lgOffset={1}
+            className={'container-content smc-vfill'}
+            style={overflowY:'auto', paddingTop:'20px'}
+        >
+            <Row>
+                <Col sm={4}>
+                    {@render_projects_title()}
+                </Col>
+                <Col sm={4}>
+                    <ProjectsFilterButtons
+                        hidden  = {@props.hidden}
+                        deleted = {@props.deleted}
+                        show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                        show_deleted_button = {@has_deleted_projects() or @props.deleted}
+                    />
+                </Col>
+                <Col sm={4}>
+                    <UsersViewing style={width:'100%'}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={4}>
+                    <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
+                </Col>
+                <Col sm={8}>
+                    <HashtagGroup
+                        hashtags          = {@hashtags()}
+                        selected_hashtags = {@props.selected_hashtags[@filter()]}
+                        toggle_hashtag    = {@toggle_hashtag} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12} style={marginTop:'1ex'}>
+                    <VisibleMDLG>
+                        <div style={maxWidth:'50%', float:'right'}>
+                            <UpgradeStatus />
+                        </div>
+                    </VisibleMDLG>
+                    <NewProjectCreator
+                        start_in_edit_mode = {@project_list().length == 0}
+                        default_value={if @props.search then @props.search else 'Untitled'}
+                        images = {@props.images}
+                    />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
+                    <ProjectsListingDescription
+                        nb_projects       = {@project_list().length}
+                        visible_projects  = {visible_projects}
+                        hidden            = {@props.hidden}
+                        deleted           = {@props.deleted}
+                        search            = {@props.search}
+                        selected_hashtags = {@props.selected_hashtags[@filter()]}
+                        on_cancel         = {@clear_filters_and_focus_search_input}
+                    />
+                </Col>
+            </Row>
+            <Row className="smc-vfill">
+                <Col sm={12} className="smc-vfill">
+                    <ProjectList
+                        projects    = {visible_projects}
+                        user_map    = {@props.user_map}
+                        images      = {@props.images}
+                        load_all_projects_done = {@props.is_anonymous or @props.load_all_projects_done}
+                        redux       = {redux} />
+                </Col>
+            </Row>
+        </Col>
+        # note above -- anonymous accounts can't have old projects.
 
 LoadAllProjects = rclass
     displayName: "LoadAllProjects"
@@ -1583,9 +1680,17 @@ LoadAllProjects = rclass
         done  : rtypes.bool
         redux : rtypes.object
 
+    componentDidMount: ->
+        @mounted = true
+
+    componentWillUnmount: ->
+        @mounted = false
+
     load: ->
         @setState(loading : true)
         await @props.redux.getActions('projects').load_all_projects()
+        if not @mounted
+            return
         @setState(loading : false)
 
     render_loading: ->
@@ -1599,7 +1704,7 @@ LoadAllProjects = rclass
             bsSize='large'
             style={width:'100%', fontSize:'18pt'}>
             {@render_loading()}
-            Load all older projects...
+            Load any older projects...
         </Button>
 
     render: ->
@@ -1625,27 +1730,18 @@ exports.ProjectTitle = ProjectTitle = rclass
     shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
+    handle_click: (e) ->
+        if @props.handle_click?
+            @props.handle_click(e)
+        else
+            # fallback behavior
+            redux.getActions('projects').open_project(project_id : @props.project_id)
+
     render: ->
         if not @props.project_map?
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@props.handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
+            <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
             <span style={@props.style}>(Private project)</span>
-
-exports.ProjectTitleAuto = rclass
-    displayName: 'Projects-ProjectTitleAuto'
-
-    propTypes:
-        project_id : rtypes.string.isRequired
-        style      : rtypes.object
-
-    handle_click: ->
-        @actions('projects').open_project(project_id : @props.project_id)
-
-    render: ->
-        <Redux redux={redux}>
-            <ProjectTitle style={@props.style} project_id={@props.project_id} handle_click={@handle_click} />
-        </Redux>
-

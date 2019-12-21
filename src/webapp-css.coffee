@@ -14,10 +14,7 @@ require("@fortawesome/fontawesome-free/js/brands.js")
 # explained here: https://fontawesome.com/how-to-use/upgrading-from-4#upgrade-steps
 require("@fortawesome/fontawesome-free/js/v4-shims.js")
 
-
 require("jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css")
-require("pnotify/jquery.pnotify.default.css")
-require("pnotify/jquery.pnotify.default.icons.css")
 
 # Dropzone in file/new
 require("dropzone/css/dropzone.css")

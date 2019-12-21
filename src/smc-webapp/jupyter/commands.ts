@@ -154,9 +154,7 @@ export function commands(
       m: "Close pager",
       k: [{ which: 27, mode: "escape" }],
       f: () => {
-        if (jupyter_actions.store.get("introspect") != null) {
-          jupyter_actions.clear_introspect();
-        }
+        editor_actions.close_introspect();
       }
     },
 
@@ -729,11 +727,13 @@ export function commands(
     },
 
     "tab key": {
+      k: [{ mode: "escape", which: 9 }],
       m: "Tab key (completion)",
       f: () => frame_actions.tab_key()
     },
 
     "shift+tab key": {
+      k: [{ mode: "escape", shift: true, which: 9 }],
       m: "Shift+Tab introspection (show function docstring)",
       f: () => frame_actions.shift_tab_key()
     },
@@ -809,7 +809,7 @@ export function commands(
       m: "User interface tour"
     },*/
 
-    "view notebook normal": {
+    /* "view notebook normal": {
       m: "View notebook as cells (normal)",
       menu: "Cells (normal)",
       f: () => frame_actions.set_view_mode("normal")
@@ -825,7 +825,7 @@ export function commands(
       m: "View notebook as raw .ipynb (file)",
       menu: "Raw .ipynb (file)",
       f: () => frame_actions.set_view_mode("raw")
-    },
+    },*/
 
     "zoom in": {
       m: "Zoom in",

@@ -18,8 +18,7 @@ Later, maybe:
  - Time tracking
 */
 
-import { Button } from "react-bootstrap";
-import { Icon } from "../r_misc/icon";
+import { Button } from "antd";
 import { Loading } from "../r_misc/loading";
 import { Component, React, Rendered, rclass, rtypes } from "../app-framework";
 
@@ -100,11 +99,12 @@ class EditorTime extends Component<Props> {
   private render_add_stopwatch(): Rendered {
     return (
       <Button
+        icon="plus-circle"
         style={{ maxWidth: "200px", margin: "15px" }}
         key={"add-stopwatch"}
         onClick={() => this.props.actions.add_stopwatch()}
       >
-        <Icon name="plus-circle" /> New Stopwatch
+        New Stopwatch
       </Button>
     );
   }

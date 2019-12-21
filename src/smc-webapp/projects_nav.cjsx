@@ -53,6 +53,8 @@ ProjectTab = rclass
         projects:
             public_project_titles : rtypes.immutable.Map
             project_websockets : rtypes.immutable.Map
+        account:
+            is_anonymous : rtypes.bool
 
     propTypes:
         project        : rtypes.immutable.Map
@@ -83,10 +85,30 @@ ProjectTab = rclass
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
 
-    # middle mouse click closes
+    # middle mouse click closes (?) -- evidently too confusing??
     onMouseDown: (e) ->
         #if e.button == 1
         #    @close_tab(e)
+
+    render_websocket_indicator: ->
+        if not @props.project?
+            # public project, so we know nothing, so better not show an indicator (we can't connect anyways).
+            return
+        <span style={{paddingRight:'5px'}}>
+            <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
+        </span>
+
+    render_close_x: ->
+        if @props.is_anonymous
+            # you have one project and you can't close it.
+            return
+        <Icon
+            name        = 'times'
+            onClick     = {@close_tab}
+            onMouseOver = {(e)=>@setState(x_hovered:true)}
+            onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+        />
+
 
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
@@ -125,18 +147,11 @@ ProjectTab = rclass
             is_project     = {true}
         >
             <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
-                <span style={{paddingRight:'5px'}}>
-                    <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
-                </span>
-                <Icon
-                    name        = 'times'
-                    onClick     = {@close_tab}
-                    onMouseOver = {(e)=>@setState(x_hovered:true)}
-                    onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
-                />
+                {@render_websocket_indicator()}
+                {@render_close_x()}
             </div>
             <div style={project_name_styles}>
-                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
+                <Tip title={title} tip={desc} placement='bottom' size='small' always_update={true}>
                     <Icon name={icon} />
                     <span style={marginLeft: 5, position:'relative'}>{misc.trunc(title,24)}</span>
                 </Tip>

@@ -2,7 +2,7 @@
 Display of basic information about a user, with link to get more information about that user.
 */
 
-const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
+import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
 
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
@@ -58,7 +58,7 @@ export class UserResult extends Component<Props, State> {
   constructor(props, state) {
     super(props, state);
     const x: any = {};
-    for (let name of MORE) {
+    for (const name of MORE) {
       x[name] = false;
     }
     this.state = x as State;

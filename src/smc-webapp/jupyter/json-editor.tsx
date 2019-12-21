@@ -2,6 +2,10 @@
 A JSON Editor
 
 This is just built using codemirror for now.
+
+****NOTE:** This code is not used right now!  It can safely be deleted so long as you delete the places it is imported.  It's not user visible.**
+
+SEE https://github.com/sagemathinc/cocalc/issues/4295
 */
 
 import { React, Component } from "../app-framework";

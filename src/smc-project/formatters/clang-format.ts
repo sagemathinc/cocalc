@@ -60,17 +60,15 @@ export async function clang_format(
     const code = await callback(close, formatter);
 
     if (code >= 1) {
-      const err_msg = `C/C++ code formatting utility "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const err_msg = `C/C++ code formatting utility "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       logger.debug(`clang-format error: ${err_msg}`);
       throw Error(err_msg);
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, input_path);
+    const output: Buffer = await callback(readFile, input_path);
 
-    let s: string = output.toString("utf-8");
+    const s: string = output.toString("utf-8");
     // logger.debug(`clang_format output s ${s}`);
 
     return s;

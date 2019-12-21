@@ -15,15 +15,13 @@ Remove that region depending the cell type.
 
 Returns undefined if nothing changed; otherwise, returns the new input.
 */
-function replace_hidden_tests_region(
-  input: string
-): string | undefined {
+function replace_hidden_tests_region(input: string): string | undefined {
   const lines: string[] = input.split("\n");
   const new_lines: string[] = [];
   let in_test: boolean = false;
   let replaced_test: boolean = false;
 
-  for (let line of lines) {
+  for (const line of lines) {
     // begin the test area
     if (line.indexOf(begin_hidden_tests_delimiter) != -1) {
       // check to make sure this isn't a nested BEGIN HIDDEN TESTS region

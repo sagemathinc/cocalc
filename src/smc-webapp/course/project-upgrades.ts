@@ -1,19 +1,12 @@
-import { Map } from "immutable";
 
-/*
- * decaffeinate suggestions:
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 /*
 Functions for determining various things about applying upgrades to a project.
 
-WARNING: Pure Javascript with no crazy dependencies for easy unit testing.
+WARNING: This should stay as simple typescript with no crazy dependencies for easy node.js unit testing.
 */
 
-const misc = require("smc-util/misc");
+import { Map } from "immutable";
+import * as misc from "smc-util/misc";
 
 type ProjectMap = Map<any, any>;
 interface ExistenceMap {
@@ -42,12 +35,9 @@ export function available_upgrades(opts: {
       // do not count projects in course
       return;
     }
-    const upgrades = __guard__(
-      project.getIn(["users", opts.account_id, "upgrades"]),
-      x => x.toJS()
-    );
+    const upgrades = project.getIn(["users", opts.account_id, "upgrades"]);
     if (upgrades != null) {
-      available = misc.map_diff(available, upgrades);
+      available = misc.map_diff(available, upgrades.toJS());
     }
   });
   return available;
@@ -66,7 +56,7 @@ export function current_student_project_upgrades(opts: {
     actual upgrades are included.
     */
   const other = {};
-  for (let project_id in opts.student_project_ids) {
+  for (const project_id in opts.student_project_ids) {
     const users = opts.project_map.getIn([project_id, "users"]);
     if (users == null) {
       continue;
@@ -76,11 +66,11 @@ export function current_student_project_upgrades(opts: {
       if (user_id === opts.account_id) {
         return;
       }
-      const upgrades = __guard__(info.get("upgrades"), x1 => x1.toJS());
+      const upgrades = info.get("upgrades");
       if (upgrades == null) {
         return;
       }
-      x = misc.map_sum(upgrades, x != null ? x : {});
+      x = misc.map_sum(upgrades.toJS(), x != null ? x : {});
     });
     if (x != null) {
       other[project_id] = x;
@@ -136,8 +126,7 @@ export function upgrade_plan(opts: {
   const ids = misc.keys(opts.student_project_ids);
   ids.sort();
   const plan = {};
-  for (let project_id of ids) {
-    var left;
+  for (const project_id of ids) {
     if (opts.deleted_project_ids[project_id]) {
       // give this project NOTHING
       continue;
@@ -160,18 +149,13 @@ export function upgrade_plan(opts: {
       }
     }
     // is there an actual allocation change?  if not, we do not include this key.
-    const alloc =
-      (left = __guard__(
-        opts.project_map.getIn([
-          project_id,
-          "users",
-          opts.account_id,
-          "upgrades"
-        ]),
-        x => x.toJS()
-      )) != null
-        ? left
-        : {};
+    const upgrades = opts.project_map.getIn([
+      project_id,
+      "users",
+      opts.account_id,
+      "upgrades"
+    ]);
+    const alloc = upgrades != null ? upgrades.toJS() : {};
     let change = false;
     for (quota in opts.upgrade_goal) {
       if (
@@ -187,10 +171,4 @@ export function upgrade_plan(opts: {
     }
   }
   return plan;
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

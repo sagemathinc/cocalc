@@ -335,6 +335,43 @@ schema.collaborators = {
   }
 };
 
+// This table does NOT support changefeeds.
+schema.collaborators_one_project = {
+  primary_key: "account_id",
+  db_standby: "unsafe",
+  anonymous: false,
+  virtual: "accounts",
+  fields: {
+    account_id: true,
+    project_id: true,
+    first_name: true,
+    last_name: true,
+    last_active: true,
+    profile: true
+  },
+  user_query: {
+    get: {
+      pg_where: [
+        {
+          "account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE project_id = $::UUID)":
+            "project_id"
+        }
+      ],
+      remove_from_query: [
+        "project_id"
+      ] /* this is only used for the pg_where and removed from the actual query */,
+      fields: {
+        account_id: null,
+        project_id: null,
+        first_name: "",
+        last_name: "",
+        last_active: null,
+        profile: null
+      }
+    }
+  }
+};
+
 schema.compute_servers = {
   primary_key: "host",
   fields: {
@@ -498,7 +535,7 @@ schema.file_use = {
             filename: obj.path
           });
         }
-        typeof cb === "function" ? cb() : undefined;
+        cb();
       }
     }
   }
@@ -891,7 +928,8 @@ schema.projects = {
           return db._user_set_query_project_users(obj, account_id);
         },
         action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
-        compute_image: true
+        compute_image: true,
+        course: true
       },
 
       before_change(database, old_val, new_val, account_id, cb) {
@@ -945,6 +983,11 @@ schema.projects_all.user_query.get.pg_where = ["projects"];
 // project owners are allowed to use this table.  The point is that this makes
 // it possible for the owner of the project to set things, but not for the
 // collaborators to set those things.
+// **wARNING:** right now we're not using this since when multiple people add
+// students to a course and the 'course' field doesn't get properly set,
+// much confusion and misery arises.... and it is very hard to fix.
+// In theory a malicous student could not pay via this.  But if they could
+// mess with their client, they could easily not pay anyways.
 schema.projects_owner = {
   virtual: "projects",
   fields: {
@@ -1158,6 +1201,37 @@ schema.public_paths.project_query = misc.deep_copy(
   schema.public_paths.user_query
 );
 
+/* Look up a single public path by its id. */
+
+schema.public_paths_by_id = {
+  anonymous: true,
+  virtual: "public_paths",
+  user_query: {
+    get: {
+      check_hook(_db, obj, _account_id, _project_id, cb): void {
+        if (typeof obj.id == "string" && obj.id.length == 40) {
+          cb(); // good
+        } else {
+          cb("id must be a sha1 hash");
+        }
+      },
+      fields: {
+        id: null,
+        project_id: null,
+        path: null,
+        description: null,
+        disabled: null, // if true then disabled
+        unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+        license: null,
+        last_edited: null,
+        created: null,
+        last_saved: null,
+        counter: null
+      }
+    }
+  }
+};
+
 /*
 Requests and status related to copying files between projects.
 */
@@ -1199,6 +1273,11 @@ schema.copy_paths = {
     backup: {
       type: "boolean",
       desc: "if true, make backup of files before overwriting"
+    },
+    public: {
+      type: "boolean",
+      desc:
+        "if true, use files from the public share server instead of starting up the project"
     },
     bwlimit: {
       type: "string",

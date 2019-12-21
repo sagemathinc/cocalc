@@ -5,7 +5,7 @@ processing.  This is annoying, violates the Markdown spec
 and breaks things.  So we remove them first.
 */
 
-const {replace_all} = require('./misc')
+const { replace_all } = require("./misc");
 
 const escape_map = "$()[]";
 const unescape_map =
@@ -24,4 +24,3 @@ export function math_unescape(s: string): string {
   }
   return s;
 }
-

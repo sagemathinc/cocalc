@@ -18,7 +18,7 @@ export function keyCode_to_chr(keyCode: number): string {
 }
 
 function is_equal(e1: KeyboardCommand, e2: KeyboardCommand): boolean {
-  for (let field of ["which", "ctrl", "shift", "alt", "meta"]) {
+  for (const field of ["which", "ctrl", "shift", "alt", "meta"]) {
     if (e1[field] !== e2[field]) {
       return false;
     }
@@ -36,7 +36,7 @@ export function evt_to_obj(evt: any, mode: NotebookMode): KeyboardCommand {
   } else {
     last_evt = evt;
   }
-  for (let k of ["ctrl", "shift", "alt", "meta"]) {
+  for (const k of ["ctrl", "shift", "alt", "meta"]) {
     if (evt[k + "Key"]) {
       obj[k] = true;
     }
@@ -61,7 +61,7 @@ export function create_key_handler(
 
   function add_shortcut(s: any, name: any, val: any) {
     if (s.mode == null) {
-      for (let mode of ["escape", "edit"]) {
+      for (const mode of ["escape", "edit"]) {
         add_shortcut(merge(s, { mode }), name, val);
       }
       return;
@@ -79,12 +79,12 @@ export function create_key_handler(
   }
 
   const object = commands(jupyter_actions, frame_actions, editor_actions);
-  for (let name in object) {
+  for (const name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
       continue;
     }
-    for (let s of val.k) {
+    for (const s of val.k) {
       add_shortcut(s, name, val);
     }
   }

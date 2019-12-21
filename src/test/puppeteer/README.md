@@ -1,84 +1,129 @@
-# front-end testing of CoCalc with puppeteer
+# Setup
 
-## Setup
+## Install node modules
 
-1. Prepare test site. TODO: automate this.
+By default 110+ MB local Chromium is installed. Note that puppeteer's Chromium is typically at least 1 release ahead of CoCalc installed Chrome, `/usr/bin/chromium-browser`.
 
-    - create a test account in the instance to be tested
-    - create a test project in the test user account
-    - add test files to project home directory
-      - latex-sample.tex (for test file [index.js](index.js))
-      - widget-sample.tex (for test file [widget.js](widget.js))
+```
+cd ~/cocalc/src/test/puppeteer
+npm i -D
+npm run build
+```
 
-1. Create `<creds-file.js`file for the site to be tested, outside of the git repository. Do NOT add/commit credentials files to git.
+If you don't want to install puppeteer's local chromium binary, you can do the following instead.
+Then run tests with `-p` option.
 
-    Example credentials file "creds.js":
+```
+cd ~/cocalc/src/test/puppeteer
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm i -D
+npm run build
+npm run test -- -c /path/to/creds.yaml -p
+```
 
-    ```
-    module.exports = {
-        url: 'https://cocalcinstance.com/app',
-        username: 'testuser@example.com',
-        password: 'asdf8qwerty',
-        project:  'fe-test',
-        texfile:  'latex-sample.tex'
-    }
-    ```
 
-## Running the tests
+## Create test project
 
-1. Default operation is headless.
-To view the browser during testing, run the script from a .x11 terminal and add `-s` or `--screen` to command line options. Omit `.js` suffix from credentials file on the command line, e.g. if the file is ~/creds.js, use `node -c ~/creds`.``
+Install test files into home directory from [test_files folder](https://cocalc.com/projects/77a92d07-c122-4577-9c4c-c051379cacfe/files/CCTEST/TEST_FILES/?session=default)
 
-    ```
-    cd ~/cocalc/src/test/puppeteer
+```
+texfile:  latex-sample.tex
+widgetfile: widgets-sample.ipynb
+sageipynbfile: sage-sample.ipynb
+```
 
-    node index.js [-s] [-c credentials-file]
-      -s - display the browser window (opposite of headless), default false
-      -c - name of credentials file, without ".js" extension
-    ```
+The following will install files named in `types.ts: TestFiles` from the `test_files` folder:
+(terse):
+```
+ npm run install_files -- -c /path/to/creds.yaml
+```
+(verbose)
+```
+ npm run install_files_dbg -- -c /path/to/creds.yaml
+```
 
-1. If the Cocalc instance was recently restarted or the test project is stopped, the first one or two runs of the test will timeout. (See TODO below.)
+## Credentials
 
-1. These tests have been tested with the latest regular and no-agpl Docker images as well as test and production cocalc.com.
+Create credentials yaml file for the project:
 
-## What is tested
+<pre>
+sitename: test_site
+url: https://test47.cocalc.com/app
+email: bob@example.com
+passw: xxxxxx
+project:  my-test-project
+</pre>
 
-### index.js
+Use special URL with http, project UUID, and project port for cc-in-cc:
+<pre>
+url: 'http://localhost:12345/8a3d0.../port/12345/app/',
+</pre>
 
-1. Get sign-in page.
-1. Sign in with email and password.
-1. Open test project.
-1. Open tex file.
-1. Get word count.
+## Running tests
 
-### api_key.js
+By default, use the puppeteer built-in Chrome browser.
 
-1. Get get_api sign-in page.
-1. Get api key.
+With verbose output:
+```
+npm run tdbg -- -c /path/to/creds.yaml
+```
 
-### widget.js
+Without verbose output:
+```
+npm run test -- -c /path/to/creds.yaml
+```
 
-1. Get sign-in page.
-1. Sign in with email and password.
-1. Open test project.
-1. Open Jupyter notebook.
-1. Run first cell.
-1. Click on IntSlider() widget and verify change in readout.
+Use CoCalc pre-installed Chrome at `/usr/bin/chromium-browser`:
+```
+npm run test -- -c /path/to/creds.yaml -p
+```
 
-## Limitations
+Use Chrome at custom path:
+```
+npm run test -- -c /path/to/creds.yaml -p /custom/chrome
+```
 
-1. CoCalc instance undergoing test must be fully started.
-1. Test project must be created before testing.
-1. Test files must be in place:
-    - latex-sample.tex
-    - widget-sample.ipynb
-1. Test project must be in recent project list and running.
-1. Does not work with CoCalc-in-CoCalc instances.
+With GUI browser:
+```
+# run in .x11 terminal
+npm run test -- -c /path/to/creds.yaml -H
+```
 
-## TODO
+To skip tests (and their subtests) that match a pattern:
+```
+npm run test -- -c /path/to/creds.yaml -k 'login'
+```
 
-1. Put in jest framework.
-1. Be more forgiving of projects that are not started.
-1. Code in typescript.
-1. Needs to be hosted & run regularly.
-1. Expand the test suite.
+### Sample run that creates account, project, and test files
+
+Sample credentials in yaml file. Omit account creation token line if none is set for the instance under test.
+```
+sitename: cc-in-cc-myproj
+url: http://localhost:34425/77a92d07-c122-4577-9c4c-c051379cacfe/port/34425/app/
+email: joe@example.com
+passw: asdfg
+project: testproj
+token: soylentgreen
+firstname: Joe
+lastname: Jones
+```
+
+Commands
+```
+# create test account
+npm run create_account_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -s -p
+# create test project and upload test files
+npm run install_files_dbg -- -c ~/CCTEST/staging-dev-cr.yaml -j -i test_files/ -p
+# run GUI and API tests
+npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p
+# delete test project just created
+npm run tdbg -- -c ~/CCTEST/staging-dev-cr.yaml -p -x delete -s
+```
+
+## eslint
+
+Just starting with this. Here's an example running eslint with `test_driver.ts`.
+
+```
+npm run eslint -- src/test_driver.ts
+```
+

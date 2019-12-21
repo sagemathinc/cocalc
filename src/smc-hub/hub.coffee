@@ -488,14 +488,6 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            winston.debug("mentions=#{program.mentions}")
-            if program.mentions
-                winston.debug("enabling handling of mentions...")
-                handle_mentions_loop(database)
-            else
-                winston.debug("not handling mentions");
-            cb()
-        (cb) ->
             if not program.port
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
@@ -506,6 +498,14 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             # This must happen *AFTER* update_schema above.
             init_smc_version(database, cb)
+        (cb) ->
+            winston.debug("mentions=#{program.mentions}")
+            if program.mentions
+                winston.debug("enabling handling of mentions...")
+                handle_mentions_loop(database)
+            else
+                winston.debug("not handling mentions");
+            cb()
         (cb) ->
             if not program.port
                 cb(); return

@@ -1,6 +1,6 @@
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
-const { Loading } = require("../../r_misc");
+import { Loading } from "../../r_misc";
 const { APP_BASE_URL } = require("../../misc_page");
 
 const { webapp_client } = require("../../webapp_client");
@@ -9,8 +9,8 @@ import { callback2 } from "smc-util/async-utils";
 
 interface Props {
   account_id: string;
-  first_name:string;
-  last_name:string;
+  first_name: string;
+  last_name: string;
 }
 
 interface State {
@@ -52,8 +52,9 @@ export class Impersonate extends Component<Props, State> {
         target="_blank"
         rel="noopener noreferrer"
       >
-        Right click and open this link in a new incognito window, where you will be
-        signed in as {this.props.first_name} {this.props.last_name}... Sign out when done.
+        Right click and open this link in a new incognito window, where you will
+        be signed in as {this.props.first_name} {this.props.last_name}... Sign
+        out when done.
       </a>
     );
   }
@@ -79,7 +80,9 @@ export class Impersonate extends Component<Props, State> {
           margin: "15px"
         }}
       >
-        <b>Impersonate {this.props.first_name} {this.props.last_name}</b>
+        <b>
+          Impersonate {this.props.first_name} {this.props.last_name}
+        </b>
         <br />
         {this.render_err()}
         {this.render_link()}

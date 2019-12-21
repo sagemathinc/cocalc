@@ -10,11 +10,17 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
-{UpgradeRestartWarning} = require('./upgrade_restart_warning')
+{UpgradeRestartWarning} = require('./upgrade-restart-warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 {webapp_client} = require('./webapp_client')
+
+{ExplainResources} = require('./billing/explain-resources')
+{ExplainPlan} = require('./billing/explain-plan')
+{DedicatedVM} = require('./billing/dedicated-vm')
+{FAQ} = require('./billing/faq')
+{SubscriptionGrid} = require('./billing/subscription-grid')
 
 round1 = misc.round1
 
@@ -31,7 +37,6 @@ exports.UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
         <div>
             <h3>Sign up</h3>
             To sign up for a subscription, visit the "Subscriptions and Course Packages tab".
@@ -40,14 +45,14 @@ exports.UpgradesPage = rclass
 
             <Space/>
             <ExplainPlan type='personal' />
-            <SubscriptionGrid period='month year' is_static={true}/>
+            <SubscriptionGrid periods={['month', 'year']} is_static={true}/>
 
             <Space/>
             <ExplainPlan type='course' />
-            <SubscriptionGrid period='month4' is_static={true}/>
+            <SubscriptionGrid periods={['week','month4','year1']} is_static={true}/>
 
             <Space/>
-            <ExplainResources type='dedicated'/>
+            <DedicatedVM />
 
             <hr/>
             <FAQ/>

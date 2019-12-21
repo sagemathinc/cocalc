@@ -1,7 +1,7 @@
 import { React, Component, Rendered } from "../../app-framework";
 
 interface Props {
-  id : string;
+  id: string;
 }
 
 export class HiddenOutputCell extends Component<Props, {}> {

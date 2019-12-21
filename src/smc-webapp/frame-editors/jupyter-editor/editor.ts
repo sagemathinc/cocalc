@@ -5,12 +5,13 @@ Spec for editing Jupyter notebooks via a frame tree.
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 import { CellNotebook } from "./cell-notebook/cell-notebook";
+import { RawIPynb } from "./raw-ipynb";
 
 /*
 import { Log } from "./log";
-import { RawIPynb } from "./raw-ipynb";
 import { ObjectBrowser } from "./object-browser";
 import { KernelConfiguration } from "./kernel-configuration";
 import { Assistant } from "./assistant";
@@ -25,6 +26,7 @@ import { ClassicalNotebook } from "./classical-notebook";
 */
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents/contents";
+import { Introspect } from "./introspect/introspect";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -56,7 +58,6 @@ export const EDITOR_SPEC = {
       }
     }
   },
-  terminal,
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
@@ -69,6 +70,22 @@ export const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  },
+  introspect: {
+    short: "Introspect",
+    name: "Introspection",
+    icon: "info",
+    component: Introspect,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  },
+  terminal,
+  time_travel,
+  jupyter_raw: {
+    short: "Raw",
+    name: "Raw JSON editor",
+    icon: "cc-icon-markdown",
+    component: RawIPynb,
     buttons: set(["decrease_font_size", "increase_font_size"])
   }
 };
@@ -92,13 +109,6 @@ export const EDITOR_SPEC = {
     name: "Kernel Log",
     icon: "clipboard-list",
     component: Log,
-    buttons: set([])
-  },
-  jupyter_raw: {
-    short: "Raw",
-    name: "Raw JSON editor",
-    icon: "cc-icon-markdown",
-    component: RawIPynb,
     buttons: set([])
   },
   jupyter_object_browser: {

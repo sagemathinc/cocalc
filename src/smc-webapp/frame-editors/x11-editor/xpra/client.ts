@@ -118,14 +118,14 @@ export class Client {
 
   window_ids(): number[] {
     const v: number[] = [];
-    for (let wid in this.surfaces) {
+    for (const wid in this.surfaces) {
       v.push(parseInt(wid));
     }
     return v;
   }
 
   private destroy_surfaces(): void {
-    for (let wid in this.surfaces) {
+    for (const wid in this.surfaces) {
       const surface = this.surfaces[wid];
       surface.destroy();
     }
@@ -329,7 +329,7 @@ export class Client {
     if (width == null || height == null) {
       return;
     }
-    for (let wid in this.surfaces) {
+    for (const wid in this.surfaces) {
       const surface = this.surfaces[wid];
       if (surface.parent !== undefined && surface.parent.wid === parent.wid) {
         if (surface.is_overlay) {
@@ -398,8 +398,8 @@ export class Client {
         [w / scale, 0, canvases[0].width, canvases[0].height],
         [0, h / scale, canvases[0].width, canvases[0].height]
       ];
-      for (let rect of rects) {
-        for (let canvas of canvases) {
+      for (const rect of rects) {
+        for (const canvas of canvases) {
           const context = canvas.getContext("2d");
           if (context != null) {
             context.clearRect(rect[0], rect[1], rect[2], rect[3]);
@@ -564,7 +564,7 @@ export class Client {
           this.activeWindow = this.lastActiveWindow;
         } else {
           this.activeWindow = 0;
-          for (let id in this.surfaces) {
+          for (const id in this.surfaces) {
             this.focus(parseInt(id));
             return;
           }
@@ -622,7 +622,7 @@ export class Client {
         // We just reconnected after being disconnected.
         // have to tell local browser about any wid's that
         // are gone, but were there before.
-        for (let wid in this.surfaces_before_disconnect) {
+        for (const wid in this.surfaces_before_disconnect) {
           if (this.surfaces[wid] === undefined) {
             this.bus.emit(
               "window:destroy",

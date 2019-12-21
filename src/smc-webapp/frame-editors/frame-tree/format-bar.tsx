@@ -18,7 +18,7 @@ const {
 } = require("react-bootstrap");
 
 const buttonbar = require("smc-webapp/buttonbar");
-const { Icon, Space } = require("smc-webapp/r_misc");
+import { Icon, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
@@ -175,7 +175,7 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_family_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (let family of buttonbar.FONT_FACES) {
+    for (const family of buttonbar.FONT_FACES) {
       const item: Rendered = (
         <MenuItem
           key={family}
@@ -204,7 +204,7 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_size_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (let size of FONT_SIZES) {
+    for (const size of FONT_SIZES) {
       const item: Rendered = (
         <MenuItem
           key={size}
@@ -296,7 +296,7 @@ export class FormatBar extends Component<Props, {}> {
       return result;
     })();
     v.sort((a, b) => cmp(a.code, b.code));
-    for (let x of v) {
+    for (const x of v) {
       color = x[0];
       code = x[1];
       const item = (
@@ -351,7 +351,7 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
         {this.render_font_dropdowns()}
-        <div className={'cc-frame-tree-format-bar'}>
+        <div className={"cc-frame-tree-format-bar"}>
           {this.render_text_style_buttons()}
           <Space />
           {this.render_insert_buttons()}

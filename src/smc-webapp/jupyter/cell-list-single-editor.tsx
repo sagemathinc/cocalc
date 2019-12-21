@@ -12,7 +12,7 @@ import * as immutable from "immutable";
 declare const CodeMirror: any; // TODO: type
 
 import { React, Component, ReactDOM, Rendered } from "../app-framework";
-import { Loading } from "../r_misc/loading";
+import { Loading } from "../r_misc";
 import * as syncstring from "../../smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "./types";
@@ -54,17 +54,15 @@ export class CellList extends Component<CellListProps> {
     cells: immutable.Map<string, any>
   ): string {
     const v: string[] = [];
-    cell_list.forEach(
-      (id: string): void => {
-        const cell = cells.get(id);
-        let s = `In[${id}] ${cell.get("input")}`;
-        const output = cell.get("output");
-        if (output != null) {
-          s += `\nOut[${id}] ${JSON.stringify(output)}`;
-        }
-        v.push(s);
+    cell_list.forEach((id: string): void => {
+      const cell = cells.get(id);
+      let s = `In[${id}] ${cell.get("input")}`;
+      const output = cell.get("output");
+      if (output != null) {
+        s += `\nOut[${id}] ${JSON.stringify(output)}`;
       }
-    );
+      v.push(s);
+    });
     return v.join("\n\n");
   }
 

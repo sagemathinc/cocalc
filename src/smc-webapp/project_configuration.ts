@@ -7,6 +7,7 @@
 
 import { Map as iMap } from "immutable";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
+import { TypedMap } from "./app-framework/TypedMap";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
@@ -55,6 +56,8 @@ export interface Available {
   library: boolean;
   formatting: Capabilities | boolean;
 }
+
+export type AvailableFeatures = TypedMap<Available>;
 
 const NO_AVAIL: Readonly<Available> = Object.freeze({
   jupyter_lab: false,
@@ -110,12 +113,22 @@ export function isMainConfiguration(
 
 // derive available types of files from the configuration map
 export function is_available(configuration?: ProjectConfiguration): Available {
-  if (configuration == null) return NO_AVAIL;
+  if (configuration == null) {
+    // If the configuration is not yet available, we default to the *most likely*
+    // configuration, not the least likely configuration.
+    // See https://github.com/sagemathinc/cocalc/issues/4293
+    // We could alternatively make it so nothing that uses capabilites
+    // is available until configuration is loaded, but I don't like that
+    // since right now things like clicking a button to create a new file
+    // *do* work fine even if the project isn't yet running (they start
+    // the project, wait properly until it is running, then create the file).
+    return ALL_AVAIL;
+  }
 
   const main: Configuration | undefined = configuration.get("main");
-  if (main == null) return NO_AVAIL;
+  if (main == null) return ALL_AVAIL; // see note above
   const capabilities = main.capabilities as MainCapabilities;
-  if (capabilities == null) return NO_AVAIL;
+  if (capabilities == null) return ALL_AVAIL; // see note above.
   const jupyter: Capabilities | boolean = capabilities.jupyter;
 
   const formatting = capabilities.formatting;

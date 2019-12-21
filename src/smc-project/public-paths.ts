@@ -96,7 +96,7 @@ class MonitorPublicPaths {
         });
       }
     });
-    for (let w of work) {
+    for (const w of work) {
       await this.update_path(w);
     }
   }
@@ -106,7 +106,7 @@ class MonitorPublicPaths {
     path: string;
     last_edited: number;
   }): Promise<void> {
-    let { id, path, last_edited } = opts;
+    const { id, path, last_edited } = opts;
     //const d = this.dbg(`update_path('${path}')`);
     const d = function(..._args) {}; // too verbose...
     // If any file in the given path was modified after last_edited,

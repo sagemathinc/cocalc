@@ -20,7 +20,7 @@ import { cmp, is_different } from "smc-util/misc2";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";
-const { Loading } = require("smc-webapp/r_misc");
+import { Loading } from "smc-webapp/r_misc";
 import { retry_until_success } from "smc-util/async-utils";
 
 interface Props {
@@ -243,7 +243,7 @@ class X11Component extends Component<Props, {}> {
     }
     const wids = this.props.windows.keySeq().toJS();
     wids.sort(cmp); // since sort uses string cmp by default
-    for (let wid of wids) {
+    for (const wid of wids) {
       if (this.props.windows.getIn([wid, "parent"])) {
         // don't render a tab for modal dialogs (or windows on top of others that block them).
         continue;

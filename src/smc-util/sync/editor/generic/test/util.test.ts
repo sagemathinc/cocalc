@@ -1,4 +1,10 @@
-import { make_patch, apply_patch, patch_cmp, three_way_merge, time_cmp } from "../util";
+import {
+  make_patch,
+  apply_patch,
+  patch_cmp,
+  three_way_merge,
+  time_cmp
+} from "../util";
 
 describe("test making and applying some patches on strings", () => {
   const s0 = "This is CoCalc! Open source software.  And a website.";
@@ -46,9 +52,24 @@ describe("test doing a 3-way merge", () => {
 });
 
 describe("Test comparison of patch log entries (compares time and user)", () => {
-  const p0 = {time:new Date('2019-01-01T22:15:31.539Z'), patch:[], user_id:0};
-  const p1 = {time:new Date('2019-01-01T22:15:40Z'), patch:[], user_id:1};
-  const p2 = {time:new Date('2019-01-01T22:15:31.539Z'), patch:[], user_id:1};
+  const p0 = {
+    time: new Date("2019-01-01T22:15:31.539Z"),
+    patch: [],
+    user_id: 0,
+    size: 2
+  };
+  const p1 = {
+    time: new Date("2019-01-01T22:15:40Z"),
+    patch: [],
+    user_id: 1,
+    size: 2
+  };
+  const p2 = {
+    time: new Date("2019-01-01T22:15:31.539Z"),
+    patch: [],
+    user_id: 1,
+    size: 2
+  };
 
   it("compares some patch log entries", () => {
     expect(patch_cmp(p0, p0)).toBe(0);
@@ -61,16 +82,15 @@ describe("Test comparison of patch log entries (compares time and user)", () => 
 });
 
 describe("Test comparing times", () => {
-  const t0 = new Date('2019-01-01T22:15:31.539Z');
-  const t1 = new Date('2019-01-01T22:15:40Z');
-  const t2 = new Date('2019-01-01T22:15:31.539Z');
+  const t0 = new Date("2019-01-01T22:15:31.539Z");
+  const t1 = new Date("2019-01-01T22:15:40Z");
+  const t2 = new Date("2019-01-01T22:15:31.539Z");
 
   it("compares some times", () => {
-    expect(time_cmp(t0,t1)).toBe(-1);
-    expect(time_cmp(t1,t0)).toBe(1);
-    expect(time_cmp(t0,t0)).toBe(0);
-    expect(time_cmp(t0,t2)).toBe(0);
-    expect(time_cmp(t2,t0)).toBe(0);
+    expect(time_cmp(t0, t1)).toBe(-1);
+    expect(time_cmp(t1, t0)).toBe(1);
+    expect(time_cmp(t0, t0)).toBe(0);
+    expect(time_cmp(t0, t2)).toBe(0);
+    expect(time_cmp(t2, t0)).toBe(0);
   });
-
 });

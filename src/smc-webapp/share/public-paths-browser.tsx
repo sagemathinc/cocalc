@@ -5,8 +5,7 @@ Share server top-level landing page.
 import { List, Map } from "immutable";
 import { Component, React, Rendered } from "../app-framework";
 import { encode_path } from "smc-util/misc";
-const { TimeAgoElement } = require("../r_misc");
-import { Space } from "../r_misc/space";
+import { TimeAgoElement, Space } from "../r_misc";
 
 const INDEX_STYLE = {
   margin: "0px 30px 15px 30px",

@@ -513,6 +513,7 @@ class exports.Connection extends EventEmitter
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
+                @_signed_in_time = new Date().valueOf()
                 misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
                 #console.log("signed_in", mesg)
@@ -838,20 +839,20 @@ class exports.Connection extends EventEmitter
     #################################################
     create_account: (opts) =>
         opts = defaults opts,
-            first_name       : required
-            last_name        : required
-            email_address    : required
-            password         : required
-            agreed_to_terms  : required
+            first_name       : undefined
+            last_name        : undefined
+            email_address    : undefined
+            password         : undefined
+            agreed_to_terms  : undefined
             usage_intent     : undefined
             get_api_key      : undefined       # if given, will create/get api token in response message
             token            : undefined       # only required if an admin set the account creation token.
             timeout          : 40
             cb               : required
 
-        if not opts.agreed_to_terms
-            opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
-            return
+        #if not opts.agreed_to_terms
+        #    opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
+        #    return
 
         if @_create_account_lock
             # don't allow more than one create_account message at once -- see https://github.com/sagemathinc/cocalc/issues/1187
@@ -879,7 +880,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : required
             timeout       : 40
-            cb            : required
+            cb            : undefined
 
         @call
             allow_post : false
@@ -891,7 +892,7 @@ class exports.Connection extends EventEmitter
     sign_in_using_auth_token: (opts) ->
         opts = defaults opts,
             auth_token : required
-            cb         : required
+            cb         : undefined
         @call
             allow_post : false
             message : message.sign_in_using_auth_token
@@ -904,7 +905,7 @@ class exports.Connection extends EventEmitter
             email_address   : required
             password        : required
             remember_me     : false
-            cb              : required
+            cb              : undefined
             timeout         : 40
             get_api_key     : undefined       # if given, will create/get api token in response message
 
@@ -1054,9 +1055,11 @@ class exports.Connection extends EventEmitter
             title       : required
             description : required
             image       : undefined
+            start       : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, image:opts.image)
+            allow_post : false  # since gets called for anonymous and cookie not yet set.
+            message: message.create_project(title:opts.title, description:opts.description, image:opts.image, start:opts.start)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -1178,7 +1181,7 @@ class exports.Connection extends EventEmitter
             delete_missing    : false       # delete files in dest that are missing from source (destructive)
             backup            : false       # make ~ backup files instead of overwriting changed files
             timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-            exclude_history   : false       # if true, exclude all files of the form *.sage-history
+            exclude_history   : false       # if true, exclude all files of the form *.sage-history (these files are deprecated so this is pointless...)
             cb                : undefined   # cb(err)
 
         is_public = opts.public
@@ -1448,23 +1451,18 @@ class exports.Connection extends EventEmitter
             cb           : (err) =>
 
         @call
+            error_event : true
             message : message.invite_collaborator(
                 project_id   : opts.project_id
                 account_id   : opts.account_id
                 title        : opts.title
-                link2proj    : opts.link2pr
+                link2proj    : opts.link2proj
                 replyto      : opts.replyto
                 replyto_name : opts.replyto_name
                 email        : opts.email
                 subject      : opts.subject
             )
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else if result.event == 'error'
-                    opts.cb(result.error)
-                else
-                    opts.cb(undefined, result)
+            cb      : opts.cb
 
     project_remove_collaborator: (opts) =>
         opts = defaults opts,
@@ -1987,11 +1985,13 @@ class exports.Connection extends EventEmitter
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
             standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
+            no_post : false        # if true, will not use a post query
             cb      : undefined
+        # console.log("QUERY ", JSON.stringify(opts.query))
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if @_signed_in and not opts.changes and $?.post? and @_enable_post
+        if not opts.no_post and @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
             # (NOTE: signed_in required because POST fails everything when
             # user is not signed in.)
@@ -2001,7 +2001,21 @@ class exports.Connection extends EventEmitter
                 standby : opts.standby
                 cb      : (err, resp) =>
                     if err == 'not signed in'
-                        @_set_signed_out()
+                        if new Date().valueOf() - @_signed_in_time >= 60000
+                            # If you did NOT recently sign in, and you're
+                            # getting this error, we sign you out.  Right
+                            # when you first sign in, you might get this
+                            # error because the cookie hasn't been set
+                            # in your browser yet and you're doing a POST
+                            # request to do a query thinking you are fully
+                            # signed in.  The root cause
+                            # of this is that it's tricky for both the frontend
+                            # and the backend
+                            # to know when the REMEMBER_ME cookie has finished
+                            # being set in the browser since it is not
+                            # visible to Javascript.
+                            # See https://github.com/sagemathinc/cocalc/issues/2204
+                            @_set_signed_out()
                         opts.cb?(err, resp)
                         return
                     if not err or not opts.standby
@@ -2201,17 +2215,12 @@ exports.is_valid_password = (password) ->
 
 exports.issues_with_create_account = (mesg) ->
     issues = {}
-    if not mesg.agreed_to_terms
-        issues.agreed_to_terms = 'Agree to the Salvus Terms of Service.'
-    if mesg.first_name == ''
-        issues.first_name = 'Enter your first name.'
-    if mesg.last_name == ''
-        issues.last_name = 'Enter your last name.'
-    if not misc.is_valid_email_address(mesg.email_address)
+    if mesg.email_address and not misc.is_valid_email_address(mesg.email_address)
         issues.email_address = 'Email address does not appear to be valid.'
-    [valid, reason] = exports.is_valid_password(mesg.password)
-    if not valid
-        issues.password = reason
+    if mesg.password
+        [valid, reason] = exports.is_valid_password(mesg.password)
+        if not valid
+            issues.password = reason
     return issues
 
 

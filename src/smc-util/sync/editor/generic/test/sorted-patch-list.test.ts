@@ -60,7 +60,7 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("time of next snapshot (none since nothing yet)", () => {
-    expect(patches.time_of_unmade_periodic_snapshot(100)).toBe(undefined);
+    expect(patches.time_of_unmade_periodic_snapshot(100, 9999)).toBe(undefined);
   });
 
   it("time of snapshots (none of course)", () => {
@@ -92,7 +92,8 @@ describe("Test sorted patch list with one patch", () => {
   const patch = {
     time: new Date("2019-01-03T20:33:47.360Z"),
     patch: make_patch("", "CoCalc"),
-    user_id: 0
+    user_id: 0,
+    size: JSON.stringify(make_patch("", "CoCalc")).length
   };
   it("adds a patch", () => {
     patches.add([patch]);
@@ -143,26 +144,35 @@ describe("Test sorted patch list with several patches", () => {
     expect(patches.value().to_str()).toBe("");
   });
 
+  const w = [
+    make_patch("", "CoCalc"),
+    make_patch("CoCalc", "CoCalc -- Collaborative Calculation"),
+    make_patch(
+      "CoCalc -- Collaborative Calculation",
+      "CoCalc -- Collaborative Calculation in the Cloud"
+    )
+  ];
+
   const v = [
     {
       time: new Date("2019-01-03T20:33:47.360Z"),
-      patch: make_patch("", "CoCalc"),
+      patch: w[0],
       user_id: 0,
-      sent: new Date("2019-01-03T20:33:47.40Z")
+      sent: new Date("2019-01-03T20:33:47.40Z"),
+      size: JSON.stringify(w[0]).length
     },
     {
       time: new Date("2019-01-03T20:33:50Z"),
-      patch: make_patch("CoCalc", "CoCalc -- Collaborative Calculation"),
+      patch: w[1],
       user_id: 1,
-      sent: new Date("2019-01-03T20:34")
+      sent: new Date("2019-01-03T20:34"),
+      size: JSON.stringify(w[1]).length
     },
     {
       time: new Date("2019-01-03T20:34:50Z"),
-      patch: make_patch(
-        "CoCalc -- Collaborative Calculation",
-        "CoCalc -- Collaborative Calculation in the Cloud"
-      ),
-      user_id: 0
+      patch: w[2],
+      user_id: 0,
+      size: JSON.stringify(w[2]).length
     }
   ];
 
@@ -189,19 +199,19 @@ describe("Test sorted patch list with several patches", () => {
   });
 
   it("gets id of user who made edit at time", () => {
-    for (let patch of v) {
+    for (const patch of v) {
       expect(patches.user_id(patch.time)).toBe(patch.user_id);
     }
   });
 
   it("gets time sent of patches", () => {
-    for (let patch of v) {
+    for (const patch of v) {
       expect(patches.user_id(patch.time)).toEqual(patch.user_id);
     }
   });
 
   it("gets patch at time", () => {
-    for (let patch of v) {
+    for (const patch of v) {
       expect(patches.patch(patch.time)).toEqual(patch);
     }
   });
@@ -227,27 +237,32 @@ describe("Test inserting missing patches (thus changing history)", () => {
     expect(patches.value().to_str()).toBe("");
   });
 
+  const w = [make_patch("", "SageMathCloud -- "), make_patch("SageMathCloud -- ", "CoCalc -- "), make_patch(
+        "SageMathCloud -- ",
+        "SageMathCloud -- Collaborative Calculation in the Cloud"
+      )];
+
   const v = [
     {
       time: new Date("2019-01-03T20:33:47.360Z"),
-      patch: make_patch("", "SageMathCloud -- "),
+      patch: w[0],
       user_id: 0,
-      sent: new Date("2019-01-03T20:33:47.40Z")
+      sent: new Date("2019-01-03T20:33:47.40Z"),
+      size:JSON.stringify(w[0]).length
     },
     {
       time: new Date("2019-01-03T20:33:50Z"),
-      patch: make_patch("SageMathCloud -- ", "CoCalc -- "),
+      patch: w[1],
       user_id: 1,
-      sent: new Date("2019-01-03T20:34")
+      sent: new Date("2019-01-03T20:34"),
+      size:JSON.stringify(w[1]).length
     },
     {
       time: new Date("2019-01-03T20:34:50Z"),
-      patch: make_patch(
-        "SageMathCloud -- ",
-        "SageMathCloud -- Collaborative Calculation in the Cloud"
-      ),
+      patch: w[2],
       user_id: 0,
-      sent: new Date("2019-01-03T20:35")
+      sent: new Date("2019-01-03T20:35"),
+      size:JSON.stringify(w[1]).length
     }
   ];
 
@@ -288,5 +303,4 @@ describe("Test inserting missing patches (thus changing history)", () => {
   it("list of versions", () => {
     expect(patches.versions()).toEqual(v.map(x => x.time));
   });
-
 });

@@ -2,8 +2,8 @@
 
 mixin start_button
   p
-    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
-  p or #[a(href=PREFIX + "app") sign in] with your account
+    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app?anonymous=true") Try CoCalc Now!
+  p #[a(href=PREFIX + "app") sign in or create an account]
 
 mixin start_free
   -
@@ -143,6 +143,9 @@ html.no-js(lang="en")
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
 
+            li(class=navbar_highlight('share'))
+              a(href=PREFIX + "share/") Shared Files
+
             li(class=navbar_highlight('features'))
               a(href=PREFIX + "doc/index.html") Features
 
@@ -205,6 +208,8 @@ html.no-js(lang="en")
                 a(href=PREFIX + "policies/privacy.html") Privacy
               li(class=subnavbar_highlight('terms'))
                 a(href=PREFIX + "policies/terms.html") Terms
+              li(class=subnavbar_highlight('thirdparties'))
+                a(href=PREFIX + "policies/thirdparties.html") Third Parties
 
     div#content
       block content

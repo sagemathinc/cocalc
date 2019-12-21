@@ -3,9 +3,7 @@ import { FileUseInfo } from "./info";
 import { Alert, Button, Col, Row, Grid } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
-const { SearchInput } = require("../r_misc");
-import { Icon } from "../r_misc/icon";
-import { WindowedList } from "../r_misc/windowed-list";
+import { SearchInput, WindowedList, Icon } from "../r_misc";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 
@@ -202,9 +200,7 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   render_see_mentions_link(): Rendered {
-    let notifications_page_text = `See mentions (${
-      this.props.unseen_mentions_size
-    })`;
+    const notifications_page_text = `See mentions (${this.props.unseen_mentions_size})`;
     return (
       <Link
         on_click={() => {

@@ -4,7 +4,7 @@ NBConvert dialog -- for running nbconvert
 import { React, Component } from "../app-framework";
 import * as immutable from "immutable";
 const shell_escape = require("shell-escape");
-const { Icon, Loading } = require("../r_misc");
+import { Icon, Loading } from "../r_misc";
 const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 const misc = require("smc-util/misc");
@@ -339,9 +339,7 @@ export class NBConvert extends Component<NBConvertProps> {
   };
 
   slides_command = () => {
-    return `jupyter nbconvert --to slides --ServePostProcessor.port=18080 --ServePostProcessor.ip='*' --ServePostProcessor.open_in_browser=False ~/'${
-      this.props.path
-    }' --post serve`;
+    return `jupyter nbconvert --to slides --ServePostProcessor.port=18080 --ServePostProcessor.ip='*' --ServePostProcessor.open_in_browser=False ~/'${this.props.path}' --post serve`;
   };
 
   slides_url = () => {

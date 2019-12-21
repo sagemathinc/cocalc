@@ -171,7 +171,7 @@ class SyncTableChannel extends EventEmitter {
       // channel clean-up code to run in primus-multiplex,
       // and it gets run async later if we don't do this.
       // TODO: rewrite primus-multiplex from scratch.
-      this.channel.emit('end');
+      this.channel.emit("end");
 
       try {
         this.channel.end();
@@ -207,9 +207,7 @@ class SyncTableChannel extends EventEmitter {
       throw Error("mesg must not be null");
     }
     if (mesg.error != null) {
-      const message = `Error opening file -- ${
-        mesg.error
-      } -- wait, restart your project or refresh your browser`;
+      const message = `Error opening file -- ${mesg.error} -- wait, restart your project or refresh your browser`;
       // NOTE: right now module level import of this breaks things.
       const { alert_message } = require("../../alerts");
       alert_message({ type: "info", message, timeout: 10 });

@@ -10,9 +10,7 @@ import { Map } from "immutable";
 import * as json from "json-stable-stringify";
 import * as misc from "smc-util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
-import { Icon } from "../r_misc/icon";
-const { SearchInput } = require("../r_misc");
-import { r_join } from "../r_misc/r_join";
+import { Icon, SearchInput, r_join } from "../r_misc";
 import { commands, CommandDescription, KeyboardCommand } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
@@ -136,7 +134,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
 
   private render_shortcuts(): Rendered[] {
     const result: Rendered[] = [];
-    for (let key in this.props.shortcuts) {
+    for (const key in this.props.shortcuts) {
       const shortcut = this.props.shortcuts[key];
       result.push(this.render_shortcut(key, shortcut));
     }
@@ -414,7 +412,7 @@ class CommandList extends Component<CommandListProps> {
       this.props.frame_actions,
       this.props.editor_actions
     );
-    for (let name in obj) {
+    for (const name in obj) {
       const val = obj[name];
       if (val != null) {
         v.push({ name, val });
@@ -426,7 +424,7 @@ class CommandList extends Component<CommandListProps> {
       this.props.search != null
         ? this.props.search.toLowerCase() || ""
         : undefined;
-    for (let x of v) {
+    for (const x of v) {
       if (x.val.f == null) {
         continue;
       }
@@ -488,7 +486,7 @@ export class KeyboardShortcuts extends Component<
       ),
       taken: {}
     };
-    for (let name in obj.commands) {
+    for (const name in obj.commands) {
       const val = obj.commands[name];
       if (val != null && val.k != null) {
         for (let s of val.k) {
@@ -518,7 +516,7 @@ export class KeyboardShortcuts extends Component<
 
   private render_symbols_list(): Rendered[] {
     const v: Rendered[] = [];
-    for (let key in SYMBOLS) {
+    for (const key in SYMBOLS) {
       v.push(
         <li key={key}>
           <span style={{ width: "20px", display: "inline-block" }}>

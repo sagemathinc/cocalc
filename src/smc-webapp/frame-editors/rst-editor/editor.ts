@@ -9,6 +9,7 @@ import { createEditor } from "../frame-tree/editor";
 import { aux_file } from "../frame-tree/util";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
+import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -58,7 +59,9 @@ const EDITOR_SPEC = {
 
   terminal,
 
-  settings: SETTINGS_SPEC
+  settings: SETTINGS_SPEC,
+
+  time_travel
 };
 
 export const Editor = createEditor({

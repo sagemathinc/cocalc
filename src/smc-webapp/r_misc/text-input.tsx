@@ -54,7 +54,9 @@ export class TextInput extends React.Component<Props, State> {
           ref="input"
           rows={this.props.rows}
           componentClass={this.props.type === "textarea" ? "textarea" : "input"}
-          value={this.state.text != undefined ? this.state.text : this.props.text}
+          value={
+            this.state.text != undefined ? this.state.text : this.props.text
+          }
           onChange={e => this.setState({ text: e.target.value })}
           autoFocus={this.props.autoFocus}
         />

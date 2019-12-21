@@ -19,23 +19,24 @@
 #
 ###############################################################################
 
+###
+# DEPRECATED
+# ** If at all possible, use webapp-client.ts instead! **
+# A lot of code still uses this...
+###
+
+
+{ handle_hash_url } = require("./client/handle-hash-url");
+
 
 ############################################
 # connection to back-end hub
 ############################################
-
-if window?
+if window? and window.location?
     # running in a web browser
     if not window.app_base_url?
         window.app_base_url = ""
 
-    if window.location.hash.length > 1
-        q = decodeURIComponent(window.location.hash.slice(1))
-        # the location hash could again contain a query param, hence this
-        i = q.indexOf('?')
-        if i >= 0
-            q = q.slice(0, i)
-        window.smc_target = q
-
+    handle_hash_url()
     client_browser = require('client_browser')
     exports.webapp_client = client_browser.connect()

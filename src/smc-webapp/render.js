@@ -9,7 +9,7 @@ const { writeFileSync } = require("fs");
 const { join } = require("path");
 
 // The overall procedure is the following:
-// 1. render the component (rendering step is defined in the billing.cjsx file) into the webapp-lib folder
+// 1. render the component (rendering step is defined in billing) into the webapp-lib folder
 // 2. during the "webpack" step, this component is included into a full html page via includes
 // look into policies/pricing.html, there is <%= require('html?conservativeCollapse!./_static_pricing_page.html') %>
 
@@ -26,7 +26,7 @@ $.get = function() {};
 console.log("render react static pages: loading cocalc frontend library...");
 const static_react_pages = [
   [
-    require("./billing.cjsx").render_static_pricing_page(),
+    require("./billing/static-pricing-page").render_static_pricing_page(),
     "policies/_static_pricing_page.html"
   ],
   //[require('./r_help.cjsx').render_static_about(), '_static_about.html'],

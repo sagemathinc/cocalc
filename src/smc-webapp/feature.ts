@@ -37,7 +37,7 @@ let IS_MOBILE,
 
 if ((global as any).window != undefined) {
   // In a web browser.
-  const window : any = (global as any).window;
+  const window: any = (global as any).window;
   const navigator = window.navigator;
 
   let { $ } = window;
@@ -115,7 +115,7 @@ if ((global as any).window != undefined) {
   $.browser.edge = /edge\/\d./i.test(user_agent);
 
   get_browser = function() {
-    for (let k in $.browser) {
+    for (const k in $.browser) {
       const v = $.browser[k];
       if (v) {
         return k;
@@ -125,7 +125,7 @@ if ((global as any).window != undefined) {
   };
 
   get_mobile = function() {
-    for (let k in isMobile) {
+    for (const k in isMobile) {
       const v = isMobile[k];
       if (v()) {
         return k;

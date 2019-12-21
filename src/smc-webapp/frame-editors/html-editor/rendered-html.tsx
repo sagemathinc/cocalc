@@ -8,7 +8,7 @@ import { Map } from "immutable";
 import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "./options";
-const { HTML } = require("smc-webapp/r_misc");
+import { HTML } from "smc-webapp/r_misc";
 
 interface PropTypes {
   id: string;
@@ -44,7 +44,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
   }
 
   componentDidMount(): void {
-    for (let wait of [0, 200, 500]) {
+    for (const wait of [0, 200, 500]) {
       this.restore_scroll(wait);
     }
   }

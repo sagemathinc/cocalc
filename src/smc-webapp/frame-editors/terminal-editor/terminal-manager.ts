@@ -2,21 +2,21 @@
 Manage a collection of terminals in the frame tree.
 */
 
-import { Actions } from "../code-editor/actions";
+import { Actions, CodeEditorState } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { len } from "smc-util/misc2";
 import { Terminal } from "./connected-terminal";
 
-export class TerminalManager {
-  private terminals: { [key: string]: Terminal } = {};
-  private actions: Actions;
+export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
+  private terminals: { [key: string]: Terminal<T> } = {};
+  private actions: Actions<T>;
 
-  constructor(actions: Actions) {
+  constructor(actions: Actions<T>) {
     this.actions = actions;
   }
 
   close(): void {
-    for (let id in this.terminals) {
+    for (const id in this.terminals) {
       this.close_terminal(id);
     }
     delete this.actions;
@@ -26,14 +26,14 @@ export class TerminalManager {
   _node_number(id: string, command: string | undefined): number {
     /* All this complicated code starting here is just to get
        a stable number for this frame. Sorry it is so complicated! */
-    let node = this.actions._get_frame_node(id);
+    const node = this.actions._get_frame_node(id);
     if (node === undefined) {
       throw Error(`no node with id ${id}`);
     }
     let number = node.get("number");
 
     const numbers = {};
-    for (let id0 in this.actions._get_leaf_ids()) {
+    for (const id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
       if (
         node0 == null ||
@@ -42,7 +42,7 @@ export class TerminalManager {
       ) {
         continue;
       }
-      let n = node0.get("number");
+      const n = node0.get("number");
       if (n !== undefined) {
         if (numbers[n] && n === number) {
           number = undefined;
@@ -64,8 +64,8 @@ export class TerminalManager {
     return number;
   }
 
-  get_terminal(id: string, parent: HTMLElement): Terminal {
-    let node = this.actions._get_frame_node(id);
+  get_terminal(id: string, parent: HTMLElement): Terminal<T> {
+    const node = this.actions._get_frame_node(id);
 
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
@@ -76,7 +76,7 @@ export class TerminalManager {
         command = node.get("command");
         args = node.get("args");
       }
-      this.terminals[id] = new Terminal(
+      this.terminals[id] = new Terminal<T>(
         this.actions,
         this._node_number(id, command),
         id,
@@ -120,7 +120,7 @@ export class TerminalManager {
     }
   }
 
-  get(id: string): Terminal | undefined {
+  get(id: string): Terminal<T> | undefined {
     return this.terminals[id];
   }
 

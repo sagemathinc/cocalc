@@ -1,6 +1,6 @@
 # CoCalc Travis-CI Configuration File
 sudo: required
-dist: xenial
+dist: bionic
 
 # no need to build all branches
 branches:
@@ -11,9 +11,14 @@ branches:
 language: "python"
 python: 3.6
 
-# travis supports 8 and 11 (as of winter 2018)
+# travis natively supports 8 and 11 (as of winter 2018)
+# version 10 should be installed via nvm
 node_js:
-  - "8"
+  - "10"
+
+cache:
+  directories:
+    - "$HOME/.npm"
 
 git:
   depth: 3
@@ -34,6 +39,7 @@ addons:
       - "python3-pip"
       - "python3-pytest"
       - "python3-yaml"
+      - "postgresql-server-dev-10" # pg_config https://docs.travis-ci.com/user/database-setup/#using-pg_config
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
@@ -42,9 +48,8 @@ env:
     - REPORTER=min # for mocha tests
     - PGUSER='smc'
   matrix:
-    # this runs the "normal" tests
-    - KUCALC_MODE=false    NODE_ENV=production
-    # - KUCALC_MODE=false   NODE_ENV=development   # disabled: just uses resources, no real gain
+    # this runs the "normal" tests, NODE_ENV installs devDependencies
+    - KUCALC_MODE=false    NODE_ENV=development
     # this just builds the webapp for production (full minifaction, all static pages, etc.)
     - KUCALC_MODE=webapp   NODE_ENV=production CC_COMP_ENV=true
     # this compiles the hub, project, etc. and runs hubs in test mode
@@ -60,6 +65,7 @@ before_script:
   - "python -V"
   - "node --version"
   - "pytest --version"
+  - "pg_config --version"
   - 'export PGHOST="$TRAVIS_BUILD_DIR/src/dev/project/postgres_data/socket"'
   - "python2 $TRAVIS_BUILD_DIR/src/dev/project/start_postgres.py &"
   - "sleep 10" # for starting up postgres in the background (db init, etc.)

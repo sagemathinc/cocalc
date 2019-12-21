@@ -8,7 +8,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "downlevelIteration": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "skipLibCheck": true
   },
   "exclude": [
     "./data",
@@ -17,7 +18,9 @@
     "smc-hub",
     "smc-util-node",
     "smc-webapp/jupyter/project-actions.ts",
+    "smc-webapp/jupyter/test/",
     "smc-webapp/test-mocha",
-    "smc-webapp/frame-editors/generic/mocha-tests/"
+    "smc-webapp/frame-editors/generic/mocha-tests/",
+    "./test"
   ]
 }

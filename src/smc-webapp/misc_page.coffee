@@ -27,6 +27,7 @@ misc        = require('smc-util/misc')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
+{QueryParams} = require('./misc/query-params')
 
 get_inspect_dialog = (editor) ->
     dialog = $('''
@@ -1862,44 +1863,12 @@ exports.drag_start_iframe_disable = ->
 exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
-exports.open_popup_window = (url, opts) ->
-    exports.open_new_tab(url, true, opts)
+# for backward compatibility, and no circular import
+exports.open_popup_window = (args...) ->
+    require('./r_misc/open-browser-tab').open_popup_window(args...)
+exports.open_new_tab = (args...) ->
+    require('./r_misc/open-browser-tab').open_new_tab(args...)
 
-# open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
-exports.open_new_tab = (url, popup=false, opts) ->
-    # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
-
-    opts = misc.defaults opts,
-        menubar    : 'yes'
-        toolbar    : 'no'
-        resizable  : 'yes'
-        scrollbars : 'yes'
-        width      : '800'
-        height     : '640'
-
-    if popup
-        popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
-        tab = window.open("", '_blank', popup_opts)
-    else
-        tab = window.open("", '_blank')
-    if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
-        {alert_message} = require('./alerts')
-        if url
-            message = "Either enable popups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
-        else
-            message = "Enable popups for this website and try again."
-        alert_message
-            title   : "Popups blocked."
-            message : message
-            type    : 'info'
-            timeout : 15
-        return null
-    # equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
-    # credits: https://stackoverflow.com/a/49276673/54236
-    tab.opener = null
-    # only *after* the above, we set the URL!
-    tab.location = url
-    return tab
 
 exports.get_cookie = (name) ->
     value = "; " + document.cookie
@@ -1926,32 +1895,8 @@ exports.clear_selection = ->
     else
         document.selection?.empty?()
 
-# read the query string of the URL and transform it to a key/value map
-# based on: https://stackoverflow.com/a/4656873/54236
-# the main difference is that multiple identical keys are collected in an array
-# test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
-# NOTE: the comments on that stackoverflow are very critical of this; in particular,
-# there's no URI decoding, so I added that below...
-# these get_query functions are ported to misc_page2.ts
-exports.get_query_params = ->
-    vars = {}
-    href = window.location.href
-    for part in href.slice(href.indexOf('?') + 1).split('&')
-        [k, v] = part.split('=')
-        v = decodeURIComponent(v)
-        if vars[k]?
-            if not Array.isArray(vars[k])
-                vars[k] = [vars[k]]
-            vars[k] = vars[k].concat(v)
-        else
-            vars[k] = v ? true
-    return vars
-
-exports.get_query_param = (p) ->
-    return exports.get_query_params()[p]
-
 # returns true, if a target page should be loaded
 exports.should_load_target_url = ->
-    return window.smc_target \
-        and window.smc_target != 'login' \
-        and not exports.get_query_param('test')
+    return window.cocalc_target \
+        and window.cocalc_target != 'login' \
+        and not QueryParams.get('test')

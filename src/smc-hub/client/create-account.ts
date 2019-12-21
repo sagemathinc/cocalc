@@ -82,10 +82,6 @@ export async function create_account(
   try {
     dbg("run tests on generic validity of input");
 
-    if (opts.mesg.first_name == null || opts.mesg.last_name == null) {
-      throw Error("first and last name must be defined");
-    }
-
     // issues_with_create_account also does check is_valid_password!
     const issues = client_lib.issues_with_create_account(opts.mesg);
 
@@ -123,30 +119,30 @@ export async function create_account(
 
       if (n >= m) {
         throw Error(
-          `Too many accounts are being created from the ip address ${
-            opts.client.ip_address
-          }; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
+          `Too many accounts are being created from the ip address ${opts.client.ip_address}; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
         );
       }
     }
 
-    dbg("query database to determine whether the email address is available");
+    if (opts.mesg.email_address) {
+      dbg("query database to determine whether the email address is available");
 
-    const not_available = await callback2(opts.database.account_exists, {
-      email_address: opts.mesg.email_address
-    });
-    if (not_available) {
-      reason = { email_address: "This e-mail address is already taken." };
-      throw Error();
-    }
+      const not_available = await callback2(opts.database.account_exists, {
+        email_address: opts.mesg.email_address
+      });
+      if (not_available) {
+        reason = { email_address: "This e-mail address is already taken." };
+        throw Error();
+      }
 
-    dbg("check that account is not banned");
-    const is_banned = await callback2(opts.database.is_banned_user, {
-      email_address: opts.mesg.email_address
-    });
-    if (is_banned) {
-      reason = { email_address: "This e-mail address is banned." };
-      throw Error();
+      dbg("check that account is not banned");
+      const is_banned = await callback2(opts.database.is_banned_user, {
+        email_address: opts.mesg.email_address
+      });
+      if (is_banned) {
+        reason = { email_address: "This e-mail address is banned." };
+        throw Error();
+      }
     }
 
     dbg("check if a registration token is required");
@@ -163,7 +159,9 @@ export async function create_account(
       first_name: opts.mesg.first_name,
       last_name: opts.mesg.last_name,
       email_address: opts.mesg.email_address,
-      password_hash: auth.password_hash(opts.mesg.password),
+      password_hash: opts.mesg.password
+        ? auth.password_hash(opts.mesg.password)
+        : undefined,
       created_by: opts.client.ip_address,
       usage_intent: opts.mesg.usage_intent
     });
@@ -182,19 +180,20 @@ export async function create_account(
       value: data
     });
 
-    dbg("check for any account creation actions");
-    // do not block
-    await callback2(opts.database.do_account_creation_actions, {
-      email_address: opts.mesg.email_address,
-      account_id
-    });
+    if (opts.mesg.email_address) {
+      dbg("check for any account creation actions");
+      // do not block
+      await callback2(opts.database.do_account_creation_actions, {
+        email_address: opts.mesg.email_address,
+        account_id
+      });
+    }
 
     if (opts.sign_in) {
       dbg("set remember_me cookie...");
       // so that proxy server will allow user to connect and
       // download images, etc., the very first time right after they make a new account.
       await callback2(opts.client.remember_me, {
-        email_address: opts.mesg.email_address,
         account_id
       });
       dbg(

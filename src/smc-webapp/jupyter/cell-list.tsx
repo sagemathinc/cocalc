@@ -6,13 +6,11 @@ declare const $: any;
 
 const DEFAULT_ROW_SIZE: number = 64;
 
-import { WindowedList } from "../r_misc/windowed-list";
-
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { React, Component, Rendered } from "../app-framework";
-import { Loading } from "../r_misc/loading";
+import { Loading, WindowedList } from "../r_misc";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 
@@ -56,7 +54,8 @@ export class CellList extends Component<CellListProps> {
     super(props);
     this.use_windowed_list =
       !!this.props.use_windowed_list &&
-      (this.props.actions != null && this.props.frame_actions != null);
+      this.props.actions != null &&
+      this.props.frame_actions != null;
     if (this.use_windowed_list && this.props.frame_actions != null) {
       this.props.frame_actions.set_windowed_list_ref(this.windowed_list_ref);
     }
@@ -96,7 +95,7 @@ export class CellList extends Component<CellListProps> {
        keep resetting scrollTop a few times.
     */
     let scrollHeight: number = 0;
-    for (let tm of [0, 1, 100, 150]) {
+    for (const tm of [0, 1, 100, 150]) {
       if (!this.is_mounted) return;
       if (this.use_windowed_list) {
         if (this.windowed_list_ref.current != null) {
@@ -372,7 +371,7 @@ export class CellList extends Component<CellListProps> {
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
-      padding: "5px"
+      paddingLeft: "5px"
     };
 
     if (this.use_windowed_list) {

@@ -49,7 +49,7 @@ function replace_solution_region(
   let in_solution: boolean = false;
   let replaced_solution: boolean = false;
 
-  for (let line of lines) {
+  for (const line of lines) {
     // begin the solution area
     if (line.indexOf(begin_solution_delimiter) != -1) {
       // check to make sure this isn't a nested BEGIN SOLUTION region
@@ -62,7 +62,7 @@ function replace_solution_region(
       // replace it with the stub, preserving leading whitespace
       const v = line.match(/\s*/);
       const indent: string = v != null ? v[0] : "";
-      for (let stub_line of stub_lines) new_lines.push(indent + stub_line);
+      for (const stub_line of stub_lines) new_lines.push(indent + stub_line);
     }
 
     // end the solution area
@@ -97,7 +97,7 @@ export function clear_solution(
   const input = cell.get("input");
   if (typeof input != "string") return cell;
   const cell_type = cell.get("cell_type", "code");
-  let language: string = cell_type === "code" ? kernel_language : "markdown";
+  const language: string = cell_type === "code" ? kernel_language : "markdown";
   const input2: string | undefined = replace_solution_region(input, language);
   return input2 != null ? cell.set("input", input2) : cell;
 }

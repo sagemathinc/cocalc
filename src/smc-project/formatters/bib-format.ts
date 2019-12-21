@@ -54,9 +54,7 @@ export async function bib_format(
     } catch (e) {
       logger.debug(`Calling Bibtex formatter raised ${e}`);
       throw new Error(
-        `Bibtex formatter broken or not available. Is '${
-          options.parser
-        }' installed?`
+        `Bibtex formatter broken or not available. Is '${options.parser}' installed?`
       );
     }
 
@@ -65,15 +63,13 @@ export async function bib_format(
 
     const problem = code >= 1;
     if (problem) {
-      const msg = `Bibtex formatter "${
-        options.parser
-      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      const msg = `Bibtex formatter "${options.parser}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
       throw Error(msg);
     }
 
     // all fine, we read from the temp file
-    let output: Buffer = await callback(readFile, output_path);
-    let s: string = output.toString("utf-8");
+    const output: Buffer = await callback(readFile, output_path);
+    const s: string = output.toString("utf-8");
     return s;
   } finally {
     // logger.debug(`bibtex formatter done, unlinking ${input_path}`);

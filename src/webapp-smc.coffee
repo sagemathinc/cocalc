@@ -53,13 +53,6 @@ require("script-loader!bootbox/bootbox.min.js")  # loads from smc-webapp/node_mo
 # Bootstrap Colorpicker Plugin
 require('bootstrap-colorpicker')
 
-# Pnotify: Notification framework from http://pinesframework.org/pnotify
-require("script-loader!pnotify/jquery.pnotify.min.js")
-#PNotify = require("pnotify/src/pnotify.js");
-require("pnotify/src/pnotify.mobile.js");
-require("pnotify/src/pnotify.buttons.js");
-require("pnotify/src/pnotify.desktop.js");
-
 # Datetime picker
 require("script-loader!datetimepicker/bootstrap-datetimepicker.min.js")
 # https://github.com/eonasdan/bootstrap-datetimepicker
@@ -75,6 +68,8 @@ require("script-loader!jsbeautify/beautify-html.min.js")
 
 # after this lib.js package, the real smc.js app starts loading
 window.smcLoadStatus("Starting main application ...")
+
+require('antd/dist/antd.css')
 
 # SASS Style file for SMC
 require('./smc-webapp/index.sass')

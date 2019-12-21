@@ -53,7 +53,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.get_frame_actions(id);
     });
 
-    for (let id in this._get_leaf_ids()) {
+    for (const id in this._get_leaf_ids()) {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");
@@ -70,6 +70,20 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     );
     syncdb.on("has-unsaved-changes", has_unsaved_changes => {
       this.setState({ has_unsaved_changes });
+    });
+
+    const store = this.jupyter_actions.store;
+    let introspect = store.get("introspect");
+    store.on("change", () => {
+      const i = store.get("introspect");
+      if (i != introspect) {
+        if (i != null) {
+          this.show_introspect();
+        } else {
+          this.close_introspect();
+        }
+        introspect = i;
+      }
     });
   }
 
@@ -284,5 +298,15 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
+  }
+
+  // Either show the most recently focused introspect frame, or ceate one.
+  public async show_introspect(): Promise<void> {
+    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
+  }
+
+  // Close the most recently focused introspect frame, if there is one.
+  public async close_introspect(): Promise<void> {
+    this.close_recently_focused_frame_of_type("introspect");
   }
 }

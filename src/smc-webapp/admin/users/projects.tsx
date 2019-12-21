@@ -2,7 +2,7 @@ import { React, Component, Rendered, redux } from "smc-webapp/app-framework";
 
 import { cmp } from "smc-util/misc2";
 
-const { Loading, TimeAgo } = require("smc-webapp/r_misc");
+import { Loading, TimeAgo } from "smc-webapp/r_misc";
 
 import { query } from "smc-webapp/frame-editors/generic/client";
 
@@ -60,21 +60,23 @@ export class Projects extends Component<Props, State> {
 
   async search(): Promise<void> {
     this.status_mesg("Searching...");
-    const projects: Project[] = (await query({
-      query: {
-        projects: [
-          {
-            project_id: null,
-            title: null,
-            description: null,
-            users: null,
-            last_active: null,
-            last_edited: null
-          }
-        ]
-      },
-      options: [{ account_id: this.props.account_id }]
-    })).query.projects;
+    const projects: Project[] = (
+      await query({
+        query: {
+          projects: [
+            {
+              project_id: null,
+              title: null,
+              description: null,
+              users: null,
+              last_active: null,
+              last_edited: null
+            }
+          ]
+        },
+        options: [{ account_id: this.props.account_id }]
+      })
+    ).query.projects;
     if (!this.mounted) {
       return;
     }
@@ -126,7 +128,7 @@ export class Projects extends Component<Props, State> {
   }
 
   open_project(project_id: string): void {
-    const projects : any = redux.getActions("projects"); // todo: any?
+    const projects: any = redux.getActions("projects"); // todo: any?
     projects.open_project({ project_id: project_id, switch_to: true });
   }
 
@@ -134,7 +136,10 @@ export class Projects extends Component<Props, State> {
     return (
       <Row key={project.project_id}>
         <Col md={2}>
-          <a style={{cursor:'pointer'}} onClick={() => this.open_project(project.project_id)}>
+          <a
+            style={{ cursor: "pointer" }}
+            onClick={() => this.open_project(project.project_id)}
+          >
             {project.title}
           </a>
         </Col>

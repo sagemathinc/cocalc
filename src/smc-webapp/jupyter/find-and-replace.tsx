@@ -11,8 +11,7 @@ import {
   Modal
 } from "react-bootstrap";
 import * as immutable from "immutable";
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Icon } from "../r_misc/icon";
+import { ErrorDisplay, Icon } from "../r_misc";
 import { find_matches } from "./find";
 import { JupyterActions } from "./browser-actions";
 
@@ -218,7 +217,7 @@ export class FindAndReplace extends Component<
     let i = 0;
     let line_start = 0;
     let key = 0;
-    for (let line of text.split("\n")) {
+    for (const line of text.split("\n")) {
       const line_stop = line_start + line.length;
       const w: Rendered[] = []; // current line
       let s = 0;

@@ -6,8 +6,6 @@ This is a wrapper around a single codemirror editor view.
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-import { delay } from "awaiting";
-
 import { Map, Set } from "immutable";
 
 import { is_safari } from "../generic/browser";
@@ -16,15 +14,21 @@ import { React, ReactDOM, Rendered, Component } from "../../app-framework";
 
 import { debounce, throttle, isEqual } from "underscore";
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 
-const { Cursors } = require("smc-webapp/jupyter/cursors");
+import { Cursors } from "smc-webapp/jupyter/cursors";
 
-const { cm_options } = require("../codemirror/cm-options");
-const codemirror_state = require("../codemirror/codemirror-state");
-const doc = require("./doc");
+import { cm_options } from "../codemirror/cm-options";
+import { init_style_hacks } from "../codemirror/util";
+import * as codemirror_state from "../codemirror/codemirror-state";
+import * as doc from "./doc";
 
-const { GutterMarkers } = require("./codemirror-gutter-markers");
+import { GutterMarkers } from "./codemirror-gutter-markers";
+
+import { CodeEditor } from "./code-editor-manager";
+import { Actions } from "./actions";
+import { Icon } from "../../r_misc";
+import { file_associations } from "../../file-associations";
 
 const STYLE = {
   width: "100%",
@@ -52,6 +56,7 @@ interface Props {
   gutters: string[];
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  is_subframe?: boolean;
 }
 
 interface State {
@@ -62,10 +67,19 @@ export class CodemirrorEditor extends Component<Props, State> {
   private cm: CodeMirror.Editor;
   private style_active_line: boolean = false;
   static defaultProps = { value: "" };
+  private manager?: CodeEditor;
+  private editor_actions: Actions;
 
   constructor(props) {
     super(props);
     this.state = { has_cm: false };
+    if (props.is_subframe && this.props.actions != null) {
+      this.manager = this.props.actions.get_code_editor(this.props.id);
+      if (this.manager == null) throw Error("BUG");
+      this.editor_actions = this.manager.get_actions();
+    } else {
+      this.editor_actions = this.props.actions;
+    }
   }
 
   shouldComponentUpdate(props, state): boolean {
@@ -80,7 +94,10 @@ export class CodemirrorEditor extends Component<Props, State> {
         "is_public",
         "resize",
         "editor_state",
-        "gutter_markers"
+        "gutter_markers",
+        "is_subframe",
+        "is_current",
+        "path"
       ])
     );
   }
@@ -102,7 +119,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.props.is_public && this.props.value !== next.value) {
       if (next.value !== undefined) {
         // we really know that this will be undefined.
-        this.cm.setValue(next.value);
+        this.cm.setValueNoJump(next.value);
       }
     }
     if (this.props.misspelled_words !== next.misspelled_words) {
@@ -116,14 +133,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   }
 
-  _cm_refresh(): void {
+  private cm_refresh(): void {
     if (!this.cm) return;
     this.cm.refresh();
-  }
-
-  async cm_refresh(): Promise<void> {
-    await delay(0);
-    this._cm_refresh();
   }
 
   cm_highlight_misspelled_words(words: Set<string>): void {
@@ -135,8 +147,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     // It's important to move the scroll position upon zooming -- otherwise the cursor line
     // move UP/DOWN after zoom, which is very annoying.
     const state = codemirror_state.get_state(this.cm);
-    codemirror_state.set_state(this.cm, state);
-  } // actual restore happens in next refresh cycle after render.
+    // actual restore happens in next refresh cycle after render.
+    if (state != null) codemirror_state.set_state(this.cm, state);
+  }
 
   componentWillUnmount(): void {
     if (this.cm != null && this.props.is_public == null) {
@@ -147,11 +160,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   _cm_undo(): void {
-    this.props.actions.undo(this.props.id);
+    this.editor_actions.undo(this.props.id);
   }
 
   _cm_redo(): void {
-    this.props.actions.redo(this.props.id);
+    this.editor_actions.redo(this.props.id);
   }
 
   _cm_destroy(): void {
@@ -160,7 +173,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
     delete (this.cm as any).undo;
     delete (this.cm as any).redo;
-    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in this.props.actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
+    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
     delete this.cm;
   }
 
@@ -185,7 +198,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       // cursor movement is a side effect of upstream change, so ignore.
       return;
     }
-    this.props.actions.set_cursor_locs(locs);
+    this.editor_actions.set_cursor_locs(locs);
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
@@ -204,8 +217,8 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.cm == null || this.props.is_public) {
       return;
     }
-    this.props.actions.set_syncstring_to_codemirror();
-    this.props.actions.syncstring_commit();
+    this.editor_actions.set_syncstring_to_codemirror();
+    this.editor_actions.syncstring_commit();
   }
 
   safari_hack(): void {
@@ -222,14 +235,17 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     this.safari_hack();
 
-    const options = cm_options(
+    const options: any = cm_options(
       props.path,
       props.editor_settings,
       props.gutters,
+      this.editor_actions,
       props.actions,
       props.id
     );
+    if (options == null) throw Error("bug"); // make typescript happy.
 
+    // we will explicitly enable and disable styleActiveLine depending focus
     this.style_active_line = options.styleActiveLine;
     options.styleActiveLine = false;
 
@@ -252,14 +268,17 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = function(cm: any) {
+      (CodeMirror as any).commands.save = (cm: any) => {
+        this.props.actions.explicit_save();
         if (cm._actions) {
           cm._actions.save(true);
         }
       };
     }
 
-    let cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
+    const cm: CodeMirror.Editor = (this.editor_actions as any)._cm[
+      this.props.id
+    ];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
@@ -279,7 +298,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
 
     if (props.editor_state != null) {
-      codemirror_state.set_state(this.cm, props.editor_state.toJS());
+      codemirror_state.set_state(this.cm, props.editor_state.toJS() as any);
     }
 
     if (!props.is_public) {
@@ -296,7 +315,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   init_new_codemirror(): void {
-    (this.cm as any)._actions = this.props.actions;
+    (this.cm as any)._actions = this.editor_actions;
 
     if (this.props.is_public) {
       if (this.props.value !== undefined) {
@@ -317,18 +336,9 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     const save_editor_state = throttle(() => this.save_editor_state(), 150);
     this.cm.on("scroll", save_editor_state);
+    init_style_hacks(this.cm);
 
-    const e = $(this.cm.getWrapperElement());
-    e.addClass("smc-vfill");
-    // The Codemirror themes impose their own weird fonts, but most users want whatever
-    // they've configured as "monospace" in their browser.  So we force that back:
-    e.attr(
-      "style",
-      e.attr("style") + "; height:100%; font-family:monospace !important;"
-    );
-    // see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
-
-    this.props.actions.set_cm(this.props.id, this.cm);
+    this.editor_actions.set_cm(this.props.id, this.cm);
 
     if (this.props.is_public) {
       return;
@@ -343,7 +353,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.on("change", (_, changeObj) => {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        this.props.actions.exit_undo_mode();
+        this.editor_actions.exit_undo_mode();
       }
     });
 
@@ -379,12 +389,13 @@ export class CodemirrorEditor extends Component<Props, State> {
         props.path,
         props.editor_settings,
         props.gutters,
+        this.editor_actions,
         props.actions,
         props.id
       );
     }
 
-    let cm = this.cm;
+    const cm = this.cm;
     let key: string;
     for (key of [
       "lineNumbers",
@@ -473,14 +484,53 @@ export class CodemirrorEditor extends Component<Props, State> {
     );
   }
 
+  private click_on_path(evt): void {
+    if (!evt.shiftKey) return;
+    const project_actions = this.props.actions._get_project_actions();
+    project_actions.open_file({ path: this.props.path, foreground: true });
+  }
+
+  // todo: move this render_path to a component in a separate file.
+  render_path(): Rendered {
+    const style: any = {
+      borderBottom: "1px solid lightgrey",
+      borderRight: "1px solid lightgrey",
+      padding: "0 5px",
+      borderTopLeftRadius: "5px",
+      borderTopRightRadius: "5px",
+      color: "#337ab7",
+      cursor: "pointer",
+      width: "100%",
+      fontSize: "10pt"
+    };
+    if (this.props.is_current) {
+      style.background = "#337ab7";
+      style.color = "white";
+    }
+    const ext = misc.filename_extension(this.props.path);
+    const x = file_associations[ext];
+    let icon: any = undefined;
+    if (x != null && x.icon != null) {
+      icon = <Icon name={x.icon} />;
+    }
+    return (
+      <div style={style} onClick={this.click_on_path.bind(this)}>
+        {icon} {this.props.path}
+      </div>
+    );
+  }
+
   render(): Rendered {
     const style = misc.copy(STYLE);
     style.fontSize = `${this.props.font_size}px`;
     return (
-      <div style={style} className="smc-vfill cocalc-editor-div">
-        {this.render_cursors()}
-        {this.render_gutter_markers()}
-        <textarea ref="textarea" style={{ display: "none" }} />
+      <div className="smc-vfill cocalc-editor-div">
+        {this.render_path()}
+        <div style={style} className="smc-vfill">
+          {this.render_cursors()}
+          {this.render_gutter_markers()}
+          <textarea ref="textarea" style={{ display: "none" }} />
+        </div>
       </div>
     );
   }

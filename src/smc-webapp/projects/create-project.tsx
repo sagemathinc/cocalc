@@ -25,7 +25,7 @@ const {
   ErrorDisplay
 } = require("react-bootstrap");
 
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
 const misc = require("smc-util/misc");
 
@@ -62,12 +62,22 @@ const INIT_STATE: Readonly<State> = Object.freeze({
 });
 
 export class NewProjectCreator extends Component<Props, State> {
+  private is_mounted: boolean = false;
+
   constructor(props) {
     super(props);
     this.state = Object.assign({}, INIT_STATE, {
       // view --> edit --> saving --> view
-      state: props.start_in_edit_mode ? "edit" : "view"
+      state: props.start_in_edit_mode ? "edit" : "view",
+      title_text: props.default_value ? props.default_value : ""
     });
+  }
+
+  componentDidMount() {
+    this.is_mounted = true;
+  }
+  componentWillUnmount() {
+    this.is_mounted = false;
   }
 
   start_editing() {
@@ -75,16 +85,10 @@ export class NewProjectCreator extends Component<Props, State> {
       state: "edit",
       title_text: this.props.default_value ? this.props.default_value : ""
     });
-    // We also update the customer billing information; this is important since
-    // we will call apply_default_upgrades in a moment, and it will be more
-    // accurate with the latest billing information recently loaded.
-    const billing_actions = redux.getActions("billing");
-    if (billing_actions != undefined) {
-      billing_actions.update_customer();
-    }
   }
 
   cancel_editing = () => {
+    if (!this.is_mounted) return;
     this.setState(Object.assign({}, INIT_STATE, { state: "view" }));
   };
 
@@ -107,21 +111,37 @@ export class NewProjectCreator extends Component<Props, State> {
     actions.create_project({
       title: this.state.title_text,
       image: compute_image,
-      token
+      token,
+      start: false // definitely do NOT want to start, due to apply_default_upgrades
     });
     redux
       .getStore("projects")
-      .wait_until_project_created(token, 30, (err, project_id) => {
+      .wait_until_project_created(token, 30, async (err, project_id) => {
         if (err != undefined) {
-          this.setState({
-            state: "edit",
-            error: `Error creating project -- ${err}`
-          });
+          if (this.is_mounted) {
+            this.setState({
+              state: "edit",
+              error: `Error creating project -- ${err}`
+            });
+          }
         } else {
-          actions.apply_default_upgrades({ project_id });
-          actions.set_add_collab(project_id, true);
-          actions.open_project({ project_id, switch_to: false });
-          this.cancel_editing();
+          // We also update the customer billing information so apply_default_upgrades works.
+          const billing_actions = redux.getActions("billing");
+          if (billing_actions != null) {
+            try {
+              await billing_actions.update_customer();
+              await actions.apply_default_upgrades({ project_id }); // see issue #4192
+            } catch (err) {
+              // Ignore error coming from this -- it's merely a convenience to
+              // upgrade the project on creation; user could always do it manually,
+              // and nothing in the UI suggests it will happen.
+            }
+          }
+          // switch_to=true is perhaps suggested by #4088
+          actions.open_project({ project_id, switch_to: true });
+          if (this.is_mounted) {
+            this.cancel_editing();
+          }
         }
       });
     analytics_event("create_project", "created_new_project");
@@ -252,7 +272,9 @@ export class NewProjectCreator extends Component<Props, State> {
               A <b>project</b> is your own, private computational workspace that
               you can share with others.
               <br />
-              You can easily change the project title in project settings.
+              <br />
+              You can easily change the project's title at any time in project
+              settings.
             </div>
           </Col>
         </Row>

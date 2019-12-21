@@ -1,6 +1,6 @@
 import { List, Map } from "immutable";
 
-const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
+import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
 
 import { server_time } from "../generic/client";
 
@@ -167,7 +167,7 @@ class LeanMessages extends Component<Props, {}> {
     const messages = this.props.messages.toJS();
     messages.sort(cmp_messages);
     let i = 0;
-    for (let message of messages) {
+    for (const message of messages) {
       v.push(this.render_message(i, message));
       i += 1;
     }
@@ -219,7 +219,7 @@ class LeanMessages extends Component<Props, {}> {
     }
     const v: Rendered[] = [];
     let i = 0;
-    for (let task of this.props.tasks.toJS()) {
+    for (const task of this.props.tasks.toJS()) {
       v.push(this.render_task(i, task));
       i += 1;
     }

@@ -3,11 +3,11 @@ Components for rendering input and output prompts.
 */
 
 import { React, Component } from "../app-framework";
-const { Icon, TimeAgo, Tip } = require("../r_misc");
+import { Icon, TimeAgo, Tip } from "../r_misc";
 
 const misc = require("smc-util/misc");
 
-const PROMPT_MIN_WIDTH = "80px";
+export const PROMPT_MIN_WIDTH = "7em";
 
 export const INPUT_PROMPT_COLOR: string = "#303F9F";
 
@@ -16,8 +16,7 @@ const INPUT_STYLE: React.CSSProperties = {
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
-  paddingRight: ".4em",
-  marginRight: "3px",
+  paddingRight: "1ex",
   cursor: "pointer"
 };
 
@@ -116,12 +115,8 @@ export class OutputPrompt extends Component<OutputPromptProps> {
       n = this.props.exec_count != null ? this.props.exec_count : " ";
     }
     if (n == null) {
-      return <div style={OUTPUT_STYLE}/>;
+      return <div style={OUTPUT_STYLE} />;
     }
-    return (
-      <div style={OUTPUT_STYLE}>
-        Out[{n}]:
-      </div>
-    );
+    return <div style={OUTPUT_STYLE}>Out[{n}]:</div>;
   }
 }

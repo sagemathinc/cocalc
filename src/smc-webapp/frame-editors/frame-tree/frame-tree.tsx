@@ -27,19 +27,33 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { is_different } from "smc-util/misc2";
-import { React, ReactDOM, Component } from "../../app-framework";
+import { hidden_meta_file, is_different } from "smc-util/misc2";
+import {
+  React,
+  ReactDOM,
+  Component,
+  redux,
+  Rendered
+} from "../../app-framework";
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");
-const misc = require("smc-util/misc");
+import { merge, copy } from "smc-util/misc";
 const misc_page = require("smc-webapp/misc_page");
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor"); // todo should just spec all editors.
+
 const feature = require("smc-webapp/feature");
-const { FrameTitleBar } = require("./title-bar");
-const tree_ops = require("./tree-ops");
-const { Loading } = require("smc-webapp/r_misc");
-import { Available as AvailableFeatures } from "../../project_configuration";
+import { FrameTitleBar } from "./title-bar";
+import { FrameTreeLeaf } from "./leaf";
+import * as tree_ops from "./tree-ops";
+import { Loading } from "../../r_misc";
+import { AvailableFeatures } from "../../project_configuration";
+import { get_file_editor } from "./register";
+
+import { TimeTravelActions } from "../time-travel-editor/actions";
+import { EditorSpec, EditorDescription, NodeDesc } from "./types";
+import { Actions } from "../code-editor/actions";
+
+import { cm as cm_spec } from "../code-editor/editor";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -55,23 +69,17 @@ const drag_hover = {
   opacity: 0.8
 };
 
-const cols_drag_bar_drag_hover = misc.merge(
-  misc.copy(cols_drag_bar),
-  drag_hover
-);
+const cols_drag_bar_drag_hover = merge(copy(cols_drag_bar), drag_hover);
 
-const rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {
+const rows_drag_bar = merge(copy(cols_drag_bar), {
   cursor: "ns-resize"
 });
 
-const rows_drag_bar_drag_hover = misc.merge(
-  misc.copy(rows_drag_bar),
-  drag_hover
-);
+const rows_drag_bar_drag_hover = merge(copy(rows_drag_bar), drag_hover);
 
 interface FrameTreeProps {
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
-  actions: any;
+  actions: Actions;
   path: string; // assumed to never change -- all frames in same project
   project_id: string; // assumed to never change -- all frames in same project
   active_id: string;
@@ -84,16 +92,15 @@ interface FrameTreeProps {
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   is_public: boolean;
   value: string;
-  editor_spec: any;
+  editor_spec: EditorSpec;
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
   misspelled_words: Set<string>;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
-  gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
-  terminal: Map<string, any>;
+  terminal: Map<string, any>; // terminal settings from account
   status: string;
   settings: Map<string, any>;
   complete: Map<string, any>;
@@ -112,8 +119,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   componentWillUnmount(): void {
-    if (typeof this.props.actions.blur === "function") {
-      this.props.actions.blur();
+    const actions: any = this.props.actions;
+    if (actions.blur != null) {
+      actions.blur();
     }
   }
 
@@ -136,7 +144,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "reload",
         "resize",
         "is_saving",
-        "gutter_markers",
         "editor_settings",
         "terminal",
         "settings",
@@ -172,7 +179,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         has_unsaved_changes={this.props.has_unsaved_changes}
         has_uncommitted_changes={this.props.has_uncommitted_changes}
         is_saving={this.props.is_saving}
-        gutter_markers={this.props.gutter_markers}
         editor_settings={this.props.editor_settings}
         terminal={this.props.terminal}
         settings={this.props.settings}
@@ -184,29 +190,43 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
-  render_titlebar(desc) {
-    let id = desc.get("id");
-    let left, left1, left2;
+  private get_editor_actions(desc: NodeDesc): Actions {
+    if (desc.get("type") == "cm" && this.props.editor_spec["cm"] == null) {
+      // make it so the spec includes info about cm editor.
+      this.props.editor_spec.cm = copy(cm_spec);
+    }
+
+    if (
+      desc.get("type") == "cm" &&
+      desc.get("path", this.props.path) != this.props.path
+    ) {
+      const manager = this.props.actions.get_code_editor(desc.get("id"));
+      return manager.get_actions();
+    } else {
+      return this.props.actions;
+    }
+  }
+
+  render_titlebar(
+    desc: NodeDesc,
+    spec: EditorDescription,
+    editor_actions: Actions
+  ): Rendered {
+    const id = desc.get("id");
     return (
       <FrameTitleBar
         actions={this.props.actions}
+        editor_actions={editor_actions}
         active_id={this.props.active_id}
-        project_id={
-          (left = desc.get("project_id")) != null ? left : this.props.project_id
-        }
-        path={(left1 = desc.get("path")) != null ? left1 : this.props.path}
+        project_id={desc.get("project_id", this.props.project_id)}
+        path={desc.get("path", this.props.path)}
         is_full={desc.get("id") === this.props.full_id && !this.props.is_only}
         is_only={this.props.is_only}
         id={id}
-        deletable={(left2 = desc.get("deletable")) != null ? left2 : true}
-        read_only={desc.get("read_only") || this.props.read_only}
-        has_unsaved_changes={this.props.has_unsaved_changes}
-        has_uncommitted_changes={this.props.has_uncommitted_changes}
-        is_saving={this.props.is_saving}
-        is_public={this.props.is_public}
         is_paused={desc.get("is_paused")}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
+        spec={spec}
         status={this.props.status}
         title={desc.get("title")}
         connection_status={desc.get("connection_status")}
@@ -216,95 +236,109 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
-  render_leaf(type: string, desc: Map<string, any>, Leaf: any, spec: any) {
+  render_leaf(
+    desc: NodeDesc,
+    component: any,
+    spec: EditorDescription,
+    editor_actions: Actions
+  ) {
+    const type = desc.get("type");
+    const project_id = desc.get("project_id", this.props.project_id);
+    let name = this.props.name;
+    let actions = this.props.actions;
+
     let path: string = desc.get("path", this.props.path);
     if (spec.path != null) {
       path = spec.path(path);
     }
-    let fullscreen_style: any = undefined;
-    if (spec.fullscreen_style != null) {
-      // this is set via jquery's .css...
-      ({ fullscreen_style } = spec);
+
+    // UGLY/TODO: This approach to TimeTravel as a frame is not sufficiently
+    // generic and is a **temporary** hack.  It'll be rewritten
+    // soon in a more generic way that also will support multifile
+    // latex editing. See https://github.com/sagemathinc/cocalc/issues/904
+    // Note that this does NOT reference count the actions properly
+    // right now... We need to switch to something like we do with
+    // CodeEditorManager.
+    let is_subframe: boolean = false;
+    if (spec.name === "TimeTravel" && !(actions instanceof TimeTravelActions)) {
+      if (path.slice(path.length - 12) != ".time-travel") {
+        path = hidden_meta_file(path, "time-travel");
+        const editor = get_file_editor("time-travel", false);
+        if (editor == null) throw Error("bug -- editor must exist");
+        name = editor.init(path, redux, project_id);
+        const actions2: TimeTravelActions = redux.getActions(name);
+        actions2.ambient_actions = actions;
+        // [j3] Assuming this is part of the hackiness above
+        // Or just that Actions in the frame tree are confusing
+        actions = actions2 as Actions;
+        is_subframe = true;
+        // this is particularly hacky for now:
+        // ensures time travel params are set.
+        // setTimeout is needed since this can change redux store,
+        // and we are in a render function.
+        setTimeout(() => actions2.init_frame_tree(), 50);
+      }
+    } else if (type == "cm" && path != this.props.path) {
+      // A code editor inside some other editor frame tree
+      is_subframe = true;
     }
 
-    const id: string = desc.get("id");
     return (
-      <div
-        id={`frame-${id}`}
-        className="smc-vfill"
-        style={{ background: "white", zIndex: 1 }}
-      >
-        <Leaf
-          id={id}
-          name={this.props.name}
-          actions={this.props.actions}
-          mode={spec.mode}
-          read_only={desc.get(
-            "read_only",
-            this.props.read_only || this.props.is_public
-          )}
-          is_public={this.props.is_public}
-          font_size={desc.get("font_size", this.props.font_size)}
-          path={path}
-          fullscreen_style={fullscreen_style}
-          project_id={desc.get("project_id", this.props.project_id)}
-          editor_state={this.props.editor_state.get(desc.get("id"), Map())}
-          is_current={desc.get("id") === this.props.active_id}
-          cursors={this.props.cursors}
-          value={this.props.value}
-          misspelled_words={this.props.misspelled_words}
-          is_fullscreen={
-            this.props.is_only || desc.get("id") === this.props.full_id
-          }
-          reload={this.props.reload.get(type)}
-          resize={this.props.resize}
-          reload_images={!!spec.reload_images}
-          gutters={spec.gutters != null ? spec.gutters : []}
-          gutter_markers={this.props.gutter_markers}
-          editor_settings={this.props.editor_settings}
-          terminal={this.props.terminal}
-          settings={this.props.settings}
-          status={this.props.status}
-          renderer={spec.renderer}
-          complete={this.props.complete.get(desc.get("id"))}
-          derived_file_types={this.props.derived_file_types}
-          desc={desc}
-          available_features={this.props.available_features}
-        />
-      </div>
+      <FrameTreeLeaf
+        name={name}
+        path={path}
+        project_id={this.props.project_id}
+        is_public={this.props.is_public}
+        font_size={this.props.font_size}
+        editor_state={this.props.editor_state}
+        active_id={this.props.active_id}
+        editor_settings={this.props.editor_settings}
+        terminal={this.props.terminal}
+        settings={this.props.settings}
+        status={this.props.status}
+        derived_file_types={this.props.derived_file_types}
+        available_features={this.props.available_features}
+        actions={actions}
+        component={component}
+        desc={desc}
+        spec={spec}
+        editor_actions={editor_actions}
+        is_fullscreen={
+          this.props.is_only || desc.get("id") === this.props.full_id
+        }
+        reload={this.props.reload.get(type)}
+        resize={this.props.resize}
+        is_subframe={is_subframe}
+      />
     );
   }
 
   async reset_frame_tree(): Promise<void> {
-    await delay(1);
+    await delay(100);
     if (this.props.actions) {
       this.props.actions.reset_frame_tree();
     }
   }
 
-  render_one(desc) {
-    let child;
-    const type = desc != null ? desc.get("type") : undefined;
+  render_one(desc: NodeDesc): Rendered {
+    const type = desc.get("type");
     if (type === "node") {
       return this.render_frame_tree(desc);
     }
-    const spec =
-      this.props.editor_spec != null ? this.props.editor_spec[type] : undefined;
-    const C = spec != null ? spec.component : undefined;
-    if (C != null) {
-      child = this.render_leaf(type, desc, C, spec);
-    } else if (type === "cm") {
-      // minimal support -- TODO: instead should just fully spec all editors!
-      child = this.render_leaf(type, desc, CodemirrorEditor, {});
-    } else {
-      // fix this disaster next time around.
+    // NOTE: get_editor_actions may mutate props.editor_spec
+    // if necessary for subframe, etc. So we call it first!
+    let editor_actions: Actions, spec: EditorDescription, component: any;
+    try {
+      editor_actions = this.get_editor_actions(desc);
+      spec = this.props.editor_spec[type];
+      component = spec != null ? spec.component : undefined;
+      if (component == null) throw Error(`unknown type '${type}'`);
+    } catch (err) {
+      const mesg = `Invalid frame tree ${JSON.stringify(desc)} -- ${err}`;
+      console.log(mesg);
+      // reset -- fix this disaster next time around.
       this.reset_frame_tree();
-      return (
-        <div>
-          Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}
-          '.
-        </div>
-      );
+      return <div>{mesg}</div>;
     }
     return (
       <div
@@ -313,8 +347,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
         style={spec != null ? spec.style : undefined}
       >
-        {this.render_titlebar(desc)}
-        {child}
+        {this.render_titlebar(desc, spec, editor_actions)}
+        {this.render_leaf(desc, component, spec, editor_actions)}
       </div>
     );
   }

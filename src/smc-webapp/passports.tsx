@@ -1,8 +1,7 @@
 import * as React from "react";
 import { List } from "immutable";
 import * as misc from "smc-util/misc";
-
-const { Icon, Tip } = require("./r_misc");
+import { Icon, Tip } from "./r_misc";
 
 interface Props {
   strategies?: List<string>;

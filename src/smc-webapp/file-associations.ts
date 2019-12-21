@@ -88,6 +88,8 @@ const codemirror_associations: { [ext: string]: string } = {
   cml: "xml", // http://www.xml-cml.org/, e.g. used by avogadro
   kml: "xml", // https://de.wikipedia.org/wiki/Keyhole_Markup_Language
   xsl: "xsl",
+  v: "verilog",
+  vh: "verilog",
   "": "text"
 };
 
@@ -119,7 +121,7 @@ const MODE_TO_ICON: { [mode: string]: string } = {
   rmd: "cc-icon-r"
 };
 
-for (let ext in codemirror_associations) {
+for (const ext in codemirror_associations) {
   const mode: string = codemirror_associations[ext];
   let name: string = mode;
   const i: number = name.indexOf("x-");
@@ -240,7 +242,7 @@ file_associations["css"] = {
   name: "CSS"
 };
 
-for (let m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
+for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
   file_associations[m] = {
     editor: "codemirror",
     icon: "fa-cogs",
@@ -276,7 +278,15 @@ file_associations["ipynb"] = {
   name: "Jupyter Notebook"
 };
 
-for (let ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
+// verilog files
+file_associations["v"] = file_associations["vh"] = {
+  editor: "codemirror",
+  icon: "fa-microchip",
+  opts: { mode: "verilog", indent_unit: 2, tab_size: 2 },
+  name: "Verilog"
+};
+
+for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
   file_associations[ext] = {
     editor: "media",
     icon: "fa-file-image-o",
@@ -288,27 +298,38 @@ for (let ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
 }
 
 // See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
-export const IMAGE_EXTS = <ReadonlyArray<string>>(
-  Object.freeze(["jpg", "jpeg", "png", "bmp", "gif", "apng", "svg", "ico"])
-);
+export const IMAGE_EXTS = Object.freeze([
+  "jpg",
+  "jpeg",
+  "png",
+  "bmp",
+  "gif",
+  "apng",
+  "svg",
+  "ico"
+]) as ReadonlyArray<string>;
 
-export const VIDEO_EXTS = <ReadonlyArray<string>>(
-  Object.freeze(["webm", "mp4", "avi", "mkv", "ogv", "ogm", "3gp"])
-);
+export const VIDEO_EXTS = Object.freeze([
+  "webm",
+  "mp4",
+  "avi",
+  "mkv",
+  "ogv",
+  "ogm",
+  "3gp"
+]) as ReadonlyArray<string>;
 
-export const AUDIO_EXTS = <ReadonlyArray<string>>(
-  Object.freeze([
-    "wav",
-    "ogg",
-    "mp3",
-    "aiff",
-    "flac",
-    "asnd",
-    "aif",
-    "au",
-    "snd"
-  ])
-);
+export const AUDIO_EXTS = Object.freeze([
+  "wav",
+  "ogg",
+  "mp3",
+  "aiff",
+  "flac",
+  "asnd",
+  "aif",
+  "au",
+  "snd"
+]) as ReadonlyArray<string>;
 
 file_associations["pdf"] = {
   editor: "pdf",
@@ -323,7 +344,7 @@ file_associations["tasks"] = {
   editor: "tasks",
   icon: "fa-tasks",
   opts: {},
-  name: "task list"
+  name: "to do list"
 };
 
 file_associations["course"] = {
@@ -378,7 +399,7 @@ file_associations[""] = {
   name: ""
 };
 
-for (let ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
+for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
   " "
 )) {
   file_associations[ext] = archive_association;

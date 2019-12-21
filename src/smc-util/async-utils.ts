@@ -58,7 +58,7 @@ export async function retry_until_success<T>(
 
   let next_delay: number = opts.start_delay;
   let tries: number = 0;
-  let start_time: number = new Date().valueOf();
+  const start_time: number = new Date().valueOf();
   let last_exc: Error | undefined;
 
   // Return nonempty string if time or tries exceeded.
@@ -87,7 +87,7 @@ export async function retry_until_success<T>(
       tries += 1;
       next_delay = Math.min(opts.max_delay, opts.factor * next_delay);
       // check if too long or too many tries
-      let err = check_done();
+      const err = check_done();
       if (err) {
         // yep -- game over, throw an error
         let e;
@@ -157,7 +157,7 @@ async function once_with_timeout(
 
 // Alternative to callback_opts that behaves like the
 // callback defined in awaiting.
-export async function callback2(f: Function, opts: any): Promise<any> {
+export async function callback2(f: Function, opts: any = {}): Promise<any> {
   function g(cb): void {
     opts.cb = cb;
     f(opts);
@@ -169,7 +169,7 @@ export function reuse_in_flight_methods(
   obj: any,
   method_names: string[]
 ): void {
-  for (let method_name of method_names) {
+  for (const method_name of method_names) {
     obj[method_name] = reuseInFlight(obj[method_name].bind(obj));
   }
 }
@@ -182,7 +182,6 @@ export function cancel_scheduled(f: any): void {
     f.cancel();
   }
 }
-
 
 // WARNING -- not tested
 export async function async_as_callback(

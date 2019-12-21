@@ -1,13 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -33,16 +23,34 @@
 import { Store } from "../app-framework";
 
 // SMC libraries
-const misc = require("smc-util/misc");
-const { defaults } = misc;
+import * as misc from "smc-util/misc";
+import { set } from "smc-util/misc2";
 
 // Course Library
 import { STEPS } from "./util";
-import { Map, Set } from "immutable";
+import { Map, Set, List } from "immutable";
 import { TypedMap, createTypedMap } from "../app-framework/TypedMap";
 
+import { SITE_NAME } from "smc-util/theme";
+
 // Upgrades
-const project_upgrades = require("./project-upgrades");
+import * as project_upgrades from "./project-upgrades";
+
+import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
+
+import { CourseActions } from "./actions";
+
+export type TerminalCommandOutput = TypedMap<{
+  project_id: string;
+  stdout?: string;
+  stderr?: string;
+}>;
+
+export type TerminalCommand = TypedMap<{
+  input?: string;
+  output?: List<TerminalCommandOutput>;
+  running?: boolean;
+}>;
 
 export type StudentRecord = TypedMap<{
   create_project: number; // Time the student project was created
@@ -56,26 +64,41 @@ export type StudentRecord = TypedMap<{
   project_id: string;
   deleted: boolean;
   note: string;
-  terminal_command: Map<string, any>;
+  last_email_invite: number;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
+
+export type LastCopyInfo = {
+  time?: number;
+  error?: string;
+  start?: number;
+};
 
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
   deleted: boolean;
   due_date: Date;
   path: string;
-  peer_grade?: TypedMap<{ enabled: boolean }>;
+  peer_grade?: {
+    enabled: boolean;
+    due_date: number;
+    map: { [student_id: string]: string[] };
+  };
   note: string;
-  last_assignment: TypedMap<{
-    time?: number;
-    error?: string;
-    start?: number;
-  }>;
+
+  last_assignment?: { [student_id: string]: LastCopyInfo };
+  last_collect?: { [student_id: string]: LastCopyInfo };
+  last_peer_assignment?: { [student_id: string]: LastCopyInfo };
+  last_peer_collect?: { [student_id: string]: LastCopyInfo };
+  last_return_graded?: { [student_id: string]: LastCopyInfo };
+
   skip_assignment: boolean;
   skip_collect: boolean;
   skip_grading: boolean;
+  target_path: string;
+  collect_path: string;
+  graded_path: string;
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -86,6 +109,7 @@ export type HandoutRecord = TypedMap<{
   target_path: string;
   path: string;
   note: string;
+  status: { [student_id: string]: LastCopyInfo };
 }>;
 
 export type HandoutsMap = Map<string, HandoutRecord>;
@@ -110,6 +134,9 @@ export type CourseSettingsRecord = TypedMap<{
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
 
 export type IsGradingMap = Map<string, FeedbackRecord>;
+
+export type ActivityMap = Map<number, string>;
+
 export type FeedbackRecord = TypedMap<{
   edited_grade: string;
   edited_comments: string;
@@ -117,14 +144,14 @@ export type FeedbackRecord = TypedMap<{
 export const Feedback = createTypedMap<FeedbackRecord>();
 
 export interface CourseState {
-  activity?: { [key: string]: string };
+  activity: ActivityMap;
   action_all_projects_state: string;
   active_student_sort: { column_name: string; is_descending: boolean };
   active_assignment_sort: { column_name: string; is_descending: boolean };
   assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
-  configure_projects: string;
+  configuring_projects?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
@@ -138,456 +165,441 @@ export interface CourseState {
   settings: CourseSettingsRecord;
   show_save_button: boolean;
   students: StudentsMap;
-  tab: string;
   unsaved?: boolean;
+  terminal_command?: TerminalCommand;
 }
 
 export class CourseStore extends Store<CourseState> {
-  private _assignment_status: { [key: string]: string };
-  private _handout_status: {
+  private assignment_status_cache?: {
+    [assignment_id: string]: AssignmentStatus;
+  };
+  private handout_status_cache?: {
     [key: string]: { handout: number; not_handout: number };
   };
-  constructor(a, b) {
-    super(a, b);
-    this.any_assignment_uses_peer_grading = this.any_assignment_uses_peer_grading.bind(
-      this
-    );
-    this.get_peers_that_graded_student = this.get_peers_that_graded_student.bind(
-      this
-    );
-    this.get_shared_project_id = this.get_shared_project_id.bind(this);
-    this.get_pay = this.get_pay.bind(this);
-    this.get_allow_collabs = this.get_allow_collabs.bind(this);
-    this.get_email_invite = this.get_email_invite.bind(this);
-    this.get_activity = this.get_activity.bind(this);
-    this.get_students = this.get_students.bind(this);
-    this.get_student_name = this.get_student_name.bind(this);
-    this.get_student_email = this.get_student_email.bind(this);
-    this.get_student_ids = this.get_student_ids.bind(this);
-    this.get_student_project_ids = this.get_student_project_ids.bind(this);
-    this.get_student = this.get_student.bind(this);
-    this.get_student_note = this.get_student_note.bind(this);
-    this.get_student_project_id = this.get_student_project_id.bind(this);
-    this.get_sorted_students = this.get_sorted_students.bind(this);
-    this.get_grade = this.get_grade.bind(this);
-    this.get_comments = this.get_comments.bind(this);
-    this.get_due_date = this.get_due_date.bind(this);
-    this.get_assignment_note = this.get_assignment_note.bind(this);
-    this.get_assignments = this.get_assignments.bind(this);
-    this.get_sorted_assignments = this.get_sorted_assignments.bind(this);
-    this.get_assignment = this.get_assignment.bind(this);
-    this.get_assignment_ids = this.get_assignment_ids.bind(this);
-    this._num_nondeleted = this._num_nondeleted.bind(this);
-    this.num_students = this.num_students.bind(this);
-    this.num_running_projects = this.num_running_projects.bind(this);
-    this.num_assignments = this.num_assignments.bind(this);
-    this.num_handouts = this.num_handouts.bind(this);
-    this.student_assignment_info = this.student_assignment_info.bind(this);
-    this.last_copied = this.last_copied.bind(this);
-    this.has_grade = this.has_grade.bind(this);
-    this.get_assignment_status = this.get_assignment_status.bind(this);
-    this.get_handout_note = this.get_handout_note.bind(this);
-    this.get_handouts = this.get_handouts.bind(this);
-    this.get_handout = this.get_handout.bind(this);
-    this.get_handout_ids = this.get_handout_ids.bind(this);
-    this.student_handout_info = this.student_handout_info.bind(this);
-    this.handout_last_copied = this.handout_last_copied.bind(this);
-    this.get_handout_status = this.get_handout_status.bind(this);
-    this.get_upgrade_plan = this.get_upgrade_plan.bind(this);
-  }
 
-  any_assignment_uses_peer_grading() {
-    // Return true if there are any non-deleted assignments that use peer grading
-    let has_peer = false;
-    this.get_assignments().forEach((assignment, _) => {
+  // Return true if there are any non-deleted assignments that use peer grading
+  public any_assignment_uses_peer_grading(): boolean {
+    for (const [, assignment] of this.get_assignments()) {
       if (
         assignment.getIn(["peer_grade", "enabled"]) &&
         !assignment.get("deleted")
       ) {
-        has_peer = true;
-        return false;
+        return true;
       }
-    }); // stop looping
-    return has_peer;
+    }
+    return false;
   }
 
-  get_peers_that_graded_student(assignment, student) {
-    // Return Javascript array of the student_id's of the students
-    // that graded the given student, or undefined if no relevant assignment.
-    assignment = this.get_assignment(assignment);
+  // Return Javascript array of the student_id's of the students
+  // that graded the given student, or undefined if no relevant assignment.
+  public get_peers_that_graded_student(
+    assignment_id: string,
+    student_id: string
+  ): string[] {
+    const peers: string[] = [];
+    const assignment = this.get_assignment(assignment_id);
+    if (assignment == null) return peers;
     const map = assignment.getIn(["peer_grade", "map"]);
     if (map == null) {
-      return;
+      return peers;
     }
-    student = this.get_student(student);
-    const id = student.get("student_id");
-    return (() => {
-      const result: string[] = [];
-      const object = map.toJS();
-      for (let student_id in object) {
-        const who_grading = object[student_id];
-        if (who_grading.includes(id)) {
-          result.push(student_id);
-        }
+    for (const [other_student_id, who_grading] of map) {
+      if (who_grading.includes(student_id)) {
+        peers.push(other_student_id as string); // typescript thinks it could be a number?
       }
-      return result;
-    })();
+    }
+    return peers;
   }
 
-  get_shared_project_id() {
-    // return project_id (a string) if shared project has been created, or undefined or empty string otherwise.
-    return this.get("settings").get("shared_project_id");
+  public get_shared_project_id(): string | undefined {
+    // return project_id (a string) if shared project has been created,
+    // or undefined or empty string otherwise.
+    return this.getIn(["settings", "shared_project_id"]);
   }
 
-  get_pay() {
-    const pay = this.get("settings").get("pay");
+  public get_pay(): string | Date {
+    const settings = this.get("settings");
+    if (settings == null || !settings.get("student_pay")) return "";
+    const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
   }
 
-  get_allow_collabs() {
-    return !!this.get("settings").get("allow_collabs");
+  public get_allow_collabs(): boolean {
+    return !!this.getIn(["settings", "allow_collabs"]);
   }
 
-  get_email_invite() {
-    let left;
-    const { SITE_NAME, DOMAIN_NAME } = require("smc-util/theme");
-    return (left = this.get("settings").get("email_invite")) != null
-      ? left
-      : `We will use [${SITE_NAME}](${DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}`;
+  public get_email_invite(): string {
+    const invite = this.getIn(["settings", "email_invite"]);
+    if (invite) return invite;
+    return `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
   }
 
-  get_activity() {
-    return this.get("activity");
-  }
-
-  get_students() {
+  public get_students(): StudentsMap {
     return this.get("students");
   }
 
-  // Get the student's name.
-  // Uses an instructor-given name if it exists.
-  get_student_name(student, include_email = false) {
-    let full, full_name, left, left1, simple;
-    student = this.get_student(student);
+  // Return the student's name as a string, using a
+  // bunch of heuristics to try to present the best
+  // reasonable name, given what we know.  For example,
+  // it uses an instructor-given custom name if it was set.
+  public get_student_name(student_id: string): string {
+    const { student } = this.resolve({ student_id });
     if (student == null) {
-      return "student";
+      // Student does not exist at all in store -- this shouldn't happen
+      return "Unknown Student";
+    }
+    // Try instructor assigned name:
+    if (student.get("first_name") || student.get("last_name")) {
+      return [student.get("first_name", ""), student.get("last_name", "")].join(
+        " "
+      );
+    }
+    const account_id = student.get("account_id");
+    if (account_id == null) {
+      // Student doesn't have an account yet on CoCalc (that we know about).
+      // Email address:
+      if (student.has("email_address")) {
+        return student.get("email_address");
+      }
+      // One of the above had to work, since we add students by email or account.
+      // But put this in anyways:
+      return "Unknown Student";
+    }
+    // Now we have a student with a known CoCalc account.
+    // We would have returned early above if there was an instructor assigned name,
+    // so we just return their name from cocalc, if known.
+    const users = this.redux.getStore("users");
+    if (users == null) throw Error("users must be defined");
+    const name = users.get_name(account_id);
+    if (name != null) return name;
+    // This situation usually shouldn't happen, but maybe could in case the user was known but
+    // then removed themselves as a collaborator, or something else odd.
+    if (student.has("email_address")) {
+      return student.get("email_address");
+    }
+    // OK, now there is really no way to identify this student.  I suppose this could
+    // happen if the student was added by searching for their name, then they removed
+    // themselves.  Nothing useful we can do at this point.
+    return "Unknown Student";
+  }
+
+  // Returns student name as with get_student_name above,
+  // but also include an email address in angle braces,
+  // if one is known in a full version of the name.
+  // This is purely meant to provide a bit of extra info
+  // for the instructor, and not actually used to send emails.
+  public get_student_name_extra(
+    student_id: string
+  ): { simple: string; full: string } {
+    const { student } = this.resolve({ student_id });
+    if (student == null) {
+      return { simple: "Unknown", full: "Unknown Student" };
     }
     const email = student.get("email_address");
-    const account_id = student.get("account_id");
-    const first_name =
-      (left = student.get("first_name")) != null
-        ? left
-        : this.redux.getStore("users").get_first_name(account_id);
-    const last_name =
-      (left1 = student.get("last_name")) != null
-        ? left1
-        : this.redux.getStore("users").get_last_name(account_id);
-    if (first_name != null && last_name != null) {
-      full_name = first_name + " " + last_name;
-    } else if (first_name != null) {
-      full_name = first_name;
-    } else if (last_name != null) {
-      full_name = last_name;
-    } else {
-      full_name = email != null ? email : "student";
-    }
-    if (include_email && full_name != null && email != null) {
-      full = full_name + ` <${email}>`;
-    } else {
-      full = full_name;
-    }
-    if (full_name === "Unknown User" && email != null) {
-      full_name = email;
-    }
-    if (!include_email) {
-      return full_name;
-    }
-    try {
-      JSON.stringify(full_name);
-      simple = full_name;
-    } catch (error) {
-      simple = full_name.replace(/\W/g, " ");
-    }
-    return { simple, full };
-  }
-
-  get_student_email(student) {
-    student = this.get_student(student);
-    if (student == null) {
-      return "student";
-    }
-    return student.get("email_address");
-  }
-
-  get_student_ids(opts?) {
-    opts = defaults(opts, { deleted: false });
-    if (this.get("students") == null) {
-      return;
-    }
-    const v: string[] = [];
-    this.get("students").map((val, student_id) => {
-      if (!!val.get("deleted") === opts.deleted) {
-        return v.push(student_id);
+    const simple = this.get_student_name(student_id);
+    let extra: string = "";
+    if (
+      (student.has("first_name") || student.has("last_name")) &&
+      student.has("account_id")
+    ) {
+      const users = this.redux.getStore("users");
+      if (users != null) {
+        const name = users.get_name(student.get("account_id"));
+        if (name != null) {
+          extra = ` (You call them "${student.has("first_name")} ${student.has(
+            "last_name"
+          )}", but they call themselves "${name}".)`;
+        }
       }
-    });
+    }
+    return { simple, full: email ? `${simple} <${email}>${extra}` : simple };
+  }
+
+  // Return a name that should sort in a sensible way in
+  // alphabetical order.  This is mainly used for CSV export,
+  // and is not something that will ever get looked at.
+  public get_student_sort_name(student_id: string): string {
+    const { student } = this.resolve({ student_id });
+    if (student == null) {
+      return student_id; // keeps the sort stable
+    }
+    if (student.has("first_name") || student.has("last_name")) {
+      return [student.get("last_name", ""), student.get("first_name", "")].join(
+        " "
+      );
+    }
+    const account_id = student.get("account_id");
+    if (account_id == null) {
+      if (student.has("email_address")) {
+        return student.get("email_address");
+      }
+      return student_id;
+    }
+    const users = this.redux.getStore("users");
+    if (users == null) return student_id;
+    return [
+      users.get_last_name(account_id),
+      users.get_first_name(account_id)
+    ].join(" ");
+  }
+
+  public get_student_email(student_id: string): string {
+    return this.getIn(["students", student_id, "email_address"], "");
+  }
+
+  public get_student_ids(opts: { deleted?: boolean } = {}): string[] {
+    const v: string[] = [];
+    opts.deleted = !!opts.deleted;
+    for (const [student_id, val] of this.get("students")) {
+      if (!!val.get("deleted") == opts.deleted) {
+        v.push(student_id);
+      }
+    }
     return v;
   }
 
-  // return list of all student projects (or undefined if not loaded)
-  get_student_project_ids(opts?) {
-    let include, v;
-    const { include_deleted, deleted_only, map } = defaults(opts, {
-      include_deleted: false,
-      deleted_only: false,
-      map: false
-    }); // return as map to true/false instead of array
+  // return list of all student projects
+  public get_student_project_ids(
+    opts: {
+      include_deleted?: boolean;
+      deleted_only?: boolean;
+    } = {}
+  ): string[] {
     // include_deleted = if true, also include deleted projects
     // deleted_only = if true, only include deleted projects
-    if (this.get("students") == null) {
-      return;
-    }
-    if (map) {
-      v = {};
-      include = x => (v[x] = true);
-    } else {
-      v = [];
-      include = x => v.push(x);
-    }
-    this.get("students").map(val => {
-      const id = val.get("project_id");
+    const { include_deleted, deleted_only } = opts;
+
+    let v: string[] = [];
+
+    for (const [, val] of this.get("students")) {
+      const project_id: string = val.get("project_id");
       if (deleted_only) {
         if (include_deleted && val.get("deleted")) {
-          return include(id);
+          v.push(project_id);
         }
       } else if (include_deleted) {
-        return include(id);
+        v.push(project_id);
       } else if (!val.get("deleted")) {
-        return include(id);
+        v.push(project_id);
       }
-    });
-    return v;
-  }
-
-  get_student(student) {
-    // return student with given id if a string; otherwise, just return student (the input)
-    if (typeof student !== "string") {
-      student = student != null ? student.get("student_id") : undefined;
     }
-    return this.getIn(["students", student]);
+    return v;
   }
 
-  get_student_note(student) {
-    return __guard__(this.get_student(student), x => x.get("note"));
+  public get_student(student_id: string): StudentRecord | undefined {
+    // return student with given id
+    return this.getIn(["students", student_id]);
   }
 
-  get_student_project_id(student) {
-    return __guard__(this.get_student(student), x => x.get("project_id"));
+  public get_student_project_id(student_id: string): string | undefined {
+    return this.getIn(["students", student_id, "project_id"]);
   }
 
-  get_sorted_students() {
+  // Return a Javascript array of immutable.js StudentRecord maps, sorted
+  // by sort name (so first last name).
+  public get_sorted_students(): StudentRecord[] {
     const v: StudentRecord[] = [];
-    this.get("students").map(student => {
+    for (const [, student] of this.get("students")) {
       if (!student.get("deleted")) {
-        return v.push(student);
+        v.push(student);
       }
-    });
+    }
     v.sort((a, b) =>
-      misc.cmp(this.get_student_name(a), this.get_student_name(b))
+      misc.cmp(
+        this.get_student_sort_name(a.get("student_id")),
+        this.get_student_sort_name(b.get("student_id"))
+      )
     );
     return v;
   }
 
-  get_grade(assignment, student) {
-    return __guard__(
-      __guard__(this.get_assignment(assignment), x1 => x1.get("grades")),
-      x =>
-        x.get(__guard__(this.get_student(student), x2 => x2.get("student_id")))
-    );
+  public get_grade(assignment_id: string, student_id: string): string {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) return "";
+    const r = assignment.getIn(["grades", student_id], "");
+    return r == null ? "" : r;
   }
 
-  get_comments(assignment, student) {
-    return __guard__(
-      __guard__(this.get_assignment(assignment), x1 => x1.get("comments")),
-      x =>
-        x.get(__guard__(this.get_student(student), x2 => x2.get("student_id")))
-    );
+  public get_comments(assignment_id: string, student_id: string): string {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) return "";
+    const r = assignment.getIn(["comments", student_id], "");
+    return r == null ? "" : r;
   }
 
-  get_due_date(assignment) {
-    const due_date = __guard__(this.get_assignment(assignment), x =>
-      x.get("due_date")
-    );
+  public get_due_date(assignment_id: string): Date | undefined {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) return;
+    const due_date = assignment.get("due_date");
     if (due_date != null) {
       return new Date(due_date);
     }
   }
 
-  get_assignment_note(assignment) {
-    return __guard__(this.get_assignment(assignment), x => x.get("note"));
-  }
-
-  get_assignments() {
+  public get_assignments(): AssignmentsMap {
     return this.get("assignments");
   }
 
-  get_sorted_assignments() {
+  public get_sorted_assignments(): AssignmentRecord[] {
     const v: AssignmentRecord[] = [];
-    this.get_assignments().map(assignment => {
+    for (const [, assignment] of this.get_assignments()) {
       if (!assignment.get("deleted")) {
-        return v.push(assignment);
+        v.push(assignment);
       }
-    });
+    }
     const f = function(a: AssignmentRecord) {
-      let left;
-      return [
-        (left = a.get("due_date")) != null ? left : 0,
-        __guard__(a.get("path"), x => x.toLowerCase())
-      ];
-    }; // note: also used in compute_assignment_list
+      return [a.get("due_date", 0), a.get("path", "")];
+    };
     v.sort((a, b) => misc.cmp_array(f(a), f(b)));
     return v;
   }
 
-  get_assignment(assignment) {
-    // return assignment with given id if a string; otherwise, just return assignment (the input)
-    if (typeof assignment !== "string") {
-      assignment =
-        assignment != null ? assignment.get("assignment_id") : undefined;
-    }
-    return this.getIn(["assignments", assignment]);
+  // return assignment with given id if a string; otherwise, just return
+  // the latest version of the assignment as stored in the store.
+  public get_assignment(assignment_id: string): AssignmentRecord | undefined {
+    return this.getIn(["assignments", assignment_id]);
   }
 
-  get_assignment_ids(opts) {
-    opts = defaults(opts, { deleted: false }); // if true return only deleted assignments
-    if (!this.get_assignments()) {
-      return;
-    }
+  // if deleted is true return only deleted assignments
+  public get_assignment_ids(opts: { deleted?: boolean } = {}): string[] {
     const v: string[] = [];
-    this.get_assignments().map((val, assignment_id) => {
-      if (!!val.get("deleted") === opts.deleted) {
-        return v.push(assignment_id);
+    for (const [assignment_id, val] of this.get_assignments()) {
+      if (!!val.get("deleted") == opts.deleted) {
+        v.push(assignment_id);
       }
-    });
+    }
     return v;
   }
 
-  _num_nondeleted(a) {
-    if (a == null) {
-      return;
-    }
-    let n = 0;
-    a.map(val => {
-      if (!val.get("deleted")) {
-        return (n += 1);
+  private num_nondeleted(a): number {
+    let n: number = 0;
+    for (const [, x] of a) {
+      if (!x.get("deleted")) {
+        n += 1;
       }
-    });
+    }
     return n;
   }
 
   // number of non-deleted students
-  num_students() {
-    return this._num_nondeleted(this.get_students());
+  public num_students(): number {
+    return this.num_nondeleted(this.get_students());
   }
 
   // number of student projects that are currently running
-  num_running_projects(project_map) {
+  public num_running_projects(project_map): number {
     let n = 0;
-    __guard__(this.get_students(), x =>
-      x.map(student => {
-        if (!student.get("deleted")) {
-          if (
-            project_map.getIn([student.get("project_id"), "state", "state"]) ===
-            "running"
-          ) {
-            return (n += 1);
-          }
+    for (const [, student] of this.get_students()) {
+      if (!student.get("deleted")) {
+        if (
+          project_map.getIn([student.get("project_id"), "state", "state"]) ==
+          "running"
+        ) {
+          n += 1;
         }
-      })
-    );
+      }
+    }
     return n;
   }
 
   // number of non-deleted assignments
-  num_assignments() {
-    return this._num_nondeleted(this.get_assignments());
+  public num_assignments(): number {
+    return this.num_nondeleted(this.get_assignments());
   }
 
   // number of non-deleted handouts
-  num_handouts() {
-    return this._num_nondeleted(this.get_handouts());
+  public num_handouts(): number {
+    return this.num_nondeleted(this.get_handouts());
   }
 
   // get info about relation between a student and a given assignment
-  student_assignment_info(student, assignment) {
-    assignment = this.get_assignment(assignment);
-    student = this.get_student(student);
-    const student_id = student.get("student_id");
-    const status = this.get_assignment_status(assignment);
-    const info = {
-      // RHS -- important to be undefined if no info -- assumed in code
-      last_assignment: __guard__(
-        __guard__(assignment.get("last_assignment"), x1 => x1.get(student_id)),
-        x => x.toJS()
-      ),
-      last_collect: __guard__(
-        __guard__(assignment.get("last_collect"), x3 => x3.get(student_id)),
-        x2 => x2.toJS()
-      ),
-      last_peer_assignment: __guard__(
-        __guard__(assignment.get("last_peer_assignment"), x5 =>
-          x5.get(student_id)
-        ),
-        x4 => x4.toJS()
-      ),
-      last_peer_collect: __guard__(
-        __guard__(assignment.get("last_peer_collect"), x7 =>
-          x7.get(student_id)
-        ),
-        x6 => x6.toJS()
-      ),
-      last_return_graded: __guard__(
-        __guard__(assignment.get("last_return_graded"), x9 =>
-          x9.get(student_id)
-        ),
-        x8 => x8.toJS()
-      ),
+  public student_assignment_info(
+    student_id: string,
+    assignment_id: string
+  ): {
+    last_assignment?: LastCopyInfo;
+    last_collect?: LastCopyInfo;
+    last_peer_assignment?: LastCopyInfo;
+    last_peer_collect?: LastCopyInfo;
+    last_return_graded?: LastCopyInfo;
+    student_id: string;
+    assignment_id: string;
+    peer_assignment: boolean;
+    peer_collect: boolean;
+  } {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) {
+      return {
+        student_id,
+        assignment_id,
+        peer_assignment: false,
+        peer_collect: false
+      };
+    }
+
+    const status = this.get_assignment_status(assignment_id);
+    if (status == null) throw Error("bug"); // can't happen
+
+    // Important to return undefined if no info -- assumed in code
+    function get_info(field: string): undefined | LastCopyInfo {
+      if (assignment == null) throw Error("bug"); // can't happen
+      const x = assignment.getIn([field, student_id]);
+      if (x == null) return;
+      return (x as any).toJS();
+    }
+
+    const peer_assignment =
+      status.not_collect + status.not_assignment == 0 && status.collect != 0;
+    const peer_collect =
+      status.not_peer_assignment != null && status.not_peer_assignment == 0;
+
+    return {
+      last_assignment: get_info("last_assignment"),
+      last_collect: get_info("last_collect"),
+      last_peer_assignment: get_info("last_peer_assignment"),
+      last_peer_collect: get_info("last_peer_collect"),
+      last_return_graded: get_info("last_return_graded"),
       student_id,
-      assignment_id: assignment.get("assignment_id"),
-      peer_assignment:
-        status.not_collect + status.not_assignment === 0 &&
-        status.collect !== 0,
-      peer_collect:
-        status.not_peer_assignment != null && status.not_peer_assignment === 0
+      assignment_id,
+      peer_assignment,
+      peer_collect
     };
-    return info;
   }
 
-  // Return the last time the assignment was copied to/from the
-  // student (in the given step of the workflow), or undefined.
-  // Even an attempt to copy with an error counts.
-  last_copied(step, assignment, student_id, no_error?) {
-    const x = __guard__(
-      __guard__(this.get_assignment(assignment), x2 => x2.get(`last_${step}`)),
-      x1 => x1.get(student_id)
-    );
+  // Return true if the assignment was copied to/from the
+  // student (in the given step of the workflow.
+  // Even an attempt to copy with an error counts,
+  // unless no_error is true, in which case it doesn't.
+  public last_copied(
+    step: AssignmentCopyStep,
+    assignment_id: string,
+    student_id: string,
+    no_error?: boolean
+  ): boolean {
+    const x = this.getIn([
+      "assignments",
+      assignment_id,
+      `last_${step}`,
+      student_id
+    ]);
     if (x == null) {
-      return;
+      return false;
     }
-    if (no_error && x.get("error")) {
-      return;
+    const y: TypedMap<LastCopyInfo> = x;
+    if (no_error && y.get("error")) {
+      return false;
     }
-    return x.get("time");
+    return y.get("time") != null;
   }
 
-  has_grade(assignment, student_id) {
-    return !!__guard__(
-      __guard__(this.get_assignment(assignment), x1 => x1.get("grades")),
-      x => x.get(student_id)
-    );
+  public has_grade(assignment_id: string, student_id: string): boolean {
+    return !!this.getIn(["assignments", assignment_id, "grades", student_id]);
   }
 
-  get_assignment_status(assignment) {
+  public get_assignment_status(
+    assignment_id: string
+  ): AssignmentStatus | undefined {
     //
     // Compute and return an object that has fields (deleted students are ignored)
     //
@@ -611,56 +623,52 @@ export class CourseStore extends Store<CourseState> {
     // This function caches its result and only recomputes values when the store changes,
     // so it should be safe to call in render.
     //
-    let left;
-    if (this._assignment_status == null) {
-      this._assignment_status = {};
+    if (this.assignment_status_cache == null) {
+      this.assignment_status_cache = {};
       this.on("change", () => {
         // clear cache on any change to the store
-        return (this._assignment_status = {});
+        this.assignment_status_cache = {};
       });
     }
-    assignment = this.get_assignment(assignment);
+    const { assignment } = this.resolve({ assignment_id });
     if (assignment == null) {
-      return undefined;
+      return;
     }
 
-    const assignment_id = assignment.get("assignment_id");
-    if (this._assignment_status[assignment_id] != null) {
-      return this._assignment_status[assignment_id];
+    if (this.assignment_status_cache[assignment_id] != null) {
+      // we have cached info
+      return this.assignment_status_cache[assignment_id];
     }
 
-    const students = this.get_student_ids({ deleted: false });
-    if (students == null) {
-      return undefined;
-    }
+    const students: string[] = this.get_student_ids({ deleted: false });
 
     // Is peer grading enabled?
-    const peer = __guard__(assignment.get("peer_grade"), x1 =>
-      x1.get("enabled")
-    );
-    const skip_grading =
-      (left = assignment.get("skip_grading")) != null ? left : false;
+    const peer: boolean = assignment.getIn(["peer_grade", "enabled"], false);
+    const skip_grading: boolean = assignment.get("skip_grading", false);
 
-    // if DEBUG then console.log('get_assignment_status/assignment', assignment)
-
-    const info: any = {};
-    for (var t of STEPS(peer)) {
-      info[t] = 0;
-      info[`not_${t}`] = 0;
+    const obj: any = {};
+    for (const t of STEPS(peer)) {
+      obj[t] = 0;
+      obj[`not_${t}`] = 0;
     }
-    for (var student_id of students) {
-      let previous = true;
-      for (t of STEPS(peer)) {
-        const x = __guard__(assignment.get(`last_${t}`), x2 =>
-          x2.get(student_id)
-        );
-        if ((x != null && !x.get("error")) || assignment.get(`skip_${t}`)) {
+    const info: AssignmentStatus = obj;
+    for (const student_id of students) {
+      let previous: boolean = true;
+      for (const t of STEPS(peer)) {
+        const x = assignment.getIn([`last_${t}`, student_id]) as
+          | undefined
+          | TypedMap<LastCopyInfo>;
+        if (
+          (x != null && !x.get("error") && !x.get("start")) ||
+          assignment.get(`skip_${t}`)
+        ) {
           previous = true;
           info[t] += 1;
         } else {
-          // add one only if the previous step *was* done (and in
+          // add 1 only if the previous step *was* done (and in
           // the case of returning, they have a grade)
-          const graded = this.has_grade(assignment, student_id) || skip_grading;
+          const graded =
+            this.has_grade(assignment_id, student_id) || skip_grading;
           if ((previous && t !== "return_graded") || graded) {
             info[`not_${t}`] += 1;
           }
@@ -669,76 +677,59 @@ export class CourseStore extends Store<CourseState> {
       }
     }
 
-    this._assignment_status[assignment_id] = info;
+    this.assignment_status_cache[assignment_id] = info;
     return info;
   }
 
-  get_handout_note(handout) {
-    return __guard__(this.get_handout(handout), x => x.get("note"));
-  }
-
-  get_handouts() {
+  public get_handouts(): HandoutsMap {
     return this.get("handouts");
   }
 
-  get_handout(handout: string | HandoutRecord): HandoutRecord | undefined {
-    // return handout with given id if a string; otherwise, just return handout (the input)
-    if (typeof handout !== "string") {
-      handout = handout.get("handout_id");
-    }
-    return this.get_handouts().get(handout);
+  public get_handout(handout_id: string): HandoutRecord | undefined {
+    return this.getIn(["handouts", handout_id]);
   }
 
-  get_handout_ids(opts) {
-    opts = defaults(opts, { deleted: false }); // if true return only deleted handouts
-    if (!this.get_handouts()) {
-      return undefined;
-    }
+  public get_handout_ids(opts: { deleted?: boolean } = {}): string[] {
     const v: string[] = [];
-    this.get_handouts().map((val, handout_id) => {
-      if (!!val.get("deleted") === opts.deleted) {
-        return v.push(handout_id);
+    for (const [handout_id, val] of this.get_handouts()) {
+      if (!!val.get("deleted") == opts.deleted) {
+        v.push(handout_id);
       }
-    });
+    }
     return v;
   }
 
-  student_handout_info(student, handout) {
-    handout = this.get_handout(handout);
-    student = this.get_student(student);
-    const student_id = student.get("student_id");
-    const info = {
-      // RHS -- important to be undefined if no info -- assumed in code
-      status: __guard__(
-        __guard__(handout.get("status"), x1 => x1.get(student_id)),
-        x => x.toJS()
-      ),
+  public student_handout_info(
+    student_id: string,
+    handout_id: string
+  ): { status?: LastCopyInfo; handout_id: string; student_id: string } {
+    // status -- important to be undefined if no info -- assumed in code
+    const status = this.getIn(["handouts", handout_id, "status", student_id]);
+    return {
+      status: status != null ? status.toJS() : undefined,
       student_id,
-      handout_id: handout.get("handout_id")
+      handout_id
     };
-    return info;
   }
 
   // Return the last time the handout was copied to/from the
   // student (in the given step of the workflow), or undefined.
   // Even an attempt to copy with an error counts.
-  // ???
-  handout_last_copied(handout, student_id) {
-    const x = __guard__(
-      __guard__(this.get_handout(handout), x2 => x2.get("status")),
-      x1 => x1.get(student_id)
-    );
+  public handout_last_copied(handout_id: string, student_id: string): boolean {
+    const x = this.getIn(["handouts", handout_id, "status", student_id]) as
+      | TypedMap<LastCopyInfo>
+      | undefined;
     if (x == null) {
-      return undefined;
+      return false;
     }
     if (x.get("error")) {
-      return undefined;
+      return false;
     }
-    return x.get("time");
+    return x.get("time") != null;
   }
 
   public get_handout_status(
-    handout
+    handout_id: string
   ): undefined | { handout: number; not_handout: number } {
     //
     // Compute and return an object that has fields (deleted students are ignored)
@@ -748,69 +739,82 @@ export class CourseStore extends Store<CourseState> {
     // This function caches its result and only recomputes values when the store changes,
     // so it should be safe to call in render.
     //
-    if (this._handout_status == null) {
-      this._handout_status = {};
+    if (this.handout_status_cache == null) {
+      this.handout_status_cache = {};
       this.on("change", () => {
         // clear cache on any change to the store
-        this._handout_status = {};
+        this.handout_status_cache = {};
       });
     }
-    handout = this.get_handout(handout);
+    const { handout } = this.resolve({ handout_id });
     if (handout == null) {
       return undefined;
     }
 
-    const handout_id = handout.get("handout_id");
-    if (this._handout_status[handout_id] != null) {
-      return this._handout_status[handout_id];
+    if (this.handout_status_cache[handout_id] != null) {
+      return this.handout_status_cache[handout_id];
     }
 
-    const students = this.get_student_ids({ deleted: false });
-    if (students == null) {
-      return undefined;
-    }
+    const students: string[] = this.get_student_ids({ deleted: false });
 
     const info = {
       handout: 0,
       not_handout: 0
     };
 
-    for (var student_id of students) {
-      const x = __guard__(handout.get("status"), x1 => x1.get(student_id));
-      if (x != null && !x.get("error")) {
-        info.handout += 1;
-      } else {
+    const status = handout.get("status");
+    for (const student_id of students) {
+      if (status == null) {
         info.not_handout += 1;
+      } else {
+        const x = status.get(student_id);
+        if (x != null && !x.get("error")) {
+          info.handout += 1;
+        } else {
+          info.not_handout += 1;
+        }
       }
     }
 
-    this._handout_status[handout_id] = info;
+    this.handout_status_cache[handout_id] = info;
     return info;
   }
 
-  get_upgrade_plan(upgrade_goal) {
+  public get_upgrade_plan(upgrade_goal: UpgradeGoal) {
     const account_store: any = this.redux.getStore("account");
     const plan = project_upgrades.upgrade_plan({
       account_id: account_store.get_account_id(),
       purchased_upgrades: account_store.get_total_upgrades(),
       project_map: this.redux.getStore("projects").get("project_map"),
-      student_project_ids: this.get_student_project_ids({
-        include_deleted: true,
-        map: true
-      }),
-      deleted_project_ids: this.get_student_project_ids({
-        include_deleted: true,
-        deleted_only: true,
-        map: true
-      }),
+      student_project_ids: set(
+        this.get_student_project_ids({
+          include_deleted: true
+        })
+      ),
+      deleted_project_ids: set(
+        this.get_student_project_ids({
+          include_deleted: true,
+          deleted_only: true
+        })
+      ),
       upgrade_goal
     });
     return plan;
   }
-}
 
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
+  private resolve(opts: {
+    assignment_id?: string;
+    student_id?: string;
+    handout_id?: string;
+  }): {
+    student?: StudentRecord;
+    assignment?: AssignmentRecord;
+    handout?: HandoutRecord;
+  } {
+    const actions = this.redux.getActions(this.name);
+    if (actions == null) return {};
+    const x = (actions as CourseActions).resolve(opts);
+    delete x.store;
+    return x;
+  }
 }

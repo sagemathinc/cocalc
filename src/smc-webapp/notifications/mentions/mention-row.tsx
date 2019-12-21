@@ -4,7 +4,7 @@ import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
 
 const { Avatar } = require("../../other-users");
-const { Icon, TimeAgo } = require("../../r_misc");
+import { Icon, TimeAgo } from "../../r_misc";
 const { User } = require("../../users");
 
 export function MentionRow({
@@ -29,8 +29,8 @@ export function MentionRow({
     redux.getProjectActions(project_id).open_file({ path: path, chat: true });
   };
 
-  const is_read: boolean = mention.getIn(["users", target, "read"]);
-  const is_saved: boolean = mention.getIn(["users", target, "saved"]);
+  const is_read = mention.getIn(["users", target, "read"]);
+  const is_saved = mention.getIn(["users", target, "saved"]);
   let read_icon = "square-o";
   let save_icon = "bookmark-o";
   let row_style: React.CSSProperties = {};

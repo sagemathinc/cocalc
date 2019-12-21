@@ -8,7 +8,7 @@ import { List } from "immutable";
 
 import * as React from "react";
 
-const { Icon, Tip } = require("smc-webapp/r_misc");
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 import { RenderedMessage, message_color, message_icon } from "./lean-messages";
 
@@ -23,7 +23,7 @@ export function update_gutters(opts: {
   messages: List<any>;
   tasks: List<any>;
 }): void {
-  for (let message of opts.messages.toJS()) {
+  for (const message of opts.messages.toJS()) {
     opts.set_gutter(
       message.pos_line - 1,
       message_component(

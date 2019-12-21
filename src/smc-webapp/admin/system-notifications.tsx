@@ -20,7 +20,7 @@ import { Map } from "immutable";
 
 import { plural } from "smc-util/misc2";
 
-const { Icon, Loading } = require("../r_misc");
+import { Icon, Loading } from "../r_misc";
 
 interface Props {
   notifications?: Map<string, any>;

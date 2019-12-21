@@ -4,14 +4,29 @@ Frame that displays the log for a Jupyter Notebook
 
 import { React, Rendered, Component } from "../../app-framework";
 
+import { RawEditor } from "../../jupyter/raw-editor";
+
+import { JupyterEditorActions } from "./actions";
+
+import { Map, fromJS } from "immutable";
+import { cm_options } from "../codemirror/cm-options";
+
 interface Props {
-  project_id: string;
-  path: string;
+  actions: JupyterEditorActions;
   font_size: number;
+  editor_settings: Map<string, any>;
 }
 
 export class RawIPynb extends Component<Props, {}> {
-  render(): Rendered {
-    return <div>Raw IPynb View -- {this.props.path}</div>;
+  public render(): Rendered {
+    return (
+      <RawEditor
+        name={this.props.actions.jupyter_actions.name}
+        actions={this.props.actions.jupyter_actions}
+        font_size={this.props.font_size}
+        raw_ipynb={Map({ foo: "bar" })}
+        cm_options={fromJS(cm_options("a.json", this.props.editor_settings))}
+      />
+    );
   }
 }

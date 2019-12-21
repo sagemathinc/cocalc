@@ -1,7 +1,7 @@
 import { React, Component, redux } from "../app-framework";
 import { analytics_event } from "../tracker";
 const { Button, ButtonGroup } = require("react-bootstrap");
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 interface Props {
   hidden: boolean;
@@ -30,6 +30,7 @@ export class ProjectsFilterButtons extends Component<Props> {
             analytics_event("projects_page", "clicked_deleted_filter");
           }}
           bsStyle={style}
+          cocalc-test={"deleted-filter"}
         >
           <Icon
             name={this.props.deleted ? "check-square-o" : "square-o"}
@@ -55,6 +56,7 @@ export class ProjectsFilterButtons extends Component<Props> {
             analytics_event("projects_page", "clicked_hidden_filter");
           }}
           bsStyle={style}
+          cocalc-test={"hidden-filter"}
         >
           <Icon
             name={this.props.hidden ? "check-square-o" : "square-o"}

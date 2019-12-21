@@ -22,7 +22,8 @@ export async function pythontex(
   path: string,
   time: number,
   force: boolean,
-  status: Function
+  status: Function,
+  output_directory: string | undefined
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const args = ["--jobs", "2"];
@@ -38,8 +39,9 @@ export async function pythontex(
     bash: true, // timeout is enforced by ulimit
     command: "pythontex3",
     args: args.concat(base),
+    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
     project_id: project_id,
-    path: directory,
+    path: output_directory || directory,
     err_on_exit: false,
     aggregate
   });
@@ -70,7 +72,7 @@ export function pythontex_errors(
 
   let err: Error | undefined = undefined;
 
-  for (let line of output.stdout.split("\n")) {
+  for (const line of output.stdout.split("\n")) {
     if (line.search("PythonTeX stderr") > 0) {
       const hit = line.match(/line (\d+):/);
       let line_no: number | null = null;

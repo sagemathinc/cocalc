@@ -24,7 +24,8 @@ export const terminal = {
     "help",
     "connection_status"
     /*"reload" */
-  ])
+  ]),
+  hide_public: true // never show this editor option for public view
 };
 
 const EDITOR_SPEC = {

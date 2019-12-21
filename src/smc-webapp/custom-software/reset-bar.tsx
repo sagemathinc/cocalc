@@ -1,11 +1,10 @@
-import { Component, React } from "../app-framework";
-import { Map as iMap } from "immutable";
+import * as React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
 //const misc = require("smc-util/misc");
 //import * as misc2 from "smc-util/misc2";
 // const { open_new_tab } = require("smc-webapp/misc_page");
-const {
+import {
   A,
   Icon,
   COLORS
@@ -13,9 +12,10 @@ const {
   //   HiddenXSSM,
   //   VisibleMDLG,
   //   VisibleXSSM
-} = require("../r_misc");
+} from "../r_misc";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
+import { ProjectMap } from "smc-webapp/todo-types";
 const { SITE_NAME } = require("smc-util/theme");
 
 const doc_snap = "https://doc.cocalc.com/project-files.html#snapshots";
@@ -45,13 +45,13 @@ const info_style: React.CSSProperties = Object.freeze({
 interface Props {
   project_id: string;
   images: ComputeImages;
-  project_map: iMap<string, any>;
+  project_map?: ProjectMap;
   actions: any;
-  available_features: AvailableFeatures;
-  site_name: string;
+  available_features?: AvailableFeatures;
+  site_name?: string;
 }
 
-export class CustomSoftwareReset extends Component<Props, {}> {
+export class CustomSoftwareReset extends React.Component<Props, {}> {
   private props2img;
 
   constructor(props) {
@@ -86,8 +86,8 @@ export class CustomSoftwareReset extends Component<Props, {}> {
               Note, that this will overwrite any changes you did to these
               accompanying files, but does not modify or delete any other files.
               However, nothing is lost: you can still access the previous
-              version via {A(doc_snap, "Snapshot Backups")} or{" "}
-              {A(doc_tt, "TimeTravel")}.
+              version via <A href={doc_snap}>Snapshot Backups</A> or{" "}
+              <A href={doc_tt}>TimeTravel</A>.
             </p>
             <p>This action will also restart your project!</p>
           </Col>

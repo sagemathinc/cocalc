@@ -5,26 +5,28 @@ Customization and selection of the build command.
 
 import { List, fromJS } from "immutable";
 
-const { Loading } = require("smc-webapp/r_misc");
+import { Loading } from "smc-webapp/r_misc";
 
-import {
-  Alert,
-  MenuItem,
-  DropdownButton,
-  ButtonToolbar,
-  FormControl
-} from "react-bootstrap";
+import { Alert, FormControl } from "react-bootstrap";
+
+import { Menu, Dropdown, Button, Icon } from "antd";
 
 import { React, Rendered, Component } from "../../app-framework";
 
 import { split } from "smc-util/misc2";
 
 import { Engine, build_command } from "./latexmk";
+import { Actions } from "./actions";
 
-const ENGINES: Engine[] = ["PDFLaTeX", "PDFLaTeX (shell-escape)", "XeLaTeX", "LuaTex"];
+const ENGINES: Engine[] = [
+  "PDFLaTeX",
+  "PDFLaTeX (shell-escape)",
+  "XeLaTeX",
+  "LuaTex"
+];
 
 interface Props {
-  actions: any;
+  actions: Actions;
   filename: string;
   build_command: string | List<string>;
   knitr: boolean;
@@ -65,7 +67,7 @@ export class BuildCommand extends Component<Props, State> {
     } else if (typeof cmd === "string") {
       s = cmd;
     } else {
-      let v: string[] = [];
+      const v: string[] = [];
       cmd.forEach(function(t: string) {
         if (split(t).length > 1) {
           // some minimal escape for now...
@@ -86,39 +88,39 @@ export class BuildCommand extends Component<Props, State> {
     const cmd: string[] = build_command(
       engine,
       this.props.filename,
-      this.props.knitr
+      this.props.knitr,
+      this.props.actions.output_directory
     );
     this.props.actions.set_build_command(cmd);
     this.setState({ build_command: this.build_command_string(fromJS(cmd)) });
   }
 
   render_item(engine: string): Rendered {
-    return (
-      <MenuItem
-        key={engine}
-        eventKey={engine}
-        onSelect={engine => this.select_engine(engine)}
-      >
-        {engine}
-      </MenuItem>
-    );
+    return <Menu.Item key={engine}>{engine}</Menu.Item>;
   }
 
-  render_items(): Rendered[] {
+  render_menu(): Rendered {
     const v: Rendered[] = [];
-    for (let engine of ENGINES) {
+    for (const engine of ENGINES) {
       v.push(this.render_item(engine));
     }
-    return v;
+    return (
+      <Menu
+        onClick={e => this.select_engine(e.key as Engine)}
+        style={{ maxHeight: "100vH", overflow: "scroll" }}
+      >
+        {v}
+      </Menu>
+    );
   }
 
   render_dropdown(): Rendered {
     return (
-      <ButtonToolbar>
-        <DropdownButton title="Engine" id="cc-latex-build-command" pullRight>
-          {this.render_items()}
-        </DropdownButton>
-      </ButtonToolbar>
+      <Dropdown overlay={this.render_menu()}>
+        <Button style={{ float: "right" }}>
+          Engine <Icon type="down" />
+        </Button>
+      </Dropdown>
     );
   }
 

@@ -11,7 +11,7 @@ import { filename_extension, path_split } from "smc-util/misc2";
 
 import { Component, Rendered, React, Redux, redux } from "../app-framework";
 
-const { HTML, Markdown } = require("../r_misc");
+import { HTML, Markdown } from "../r_misc";
 
 import * as file_editors from "../file-editors";
 
@@ -41,8 +41,8 @@ export function has_viewer(ext: string): boolean {
 
 // If the viewer isn't specified, definitely, always default
 // raw for these file types.
-export function default_to_raw(ext:string) : boolean {
-  if (ext === 'css' || ext == 'js') return true;
+export function default_to_raw(ext: string): boolean {
+  if (ext === "css" || ext == "js") return true;
   return false;
 }
 

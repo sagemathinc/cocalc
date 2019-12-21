@@ -8,7 +8,7 @@ const {
   Button,
   Form
 } = require("react-bootstrap");
-const { SearchInput, SelectorInput, Icon } = require("../r_misc");
+import { SearchInput, SelectorInput, Icon } from "../r_misc";
 const { IS_TOUCH } = require("../feature");
 import { NewFilenameFamilies, NewFilenames } from "smc-webapp/project/utils";
 import { FileSpec } from "../file-associations";
