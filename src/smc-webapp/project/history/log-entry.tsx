@@ -13,7 +13,7 @@ import { Icon, TimeAgo, PathLink, r_join, Space, Tip } from "../../r_misc";
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { ProjectTitleAuto } = require("../../projects");
+const { ProjectTitle } = require("../../projects");
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";
@@ -98,7 +98,7 @@ export class LogEntry extends React.Component<Props> {
           trunc={TRUNC}
           project_id={this.props.project_id}
         />
-        <TookTime ms={event.time} />
+        {" "}<TookTime ms={event.time} />
       </span>
     );
   }
@@ -146,7 +146,7 @@ export class LogEntry extends React.Component<Props> {
 
   project_title(event: { project: string }): JSX.Element {
     return (
-      <ProjectTitleAuto
+      <ProjectTitle
         style={this.props.cursor ? selected_item : undefined}
         project_id={event.project}
       />

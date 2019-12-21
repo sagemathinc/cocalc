@@ -258,12 +258,9 @@ export class KernelSelector extends Component<
             checked={!this.props.ask_jupyter_kernel}
             onChange={e => this.dont_ask_again_click(e.target.checked)}
           >
-            Do not ask again
+            Do not ask, instead default to your most recent selection (you can
+            always show this screen again by clicking on the kernel name in the upper right)
           </Checkbox>
-          <span style={{ color: COLORS.GRAY }}>
-            Check this box to always use your most recent selection. You can
-            change your kernel any time later, too.
-          </span>
         </div>
       </Row>
     );

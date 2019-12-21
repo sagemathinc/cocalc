@@ -9,6 +9,7 @@ import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { NewFileButton } from "./new-file-button";
 import { AvailableFeatures } from "./types";
+import { ALL_AVAIL } from "../../project_configuration";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -17,7 +18,7 @@ interface Props {
   name: string;
 }
 
-// Use Rows and Cols to append more buttons to this component
+// Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
 export function FileTypeSelector({
   name,
@@ -29,17 +30,29 @@ export function FileTypeSelector({
   const [show_jupyterlab_server, set_show_jupyterlab_server] = React.useState(
     false
   );
-  // TODO: Add typechecking to this hook!
+  // TODO: this is very confusing because you're replacing the abstraction
+  // of having a store associated to the project by knowledge that this
+  // just happens to be implemented by a single global immutable.js object x
+  // where the data for the project is in x.get(name).   I guess this is a
+  // bad leaky abstraction situation...  I would replace this code with
+  // a new hook called something like useProjectStore...
   const available_features = useSelector<any, AvailableFeatures>(obj => {
     return obj.getIn([name, "available_features"]);
   });
 
-  if (!create_file || !project_id) {
+  if (!create_file || !create_file || !project_id) {
     return null;
   }
-  const row_style = { marginBottom: "8px" };
-  const available = available_features?.toJS() ?? {};
 
+  const row_style = { marginBottom: "8px" };
+
+  // If the configuration is not yet available, we default to the *most likely*
+  // configuration, not the least likely configuration.
+  // See https://github.com/sagemathinc/cocalc/issues/4293
+  // This is also consistent with src/smc-webapp/project/explorer/new-button.tsx
+  const available = available_features?.toJS() ?? ALL_AVAIL;
+
+  // console.log("FileTypeSelector: available", available)
   return (
     <>
       <Row style={row_style}>

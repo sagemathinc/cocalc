@@ -960,10 +960,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if r.client_query.get?.instead_of_query?
             return r
 
-        # Make sure there is the query that gets only things in this table that this user
+        # Sanity check: make sure there is something in the query
+        # that gets only things in this table that this user
         # is allowed to see, or at least a check_hook.
         if not r.client_query.get.pg_where? and not r.client_query.get.check_hook?
-            return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter)"}
+            return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter - pg_where or check_hook)"}
 
         # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit

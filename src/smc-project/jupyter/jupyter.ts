@@ -239,12 +239,18 @@ export class JupyterKernel extends EventEmitter
     const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
-    const opts: any = { detached: true, stdio: "ignore" };
+    const opts: any = { detached: true, stdio: "ignore", env: {} };
 
     if (this.name.indexOf("sage") == 0) {
       dbg("setting special environment for sage.* kernels");
-      opts.env = SAGE_JUPYTER_ENV;
+      opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
     }
+
+    // Make cocalc default to the colab renderer for cocalc-jupyter, since
+    // this one happens to work best for us, and they don't have a custom
+    // one for us.  See https://plot.ly/python/renderers/ and
+    // https://github.com/sagemathinc/cocalc/issues/4259
+    opts.env.PLOTLY_RENDERER = "colab";
 
     if (this._directory !== "") {
       opts.cwd = this._directory;

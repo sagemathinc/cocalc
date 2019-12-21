@@ -23,9 +23,11 @@
 
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
-{Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Tip}   = require('./r_misc')
+{Button, Navbar, Nav, NavItem} = require('react-bootstrap')
+{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
+misc_page = require('./misc_page')
+{should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -96,6 +98,7 @@ PAGE_REDUX_PROPS =
         is_logged_in           : rtypes.bool
         show_global_info       : rtypes.bool
         groups                 : rtypes.immutable.List
+        is_anonymous           : rtypes.bool
     support :
         show                   : rtypes.bool
 
@@ -124,7 +127,9 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        if @props.account_id
+        if @props.is_anonymous
+            a = undefined
+        else if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -134,9 +139,17 @@ Page = rclass
         else
             a = 'cog'
 
+        if @props.is_anonymous
+            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            style = {marginTop:'-10px'}  # compensate for using a button
+        else
+            label = "Account"
+            style = undefined
+
         <NavTab
             name           = 'account'
-            label          = {'Account'}
+            label          = {label}
+            style          = {style}
             label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
@@ -197,7 +210,7 @@ Page = rclass
         />
 
     render_bell: ->
-        if not @props.is_logged_in
+        if not @props.is_logged_in or @props.is_anonymous
             return
         <NotificationBell
             count  = {@props.notify_count}
@@ -222,7 +235,7 @@ Page = rclass
             {@render_support()}
             {@render_account_tab() if logged_in}
             {@render_bell()}
-            <ConnectionIndicator actions={@actions('page')} />
+            {<ConnectionIndicator actions={@actions('page')}/> if not @props.is_anonymous}
         </Nav>
 
     render_project_nav_button: ->
@@ -241,7 +254,7 @@ Page = rclass
             >
                 {<div style={projects_styles} cocalc-test="project-button" className={nav_class}>
                     Projects
-                </div> if @state.show_label}
+                </div> if @state.show_label and not @props.is_anonymous}
                 <AppLogo />
             </NavTab>
         </Nav>
@@ -270,6 +283,12 @@ Page = rclass
             overflow      : 'hidden'
             background    : 'white'
 
+        if should_do_anonymous_setup()
+            # Don't show the login screen or top navbar for a second while creating
+            # their anonymous account, since that would just be ugly/confusing/and annoying.
+            # Have to use above style to *hide* the crash warning.
+            return <div style={style}><h1 style={margin:'auto', color:'#666'}><Loading/></h1></div>
+
         top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 
         style_top_bar =
@@ -295,12 +314,12 @@ Page = rclass
             {<LocalStorageWarning /> if @props.local_storage_warning}
             {<GlobalInformationMessage /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
-                {@render_project_nav_button() if @props.is_logged_in}
+                {@render_project_nav_button() if @props.is_logged_in and not @props.is_anonymous}
                 <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div> if not @props.fullscreen}
-            {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
+            {<FullscreenButton /> if (@props.fullscreen != 'kiosk' and not @props.is_anonymous)}
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
             <ErrorBoundary>

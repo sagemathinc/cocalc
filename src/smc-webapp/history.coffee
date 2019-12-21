@@ -77,24 +77,32 @@ The URI schema is as follows:
 ###
 
 {redux} = require('./app-framework')
+{QueryParams} = require('./misc/query-params')
+{keys} = require('smc-util/misc')
+query_string = require('query-string')
 
-# Determine query params based on state of the project store
+# Determine query params part of URL based on state of the project store.
+# This also leaves in any params already there.
 params = ->
     page = redux.getStore('page')
-    if not page?  # unknown for now
-        return ''
-    v = []
-    for param in ['fullscreen', 'session', 'get_api_key', 'test']
-        val = page.get(param)
-        if val?
-            v.push("#{param}=#{encodeURIComponent(val)}")
-    if v.length > 0
-        return '?' + v.join('&')
+    current = QueryParams.get_all()
+    if page?
+        for param in ['fullscreen', 'session', 'get_api_key', 'test']
+            val = page.get(param)
+            if val?
+                current[param] = val
+            else
+                delete current[param]
+
+    s = query_string.stringify(current)
+    if s
+        return '?' + s
     else
         return ''
 
 # The last explicitly set url.
 last_url = undefined
+last_full_url = undefined
 
 # Update what params are set to in the URL based on state of project store,
 # leaving the rest of the URL the same.
@@ -104,7 +112,12 @@ exports.update_params = ->
 
 exports.set_url = (url) ->
     last_url = url
-    full_url = window.app_base_url + url + params()
+    query_params = params()
+    full_url = window.app_base_url + url + query_params
+    if full_url == last_full_url
+        # nothing to do
+        return
+    last_full_url = full_url
     window.history.pushState("", "", full_url)
     {analytics_pageview} = require('./misc_page')
     analytics_pageview(window.location.pathname)
