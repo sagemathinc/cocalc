@@ -19,6 +19,7 @@ interface ContentPageProps {
   is_public: IsPublicFunction;
   noindex: boolean;
   description?: string;
+  launch_path?: string;
 }
 
 export class ContentPage extends Component<ContentPageProps> {
@@ -40,6 +41,7 @@ export class ContentPage extends Component<ContentPageProps> {
           base_url={this.props.base_url}
           site_name={this.props.site_name}
           is_public={this.props.is_public}
+          launch_path={this.props.launch_path}
         />
         {this.props.children}
       </BasePage>

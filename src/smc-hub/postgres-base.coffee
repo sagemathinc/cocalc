@@ -261,7 +261,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # issues with scope of "client" below.
                 init_client = (host) =>
                     client = new pg.Client
-                        user     : 'smc'
+                        user     : @_user
                         host     : host
                         port     : @_port
                         password : @_password

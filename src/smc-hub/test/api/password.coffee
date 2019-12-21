@@ -207,8 +207,8 @@ describe 'tests sending a forgot password email --', ->
             cb : (err, resp) ->
                 expect(resp.error).toBe(false)
                 expect(api.last_email?.subject).toBe('CoCalc Password Reset')
-                i = api.last_email?.body.indexOf('#forgot-')
-                reset_code = api.last_email?.body.slice(i+'#forgot-'.length, i+'#forgot-'.length+36)
+                i = api.last_email?.body.indexOf('?forgot=')
+                reset_code = api.last_email?.body.slice(i+'?forgot='.length, i+'?forgot='.length+36)
                 expect(misc.is_valid_uuid_string(reset_code)).toBe(true)
                 done(err)
 

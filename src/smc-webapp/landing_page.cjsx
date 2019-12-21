@@ -37,7 +37,7 @@ LA_NAME = require('./launch/actions').NAME
 DESC_FONT = 'sans-serif'
 
 {ShowSupportLink} = require('./support')
-{reset_password_key} = require('./password-reset')
+{reset_password_key} = require('./client/password-reset')
 
 misc = require('smc-util/misc')
 {APP_TAGLINE, DOC_URL} = require('smc-util/theme')
