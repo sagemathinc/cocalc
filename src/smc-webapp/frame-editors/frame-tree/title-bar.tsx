@@ -75,10 +75,8 @@ const TITLE_STYLE: CSS.Properties = {
   padding: "5px 5px 0 5px",
   color: "#333",
   fontSize: "10pt",
-  /*  float: "right", */
   whiteSpace: "nowrap",
   flex: "1 1 auto",
-  textAlign: "right",
   display: "inline-block"
 };
 
@@ -1308,7 +1306,6 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
     const style: CSS.Properties = {
-      flex: "1 1 auto" /* controls shrink to the right due to 0 0 auto*/,
       flexFlow: "row nowrap",
       display: "flex"
     };

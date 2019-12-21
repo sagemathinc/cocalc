@@ -2,7 +2,7 @@
 The stopwatch component
 */
 
-import { Button, Row, Col } from "cocalc-ui";
+import { Button, Row, Col } from "antd";
 
 import { Component, React, Rendered } from "../app-framework";
 

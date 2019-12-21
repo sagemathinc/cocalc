@@ -8,10 +8,10 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
 import { CellNotebook } from "./cell-notebook/cell-notebook";
+import { RawIPynb } from "./raw-ipynb";
 
 /*
 import { Log } from "./log";
-import { RawIPynb } from "./raw-ipynb";
 import { ObjectBrowser } from "./object-browser";
 import { KernelConfiguration } from "./kernel-configuration";
 import { Assistant } from "./assistant";
@@ -80,7 +80,14 @@ export const EDITOR_SPEC = {
     buttons: set(["decrease_font_size", "increase_font_size"])
   },
   terminal,
-  time_travel
+  time_travel,
+  jupyter_raw: {
+    short: "Raw",
+    name: "Raw JSON editor",
+    icon: "cc-icon-markdown",
+    component: RawIPynb,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  }
 };
 /*,
   jupyter_singledoc_notebook: {
@@ -102,13 +109,6 @@ export const EDITOR_SPEC = {
     name: "Kernel Log",
     icon: "clipboard-list",
     component: Log,
-    buttons: set([])
-  },
-  jupyter_raw: {
-    short: "Raw",
-    name: "Raw JSON editor",
-    icon: "cc-icon-markdown",
-    component: RawIPynb,
     buttons: set([])
   },
   jupyter_object_browser: {

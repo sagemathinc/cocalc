@@ -530,10 +530,6 @@ SupportForm = rclass
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
-            <div style={margin:'10px', color:'#666'}>
-                1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
-                <br/>
-            </div>
             <FormGroup>
                 <FormControl
                     componentClass = "textarea"
@@ -557,7 +553,7 @@ exports.Support = rclass
         show        : false
         email       : ''
         subject     : ''
-        body        : ''
+        body        : '1. What did you do exactly?\n\n2. What happened?\n\n3. How did this differ from what you expected?'
         state       : STATE.NEW
         url         : ''
         err         : ''
@@ -575,6 +571,8 @@ exports.Support = rclass
             err          : rtypes.string
             email_err    : rtypes.string
             valid        : rtypes.bool
+        account:
+            is_anonymous : rtypes.bool
 
     componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()
@@ -589,6 +587,37 @@ exports.Support = rclass
         event?.preventDefault()
         @props.actions.support()
 
+    show_account: ->
+        @close()
+        redux.getActions('page').set_active_tab('account')
+
+    render_form: (show_form)->
+        if @props.is_anonymous
+            return <h3>In order to create a support ticket first <a onClick={=>@show_account()}>create an account...</a></h3>
+        else
+            <SupportForm
+                actions   = {@props.actions}
+                email     = {@props.email}
+                email_err = {@props.email_err}
+                subject   = {@props.subject}
+                body      = {@props.body}
+                show      = {show_form}
+                submit    = {(e) => @submit(e)} />
+
+    render_info: ->
+        <SupportInfo
+            actions   = {@props.actions}
+            state     = {@props.state}
+            url       = {@props.url}
+            err       = {@props.err} />
+
+    render_body: (show_form) ->
+        <div>
+            {@render_info()}
+            {@render_form(show_form)}
+        </div>
+
+
     render: () ->
         show_form = false
 
@@ -601,19 +630,7 @@ exports.Support = rclass
             </Modal.Header>
 
             <Modal.Body>
-                <SupportInfo
-                    actions   = {@props.actions}
-                    state     = {@props.state}
-                    url       = {@props.url}
-                    err       = {@props.err} />
-                <SupportForm
-                    actions   = {@props.actions}
-                    email     = {@props.email}
-                    email_err = {@props.email_err}
-                    subject   = {@props.subject}
-                    body      = {@props.body}
-                    show      = {show_form}
-                    submit    = {(e) => @submit(e)} />
+            {@render_body(show_form)}
             </Modal.Body>
 
             <SupportFooter

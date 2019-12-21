@@ -15,7 +15,7 @@ interface ReduxProps {
   filter: MentionFilter;
 }
 
-export const NotificationPage = rclass<ReduxProps>(
+export const NotificationPage = rclass(
   class NotificationPage extends React.Component<ReduxProps> {
     public static reduxProps() {
       return {

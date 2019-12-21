@@ -158,7 +158,11 @@ export class Actions extends BaseActions<LeanEditorState> {
 
   close(): void {
     if (this.channel !== undefined) {
-      this.channel.end();
+      try {
+        this.channel.end();
+      } catch(err) {
+        // pass
+      }
       delete this.channel;
     }
     super.close();

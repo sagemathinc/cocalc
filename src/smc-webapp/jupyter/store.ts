@@ -181,7 +181,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   };
 
-  get_kernel_info = (kernel: any): any | undefined => {
+  get_kernel_info = (kernel: string | undefined): any | undefined => {
     // slow/inefficient, but ok since this is rarely called
     let info: any = undefined;
     const kernels = this.get("kernels");

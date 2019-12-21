@@ -36,7 +36,7 @@ if (typeof window !== "undefined" && window !== null) {
 }
 import * as immutable from "immutable";
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
@@ -121,10 +121,12 @@ export interface ProjectStoreState {
   // Project New
   default_filename?: string;
   file_creation_error?: string;
+  downloading_file: boolean;
   library: immutable.Map<any, any>;
   library_selected?: object;
   library_is_copying: boolean; // for the copy button, to signal an ongoing copy process
   library_docs_sorted?: any; //computed(immutable.List),
+  library_search?: string; // if given, restricts to library entries that match the search
 
   // Project Find
   user_input: string;
@@ -251,6 +253,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project New
       library: immutable.Map({}),
       library_is_copying: false, // for the copy button, to signal an ongoing copy process
+      downloading_file: false,
 
       // Project Find
       user_input: "",
@@ -456,10 +459,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
     },
 
     library_docs_sorted: {
-      dependencies: literal(["library"]),
+      dependencies: literal(["library", "library_search"]),
       fn: () => {
-        const docs = this.get("library").getIn(["examples", "documents"]);
+        let docs = this.get("library").getIn(["examples", "documents"]);
         const metadata = this.get("library").getIn(["examples", "metadata"]);
+        if (this.get("library_search")) {
+          const search = misc.search_split(this.get("library_search"));
+          // Using JSON of the doc is pretty naive but it's fast enough
+          // and I don't want to spend much time on this!
+          docs = docs.filter(doc =>
+            misc.search_match(JSON.stringify(doc.toJS()).toLowerCase(), search)
+          );
+        }
 
         if (docs != null) {
           // sort by a triplet: idea is to have the docs sorted by their category,

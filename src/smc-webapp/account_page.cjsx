@@ -67,6 +67,7 @@ ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     groups                  : rtypes.immutable.List
     stripe_customer         : rtypes.immutable.Map
     ssh_keys                : rtypes.immutable.Map
+    is_anonymous            : rtypes.bool
 
 ACCOUNT_FIELDS = misc.keys(ACCOUNT_SPEC)
 
@@ -133,6 +134,7 @@ exports.AccountPage = rclass
             editor_settings        = {@props.editor_settings}
             stripe_customer        = {@props.stripe_customer}
             other_settings         = {@props.other_settings}
+            is_anonymous           = {@props.is_anonymous}
             groups                 = {@props.groups} />
 
     render_landing_page: ->
@@ -156,6 +158,10 @@ exports.AccountPage = rclass
 
     render_commercial_tabs: ->
         if not require('./customize').commercial
+            # obviously don't render these if not commercial
+            return null
+        if @props.is_anonymous
+            # Also, none of these make any sense for a temporary anonymous account.
             return null
         v = []
         v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions and Course Packages'}</span>}>
@@ -181,6 +187,8 @@ exports.AccountPage = rclass
     render_logged_in_view: ->
         if not @props.account_id
             return @render_loading_view()
+        if @props.is_anonymous
+            return <div style={margin:'5% 10%'}>{@render_account_settings()}</div>
         <Row>
             <Col md={12}>
                 <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">

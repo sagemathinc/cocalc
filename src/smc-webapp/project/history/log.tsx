@@ -56,7 +56,6 @@ interface ReduxProps {
   search?: string;
 
   user_map?: UserMap;
-  get_name: (user_id: string) => string;
 }
 
 interface State {
@@ -73,8 +72,7 @@ export const ProjectLog = rclass<ReactProps>(
           search: rtypes.string
         },
         users: {
-          user_map: rtypes.immutable,
-          get_name: rtypes.func
+          user_map: rtypes.immutable
         }
       };
     };
@@ -159,11 +157,11 @@ export const ProjectLog = rclass<ReactProps>(
         const match = (z: TypedMap<EventRecord>): boolean => {
           let s: string = this._search_cache[z.get("id")];
           if (s == undefined) {
-            let name1;
-            s =
-              names[(name1 = z.get("account_id"))] != undefined
-                ? names[name1]
-                : (names[name1] = this.props.get_name(z.get("account_id")));
+            const account_id = z.get("account_id");
+            if (names[account_id] == null) {
+              names[account_id] = redux.getStore("users").get_name(account_id);
+            }
+            s = names[account_id];
             const event = z.get("event");
             if (event != undefined) {
               event.forEach((val, k) => {
@@ -184,7 +182,18 @@ export const ProjectLog = rclass<ReactProps>(
         logs_seq = logs_seq.filter(match);
       }
       logs_seq = logs_seq.sort((a, b) => {
-        return b.get("time").valueOf() - a.get("time").valueOf();
+        // time might not be defined at all -- see https://github.com/sagemathinc/cocalc/issues/4271
+        // In this case we don't really care what happens with this log entry, only that we don't
+        // completely crash cocalc!
+        const t0 = b.get("time");
+        if (!t0) {
+          return -1; // push to the past -- otherwise it would be annoyingly in your face all the time.
+        }
+        const t1 = a.get("time");
+        if (!t1) {
+          return 1; // push to the past
+        }
+        return t0.valueOf() - t1.valueOf();
       });
       this._log = logs_seq;
       return this._log;

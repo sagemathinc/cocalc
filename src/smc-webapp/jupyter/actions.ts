@@ -181,7 +181,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Browser Client: Wait until the .ipynb file has actually been parsed into
     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
     // then set the kernel, if necessary.
-    await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+    try {
+      await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+    } catch (err) {
+      if (this._state != "ready") {
+        // Probably user just closed the notebook before it finished
+        // loading, so we don't need to set the kernel.
+        return;
+      }
+      throw Error("error waiting for ipynb file to load");
+    }
     this._syncdb_init_kernel();
   }
 
@@ -718,8 +727,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  /*
+  WARNING: Changes via set that are made when the actions
+  are not 'ready' or the syncdb is not ready are ignored.
+  These might happen right now if the user were to try to do
+  some random thing at the exact moment they are closing the
+  notebook. See https://github.com/sagemathinc/cocalc/issues/4274
+  */
   _set = (obj: any, save: boolean = true) => {
-    if (this._state === "closed" || this.store.get("read_only")) {
+    if (
+      this._state !== "ready" ||
+      this.store.get("read_only") ||
+      (this.syncdb != null && this.syncdb.get_state() != "ready")
+    ) {
+      // no possible way to do anything.
       return;
     }
     // check write protection regarding specific keys to be set
@@ -2355,9 +2376,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public set_raw_ipynb(): void {
-    if (this._state === "load") {
+    if (this._state != "ready") {
+      // lies otherwise...
       return;
     }
+
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });

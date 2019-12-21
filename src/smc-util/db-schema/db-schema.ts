@@ -535,7 +535,7 @@ schema.file_use = {
             filename: obj.path
           });
         }
-        typeof cb === "function" ? cb() : undefined;
+        cb();
       }
     }
   }
@@ -1201,6 +1201,37 @@ schema.public_paths.project_query = misc.deep_copy(
   schema.public_paths.user_query
 );
 
+/* Look up a single public path by its id. */
+
+schema.public_paths_by_id = {
+  anonymous: true,
+  virtual: "public_paths",
+  user_query: {
+    get: {
+      check_hook(_db, obj, _account_id, _project_id, cb): void {
+        if (typeof obj.id == "string" && obj.id.length == 40) {
+          cb(); // good
+        } else {
+          cb("id must be a sha1 hash");
+        }
+      },
+      fields: {
+        id: null,
+        project_id: null,
+        path: null,
+        description: null,
+        disabled: null, // if true then disabled
+        unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+        license: null,
+        last_edited: null,
+        created: null,
+        last_saved: null,
+        counter: null
+      }
+    }
+  }
+};
+
 /*
 Requests and status related to copying files between projects.
 */
@@ -1242,6 +1273,11 @@ schema.copy_paths = {
     backup: {
       type: "boolean",
       desc: "if true, make backup of files before overwriting"
+    },
+    public: {
+      type: "boolean",
+      desc:
+        "if true, use files from the public share server instead of starting up the project"
     },
     bwlimit: {
       type: "string",

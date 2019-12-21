@@ -9,7 +9,7 @@ import { Map, List } from "immutable";
 
 import { React } from "smc-webapp/app-framework";
 import { UserPage } from "smc-webapp/share/user-page";
-import { react } from "./react";
+import * as react_support from "smc-webapp/share/server-render";
 
 export function render_user(opts: {
   res: any;
@@ -21,5 +21,5 @@ export function render_user(opts: {
   base_url: string;
 }): void {
   const component = React.createElement(UserPage, opts);
-  react(opts.res, component);
+  react_support.render(opts.res, component);
 }

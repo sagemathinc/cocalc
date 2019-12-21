@@ -26,8 +26,8 @@ misc_page      = require('./misc_page')
 os_path        = require('path')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
-{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
-{Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space} = require('./r_misc')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space, SearchInput} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
 {COLORS}        = require('smc-util/theme')
 
@@ -51,6 +51,7 @@ exports.Library = rclass ({name}) ->
             library_docs_sorted : rtypes.immutable.List
             library_selected    : rtypes.immutable.Map
             library_is_copying  : rtypes.bool            # for the copy button, to signal an ongoing copy process
+            library_search      : rtypes.string
         projects:
             project_map         : rtypes.immutable
 
@@ -100,22 +101,30 @@ exports.Library = rclass ({name}) ->
                 @props.close?()
 
     selector_keyup: (evt) ->
-        return if not @props.library_selected?
         switch evt.keyCode
             when 38 # up
                 dx = -1
             when 40 # down
                 dx = 1
-        ids     = @props.library_docs_sorted.map((doc) -> doc.get('id'))
-        idx     = ids.indexOf(@props.library_selected.get('id')) + dx
-        new_doc = @props.library_docs_sorted.get(idx %% @props.library_docs_sorted.size)
-        @props.actions.setState(library_selected: new_doc)
-        $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()
-
+        @move_cursor(dx)
         evt.preventDefault()
         evt.stopPropagation()
         evt.nativeEvent.stopImmediatePropagation()
         return false
+
+    move_cursor: (dx) ->
+        if not @props.library_selected?
+            new_doc = @props.library_docs_sorted.get(0)
+        else
+            ids     = @props.library_docs_sorted.map((doc) -> doc.get('id'))
+            idx     = ids.indexOf(@props.library_selected.get('id')) + dx
+            new_doc = @props.library_docs_sorted.get(idx %% @props.library_docs_sorted.size)
+        @props.actions.setState(library_selected: new_doc)
+        $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()
+
+
+    set_search: (search) ->
+        @props.actions.setState(library_search: search)
 
 
     select_list_click: (doc) ->
@@ -274,6 +283,27 @@ exports.Library = rclass ({name}) ->
             {@copy_button()}
         </div>
 
+    render_search: ->
+        <SearchInput
+          autoFocus={true}
+          autoSelect={true}
+          placeholder="Search library..."
+          value={@props.library_search}
+          on_change={(value) => @set_search(value)}
+          on_escape={() => @set_search("")}
+          on_up={() => @move_cursor(-1)}
+          on_down={() => @move_cursor(1)}
+        />
+
+    render_main_content: ->
+        thumb   = @props.library_selected?.get('thumbnail')
+        return <Row>
+                  <Col sm={12}>{@render_search()}</Col>
+                  <Col sm={4}>{@selector()}</Col>
+                  <Col sm={if thumb then 6 else 8}>{@details()}</Col>
+                  {<Col sm={2}>{@thumbnail()}</Col> if thumb}
+            </Row>
+
     render: ->
         #if DEBUG then console.log('library/selector/library:', @props.library)
         project = @props.project_map?.get(@props.project_id)
@@ -284,12 +314,7 @@ exports.Library = rclass ({name}) ->
         else if (not @props.library?.get('examples')?)
             content = <Loading />
         else
-            thumb   = @props.library_selected?.get('thumbnail')
-            content = <Row>
-                          <Col sm={4}>{@selector()}</Col>
-                          <Col sm={if thumb then 6 else 8}>{@details()}</Col>
-                          {<Col sm={2}>{@thumbnail()}</Col> if thumb}
-                      </Row>
+            content = @render_main_content()
 
         <Fragment>
             {content}

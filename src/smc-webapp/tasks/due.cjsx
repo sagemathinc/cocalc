@@ -44,6 +44,8 @@ exports.DueDate = rclass
 
     set_due_date: (date) ->
         @props.actions.set_due_date(@props.task_id, date)
+        if !date
+            @stop_editing()
 
     render_calendar: ->
         if not @props.editing
@@ -55,10 +57,11 @@ exports.DueDate = rclass
         <div style={STYLE}>
             <DateTimePicker
                 value     = {value}
-                on_change = {(date) => @set_due_date(date - 0)}
-                on_focus  = {@props.actions.disable_key_handler}
-                on_blur   = {@stop_editing}
-                autoFocus = {true}
+                open      = {true}
+                placeholder={"Set Task Due Date"}
+                onChange = {(date) => @set_due_date(date - 0)}
+                onFocus  = {@props.actions.disable_key_handler}
+                onBlur   = {@stop_editing}
             />
         </div>
 

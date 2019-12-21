@@ -6,7 +6,7 @@ so they can mostly ignore the frame editor if they want to.
 
 import { React, Component, Rendered } from "../../app-framework";
 
-import { Tabs } from "cocalc-ui";
+import { Tabs } from "antd";
 const { TabPane } = Tabs;
 import { CourseEditorActions } from "./actions";
 

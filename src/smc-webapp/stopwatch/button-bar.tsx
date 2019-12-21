@@ -6,7 +6,7 @@ import { React, Rendered } from "../app-framework";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 
-import { Button } from "cocalc-ui";
+import { Button } from "antd";
 import { Space } from "../r_misc/space";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {

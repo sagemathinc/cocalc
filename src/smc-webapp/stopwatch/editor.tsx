@@ -18,7 +18,7 @@ Later, maybe:
  - Time tracking
 */
 
-import { Button } from "cocalc-ui";
+import { Button } from "antd";
 import { Loading } from "../r_misc/loading";
 import { Component, React, Rendered, rclass, rtypes } from "../app-framework";
 

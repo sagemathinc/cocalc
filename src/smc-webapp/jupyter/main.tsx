@@ -487,6 +487,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
     return (
       <RawEditor
+        name={this.props.name}
         actions={this.props.actions}
         font_size={this.props.font_size}
         raw_ipynb={this.props.raw_ipynb}

@@ -233,7 +233,8 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
 interface QueryOpts {
   query: object;
   changes?: boolean;
-  options?: object[]; // e.g., [{limit:5}]
+  options?: object[]; // e.g., [{limit:5}],
+  no_post?: boolean;
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
