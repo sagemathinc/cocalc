@@ -10,7 +10,7 @@ const { file_icon_class } = require("../editor");
 
 import { Component, React } from "../app-framework";
 
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 interface Props {
   filename: string;

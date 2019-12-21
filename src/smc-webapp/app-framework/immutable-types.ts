@@ -37,7 +37,7 @@ export type DeepImmutable<T> = T extends  // TODO: Make any non-plain-object ret
   : T extends (infer U)[]
   ? ListToRecurse<U> // Converts values of arrays as well
   : T extends object // Filter out desired objects above this line
-  ? MapToRecurse<T>
+  ? TypedMap<{ [P in keyof T]: DeepImmutable<T[P]> }>
   : T; // Base case primatives
 
 // https://github.com/microsoft/TypeScript/issues/26980
@@ -45,10 +45,6 @@ type ListToRecurse<U> = {
   1: Immutable.List<DeepImmutable<U>>;
   0: never;
 }[U extends never ? 0 : 1];
-
-type MapToRecurse<T extends object> = TypedMap<
-  { [P in keyof T]: DeepImmutable<T[P]> }
->;
 
 /**
  * Returns type V of "getting" K from T
@@ -68,7 +64,7 @@ type Get<T, K extends ValidKey> = T extends TypedMap<infer TP>
     : never
   : K extends keyof T
   ? T[K]
-  : never;
+  : undefined; // The real behavior on undefined members is undefined
 
 type Drill2Get<T, K1 extends ValidKey, K2 extends ValidKey> = Get<
   Get<T, K1>,

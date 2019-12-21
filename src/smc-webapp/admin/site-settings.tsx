@@ -5,11 +5,11 @@ import { React, Component, Rendered, ReactDOM } from "../app-framework";
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";
 
-const { site_settings_conf } = require("smc-util/schema");
+import { site_settings_conf } from "smc-util/schema";
 
 import { isEqual } from "lodash";
 
-const { ErrorDisplay, LabeledRow, Space, Tip } = require("../r_misc");
+import { ErrorDisplay, LabeledRow, Space, Tip } from "../r_misc";
 
 const smc_version = require("smc-util/smc-version");
 

@@ -19,7 +19,7 @@
 //
 //##############################################################################
 
-import { notification } from "cocalc-ui";
+import { notification } from "antd";
 import { ReactElement } from "react";
 
 import {
@@ -54,7 +54,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   opts = defaults(opts, {
     type: "default",
     title: undefined,
-    message: defaults.required,
+    message: "",
     block: undefined,
     timeout: undefined // time in seconds
   });

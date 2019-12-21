@@ -5,6 +5,11 @@ Exporting from our in-memory sync-friendly format to ipynb
 import * as immutable from "immutable";
 import * as misc from "../../smc-util/misc";
 
+// In coffeescript still, so we at least say what we use of it here.
+interface BlobStore {
+  get_ipynb: (string) => string;
+}
+
 export function export_to_ipynb(opts: any) {
   opts = misc.defaults(opts, {
     cell_list: misc.required,
@@ -117,8 +122,13 @@ function process_other_metadata(obj: any, other_metadata: any) {
   }
 }
 
-function process_attachments(obj: any, attachments: any, blob_store: any) {
-  if (attachments == null) {
+function process_attachments(
+  obj: any,
+  attachments: any,
+  blob_store: BlobStore | undefined
+) {
+  if (attachments == null || blob_store == null) {
+    // don't have to or can't do anything (https://github.com/sagemathinc/cocalc/issues/4272)
     return;
   }
   obj.attachments = {};
@@ -140,7 +150,7 @@ function ipynb_outputs(
   output: any,
   exec_count: any,
   more_output: any,
-  blob_store: any
+  blob_store: BlobStore | undefined
 ) {
   // If the last message has the more_output field, then there may be
   // more output messages stored, which are not in the cells object.
@@ -184,7 +194,11 @@ function ipynb_outputs(
   return outputs;
 }
 
-function process_output_n(output_n: any, exec_count: any, blob_store: any) {
+function process_output_n(
+  output_n: any,
+  exec_count: any,
+  blob_store: BlobStore | undefined
+) {
   if (output_n == null) {
     return;
   }

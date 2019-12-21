@@ -65,10 +65,10 @@ class VideoChat
         return misc.len(@get_users())
 
     get_user_names: =>
-        get_name = redux.getStore('users').get_name
+        users = redux.getStore("users")
         v = []
         for account_id, _ of @get_users()
-            name = get_name(account_id)?.trim()
+            name = users.get_name(account_id)?.trim()
             if name
                 name = misc.trunc_middle(name, 25)
                 if name

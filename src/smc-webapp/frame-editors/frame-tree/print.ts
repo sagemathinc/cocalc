@@ -6,8 +6,7 @@ TODO: refactor with markdown print (?).
 
 import { path_split } from "smc-util/misc2";
 
-//import { HTML } from 'smc-webapp/r_misc';
-const { HTML } = require("smc-webapp/r_misc");
+import { HTML } from "smc-webapp/r_misc";
 
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");

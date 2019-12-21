@@ -23,7 +23,10 @@ module.exports = {
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
 
-    "arrow-body-style": "error"
+    "arrow-body-style": ["error", "always"],
+    "no-console": ["error", { allow: ["warn", "error"] }],
+
+    "react/prop-types": "off"
   },
   settings: {
     react: {

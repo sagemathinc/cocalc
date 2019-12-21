@@ -1,6 +1,6 @@
 import { Map } from "immutable";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
-const { Markdown, HTML } = require("../../r_misc");
+import { Markdown, HTML } from "../../r_misc";
 import { JupyterActions } from "../browser-actions";
 import { Ansi, is_ansi } from "./ansi";
 import { Image } from "./image";

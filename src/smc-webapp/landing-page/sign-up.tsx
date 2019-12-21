@@ -3,7 +3,7 @@ import { ReactDOM, Rendered, redux } from "../app-framework";
 import { Passports } from "../passports";
 import { List } from "immutable";
 
-const { COLORS, UNIT, Icon, Loading } = require("../r_misc");
+import { COLORS, UNIT, Icon, Loading } from "../r_misc";
 
 const {
   HelpEmailLink,

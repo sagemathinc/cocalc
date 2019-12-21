@@ -279,6 +279,8 @@ class ProjectsActions extends Actions
         catch err
             if token
                 _create_project_tokens[token] = {err:err}
+            else
+                throw err
 
         # At this point we know the project_id and that the project exists.
         # However, various code (e.g., setting the title) depends on the
@@ -292,6 +294,8 @@ class ProjectsActions extends Actions
 
 
     # Open the given project
+    # This is an ASYNC function, sort of...
+    # at least in that it might have to load all projects...
     open_project: (opts) =>
         opts = defaults opts,
             project_id      : required  # string  id of the project to open
@@ -306,7 +310,7 @@ class ProjectsActions extends Actions
             if COCALC_MINIMAL
                 await switch_to_project(opts.project_id)
             else
-                # trying to open a not-known project -- maybe
+                # trying to open a nogt-known project -- maybe
                 # we have not yet loaded the full project list?
                 await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
@@ -429,8 +433,8 @@ class ProjectsActions extends Actions
     ###
     # **THIS IS AN ASYNC FUNCTION!**
     remove_collaborator: (project_id, account_id) =>
+        name = redux.getStore('users').get_name(account_id)
         f = (cb) =>
-            name = redux.getStore('users').get_name(account_id)
             webapp_client.project_remove_collaborator
                 project_id : project_id
                 account_id : account_id
@@ -765,14 +769,14 @@ class ProjectsStore extends Store
             return
         project = @getIn(['project_map', project_id])
         if not project?
-            if account_store.is_admin()
+            if account_store.get('is_admin')
                 return 'admin'
             else
                 return 'public'
         users = project.get('users')
         me = users?.get(account_store.get_account_id())
         if not me?
-            if account_store.is_admin()
+            if account_store.get('is_admin')
                 return 'admin'
             else
                 return 'public'
@@ -1427,6 +1431,8 @@ exports.ProjectsPage = ProjectsPage = rclass
             customer      : rtypes.object
         compute_images :
             images        : rtypes.immutable.Map
+        account:
+            is_anonymous : rtypes.bool
 
     propTypes :
         redux             : rtypes.object
@@ -1660,11 +1666,12 @@ exports.ProjectsPage = ProjectsPage = rclass
                         projects    = {visible_projects}
                         user_map    = {@props.user_map}
                         images      = {@props.images}
-                        load_all_projects_done = {@props.load_all_projects_done}
+                        load_all_projects_done = {@props.is_anonymous or @props.load_all_projects_done}
                         redux       = {redux} />
                 </Col>
             </Row>
         </Col>
+        # note above -- anonymous accounts can't have old projects.
 
 LoadAllProjects = rclass
     displayName: "LoadAllProjects"
@@ -1723,27 +1730,18 @@ exports.ProjectTitle = ProjectTitle = rclass
     shouldComponentUpdate: (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
+    handle_click: (e) ->
+        if @props.handle_click?
+            @props.handle_click(e)
+        else
+            # fallback behavior
+            redux.getActions('projects').open_project(project_id : @props.project_id)
+
     render: ->
         if not @props.project_map?
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@props.handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
+            <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
             <span style={@props.style}>(Private project)</span>
-
-exports.ProjectTitleAuto = rclass
-    displayName: 'Projects-ProjectTitleAuto'
-
-    propTypes:
-        project_id : rtypes.string.isRequired
-        style      : rtypes.object
-
-    handle_click: ->
-        @actions('projects').open_project(project_id : @props.project_id)
-
-    render: ->
-        <Redux redux={redux}>
-            <ProjectTitle style={@props.style} project_id={@props.project_id} handle_click={@handle_click} />
-        </Redux>
-

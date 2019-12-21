@@ -30,6 +30,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
+{set_account_info_if_possible} = require('./postgres/account-queries')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -290,8 +291,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     ###
     create_account: (opts={}) =>
         opts = defaults opts,
-            first_name        : required
-            last_name         : required
+            first_name        : undefined
+            last_name         : undefined
 
             created_by        : undefined  #  ip address of computer creating this account
 
@@ -308,17 +309,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg()
 
         for name in ['first_name', 'last_name']
-            test = misc2_node.is_valid_username(opts[name])
-            if test?
-                opts.cb("#{name} not valid: #{test}")
-                return
+            if opts[name]
+                test = misc2_node.is_valid_username(opts[name])
+                if test?
+                    opts.cb("#{name} not valid: #{test}")
+                    return
 
-        if opts.email_address? # canonicalize the email address, if given
+        if opts.email_address # canonicalize the email address, if given
             opts.email_address = misc.lower_email_address(opts.email_address)
-
-        if not opts.email_address? and not opts.passport_strategy?
-            opts.cb("email_address or passport must be given")
-            return
 
         account_id = misc.uuid()
 
@@ -1178,19 +1176,39 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     create_passport: (opts) =>
         opts= defaults opts,
-            account_id : required
-            strategy   : required
-            id         : required
-            profile    : required
+            account_id    : required
+            strategy      : required
+            id            : required
+            profile       : required
+            email_address : undefined   # if not set in database and set here (and doesn't conflict with existing account), gets set in database; same for first and last name.
+            first_name    : undefined
+            last_name     : undefined
             cb         : required   # cb(err)
-        @_dbg('create_passport')(misc.to_json(opts.profile))
-        @_query
-            query     : "UPDATE accounts"
-            jsonb_set :
-                passports : "#{@_passport_key(opts)}" : opts.profile
-            where     :
-                "account_id = $::UUID" : opts.account_id
-            cb        : opts.cb
+        dbg = @_dbg('create_passport')
+        dbg(misc.to_json(opts.profile))
+        async.series([
+            (cb) =>
+                dbg("setting the passport for the account")
+                @_query
+                    query     : "UPDATE accounts"
+                    jsonb_set :
+                        passports : "#{@_passport_key(opts)}" : opts.profile
+                    where     :
+                        "account_id = $::UUID" : opts.account_id
+                    cb        : cb
+            (cb) =>
+                dbg("setting other account info #{opts.email_address}, #{opts.first_name}, #{opts.last_name}")
+                try
+                    await set_account_info_if_possible
+                        db            : @
+                        account_id    : opts.account_id
+                        email_address : opts.email_address
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                    cb()
+                catch err
+                    cb(err)
+        ], opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
@@ -2525,6 +2543,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
+            ttl_dt : 15       # 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
             ttl    : 5*60     # how long cached version lives (in seconds)
             ttl_db : 30       # how long a valid result from a db query is cached in any case
             update : true     # true: recalculate if older than ttl; false: don't recalculate and pick it from the DB (locally cached for ttl secs)
@@ -2536,8 +2555,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 dbg("using cached stats?")
                 if @_stats_cached?
-                    # decide if cache should be used
-                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl)
+                    # decide if cache should be used -- tighten interval if we are allowed to update
+                    offset_dt = if opts.update then opts.ttl_dt else 0
+                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl - offset_dt)
                     # in case we aren't allowed to update and the cache is outdated, do not query db too often
                     did_query_recently = @_stats_cached_db_query > misc.seconds_ago(opts.ttl_db)
                     if is_cache_recent or did_query_recently

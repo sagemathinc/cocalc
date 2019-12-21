@@ -2,7 +2,7 @@ import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Button } from "react-bootstrap";
 
-const { Icon, ErrorDisplay } = require("smc-webapp/r_misc");
+import { Icon, ErrorDisplay } from "smc-webapp/r_misc";
 
 const { webapp_client } = require("../../webapp_client");
 
@@ -70,7 +70,7 @@ export class Ban extends Component<Props, State> {
     return (
       <ErrorDisplay
         error={this.state.error}
-        onClick={() => {
+        onClose={() => {
           this.setState({ error: undefined });
         }}
       />

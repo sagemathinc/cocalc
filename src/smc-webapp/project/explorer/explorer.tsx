@@ -34,11 +34,11 @@ import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { AccessErrors } from "./access-errors";
 import { ListingItem } from "./types";
 
-const { Col, Row, ButtonGroup, Button, Alert } = require("react-bootstrap");
+import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 const { SMC_Dropwrapper } = require("../../smc-dropzone");
-const { ProjectNewForm } = require("../../project_new");
+import { ProjectNewForm } from "../new";
 const { Library } = require("../../library");
 const { webapp_client } = require("../../webapp_client");
 const { UsersViewing } = require("../../other-users");
@@ -63,10 +63,10 @@ interface ReactProps {
   project_id: string;
   actions: ProjectActions;
   redux: any;
+  name: string;
 }
 
 interface ReduxProps {
-  name: string;
   project_map?: ProjectMap;
   date_when_course_payment_required: (project_id: string) => number;
   get_my_group: (project_id: string) => "admin" | "public";
@@ -355,6 +355,9 @@ export const Explorer = rclass<ReactProps>(
       if (!this.props.show_new) {
         return;
       }
+      const close = () => {
+        this.props.actions.toggle_new(false);
+      };
       return (
         <Row>
           <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
@@ -362,7 +365,9 @@ export const Explorer = rclass<ReactProps>(
               project_id={this.props.project_id}
               name={this.props.name}
               actions={this.props.actions}
-              close={() => this.props.actions.toggle_new(false)}
+              on_close={close}
+              on_create_file={close}
+              on_create_folder={close}
               show_header={true}
             />
           </Col>
@@ -554,7 +559,7 @@ export const Explorer = rclass<ReactProps>(
             }}
           >
             <FileListing
-              name={name}
+              name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
               file_map={file_map}

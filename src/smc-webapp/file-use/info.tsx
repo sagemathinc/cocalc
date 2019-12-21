@@ -3,9 +3,7 @@ import { Component, React, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 
 const { User } = require("../users");
-const { TimeAgo } = require("../r_misc");
-import { r_join } from "../r_misc/r_join";
-import { Icon } from "../r_misc/icon";
+import { Icon, TimeAgo, r_join } from "../r_misc";
 
 import { FileUseIcon } from "./icon";
 

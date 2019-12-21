@@ -1,7 +1,7 @@
 import { React } from "smc-webapp/app-framework";
 import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
-import * as react_support from "./react";
+import * as react_support from "smc-webapp/share/server-render";
 
 // read token from disk, if it is there.
 import { google_analytics_token } from "./util";
@@ -14,7 +14,8 @@ export function react_viewer(
   notranslate: boolean,
   viewer: "share" | "embed",
   is_public: IsPublicFunction,
-  description?: string
+  description?: string,
+  launch_path?: string
 ): Function {
   return function(res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
@@ -29,11 +30,12 @@ export function react_viewer(
         google_analytics,
         viewer,
         is_public,
-        noindex
+        noindex,
+        launch_path
       },
       component
     );
     const extra = { path, project_id }; // just used for log
-    react_support.react(res, the_page, extra);
+    react_support.render(res, the_page, extra);
   };
 }

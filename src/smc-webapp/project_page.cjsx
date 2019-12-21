@@ -36,8 +36,8 @@ Draggable = require('react-draggable')
 # CoCalc Libraries
 {SideChat}         = require('./side_chat')
 {Explorer}         = require('./project/explorer')
-{ProjectNew}       = require('./project_new')
-{ProjectLog}       = require('./project_log')
+{ProjectNew}       = require('./project/new')
+{ProjectLog}       = require('./project/history')
 {ProjectSearch}    = require('./project_search')
 {ProjectSettings}  = require('./project/settings')
 {ProjectStore}     = require('./project_store')
@@ -55,6 +55,7 @@ project_file = require('./project_file')
 {ShareIndicator} = require('./share-indicator')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
+{file_tab_labels} = require('./project/file-tab-labels')
 
 {editor_id} = require('./project/utils')
 
@@ -89,6 +90,7 @@ FreeProjectWarning = rclass ({name}) ->
     reduxProps:
         account :
             other_settings : rtypes.immutable.Map
+            is_anonymous   : rtypes.bool
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
@@ -157,6 +159,11 @@ FreeProjectWarning = rclass ({name}) ->
             return null
         if not require('./customize').commercial
             return null
+        if @props.is_anonymous
+            # No need to provide all these warnings and scare anonymous users, who are just
+            # playing around for the first time (and probably wouldn't read this, and should
+            # assume strong limitations since they didn't even make an account).
+            return null
         if @props.free_warning_closed
             return null
         pay = @props.date_when_course_payment_required(@props.project_id)
@@ -208,21 +215,25 @@ fixed_project_pages =
         icon      : 'plus-circle'
         tooltip   : 'Create new file, folder, worksheet or terminal'
         is_public : false
+        no_anonymous : true
     log:
         label     : 'Log'
         icon      : 'history'
         tooltip   : 'Log of project activity'
         is_public : false
+        no_anonymous : true
     search :
         label     : 'Find'
         icon      : 'search'
         tooltip   : 'Search files in the project'
         is_public : false
+        no_anonymous : true
     settings :
         label     : 'Settings'
         icon      : 'wrench'
         tooltip   : 'Project settings and controls'
         is_public : false
+        no_anonymous : true
 
 # Children must define their own padding from navbar and screen borders
 ProjectContentViewer = rclass
@@ -391,9 +402,9 @@ ProjectContentViewer = rclass
             when 'files'
                 <Explorer name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} start_project={@actions("projects").start_project} />
             when 'new'
-                <ProjectNew name={@props.project_name} project_id={@props.project_id} />
+                <ProjectNew name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)}/>
             when 'log'
-                <ProjectLog name={@props.project_name} project_id={@props.project_id} />
+                <ProjectLog name={@props.project_name} project_id={@props.project_id} actions={redux.getProjectActions(@props.project_id)} />
             when 'search'
                 <ProjectSearch name={@props.project_name} />
             when 'settings'
@@ -436,6 +447,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             num_ghost_file_tabs   : rtypes.number
             current_path          : rtypes.string
             show_new              : rtypes.bool
+        account:
+            is_anonymous          : rtypes.bool
 
     propTypes :
         project_id : rtypes.string
@@ -448,11 +461,15 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         if not @props.open_files_order?
             return
         tabs = []
-        @props.open_files_order.map (path, index) =>
+        paths = []
+        @props.open_files_order.map (path) =>
             if not path?  # see https://github.com/sagemathinc/cocalc/issues/3450
                 # **This should never fail** so be loud if it does.
                 throw Error("BUG -- each entry in open_files_order must be defined -- " + JSON.stringify(@props.open_files_order.toJS()))
-            tabs.push(@file_tab(path, index))
+            paths.push(path)
+        labels = file_tab_labels(paths)
+        for index in [0...labels.length]
+            tabs.push(@file_tab(paths[index], index, labels[index]))
         if @props.num_ghost_file_tabs == 0
             return tabs
 
@@ -462,17 +479,16 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             tabs.push(<GhostTab index={index} key={index}/>)
         return tabs
 
-    file_tab: (path, index) ->
+    file_tab: (path, index, label) ->
         filename         = misc.path_split(path).tail
         # get the file_associations[ext] just like it is defined in the editor
         {file_options}   = require('./editor')
         icon             = file_options(filename)?.icon ? 'code-o'
-        display_name     = misc.trunc(filename, 64)
         <SortableFileTab
             index        = {index}
             key          = {path}
             name         = {misc.path_to_tab(path)}
-            label        = {display_name}
+            label        = {label}
             icon         = {icon}
             tooltip      = {path}
             project_id   = {@props.project_id}
@@ -482,6 +498,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         />
 
     render_chat_indicator: (shrink_fixed_tabs) ->
+        if @props.is_anonymous  # no possibility to chat
+            return
         if @props.active_project_tab?.slice(0,7) != 'editor-'
             # TODO: This is the case where we would support project-wide side chat, or side chats
             # for each individual Files/Search, etc. page (not clear!)
@@ -498,6 +516,9 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         </div>
 
     render_share_indicator: (shrink_fixed_tabs) ->
+        if @props.is_anonymous
+            # anon users can't share anything
+            return
         if @props.active_project_tab == 'files'
             path = @props.current_path
         else
@@ -515,16 +536,14 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             />
         </div>
 
-    render_file_tabs: (is_public) ->
-        shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
-
-        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
-            <div style={display:'flex'}>
-                {<Nav
-                    bsStyle   = "pills"
-                    className = "smc-file-tabs-fixed-desktop"
-                    style     = {overflow:'hidden', float:'left'} >
-                    {[<FileTab
+    fixed_tabs_array: (is_public, shrink_fixed_tabs) ->
+        tabs = []
+        for k, v of fixed_project_pages
+            if @props.is_anonymous and v.no_anonymous
+                continue
+            if (is_public and v.is_public) or (not is_public)
+                tab = <FileTab
+                        key        = {k}
                         name       = {k}
                         label      = {v.label}
                         icon       = {v.icon}
@@ -532,7 +551,21 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         project_id = {@props.project_id}
                         is_active  = {@props.active_project_tab == k}
                         shrink     = {shrink_fixed_tabs}
-                    /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
+                    />
+                tabs.push(tab)
+        return tabs
+
+    render_file_tabs: (is_public) ->
+        shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
+        fixed_tabs = @fixed_tabs_array(is_public, shrink_fixed_tabs)
+
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
+            <div style={display:'flex'}>
+                {<Nav
+                    bsStyle   = "pills"
+                    className = "smc-file-tabs-fixed-desktop"
+                    style     = {overflow:'hidden', float:'left'} >
+                    {fixed_tabs}
                 </Nav> if (@props.fullscreen != 'kiosk')}
                 <div
                     style = {display:'flex', overflow:'hidden', flex: 1}

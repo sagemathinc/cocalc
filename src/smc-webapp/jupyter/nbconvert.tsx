@@ -4,7 +4,7 @@ NBConvert dialog -- for running nbconvert
 import { React, Component } from "../app-framework";
 import * as immutable from "immutable";
 const shell_escape = require("shell-escape");
-const { Icon, Loading } = require("../r_misc");
+import { Icon, Loading } from "../r_misc";
 const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 const misc = require("smc-util/misc");

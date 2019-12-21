@@ -31,8 +31,12 @@ prom_client = require('./prom-client')
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
+{QueryParams} = require('./misc/query-params')
+misc = require('smc-util/misc')
 
 {APP_LOGO_WHITE} = require('./art')
+
+{do_anonymous_setup, should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -67,8 +71,6 @@ idle_notification = (show) ->
     idle_notification_state = show
 
 # end idle notifications
-
-auth_token = misc_page.get_query_param('auth_token')
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -245,11 +247,12 @@ class Connection extends client.Connection
             conn.removeAllListeners('data')
             conn.on("data", ondata)
 
-            if auth_token?
-                @sign_in_using_auth_token
-                    auth_token : auth_token
-                    cb         : (err, resp) ->
-                        auth_token = undefined
+            auth_token = QueryParams.get('auth_token')
+            if not @_signed_in and auth_token
+                QueryParams.remove('auth_token')
+                @sign_in_using_auth_token(auth_token : auth_token)
+            else if should_do_anonymous_setup()
+                do_anonymous_setup(@)
 
         conn.on 'outgoing::open', (evt) =>
             log("connecting")
@@ -317,6 +320,7 @@ class Connection extends client.Connection
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)
+
 
 connection = undefined
 exports.connect = (url) ->

@@ -25,6 +25,7 @@ import {
   FormControl,
   Radio
 } from "react-bootstrap";
+
 import {
   React,
   ReactDOM,
@@ -33,9 +34,10 @@ import {
   rclass,
   rtypes
 } from "../../app-framework";
+
 const { open_new_tab } = require("../../misc_page");
-const { CopyToClipBoard, Icon, VisibleMDLG } = require("../../r_misc");
-import { Space } from "../../r_misc/space";
+
+import { CopyToClipBoard, Icon, VisibleMDLG, Space } from "../../r_misc";
 
 import { public_share_url, share_server_url } from "./util";
 

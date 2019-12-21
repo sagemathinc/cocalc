@@ -263,10 +263,6 @@ CONNECT_LINKS =
         icon : 'facebook-square'
         href : 'https://www.facebook.com/CoCalcOnline/'
         link : 'Like our facebook page'
-    google_plus :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/117696122667171964473/posts'
-        link : <span>+1 our Google+ page</span>
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/cocalc'

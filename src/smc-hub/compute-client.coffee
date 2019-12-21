@@ -1883,6 +1883,7 @@ class ProjectClient extends EventEmitter
             bwlimit           : undefined
             wait_until_done   : undefined # not used, only relevant for the kucalc variant
             scheduled         : undefined # --*--
+            public            : false     # this is ignored here, since there is no special share server with copies of public files...
             cb                : required
         dbg = @dbg("copy_path(#{opts.path} to #{opts.target_project_id})")
         dbg("copy a path using rsync from one project to another")

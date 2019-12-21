@@ -8,7 +8,7 @@ import { Button, Well, FormGroup, FormControl } from "react-bootstrap";
 
 import { query } from "../frame-editors/generic/client";
 
-const { ErrorDisplay, Saving } = require("../r_misc");
+import { ErrorDisplay, Saving } from "../r_misc";
 
 interface State {
   state: "view" | "edit" | "save";

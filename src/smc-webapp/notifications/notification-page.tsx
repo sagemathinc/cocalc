@@ -6,7 +6,7 @@ import { MentionFilter } from "./mentions/types";
 import { redux, rclass, rtypes } from "../app-framework";
 
 const { Tab, Tabs } = require("react-bootstrap");
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc";
 
 interface ReduxProps {
   account_id: string;
@@ -15,7 +15,7 @@ interface ReduxProps {
   filter: MentionFilter;
 }
 
-export const NotificationPage = rclass<ReduxProps>(
+export const NotificationPage = rclass(
   class NotificationPage extends React.Component<ReduxProps> {
     public static reduxProps() {
       return {
