@@ -154,7 +154,8 @@ export async function handle_path_request(opts: {
           false,
           viewer,
           public_paths.is_public,
-          description
+          description,
+          `/${info.get("id")}/${path}`
         ),
         viewer,
         hidden: req.query.hidden,
