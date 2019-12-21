@@ -14,7 +14,8 @@ export function react_viewer(
   notranslate: boolean,
   viewer: "share" | "embed",
   is_public: IsPublicFunction,
-  description?: string
+  description?: string,
+  launch_path?: string
 ): Function {
   return function(res, component, subtitle: string, noindex: boolean): void {
     const the_page = React.createElement(
@@ -29,7 +30,8 @@ export function react_viewer(
         google_analytics,
         viewer,
         is_public,
-        noindex
+        noindex,
+        launch_path
       },
       component
     );

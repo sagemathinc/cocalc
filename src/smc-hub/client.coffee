@@ -1710,6 +1710,9 @@ class exports.Client extends EventEmitter
                         else
                             cb()
             (cb) =>
+                # Obviously, no need to check write access about the source project,
+                # since we are only granting access to public files.  This function
+                # should ensure that the path is public:
                 @get_public_project
                     project_id : mesg.src_project_id
                     path       : mesg.src_path
@@ -1726,6 +1729,7 @@ class exports.Client extends EventEmitter
                     timeout         : mesg.timeout
                     exclude_history : mesg.exclude_history
                     backup          : mesg.backup
+                    public          : true
                     cb              : cb
         ], (err) =>
             if err
@@ -2105,9 +2109,12 @@ class exports.Client extends EventEmitter
             if not await callback2(@database.account_exists, {email_address : mesg.email_address})
                 throw Error("no such account with email #{mesg.email_address}")
             # We now know that there is an account with this email address.
-            # put entry in the password_reset uuid:value table with ttl of 8 hours.
-            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:8*60*60});
-            mesg.link = "/app#forgot-#{id}"
+            # put entry in the password_reset uuid:value table with ttl of 24 hours.
+            # NOTE: when users request their own reset, the ttl is 1 hour, but when we
+            # as admins send one manually, they typically need more time, so 1 day instead.
+            # We used 8 hours for a while and it is often not enough time.
+            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
+            mesg.link = "/app?forgot=#{id}"
             @push_to_client(mesg)
         catch err
             dbg("failed -- #{err}")

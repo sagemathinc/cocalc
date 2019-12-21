@@ -17,7 +17,6 @@ export class AccountStore extends Store<AccountState> {
     misc.bind_methods(this, [
       "get_user_type",
       "get_account_id",
-      "is_admin",
       "get_terminal_settings",
       "get_editor_settings",
       "get_fullname",
@@ -40,11 +39,6 @@ export class AccountStore extends Store<AccountState> {
     return this.get("account_id");
   }
 
-  is_admin(): boolean {
-    const groups = this.get("groups");
-    return !!groups && groups.includes("admin");
-  }
-
   selectors: any = {
     is_anonymous: {
       fn: () => {
@@ -55,6 +49,13 @@ export class AccountStore extends Store<AccountState> {
         );
       },
       dependencies: literal(["email_address", "passports", "is_logged_in"])
+    },
+    is_admin: {
+      fn: () => {
+        const groups = this.get("groups");
+        return !!groups && groups.includes("admin");
+      },
+      dependencies: literal(["groups"])
     }
   };
 

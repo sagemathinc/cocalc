@@ -151,7 +151,7 @@ ProjectTab = rclass
                 {@render_close_x()}
             </div>
             <div style={project_name_styles}>
-                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
+                <Tip title={title} tip={desc} placement='bottom' size='small' always_update={true}>
                     <Icon name={icon} />
                     <span style={marginLeft: 5, position:'relative'}>{misc.trunc(title,24)}</span>
                 </Tip>

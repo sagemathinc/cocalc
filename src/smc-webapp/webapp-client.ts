@@ -1,8 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -28,13 +23,17 @@
 // connection to back-end hub
 //###########################################
 
+import { handle_hash_url } from "./client/handle-hash-url";
+
 // The following interface obviously needs to get completed,
 // and then of course all of webapp client itself needs to
 // be rewritten in Typescript.  In the meantime, this might
 // at least prevent a typo.  When something you need from the
 // actual webapp client isn't here, add it (there api is huge).
 
-interface WebappClient {
+import { EventEmitter } from "events";
+
+interface WebappClient extends EventEmitter {
   user_search: Function;
   server_time: Function;
   project_set_quotas: Function;
@@ -44,6 +43,8 @@ interface WebappClient {
   find_directories: Function;
   sync_db2: Function;
   get_username: Function;
+  is_signed_in: () => boolean;
+  remember_me_key: Function;
 }
 
 export let webapp_client: WebappClient;
@@ -53,20 +54,14 @@ if (
   window !== null &&
   window.location != null
 ) {
-  // running in a web browser
+  // We are running in a web browser (not somewhere else).
+
+  // Set base url
   if (window.app_base_url == null) {
     window.app_base_url = "";
   }
 
-  if (window.location.hash.length > 1) {
-    let q = decodeURIComponent(window.location.hash.slice(1));
-    // the location hash could again contain a query param, hence this
-    const i = q.indexOf("?");
-    if (i >= 0) {
-      q = q.slice(0, i);
-    }
-    (window as any).smc_target = q;
-  }
+  handle_hash_url();
 
   const client_browser = require("./client_browser");
   webapp_client = client_browser.connect() as WebappClient;

@@ -31,12 +31,13 @@ The Landing Page
 {SignUp} = require('./landing-page/sign-up')
 {SignIn} = require('./landing-page/sign-in')
 {ForgotPassword} = require('./landing-page/forgot-password')
-LA_NAME = require('./landing-actions').NAME
+{QueryParams} = require('./misc/query-params')
+LA_NAME = require('./launch/actions').NAME
 
 DESC_FONT = 'sans-serif'
 
 {ShowSupportLink} = require('./support')
-{reset_password_key} = require('./password-reset')
+{reset_password_key} = require('./client/password-reset')
 
 misc = require('smc-util/misc')
 {APP_TAGLINE, DOC_URL} = require('smc-util/theme')
@@ -325,7 +326,7 @@ exports.LandingPage = rclass
         </Row>
 
     render_main_page: ->
-        if @props.remember_me and not @props.get_api_key
+        if (@props.remember_me or QueryParams.get('auth_token')) and not @props.get_api_key
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             return <Connecting />

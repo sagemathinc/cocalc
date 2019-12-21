@@ -3,7 +3,8 @@
 postgres = require('../postgres')
 misc = require('../../smc-util/misc')
 
-db = postgres.db(database:'smc', debug:true, connect:false)
+db_name = process.env['SMC_DB'] ? 'smc'
+db = postgres.db(database:db_name, debug:true, connect:false)
 
 db.connect cb: ->
     db.get_stats

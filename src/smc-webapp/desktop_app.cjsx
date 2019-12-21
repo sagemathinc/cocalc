@@ -23,10 +23,11 @@
 
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
-{Navbar, Nav, NavItem} = require('react-bootstrap')
+{Button, Navbar, Nav, NavItem} = require('react-bootstrap')
 {ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 misc_page = require('./misc_page')
+{should_do_anonymous_setup} = require('./client/anonymous-setup')
 
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -138,10 +139,17 @@ Page = rclass
         else
             a = 'cog'
 
+        if @props.is_anonymous
+            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            style = {marginTop:'-10px'}  # compensate for using a button
+        else
+            label = "Account"
+            style = undefined
+
         <NavTab
             name           = 'account'
-            label          = {if @props.is_anonymous then 'Sign up' else 'Account'}
-            style          = {if @props.is_anonymous then {fontWeight:'bold', fontSize:'16px', backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}}
+            label          = {label}
+            style          = {style}
             label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
@@ -275,7 +283,7 @@ Page = rclass
             overflow      : 'hidden'
             background    : 'white'
 
-        if misc_page.get_query_param('anonymous')
+        if should_do_anonymous_setup()
             # Don't show the login screen or top navbar for a second while creating
             # their anonymous account, since that would just be ugly/confusing/and annoying.
             # Have to use above style to *hide* the crash warning.

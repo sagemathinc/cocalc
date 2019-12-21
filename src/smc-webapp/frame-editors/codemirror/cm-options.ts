@@ -24,10 +24,10 @@ function save(cm) {
 export function cm_options(
   filename: string, // extension determines editor mode
   editor_settings: Map<string, any>,
-  gutters: string[], // array of extra gutters
-  editor_actions: any,
-  frame_tree_actions: any,
-  frame_id: string
+  gutters: string[] = [], // array of extra gutters
+  editor_actions: any = undefined,
+  frame_tree_actions: any = undefined,
+  frame_id: string = ""
 ): object {
   let key = filename_extension_notilde(filename).toLowerCase();
   if (!key) {
