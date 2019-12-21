@@ -23,6 +23,7 @@ import {
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
+import { extract_auto_scores, Scores } from "../../jupyter/nbgrader/autograde";
 
 import { previous_step, assignment_identifier } from "../util";
 import {
@@ -1214,12 +1215,14 @@ You can find the comments they made in the folders below.\
     const path = this.assignment_src_path(assignment);
     const command = "grep nbgrader *.ipynb | wc -l";
     const cnt = parseInt(
-      (await exec({
-        project_id,
-        command,
-        path,
-        err_on_exit: true
-      })).stdout
+      (
+        await exec({
+          project_id,
+          command,
+          path,
+          err_on_exit: true
+        })
+      ).stdout
     );
     return cnt > 0;
   }
@@ -1245,12 +1248,14 @@ You can find the comments they made in the folders below.\
     // The F options make it so we won't get tricked by a directory
     // whose name ends in .ipynb
     const args = ["--color=never", "-1F"];
-    const files: string[] = (await exec({
-      project_id,
-      path,
-      command,
-      args
-    })).stdout.split("\n");
+    const files: string[] = (
+      await exec({
+        project_id,
+        path,
+        command,
+        args
+      })
+    ).stdout.split("\n");
 
     const to_read: string[] = [];
     for (const file of files) {
@@ -1370,5 +1375,14 @@ You can find the comments they made in the folders below.\
     );
     console.log("ran nbgrader for student totally", { student_id, result });
     (window as any).nb = result;
+    const scores: { [filename: string]: Scores } = {};
+    for (const filename in result) {
+      const r = result[filename];
+      if (r == null) continue;
+      if (r.output == null) continue;
+      const notebook = JSON.parse(r.output);
+      scores[filename] = extract_auto_scores(notebook);
+    }
+    (window as any).scores = scores;
   }
 }

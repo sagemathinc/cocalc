@@ -81,7 +81,11 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
 
     if (this.props.cell.get("input", "").trim() == "") {
       const language: string = this.props.actions.store.get_kernel_language();
-      const input = value_to_template_content(value, language);
+      const input = value_to_template_content(
+        value,
+        language,
+        this.props.cell.get("cell_type", "code")
+      );
       if (input != "") {
         this.props.actions.set_cell_input(this.props.cell.get("id"), input);
       }

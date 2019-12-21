@@ -17,6 +17,7 @@ that get used in testing.
 */
 
 import { copy } from "smc-util/misc";
+import { state_to_value } from "./cell-types";
 
 // Enough description of what a Jupyter notebook is for our purposes here.
 interface Cell {
@@ -28,6 +29,7 @@ interface Cell {
       grade: boolean;
       grade_id: string;
       locked: boolean;
+      points?: number;
       schema_version: number;
       solution: boolean;
       task: boolean;
@@ -115,4 +117,54 @@ function autograde_cells_by_grade_id(
     }
   }
   return r;
+}
+
+export interface Score {
+  score?: number;
+  points: number;
+  manual: boolean; // true if this must be manually graded.
+}
+
+export type Scores = { [grade_id: string]: Score };
+
+export function extract_auto_scores(notebook: JupyterNotebook): Scores {
+  const scores: Scores = {};
+  for (const cell of notebook.cells) {
+    if (cell == null) continue;
+    const metadata = cell.metadata;
+    if (metadata == null) continue;
+    const nbgrader = metadata.nbgrader;
+    if (nbgrader == null) continue;
+    const points = nbgrader.points;
+    if (!points) continue; // no points (or 0 points), so no grading to be done or point in recording one.
+    let value: string;
+    try {
+      value = state_to_value(nbgrader);
+    } catch (err) {
+      // invalid so ignore
+      console.warn("malformed nbgrader metadata", nbgrader);
+      continue;
+    }
+    const manual = value != "test"; // anything except 'test' must be manually graded.
+    if (manual) {
+      // manual grading
+      scores[nbgrader.grade_id] = { points, manual }; // human has to assign score (maybe we could assign 0 if same as generated?)
+    } else {
+      // automatic grading
+      const outputs = cell.outputs ? cell.outputs : [];
+      // get a full score of all points unless there are any tracebacks in the output in which
+      // case get a score of 0.   I don't know how scoring could be done in any more precise
+      // way, given what nbgrader provides.  More precise scoring is likely done with multiple
+      // distinct cells...
+      let score: number = points;
+      for (const output of outputs) {
+        if (output["traceback"] != null) {
+          score = 0;
+          break; // game over.
+        }
+      }
+      scores[nbgrader.grade_id] = { score, points, manual };
+    }
+  }
+  return scores;
 }

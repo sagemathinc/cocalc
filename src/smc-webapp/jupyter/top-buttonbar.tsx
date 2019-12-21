@@ -299,12 +299,12 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const validate = {
       name: "nbgrader validate",
       disabled: false,
-      label: "Validate..."
+      label: "Validate"
     };
     const assign = {
       name: "nbgrader assign",
       disabled: false,
-      label: "Student version..."
+      label: "Generate student version"
     };
     return (
       <ButtonGroup style={{ marginLeft: "5px" }}>
