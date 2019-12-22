@@ -22,7 +22,10 @@ import {
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
-import { extract_auto_scores, Scores } from "../../jupyter/nbgrader/autograde";
+import {
+  extract_auto_scores,
+  NotebookScores
+} from "../../jupyter/nbgrader/autograde";
 
 import { previous_step, assignment_identifier } from "../util";
 import {
@@ -173,10 +176,7 @@ export class AssignmentsActions {
 
     const comments = assignment_data.comments || {};
     comments[student_id] = edited_feedback.get("edited_comments");
-    const feedback_changes = Object.assign(
-      { grades: grades, comments: comments },
-      query
-    );
+    const feedback_changes = Object.assign({ grades, comments }, query);
     this.course_actions.set(feedback_changes);
     this.clear_edited_feedback(assignment_id, student_id);
   }
@@ -1292,7 +1292,8 @@ You can find the comments they made in the folders below.\
       this.run_nbgrader_for_one_student(
         assignment_id,
         student_id,
-        instructor_ipynb_files
+        instructor_ipynb_files,
+        false
       );
     }
 
@@ -1301,12 +1302,39 @@ You can find the comments they made in the folders below.\
       PARALLEL_LIMIT,
       one_student.bind(this)
     );
+    this.course_actions.syncdb.commit();
+  }
+
+  public set_nbgrader_scores_for_one_student(
+    assignment_id: string,
+    student_id: string,
+    scores: { [filename: string]: NotebookScores | string },
+    commit: boolean = true
+  ): void {
+    const assignment_data = this.course_actions.get_one({
+      table: "assignments",
+      assignment_id
+    });
+    if (assignment_data == null) return;
+    const nbgrader_scores: {
+      [student_id: string]: { [ipynb: string]: NotebookScores | string };
+    } = assignment_data.nbgrader_scores || {};
+    nbgrader_scores[student_id] = scores;
+    this.course_actions.set(
+      {
+        table: "assignments",
+        assignment_id,
+        nbgrader_scores
+      },
+      commit
+    );
   }
 
   public async run_nbgrader_for_one_student(
     assignment_id: string,
     student_id: string,
-    instructor_ipynb_files?: { [path: string]: string }
+    instructor_ipynb_files?: { [path: string]: string },
+    commit: boolean = true
   ): Promise<void> {
     console.log("run_nbgrader_for_one_student", assignment_id, student_id);
 
@@ -1347,6 +1375,8 @@ You can find the comments they made in the folders below.\
     const path = assignment.get("path");
     const student_path = assignment.get("target_path");
     const result: { [path: string]: any } = {};
+    const scores: { [filename: string]: NotebookScores | string } = {};
+
     async function one_file(file: string): Promise<void> {
       const fullpath = path != "" ? path + "/" + file : file;
       try {
@@ -1371,6 +1401,7 @@ You can find the comments they made in the folders below.\
       } catch (err) {
         // TODO: put error report in
         console.log("nbgrader failed", { student_id, file, err });
+        scores[file] = `${err}`;
       }
     }
 
@@ -1383,8 +1414,6 @@ You can find the comments they made in the folders below.\
       student_id,
       result
     });
-    (window as any).nb = result;
-    const scores: { [filename: string]: Scores } = {};
     for (const filename in result) {
       const r = result[filename];
       if (r == null) continue;
@@ -1392,6 +1421,11 @@ You can find the comments they made in the folders below.\
       const notebook = JSON.parse(r.output);
       scores[filename] = extract_auto_scores(notebook);
     }
-    (window as any).scores = scores;
+    this.set_nbgrader_scores_for_one_student(
+      assignment_id,
+      student_id,
+      scores,
+      commit
+    );
   }
 }

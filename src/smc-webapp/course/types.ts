@@ -1,3 +1,5 @@
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
+
 export interface SyncDBRecordBase {
   table: string;
 }
@@ -22,6 +24,9 @@ export interface SyncDBRecordAssignment {
   title?: string;
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };
+  nbgrader_scores?: {
+    [student_id: string]: { [ipynb: string]: NotebookScores | string };
+  };
   deleted?: boolean;
   path?: string;
   collect_path?: string;
@@ -125,9 +130,4 @@ export interface AssignmentStatus {
   not_peer_assignment: number;
   not_peer_collect: number;
   not_return_graded: number;
-}
-
-export interface NBGraderGrades {
-  
-  
 }

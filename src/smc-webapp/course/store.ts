@@ -36,12 +36,9 @@ import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 
-import {
-  AssignmentCopyStep,
-  AssignmentStatus,
-  UpgradeGoal,
-  NBGraderGrades
-} from "./types";
+import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
+
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 import { CourseActions } from "./actions";
 
@@ -105,9 +102,13 @@ export type AssignmentRecord = TypedMap<{
   collect_path: string;
   graded_path: string;
 
+  nbgrader?: boolean; // if true, probably includes at least one nbgrader ipynb file
+
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };
-  nbgrader?: { [student_id: string]: { [ipynb: string]: NBGraderGrades } };
+  nbgrader_scores?: {
+    [student_id: string]: { [ipynb: string]: NotebookScores | string };
+  };
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;

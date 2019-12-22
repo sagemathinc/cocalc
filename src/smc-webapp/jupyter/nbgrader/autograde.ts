@@ -125,10 +125,11 @@ export interface Score {
   manual: boolean; // true if this must be manually graded.
 }
 
-export type Scores = { [grade_id: string]: Score };
+// Scores or string = error message.
+export type NotebookScores = { [grade_id: string]: Score };
 
-export function extract_auto_scores(notebook: JupyterNotebook): Scores {
-  const scores: Scores = {};
+export function extract_auto_scores(notebook: JupyterNotebook): NotebookScores {
+  const scores: NotebookScores = {};
   for (const cell of notebook.cells) {
     if (cell == null) continue;
     const metadata = cell.metadata;
