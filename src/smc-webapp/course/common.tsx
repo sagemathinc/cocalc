@@ -198,6 +198,7 @@ interface StudentAssignmentInfoProps {
   };
   edited_grade?: string;
   edited_comments?: string;
+  nbgrader_score?: { score: number; points: number; error?: boolean };
   is_editing: boolean;
 }
 
@@ -386,7 +387,16 @@ export class StudentAssignmentInfo extends Component<
     }
   };
 
+  private render_nbgrader_score(): Rendered {
+    if (!this.props.nbgrader_score) return;
+    const { score, points, error } = this.props.nbgrader_score;
+    return <div>nbgrader: {error ? "error" : `${score}/${points}`}</div>;
+  }
+
   private render_nbgrader(): Rendered {
+    if (this.props.nbgrader_score) {
+      return this.render_nbgrader_score();
+    }
     if (
       !this.props.assignment.get("nbgrader") ||
       this.props.assignment.get("skip_grading")

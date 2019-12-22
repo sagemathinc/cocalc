@@ -1386,6 +1386,10 @@ class Student extends Component<StudentProps, StudentState> {
           assignment={assignment}
           grade={grade}
           comments={comments}
+          nbgrader_score={store.get_nbgrader_score(
+            assignment.get("assignment_id"),
+            this.props.student.get("student_id")
+          )}
           info={info}
           is_editing={!!edited_feedback}
           edited_comments={edited_comments}
@@ -1486,7 +1490,7 @@ class Student extends Component<StudentProps, StudentState> {
     // it'll be the antd modal popup anyways...
     // See https://github.com/sagemathinc/cocalc/issues/4286
     return (
-      <div style={{whiteSpace:'normal'}}>
+      <div style={{ whiteSpace: "normal" }}>
         <Row>
           <Col md={16}>{this.render_project_access()}</Col>
           <Col md={8}>{this.render_delete_button()}</Col>

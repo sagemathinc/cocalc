@@ -431,6 +431,43 @@ export class CourseStore extends Store<CourseState> {
     return r == null ? "" : r;
   }
 
+  public get_nbgrader_scores(
+    assignment_id: string,
+    student_id: string
+  ): { [ipynb: string]: NotebookScores | string } | undefined {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) return undefined;
+    const x = assignment.getIn(["nbgrader_scores", student_id]);
+    if (x == null) return undefined;
+    return x.toJS();
+  }
+
+  public get_nbgrader_score(
+    assignment_id: string,
+    student_id: string
+  ): { score: number; points: number; error?: boolean } | undefined {
+    const scores = this.get_nbgrader_scores(assignment_id, student_id);
+    if (scores == null) return undefined;
+    let points: number = 0;
+    let score: number = 0;
+    let error: boolean = false;
+    for (const ipynb in scores) {
+      const x = scores[ipynb];
+      if (typeof x == "string") {
+        error = true;
+        continue;
+      }
+      for (const grade_id in x) {
+        const y = x[grade_id];
+        if (y.score) {
+          score += y.score;
+        }
+        points += y.points;
+      }
+    }
+    return { score, points, error };
+  }
+
   public get_comments(assignment_id: string, student_id: string): string {
     const { assignment } = this.resolve({ assignment_id });
     if (assignment == null) return "";
