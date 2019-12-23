@@ -80,9 +80,9 @@ MetricsRecorder = require('./metrics-recorder')
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
 
-if fs.existsSync(path_module.join(SMC_ROOT, 'smc-hub', 'lti', 'lti.ts'))
+try
     {LTIService} = require('./lti/lti')
-else
+catch
     # silly stub
     class LTIService
         start: =>
