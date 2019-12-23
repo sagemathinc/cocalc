@@ -12,12 +12,9 @@ export function public_share_url(
   isdir: boolean = false
 ): string {
   const base = share_server_url();
-  let display_url = `${base}${share_id(project_id, path)}/${encode_path(
-    path
-  )}?viewer=share`;
-  if (isdir) {
-    display_url += "/";
-  }
+  let display_url = `${base}${share_id(project_id, path)}/${encode_path(path)}${
+    isdir ? "/" : ""
+  }?viewer=share`;
   return display_url;
 }
 
