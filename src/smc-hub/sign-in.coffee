@@ -308,8 +308,9 @@ _sign_in_using_auth_token = (opts, done) ->
                 account_id : account_id
                 columns    : ['email_address', 'lti_id']
                 cb         : (err, _account) ->
+                    # for LTI accounts, we set the email address at least to an empty string
                     if !!_account.lti_id
-                        _account.email_address = ''
+                        _account.email_address ?= ''
                     account = _account; cb(err)
         # remember me
         (cb) ->

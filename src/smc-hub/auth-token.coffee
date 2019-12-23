@@ -60,7 +60,6 @@ exports.get_user_auth_token = (opts) ->
                     account_id : opts.account_id
                     columns    : ["lti_id"]
                     cb         : (err, lti_id) =>
-                        console.log("AUTH TOKEN", lti_id)
                         is_lti = !!lti_id
                         cb(err)
         (cb) ->

@@ -10,10 +10,6 @@ export const lti = create({
       type: "string",
       desc: "displayed name (internally)"
     },
-    primary_contact: {
-      type: "uuid",
-      desc: "account ID of the primary contact"
-    },
     config: {
       type: "map",
       desc: "extra information related to LTI"
@@ -30,7 +26,6 @@ export const lti = create({
         fields: {
           iss: null,
           name: null,
-          primary_contact: null,
           config: null
         }
       },
@@ -39,7 +34,6 @@ export const lti = create({
         fields: {
           iss: null,
           name: null,
-          primary_contact: null,
           config: null
         }
       }

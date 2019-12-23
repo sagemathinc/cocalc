@@ -1105,7 +1105,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     get_account: (opts) =>
         opts = defaults opts,
-            email_address : undefined     # provide either email XOR account_id (not both) XOR lti_id
+            email_address : undefined     # provide only one of email, account_id, or lti_id
             account_id    : undefined
             lti_id        : undefined
             columns       : ['account_id',
@@ -1757,6 +1757,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     _validate_opts: (opts) =>
         for k, v of opts
             if k == 'lti_id'
+                if not (Array.isArray(v) and v.length > 0)
+                    opts.cb?("invalid #{k} -- can't be an empty array")
+                    return false
                 for x in v
                     if not (typeof x == 'string' and x.length > 0)
                         opts.cb?("invalid #{k} -- #{v}")

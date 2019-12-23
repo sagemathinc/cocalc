@@ -79,7 +79,15 @@ MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
-{LTIService} = require('./lti/lti')
+
+if fs.existsSync(path_module.join(SMC_ROOT, 'smc-hub', 'lti', 'lti.ts'))
+    {LTIService} = require('./lti/lti')
+else
+    # silly stub
+    class LTIService
+        start: =>
+            throw new Error('NO LTI MODULE')
+
 
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
@@ -400,7 +408,7 @@ start_lti_service = (cb) ->
         (cb) ->
             lti_service = new LTIService(port:program.port, db:database, base_url:BASE_URL, compute_server:compute_server)
             await lti_service.start()
-    ], cb)
+    ])
 
 update_stats = (cb) ->
     # This calculates and updates the statistics for the /stats endpoint.
@@ -778,9 +786,7 @@ command_line = () ->
                 process.exit()
         else if program.lti
             console.log("LTI MODE")
-            start_lti_service (err) ->
-                winston.debug("DONE", err)
-                process.exit()
+            start_lti_service()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
