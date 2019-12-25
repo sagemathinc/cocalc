@@ -31,16 +31,17 @@ For debugging, this may help:
 # can import other files from there.
 import os, sys, time, operator
 import __future__ as future
+from functools import reduce
 
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
     try:
-        return unicode(s, 'utf8')
+        return str(s, 'utf8')
     except:
         try:
-            return unicode(s)
+            return str(s)
         except:
             return s
 
@@ -59,7 +60,7 @@ def log(*args):
         debug_log.write(mesg)
         debug_log.flush()
     except Exception as err:
-        print("an error writing a log message (ignoring) -- %s" % err, args)
+        print(("an error writing a log message (ignoring) -- %s" % err, args))
 
 
 # used for clearing pylab figure
@@ -83,7 +84,7 @@ import json, resource, shutil, signal, socket, struct, \
 # to understand it, see https://regex101.com/ or https://www.debuggex.com/
 RE_POSSIBLE_IMPLICIT_MUL = re.compile(r'(?:(?<=[^a-zA-Z])|^)(\d+[a-zA-Z\(]+)')
 
-import sage_parsing, sage_salvus
+from . import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
@@ -114,7 +115,7 @@ def reload_attached_files_if_mod_smc():
         timestr = time.strftime('%T', mtime)
         log('reloading attached file {0} modified at {1}'.format(
             basename, timestr))
-        from sage_salvus import load
+        from .sage_salvus import load
         load(filename)
 
 
@@ -176,7 +177,7 @@ class ConnectionJSON(object):
         m = json.dumps(m)
         if '\\u0000' in m:
             raise RuntimeError("NULL bytes not allowed")
-        log(u"sending message '", truncate_text(m, 256), u"'")
+        log("sending message '", truncate_text(m, 256), "'")
         self._send('j' + m)
         return len(m)
 
@@ -269,7 +270,7 @@ def truncate_text_warn(s, max_size, name):
 class Message(object):
     def _new(self, event, props={}):
         m = {'event': event}
-        for key, val in props.iteritems():
+        for key, val in props.items():
             if key != 'self':
                 m[key] = val
         return m
@@ -320,7 +321,7 @@ class Message(object):
         m['id'] = id
         t = truncate_text_warn
         did_truncate = False
-        import sage_server  # we do this so that the user can customize the MAX's below.
+        from . import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
             code['source'], did_truncate, tmsg = t(code['source'],
                                                    sage_server.MAX_CODE_SIZE,
@@ -395,7 +396,7 @@ def client1(port, hostname):
     conn.send_json(message.start_session())
     typ, mesg = conn.recv()
     pid = mesg['pid']
-    print("PID = %s" % pid)
+    print(("PID = %s" % pid))
 
     id = 0
     while True:
@@ -413,8 +414,8 @@ def client1(port, hostname):
                         sys.stdout.write(mesg['stdout'])
                         sys.stdout.flush()
                     if 'stderr' in mesg:
-                        print('!  ' +
-                              '\n!  '.join(mesg['stderr'].splitlines()))
+                        print(('!  ' +
+                              '\n!  '.join(mesg['stderr'].splitlines())))
                     if 'done' in mesg and mesg['id'] >= id:
                         break
             id += 1
@@ -469,7 +470,7 @@ class BufferedOutputStream(object):
         try:
             self._f(self._buf, done=done)
         except UnicodeDecodeError:
-            self._f(unicode(self._buf, errors='replace'), done=done)
+            self._f(str(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):
@@ -631,7 +632,7 @@ class Salvus(object):
         mesg = message.output(*args, **kwds)
         if not mesg.get('once', False):
             self._num_output_messages += 1
-        import sage_server
+        from . import sage_server
 
         if self._num_output_messages > sage_server.MAX_OUTPUT_MESSAGES:
             self._output_warning_sent = True
@@ -769,7 +770,7 @@ class Salvus(object):
             renderer=None,  # None, 'webgl', or 'canvas'
     ):
 
-        from graphics import graphics3d_to_jsonable, json_float as f
+        from .graphics import graphics3d_to_jsonable, json_float as f
 
         # process options, combining ones set explicitly above with ones inherited from 3d scene
         opts = {
@@ -831,7 +832,7 @@ class Salvus(object):
         }
 
         if isinstance(frame, dict):
-            for k in fr.keys():
+            for k in list(fr.keys()):
                 if k in frame:
                     fr[k] = f(frame[k])
             fr['draw'] = frame.get('draw', True)
@@ -864,7 +865,7 @@ class Salvus(object):
                           done=done)
 
     def d3_graph(self, g, **kwds):
-        from graphics import graph_to_d3_jsonable
+        from .graphics import graph_to_d3_jsonable
         self._send_output(id=self._id,
                           d3={
                               "viewer": "graph",
@@ -924,14 +925,14 @@ class Salvus(object):
         if raw:
             info = self.project_info()
             path = os.path.abspath(filename)
-            home = os.environ[u'HOME'] + u'/'
+            home = os.environ['HOME'] + '/'
             if path.startswith(home):
                 path = path[len(home):]
             else:
                 raise ValueError(
-                    u"can only send raw files in your home directory")
-            url = os.path.join(u'/', info['base_url'].strip('/'),
-                               info['project_id'], u'raw', path.lstrip('/'))
+                    "can only send raw files in your home directory")
+            url = os.path.join('/', info['base_url'].strip('/'),
+                               info['project_id'], 'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
                 self._send_output(id=self._id,
@@ -976,10 +977,10 @@ class Salvus(object):
                           done=done)
         if not show:
             info = self.project_info()
-            url = u"%s/blobs/%s?uuid=%s" % (info['base_url'], filename,
+            url = "%s/blobs/%s?uuid=%s" % (info['base_url'], filename,
                                             file_uuid)
             if download:
-                url += u'?download'
+                url += '?download'
             return TemporaryURL(url=url, ttl=mesg.get('ttl', 0))
 
     def python_future_feature(self, feature=None, enable=None):
@@ -990,7 +991,7 @@ class Salvus(object):
             if enable is not None:
                 raise ValueError(
                     "enable may not be specified when feature is None")
-            return sorted(Salvus._py_features.iterkeys())
+            return sorted(Salvus._py_features.keys())
 
         attr = getattr(future, feature, None)
         if (feature not in future.all_feature_names) or (
@@ -1107,7 +1108,7 @@ class Salvus(object):
 
         compile_flags = reduce(
             operator.or_, (feature.compiler_flag
-                           for feature in Salvus._py_features.itervalues()), 0)
+                           for feature in Salvus._py_features.values()), 0)
 
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
@@ -1182,7 +1183,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                         compile_flags = reduce(
                             operator.or_,
                             (feature.compiler_flag
-                             for feature in features.itervalues()),
+                             for feature in features.values()),
                             compile_flags)
                     exec(
                         compile(block + '\n',
@@ -1198,10 +1199,10 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                     sys.stderr.write(
                         '\n\n*** WARNING: Code contains non-ascii characters    ***\n'
                     )
-                    for c in u'\u201c\u201d':
+                    for c in '\u201c\u201d':
                         if c in code:
                             sys.stderr.write(
-                                u'*** Maybe the character < %s > should be replaced by < " > ? ***\n'
+                                '*** Maybe the character < %s > should be replaced by < " > ? ***\n'
                                 % c)
                             break
                     sys.stderr.write('\n\n')
@@ -1209,7 +1210,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                 from exceptions import SyntaxError, TypeError
                 exc_type, _, _ = sys.exc_info()
                 if exc_type in [SyntaxError, TypeError]:
-                    from sage_parsing import strip_string_literals
+                    from .sage_parsing import strip_string_literals
                     code0, _, _ = strip_string_literals(code)
                     implicit_mul = RE_POSSIBLE_IMPLICIT_MUL.findall(code0)
                     if len(implicit_mul) > 0:
@@ -1241,11 +1242,11 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         code blocks that are set to any non-default code_decorator.
         """
         import sage  # used below as a code decorator
-        if isinstance(code_decorators, (str, unicode)):
+        if isinstance(code_decorators, str):
             code_decorators = [code_decorators]
 
         if preparse:
-            code_decorators = map(sage_parsing.preparse_code, code_decorators)
+            code_decorators = list(map(sage_parsing.preparse_code, code_decorators))
 
         code_decorators = [
             eval(code_decorator, self.namespace)
@@ -1265,7 +1266,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         for code_decorator in reversed(code_decorators):
             if hasattr(code_decorator,
                        'eval'):  # eval is for backward compatibility
-                print(code_decorator.eval(code, locals=self.namespace)),
+                print((code_decorator.eval(code, locals=self.namespace)), end=' ')
                 code = ''
             elif code_decorator is sage:
                 # special case -- the sage module (i.e., %sage) should do nothing.
@@ -1275,7 +1276,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
             if code is None:
                 code = ''
 
-        if code != '' and isinstance(code, (str, unicode)):
+        if code != '' and isinstance(code, str):
             self.execute(code,
                          preparse=preparse,
                          namespace=namespace,
@@ -1355,7 +1356,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
 
         """
         stdout = output if isinstance(output,
-                                      (str, unicode)) else unicode8(output)
+                                      str) else unicode8(output)
         self._send_output(stdout=stdout, done=done, id=self._id, once=once)
         return self
 
@@ -1370,7 +1371,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
 
         """
         stderr = output if isinstance(output,
-                                      (str, unicode)) else unicode8(output)
+                                      str) else unicode8(output)
         self._send_output(stderr=stderr, done=done, id=self._id, once=once)
         return self
 
@@ -1387,7 +1388,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         appropriate syntax highlighting, maybe a link to open the source file, etc.
         """
         source = source if isinstance(source,
-                                      (str, unicode)) else unicode8(source)
+                                      str) else unicode8(source)
         code = {
             'source': source,
             'filename': filename,
@@ -1547,7 +1548,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         salvus.notify(type="warning", title="This warning", message="This is a quick message.", timeout=3)
         """
         obj = {}
-        for k, v in kwds.iteritems():
+        for k, v in kwds.items():
             if k == 'text':   # backward compat
                 k = 'message'
             elif k == 'type' and v == 'notice':  # backward compat
@@ -1879,7 +1880,7 @@ def session(conn):
 
 def jupyter_introspect(conn, id, line, preparse, kc):
     import jupyter_client
-    from Queue import Empty
+    from queue import Empty
 
     try:
         salvus = Salvus(conn=conn, id=id)
@@ -2129,7 +2130,7 @@ def serve(port, host, extra_imports=False):
         log('imported sage library and other components in %s seconds' %
             (time.time() - tm))
 
-        for k, v in sage_salvus.interact_functions.iteritems():
+        for k, v in sage_salvus.interact_functions.items():
             namespace[k] = v
             # See above -- not doing this, since it is REALLY SLOW to import.
             # This does mean that some old code that tries to use interact might break (?).
@@ -2188,7 +2189,7 @@ def serve(port, host, extra_imports=False):
             # do not use log.info(...) in the server loop; threads = race conditions that hang server every so often!!
             try:
                 if children:
-                    for pid in children.keys():
+                    for pid in list(children.keys()):
                         if os.waitpid(pid, os.WNOHANG) != (0, 0):
                             log("subprocess %s terminated, closing connection"
                                 % pid)
@@ -2304,7 +2305,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.daemon and not args.pidfile:
-        print("%s: must specify pidfile in daemon mode" % sys.argv[0])
+        print(("%s: must specify pidfile in daemon mode" % sys.argv[0]))
         sys.exit(1)
 
     if args.log_level:
@@ -2336,7 +2337,7 @@ if __name__ == "__main__":
 
     main = lambda: run_server(port=args.port, host=args.host, pidfile=pidfile)
     if args.daemon and args.pidfile:
-        import daemon
+        from . import daemon
         daemon.daemonize(args.pidfile)
         main()
     else:

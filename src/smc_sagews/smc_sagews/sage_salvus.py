@@ -14,6 +14,7 @@
 
 # set backend of matplot lib before any other module is loaded
 import matplotlib
+import imp
 matplotlib.use('Agg')
 
 import copy, os, sys, types, re
@@ -43,7 +44,7 @@ salvus = None
 def set_salvus(salvus_obj):
     global salvus
     salvus = salvus_obj
-    import sage_jupyter
+    from . import sage_jupyter
     sage_jupyter.salvus = salvus_obj
 
 
@@ -243,8 +244,8 @@ class InteractCell(object):
         Call self._f with inputs specified by vals.  Any input variables not
         specified in vals will have the value they had last time.
         """
-        self.changed = [str(x) for x in vals.keys()]
-        for k, v in vals.iteritems():
+        self.changed = [str(x) for x in list(vals.keys())]
+        for k, v in vals.items():
             x = self._controls[k](v)
             self._last_vals[k] = x
 
@@ -269,7 +270,7 @@ class InteractFunction(object):
 
     def __call__(self, **kwds):
         salvus.clear()
-        for arg, value in kwds.iteritems():
+        for arg, value in kwds.items():
             self.__setattr__(arg, value)
         return self.interact_cell(kwds)
 
@@ -618,7 +619,7 @@ class control:
     def jsonable(self):
         """Return JSON-able object the client browser uses to render the control."""
         X = {'control_type': self._control_type}
-        for k, v in self._opts.iteritems():
+        for k, v in self._opts.items():
             X[k] = jsonable(v)
         return X
 
@@ -630,7 +631,7 @@ def list_of_first_n(v, n):
     w = []
     while n > 0:
         try:
-            w.append(v.next())
+            w.append(next(v))
         except StopIteration:
             return w
         n -= 1
@@ -657,8 +658,8 @@ def automatic_control(default):
         return default
     elif isinstance(default, str):
         return input_box(default, label=label, type=str)
-    elif isinstance(default, unicode):
-        return input_box(default, label=label, type=unicode)
+    elif isinstance(default, str):
+        return input_box(default, label=label, type=str)
     elif isinstance(default, bool):
         return checkbox(default, label=label)
     elif isinstance(default, list):
@@ -723,7 +724,7 @@ class ParseValue:
         self._type = type
 
     def _eval(self, value):
-        if isinstance(value, (str, unicode)):
+        if isinstance(value, str):
             if not value:
                 return ''
             return sage_eval(
@@ -737,8 +738,8 @@ class ParseValue:
             return self._eval(value)
         elif self._type is str:
             return str(value)
-        elif self._type is unicode:
-            return unicode(value)
+        elif self._type is str:
+            return str(value)
         elif self._type is Color:
             try:
                 return Color(value)
@@ -952,8 +953,8 @@ class InputGrid:
         if not isinstance(x, list):
             return [[x for _ in range(self.ncols)] for _ in range(self.nrows)]
         elif not all(isinstance(elt, list) for elt in x):
-            return [[x[i * self.ncols + j] for j in xrange(self.ncols)]
-                    for i in xrange(self.nrows)]
+            return [[x[i * self.ncols + j] for j in range(self.ncols)]
+                    for i in range(self.nrows)]
         else:
             return x
 
@@ -1357,11 +1358,11 @@ class HTML:
             '''
             This not only deals with unicode strings, but also converts e.g. `Integer` objects to a str
             '''
-            if not isinstance(s, unicode):
+            if not isinstance(s, str):
                 try:
-                    return unicode(s, 'utf8')
+                    return str(s, 'utf8')
                 except:
-                    return unicode(str(s), 'utf8')
+                    return str(str(s), 'utf8')
             return s
 
         def mk_row(row, header=False):
@@ -1371,15 +1372,15 @@ class HTML:
             ) or is_vector, '"rows" must contain lists or vectors for each row'
             tag = 'th' if header else 'td'
             row = [
-                u'<{tag}>{}</{tag}>'.format(as_unicode(_), tag=tag)
+                '<{tag}>{}</{tag}>'.format(as_unicode(_), tag=tag)
                 for _ in row
             ]
-            return u'<tr>{}</tr>'.format(u''.join(row))
+            return '<tr>{}</tr>'.format(''.join(row))
 
-        thead = u'<thead>{}</thead>'.format(mk_row(
+        thead = '<thead>{}</thead>'.format(mk_row(
             table.pop(0), header=True)) if header else ''
         h_rows = [mk_row(row) for row in table]
-        html_table = u'<table style="width: auto;" class="table table-bordered">{}<tbody>{}</tbody></table>'
+        html_table = '<table style="width: auto;" class="table table-bordered">{}<tbody>{}</tbody></table>'
         self(html_table.format(thead, ''.join(h_rows)))
 
 
@@ -1615,8 +1616,8 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print("\nCPU time: %.2f s, Wall time: %.2f s" %
-              (cputime(self._start_cputime), walltime(self._start_walltime)))
+        print(("\nCPU time: %.2f s, Wall time: %.2f s" %
+              (cputime(self._start_cputime), walltime(self._start_walltime))))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -1680,10 +1681,10 @@ def timeit(*args, **kwds):
 
     """
     def go(code):
-        print(
+        print((
             sage.misc.sage_timeit.sage_timeit(code,
                                               globals_dict=salvus.namespace,
-                                              **kwds))
+                                              **kwds)))
 
     if len(args) == 0:
         return lambda code: go(code)
@@ -1885,7 +1886,7 @@ def cython(code=None, **kwds):
             defined.append(name)
     if not silent:
         if defined:
-            print("Defined %s" % (', '.join(defined)))
+            print(("Defined %s" % (', '.join(defined))))
         else:
             print("No functions defined.")
 
@@ -2180,7 +2181,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
 
     This will produce this output: array([  0.,   1.,   1.,   2.,   3.,   5.,   8.,  13.,  21.,  34.])
     """
-    import __builtin__
+    import builtins
     from sage.misc.temporary_file import tmp_dir
     if len(x.splitlines()) == 1 and os.path.exists(x):
         filename = x
@@ -2241,7 +2242,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         if verbose:
             print(log_string)
 
-        m = __builtin__.__import__(name)
+        m = builtins.__import__(name)
 
     finally:
         os.sys.path = old_import_path
@@ -2253,7 +2254,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
             # This can fail for example over NFS
             pass
 
-    for k, x in m.__dict__.iteritems():
+    for k, x in m.__dict__.items():
         if k[0] != '_':
             salvus.namespace[k] = x
 
@@ -2557,7 +2558,7 @@ class Fork(object):
             # Run some commands to tell Sage that its
             # pid has changed.
             import sage.misc.misc
-            reload(sage.misc.misc)
+            imp.reload(sage.misc.misc)
 
             # The pexpect interfaces (and objects defined in them) are
             # not valid.
@@ -2581,17 +2582,17 @@ class Fork(object):
                 sys.stderr.write(str(s))
                 sys.stderr.flush()
             else:
-                for var, val in s.iteritems():
+                for var, val in s.items():
                     try:
                         salvus.namespace[var] = loads(val)
                     except:
-                        print("unable to unpickle %s" % var)
+                        print(("unable to unpickle %s" % var))
             salvus._conn.send_json({'event': 'output', 'id': id, 'done': True})
             if pid in self._children:
                 del self._children[pid]
 
         pid = async(f, tuple([]), {}, g)
-        print("Forked subprocess %s" % pid)
+        print(("Forked subprocess %s" % pid))
         self._children[pid] = id
 
     def kill(self, pid):
@@ -2648,7 +2649,7 @@ def show_2d_plot_using_matplotlib(obj, svg, **kwds):
         obj = obj.get_figure()
 
     if 'events' in kwds:
-        from graphics import InteractiveGraphics
+        from .graphics import InteractiveGraphics
         ig = InteractiveGraphics(obj, **kwds['events'])
         n = '__a' + uuid().replace(
             '-', '')  # so it doesn't get garbage collected instantly.
@@ -2869,7 +2870,7 @@ def show(*objs, **kwds):
     for t in ['svg', 'd3', 'display']:
         if t in kwds:
             del kwds[t]
-    import graphics
+    from . import graphics
 
     def show0(obj, combine_all=False):
         # Either show the object and return None or
@@ -3323,14 +3324,14 @@ def dynamic(*args, **kwds):
     for var in args:
         if not isinstance(var, str):
             i = id(var)
-            for k, v in salvus.namespace.iteritems():
+            for k, v in salvus.namespace.items():
                 if id(v) == i:
                     _dynamic(k)
             return
         else:
             _dynamic(var)
 
-    for var, control in kwds.iteritems():
+    for var, control in kwds.items():
         _dynamic(var, control)
 
 
@@ -3423,7 +3424,7 @@ def reset(vars=None, attached=False):
         return
     G = salvus.namespace
     T = type(sys)  # module type
-    for k in G.keys():
+    for k in list(G.keys()):
         if k[0] != '_' and type(k) != T:
             try:
                 if k != 'salvus':
@@ -3447,7 +3448,7 @@ reset.__doc__ += sage.misc.reset.reset.__doc__
 
 def restore(vars=None):
     ""
-    if isinstance(vars, unicode):
+    if isinstance(vars, str):
         vars = str(vars)  # sage.misc.reset is unicode ignorant
         if ',' in vars:  # sage.misc.reset is stupid about commas and space -- TODO: make a patch to sage
             vars = [v.strip() for v in vars.split(',')]
@@ -3462,7 +3463,7 @@ restore.__doc__ += sage.misc.reset.restore.__doc__
 
 # NOTE: this is not used anymore
 def md2html(s):
-    from markdown2Mathjax import sanitizeInput, reconstructMath
+    from .markdown2Mathjax import sanitizeInput, reconstructMath
     from markdown2 import markdown
 
     delims = [('\\(', '\\)'), ('$$', '$$'), ('\\[', '\\]'),
@@ -3657,7 +3658,7 @@ def input(*args, **kwds):
 
     """
     kwds['type'] = 'sage'
-    return raw_input(*args, **kwds)
+    return input(*args, **kwds)
 
 
 #####
@@ -3716,8 +3717,8 @@ def pandoc(fmt, doc=None, hide=True):
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
                          stdin=subprocess.PIPE)
-    if not isinstance(doc, unicode):
-        doc = unicode(doc, 'utf8')
+    if not isinstance(doc, str):
+        doc = str(doc, 'utf8')
     p.stdin.write(doc.encode('UTF-8'))
     p.stdin.close()
     err = p.stderr.read()
@@ -3787,7 +3788,7 @@ def attach(*args):
     # can't (yet) pass "attach = True" to load(), so do this
 
     if len(args) == 1:
-        if isinstance(args[0], (unicode, str)):
+        if isinstance(args[0], str):
             args = tuple(args[0].replace(',', ' ').split())
         if isinstance(args[0], (list, tuple)):
             args = args[0]
@@ -3857,7 +3858,7 @@ def load(*args, **kwds):
     ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
-        if isinstance(args[0], (unicode, str)):
+        if isinstance(args[0], str):
             args = (args[0].strip(), )
         if isinstance(args[0], (list, tuple)):
             args = args[0]
@@ -4000,7 +4001,7 @@ import sage.misc.latex, types
 # We make this a list so that users can append to it easily.
 TYPESET_MODE_EXCLUDES = [
     sage.misc.latex.LatexExpr,
-    types.NoneType,
+    type(None),
     type,
     sage.plot.plot3d.base.Graphics3d,
     sage.plot.graphics.Graphics,
@@ -4026,7 +4027,7 @@ def typeset_mode(on=True, display=True, **args):
          typeset_mode(True, display=False) # typesetting mode on, but do not make output big and centered
 
     """
-    if isinstance(on, (str, unicode)):  # e.g.,   %typeset_mode False
+    if isinstance(on, str):  # e.g.,   %typeset_mode False
         on = sage_eval(on, {'false': False, 'true': True})
     if on:
 
@@ -4184,12 +4185,12 @@ def modes():
     """
     import re
     mode_cmds = set()
-    for s in open(os.path.realpath(__file__), 'r').xreadlines():
+    for s in open(os.path.realpath(__file__), 'r'):
         s = s.strip()
         if s.startswith('%'):
             mode_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
     mode_cmds.discard('%s')
-    for k, v in sage.interfaces.all.__dict__.iteritems():
+    for k, v in sage.interfaces.all.__dict__.items():
         if isinstance(v, sage.interfaces.expect.Expect):
             mode_cmds.add('%' + k)
     mode_cmds.update([
@@ -4369,7 +4370,7 @@ def help(*args, **kwds):
 
 
 # Import the jupyter kernel client.
-from sage_jupyter import jupyter
+from .sage_jupyter import jupyter
 
 
 # license() workaround for IPython pager
@@ -4384,7 +4385,7 @@ def license():
         | sage: license()
 
     """
-    print(sage.misc.copying.license)
+    print((sage.misc.copying.license))
 
 
 # search_src
@@ -4401,7 +4402,7 @@ def which(pgm):
             return p
 
 
-from sage_server import MAX_CODE_SIZE
+from .sage_server import MAX_CODE_SIZE
 
 
 def search_src(str, max_chars=MAX_CODE_SIZE):

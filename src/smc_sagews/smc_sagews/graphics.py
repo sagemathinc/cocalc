@@ -20,7 +20,7 @@
 ###############################################################################
 
 import json, math
-import sage_salvus
+from . import sage_salvus
 
 from uuid import uuid4
 
@@ -599,7 +599,7 @@ class InteractiveGraphics(object):
 
         sage_salvus.salvus.namespace[id] = f
         x = {}
-        for ev in self._events.keys():
+        for ev in list(self._events.keys()):
             x[ev] = id
 
         sage_salvus.salvus.file(filename, show=True, events=x)

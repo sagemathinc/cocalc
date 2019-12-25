@@ -108,7 +108,7 @@ def _jkmagic(kernel_name, **kwargs):
     # i CPU time to import.
     import jupyter_client  # TIMING: takes a bit of time
     from ansi2html import Ansi2HTMLConverter  # TIMING: this is surprisingly bad.
-    from Queue import Empty  # TIMING: cheap
+    from queue import Empty  # TIMING: cheap
     import base64, tempfile, sys, re  # TIMING: cheap
 
     import warnings
@@ -242,7 +242,7 @@ def _jkmagic(kernel_name, **kwargs):
                         salvus.html(htms)
                     os.unlink(fname)
 
-                mkeys = msg_data.keys()
+                mkeys = list(msg_data.keys())
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
                 txtmodes = [
                     'text/html', 'text/plain', 'text/latex', 'text/markdown'
@@ -346,7 +346,7 @@ def _jkmagic(kernel_name, **kwargs):
             elif msg_type == 'execute_result':
                 if not 'data' in content:
                     continue
-                p('execute_result data keys: ', content['data'].keys())
+                p('execute_result data keys: ', list(content['data'].keys()))
                 display_mime(content['data'])
 
             elif msg_type == 'display_data':

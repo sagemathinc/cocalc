@@ -77,7 +77,7 @@ class Julia(Expect):
     def eval(self, code, **ignored):
         """
         """
-        if isinstance(code, unicode):
+        if isinstance(code, str):
             code = code.encode('utf8')
 
         START = "\x1b[?2004l\x1b[0m"

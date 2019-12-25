@@ -33,14 +33,14 @@ class TestSageTiming:
         assert result == 0
         tick = time.time()
         elapsed = tick - start
-        print("elapsed 1: %s" % elapsed)
+        print(("elapsed 1: %s" % elapsed))
         # second load after things are cached
         start = time.time()
         result = os.system("echo '2+2' | sage -python")
         assert result == 0
         tick = time.time()
         elapsed = tick - start
-        print("elapsed 2: %s" % elapsed)
+        print(("elapsed 2: %s" % elapsed))
         assert elapsed < 4.0
 
     def test_import_sage_server(self):
@@ -54,7 +54,7 @@ class TestSageTiming:
         assert result == 0
         tick = time.time()
         elapsed = tick - start
-        print("elapsed %s" % elapsed)
+        print(("elapsed %s" % elapsed))
         assert elapsed < 20.0
 
 
@@ -70,26 +70,26 @@ class TestStartSageServer:
 
         # start a new sage_server process
         os.system(conftest.start_cmd())
-        print("sage_server start time %s sec" % (time.time() - start))
+        print(("sage_server start time %s sec" % (time.time() - start)))
         # add pause here because sometimes the log file isn't ready immediately
         time.sleep(0.5)
 
         # setup connection to sage_server TCP listener
         host, port = conftest.get_sage_server_info()
-        print("host %s  port %s" % (host, port))
+        print(("host %s  port %s" % (host, port)))
 
         # multiple tries at connecting because there's a delay between
         # writing the port number and listening on the socket for connections
         for attempt in range(10):
             attempt += 1
-            print("attempt %s" % attempt)
+            print(("attempt %s" % attempt))
             try:
 
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.connect((host, port))
                 break
             except:
-                print(sys.exc_info()[0])
+                print((sys.exc_info()[0]))
                 pass
             time.sleep(0.5)
         else:
@@ -111,7 +111,7 @@ class TestStartSageServer:
         typ, mesg = conn.recv()
         assert typ == 'json'
         pid = mesg['pid']
-        print("sage_server PID = %s" % pid)
+        print(("sage_server PID = %s" % pid))
 
         code = "2+2\n"
         output = "4\n"
@@ -140,11 +140,11 @@ class TestStartSageServer:
                 pass
             time.sleep(0.5)
         else:
-            print("sending sigterm to %s" % pid)
+            print(("sending sigterm to %s" % pid))
             os.kill(pid, signal.SIGTERM)
 
         # check timing
-        print("elapsed 2+2 %s" % elapsed)
+        print(("elapsed 2+2 %s" % elapsed))
         assert elapsed < 25.0
 
         return

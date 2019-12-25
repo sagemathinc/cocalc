@@ -100,7 +100,7 @@ class TestLinearAlgebra:
 
 class TestBasic:
     def test_connection_type(self, sagews):
-        print("type %s" % type(sagews))
+        print(("type %s" % type(sagews)))
         assert isinstance(sagews, conftest.ConnectionJSON)
         return
 

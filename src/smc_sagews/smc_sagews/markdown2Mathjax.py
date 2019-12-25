@@ -146,7 +146,7 @@ def reconstructMath(processedString,
     #Make html substitutions.
     if htmlSafe:
         safeAmp = re.compile("&(?!(?:amp;|lt;|gt;))")
-        for i in xrange(len(codeblocks)):
+        for i in range(len(codeblocks)):
             codeblocks[i] = safeAmp.sub("&amp;", codeblock[i])
             codeblocks[i] = codeblocks[i].replace("<", "&lt;")
             codeblocks[i] = codeblocks[i].replace(">", "&gt;")
@@ -154,7 +154,7 @@ def reconstructMath(processedString,
     outString = ''
     scan = placeholder_re.scanner(processedString)
     post = 0
-    for i in xrange(len(codeblocks)):
+    for i in range(len(codeblocks)):
         inBlock = int(codeblocks[i][0])
         match = scan.search()
         if not match:

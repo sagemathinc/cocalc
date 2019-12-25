@@ -98,7 +98,7 @@ def checkPID(pidfile):
         except OSError as why:
             if why[0] == errno.ESRCH:
                 # The pid doesnt exists.
-                print('Removing stale pidfile %s' % pidfile)
+                print(('Removing stale pidfile %s' % pidfile))
                 os.remove(pidfile)
             else:
                 sys.exit("Can't check status of PID %s from pidfile %s: %s" %

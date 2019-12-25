@@ -21,10 +21,10 @@ default_timeout = 20
 
 def unicode8(s):
     try:
-        return unicode(s, 'utf8')
+        return str(s, 'utf8')
     except:
         try:
-            return unicode(s)
+            return str(s)
         except:
             return s
 
@@ -107,7 +107,7 @@ class ConnectionJSON(object):
     def recv(self):
         n = self._recv(4)
         if len(n) < 4:
-            print("expecting 4 byte header, got", n)
+            print(("expecting 4 byte header, got", n))
             tries = 0
             while tries < 5:
                 tries += 1
@@ -153,7 +153,7 @@ def truncate_text(s, max_size):
 class Message(object):
     def _new(self, event, props={}):
         m = {'event': event}
-        for key, val in props.items():
+        for key, val in list(props.items()):
             if key != 'self':
                 m[key] = val
         return m
@@ -317,7 +317,7 @@ def get_sage_server_info(log_file=default_log_file):
         pytest.fail(
             "Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"
             % log_file)
-    print("got host %s  port %s" % (host, port))
+    print(("got host %s  port %s" % (host, port)))
     return host, int(port)
 
 
@@ -529,7 +529,7 @@ def exec2(request, sagews, test_id):
         m['preparse'] = True
 
         if timeout is not None:
-            print('overriding socket timeout to {}'.format(timeout))
+            print(('overriding socket timeout to {}'.format(timeout)))
             sagews.set_timeout(timeout)
 
         # send block of code to be executed
@@ -665,7 +665,7 @@ def execblob(request, sagews, test_id):
                 assert want_blob
                 want_blob = False
                 # when a blob is sent, the first 36 bytes are the sha1 uuid
-                print("blob len %s" % len(mesg))
+                print(("blob len %s" % len(mesg)))
                 file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == uuidsha1(mesg[SHA_LEN:])
 
@@ -732,7 +732,7 @@ def sagews(request):
     """
     # setup connection to sage_server TCP listener
     host, port = get_sage_server_info()
-    print("host %s  port %s" % (host, port))
+    print(("host %s  port %s" % (host, port)))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     sock.settimeout(default_timeout)
@@ -753,7 +753,7 @@ def sagews(request):
     typ, mesg = conn.recv()
     assert typ == 'json'
     pid = mesg['pid']
-    print("sage_server PID = %s" % pid)
+    print(("sage_server PID = %s" % pid))
 
     # teardown needed - terminate session nicely
     # use yield instead of request.addfinalizer in newer versions of pytest
@@ -769,7 +769,7 @@ def sagews(request):
                 break
             time.sleep(0.5)
         else:
-            print("sending sigterm to %s" % pid)
+            print(("sending sigterm to %s" % pid))
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError:
