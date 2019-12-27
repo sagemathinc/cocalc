@@ -29,6 +29,8 @@ For debugging, this may help:
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
+from __future__ import print_function
+import six
 import os, sys, time, operator
 import __future__ as future
 from functools import reduce
@@ -195,9 +197,8 @@ class ConnectionJSON(object):
 
     def _recv(self, n):
         #print("_recv(%s)"%n)
-        for i in range(
-                20
-        ):  # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        for i in range(20):
             try:
                 #print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
                 r = self._conn.recv(n)
@@ -415,7 +416,7 @@ def client1(port, hostname):
                         sys.stdout.flush()
                     if 'stderr' in mesg:
                         print(('!  ' +
-                              '\n!  '.join(mesg['stderr'].splitlines())))
+                               '\n!  '.join(mesg['stderr'].splitlines())))
                     if 'done' in mesg and mesg['id'] >= id:
                         break
             id += 1
@@ -978,7 +979,7 @@ class Salvus(object):
         if not show:
             info = self.project_info()
             url = "%s/blobs/%s?uuid=%s" % (info['base_url'], filename,
-                                            file_uuid)
+                                           file_uuid)
             if download:
                 url += '?download'
             return TemporaryURL(url=url, ttl=mesg.get('ttl', 0))
@@ -1106,9 +1107,10 @@ class Salvus(object):
         if pylab is not None:
             pylab.clf()
 
-        compile_flags = reduce(
-            operator.or_, (feature.compiler_flag
-                           for feature in Salvus._py_features.values()), 0)
+        compile_flags = reduce(operator.or_,
+                               (feature.compiler_flag
+                                for feature in Salvus._py_features.values()),
+                               0)
 
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
@@ -1181,9 +1183,8 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                         block, 'single')
                     if features:
                         compile_flags = reduce(
-                            operator.or_,
-                            (feature.compiler_flag
-                             for feature in features.values()),
+                            operator.or_, (feature.compiler_flag
+                                           for feature in features.values()),
                             compile_flags)
                     exec(
                         compile(block + '\n',
@@ -1246,7 +1247,8 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
             code_decorators = [code_decorators]
 
         if preparse:
-            code_decorators = list(map(sage_parsing.preparse_code, code_decorators))
+            code_decorators = list(
+                map(sage_parsing.preparse_code, code_decorators))
 
         code_decorators = [
             eval(code_decorator, self.namespace)
@@ -1264,9 +1266,10 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                 code_decorators[i] = code_decorator.before(code)
 
         for code_decorator in reversed(code_decorators):
-            if hasattr(code_decorator,
-                       'eval'):  # eval is for backward compatibility
-                print((code_decorator.eval(code, locals=self.namespace)), end=' ')
+            # eval is for backward compatibility
+            if hasattr(code_decorator, 'eval'):
+                print((code_decorator.eval(code, locals=self.namespace)),
+                      end=' ')
                 code = ''
             elif code_decorator is sage:
                 # special case -- the sage module (i.e., %sage) should do nothing.
@@ -1355,8 +1358,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - output -- string or object
 
         """
-        stdout = output if isinstance(output,
-                                      str) else unicode8(output)
+        stdout = output if isinstance(output, str) else unicode8(output)
         self._send_output(stdout=stdout, done=done, id=self._id, once=once)
         return self
 
@@ -1370,8 +1372,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - output -- string or object
 
         """
-        stderr = output if isinstance(output,
-                                      str) else unicode8(output)
+        stderr = output if isinstance(output, str) else unicode8(output)
         self._send_output(stderr=stderr, done=done, id=self._id, once=once)
         return self
 
@@ -1387,8 +1388,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         Send a code message, which is to be rendered as code by the client, with
         appropriate syntax highlighting, maybe a link to open the source file, etc.
         """
-        source = source if isinstance(source,
-                                      str) else unicode8(source)
+        source = source if isinstance(source, str) else unicode8(source)
         code = {
             'source': source,
             'filename': filename,
@@ -1549,13 +1549,13 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         """
         obj = {}
         for k, v in kwds.items():
-            if k == 'text':   # backward compat
+            if k == 'text':  # backward compat
                 k = 'message'
             elif k == 'type' and v == 'notice':  # backward compat
                 v = 'default'
             obj[k] = sage_salvus.jsonable(v)
             if k == 'delay':  # backward compat
-                obj['timeout'] = v/1000.0  # units are in seconds now.
+                obj['timeout'] = v / 1000.0  # units are in seconds now.
 
         self.javascript("alert_message(obj)", once=True, obj=obj)
 
@@ -1671,10 +1671,16 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         return INFO
 
 
-Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
-Salvus.raw_input.__func__.__doc__ = sage_salvus.raw_input.__doc__
-Salvus.clear.__func__.__doc__ = sage_salvus.clear.__doc__
-Salvus.delete_last_output.__func__.__doc__ = sage_salvus.delete_last_output.__doc__
+if six.PY2:
+    Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
+    Salvus.raw_input.__func__.__doc__ = sage_salvus.raw_input.__doc__
+    Salvus.clear.__func__.__doc__ = sage_salvus.clear.__doc__
+    Salvus.delete_last_output.__func__.__doc__ = sage_salvus.delete_last_output.__doc__
+else:
+    Salvus.pdf.__doc__ = sage_salvus.show_pdf.__doc__
+    Salvus.raw_input.__doc__ = sage_salvus.raw_input.__doc__
+    Salvus.clear.__doc__ = sage_salvus.clear.__doc__
+    Salvus.delete_last_output.__doc__ = sage_salvus.delete_last_output.__doc__
 
 
 def execute(conn, id, code, data, cell_id, preparse, message_queue):
@@ -1982,26 +1988,27 @@ def unlock_conn(conn):
         try:
             secret_token = open(secret_token_path).read().strip()
         except:
-            conn.send('n')
+            conn.send(six.b('n'))
             conn.send(
-                "Unable to accept connection, since Sage server doesn't yet know the secret token; unable to read from '%s'"
-                % secret_token_path)
+                six.
+                b("Unable to accept connection, since Sage server doesn't yet know the secret token; unable to read from '%s'"
+                  % secret_token_path))
             conn.close()
 
     n = len(secret_token)
-    token = ''
+    token = six.b('')
     while len(token) < n:
         token += conn.recv(n)
         if token != secret_token[:len(token)]:
             break  # definitely not right -- don't try anymore
-    if token != secret_token:
+    if token != six.b(secret_token):
         log("token='%s'; secret_token='%s'" % (token, secret_token))
-        conn.send('n')  # no -- invalid login
-        conn.send("Invalid secret token.")
+        conn.send(six.b('n'))  # no -- invalid login
+        conn.send(six.b("Invalid secret token."))
         conn.close()
         return False
     else:
-        conn.send('y')  # yes -- valid login
+        conn.send(six.b('y'))  # yes -- valid login
         return True
 
 
@@ -2234,7 +2241,9 @@ def run_server(port, host, pidfile, logfile=None):
     if logfile:
         LOGFILE = logfile
     if pidfile:
-        open(pidfile, 'w').write(str(os.getpid()))
+        pid = str(os.getpid())
+        print("os.getpid() = %s" % pid)
+        open(pidfile, 'w').write(pid)
     log("run_server: port=%s, host=%s, pidfile='%s', logfile='%s'" %
         (port, host, pidfile, LOGFILE))
     try:

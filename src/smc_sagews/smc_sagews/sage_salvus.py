@@ -2475,7 +2475,7 @@ def _wait_in_thread(pid, callback, filename):
     t.start()
 
 
-def async(f, args, kwds, callback):
+def async_(f, args, kwds, callback):
     """
     Run f in a forked subprocess with given args and kwds, then call the
     callback function when f terminates.
@@ -2591,7 +2591,7 @@ class Fork(object):
             if pid in self._children:
                 del self._children[pid]
 
-        pid = async(f, tuple([]), {}, g)
+        pid = async_(f, tuple([]), {}, g)
         print(("Forked subprocess %s" % pid))
         self._children[pid] = id
 

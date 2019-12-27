@@ -61,7 +61,7 @@ import sys
 import errno
 
 
-def basic_daemonize():
+def basic_daemonize(silence=True):
     # See http://www.erlenstar.demon.co.uk/unix/faq_toc.html#TOC16
     if os.fork():  # launch child and...
         os._exit(0)  # kill off parent
@@ -69,18 +69,22 @@ def basic_daemonize():
     if os.fork():  # launch child and...
         os._exit(0)  # kill off parent again.
     os.umask(0o022)  # Don't allow others to write
-    null = os.open('/dev/null', os.O_RDWR)
-    for i in range(3):
-        try:
-            os.dup2(null, i)
-        except OSError as e:
-            if e.errno != errno.EBADF:
-                raise
-    os.close(null)
+
+    if not silence:
+        print("daemonize.basic_daemonize: process NOT silenced, for debugging")
+    else:
+        null = os.open('/dev/null', os.O_RDWR)
+        for i in range(3):
+            try:
+                os.dup2(null, i)
+            except OSError as e:
+                if e.errno != errno.EBADF:
+                    raise
+        os.close(null)
 
 
 def writePID(pidfile):
-    open(pidfile, 'wb').write(str(os.getpid()))
+    open(pidfile, 'w').write(str(os.getpid()))
     if not os.path.exists(pidfile):
         raise Exception("pidfile %s does not exist" % pidfile)
 
@@ -109,5 +113,5 @@ def checkPID(pidfile):
 
 def daemonize(pidfile):
     checkPID(pidfile)
-    basic_daemonize()
+    basic_daemonize(silence=False)
     writePID(pidfile)
