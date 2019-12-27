@@ -222,6 +222,10 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
 
+        if six.PY3:
+            # bystream to string, in particular s[0] will be e.g. 'j' and not 106
+            s = s.deocde()
+
         if s[0] == 'j':
             try:
                 return 'json', json.loads(s[1:])
