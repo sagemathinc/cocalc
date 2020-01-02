@@ -633,8 +633,7 @@ def introspect(code, namespace, preparse=True):
                     v = []
 
         if get_completions:
-            result = list(
-                sorted(set(v), lambda x, y: cmp(x.lower(), y.lower())))
+            result = list(sorted(set(v), key=lambda x: x.lower()))
 
     except Exception as msg:
         traceback.print_exc()
