@@ -163,16 +163,18 @@ def uuidsha1(data):
 # A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(
-            conn, ConnectionJSON
-        )  # avoid common mistake -- conn is supposed to be from socket.socket...
+        # avoid common mistake -- conn is supposed to be from socket.socket...
+        assert not isinstance(conn, ConnectionJSON)
         self._conn = conn
 
     def close(self):
         self._conn.close()
 
     def _send(self, s):
+        if six.PY3:
+            s = s.encode('utf8')
         length_header = struct.pack(">L", len(s))
+        # py3: TypeError: can't concat str to bytes
         self._conn.send(length_header + s)
 
     def send_json(self, m):
@@ -224,7 +226,10 @@ class ConnectionJSON(object):
 
         if six.PY3:
             # bystream to string, in particular s[0] will be e.g. 'j' and not 106
-            s = s.deocde()
+            #log("ConnectionJSON::recv s=%s... (type %s)" % (s[:5], type(s)))
+            # is s always of type bytes?
+            if type(s) == bytes:
+                s = s.decode('utf8')
 
         if s[0] == 'j':
             try:
