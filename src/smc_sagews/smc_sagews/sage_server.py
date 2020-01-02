@@ -171,7 +171,7 @@ class ConnectionJSON(object):
         self._conn.close()
 
     def _send(self, s):
-        if six.PY3:
+        if six.PY3 and type(s) == str:
             s = s.encode('utf8')
         length_header = struct.pack(">L", len(s))
         # py3: TypeError: can't concat str to bytes
@@ -187,7 +187,12 @@ class ConnectionJSON(object):
 
     def send_blob(self, blob):
         s = uuidsha1(blob)
-        self._send('b' + s + blob)
+        if six.PY3 and type(blob) == bytes:
+            # we convert all to bytes first, to avoid unnecessary conversions
+            self._send(('b' + s).encode('utf8') + blob)
+        else:
+            # old sage py2 code
+            self._send('b' + s + blob)
         return s
 
     def send_file(self, filename):
@@ -1217,7 +1222,12 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
                             break
                     sys.stderr.write('\n\n')
 
-                from exceptions import SyntaxError, TypeError
+                if six.PY2:
+                    from exceptions import SyntaxError, TypeError
+                # py3: all standard errors are available by default via "builtin", not available here for some reason ...
+                if six.PY3:
+                    from builtins import SyntaxError, TypeError
+
                 exc_type, _, _ = sys.exc_info()
                 if exc_type in [SyntaxError, TypeError]:
                     from .sage_parsing import strip_string_literals
