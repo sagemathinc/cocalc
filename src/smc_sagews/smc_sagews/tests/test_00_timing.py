@@ -4,6 +4,7 @@
 # at present I don't see a pytest api feature for this
 # other than --duration flag which is experimental and
 # for profiling only
+from __future__ import absolute_import
 import pytest
 import socket
 import conftest
@@ -17,7 +18,6 @@ class TestSageTiming:
     These tests are to validate the test framework. They do not
     run sage_server.
     """
-
     def test_basic_timing(self):
         start = time.time()
         result = os.system('sleep 1')

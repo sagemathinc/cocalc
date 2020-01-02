@@ -1,5 +1,5 @@
 # A very simple interface exposed from setup.py
-
+from __future__ import absolute_import
 import os, socket, sys
 import time
 

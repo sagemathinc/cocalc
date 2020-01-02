@@ -56,6 +56,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import absolute_import
+
 import os
 import sys
 import errno
@@ -100,13 +102,13 @@ def checkPID(pidfile):
         try:
             os.kill(pid, 0)
         except OSError as why:
-            if why[0] == errno.ESRCH:
+            if why.args[0] == errno.ESRCH:
                 # The pid doesnt exists.
                 print(('Removing stale pidfile %s' % pidfile))
                 os.remove(pidfile)
             else:
                 sys.exit("Can't check status of PID %s from pidfile %s: %s" %
-                         (pid, pidfile, why[1]))
+                         (pid, pidfile, why.args[1]))
         else:
             sys.exit("Another server is running, PID %s\n" % pid)
 

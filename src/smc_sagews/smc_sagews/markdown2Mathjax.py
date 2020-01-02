@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 __version_info__ = (0, 3, 9)
 __version__ = '.'.join(map(str, __version_info__))
 __author__ = "Matthew Young"
@@ -38,8 +40,8 @@ def sanitizeInput(string,
     """
     #Check placeholder is valid.
     if not markdown_safe(placeholder):
-        raise ValueError(
-            "Placeholder %s altered by markdown processing." % placeholder)
+        raise ValueError("Placeholder %s altered by markdown processing." %
+                         placeholder)
     #really what we want is a reverse markdown function, but as that's too much work, this will do
     inline_left = re.compile("(?<!\\\\)" + re.escape(inline_delims[0]))
     inline_right = re.compile("(?<!\\\\)" + re.escape(inline_delims[1]))

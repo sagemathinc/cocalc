@@ -1,5 +1,6 @@
 # test_sagews_modes.py
 # tests of sage worksheet modes
+from __future__ import absolute_import
 import pytest
 import conftest
 import re

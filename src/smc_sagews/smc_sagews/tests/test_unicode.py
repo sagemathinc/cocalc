@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
+from __future__ import absolute_import
 import socket
 import conftest
 import os

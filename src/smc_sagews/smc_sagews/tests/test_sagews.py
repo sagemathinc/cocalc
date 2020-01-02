@@ -1,5 +1,6 @@
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
+from __future__ import absolute_import
 import conftest
 import os
 import re

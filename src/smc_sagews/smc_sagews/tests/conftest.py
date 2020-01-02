@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import pytest
 import os
 import re
@@ -206,15 +207,18 @@ class Message(object):
         did_truncate = False
         import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
-            code['source'], did_truncate, tmsg = t(
-                code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
+            code['source'], did_truncate, tmsg = t(code['source'],
+                                                   sage_server.MAX_CODE_SIZE,
+                                                   'MAX_CODE_SIZE')
             m['code'] = code
         if stderr is not None and len(stderr) > 0:
-            m['stderr'], did_truncate, tmsg = t(
-                stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
+            m['stderr'], did_truncate, tmsg = t(stderr,
+                                                sage_server.MAX_STDERR_SIZE,
+                                                'MAX_STDERR_SIZE')
         if stdout is not None and len(stdout) > 0:
-            m['stdout'], did_truncate, tmsg = t(
-                stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
+            m['stdout'], did_truncate, tmsg = t(stdout,
+                                                sage_server.MAX_STDOUT_SIZE,
+                                                'MAX_STDOUT_SIZE')
         if html is not None and len(html) > 0:
             m['html'], did_truncate, tmsg = t(html, sage_server.MAX_HTML_SIZE,
                                               'MAX_HTML_SIZE')
@@ -222,8 +226,9 @@ class Message(object):
             m['md'], did_truncate, tmsg = t(md, sage_server.MAX_MD_SIZE,
                                             'MAX_MD_SIZE')
         if tex is not None and len(tex) > 0:
-            tex['tex'], did_truncate, tmsg = t(
-                tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
+            tex['tex'], did_truncate, tmsg = t(tex['tex'],
+                                               sage_server.MAX_TEX_SIZE,
+                                               'MAX_TEX_SIZE')
             m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
@@ -452,7 +457,6 @@ def execdoc(request, sagews, test_id):
         def test_assg(execdoc):
             execdoc("random?")
     """
-
     def execfn(code, pattern='Docstring'):
         m = message.execute_code(code=code, id=test_id)
         sagews.send_json(m)
@@ -518,7 +522,6 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-
     def execfn(code,
                output=None,
                pattern=None,
@@ -589,7 +592,6 @@ def execbuf(request, sagews, test_id):
     Test fails if non-`stdout` message is received before
     match or receive times out.
     """
-
     def execfn(code, output=None, pattern=None):
         m = message.execute_code(code=code, id=test_id)
         m['preparse'] = True
@@ -696,7 +698,6 @@ def execblob(request, sagews, test_id):
                             "missing one of file types {} in response from sage_server".format(file_type)
                     else:
                         assert 0
-
 
         # final response is json "done" message
         typ, mesg = sagews.recv()

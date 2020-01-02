@@ -17,6 +17,7 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+from __future__ import absolute_import
 import os
 import string
 import textwrap
@@ -83,7 +84,7 @@ class JUPYTER(object):
         """)
         # print("calling JUPYTER._get_doc()")
         kspec = self.available_kernels()
-        ks2 = string.replace(kspec, "kernels:\n ", "kernels:\n\n|")
+        ks2 = kspec.replace("kernels:\n ", "kernels:\n\n|")
         return ds0 + ks2
 
     __doc__ = property(_get_doc)
@@ -164,8 +165,8 @@ def _jkmagic(kernel_name, **kwargs):
         def p(*args):
             from smc_sagews.sage_server import log
             if run_code.debug:
-                log("kernel {}: {}".format(kernel_name, ' '.join(
-                    str(a) for a in args)))
+                log("kernel {}: {}".format(kernel_name,
+                                           ' '.join(str(a) for a in args)))
 
         if kwargs.get('get_kernel_client', False):
             return kc
@@ -301,8 +302,9 @@ def _jkmagic(kernel_name, **kwargs):
                 # but if code calls python3 input(), wait for message on stdin channel
                 if 'code' in content:
                     ccode = content['code']
-                    if kernel_name.startswith(('python', 'anaconda', 'octave')) and re.match(
-                                           '^[^#]*\W?input\(', ccode):
+                    if kernel_name.startswith(
+                        ('python', 'anaconda', 'octave')) and re.match(
+                            '^[^#]*\W?input\(', ccode):
                         # FIXME input() will be ignored if it's aliased to another name
                         p('iopub input call: ', ccode)
                         try:

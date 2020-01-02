@@ -29,7 +29,7 @@ For debugging, this may help:
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import six
 import os, sys, time, operator
 import __future__ as future

@@ -12,6 +12,8 @@
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+from __future__ import absolute_import, division
+
 # set backend of matplot lib before any other module is loaded
 import matplotlib
 import imp

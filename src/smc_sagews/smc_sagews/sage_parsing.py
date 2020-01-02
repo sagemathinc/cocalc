@@ -12,10 +12,14 @@ Code for parsing Sage code blocks sensibly.
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+from __future__ import absolute_import
 import string
 import traceback
 import __future__ as future
 import ast
+
+# for the "input()" call
+import six
 
 
 def get_future_features(code, mode):
@@ -54,12 +58,12 @@ def get_future_features(code, mode):
 
 def get_input(prompt):
     try:
-        r = input(prompt)
+        r = six.input(prompt)
         z = r
         if z.rstrip().endswith(':'):
             while True:
                 try:
-                    z = input('...       ')
+                    z = six.input('...       ')
                 except EOFError:
                     quit = True
                     break
@@ -468,7 +472,8 @@ def introspect(code, namespace, preparse=True):
                 try:
                     pattern = expr.replace("*", ".*").replace("?", ".")
                     reg = re.compile(pattern + "$")
-                    v = list(filter(reg.match,
+                    v = list(
+                        filter(reg.match,
                                list(namespace.keys()) + _builtin_completions))
                     # for 2*sq[tab]
                     if len(v) == 0:
@@ -477,15 +482,16 @@ def introspect(code, namespace, preparse=True):
                         if j > 0:
                             target = gle
                             v = [
-                                x[j:] for x in (
-                                    list(namespace.keys()) + _builtin_completions)
+                                x[j:] for x in (list(namespace.keys()) +
+                                                _builtin_completions)
                                 if x.startswith(gle)
                             ]
                 except:
                     pass
             else:
                 v = [
-                    x[j:] for x in (list(namespace.keys()) + _builtin_completions)
+                    x[j:]
+                    for x in (list(namespace.keys()) + _builtin_completions)
                     if x.startswith(expr)
                 ]
                 # for 2+sqr[tab]
@@ -495,8 +501,8 @@ def introspect(code, namespace, preparse=True):
                     if j > 0 and j < len(expr):
                         target = gle
                         v = [
-                            x[j:]
-                            for x in (list(namespace.keys()) + _builtin_completions)
+                            x[j:] for x in (list(namespace.keys()) +
+                                            _builtin_completions)
                             if x.startswith(gle)
                         ]
         else:
@@ -520,17 +526,16 @@ def introspect(code, namespace, preparse=True):
                 import sage.all_cmdline
                 if before_expr.strip():
                     try:
-                        exec((
-                            before_expr if not preparse else preparse_code(
-                                before_expr)), namespace)
+                        exec((before_expr if not preparse else
+                              preparse_code(before_expr)), namespace)
                     except Exception as msg:
                         pass
                         # uncomment for debugging only
                         # traceback.print_exc()
                 # We first try to evaluate the part of the expression before the name
                 try:
-                    O = eval(
-                        obj if not preparse else preparse_code(obj), namespace)
+                    O = eval(obj if not preparse else preparse_code(obj),
+                             namespace)
                 except (SyntaxError, TypeError, AttributeError):
                     # If that fails, we try on a subexpression.
                     # TODO: This will not be needed when
@@ -538,9 +543,8 @@ def introspect(code, namespace, preparse=True):
                     # AST, instead of using this lame hack.
                     obj = guess_last_expression(obj)
                     try:
-                        O = eval(
-                            obj if not preparse else preparse_code(obj),
-                            namespace)
+                        O = eval(obj if not preparse else preparse_code(obj),
+                                 namespace)
                     except:
                         pass
             finally:
@@ -549,11 +553,10 @@ def introspect(code, namespace, preparse=True):
             def get_file():
                 try:
                     import sage.misc.sageinspect
-                    return "   File: " + eval(
-                        'getdoc(O)', {
-                            'getdoc': sage.misc.sageinspect.sage_getfile,
-                            'O': O
-                        }) + "\n"
+                    return "   File: " + eval('getdoc(O)', {
+                        'getdoc': sage.misc.sageinspect.sage_getfile,
+                        'O': O
+                    }) + "\n"
                 except Exception as err:
                     return "Unable to read source filename (%s)" % err
 
@@ -577,8 +580,7 @@ def introspect(code, namespace, preparse=True):
                                 k = args.pop()
                                 v.insert(0, '%s=%r' % (k, d))
                             v = args + v
-                            t = "   Signature : %s(%s)\n" % (obj,
-                                                              ', '.join(v))
+                            t = "   Signature : %s(%s)\n" % (obj, ', '.join(v))
                         except:
                             t = ""
                         try:
@@ -618,8 +620,8 @@ def introspect(code, namespace, preparse=True):
                     # this case excludes abc = ...;for a in ab[tab]
                     if '*' in expr and '* ' not in expr:
                         try:
-                            pattern = target.replace("*", ".*").replace(
-                                "?", ".")
+                            pattern = target.replace("*",
+                                                     ".*").replace("?", ".")
                             reg = re.compile(pattern + "$")
                             v = list(filter(reg.match, v))
                         except:

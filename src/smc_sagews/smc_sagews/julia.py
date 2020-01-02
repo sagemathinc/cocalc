@@ -19,6 +19,8 @@ AUTHORS:
 #
 ##########################################################################
 
+from __future__ import absolute_import
+
 import os, pexpect
 
 from uuid import uuid4
@@ -45,18 +47,17 @@ class Julia(Expect):
         Pexpect-based interface to Julia
         """
         self._prompt = 'julia>'
-        Expect.__init__(
-            self,
-            name='Julia',
-            prompt=self._prompt,
-            command="julia",
-            maxread=maxread,
-            server=server,
-            server_tmpdir=server_tmpdir,
-            script_subdirectory=script_subdirectory,
-            restart_on_ctrlc=False,
-            verbose_start=False,
-            logfile=logfile)
+        Expect.__init__(self,
+                        name='Julia',
+                        prompt=self._prompt,
+                        command="julia",
+                        maxread=maxread,
+                        server=server,
+                        server_tmpdir=server_tmpdir,
+                        script_subdirectory=script_subdirectory,
+                        restart_on_ctrlc=False,
+                        verbose_start=False,
+                        logfile=logfile)
 
         self.__seq = 0
         self.__in_seq = 1
@@ -67,10 +68,9 @@ class Julia(Expect):
         pexpect_env = dict(os.environ)
         pexpect_env[
             'TERM'] = 'vt100'  # we *use* the codes. DUH.  I should have thought of this 10 years ago...
-        self._expect = pexpect.spawn(
-            self._Expect__command,
-            logfile=self._Expect__logfile,
-            env=pexpect_env)
+        self._expect = pexpect.spawn(self._Expect__command,
+                                     logfile=self._Expect__logfile,
+                                     env=pexpect_env)
         self._expect.delaybeforesend = 0  # not a good idea for a CAS.
         self._expect.expect("\x1b\[0Kjulia>")
 
@@ -185,7 +185,6 @@ class Julia(Expect):
 
             sage: julia._read_in_file_command(tmp_filename()) # TODO
         """
-
     def trait_names(self):
         """
         EXAMPLES::
@@ -308,8 +307,8 @@ class Julia(Expect):
         """
         args, kwds = self._convert_args_kwds(args, kwds)
         self._check_valid_function_name(function)
-        return self.new(
-            "%s(%s)" % (function, ",".join([s.name() for s in args])))
+        return self.new("%s(%s)" %
+                        (function, ",".join([s.name() for s in args])))
 
 
 class JuliaElement(ExpectElement):
@@ -317,7 +316,7 @@ class JuliaElement(ExpectElement):
         # for now... (until I understand types)
         return self._check_valid().trait_names()
 
-    def __cmp__(self, other):
+    def __richcmp__(self, other):
         """
         EXAMPLES::
 
@@ -340,11 +339,11 @@ class JuliaElement(ExpectElement):
         if not hasattr(other, 'parent') or P is not other.parent():
             other = P(other)
 
-        if P.eval(
-                '%s == %s' % (self.name(), other.name())) == P._true_symbol():
+        if P.eval('%s == %s' %
+                  (self.name(), other.name())) == P._true_symbol():
             return 0
-        elif P.eval(
-                '%s < %s' % (self.name(), other.name())) == P._true_symbol():
+        elif P.eval('%s < %s' %
+                    (self.name(), other.name())) == P._true_symbol():
             return -1
         else:
             return 1
