@@ -4340,7 +4340,7 @@ def julia(code=None, **kwargs):
 
     """
     if julia.jupyter_kernel is None:
-        julia.jupyter_kernel = jupyter("julia-1.2")
+        julia.jupyter_kernel = jupyter("julia-1.3")
     return julia.jupyter_kernel(code, **kwargs)
 
 
@@ -4372,7 +4372,10 @@ def help(*args, **kwds):
 
 
 # Import the jupyter kernel client.
-from .sage_jupyter import jupyter
+try:
+    from .sage_jupyter import jupyter
+except:
+    from sage_jupyter import jupyter
 
 
 # license() workaround for IPython pager
@@ -4403,8 +4406,10 @@ def which(pgm):
         if os.path.exists(p) and os.access(p, os.X_OK):
             return p
 
-
-from .sage_server import MAX_CODE_SIZE
+try:
+    from .sage_server import MAX_CODE_SIZE
+except:
+    from sage_server import MAX_CODE_SIZE
 
 
 def search_src(str, max_chars=MAX_CODE_SIZE):

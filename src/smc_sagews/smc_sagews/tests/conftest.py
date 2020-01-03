@@ -8,6 +8,7 @@ import signal
 import struct
 import hashlib
 import time
+import six
 from datetime import datetime
 
 # timeout for socket to sage_server in seconds
@@ -59,17 +60,18 @@ def uuidsha1(data):
 
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(
-            conn, ConnectionJSON
-        )  # avoid common mistake -- conn is supposed to be from socket.socket...
+        # avoid common mistake -- conn is supposed to be from socket.socket...
+        assert not isinstance(conn, ConnectionJSON)
         self._conn = conn
 
     def close(self):
         self._conn.close()
 
     def _send(self, s):
+        if six.PY3 and type(s) == str:
+            s = s.encode('utf8')
         length_header = struct.pack(">L", len(s))
-        self._conn.send(length_header + s.encode())
+        self._conn.send(length_header + s)
 
     def send_json(self, m):
         m = json.dumps(m)
@@ -79,7 +81,14 @@ class ConnectionJSON(object):
 
     def send_blob(self, blob):
         s = uuidsha1(blob)
-        self._send('b' + s + blob)
+
+        if six.PY3 and type(blob) == bytes:
+            # we convert all to bytes first, to avoid unnecessary conversions
+            self._send(('b' + s).encode('utf8') + blob)
+        else:
+            # old sage py2 code
+            self._send('b' + s + blob)
+
         return s
 
     def send_file(self, filename):
@@ -90,9 +99,8 @@ class ConnectionJSON(object):
         return self.send_blob(data)
 
     def _recv(self, n):
-        for i in range(
-                20
-        ):  # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        for i in range(20):
             try:
                 r = self._conn.recv(n)
                 return r
@@ -127,10 +135,13 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
 
+        if six.PY3 and type(s) == bytes:
+            s = s.decode('utf8')
+
         mtyp = s[0]
         if mtyp == 'j':
             try:
-                return 'json', json.loads(s[1:].decode())
+                return 'json', json.loads(s[1:])
             except Exception as msg:
                 log("Unable to parse JSON '%s'" % s[1:])
                 raise

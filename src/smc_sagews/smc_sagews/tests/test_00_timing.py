@@ -45,10 +45,12 @@ class TestSageTiming:
 
     def test_import_sage_server(self):
         start = time.time()
+        # sage 9.0: previously, this was setting the path to import from the global /cocalc/... location
+        # now, it's using the code here
         code = ';'.join([
             "import sys",
-            "sys.path.extend(['/cocalc/lib/python2.7/site-packages/'])",
-            "from smc_sagews import sage_server"
+            "sys.path.insert(0, '.')",
+            "import sage_server"
         ])
         result = os.system("echo \"{}\" | sage -python".format(code))
         assert result == 0
@@ -84,7 +86,6 @@ class TestStartSageServer:
             attempt += 1
             print(("attempt %s" % attempt))
             try:
-
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.connect((host, port))
                 break

@@ -86,7 +86,10 @@ import json, resource, shutil, signal, socket, struct, \
 # to understand it, see https://regex101.com/ or https://www.debuggex.com/
 RE_POSSIBLE_IMPLICIT_MUL = re.compile(r'(?:(?<=[^a-zA-Z])|^)(\d+[a-zA-Z\(]+)')
 
-from . import sage_parsing, sage_salvus
+try:
+    from . import sage_parsing, sage_salvus
+except:
+    import sage_parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
