@@ -122,7 +122,12 @@ class InteractCell(object):
         self._width = jsonable(width)
         self._style = str(style)
 
-        (args, varargs, varkw, defaults) = inspect.getargspec(f)
+        if six.PY3:
+            _fas = inspect.getfullargspec(f)
+            args, varargs, varkw, defaults = _fas.args, _fas.varargs, _fas.varkw, _fas.defaults
+        elif six.PY2:
+            (args, varargs, varkw, defaults) = inspect.getargspec(f)
+
         if defaults is None:
             defaults = []
 
