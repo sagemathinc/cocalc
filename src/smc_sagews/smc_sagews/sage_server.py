@@ -189,6 +189,10 @@ class ConnectionJSON(object):
         return len(m)
 
     def send_blob(self, blob):
+        if six.PY3 and type(blob) == str:
+            # unicode objects must be encoded before hashing
+            blob = blob.encode('utf8')
+
         s = uuidsha1(blob)
         if six.PY3 and type(blob) == bytes:
             # we convert all to bytes first, to avoid unnecessary conversions
@@ -825,8 +829,12 @@ class Salvus(object):
         opts['aspect_ratio'] = aspect_ratio
 
         for k in [
-                'spin', 'height', 'width', 'background', 'foreground',
-                'renderer'
+                'spin',
+                'height',
+                'width',
+                'background',
+                'foreground',
+                'renderer',
         ]:
             if k in extra_kwds and not opts.get(k, None):
                 opts[k] = extra_kwds[k]
