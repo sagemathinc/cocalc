@@ -2655,7 +2655,7 @@ def show_2d_plot_using_matplotlib(obj, svg, **kwds):
         obj = obj.get_figure()
 
     if 'events' in kwds:
-        from .graphics import InteractiveGraphics
+        from smc_sagews.graphics import InteractiveGraphics
         ig = InteractiveGraphics(obj, **kwds['events'])
         n = '__a' + uuid().replace(
             '-', '')  # so it doesn't get garbage collected instantly.
