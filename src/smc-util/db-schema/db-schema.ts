@@ -881,13 +881,23 @@ schema.projects = {
       type: "map",
       desc:
         "Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)"
+    },
+    lti_id: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "This is a specific ID derived from an LTI context"
+    },
+    lti_data: {
+      type: "map",
+      desc: "extra information related to LTI"
     }
   },
 
   pg_indexes: [
     "last_edited",
     "USING GIN (users)", // so get_collaborator_ids is fast
-    "USING GIN (host jsonb_path_ops)" // so get_projects_on_compute_server is fast
+    "USING GIN (host jsonb_path_ops)", // so get_projects_on_compute_server is fast
+    "lti_id"
   ],
 
   user_query: {
