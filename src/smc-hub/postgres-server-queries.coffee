@@ -1094,18 +1094,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _account_where: (opts) =>
         # account_id > email_address > lti_id
-        if opts.account_id?
+        if opts.account_id
             return {"account_id = $::UUID" : opts.account_id}
-        else if opts.email_address?
+        else if opts.email_address
             return {"email_address = $::TEXT" : opts.email_address}
-        else if opts.lti_id?
+        else if opts.lti_id
             return {"lti_id = $::TEXT[]" : opts.lti_id}
         else
-            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti_id specified")
+            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti_id specified and nontrivial")
 
     get_account: (opts) =>
         opts = defaults opts,
-            email_address : undefined     # provide only one of email, account_id, or lti_id
+            email_address : undefined     # provide one of email, account_id, or lti_id (pref is account_id, then email_address, then lti_id)
             account_id    : undefined
             lti_id        : undefined
             columns       : ['account_id',
