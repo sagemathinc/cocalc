@@ -1003,7 +1003,10 @@ load_recent_projects = =>
     redux.createTable('projects', ProjectsTable)
     await once(redux.getTable('projects')._table, "connected")
     if redux.getTable('projects')._table.get().size == 0
-        await load_all_projects()
+        # WARNING: that the following is done is assumed in
+        # render_new_project_creator below! See
+        # https://github.com/sagemathinc/cocalc/issues/4306
+        await redux.getActions('projects').load_all_projects()
 
 
 if not COCALC_MINIMAL
@@ -1595,6 +1598,22 @@ exports.ProjectsPage = ProjectsPage = rclass
         @actions('projects').setState(selected_hashtags:{})
         @refs.search.clear_and_focus_search_input()
 
+    render_new_project_creator: ->
+        n = @project_list().length
+        if n == 0 and not @props.load_all_projects_done
+            # In this case we always trigger a full load,
+            # so better wait for it to finish before
+            # rendering the new project creator... since
+            # it shows the creation dialog depending entirely
+            # on n when it is *first* rendered.
+            return
+        <NewProjectCreator
+            start_in_edit_mode={n==0}
+            default_value={if @props.search then @props.search else 'Untitled'}
+            images = {@props.images}
+        />
+
+
     render: ->
         if not @props.project_map?
             if redux.getStore('account')?.get_user_type() == 'public'
@@ -1640,11 +1659,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                             <UpgradeStatus />
                         </div>
                     </VisibleMDLG>
-                    <NewProjectCreator
-                        start_in_edit_mode = {@project_list().length == 0}
-                        default_value={if @props.search then @props.search else 'Untitled'}
-                        images = {@props.images}
-                    />
+                    {@render_new_project_creator()}
                 </Col>
             </Row>
             <Row>
