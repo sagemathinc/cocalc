@@ -13,6 +13,7 @@
 #########################################################################################
 
 from __future__ import absolute_import, division
+import six
 
 # set backend of matplot lib before any other module is loaded
 import matplotlib
@@ -1374,8 +1375,7 @@ class HTML:
             ) or is_vector, '"rows" must contain lists or vectors for each row'
             tag = 'th' if header else 'td'
             row = [
-                '<{tag}>{}</{tag}>'.format(as_unicode(_), tag=tag)
-                for _ in row
+                '<{tag}>{}</{tag}>'.format(as_unicode(_), tag=tag) for _ in row
             ]
             return '<tr>{}</tr>'.format(''.join(row))
 
@@ -1619,7 +1619,7 @@ class Time:
     def after(self, code):
         from sage.all import walltime, cputime
         print(("\nCPU time: %.2f s, Wall time: %.2f s" %
-              (cputime(self._start_cputime), walltime(self._start_walltime))))
+               (cputime(self._start_cputime), walltime(self._start_walltime))))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -1683,10 +1683,9 @@ def timeit(*args, **kwds):
 
     """
     def go(code):
-        print((
-            sage.misc.sage_timeit.sage_timeit(code,
-                                              globals_dict=salvus.namespace,
-                                              **kwds)))
+        print((sage.misc.sage_timeit.sage_timeit(code,
+                                                 globals_dict=salvus.namespace,
+                                                 **kwds)))
 
     if len(args) == 0:
         return lambda code: go(code)
@@ -2768,7 +2767,6 @@ except:
 from sage.plot.graphics import Graphics
 from sage.plot.plot3d.base import Graphics3d
 from sage.plot.plot3d.tachyon import Tachyon
-import cgi
 
 # used in show function
 GRAPHICS_MODULES_SHOW = [
@@ -2964,12 +2962,19 @@ def show(*objs, **kwds):
     sys.stdout.flush()
     sys.stderr.flush()
     s = show0(objs, combine_all=True)
+
+    if six.PY3:
+        from html import escape
+    elif six.PY2:
+        # deprecated in py3
+        from cgi import escape
+
     if s is not None:
         if len(s) > 0:
             if display:
-                salvus.html("<div align='center'>%s</div>" % cgi.escape(s))
+                salvus.html("<div align='center'>%s</div>" % escape(s))
             else:
-                salvus.html("<div>%s</div>" % cgi.escape(s))
+                salvus.html("<div>%s</div>" % escape(s))
         sys.stdout.flush()
         sys.stderr.flush()
 
@@ -4405,6 +4410,7 @@ def which(pgm):
         p = os.path.join(p, pgm)
         if os.path.exists(p) and os.access(p, os.X_OK):
             return p
+
 
 try:
     from .sage_server import MAX_CODE_SIZE
