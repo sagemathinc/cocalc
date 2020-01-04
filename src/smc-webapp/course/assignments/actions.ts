@@ -8,7 +8,7 @@ export const STUDENT_SUBDIR = "student";
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
 import { AssignmentRecord, CourseStore, Feedback } from "../store";
 import { callback2 } from "smc-util/async-utils";
-import { exec } from "../../frame-editors/generic/client";
+import { start_project, exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import {
@@ -1338,7 +1338,7 @@ You can find the comments they made in the folders below.\
   ): Promise<void> {
     console.log("run_nbgrader_for_one_student", assignment_id, student_id);
 
-    const { assignment, student } = this.course_actions.resolve({
+    const { store, assignment, student } = this.course_actions.resolve({
       assignment_id,
       student_id
     });
@@ -1353,6 +1353,7 @@ You can find the comments they made in the folders below.\
     if (project_id == null) {
       // This would happen if maybe instructor deletes student project at
       // the exact wrong time.
+      // TODO: just create a new project for them?
       throw Error("student has no project, so can't run nbgrader");
     }
 
@@ -1378,8 +1379,13 @@ You can find the comments they made in the folders below.\
     const scores: { [filename: string]: NotebookScores | string } = {};
 
     async function one_file(file: string): Promise<void> {
-      const fullpath = path != "" ? path + "/" + file : file;
+      const activity_id = this.course_actions.set_activity({
+        desc: `Running nbgrader on ${store.get_student_name(
+          student_id
+        )}'s "${file}"`
+      });
       try {
+        const fullpath = path != "" ? path + "/" + file : file;
         const student_ipynb: string = await jupyter_strip_notebook(
           project_id,
           fullpath
@@ -1387,7 +1393,16 @@ You can find the comments they made in the folders below.\
         if (instructor_ipynb_files == null) throw Error("BUG");
         const instructor_ipynb: string = instructor_ipynb_files[file];
         if (this.course_actions.is_closed()) return;
-        console.log("launching nbgrader...", { student_id, file });
+        const id = this.course_actions.set_activity({
+          desc: `Ensuring ${store.get_student_name(
+            student_id
+          )}'s project is running`
+        });
+        try {
+          await start_project(project_id, 60);
+        } finally {
+          this.course_actions.clear_activity(id);
+        }
         const r = await nbgrader({
           timeout_ms: 120000, // timeout for total notebook
           cell_timeout_ms: 30000, // per cell timeout
@@ -1396,17 +1411,25 @@ You can find the comments they made in the folders below.\
           path: student_path,
           project_id
         });
-        console.log("nbgrader finished successfully", { student_id, file, r });
+        console.log("nbgrader finished successfully", {
+          student_id,
+          file,
+          r
+        });
         result[file] = r;
       } catch (err) {
-        // TODO: put error report in
         console.log("nbgrader failed", { student_id, file, err });
         scores[file] = `${err}`;
+      } finally {
+        this.course_actions.clear_activity(activity_id);
       }
     }
 
-    // NOTE: we *could* run these in parallel, but that causes
-    // trouble for very little benefit (it's better to run across all students in parallel).
+    // NOTE: we *could* run multipel files in parallel, but that causes
+    // trouble for very little benefit.  It's better to run across all students in parallel,
+    // and the trouble is just that running lots of code in the same project can confuse
+    // the backend api and use extra memory (which is unfair to students being graded, e.g.,
+    // if their project has 1GB of RAM and we run 3 notebooks at once, they get "gypped").
     for (const file in instructor_ipynb_files) {
       await one_file.bind(this)(file);
     }
