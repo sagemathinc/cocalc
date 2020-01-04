@@ -554,6 +554,9 @@ message({
   hub: required, // ip address (on vpn) of hub user connected to.
   account_id: required, // uuid of user's account
   email_address: undefined, // email address they signed in under
+  // Alternatively, if email_address isn't set, there might be an lti_id.
+  // There might NOT be an lti_id either, if it is anonymous account!
+  lti_id: undefined,
   first_name: undefined,
   last_name: undefined,
   api_key: undefined // user's api key, if requested in sign_in or create_account messages.
