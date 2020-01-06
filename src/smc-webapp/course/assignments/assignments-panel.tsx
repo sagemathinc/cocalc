@@ -1354,7 +1354,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             );
           }}
         >
-          <Icon name="graduation-cap" /> Run nbgrader...
+          <Icon name="graduation-cap" /> Run nbgrader
         </Button>
       </div>
     );

@@ -390,18 +390,15 @@ export class StudentAssignmentInfo extends Component<
   private render_nbgrader_score(): Rendered {
     if (!this.props.nbgrader_score) return;
     const { score, points, error } = this.props.nbgrader_score;
-    return <div><b>nbgrader:</b> {error ? "error" : `${score}/${points}`}</div>;
+    return (
+      <div>
+        <b>nbgrader:</b> {error ? "error" : `${score}/${points}`}
+        {this.render_run_nbgrader("Rerun nbgrader")}
+      </div>
+    );
   }
 
-  private render_nbgrader(): Rendered {
-    if (this.props.nbgrader_score) {
-      return this.render_nbgrader_score();
-    }
-    if (
-      !this.props.assignment.get("nbgrader") ||
-      this.props.assignment.get("skip_grading")
-    )
-      return;
+  private render_run_nbgrader(label: string): Rendered {
     return (
       <div style={{ marginTop: "5px" }}>
         <Button
@@ -413,10 +410,23 @@ export class StudentAssignmentInfo extends Component<
             );
           }}
         >
-          <Icon name="graduation-cap" /> Run nbgrader...
+          <Icon name="graduation-cap" /> {label}
         </Button>
       </div>
     );
+  }
+
+  private render_nbgrader(): Rendered {
+    if (this.props.nbgrader_score) {
+      return this.render_nbgrader_score();
+    }
+    if (
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    )
+      return;
+
+    return this.render_run_nbgrader("Run nbgrader");
   }
 
   private render_enter_grade(): Rendered {
