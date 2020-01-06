@@ -615,7 +615,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   // Return true if the assignment was copied to/from the
-  // student (in the given step of the workflow.
+  // student, in the given step of the workflow.
   // Even an attempt to copy with an error counts,
   // unless no_error is true, in which case it doesn't.
   public last_copied(

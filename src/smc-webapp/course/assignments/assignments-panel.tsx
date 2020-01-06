@@ -1329,7 +1329,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
-        <Icon name={icon} /> Skip Grading
+        <Icon name={icon} /> Skip grading
       </Button>
     );
   }
@@ -1345,7 +1345,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       return;
     }
     return (
-      <div style={{ marginTop: "5px" }}>
+      <div style={{ marginBottom: "5px 0" }}>
         <Button
           key="nbgrader"
           onClick={() => {
@@ -1354,7 +1354,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             );
           }}
         >
-          <Icon name="graduation-cap" /> nbgrader...
+          <Icon name="graduation-cap" /> Run nbgrader...
         </Button>
       </div>
     );

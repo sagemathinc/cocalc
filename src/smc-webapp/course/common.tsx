@@ -390,7 +390,7 @@ export class StudentAssignmentInfo extends Component<
   private render_nbgrader_score(): Rendered {
     if (!this.props.nbgrader_score) return;
     const { score, points, error } = this.props.nbgrader_score;
-    return <div>nbgrader: {error ? "error" : `${score}/${points}`}</div>;
+    return <div><b>nbgrader:</b> {error ? "error" : `${score}/${points}`}</div>;
   }
 
   private render_nbgrader(): Rendered {
@@ -413,7 +413,7 @@ export class StudentAssignmentInfo extends Component<
             );
           }}
         >
-          <Icon name="graduation-cap" /> nbgrader...
+          <Icon name="graduation-cap" /> Run nbgrader...
         </Button>
       </div>
     );
@@ -442,10 +442,10 @@ export class StudentAssignmentInfo extends Component<
   private render_grade_col(): Rendered {
     return (
       <>
-        {this.render_nbgrader()}
         {this.render_enter_grade()}
         {this.render_grade()}
         {this.render_comments()}
+        {this.render_nbgrader()}
       </>
     );
   }

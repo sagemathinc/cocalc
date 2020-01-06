@@ -774,7 +774,7 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
+  // Copy the given assignment to from all non-deleted students, doing several copies in parallel at once.
   public async copy_assignment_from_all_students(
     assignment_id: string,
     new_only: boolean
@@ -787,7 +787,7 @@ You can find the comments they made in the folders below.\
     await this.assignment_action_all_students(
       assignment_id,
       new_only,
-      this.copy_assignment_from_student,
+      this.copy_assignment_from_student.bind(this),
       "collect",
       desc,
       short_desc
@@ -1278,6 +1278,8 @@ You can find the comments they made in the folders below.\
     return result;
   }
 
+  // Run nbgrader for all students for which this assignment
+  // has been collected at least once.
   public async run_nbgrader_for_all_students(
     assignment_id: string
   ): Promise<void> {
@@ -1289,6 +1291,12 @@ You can find the comments they made in the folders below.\
     if (this.course_actions.is_closed()) return;
     async function one_student(student_id: string): Promise<void> {
       if (this.course_actions.is_closed()) return;
+      const store = this.get_store();
+      if (!store.last_copied("collect", assignment_id, student_id, true)) {
+        // Do not try to grade the assignment, since it wasn't
+        // already successfully collected.
+        return;
+      }
       this.run_nbgrader_for_one_student(
         assignment_id,
         student_id,
