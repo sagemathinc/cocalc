@@ -306,8 +306,11 @@ _sign_in_using_auth_token = (opts, done) ->
             dbg("successly got account_id; now getting more information about the account")
             opts.database.get_account
                 account_id : account_id
-                columns    : ['email_address']
+                columns    : ['email_address', 'lti_id']
                 cb         : (err, _account) ->
+                    # for LTI accounts, we set the email address at least to an empty string
+                    if !!_account.lti_id
+                        _account.email_address ?= ''
                     account = _account; cb(err)
         # remember me
         (cb) ->
@@ -316,10 +319,12 @@ _sign_in_using_auth_token = (opts, done) ->
                 id            : mesg.id
                 account_id    : account_id
                 email_address : account.email_address
+                lti_id        : account.lti_id
                 remember_me   : false
                 hub           : opts.host + ':' + opts.port
             client.remember_me
                 account_id    : signed_in_mesg.account_id
+                lti_id        : signed_in_mesg.lti_id
                 ttl           : 12*3600
                 cb            : cb
     ], (err) ->

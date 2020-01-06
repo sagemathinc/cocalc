@@ -330,7 +330,6 @@ exports.LandingPage = rclass
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             return <Connecting />
-            #return <span/>
 
         topbar =
             img_icon    : APP_ICON_WHITE
