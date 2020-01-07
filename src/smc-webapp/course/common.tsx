@@ -31,6 +31,9 @@ import {
   LastCopyInfo,
   NBgraderRunInfo
 } from "./store";
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
+import { NbgraderScores } from "./nbgrader/scores";
+
 import { AssignmentCopyType, AssignmentCopyStep } from "./types";
 import { FormEvent } from "react";
 
@@ -203,7 +206,7 @@ interface StudentAssignmentInfoProps {
   };
   edited_grade?: string;
   edited_comments?: string;
-  nbgrader_score?: { score: number; points: number; error?: boolean };
+  nbgrader_scores?: { [ipynb: string]: NotebookScores | string };
   is_editing: boolean;
   nbgrader_run_info?: NBgraderRunInfo;
 }
@@ -393,13 +396,12 @@ export class StudentAssignmentInfo extends Component<
     }
   };
 
-  private render_nbgrader_score(): Rendered {
-    if (!this.props.nbgrader_score) return;
-    const { score, points, error } = this.props.nbgrader_score;
+  private render_nbgrader_scores(): Rendered {
+    if (!this.props.nbgrader_scores) return;
     return (
       <div>
-        <b>nbgrader:</b> {error ? "error" : `${score}/${points}`}
-        {this.render_run_nbgrader("Rerun nbgrader")}
+        <NbgraderScores nbgrader_scores={this.props.nbgrader_scores} />
+        {this.render_run_nbgrader("Run nbgrader again")}
       </div>
     );
   }
@@ -449,8 +451,8 @@ export class StudentAssignmentInfo extends Component<
   }
 
   private render_nbgrader(): Rendered {
-    if (this.props.nbgrader_score) {
-      return this.render_nbgrader_score();
+    if (this.props.nbgrader_scores) {
+      return this.render_nbgrader_scores();
     }
     if (
       !this.props.assignment.get("nbgrader") ||

@@ -1393,7 +1393,7 @@ class Student extends Component<StudentProps, StudentState> {
           assignment={assignment}
           grade={grade}
           comments={comments}
-          nbgrader_score={store.get_nbgrader_score(
+          nbgrader_scores={store.get_nbgrader_scores(
             assignment.get("assignment_id"),
             this.props.student.get("student_id")
           )}
