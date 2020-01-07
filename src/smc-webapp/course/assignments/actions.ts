@@ -5,8 +5,15 @@ Actions involving working with assignments:
 
 export const STUDENT_SUBDIR = "student";
 
+import { Map } from "immutable";
+
 import { CourseActions, PARALLEL_LIMIT } from "../actions";
-import { AssignmentRecord, CourseStore, Feedback } from "../store";
+import {
+  AssignmentRecord,
+  CourseStore,
+  Feedback,
+  NBgraderRunInfo
+} from "../store";
 import { callback2 } from "smc-util/async-utils";
 import { start_project, exec } from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
@@ -1284,7 +1291,6 @@ You can find the comments they made in the folders below.\
     assignment_id: string
   ): Promise<void> {
     console.log("run_nbgrader_for_all_students", assignment_id);
-
     const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
       assignment_id
     );
@@ -1297,20 +1303,24 @@ You can find the comments they made in the folders below.\
         // already successfully collected.
         return;
       }
-      this.run_nbgrader_for_one_student(
+      await this.run_nbgrader_for_one_student(
         assignment_id,
         student_id,
         instructor_ipynb_files,
         false
       );
     }
-
-    await map(
-      this.get_store().get_student_ids({ deleted: false }),
-      PARALLEL_LIMIT,
-      one_student.bind(this)
-    );
-    this.course_actions.syncdb.commit();
+    try {
+      this.nbgrader_set_is_running(assignment_id);
+      await map(
+        this.get_store().get_student_ids({ deleted: false }),
+        PARALLEL_LIMIT,
+        one_student.bind(this)
+      );
+      this.course_actions.syncdb.commit();
+    } finally {
+      this.nbgrader_set_is_done(assignment_id);
+    }
   }
 
   public set_nbgrader_scores_for_one_student(
@@ -1448,8 +1458,14 @@ You can find the comments they made in the folders below.\
     // and the trouble is just that running lots of code in the same project can confuse
     // the backend api and use extra memory (which is unfair to students being graded, e.g.,
     // if their project has 1GB of RAM and we run 3 notebooks at once, they get "gypped").
-    for (const file in instructor_ipynb_files) {
-      await one_file.bind(this)(file);
+    try {
+      this.nbgrader_set_is_running(assignment_id, student_id);
+
+      for (const file in instructor_ipynb_files) {
+        await one_file.bind(this)(file);
+      }
+    } finally {
+      this.nbgrader_set_is_done(assignment_id, student_id);
     }
     console.log("ran nbgrader for all files for a student", {
       student_id,
@@ -1468,5 +1484,33 @@ You can find the comments they made in the folders below.\
       scores,
       commit
     );
+  }
+
+  private nbgrader_set_is_running(
+    assignment_id: string,
+    student_id?: string
+  ): void {
+    const store = this.get_store();
+    let nbgrader_run_info: NBgraderRunInfo = store.get(
+      "nbgrader_run_info",
+      Map()
+    );
+    const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
+    nbgrader_run_info = nbgrader_run_info.set(key, new Date().valueOf());
+    this.course_actions.setState({ nbgrader_run_info });
+  }
+
+  private nbgrader_set_is_done(
+    assignment_id: string,
+    student_id?: string
+  ): void {
+    const store = this.get_store();
+    let nbgrader_run_info: NBgraderRunInfo = store.get(
+      "nbgrader_run_info",
+      Map<string, number>()
+    );
+    const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
+    nbgrader_run_info = nbgrader_run_info.delete(key);
+    this.course_actions.setState({ nbgrader_run_info });
   }
 }

@@ -153,6 +153,16 @@ export type FeedbackRecord = TypedMap<{
 }>;
 export const Feedback = createTypedMap<FeedbackRecord>();
 
+// This NBgraderRunInfo is a map from what nbgrader task is running
+// to when it was started (ms since epoch).  The keys are as follows:
+//     36-character [account_id] = means that entire assignment with that id is being graded
+//     [account_id]-[student_id] = the particular assignment for that student is being graded
+// We do not track grading of individual files in an assignment.
+// This is NOT sync'd across users, since that would increase network traffic and
+// is probably not critical to do, since the worst case scenario is just running nbgrader
+// more than once at the same time, which is probably just *inefficient*.
+export type NBgraderRunInfo = Map<string, number>;
+
 export interface CourseState {
   activity: ActivityMap;
   action_all_projects_state: string;
@@ -177,6 +187,7 @@ export interface CourseState {
   students: StudentsMap;
   unsaved?: boolean;
   terminal_command?: TerminalCommand;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 export class CourseStore extends Store<CourseState> {
