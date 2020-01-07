@@ -12,7 +12,8 @@ import {
   AssignmentRecord,
   CourseStore,
   Feedback,
-  NBgraderRunInfo
+  NBgraderRunInfo,
+  get_nbgrader_score
 } from "../store";
 import { callback2 } from "smc-util/async-utils";
 import { start_project, exec } from "../../frame-editors/generic/client";
@@ -397,25 +398,47 @@ export class AssignmentsActions {
       content =
         "Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.";
     } else {
-      if (grade != null || peer_graded) {
-        content = "Your grade on this assignment:";
+      if (grade || peer_graded) {
+        content = "# Your grade";
       } else {
         content = "";
       }
     }
     // write their grade to a file
-    if (grade != null) {
+    if (grade) {
       // likely undefined when skip_grading true & peer_graded true
-      content += `\n\n    ${grade}`;
-      if (comments != null) {
-        content += `\n\nInstructor comments:\n\n${comments}`;
-      }
+      content += `\n\n${grade}`;
+    }
+    if (comments != null && comments.trim().length > 0) {
+      content += `\n\n# Instructor comments\n\n${comments}`;
     }
     if (peer_graded) {
       content += `\
-\n\n\nPEER GRADED:\n
+\n\n\n# Peer graded\n\n
 Your assignment was peer graded by other students.
 You can find the comments they made in the folders below.\
+`;
+    }
+
+    const nbgrader_scores = store.get_nbgrader_scores(
+      assignment_id,
+      student_id
+    );
+    if (nbgrader_scores) {
+      const { score, points, error } = get_nbgrader_score(nbgrader_scores);
+      const summary = error ? "error" : `${score}/${points}`;
+      // TODO: make this nicer, especially the details.
+      content += `\
+\n\n# nbgrader\n
+Your notebook was automatically graded using nbgrader, with
+possible additional instructor tests.
+
+TOTAL SCORE: ${summary}
+
+## nbgrader details
+\`\`\`
+${JSON.stringify(nbgrader_scores, null, 2)}
+\`\`\`
 `;
     }
 
