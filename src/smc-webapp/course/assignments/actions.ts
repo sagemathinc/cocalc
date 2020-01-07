@@ -1357,13 +1357,15 @@ You can find the comments they made in the folders below.\
     ) {
       return; // nothing case.
     }
-    const project_id = student.get("project_id");
-    if (project_id == null) {
+    const student_project_id = student.get("project_id");
+    if (student_project_id == null) {
       // This would happen if maybe instructor deletes student project at
       // the exact wrong time.
       // TODO: just create a new project for them?
       throw Error("student has no project, so can't run nbgrader");
     }
+
+    const course_project_id = store.get("course_project_id");
 
     if (instructor_ipynb_files == null) {
       instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
@@ -1381,7 +1383,6 @@ You can find the comments they made in the folders below.\
       return; // nothing to do
     }
 
-    const path = assignment.get("path");
     const student_path = assignment.get("target_path");
     const result: { [path: string]: any } = {};
     const scores: { [filename: string]: NotebookScores | string } = {};
@@ -1392,10 +1393,19 @@ You can find the comments they made in the folders below.\
           student_id
         )}'s "${file}"`
       });
+      if (assignment == null || student == null) {
+        // This won't happen, but it makes Typescript happy.
+        return;
+      }
       try {
-        const fullpath = path != "" ? path + "/" + file : file;
+        const fullpath =
+          assignment.get("collect_path") +
+          "/" +
+          student.get("student_id") +
+          "/" +
+          file;
         const student_ipynb: string = await jupyter_strip_notebook(
-          project_id,
+          course_project_id,
           fullpath
         );
         if (instructor_ipynb_files == null) throw Error("BUG");
@@ -1407,7 +1417,7 @@ You can find the comments they made in the folders below.\
           )}'s project is running`
         });
         try {
-          await start_project(project_id, 60);
+          await start_project(student_project_id, 60);
         } finally {
           this.course_actions.clear_activity(id);
         }
@@ -1417,7 +1427,7 @@ You can find the comments they made in the folders below.\
           student_ipynb,
           instructor_ipynb,
           path: student_path,
-          project_id
+          project_id: student_project_id
         });
         console.log("nbgrader finished successfully", {
           student_id,
