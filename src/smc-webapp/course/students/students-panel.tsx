@@ -72,7 +72,8 @@ import {
   AssignmentsMap,
   SortDescription,
   StudentRecord,
-  IsGradingMap
+  IsGradingMap,
+  NBgraderRunInfo
 } from "../store";
 import { literal } from "../../app-framework/literal";
 import { redux } from "../../frame-editors/generic/test/util";
@@ -100,6 +101,7 @@ interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
   active_student_sort?: SortDescription;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentsPanelState {
@@ -151,7 +153,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         [name]: {
           expanded_students: rtypes.immutable.Set,
           active_student_sort: rtypes.immutable.Map,
-          active_feedback_edits: rtypes.immutable.Map
+          active_feedback_edits: rtypes.immutable.Map,
+          nbgrader_run_info: rtypes.immutable.Map
         }
       };
     };
@@ -179,7 +182,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           "name",
           "project_id",
           "assignments",
-          "active_feedback_edits"
+          "active_feedback_edits",
+          "nbgrader_run_info"
         ])
       );
     }
@@ -789,6 +793,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           student_name={name}
           display_account_name={true}
           active_feedback_edits={this.props.active_feedback_edits}
+          nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
     }
@@ -929,6 +934,7 @@ interface StudentProps {
   student_name: StudentNameDescription;
   display_account_name?: boolean;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentState {
@@ -984,7 +990,8 @@ class Student extends Component<StudentProps, StudentState> {
         "assignments",
         "background",
         "is_expanded",
-        "active_feedback_edits"
+        "active_feedback_edits",
+        "nbgrader_run_info"
       ]) ||
       (this.props.student_name != null
         ? this.props.student_name.full
@@ -1394,6 +1401,7 @@ class Student extends Component<StudentProps, StudentState> {
           is_editing={!!edited_feedback}
           edited_comments={edited_comments}
           edited_grade={edited_grade}
+          nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
     }

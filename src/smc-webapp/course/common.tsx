@@ -25,7 +25,12 @@ import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
 import { React, Component, Rendered } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
-import { AssignmentRecord, StudentRecord, LastCopyInfo } from "./store";
+import {
+  AssignmentRecord,
+  StudentRecord,
+  LastCopyInfo,
+  NBgraderRunInfo
+} from "./store";
 import { AssignmentCopyType, AssignmentCopyStep } from "./types";
 import { FormEvent } from "react";
 
@@ -200,6 +205,7 @@ interface StudentAssignmentInfoProps {
   edited_comments?: string;
   nbgrader_score?: { score: number; points: number; error?: boolean };
   is_editing: boolean;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentAssignmentInfoState {
@@ -398,11 +404,37 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  private render_run_nbgrader(label: string): Rendered {
+  private render_run_nbgrader(label: string | Rendered): Rendered {
+    let running = false;
+    if (this.props.nbgrader_run_info != null) {
+      const t = this.props.nbgrader_run_info.get(
+        this.props.assignment.get("assignment_id") +
+          "-" +
+          this.props.student.get("student_id")
+      );
+      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+        // Time starting is set and it's also within the last few minutes.
+        // This "few minutes" is just in case -- we probably shouldn't need
+        // that at all ever, but it could make cocalc state usable in case of
+        // weird issues, I guess).  User could also just close and re-open
+        // the course file, which resets this state completely.
+        running = true;
+      }
+    }
+    label = running ? (
+      <span>
+        {" "}
+        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
+      </span>
+    ) : (
+      <span>{label}</span>
+    );
+
     return (
       <div style={{ marginTop: "5px" }}>
         <Button
           key="nbgrader"
+          disabled={running}
           onClick={() => {
             this.get_actions().assignments.run_nbgrader_for_one_student(
               this.props.assignment.get("assignment_id"),
