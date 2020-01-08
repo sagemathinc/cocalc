@@ -1371,6 +1371,47 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
     );
   }
 
+  public set_specific_nbgrader_score(
+    assignment_id: string,
+    student_id: string,
+    filename: string,
+    grade_id: string,
+    score: number,
+    commit: boolean = true
+  ): void {
+    const { assignment } = this.course_actions.resolve({
+      assignment_id
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+
+    const scores: any = assignment
+      .getIn(["nbgrader_scores", student_id], Map())
+      .toJS();
+    let x: any = scores[filename];
+    if (x == null) {
+      x = scores[filename] = {};
+    }
+    let y = x[grade_id];
+    if (y == null) {
+      y = x[grade_id] = {};
+    }
+    y.score = score;
+    if (y.points != null && y.score > y.points) {
+      y.score = y.points;
+    }
+    if (y.score < 0) {
+      y.score = 0;
+    }
+    this.set_nbgrader_scores_for_one_student(
+      assignment_id,
+      student_id,
+      scores,
+      commit
+    );
+  }
+
   public async run_nbgrader_for_one_student(
     assignment_id: string,
     student_id: string,

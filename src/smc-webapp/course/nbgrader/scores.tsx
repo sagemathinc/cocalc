@@ -18,6 +18,8 @@ interface Props {
 
 interface State {
   show_all: boolean;
+  editing_score_filename?: string;
+  editing_score_id?: string;
 }
 
 export class NbgraderScores extends Component<Props, State> {
@@ -106,12 +108,92 @@ export class NbgraderScores extends Component<Props, State> {
           <tr key={"header"} style={{ border: "1px solid grey" }}>
             <th style={style}>Problem</th>
             <th style={style}>Score</th>
-            <th style={style}></th>
           </tr>
         </thead>
         <tbody>{v}</tbody>
       </table>
     );
+  }
+
+  private set_score(filename: string, id: string, value: string): void {
+    const score = parseFloat(value);
+    if (isNaN(score) || !isFinite(score)) {
+      return; // invalid scores gets thrown away
+    }
+    this.get_actions().assignments.set_specific_nbgrader_score(
+      this.props.assignment_id,
+      this.props.student_id,
+      filename,
+      id,
+      score,
+      true
+    );
+  }
+
+  private render_assigned_score(
+    filename: string,
+    id: string,
+    score: Score
+  ): Rendered {
+    if (!score.manual) {
+      return <>{score.score ?? "?"}</>;
+    }
+
+    const value = `${score.score != null ? score.score : ""}`;
+    const style = {
+      width: "48px",
+      color: "#666",
+      fontSize: "14px",
+      border: "1px solid lightgrey",
+      display: "inline-block",
+      padding: "1px"
+    };
+    if (
+      this.state.editing_score_filename == filename &&
+      this.state.editing_score_id == id
+    ) {
+      return (
+        <input
+          spellCheck={false}
+          autoFocus
+          type="input"
+          defaultValue={value}
+          onBlur={e => this.stop_editing_score((e.target as any).value)}
+          style={style}
+        />
+      );
+    } else {
+      return (
+        <span
+          style={style}
+          onClick={() =>
+            this.setState({
+              editing_score_filename: filename,
+              editing_score_id: id
+            })
+          }
+        >
+          {value ? value : "-"}
+        </span>
+      );
+    }
+  }
+
+  private stop_editing_score(value: string): void {
+    if (
+      this.state.editing_score_id != null &&
+      this.state.editing_score_filename != null
+    ) {
+      this.set_score(
+        this.state.editing_score_filename,
+        this.state.editing_score_id,
+        value
+      );
+    }
+    this.setState({
+      editing_score_filename: undefined,
+      editing_score_id: undefined
+    });
   }
 
   private render_score(filename: string, id: string, score: Score): Rendered {
@@ -121,23 +203,19 @@ export class NbgraderScores extends Component<Props, State> {
       <tr key={id}>
         <td style={style}>{id}</td>
         <td style={style}>
-          {score.score ?? "?"} / {score.points}
+          {this.render_assigned_score(filename, id, score)} / {score.points}
+          {this.render_needs_score(score)}
         </td>
-        <td style={style}>{this.render_manual(filename, id, score)}</td>
       </tr>
     );
   }
 
-  private render_manual(filename: string, id: string, score: Score): Rendered {
-    if (!score.manual) return;
+  private render_needs_score(score: Score): Rendered {
+    if (!score.manual || score.score != null) return;
     return (
-      <a
-        onClick={() => {
-          console.log({ filename, id });
-        }}
-      >
-        {score.score == null ? "Manually grade" : "Edit"}
-      </a>
+      <div>
+        <Icon name="exclamation-triangle" /> Enter score above
+      </div>
     );
   }
 
@@ -155,11 +233,7 @@ export class NbgraderScores extends Component<Props, State> {
         ) : (
           undefined
         )}
-        {this.state.show_all
-          ? "Less"
-          : action_required
-          ? "Action required..."
-          : "More..."}
+        {this.state.show_all ? "Less" : "More..."}
       </a>
     );
   }
