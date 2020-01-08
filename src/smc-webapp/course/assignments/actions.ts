@@ -1345,7 +1345,7 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
   public async run_nbgrader_for_all_students(
     assignment_id: string
   ): Promise<void> {
-    console.log("run_nbgrader_for_all_students", assignment_id);
+    // console.log("run_nbgrader_for_all_students", assignment_id);
     const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
       assignment_id
     );
@@ -1492,7 +1492,7 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
     instructor_ipynb_files?: { [path: string]: string },
     commit: boolean = true
   ): Promise<void> {
-    console.log("run_nbgrader_for_one_student", assignment_id, student_id);
+    // console.log("run_nbgrader_for_one_student", assignment_id, student_id);
 
     const { store, assignment, student } = this.course_actions.resolve({
       assignment_id,
@@ -1522,12 +1522,12 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
       if (this.course_actions.is_closed()) return;
     }
     if (len(instructor_ipynb_files) == 0) {
-      console.log(
+      /* console.log(
         "run_nbgrader_for_one_student",
         assignment_id,
         student_id,
         "done -- no ipynb files"
-      );
+      ); */
       return; // nothing to do
     }
 
@@ -1577,14 +1577,14 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
           path: student_path,
           project_id: student_project_id
         });
-        console.log("nbgrader finished successfully", {
+        /* console.log("nbgrader finished successfully", {
           student_id,
           file,
           r
-        });
+        }); */
         result[file] = r;
       } catch (err) {
-        console.log("nbgrader failed", { student_id, file, err });
+        // console.log("nbgrader failed", { student_id, file, err });
         scores[file] = `${err}`;
       } finally {
         this.course_actions.clear_activity(activity_id);
@@ -1605,10 +1605,10 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
     } finally {
       this.nbgrader_set_is_done(assignment_id, student_id);
     }
-    console.log("ran nbgrader for all files for a student", {
+    /* console.log("ran nbgrader for all files for a student", {
       student_id,
       result
-    });
+    }); */
     for (const filename in result) {
       const r = result[filename];
       if (r == null) continue;

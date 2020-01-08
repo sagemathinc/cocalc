@@ -51,8 +51,7 @@ export async function nbgrader(
     }
   });
 
-  (window as any).graded_ipynb = JSON.parse(graded_ipynb);
-  console.log("graded_ipynb = ", (window as any).graded_ipynb);
+  // console.log("graded_ipynb = ", (window as any).graded_ipynb);
   return { output: graded_ipynb };
 }
 
