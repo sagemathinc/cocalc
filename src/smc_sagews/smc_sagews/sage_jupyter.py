@@ -109,7 +109,7 @@ def _jkmagic(kernel_name, **kwargs):
     # i CPU time to import.
     import jupyter_client  # TIMING: takes a bit of time
     from ansi2html import Ansi2HTMLConverter  # TIMING: this is surprisingly bad.
-    from queue import Empty  # TIMING: cheap
+    from six.moves.queue import Empty  # TIMING: cheap
     import base64, tempfile, sys, re  # TIMING: cheap
 
     import warnings
