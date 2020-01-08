@@ -278,7 +278,7 @@ def _jkmagic(kernel_name, **kwargs):
                     if dispmode == 'text/plain':
                         p('text/plain', msg_data[dispmode])
                         # override if plain text is object marker for latex output
-                        if re.match('<IPython.core.display.\w+ object>',
+                        if re.match(r'<IPython.core.display.\w+ object>',
                                     msg_data[dispmode]):
                             p("overriding plain -> latex")
                             show(msg_data['text/latex'])
@@ -304,7 +304,7 @@ def _jkmagic(kernel_name, **kwargs):
                     ccode = content['code']
                     if kernel_name.startswith(
                         ('python', 'anaconda', 'octave')) and re.match(
-                            '^[^#]*\W?input\(', ccode):
+                            r'^[^#]*\W?input\(', ccode):
                         # FIXME input() will be ignored if it's aliased to another name
                         p('iopub input call: ', ccode)
                         try:
