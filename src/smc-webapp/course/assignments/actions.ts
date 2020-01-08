@@ -1505,6 +1505,7 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
     ) {
       return; // nothing case.
     }
+
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       // This would happen if maybe instructor deletes student project at
@@ -1609,13 +1610,31 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
       student_id,
       result
     }); */
+    // Save any previous nbgrader scores for this student, so we can
+    // preserve any manually entered scores, rather than overwrite them.
+    const prev_scores = store.get_nbgrader_scores(assignment_id, student_id);
+
     for (const filename in result) {
       const r = result[filename];
       if (r == null) continue;
       if (r.output == null) continue;
       const notebook = JSON.parse(r.output);
       scores[filename] = extract_auto_scores(notebook);
+      if (
+        prev_scores != null &&
+        prev_scores[filename] != null &&
+        typeof prev_scores[filename] != "string"
+      ) {
+        // preserve any manual scores.  cast since for some reason the typeof above isn't enough.
+        for (const id in prev_scores[filename] as object) {
+          const x = prev_scores[filename][id];
+          if (x.manual && x.score && scores[filename][id] != null) {
+            scores[filename][id].score = x.score;
+          }
+        }
+      }
     }
+
     this.set_nbgrader_scores_for_one_student(
       assignment_id,
       student_id,
