@@ -91,8 +91,9 @@ params = ->
             val = page.get(param)
             if val?
                 current[param] = val
-            else
-                delete current[param]
+            # TODO either fix the comment above and uncomment the lines below, or delete these lines
+            #else
+            #    delete current[param]
 
     s = query_string.stringify(current)
     if s
