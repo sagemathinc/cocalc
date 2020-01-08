@@ -459,6 +459,22 @@ You can find the comments they made in the folders below.\
     if (nbgrader_scores) {
       const { score, points, error } = get_nbgrader_score(nbgrader_scores);
       const summary = error ? "error" : `${score}/${points}`;
+
+      let details: string = "";
+      for (const filename in nbgrader_scores) {
+        details += `\n\n**${filename}:**\n\n`;
+        const s = nbgrader_scores[filename];
+        if (typeof s == "string") {
+          details += `ERROR: ${s}\n\n`;
+        } else {
+          details += `| Problem   | Score     |\n|:----------|:----------|\n`;
+          for (const id in s) {
+            const t = `${s[id].score}`;
+            details += `| ${id.padEnd(10)}| ${t.padEnd(10)}|\n`;
+          }
+        }
+      }
+
       // TODO: make this nicer, especially the details.
       content += `\
 \n\n# nbgrader\n
@@ -468,9 +484,7 @@ possible additional instructor tests.
 TOTAL SCORE: ${summary}
 
 ## nbgrader details
-\`\`\`
-${JSON.stringify(nbgrader_scores, null, 2)}
-\`\`\`
+${details}
 `;
     }
 
