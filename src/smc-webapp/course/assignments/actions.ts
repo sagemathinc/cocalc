@@ -1509,6 +1509,31 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
     );
   }
 
+  public async open_file_in_collected_assignment(
+    assignment_id: string,
+    student_id: string,
+    file: string
+  ): Promise<void> {
+    const { assignment, student, store } = this.course_actions.resolve({
+      assignment_id,
+      student_id
+    });
+    if (assignment == null || student == null) {
+      throw Error("no such student or assignment");
+    }
+    const course_project_id = store.get("course_project_id");
+    const fullpath =
+      assignment.get("collect_path") +
+      "/" +
+      student.get("student_id") +
+      "/" +
+      file;
+
+    await redux
+      .getProjectActions(course_project_id)
+      .open_file({ path: fullpath, foreground: true });
+  }
+
   private nbgrader_set_is_running(
     assignment_id: string,
     student_id?: string

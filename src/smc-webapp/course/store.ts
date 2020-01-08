@@ -853,10 +853,11 @@ export class CourseStore extends Store<CourseState> {
 
 export function get_nbgrader_score(scores: {
   [ipynb: string]: NotebookScores | string;
-}): { score: number; points: number; error?: boolean } {
+}): { score: number; points: number; error?: boolean; manual_needed: boolean } {
   let points: number = 0;
   let score: number = 0;
   let error: boolean = false;
+  let manual_needed: boolean = false;
   for (const ipynb in scores) {
     const x = scores[ipynb];
     if (typeof x == "string") {
@@ -865,11 +866,14 @@ export function get_nbgrader_score(scores: {
     }
     for (const grade_id in x) {
       const y = x[grade_id];
+      if (y.score == null && y.manual) {
+        manual_needed = true;
+      }
       if (y.score) {
         score += y.score;
       }
       points += y.points;
     }
   }
-  return { score, points, error };
+  return { score, points, error, manual_needed };
 }

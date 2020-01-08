@@ -400,7 +400,12 @@ export class StudentAssignmentInfo extends Component<
     if (!this.props.nbgrader_scores) return;
     return (
       <div>
-        <NbgraderScores nbgrader_scores={this.props.nbgrader_scores} />
+        <NbgraderScores
+          nbgrader_scores={this.props.nbgrader_scores}
+          name={this.props.name}
+          student_id={this.props.student.get("student_id")}
+          assignment_id={this.props.assignment.get("assignment_id")}
+        />
         {this.render_run_nbgrader("Run nbgrader again")}
       </div>
     );
