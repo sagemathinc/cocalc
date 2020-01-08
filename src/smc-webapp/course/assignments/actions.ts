@@ -189,6 +189,38 @@ export class AssignmentsActions {
     this.clear_edited_feedback(assignment_id, student_id);
   }
 
+  // Set a specific grade for a student in an assignment.
+  // This overlaps with save_feedback, but is more
+  // direct and uses that maybe the user isn't manually editing
+  // this.  E.g., nbgrader uses this to automatically set the grade.
+  public set_grade(
+    assignment_id: string,
+    student_id: string,
+    grade: string,
+    commit: boolean = true
+  ): void {
+    const { assignment } = this.course_actions.resolve({
+      assignment_id
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+    // Annoying that we have to convert to JS here and cast,
+    // but the set below seems to require it.
+    let grades = assignment.get("grades", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    grades[student_id] = grade;
+    this.course_actions.set(
+      {
+        table: "assignments",
+        assignment_id,
+        grades
+      },
+      commit
+    );
+  }
+
   public set_active_assignment_sort(column_name: string): void {
     let is_descending;
     const store = this.get_store();
@@ -1369,6 +1401,11 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
       },
       commit
     );
+    this.set_grade_using_nbgrader_if_possible(
+      assignment_id,
+      student_id,
+      commit
+    );
   }
 
   public set_specific_nbgrader_score(
@@ -1410,6 +1447,43 @@ ${JSON.stringify(nbgrader_scores, null, 2)}
       scores,
       commit
     );
+
+    this.set_grade_using_nbgrader_if_possible(
+      assignment_id,
+      student_id,
+      commit
+    );
+  }
+
+  // Fill in manual grade if it is blank and there is an nbgrader grade
+  // and all the manual nbgrader scores have been filled in.
+  // Also, the filled in grade uses a specific format [number]/[total]
+  // and if this is maintained and the nbgrader scores change, this
+  // the manual grade is updated.
+  public set_grade_using_nbgrader_if_possible(
+    assignment_id: string,
+    student_id: string,
+    commit: boolean = true
+  ): void {
+    // Check if nbgrader scores are all available.
+    const store = this.get_store();
+    const scores = store.get_nbgrader_scores(assignment_id, student_id);
+    if (scores == null) {
+      // no info -- maybe nbgrader not even run yet.
+      return;
+    }
+    const { score, points, error, manual_needed } = get_nbgrader_score(scores);
+    if (error || manual_needed) {
+      // more work must be done before we can use this.
+      return;
+    }
+
+    // Fill in the overall grade if either it is currently unset, blank,
+    // or of the form [number]/[number].
+    const grade = store.get_grade(assignment_id, student_id).trim();
+    if (grade == "" || grade.match(/\d+\/\d+/g)) {
+      this.set_grade(assignment_id, student_id, `${score}/${points}`, commit);
+    }
   }
 
   public async run_nbgrader_for_one_student(
