@@ -563,6 +563,10 @@ class ProjectsActions extends Actions
         await @projects_table_set
             project_id     : project_id
             action_request : {action:'start', time:webapp_client.server_time()}
+        # Doing an exec further increases the chances project will be
+        # definitely running in all environments.
+        opts = { project_id:project_id, command: "pwd" }
+        await callback2(webapp_client.exec.bind(webapp_client), opts)
 
     # **THIS IS AN ASYNC FUNCTION!**
     stop_project: (project_id) =>
