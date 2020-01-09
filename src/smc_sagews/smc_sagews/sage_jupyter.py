@@ -21,6 +21,7 @@ from __future__ import absolute_import
 import os
 import string
 import textwrap
+import six
 
 salvus = None  # set externally
 
@@ -231,7 +232,8 @@ def _jkmagic(kernel_name, **kwargs):
                     """
                     suffix = '.' + suffix
                     fname = tempfile.mkstemp(suffix=suffix)[1]
-                    with open(fname, 'w') as fo:
+                    fmode = 'wb' if six.PY3 else 'w'
+                    with open(fname, fmode) as fo:
                         fo.write(data)
 
                     if run_code.smc_image_scaling is None:
