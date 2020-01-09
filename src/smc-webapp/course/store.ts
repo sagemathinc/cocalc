@@ -38,6 +38,8 @@ import * as project_upgrades from "./project-upgrades";
 
 import { AssignmentCopyStep, AssignmentStatus, UpgradeGoal } from "./types";
 
+import { NotebookScores } from "../jupyter/nbgrader/autograde";
+
 import { CourseActions } from "./actions";
 
 export type TerminalCommandOutput = TypedMap<{
@@ -99,6 +101,14 @@ export type AssignmentRecord = TypedMap<{
   target_path: string;
   collect_path: string;
   graded_path: string;
+
+  nbgrader?: boolean; // if true, probably includes at least one nbgrader ipynb file
+
+  grades?: { [student_id: string]: string };
+  comments?: { [student_id: string]: string };
+  nbgrader_scores?: {
+    [student_id: string]: { [ipynb: string]: NotebookScores | string };
+  };
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -143,6 +153,16 @@ export type FeedbackRecord = TypedMap<{
 }>;
 export const Feedback = createTypedMap<FeedbackRecord>();
 
+// This NBgraderRunInfo is a map from what nbgrader task is running
+// to when it was started (ms since epoch).  The keys are as follows:
+//     36-character [account_id] = means that entire assignment with that id is being graded
+//     [account_id]-[student_id] = the particular assignment for that student is being graded
+// We do not track grading of individual files in an assignment.
+// This is NOT sync'd across users, since that would increase network traffic and
+// is probably not critical to do, since the worst case scenario is just running nbgrader
+// more than once at the same time, which is probably just *inefficient*.
+export type NBgraderRunInfo = Map<string, number>;
+
 export interface CourseState {
   activity: ActivityMap;
   action_all_projects_state: string;
@@ -167,6 +187,7 @@ export interface CourseState {
   students: StudentsMap;
   unsaved?: boolean;
   terminal_command?: TerminalCommand;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -421,6 +442,17 @@ export class CourseStore extends Store<CourseState> {
     return r == null ? "" : r;
   }
 
+  public get_nbgrader_scores(
+    assignment_id: string,
+    student_id: string
+  ): { [ipynb: string]: NotebookScores | string } | undefined {
+    const { assignment } = this.resolve({ assignment_id });
+    if (assignment == null) return undefined;
+    const x = assignment.getIn(["nbgrader_scores", student_id]);
+    if (x == null) return undefined;
+    return x.toJS();
+  }
+
   public get_comments(assignment_id: string, student_id: string): string {
     const { assignment } = this.resolve({ assignment_id });
     if (assignment == null) return "";
@@ -568,7 +600,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   // Return true if the assignment was copied to/from the
-  // student (in the given step of the workflow.
+  // student, in the given step of the workflow.
   // Even an attempt to copy with an error counts,
   // unless no_error is true, in which case it doesn't.
   public last_copied(
@@ -817,4 +849,31 @@ export class CourseStore extends Store<CourseState> {
     delete x.store;
     return x;
   }
+}
+
+export function get_nbgrader_score(scores: {
+  [ipynb: string]: NotebookScores | string;
+}): { score: number; points: number; error?: boolean; manual_needed: boolean } {
+  let points: number = 0;
+  let score: number = 0;
+  let error: boolean = false;
+  let manual_needed: boolean = false;
+  for (const ipynb in scores) {
+    const x = scores[ipynb];
+    if (typeof x == "string") {
+      error = true;
+      continue;
+    }
+    for (const grade_id in x) {
+      const y = x[grade_id];
+      if (y.score == null && y.manual) {
+        manual_needed = true;
+      }
+      if (y.score) {
+        score += y.score;
+      }
+      points += y.points;
+    }
+  }
+  return { score, points, error, manual_needed };
 }

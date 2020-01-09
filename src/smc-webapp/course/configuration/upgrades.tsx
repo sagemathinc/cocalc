@@ -275,7 +275,7 @@ class StudentProjectUpgrades extends Component<
     } else {
       const n = misc.parse_number_input(x);
       if (n == null) {
-        input = n;
+        input = 0;
       } else {
         input = yours / num_projects; // currently typed in
       }
@@ -283,8 +283,6 @@ class StudentProjectUpgrades extends Component<
     if (input_type === "checkbox") {
       input = input > 0 ? 1 : 0;
     }
-
-    //#console.log(quota, "remaining = (#{available} - #{input}/#{display_factor}*#{num_projects}) * #{display_factor}")
 
     const remaining = misc.round2(
       (available - (input / display_factor) * num_projects) * display_factor

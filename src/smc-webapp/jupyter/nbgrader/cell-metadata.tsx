@@ -35,6 +35,12 @@ export class NBGraderMetadata extends Component<Props> {
     );
   }
 
+  private render_id(): Rendered {
+    const id = this.props.nbgrader.get("grade_id");
+    if (id == null) return;
+    return <span>, ID: {id}</span>;
+  }
+
   public render(): Rendered {
     const nbgrader = this.props.nbgrader.toJS();
     const value: string = state_to_value(nbgrader);
@@ -49,6 +55,7 @@ export class NBGraderMetadata extends Component<Props> {
       >
         <span>{info.student_title}</span>
         {this.render_points()}
+        {this.render_id()}
       </Tip>
     );
   }

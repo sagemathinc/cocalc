@@ -56,7 +56,8 @@ import {
   AssignmentRecord,
   SortDescription,
   CourseStore,
-  IsGradingMap
+  IsGradingMap,
+  NBgraderRunInfo
 } from "../store";
 import { CourseActions } from "../actions";
 import { ReactElement } from "react";
@@ -101,6 +102,7 @@ interface AssignmentsPanelReduxProps {
   active_student_sort: SortDescription;
   expanded_peer_configs: Set<string>;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface AssignmentsPanelState {
@@ -130,7 +132,8 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           active_assignment_sort: rtypes.immutable.Map,
           active_student_sort: rtypes.immutable.Map,
           expanded_peer_configs: rtypes.immutable.Set,
-          active_feedback_edits: rtypes.immutable.Map
+          active_feedback_edits: rtypes.immutable.Map,
+          nbgrader_run_info: rtypes.immutable.Map
         }
       };
     };
@@ -258,6 +261,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
             assignment_id
           )}
           active_feedback_edits={this.props.active_feedback_edits}
+          nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
     }
@@ -440,6 +444,7 @@ interface AssignmentProps {
   active_student_sort: SortDescription;
   expand_peer_config?: boolean;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface AssignmentState {
@@ -482,7 +487,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         "is_expanded",
         "active_student_sort",
         "expand_peer_config",
-        "active_feedback_edits"
+        "active_feedback_edits",
+        "nbgrader_run_info"
       ])
     );
   }
@@ -640,10 +646,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       width = 6;
     }
     const buttons: ReactElement<any>[] = [];
-    const insert_skip_button = (key: string) => {
+    const insert_grade_button = (key: string) => {
       const b2 = this.render_skip_grading_button(status);
       return buttons.push(
         <Col md={width} key={key}>
+          {this.render_nbgrader_button(status)}
           {b2}
         </Col>
       );
@@ -653,7 +660,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       const b = this[`render_${name}_button`](status);
       // squeeze in the skip grading button (don't add it to STEPS!)
       if (!peer && name === "return_graded") {
-        insert_skip_button("skip_grading");
+        insert_grade_button("skip_grading");
       }
       if (b != null) {
         buttons.push(
@@ -662,7 +669,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           </Col>
         );
         if (peer && name === "peer_collect") {
-          insert_skip_button("skip_peer_collect");
+          insert_grade_button("skip_peer_collect");
         }
       }
     }
@@ -700,6 +707,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               user_map={this.props.user_map}
               active_student_sort={this.props.active_student_sort}
               active_feedback_edits={this.props.active_feedback_edits}
+              nbgrader_run_info={this.props.nbgrader_run_info}
             />
             {this.render_note()}
           </Card>
@@ -1328,8 +1336,57 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       : "square-o";
     return (
       <Button onClick={this.toggle_skip_grading}>
-        <Icon name={icon} /> Skip Grading
+        <Icon name={icon} /> Skip grading
       </Button>
+    );
+  }
+
+  render_nbgrader_button(status) {
+    if (
+      status.collect === 0 ||
+      !this.props.assignment.get("nbgrader") ||
+      this.props.assignment.get("skip_grading")
+    ) {
+      // No button if nothing collected or not nbgrader support or
+      // decided to skip grading this.
+      return;
+    }
+    let running = false;
+    if (this.props.nbgrader_run_info != null) {
+      const t = this.props.nbgrader_run_info.get(
+        this.props.assignment.get("assignment_id")
+      );
+      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+        // Time starting is set and it's also within the last few minutes.
+        // This "few minutes" is just in case -- we probably shouldn't need
+        // that at all ever, but it could make cocalc state usable in case of
+        // weird issues, I guess).  User could also just close and re-open
+        // the course file, which resets this state completely.
+        running = true;
+      }
+    }
+    const label = running ? (
+      <span>
+        {" "}
+        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
+      </span>
+    ) : (
+      <span>Run nbgrader</span>
+    );
+    return (
+      <div style={{ marginBottom: "5px 0" }}>
+        <Button
+          disabled={running}
+          key="nbgrader"
+          onClick={() => {
+            this.get_actions().assignments.run_nbgrader_for_all_students(
+              this.props.assignment.get("assignment_id")
+            );
+          }}
+        >
+          <Icon name="graduation-cap" /> {label}
+        </Button>
+      </div>
     );
   }
 
@@ -1573,6 +1630,7 @@ interface StudentListForAssignmentProps {
   background?: string;
   active_student_sort: SortDescription;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 class StudentListForAssignment extends Component<
@@ -1587,7 +1645,8 @@ class StudentListForAssignment extends Component<
       "user_map",
       "background",
       "active_student_sort",
-      "active_feedback_edits"
+      "active_feedback_edits",
+      "nbgrader_run_info"
     ]);
     if (x) {
       delete this.student_list;
@@ -1630,6 +1689,10 @@ class StudentListForAssignment extends Component<
           this.props.assignment.get("assignment_id"),
           student_id
         )}
+        nbgrader_scores={store.get_nbgrader_scores(
+          this.props.assignment.get("assignment_id"),
+          student_id
+        )}
         comments={store.get_comments(
           this.props.assignment.get("assignment_id"),
           student_id
@@ -1641,6 +1704,7 @@ class StudentListForAssignment extends Component<
         is_editing={!!edited_feedback}
         edited_comments={edited_comments}
         edited_grade={edited_grade}
+        nbgrader_run_info={this.props.nbgrader_run_info}
       />
     );
   }
