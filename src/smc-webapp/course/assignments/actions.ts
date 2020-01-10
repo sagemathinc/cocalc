@@ -64,7 +64,7 @@ export class AssignmentsActions {
     return store.get("course_filename").slice(0, i) + "-collect/" + path;
   }
 
-  public add_assignment(path: string): void {
+  public async add_assignment(path: string): Promise<void> {
     // Add an assignment to the course, which is defined by giving a directory in the project.
     // Where we collect homework that students have done (in teacher project)
     const collect_path = this.collect_path(path);
@@ -75,6 +75,18 @@ export class AssignmentsActions {
     // folder where we copy the assignment to
     const target_path = path;
 
+    try {
+      // Ensure the path actually exists.
+      await exec({
+        project_id: this.get_store().get("course_project_id"),
+        command: "mkdir",
+        args: ["-p", path],
+        err_on_exit: true
+      });
+    } catch (err) {
+      this.course_actions.set_error(`error creating assignment: ${err}`);
+      return;
+    }
     this.course_actions.set({
       path,
       collect_path,

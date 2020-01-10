@@ -10,7 +10,7 @@ import { redux } from "../../app-framework";
 import { uuid, mswalltime } from "smc-util/misc";
 import { map } from "awaiting";
 import { SyncDBRecordHandout } from "../types";
-
+import { exec } from "../../frame-editors/generic/client";
 
 export class HandoutsActions {
   private course_actions: CourseActions;
@@ -23,8 +23,21 @@ export class HandoutsActions {
     return this.course_actions.get_store();
   }
 
-  public add_handout(path: string): void {
+  public async add_handout(path: string): Promise<void> {
     const target_path = path; // folder where we copy the handout to
+    try {
+      // Ensure the path actually exists in the instructor project.
+      await exec({
+        project_id: this.get_store().get("course_project_id"),
+        command: "mkdir",
+        args: ["-p", path],
+        err_on_exit: true
+      });
+    } catch (err) {
+      this.course_actions.set_error(`error creating assignment: ${err}`);
+      return;
+    }
+
     this.course_actions.set({
       path,
       target_path,
@@ -183,7 +196,9 @@ export class HandoutsActions {
           id,
           desc: `${student_name}'s project doesn't exist, so creating it.`
         });
-        student_project_id = await this.course_actions.student_projects.create_student_project(student_id);
+        student_project_id = await this.course_actions.student_projects.create_student_project(
+          student_id
+        );
       }
 
       this.course_actions.set_activity({
@@ -226,7 +241,10 @@ export class HandoutsActions {
         this.course_actions.set_error(err);
       }
     };
-    const { store, handout } = this.course_actions.resolve({ handout_id, finish });
+    const { store, handout } = this.course_actions.resolve({
+      handout_id,
+      finish
+    });
     if (!handout) return;
 
     let errors = "";
