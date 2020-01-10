@@ -18,6 +18,18 @@
 //
 //##############################################################################
 
+/*
+BUG:
+
+ - this code is buggy since the SearchInput component below is NOT controlled,
+   but some of the code assumes it is, which makes no sense.
+   E.g., there is a clear_search prop that is passed in, which is
+   nonsense, because the state of the search is local to the
+   SearchInput. That's why the calls to clear
+   the search in all the code below are all broken.
+
+*/
+
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 
@@ -234,7 +246,10 @@ class MultipleAddSearch extends Component<
         <Space />
         <Button
           bsStyle="default"
-          onClick={() => this.props.add_selected([target])}
+          onClick={() => {
+            this.props.add_selected([target]);
+            this.props.clear_search();
+          }}
         >
           Yes, create it
         </Button>
