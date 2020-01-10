@@ -2875,7 +2875,7 @@ def show(*objs, **kwds):
     for t in ['svg', 'd3', 'display']:
         if t in kwds:
             del kwds[t]
-    from . import graphics
+    from smc_sagews import graphics
 
     def show0(obj, combine_all=False):
         # Either show the object and return None or
