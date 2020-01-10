@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
+from __future__ import absolute_import
 import socket
 import conftest
 import os
@@ -14,7 +15,7 @@ class TestBadContinuation:
 
     def test_bad_utf8(self, exec2):
         code = r"""print('u"\xe1"')"""
-        outp = u"�"
+        outp = "�"
         exec2(code, outp)
 
 
@@ -74,7 +75,7 @@ class TestUnicode:
 class TestOutputReplace:
     def test_1865(self, exec2):
         code = 'for x in [u"ááá", "ááá"]: print(x)'
-        xout = u'ááá\nááá\n'
+        xout = 'ááá\nááá\n'
         exec2(code, xout)
 
 
