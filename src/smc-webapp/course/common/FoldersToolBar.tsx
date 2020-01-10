@@ -22,7 +22,7 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 
 // CoCalc libraries
-import { is_different, search_split } from "smc-util/misc";
+import { is_different } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 
 // React libraries
@@ -220,7 +220,8 @@ class MultipleAddSearch extends Component<
   }
 
   private render_create_new_assignment(): Rendered {
-    const target = search_split(this.search)[0];
+    if (!this.search) return;
+    const target = this.search.trim();
     if (!target) return;
     return (
       <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
