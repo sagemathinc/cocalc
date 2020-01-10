@@ -799,6 +799,7 @@ ${details}
     // type = assigned, collected, graded, peer-assigned, peer-collected
     switch (type) {
       case "assigned":
+        await this.has_student_subdir(assignment_id); // make sure this is up to date
         // create_due_date_file = true
         await this.copy_assignment_to_student(assignment_id, student_id, {
           create_due_date_file: true

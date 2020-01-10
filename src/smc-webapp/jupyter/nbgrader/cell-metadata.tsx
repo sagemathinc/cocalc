@@ -51,7 +51,6 @@ export class NBGraderMetadata extends Component<Props> {
         tip={info.student_tip}
         placement={"right"}
         size={"small"}
-        style={{ cursor: "pointer" }}
       >
         <span>{info.student_title}</span>
         {this.render_points()}
