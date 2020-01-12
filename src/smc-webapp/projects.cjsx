@@ -1734,7 +1734,7 @@ LoadAllProjects = rclass
         </div>
 
 
-exports.ProjectTitle = ProjectTitle = rclass
+ProjectTitle = rclass
     displayName: 'Projects-ProjectTitle'
 
     reduxProps:
@@ -1764,3 +1764,21 @@ exports.ProjectTitle = ProjectTitle = rclass
             <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
             <span style={@props.style}>(Private project)</span>
+
+exports.ProjectTitle = rclass
+    propTypes:
+        project_id   : rtypes.string.isRequired
+        handle_click : rtypes.func
+        style        : rtypes.object
+    render: ->
+        # wrapped this way because of this hard to debug issue:
+        #   https://github.com/sagemathinc/cocalc/issues/4310
+        <Redux redux={redux}>
+            <ProjectTitle
+                project_id={@props.project_id}
+                handle_click={@props.handle_click}
+                style={@props.style}
+                />
+        </Redux>
+
+
