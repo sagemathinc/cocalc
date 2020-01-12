@@ -82,18 +82,18 @@ The URI schema is as follows:
 query_string = require('query-string')
 
 # Determine query params part of URL based on state of the project store.
-# This also leaves in any params already there.
+# This also leaves unchanged any *other* params already there (i.e., not
+# the "managed" params that are explicitly listed in the code below).
 params = ->
     page = redux.getStore('page')
     current = QueryParams.get_all()
     if page?
         for param in ['fullscreen', 'session', 'get_api_key', 'test']
             val = page.get(param)
-            if val?
+            if val
                 current[param] = val
-            # TODO either fix the comment above and uncomment the lines below, or delete these lines
-            #else
-            #    delete current[param]
+            else
+                delete current[param]
 
     s = query_string.stringify(current)
     if s
