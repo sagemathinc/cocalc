@@ -115,5 +115,8 @@ def checkPID(pidfile):
 
 def daemonize(pidfile):
     checkPID(pidfile)
-    basic_daemonize(silence=False)
+    # CRITICAL: DO NOT set silence=False in production.  It hangs starting the sage server
+    # properly, which breaks things badly for users (e.g., their first worksheet
+    # never works).
+    basic_daemonize(silence=True)
     writePID(pidfile)
