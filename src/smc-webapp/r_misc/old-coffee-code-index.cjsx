@@ -1496,7 +1496,7 @@ exports.UpgradeAdjustor = rclass
                 <hr/>
 
                 {@render_upgrade_row(n, @props.quota_params[n], remaining[n], current[n], limits[n], totals[n], proj_remainder[n]) for n in PROJECT_UPGRADES.field_order}
-                <UpgradeRestartWarning />
+                <UpgradeRestartWarning style={marginTop:'15px'}/>
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
                     <Button

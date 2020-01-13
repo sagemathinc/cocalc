@@ -880,14 +880,28 @@ class ProjectsStore extends Store
             mintime += info?.getIn(['upgrades', 'mintime']) ? 0
         return new Date((last_edited - 0) + 1000*mintime)
 
-    # Get the total quotas for the given project, including free base values and all user upgrades
+    # Returns the TOTAL of the quotas contributed by all
+    # site licenses.  Does not return undefined, even if all
+    # contributions are 0.
+    get_total_site_license_upgrades_to_project: (project_id) =>
+        site_license = @getIn(['project_map', project_id, 'site_license'])?.toJS()
+        upgrades = Object.assign({}, ZERO_QUOTAS)
+        if site_license?
+            for license_id, info of site_license
+                for prop, val of info ? {}
+                    upgrades[prop] = (upgrades[prop] ? 0) + parseInt(val)
+        return upgrades
+
+    # Get the total quotas for the given project, including free base
+    # values, site_license contribution and all user upgrades.
     get_total_project_quotas: (project_id) =>
         base_values = @getIn(['project_map', project_id, 'settings'])?.toJS()
         if not base_values?
             return
         misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
-        return misc.map_sum(base_values, upgrades)
+        site_license = @get_total_site_license_upgrades_to_project(project_id)
+        return misc.map_sum(misc.map_sum(base_values, upgrades), site_license)
 
     # we allow URLs in projects, which have member hosting or internet access
     # this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators

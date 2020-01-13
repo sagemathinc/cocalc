@@ -782,6 +782,11 @@ schema.projects = {
       desc:
         'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
     },
+    site_license: {
+      type: "map",
+      desc:
+        'This is a map that defines temporary upgrades (just when running the project) that come from a site license.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.'
+    },
     status: {
       type: "map",
       desc:
@@ -917,6 +922,7 @@ schema.projects = {
         deleted: null,
         host: null,
         settings: DEFAULT_QUOTAS,
+        site_license: null,
         status: null,
         state: null,
         last_edited: null,
