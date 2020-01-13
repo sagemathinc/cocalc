@@ -85,7 +85,11 @@ interface Settings {
   cpu_shares?: string;
 }
 
-exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
+exports.quota = function(
+  settings_arg?: Settings,
+  users_arg?: Users,
+  site_license?: { [license_id: string]: Settings }
+) {
   // we want settings and users to be defined below and make sure the
   // arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
@@ -122,6 +126,16 @@ exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
         break;
       }
     }
+    // or some site license
+    if (!quota.network && site_license != null) {
+      for (const license_id in site_license) {
+        const val = site_license[license_id];
+        if (val != null && val.network) {
+          quota.network = true;
+          break;
+        }
+      }
+    }
   }
 
   // member hosting, which translates to "not pre-emptible"
@@ -137,12 +151,24 @@ exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
         break;
       }
     }
+    // or some site license
+    if (!quota.member_host && site_license != null) {
+      for (const license_id in site_license) {
+        const val = site_license[license_id];
+        if (val != null && val.member_host) {
+          quota.member_host = true;
+          break;
+        }
+      }
+    }
   }
 
-  // elevated quota for docker container (fuse mounting and maybe more ...)
+  // elevated quota for docker container (fuse mounting and maybe more ...).
+  // This is only used for a few projects mainly by William Stein.
   if (settings.privileged) {
     quota.privileged = true;
   }
+
   // user-upgrades are disabled on purpose (security concerns and not implemented)!
   //else
   //    for _, val of users
@@ -177,6 +203,13 @@ exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
       const val = users[userid];
       const num = val != null && val.upgrades && val.upgrades[upgrade];
       contribs += factor * parse_num(num);
+    }
+    if (site_license != null) {
+      for (const license_id in site_license) {
+        const val = site_license[license_id];
+        const num = val != null && val[upgrade];
+        contribs += factor * parse_num(num);
+      }
     }
     contribs = Math.min(remain, contribs);
     // use quota[name], and ignore base, because admins are allowed to contribute without limits
