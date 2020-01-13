@@ -23,6 +23,8 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
+{project_action_request_pre_hook} = require('./postgres/project-action-hooks')
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
@@ -777,13 +779,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     project_action: (opts) =>
         opts = defaults opts,
             project_id     : required
-            action_request : required   # action is a pair
+            action_request : required   # action is object {action:?, time:?}
             cb             : required
         if opts.action_request.action == 'test'
             # used for testing -- shouldn't trigger anything to happen.
             opts.cb()
             return
-        dbg = @_dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
+        dbg = @_dbg("project_action(project_id='#{opts.project_id}',action_request=#{misc.to_json(opts.action_request)})")
         dbg()
         project = undefined
         action_request = misc.copy(opts.action_request)
@@ -795,6 +797,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 jsonb_set : {action_request : action_request}
                 cb        : cb
         async.series([
+            (cb) =>
+                try
+                    await project_action_request_pre_hook(@, action_request.action, opts.project_id, dbg)
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 action_request.started = new Date()
                 set_action_request(cb)
