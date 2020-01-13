@@ -7,32 +7,29 @@ import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 
 import { NewFileButton } from "./new-file-button";
-import { AvailableFeatures } from "./types";
 import { ALL_AVAIL } from "../../project_configuration";
 import { redux } from "../../app-framework";
 
 interface Props {
   create_file: (name?: string) => void;
   project_id?: string;
-  children?: React.ReactNode;
-  name: string;
+  children?: React.ReactNode
 }
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
-export function FileTypeSelector({
-  name,
+export const FileTypeSelector: React.FC<Props> = ({
   create_file,
   project_id,
   children
-}: Props): JSX.Element | null {
+}: Props): JSX.Element | null => {
   const [show_jupyter_server, set_show_jupyter_server] = React.useState(false);
   const [show_jupyterlab_server, set_show_jupyterlab_server] = React.useState(
     false
   );
 
-  const available_features = redux.useProjectStore(name, store => {
-    return store.get("available_features");
+  const available_features = redux.useProjectStore(project_id, store => {
+    return store?.get("available_features");
   });
 
   if (!create_file || !create_file || !project_id) {
@@ -281,4 +278,4 @@ export function FileTypeSelector({
       </Row>
     </>
   );
-}
+};

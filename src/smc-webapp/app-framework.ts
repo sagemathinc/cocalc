@@ -332,7 +332,8 @@ export class AppRedux {
   }
 
   /**
-   * Hook to connect a function component to a project store
+   * Hook to connect a function component to a project store.
+   * Opposed to `getProjectStore`, the project store MUST already by defined
    *
    * @param project_id id of the project to connect to
    * @param selectFrom selector to run on the store.
@@ -340,11 +341,14 @@ export class AppRedux {
    *    if the component should rerender
    */
   useProjectStore<T>(
-    project_id: string,
-    selectFrom: (store: ProjectStore) => T
+    project_id?: string,
+    selectFrom: (store?: ProjectStore) => T
   ): T {
-    return useSelector(obj => {
-      const projectStore = obj.get(project_redux_name(project_id));
+    return useSelector<any, T>(_ => {
+      let projectStore = undefined;
+      if (project_id) {
+        projectStore = this.getStore(project_redux_name(project_id)) as any;
+      }
       return selectFrom(projectStore);
     });
   }
