@@ -637,6 +637,7 @@ class StudentProjectUpgrades extends Component<
             Save
           </Button>{" "}
         </ButtonGroup>
+        <br/>
         {disabled ? "Valid license keys are 36 characters long." : ""}
       </div>
     );
