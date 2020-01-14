@@ -72,11 +72,11 @@ _create_project_tokens = {}
 # Define projects actions
 class ProjectsActions extends Actions
     # **THIS IS AN ASYNC FUNCTION!**
-    projects_table_set: (obj) =>
+    projects_table_set: (obj, merge='deep') =>
         the_table = @redux.getTable('projects')
         if not the_table?  # silently fail???
             return
-        await the_table.set(obj)
+        await the_table.set(obj, merge)
 
     # Set whether the "add collaborators" component is displayed
     # for the given project in the project listing.
@@ -551,6 +551,29 @@ class ProjectsActions extends Actions
     clear_project_upgrades: (project_id) =>
         misc.assert_uuid(project_id)
         await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
+
+    # **THIS IS AN ASYNC FUNCTION!**
+    # Use a site license key to upgrade a project.  This only has an
+    # impact when the project is restarted.
+    add_site_license_to_project: (project_id, license_id) =>
+        project = store.getIn(['project_map', project_id])
+        if not project?
+            return
+        site_license = project.get('site_license', immutable.Map()).toJS()
+        if site_license[license_id]?
+            return
+        site_license[license_id] = {}
+        await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
+
+    remove_site_license_from_project: (project_id, license_id) =>
+        project = store.getIn(['project_map', project_id])
+        if not project?
+            return
+        site_license = project.get('site_license', immutable.Map()).toJS()
+        if not site_license[license_id]?
+            return
+        site_license[license_id] = null
+        await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
 
     # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>

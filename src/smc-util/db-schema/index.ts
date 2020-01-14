@@ -2,9 +2,16 @@ import { schema } from "./db-schema";
 import { account_creation_actions } from "./account-creation-actions";
 import { accounts } from "./accounts";
 import { lti } from "./lti";
+import { site_licenses } from "./site-licenses";
 const misc = require("../misc");
 
-export const SCHEMA = { ...schema, account_creation_actions, accounts, lti };
+export const SCHEMA = {
+  ...schema,
+  account_creation_actions,
+  accounts,
+  lti,
+  site_licenses
+};
 
 export {
   DEFAULT_FONT_SIZE,

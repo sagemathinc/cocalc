@@ -785,7 +785,7 @@ schema.projects = {
     site_license: {
       type: "map",
       desc:
-        'This is a map that defines temporary upgrades (just when running the project) that come from a site license.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.'
+        "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly."
     },
     status: {
       type: "map",
@@ -945,7 +945,8 @@ schema.projects = {
         },
         action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
         compute_image: true,
-        course: true
+        course: true,
+        site_license: true
       },
 
       before_change(database, old_val, new_val, account_id, cb) {

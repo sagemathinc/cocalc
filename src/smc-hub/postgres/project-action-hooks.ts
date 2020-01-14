@@ -1,5 +1,28 @@
+import { isEqual } from "lodash";
 import { PostgreSQL } from "./types";
 const { query } = require("./query");
+import { TypedMap } from "smc-webapp/app-framework";
+import { is_valid_uuid_string } from "smc-util/misc2";
+import { callback2 } from "smc-util/async-utils";
+
+const SITE_LICENSE_UPGRADE = { network: 1, member_host: 1 };
+
+let licenses: any = undefined;
+
+interface License {
+  id: string;
+  name: string;
+}
+
+async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
+  // Todo -- filter on expiration...
+  if (licenses == null) {
+    licenses = await callback2(db.synctable.bind(db), {
+      table: "site_licenses"
+    });
+  }
+  return licenses.get();
+}
 
 export async function project_action_request_pre_hook(
   db: PostgreSQL,
@@ -26,46 +49,57 @@ export async function project_action_request_pre_hook(
 
   const project = await query({
     db,
-    select: ["course", "site_license"],
+    select: ["site_license"],
     table: "projects",
     where: { project_id },
     one: true
   });
   dbg(`project_action_request_pre_hook -- project=${JSON.stringify(project)}`);
 
-  const gets_site_license: boolean =
-    project.course != null &&
-    project.course.email_address != null &&
-    project.course.email_address.toLowerCase().indexOf("ucla.edu") != -1;
-
-  dbg(
-    `project_action_request_pre_hook -- gets_site_license=${gets_site_license}`
-  );
-  if (!gets_site_license) {
-    if (project.site_license != null) {
-      // unset the field since it is currently set
-      await query({
-        db,
-        query: "UPDATE projects",
-        where: { project_id },
-        set: { site_license: null }
-      });
-    }
+  if (project.site_license == null || typeof project.site_license != "object") {
+    // no site licenses set for this course.
     return;
   }
 
-  // Now set the site license properly.  The uuid below is made up, but will correspond to UCLA's site license,
-  // once there is a notion of site license in the database.
-  const site_license = {
-    "d6d2abf3-ced7-45a1-b578-8c2fc2cf1870": { network: 1, member_host: 1 }
-  };
-  dbg(
-    "project_action_request_pre_hook -- setup site license=${JSON.stringify(site_license)}"
-  );
-  await query({
-    db,
-    query: "UPDATE projects",
-    where: { project_id },
-    jsonb_set: { site_license }
-  });
+  const site_license = project.site_license;
+  // Next we check the keys of site_license to see what they contribute,
+  // and fill that in.
+  // TODO: impose limits and other rules.
+  const licenses = await get_valid_licenses(db);
+  let changed: boolean = false;
+  for (const license_id in site_license) {
+    if (!is_valid_uuid_string(license_id)) {
+      // The site_license is supposed to be a map from uuid's to settings...
+      // We could put some sort of error here in case, though I don't know what
+      // we would do with it.
+      continue;
+    }
+    if (licenses.get(license_id)) {
+      // Found a valid license.  Just upgrade it.
+      if (!isEqual(site_license[license_id], SITE_LICENSE_UPGRADE)) {
+        site_license[license_id] = SITE_LICENSE_UPGRADE;
+        changed = true;
+      }
+    } else {
+      // Not currently valid license.
+      if (!isEqual(site_license[license_id], {})) {
+        // Delete any upgrades, so doesn't provide a benefit.
+        site_license[license_id] = {};
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    // Now set the site license.
+    dbg(
+      "project_action_request_pre_hook -- setup site license=${JSON.stringify(site_license)}"
+    );
+    await query({
+      db,
+      query: "UPDATE projects",
+      where: { project_id },
+      jsonb_set: { site_license }
+    });
+  }
 }
