@@ -628,16 +628,18 @@ class StudentProjectUpgrades extends Component<
             bsStyle="primary"
             disabled={disabled}
             onClick={() => {
-              this.setState({ show_site_license: false });
-              this.get_actions().configuration.set_site_license_id(
+              const actions = this.get_actions();
+              actions.configuration.set_site_license_id(
                 this.state.site_license_id
               );
+              actions.configuration.configure_all_projects();
+              this.setState({ show_site_license: false });
             }}
           >
             Save
           </Button>{" "}
         </ButtonGroup>
-        <br/>
+        <br />
         {disabled ? "Valid license keys are 36 characters long." : ""}
       </div>
     );

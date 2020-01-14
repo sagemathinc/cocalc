@@ -565,14 +565,25 @@ class ProjectsActions extends Actions
         site_license[license_id] = {}
         await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
 
-    remove_site_license_from_project: (project_id, license_id) =>
+    # Removes a given (or all) site licenses from a project. If license_id is not
+    # set then removes all of them.
+    remove_site_license_from_project: (project_id, license_id='') =>
         project = store.getIn(['project_map', project_id])
         if not project?
             return
         site_license = project.get('site_license', immutable.Map()).toJS()
-        if not site_license[license_id]?
+        if not license_id and misc.len(site_license) == 0
+            # common special case that is easy
             return
-        site_license[license_id] = null
+        # The null stuff here is confusing, but that's just because our SyncTable functionality
+        # makes deleting things tricky.
+        if license_id
+            if not site_license[license_id]?
+                return
+            site_license[license_id] = null
+        else
+            for x of site_license
+                site_license[x] = null
         await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
 
     # **THIS IS AN ASYNC FUNCTION!**
