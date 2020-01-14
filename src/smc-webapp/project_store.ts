@@ -164,6 +164,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   constructor(a, b) {
     super(a, b);
     this._projects_store_change = this._projects_store_change.bind(this);
+    this.setup_selectors();
   }
 
   _init = (): void => {
@@ -260,14 +261,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
       git_grep: true,
 
       // Project Settings
-      stripped_public_paths: this.selectors.stripped_public_paths.fn,
+      stripped_public_paths: (this.selectors as any).stripped_public_paths.fn,
 
       other_settings: undefined
     };
   };
 
-  // Selectors
-  // TODO [J3]: Fix Selectors. They are pretty broken.
   selectors: any = {
     other_settings: {
       fn: () => {

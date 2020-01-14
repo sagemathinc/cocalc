@@ -33,7 +33,9 @@ export class Store<State> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
   protected redux: AppRedux;
-  protected selectors: { [K in keyof Partial<State>]: Selector<State, K> };
+  protected selectors?: {
+    [K in keyof Partial<State>]: Selector<State, K> | undefined;
+  };
   private _last_state: State;
 
   constructor(name: string, redux: AppRedux) {
@@ -46,10 +48,12 @@ export class Store<State> extends EventEmitter {
     this.name = name;
     this.redux = redux;
     this.setMaxListeners(150);
+  }
+
+  protected setup_selectors(): void {
     if (this.selectors) {
       type selector = Selector<State, any>;
       const created_selectors: { [K in keyof State]: selector } = {} as any;
-
       const dependency_graph: any = {}; // Used to check for cycles
 
       for (const selector_name of Object.getOwnPropertyNames(this.selectors)) {
@@ -57,22 +61,22 @@ export class Store<State> extends EventEmitter {
         const dependent_selectors: selector[] = [];
 
         // Names of dependencies
-        const dependencies = this.selectors[selector_name].dependencies;
-        dependency_graph[selector_name] = dependencies || [];
+        const dependencies = this.selectors[selector_name].dependencies || [];
+        dependency_graph[selector_name] = dependencies;
 
-        if (dependencies) {
-          for (const dep_name of dependencies) {
-            if (created_selectors[dep_name] == undefined) {
-              created_selectors[dep_name] = (): any => this.get(dep_name);
-            }
-            dependent_selectors.push(created_selectors[dep_name]);
-
-            // Set the selector function to the new selector
-            this.selectors[dep_name].fn = createSelector(
-              dependent_selectors as any,
-              this.selectors[dep_name].fn
-            ) as any;
+        for (const dep_name of dependencies) {
+          if (created_selectors[dep_name] == undefined) {
+            created_selectors[dep_name] = (): any => {
+              return this.get(dep_name);
+            };
           }
+          dependent_selectors.push(created_selectors[dep_name]);
+
+          // Set the selector function to the new selector
+          this.selectors[selector_name].fn = createSelector(
+            dependent_selectors as any,
+            this.selectors[selector_name].fn
+          ) as any;
         }
       }
       // check if there are cycles
@@ -107,7 +111,7 @@ export class Store<State> extends EventEmitter {
     notSetValue?: any
   ): any => {
     if (this.selectors && this.selectors[field] != undefined) {
-      return this.selectors[field].fn();
+      return this.selectors[field].fn(this.getState());
     } else {
       return this.redux._redux_store
         .getState()
