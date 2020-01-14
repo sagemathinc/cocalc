@@ -29,6 +29,7 @@ export class AccountStore extends Store<AccountState> {
       "is_paying_member",
       "get_page_size"
     ]);
+    this.setup_selectors();
   }
 
   get_user_type(): string {
