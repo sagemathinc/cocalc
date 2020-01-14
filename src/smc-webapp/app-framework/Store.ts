@@ -22,7 +22,7 @@ export type StoreConstructorType<T, C = Store<T>> = new (
 ) => C;
 
 export interface Selector<State, K extends keyof State> {
-  dependencies?: (keyof State)[];
+  dependencies?: readonly (keyof State)[];
   fn: () => State[K];
 }
 
@@ -139,7 +139,7 @@ export class Store<State> extends EventEmitter {
    * happens call the given callback.
    */
   wait<T>(opts: {
-    until: (store: Store<State>) => T; // waits until "until(store)" evaluates to something truthy
+    until: (store: any) => T; // waits until "until(store)" evaluates to something truthy
     cb: (err?: string, result?: T) => any; // cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
     throttle_ms?: number; // in ms -- throttles the call to until(store)
     timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)

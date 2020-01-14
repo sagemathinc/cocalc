@@ -4,7 +4,6 @@ import { get_total_upgrades } from "smc-util/upgrades";
 import * as misc from "smc-util/misc2";
 import * as lodash from "lodash";
 import { Map, List } from "immutable";
-import { literal } from "../app-framework/literal";
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -40,7 +39,7 @@ export class AccountStore extends Store<AccountState> {
     return this.get("account_id");
   }
 
-  selectors: any = {
+  selectors = {
     is_anonymous: {
       fn: () => {
         return is_anonymous(
@@ -50,19 +49,19 @@ export class AccountStore extends Store<AccountState> {
           this.get("lti_id")
         );
       },
-      dependencies: literal([
+      dependencies: [
         "email_address",
         "passports",
         "is_logged_in",
         "lti_id"
-      ])
+      ] as const
     },
     is_admin: {
       fn: () => {
         const groups = this.get("groups");
         return !!groups && groups.includes("admin");
       },
-      dependencies: literal(["groups"])
+      dependencies: ["groups"] as const
     }
   };
 

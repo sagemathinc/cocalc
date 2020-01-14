@@ -51,8 +51,6 @@ import {
   AppRedux
 } from "./app-framework";
 
-import { literal } from "./app-framework/literal";
-
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
 
@@ -267,7 +265,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  selectors: any = {
+  selectors = {
     other_settings: {
       fn: () => {
         return (this.redux.getStore("account") as any).get("other_settings");
@@ -306,7 +304,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     // cached pre-processed file listing, which should always be up to date when
     // called, and properly depends on dependencies.
     displayed_listing: {
-      dependencies: literal([
+      dependencies: [
         "active_file_sort",
         "current_path",
         "directory_listings",
@@ -315,7 +313,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "other_settings",
         "show_hidden",
         "show_masked"
-      ]),
+      ] as const,
       fn: () => {
         const search_escape_char = "/";
         let listing = this.get("directory_listings").get(
@@ -438,7 +436,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     },
 
     stripped_public_paths: {
-      dependencies: literal(["public_paths"]),
+      dependencies: ["public_paths"] as const,
       fn: () => {
         const public_paths = this.get("public_paths");
         if (public_paths != null) {
@@ -458,7 +456,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     },
 
     library_docs_sorted: {
-      dependencies: literal(["library", "library_search"]),
+      dependencies: ["library", "library_search"] as const,
       fn: () => {
         let docs = this.get("library").getIn(["examples", "documents"]);
         const metadata = this.get("library").getIn(["examples", "metadata"]);
