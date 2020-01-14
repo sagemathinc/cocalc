@@ -1,7 +1,7 @@
 import { isEqual } from "lodash";
 import { PostgreSQL } from "./types";
 const { query } = require("./query");
-import { TypedMap } from "../smc-webapp/app-framework";
+import { TypedMap } from "../../smc-webapp/app-framework";
 import { is_valid_uuid_string } from "../smc-util/misc2";
 import { callback2 } from "../smc-util/async-utils";
 
