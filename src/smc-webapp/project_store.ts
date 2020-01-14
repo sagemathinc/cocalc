@@ -259,7 +259,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       git_grep: true,
 
       // Project Settings
-      stripped_public_paths: (this.selectors as any).stripped_public_paths.fn,
+      stripped_public_paths: this.selectors.stripped_public_paths.fn,
 
       other_settings: undefined
     };
