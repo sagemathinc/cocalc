@@ -39,6 +39,8 @@ import {
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 
+const { ShowSupportLink } = require("../../support");
+
 import {
   A,
   Icon,
@@ -62,12 +64,23 @@ import {
 
 import { Alert, Card } from "antd";
 
+const LICENSE_STYLE = {
+  width: "100%",
+  margin: "15px 0",
+  padding: "10px",
+  borderRadius: "5px",
+  fontFamily: "monospace",
+  fontSize: "14pt",
+  color: "darkblue"
+};
+
 interface StudentProjectUpgradesProps {
   name: string;
   redux: AppRedux;
   upgrade_goal?: TypedMap<UpgradeGoal>;
   institute_pay?: boolean;
   student_pay?: boolean;
+  site_license_id?: string;
 
   // redux props
   all_projects_have_been_loaded?: boolean;
@@ -78,6 +91,8 @@ interface StudentProjectUpgradesState {
   upgrades: object;
   upgrade_plan?: object;
   loading_all_projects?: boolean;
+  show_site_license?: boolean;
+  site_license_id: string;
 }
 
 class StudentProjectUpgrades extends Component<
@@ -92,7 +107,8 @@ class StudentProjectUpgrades extends Component<
     this.state = {
       upgrade_quotas: false, // true if display the quota upgrade panel
       upgrades: {},
-      upgrade_plan: undefined
+      upgrade_plan: undefined,
+      site_license_id: ""
     };
   }
 
@@ -571,14 +587,78 @@ class StudentProjectUpgrades extends Component<
     if (this.state.loading_all_projects) {
       return (
         <Button disabled={true} bsStyle="primary">
-          <Icon name="arrow-circle-up" /> Adjust upgrades... (Loading)
+          <Icon name="arrow-circle-up" /> Upgrade using a course package or
+          subscription... (Loading)
         </Button>
       );
     }
     return (
       <Button bsStyle="primary" onClick={this.adjust_quotas}>
-        <Icon name="arrow-circle-up" /> Adjust upgrades...
+        <Icon name="arrow-circle-up" /> Upgrade using a course package or
+        subscription...
       </Button>
+    );
+  }
+
+  private render_site_license_text(): Rendered {
+    if (!this.state.show_site_license) return;
+    const disabled =
+      this.state.site_license_id.length != 36 &&
+      this.state.site_license_id.length != 0;
+    return (
+      <div>
+        Enter a license key below to automatically apply upgrades from that
+        license to this course project, all student projects, and the shared
+        project whenever they are running. Clear the field below to stop
+        applying those upgrades. Upgrades from the license are only applied when
+        a project is started. Create a <ShowSupportLink /> if you would like to
+        purchase a license key.
+        <input
+          style={LICENSE_STYLE}
+          type="text"
+          value={this.state.site_license_id}
+          onChange={e => this.setState({ site_license_id: e.target.value })}
+        />
+        <ButtonGroup>
+          {" "}
+          <Button onClick={() => this.setState({ show_site_license: false })}>
+            Cancel
+          </Button>
+          <Button
+            bsStyle="primary"
+            disabled={disabled}
+            onClick={() => {
+              this.setState({ show_site_license: false });
+              this.get_actions().configuration.set_site_license_id(
+                this.state.site_license_id
+              );
+            }}
+          >
+            Save
+          </Button>{" "}
+        </ButtonGroup>
+        {disabled ? "Valid license keys are 36 characters long." : ""}
+      </div>
+    );
+  }
+
+  render_site_license() {
+    return (
+      <div>
+        <Button
+          bsStyle="primary"
+          onClick={() => {
+            this.setState({
+              show_site_license: true,
+              site_license_id: this.props.site_license_id ?? ""
+            });
+          }}
+          disabled={this.state.show_site_license}
+        >
+          <Icon name="key" /> Upgrade using a license key...
+        </Button>
+        {this.render_site_license_text()}
+      </div>
     );
   }
 
@@ -608,6 +688,8 @@ class StudentProjectUpgrades extends Component<
         {this.state.upgrade_quotas
           ? this.render_upgrade_quotas()
           : this.render_upgrade_quotas_button()}
+        <hr />
+        {this.render_site_license()}
         <hr />
         <div style={{ color: "#666" }}>
           <p>

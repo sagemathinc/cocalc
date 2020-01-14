@@ -891,6 +891,11 @@ export class ConfigurationPanel extends Component<
             ? this.props.settings.get("student_pay")
             : undefined
         }
+        site_license_id={
+          this.props.settings != null
+            ? this.props.settings.get("site_license_id")
+            : undefined
+        }
       />
     );
   }

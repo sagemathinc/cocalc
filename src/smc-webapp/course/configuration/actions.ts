@@ -30,6 +30,10 @@ export class ConfigurationActions {
     this.course_actions.shared_project.set_project_description();
   }
 
+  public set_site_license_id(site_license_id: string): void {
+    this.set({ site_license_id, table: "settings" });
+  }
+
   public set_pay_choice(type: string, value: boolean): void {
     this.set({ [type + "_pay"]: value, table: "settings" });
     if (type == "student") {

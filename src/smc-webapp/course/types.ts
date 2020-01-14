@@ -10,6 +10,7 @@ export interface SyncDBRecordSettings {
   allow_collabs?: boolean;
   shared_project_id?: string;
   pay?: string;
+  site_license_id?: string;
 }
 
 // This is closely related to store.AssignmentRecord...
