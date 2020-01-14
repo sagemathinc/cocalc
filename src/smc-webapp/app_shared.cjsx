@@ -215,15 +215,16 @@ exports.NotificationBell = rclass
 
     notification_count: ->
         count_styles =
-            fontSize   : '10pt'
+            fontSize   : '13px'
             color      : COLOR.FG_RED
             position   : 'absolute'
-            left       : '16px'
-            top        : '11px'
+            left       : '14px'
+            top        : '10px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9
-            count_styles.left         = '15.8px'
+            count_styles.fontSize     = '12px'
+            count_styles.left         = '11px'
             count_styles.background   = COLORS.GRAY_L
             count_styles.borderRadius = '50%'
             count_styles.border       = '2px solid lightgrey'
@@ -239,8 +240,8 @@ exports.NotificationBell = rclass
             outer_style.backgroundColor = ACTIVE_BG_COLOR
 
         inner_style =
-            padding  : '10px'
-            fontSize : '17pt'
+            padding  : '5px'
+            fontSize : '30px'
             cursor   : 'pointer'
 
         clz = ''
