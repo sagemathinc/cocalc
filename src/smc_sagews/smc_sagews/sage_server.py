@@ -130,7 +130,13 @@ def reload_attached_files_if_mod_smc():
 # were to try to use this server outside of cloud.sagemath.com.
 _info_path = os.path.join(os.environ['SMC'], 'info.json')
 if os.path.exists(_info_path):
-    INFO = json.loads(open(_info_path).read())
+    try:
+        INFO = json.loads(open(_info_path).read())
+    except:
+        # This will fail, e.g., if info.json is invalid (maybe a blank file).
+        # We definitely don't want sage server startup to be completely broken
+        # in this case, so we fall back to "no info".
+        INFO = {}
 else:
     INFO = {}
 if 'base_url' not in INFO:
