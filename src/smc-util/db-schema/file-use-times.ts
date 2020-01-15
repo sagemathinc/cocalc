@@ -1,4 +1,3 @@
-import { copy } from "smc-util/misc2";
 import { create } from "./types";
 
 /*
@@ -54,7 +53,7 @@ export const file_use_times = create({
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
-          const obj: any = copy(opts.query);
+          const obj: any = Object.assign({}, opts.query);
           const { project_id, account_id, path } = obj;
           if (project_id == null || account_id == null || path == null) {
             cb("project_id, account_id, and path must all be specified");
