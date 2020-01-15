@@ -560,12 +560,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         const path = misc.tab_to_path(key);
-        console.log(
-          "setting active file tab",
-          this.redux.hasActions("file_use")
-        );
         if (this.redux.hasActions("file_use")) {
-          console.log("marking file", path, "open");
           (this.redux.getActions("file_use") as any).mark_file(
             this.project_id,
             path,
