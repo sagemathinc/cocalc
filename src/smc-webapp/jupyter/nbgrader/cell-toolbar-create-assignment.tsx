@@ -23,6 +23,8 @@ import { Metadata } from "./types";
 
 import { popup } from "../../frame-editors/frame-tree/print";
 
+import { debounce } from "lodash";
+
 import {
   CELLTYPE_INFO_LIST,
   CELLTYPE_INFO_MAP,
@@ -53,6 +55,8 @@ interface CreateAssignmentProps {
 }
 
 export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
+  private focus_points: boolean = false;
+
   private select(value: string): void {
     if (value == "") {
       // clearing state
@@ -77,14 +81,19 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
 
     if (this.props.cell.get("input", "").trim() == "") {
       const language: string = this.props.actions.store.get_kernel_language();
-      const input = value_to_template_content(value, language);
+      const input = value_to_template_content(
+        value,
+        language,
+        this.props.cell.get("cell_type", "code")
+      );
       if (input != "") {
         this.props.actions.set_cell_input(this.props.cell.get("id"), input);
       }
     }
   }
 
-  private set_points(points: any): void {
+  private set_points = debounce(points => {
+    this.focus_points = true;
     points = parseFloat(points);
     if (!Number.isFinite(points) || points < 0) {
       points = 0;
@@ -93,7 +102,7 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       this.props.cell.get("id"),
       { points }
     );
-  }
+  }, 1000);
 
   private get_value(): string {
     const x = this.props.cell.getIn(["metadata", "nbgrader"], Map());
@@ -123,16 +132,19 @@ export class CreateAssignmentToolbar extends Component<CreateAssignmentProps> {
       "points"
     ]);
     if (points == null) return;
+    const focus_points = this.focus_points;
+    this.focus_points = false;
     return (
       <FormGroup>
         <ControlLabel style={{ fontWeight: 400 }}>Points:</ControlLabel>
         <FormControl
           type="number"
+          autoFocus={focus_points}
           defaultValue={`${points}`}
           onChange={e => this.set_points((e.target as any).value)}
           style={{
             color: "#666",
-            width: "64px",
+            width: "10ex",
             marginLeft: "5px",
             fontSize: "14px"
           }}

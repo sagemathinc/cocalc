@@ -22,13 +22,17 @@ export function should_do_anonymous_setup(): boolean {
 }
 
 export async function do_anonymous_setup(client: any): Promise<void> {
-  // function log(...args): void { console.log("do_anonymous_setup", ...args); }
-  // log();
+  function log(..._args): void {
+    // uncomment to debug...
+    // console.log("do_anonymous_setup", ..._args);
+  }
+  log();
   try {
-    // log("creating account");
+    redux.getActions("account").setState({ doing_anonymous_setup: true });
+    log("creating account");
     const x = await callback2(client.create_account.bind(client), {});
     if (x != null && x.event == "account_creation_failed") {
-      // log("failed to create account", x);
+      log("failed to create account", x);
       // If there is an error specifically with creating the account
       // due to the backend not allowing it (e.g., missing token), then
       // it is fine to silently return, which falls back to the login
@@ -36,17 +40,17 @@ export async function do_anonymous_setup(client: any): Promise<void> {
       return;
     }
     if (!client.is_signed_in()) {
-      // log("waiting to be signed in");
+      log("waiting to be signed in");
       await once(this, "signed_in");
     }
     const actions = redux.getActions("projects");
-    // log("creating project");
+    log("creating project");
     const project_id = await actions.create_project({
       title: "Welcome to CoCalc!",
       start: true,
       description: ""
     });
-    // log("opening project");
+    log("opening project");
     actions.open_project({ project_id, switch_to: true });
 
     const launch_actions = redux.getStore("launch-actions");
@@ -62,16 +66,18 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     open_default_jupyter_notebook(project_id);
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
-    // log("err", err);
-    // There was an error creating the account (probably), so we do nothing further.
-    // If the user didn't get signed in, this will fall back to sign in page, which
+    log("err", err);
+    // There was an error creating the account (probably), so we do nothing
+    // further involving making an anonymous account.
+    // If the user didn't get signed in, this will fallback to sign in page, which
     // is reasonable behavior.
     // Such an error *should* happen if, e.g., a sign in token is required,
     // or maybe this user's ip is blocked. Falling back
     // to normal sign up makes sense in this case.
     return;
   } finally {
-    // log("removing anonymous param");
+    redux.getActions("account").setState({ doing_anonymous_setup: false });
+    log("removing anonymous param");
     // In all cases, remove the 'anonymous' parameter. This way if
     // they refresh their browser it won't cause confusion.
     QueryParams.remove("anonymous");

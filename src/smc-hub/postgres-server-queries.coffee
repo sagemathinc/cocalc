@@ -298,6 +298,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
             email_address     : undefined
             password_hash     : undefined
+            lti_id            : undefined  # 2-tuple <string[]>[iss, user_id]
 
             passport_strategy : undefined
             passport_id       : undefined
@@ -305,7 +306,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
+        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         for name in ['first_name', 'last_name']
@@ -361,6 +362,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'account_id     :: UUID'      : account_id
                         'first_name     :: TEXT'      : opts.first_name
                         'last_name      :: TEXT'      : opts.last_name
+                        'lti_id         :: TEXT[]'    : opts.lti_id
                         'created        :: TIMESTAMP' : new Date()
                         'created_by     :: INET'      : opts.created_by
                         'password_hash  :: CHAR(173)' : opts.password_hash
@@ -1091,21 +1093,32 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             )
 
     _account_where: (opts) =>
-        if opts.account_id?
+        # account_id > email_address > lti_id
+        if opts.account_id
             return {"account_id = $::UUID" : opts.account_id}
-        else
+        else if opts.email_address
             return {"email_address = $::TEXT" : opts.email_address}
+        else if opts.lti_id
+            return {"lti_id = $::TEXT[]" : opts.lti_id}
+        else
+            throw Error("postgres-server-queries::_account_where neither account_id, nor email_address, nor lti_id specified and nontrivial")
 
     get_account: (opts) =>
         opts = defaults opts,
-            email_address : undefined     # provide either email or account_id (not both)
+            email_address : undefined     # provide one of email, account_id, or lti_id (pref is account_id, then email_address, then lti_id)
             account_id    : undefined
+            lti_id        : undefined
             columns       : ['account_id',
                              'password_hash',
                              'password_is_set',  # true or false, depending on whether a password is set (since don't send password_hash to user!)
-                             'first_name', 'last_name',
+                             'first_name',
+                             'last_name',
                              'email_address',
-                             'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+                             'evaluate_key',
+                             'autosave',
+                             'terminal',
+                             'editor_settings',
+                             'other_settings',
                              'groups',
                              'passports'
                             ]
@@ -1658,6 +1671,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id  : required    # initial owner
             title       : undefined
             description : undefined
+            lti_id      : undefined   # array of strings
             image       : 'default'   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
@@ -1670,6 +1684,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 title         : opts.title
                 description   : opts.description
                 compute_image : opts.image
+                lti_id        : opts.lti_id
                 created       : now
                 last_edited   : now
                 users         : {"#{opts.account_id}":{group:'owner'}}
@@ -1741,7 +1756,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _validate_opts: (opts) =>
         for k, v of opts
-            if k.slice(k.length-2) == 'id'
+            if k == 'lti_id'
+                if not (Array.isArray(v) and v.length > 0)
+                    opts.cb?("invalid #{k} -- can't be an empty array")
+                    return false
+                for x in v
+                    if not (typeof x == 'string' and x.length > 0)
+                        opts.cb?("invalid #{k} -- #{v}")
+                        return false
+            else if k.slice(k.length-2) == 'id'
                 if v? and not misc.is_valid_uuid_string(v)
                     opts.cb?("invalid #{k} -- #{v}")
                     return false
@@ -1875,6 +1898,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : "users ? $::TEXT" : opts.account_id
             cb    : all_results('jsonb_object_keys', opts.cb)
 
+    # get list of project collaborator IDs
+    get_collaborators: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        dbg = @_dbg("get_collaborators")
+        @_query
+            query : "SELECT DISTINCT jsonb_object_keys(users) FROM projects"
+            where : "project_id = $::UUID" : opts.project_id
+            cb    : all_results('jsonb_object_keys', opts.cb)
+
+
     # return list of paths that are public and not disabled in the given project
     get_public_paths: (opts) =>
         opts = defaults opts,
@@ -1998,6 +2033,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             project_id  : required
             account_id  : undefined
             groups      : misc.PROJECT_GROUPS
+            cache       : false  # if true cache result for a few seconds
             cb          : required  # cb(err, true if in group)
         if not opts.account_id?
             # clearly user -- who isn't even signed in -- is not in the group
@@ -2006,6 +2042,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if not @_validate_opts(opts) then return
         @_query
             query : 'SELECT COUNT(*) FROM projects'
+            cache : opts.cache
             where :
                 'project_id :: UUID = $' : opts.project_id
                 "users#>>'{#{opts.account_id},group}' = ANY($)" : opts.groups

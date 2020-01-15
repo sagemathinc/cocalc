@@ -585,9 +585,9 @@ export class ConfigurationPanel extends Component<
         <hr />
         <Button
           disabled={this.props.configuring_projects}
-          onClick={() =>
-            this.get_actions().student_projects.configure_all_projects(true)
-          }
+          onClick={() => {
+            this.get_actions().configuration.configure_all_projects(true);
+          }}
         >
           {this.props.configuring_projects ? (
             <Icon name="cc-icon-cocalc-ring" spin />
@@ -889,6 +889,11 @@ export class ConfigurationPanel extends Component<
         student_pay={
           this.props.settings != null
             ? this.props.settings.get("student_pay")
+            : undefined
+        }
+        site_license_id={
+          this.props.settings != null
+            ? this.props.settings.get("site_license_id")
             : undefined
         }
       />

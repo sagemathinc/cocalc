@@ -1,5 +1,6 @@
 # test_sagews.py
 # basic tests of sage worksheet using TCP protocol with sage_server
+from __future__ import absolute_import
 import conftest
 import os
 import re
@@ -100,7 +101,7 @@ class TestLinearAlgebra:
 
 class TestBasic:
     def test_connection_type(self, sagews):
-        print("type %s" % type(sagews))
+        print(("type %s" % type(sagews)))
         assert isinstance(sagews, conftest.ConnectionJSON)
         return
 

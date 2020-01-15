@@ -133,6 +133,17 @@ export class SharedProjectActions {
           await actions.invite_collaborator(shared_project_id, account_id);
         }
       }
+      // Set license key if known; remove if not.
+      const site_license_id = store.getIn(["settings", "site_license_id"]);
+      if (site_license_id) {
+        await actions.add_site_license_to_project(
+          shared_project_id,
+          site_license_id
+        );
+      } else {
+        // ensure no license set
+        await actions.remove_site_license_from_project(shared_project_id);
+      }
     } finally {
       this.actions.set_activity({ id });
     }
@@ -193,7 +204,10 @@ export class SharedProjectActions {
         "account_id"
       ]);
       if (student_account_id) {
-        await project_actions.remove_collaborator(shared_id, student_account_id);
+        await project_actions.remove_collaborator(
+          shared_id,
+          student_account_id
+        );
       }
     }
     // make the course itself forget about the shared project:

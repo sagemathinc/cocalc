@@ -495,7 +495,7 @@ export function commands(
 
     "nbgrader assign": {
       m: "Create student version...",
-      menu: "Student version...",
+      menu: "Generate student version...",
       f: () => jupyter_actions.nbgrader_actions.confirm_assign()
     },
 

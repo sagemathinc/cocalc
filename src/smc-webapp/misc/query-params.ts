@@ -8,7 +8,16 @@ export namespace QueryParams {
   export type Params = query_string.ParsedQuery<string>;
 
   export function get_all(): Params {
-    return query_string.parse(location.search);
+    // fallback for situations where the url is temporarily like …/app#projects/…?…
+    if (location.hash?.length > 0 && location.search?.length == 0) {
+      const i = location.hash.indexOf("?");
+      if (i > 0) {
+        return query_string.parse(location.hash.slice(i));
+      }
+    } else {
+      return query_string.parse(location.search);
+    }
+    return {};
   }
 
   export function get(p: string) {

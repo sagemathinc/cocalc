@@ -425,7 +425,7 @@ class exports.Client extends EventEmitter
         ###
         Remember me.  There are many ways to implement
         "remember me" functionality in a web app. Here's how
-        we do it with SMC:    We generate a random uuid,
+        we do it with CoCalc:    We generate a random uuid,
         which along with salt, is stored in the user's
         browser as an httponly cookie.  We password hash the
         random uuid and store that in our database.  When
@@ -454,6 +454,7 @@ class exports.Client extends EventEmitter
         # passport_login.
 
         opts = defaults opts,
+            lti_id        : undefined
             account_id    : required
             ttl           : 24*3600 *30     # 30 days, by default
             cb            : undefined
@@ -1766,7 +1767,7 @@ class exports.Client extends EventEmitter
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
-                    @error_to_client(id:mesg_id, error:err)
+                    @error_to_client(id:mesg_id, error:"#{err}")   # Ensure err like Error('foo') can be JSON'd
                     if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
                         dbg("changefeed got messed up, so cancel it:")
                         @database.user_query_cancel_changefeed(id : mesg_id)
