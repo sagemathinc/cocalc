@@ -3,6 +3,7 @@ import { account_creation_actions } from "./account-creation-actions";
 import { accounts } from "./accounts";
 import { lti } from "./lti";
 import { site_licenses } from "./site-licenses";
+import { file_use_times } from "./file-use-times";
 const misc = require("../misc");
 
 export const SCHEMA = {
@@ -10,7 +11,8 @@ export const SCHEMA = {
   account_creation_actions,
   accounts,
   lti,
-  site_licenses
+  site_licenses,
+  file_use_times
 };
 
 export {
@@ -78,7 +80,7 @@ class ClientDB {
       return this._primary_keys_cache[table];
     }
     let t = SCHEMA[table];
-    if (t.virtual != null) {
+    if (typeof t.virtual == "string") {
       t = SCHEMA[t.virtual];
     }
     const v = t != null ? t.primary_key : undefined;

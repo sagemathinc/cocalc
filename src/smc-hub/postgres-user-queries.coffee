@@ -24,6 +24,7 @@ required = defaults.required
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
 {project_action_request_pre_hook} = require('./postgres/project-action-hooks')
+{file_use_times} = require('./postgres/file-use-times')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
@@ -1451,7 +1452,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             # Custom version: instead of doing a full query, we instead
             # call a function and that's it.
             dbg("do instead_of_query instead")
-            client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
+            client_query.get.instead_of_query(@,
+                        misc.copy_without(opts, ['cb', 'changes', 'table', 'multi']), opts.cb)
             return
 
         _query_opts = {}  # this will be the input to the @_query command.
@@ -1615,6 +1617,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("FATAL: only users and projects can access syncstrings")
+
+    # Other functions that are needed to implement various use queries,
+    # e.g., for virtual queries like file_use_times.
+    # ASYNC FUNCTION with no callback.
+    file_use_times: (opts) =>  # for docs, see where this is imported from.
+        return await file_use_times(@, opts)
 
 _last_awaken_time = {}
 awaken_project = (db, project_id, cb) ->

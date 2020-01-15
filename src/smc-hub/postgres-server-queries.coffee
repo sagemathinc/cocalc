@@ -2033,6 +2033,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             project_id  : required
             account_id  : undefined
             groups      : misc.PROJECT_GROUPS
+            cache       : false  # if true cache result for a few seconds
             cb          : required  # cb(err, true if in group)
         if not opts.account_id?
             # clearly user -- who isn't even signed in -- is not in the group
@@ -2041,6 +2042,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if not @_validate_opts(opts) then return
         @_query
             query : 'SELECT COUNT(*) FROM projects'
+            cache : opts.cache
             where :
                 'project_id :: UUID = $' : opts.project_id
                 "users#>>'{#{opts.account_id},group}' = ANY($)" : opts.groups

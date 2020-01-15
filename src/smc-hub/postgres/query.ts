@@ -15,6 +15,8 @@ interface QueryOpts {
   table?: string;
   where?: QueryWhere;
   one?: boolean; // if true get back one result; if false get list of all results.
+  order_by?: string;
+  limit?: number;
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
@@ -26,11 +28,24 @@ export async function query(opts: QueryOpts): Promise<any> {
     opts.where,
     opts.set,
     opts.query,
-    opts.jsonb_set
+    opts.jsonb_set,
+    opts.order_by,
+    opts.limit
   );
 }
 
-function all_query(db, select, table, where, set, query, jsonb_set, cb): void {
+function all_query(
+  db,
+  select,
+  table,
+  where,
+  set,
+  query,
+  jsonb_set,
+  order_by,
+  limit,
+  cb
+): void {
   db._query({
     select,
     table,
@@ -38,11 +53,24 @@ function all_query(db, select, table, where, set, query, jsonb_set, cb): void {
     set,
     query,
     jsonb_set,
+    order_by,
+    limit,
     cb: all_results(cb)
   });
 }
 
-function one_query(db, select, table, where, set, query, jsonb_set, cb): void {
+function one_query(
+  db,
+  select,
+  table,
+  where,
+  set,
+  query,
+  jsonb_set,
+  order_by,
+  limit,
+  cb
+): void {
   db._query({
     select,
     table,
@@ -50,6 +78,8 @@ function one_query(db, select, table, where, set, query, jsonb_set, cb): void {
     set,
     query,
     jsonb_set,
+    order_by,
+    limit,
     cb: one_result(cb)
   });
 }
