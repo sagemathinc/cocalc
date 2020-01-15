@@ -44,6 +44,7 @@ export interface SyncDBRecordHandout {
   note?: string;
   description?: string;
   title?: string;
+  path?: string;
   deleted?: boolean;
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };

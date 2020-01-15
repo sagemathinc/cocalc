@@ -44,6 +44,8 @@ import {
   copy_type_to_last
 } from "../types";
 
+import { export_student_file_use_times } from "../export/file-use-times";
+
 export class AssignmentsActions {
   private course_actions: CourseActions;
 
@@ -1721,5 +1723,28 @@ ${details}
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
     nbgrader_run_info = nbgrader_run_info.delete(key);
     this.course_actions.setState({ nbgrader_run_info });
+  }
+
+  public async export_file_use_times(
+    assignment_id: string,
+    json_filename: string
+  ): Promise<void> {
+    // Get the path of the assignment
+    const { assignment, store } = this.course_actions.resolve({
+      assignment_id
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+    const src_path = this.assignment_src_path(assignment);
+    const target_path = assignment.get("path");
+    await export_student_file_use_times(
+      store.get("course_project_id"),
+      src_path,
+      target_path,
+      store.get("students"),
+      json_filename,
+      store.get_student_name.bind(store)
+    );
   }
 }

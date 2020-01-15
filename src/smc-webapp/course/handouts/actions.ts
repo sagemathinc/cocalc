@@ -11,6 +11,7 @@ import { uuid, mswalltime } from "smc-util/misc";
 import { map } from "awaiting";
 import { SyncDBRecordHandout } from "../types";
 import { exec } from "../../frame-editors/generic/client";
+import { export_student_file_use_times } from "../export/file-use-times";
 
 export class HandoutsActions {
   private course_actions: CourseActions;
@@ -285,5 +286,27 @@ export class HandoutsActions {
     }
     // Now open it
     redux.getProjectActions(proj).open_directory(path);
+  }
+
+  public async export_file_use_times(
+    handout_id: string,
+    json_filename: string
+  ): Promise<void> {
+    // Get the path of the handout
+    const { handout, store } = this.course_actions.resolve({
+      handout_id
+    });
+    if (handout == null) {
+      throw Error("no such handout");
+    }
+    const path = handout.get("path");
+    await export_student_file_use_times(
+      store.get("course_project_id"),
+      path,
+      path,
+      store.get("students"),
+      json_filename,
+      store.get_student_name.bind(store)
+    );
   }
 }

@@ -43,7 +43,7 @@ export const file_use_times = create({
     primary_key: ["project_id", "path"],
     user_query: {
       get: {
-        options: [{ limit: LIMIT }],
+        options: [{ limit: LIMIT }],    // todo -- add an option to trim the number of results by lowering resolution?
         fields: {
           project_id: null,
           account_id: null,

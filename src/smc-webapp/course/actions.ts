@@ -71,7 +71,7 @@ export class CourseActions extends Actions<CourseState> {
   public assignments: AssignmentsActions;
   public handouts: HandoutsActions;
   public configuration: ConfigurationActions;
-  public export : ExportActions;
+  public export: ExportActions;
   private state: "init" | "ready" | "closed" = "init";
 
   constructor(name, redux) {
@@ -263,7 +263,7 @@ export class CourseActions extends Actions<CourseState> {
       const store = this.get_store();
       if (store == null) return;
       if (store.get("error")) {
-        error = `${store.get("error")} ${error}`;
+        error = `${store.get("error")} \n${error}`;
       }
       error = error.trim();
     }
@@ -326,30 +326,33 @@ export class CourseActions extends Actions<CourseState> {
       if (student == null) {
         if (opts.finish != null) {
           opts.finish("no student " + opts.student_id);
+          return r;
         }
-        return r;
+      } else {
+        r.student = student;
       }
-      r.student = student;
     }
     if (opts.assignment_id) {
       const assignment = store.get_assignment(opts.assignment_id);
       if (assignment == null) {
         if (opts.finish != null) {
           opts.finish("no assignment " + opts.assignment_id);
+          return r;
         }
-        return r;
+      } else {
+        r.assignment = assignment;
       }
-      r.assignment = assignment;
     }
     if (opts.handout_id) {
       const handout = store.get_handout(opts.handout_id);
       if (handout == null) {
         if (opts.finish != null) {
           opts.finish("no handout " + opts.handout_id);
+          return r;
         }
-        return r;
+      } else {
+        r.handout = handout;
       }
-      r.handout = handout;
     }
     return r;
   }

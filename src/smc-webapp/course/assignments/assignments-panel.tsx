@@ -580,6 +580,34 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
+  private render_export_file_use_times(): Rendered {
+    return (
+      <Row key="file-use-times">
+        <Col xs={4}>
+          <Tip
+            title="Export when students used files"
+            tip="Export a JSON file containing extensive information about exactly when students have opened or edited files in this assignment.  The JSON file will open in a new tab; the access_times (in milliseconds since the UNIX epoch) are when they opened the file and the edit_times are when they actually changed it through CoCalc's web-based editor."
+          >
+            Export file use times
+            <br />
+            <span style={{ color: "#666" }} />
+          </Tip>
+        </Col>
+        <Col xs={20}>
+          <Button
+            onClick={() =>
+              this.get_actions().export.file_use_times(
+                this.props.assignment.get("assignment_id")
+              )
+            }
+          >
+            Export file use times for this assignment
+          </Button>
+        </Col>
+      </Row>
+    );
+  }
+
   render_more_header() {
     let width;
     const status:
@@ -710,6 +738,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               nbgrader_run_info={this.props.nbgrader_run_info}
             />
             {this.render_note()}
+            <br/>
+            <hr/>
+            <br/>
+            {this.render_export_file_use_times()}
           </Card>
         </Col>
       </Row>
