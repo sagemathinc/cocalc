@@ -954,7 +954,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_exec_warning         : 'warn that certain files are not directly executable'
     ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
     jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
-    disable_jupyter_windowing         : 'do NOT use windowing with Jupyter notebooks (windowing makes it possible to work with very large notebooks)'
+    disable_jupyter_windowing         : 'never use windowing with Jupyter notebooks (windowing is sometimes used to make very large notebooks render quickly, but can lead to trouble in edge cases)'
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
