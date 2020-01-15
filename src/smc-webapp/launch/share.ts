@@ -56,7 +56,7 @@ interface ShareInfo {
   license?: string;
 }
 
-export async function launch_share(launch: string): void {
+export async function launch_share(launch: string): Promise<void> {
   const v = launch.split("/");
   const share_id = v[1];
   const path = v.slice(2).join("/");
@@ -151,7 +151,7 @@ type Relationship =
   | "fork" // user is a normal user who needs to make a fork of the shared files in a new project (a fork)
   | "anonymous"; // user is anonymous, so make a copy of the shared files in their own project
 
-async function get_relationship_to_share(project_id: string): Relationship {
+async function get_relationship_to_share(project_id: string): Promise<Relationship> {
   const account_store = redux.getStore("account");
   if (account_store == null) {
     throw Error("acount_store MUST be defined");

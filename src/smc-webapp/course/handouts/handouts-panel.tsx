@@ -450,6 +450,34 @@ class Handout extends Component<HandoutProps, HandoutState> {
     );
   }
 
+  private render_export_file_use_times(): Rendered {
+    return (
+      <Row key="file-use-times">
+        <Col xs={4}>
+          <Tip
+            title="Export when students used files"
+            tip="Export a JSON file containing extensive information about exactly when students have opened or edited files in this handout.  The JSON file will open in a new tab; the access_times (in milliseconds since the UNIX epoch) are when they opened the file and the edit_times are when they actually changed it through CoCalc's web-based editor."
+          >
+            Export file use times
+            <br />
+            <span style={{ color: "#666" }} />
+          </Tip>
+        </Col>
+        <Col xs={20}>
+          <Button
+            onClick={() =>
+              this.props.actions.export.file_use_times(
+                this.props.handout.get("handout_id")
+              )
+            }
+          >
+            Export file use times for this handout
+          </Button>
+        </Col>
+      </Row>
+    );
+  }
+
   private render_copy_all(status): Rendered[] {
     const steps = STEPS();
     const result: any[] = [];
@@ -592,7 +620,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
         return `\
 This will recopy all of the files to them.
 CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.
-Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the assignment directory of their projects.\
+Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the handout directory of their projects.\
 `;
     }
   }
@@ -811,6 +839,10 @@ Select "Replace student files!" in case you do not want to create any backups an
               name={this.props.name}
             />
             {this.render_handout_notes()}
+            <br />
+            <hr />
+            <br />
+            {this.render_export_file_use_times()}
           </Card>
         </Col>
       </Row>

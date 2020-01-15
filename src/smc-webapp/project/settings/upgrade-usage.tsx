@@ -21,6 +21,7 @@ interface Props {
   upgrades_you_applied_to_this_project?: object;
   total_project_quotas?: object;
   all_upgrades_to_this_project?: object;
+  site_license_upgrades?: object;
   all_projects_have_been_loaded?: boolean;
   actions: ProjectsActions; // projects actions
 
@@ -118,6 +119,7 @@ class UpgradeUsage extends React.Component<Props, State> {
         all_upgrades_to_this_project={this.props.all_upgrades_to_this_project}
         kucalc={this.props.kucalc}
         is_commercial={this.props.is_commercial}
+        site_license_upgrades={this.props.site_license_upgrades}
       />
     );
   }

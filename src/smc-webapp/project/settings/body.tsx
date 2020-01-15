@@ -114,6 +114,9 @@ export const Body = rclass<ReactProps>(
       const all_upgrades_to_this_project = this.props.get_upgrades_to_project(
         id
       );
+      const site_license_upgrades = redux
+        .getStore("projects")
+        .get_total_site_license_upgrades_to_project(this.props.project_id);
       const allow_urls = redux
         .getStore("projects")
         .allow_urls_in_emails(this.props.project_id);
@@ -184,6 +187,7 @@ export const Body = rclass<ReactProps>(
                 all_projects_have_been_loaded={
                   this.props.all_projects_have_been_loaded
                 }
+                site_license_upgrades={site_license_upgrades}
               />
 
               <HideDeleteBox

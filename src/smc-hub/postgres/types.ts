@@ -68,6 +68,7 @@ export interface PostgreSQL extends EventEmitter {
     account_id: string;
     project_id: string;
     group?: string[];
+    cache?: boolean;
     cb: Function;
   }): void;
 
@@ -119,4 +120,6 @@ export interface PostgreSQL extends EventEmitter {
     group: string;
     cb: Function;
   }): void;
+
+  sha1(...args): string;
 }

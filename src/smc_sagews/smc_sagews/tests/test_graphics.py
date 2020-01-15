@@ -1,5 +1,6 @@
 # test_graphics.py
 # tests of sage worksheet that return more than stdout, e.g. svg files
+from __future__ import absolute_import
 
 import conftest
 import time

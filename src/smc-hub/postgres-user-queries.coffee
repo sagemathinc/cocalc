@@ -23,6 +23,9 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
+{project_action_request_pre_hook} = require('./postgres/project-action-hooks')
+{file_use_times} = require('./postgres/file-use-times')
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
@@ -777,13 +780,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     project_action: (opts) =>
         opts = defaults opts,
             project_id     : required
-            action_request : required   # action is a pair
+            action_request : required   # action is object {action:?, time:?}
             cb             : required
         if opts.action_request.action == 'test'
             # used for testing -- shouldn't trigger anything to happen.
             opts.cb()
             return
-        dbg = @_dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
+        dbg = @_dbg("project_action(project_id='#{opts.project_id}',action_request=#{misc.to_json(opts.action_request)})")
         dbg()
         project = undefined
         action_request = misc.copy(opts.action_request)
@@ -795,6 +798,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 jsonb_set : {action_request : action_request}
                 cb        : cb
         async.series([
+            (cb) =>
+                try
+                    await project_action_request_pre_hook(@, action_request.action, opts.project_id, dbg)
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 action_request.started = new Date()
                 set_action_request(cb)
@@ -1443,7 +1452,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             # Custom version: instead of doing a full query, we instead
             # call a function and that's it.
             dbg("do instead_of_query instead")
-            client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
+            client_query.get.instead_of_query(@,
+                        misc.copy_without(opts, ['cb', 'changes', 'table', 'multi']), opts.cb)
             return
 
         _query_opts = {}  # this will be the input to the @_query command.
@@ -1607,6 +1617,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
             cb("FATAL: only users and projects can access syncstrings")
+
+    # Other functions that are needed to implement various use queries,
+    # e.g., for virtual queries like file_use_times.
+    # ASYNC FUNCTION with no callback.
+    file_use_times: (opts) =>  # for docs, see where this is imported from.
+        return await file_use_times(@, opts)
 
 _last_awaken_time = {}
 awaken_project = (db, project_id, cb) ->

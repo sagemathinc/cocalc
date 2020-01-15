@@ -68,7 +68,7 @@ exports.init = (router, base_url, database) ->
                         cb(err)
         ], (err) ->
             if err
-                res.send({error:err})
+                res.send({error:"#{err}"})  # very important that error is a string so can JSON.
             else
                 res.send({result:locals.result})
         )

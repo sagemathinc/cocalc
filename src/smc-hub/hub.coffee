@@ -80,6 +80,15 @@ MetricsRecorder = require('./metrics-recorder')
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
 
+try
+    {LTIService} = require('./lti/lti')
+catch
+    # silly stub
+    class LTIService
+        start: =>
+            throw new Error('NO LTI MODULE')
+
+
 # registers the hub with the database periodically
 hub_register = require('./hub_register')
 
@@ -388,6 +397,18 @@ blob_maintenance = (cb) ->
         (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
+
+start_lti_service = (cb) ->
+    BASE_URL = base_url.init(program.base_url)
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            init_compute_server(cb)
+        (cb) ->
+            lti_service = new LTIService(port:program.port, db:database, base_url:BASE_URL, compute_server:compute_server)
+            await lti_service.start()
+    ])
 
 update_stats = (cb) ->
     # This calculates and updates the statistics for the /stats endpoint.
@@ -706,6 +727,7 @@ command_line = () ->
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
+        .option('--lti', 'just start the LTI service')
         .parse(process.argv)
 
         # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -759,6 +781,9 @@ command_line = () ->
                 else
                      console.log("User added to project.")
                 process.exit()
+        else if program.lti
+            console.log("LTI MODE")
+            start_lti_service()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile

@@ -4,6 +4,7 @@ Actions involving configuration of the course.
 
 import { SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
+import { redux } from "../../app-framework";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -28,6 +29,10 @@ export class ConfigurationActions {
       description
     );
     this.course_actions.shared_project.set_project_description();
+  }
+
+  public set_site_license_id(site_license_id: string): void {
+    this.set({ site_license_id, table: "settings" });
   }
 
   public set_pay_choice(type: string, value: boolean): void {
@@ -67,5 +72,34 @@ export class ConfigurationActions {
     await this.course_actions.student_projects.set_all_student_project_course_info(
       pay
     );
+  }
+
+  public async configure_host_project(): Promise<void> {
+    const id = this.course_actions.set_activity({
+      desc: "Configuring host project."
+    }); // Set license key if known; remove if not.
+    try {
+      const store = this.course_actions.get_store();
+      const site_license_id = store.getIn(["settings", "site_license_id"]);
+      const actions = redux.getActions("projects");
+      const course_project_id = store.get("course_project_id");
+      if (site_license_id) {
+        await actions.add_site_license_to_project(
+          course_project_id,
+          site_license_id
+        );
+      } else {
+        // ensure no license set
+        await actions.remove_site_license_from_project(course_project_id);
+      }
+    } finally {
+      this.course_actions.set_activity({ id });
+    }
+  }
+
+  public async configure_all_projects(force: boolean = false): Promise<void> {
+    await this.course_actions.shared_project.configure();
+    await this.configure_host_project();
+    await this.course_actions.student_projects.configure_all_projects(force);
   }
 }

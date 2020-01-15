@@ -37,13 +37,14 @@ interface TableSchema<F extends Fields> {
   db_standby?: "unsafe" | "safer";
   durability?: "soft" | "hard"; // Default is hard
   anonymous?: boolean;
-  virtual?: string; // Must be another table name
+  virtual?: string | true; // Must be another table name or true
   pg_indexes?: any[];
   user_query?: {
     get?: {
       fields: { [key in keyof Partial<F>]: any };
       throttle_changes?: number;
       pg_where?: string[] | { [key: string]: string }[];
+      admin?: boolean;
       options?: any; // [{ limit: 1 }]
       instead_of_query?: (
         database,
@@ -54,6 +55,7 @@ interface TableSchema<F extends Fields> {
     };
     set?: {
       fields: { [key in keyof Partial<F>]: any };
+      admin?: boolean;
       check_hook?: (
         database,
         obj,

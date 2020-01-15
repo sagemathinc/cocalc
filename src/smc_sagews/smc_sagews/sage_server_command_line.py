@@ -1,5 +1,5 @@
 # A very simple interface exposed from setup.py
-
+from __future__ import absolute_import
 import os, socket, sys
 import time
 
@@ -38,12 +38,12 @@ def main(action='', daemon=True):
         log("setting logfile to %s" % logfile)
 
         t0 = time.time()
-        import sage_server
+        from . import sage_server
         log("seconds to import sage_server: %s" % (time.time() - t0))
         run_server = lambda: sage_server.run_server(port=port, host='127.0.0.1', pidfile=pidfile, logfile=logfile)
         if daemon:
             log("daemonizing")
-            from daemon import daemonize
+            from .daemon import daemonize
             daemonize(pidfile)
             run_server()
         else:
@@ -67,7 +67,7 @@ def main(action='', daemon=True):
             log("no pidfile")
 
     def usage():
-        print("Usage: %s [start|stop|restart]" % sys.argv[0])
+        print(("Usage: %s [start|stop|restart]" % sys.argv[0]))
 
     if action == 'start':
         start()
