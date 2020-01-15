@@ -524,10 +524,14 @@ schema.file_use = {
         // the file, which is confusing and wastes a lot of resources.
         const x = obj.users != null ? obj.users[account_id] : undefined;
         const recent = misc.minutes_ago(3);
-        if (x != null && (x.edit >= recent || x.chat >= recent)) {
+        if (
+          x != null &&
+          (x.edit >= recent || x.chat >= recent || x.open >= recent)
+        ) {
           db.touch({ project_id: obj.project_id, account_id });
           // Also log that this particular file is being used/accessed; this
-          // is used only for longterm analytics.  Note that log_file_access
+          // is mainly only for longterm analytics but also the file_use_times
+          // virtual table queries this.  Note that log_file_access
           // is throttled.
           db.log_file_access({
             project_id: obj.project_id,
@@ -782,6 +786,11 @@ schema.projects = {
       desc:
         'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
     },
+    site_license: {
+      type: "map",
+      desc:
+        "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly."
+    },
     status: {
       type: "map",
       desc:
@@ -917,6 +926,7 @@ schema.projects = {
         deleted: null,
         host: null,
         settings: DEFAULT_QUOTAS,
+        site_license: null,
         status: null,
         state: null,
         last_edited: null,
@@ -939,7 +949,8 @@ schema.projects = {
         },
         action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
         compute_image: true,
-        course: true
+        course: true,
+        site_license: true
       },
 
       before_change(database, old_val, new_val, account_id, cb) {

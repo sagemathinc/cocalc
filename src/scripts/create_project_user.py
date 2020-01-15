@@ -22,7 +22,7 @@
 """
 Create a user corresponding to a given project_id.
 
-    create_storage_user.py [project-id]
+    create_project_user.py [project-id]
 
 You should put the following in visudo:
 
@@ -69,7 +69,7 @@ def username(project_id):
 
 def create_user(project_id):
     """
-    Create the user the contains the given project data.   It is safe to
+    Create the user the contains the given project data.  It is safe to
     call this function even if the user already exists.
     """
     name = username(project_id)

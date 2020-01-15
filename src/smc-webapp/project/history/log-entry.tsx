@@ -258,7 +258,7 @@ export class LogEntry extends React.Component<Props> {
         <span key={i}>
           set{" "}
           <a
-            onClick={this.click_set}
+            onClick={this.click_set.bind(this)}
             style={this.props.cursor ? selected_item : undefined}
             href=""
           >
@@ -353,7 +353,7 @@ export class LogEntry extends React.Component<Props> {
       <span>
         set{" "}
         <a
-          onClick={this.click_set}
+          onClick={this.click_set.bind(this)}
           style={this.props.cursor ? selected_item : undefined}
           href=""
         >

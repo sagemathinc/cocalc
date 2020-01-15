@@ -1,23 +1,34 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# The purpose of this script is to detect available globally installed sage versions and
+# The purpose of this script is to detect all installed sage versions and
 # offer to symlink to a selected version in the project (i.e. ~/bin/sage -> ...)
 
 import os, sys
 if len(sys.argv) == 1:
-    print "%s <version>"%sys.argv[0]
-    versions = [x.split('-')[-1] for x in os.listdir('/usr/local/bin/') if x.startswith('sage-')]
-    print "Available versions: %s"%(', '.join(versions))
+    print("%s <version>"%sys.argv[0])
+    versions = []
+    # Searching the entire PATH is slightly slower than just searching one or
+    # two paths, but this is OK, since it's relatively rarely used.
+    for path in os.environ['PATH'].split(':'):
+        if os.path.exists(path):
+            versions = versions + [x.split('-')[-1] for x in os.listdir(path) if x.startswith('sage-')]
+    versions = list(sorted(set(versions)))
+    print("Available versions: %s"%(', '.join(versions)))
     sys.exit(1)
 
 VERSION=sys.argv[1]
-target = "/usr/local/bin/sage-%s"%VERSION
-if not os.path.exists(target):
-    print "%s does not exist"%target
-    sys.exit(1)
+target = "sage-%s"%VERSION
+for path in os.environ['PATH'].split(':'):
+    if os.path.exists(path):
+        for x in os.listdir(path):
+            if x == target:
+                cmd = "cd && mkdir -p ~/bin/ && cd ~/bin/ && rm -f sage && ln -sf %s/%s sage"%(path, target)
+                print(cmd)
+                os.system(cmd)
+                print("Making default sage %s by creating ~/bin/sage symbolic link:"%target)
+                print("You should probably restart your project (in 'Settings' -> 'Project Control').")
+                sys.exit(0)
 
-print "Making default sage %s by creating ~/bin/sage symbolic link:"%target
+print("%s does not exist in your PATH"%target)
+sys.exit(1)
 
-os.system("cd; mkdir -p ~/bin/; cd ~/bin/; rm -f sage; ln -sf %s sage"%target)
-
-print "Restart your project server! (in 'Settings' -> 'Project Control')"

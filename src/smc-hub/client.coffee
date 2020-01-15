@@ -1767,7 +1767,7 @@ class exports.Client extends EventEmitter
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
-                    @error_to_client(id:mesg_id, error:err)
+                    @error_to_client(id:mesg_id, error:"#{err}")   # Ensure err like Error('foo') can be JSON'd
                     if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
                         dbg("changefeed got messed up, so cancel it:")
                         @database.user_query_cancel_changefeed(id : mesg_id)

@@ -13,6 +13,10 @@ import {
 import { redux } from "../../app-framework";
 import { parser2tool } from "../../../smc-util/code-formatter";
 import { Options as FormatterOptions } from "../../../smc-project/formatters/prettier";
+import {
+  NBGraderAPIOptions,
+  RunNotebookOptions
+} from "../../jupyter/nbgrader/api";
 
 export class API {
   private conn: any;
@@ -204,6 +208,31 @@ export class API {
       timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "lean", opts }, timeout_ms);
+  }
+
+  // Use the nbgrader "protocol" to autograde a notebook
+  async nbgrader(opts: NBGraderAPIOptions): Promise<any> {
+    return await this.call({ cmd: "nbgrader", opts }, opts.timeout_ms + 5000);
+  }
+
+  // Get contents of an ipynb file, but with output and attachments removed (to save space)
+  async jupyter_strip_notebook(ipynb_path: string): Promise<any> {
+    return await this.call(
+      { cmd: "jupyter_strip_notebook", ipynb_path },
+      15000
+    );
+  }
+
+  // Run the notebook filling in the output of all cells, then return the
+  // result as a string.  Note that the output size (per cell and total)
+  // and run time is bounded to avoid the output being HUGE, even if the
+  // input is dumb.
+
+  async jupyter_run_notebook(opts: RunNotebookOptions): Promise<string> {
+    return await this.call(
+      { cmd: "jupyter_run_notebook", opts },
+      60000   // TODO: implement timeout taking into account opts.limits as second option
+    );
   }
 
   // I think this isn't used.  It was going to support
