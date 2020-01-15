@@ -119,8 +119,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if not @readonly
             @status cb: (err, status) =>
                 if not status?.running
+                    # nobody has started the worksheet running yet, so enqueue the %auto cells
                     @execute_auto_cells()
                 else
+                    # worksheet is running, but do something just to ensure it works
                     # Kick the worksheet process into gear if it isn't running already
                     @introspect_line
                         line     : "return?"
