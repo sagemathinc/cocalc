@@ -524,10 +524,14 @@ schema.file_use = {
         // the file, which is confusing and wastes a lot of resources.
         const x = obj.users != null ? obj.users[account_id] : undefined;
         const recent = misc.minutes_ago(3);
-        if (x != null && (x.edit >= recent || x.chat >= recent)) {
+        if (
+          x != null &&
+          (x.edit >= recent || x.chat >= recent || x.open >= recent)
+        ) {
           db.touch({ project_id: obj.project_id, account_id });
           // Also log that this particular file is being used/accessed; this
-          // is used only for longterm analytics.  Note that log_file_access
+          // is mainly only for longterm analytics but also the file_use_times
+          // virtual table queries this.  Note that log_file_access
           // is throttled.
           db.log_file_access({
             project_id: obj.project_id,
