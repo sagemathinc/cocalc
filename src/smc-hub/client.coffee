@@ -1177,8 +1177,10 @@ class exports.Client extends EventEmitter
 
     # this is an async function
     allow_urls_in_emails: (project_id) =>
+        dbg = @dbg('allow_urls_in_emails')
         is_paying = await is_paying_customer(@database, @account_id)
-        has_network = await project_has_network_access(@database, project_id)
+        has_network = await project_has_network_access(@database, project_id, dbg)
+        dbg("is_paying = #{is_paying}; has_network=#{has_network}")
         return is_paying or has_network
 
     mesg_invite_collaborator: (mesg) =>

@@ -51,6 +51,7 @@ export interface PostgreSQL extends EventEmitter {
     columns?: string[];
     cb: Function;
   }): void;
+
   get_account(opts: {
     account_id: string;
     columns?: string[];
