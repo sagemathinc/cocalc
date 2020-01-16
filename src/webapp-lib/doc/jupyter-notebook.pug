@@ -41,29 +41,31 @@ block content
           #{NAME} is an online web service where you can
           #[strong run #[a(href="http://jupyter.org/") Jupyter notebooks] right inside your browser].
           You can privately share your notebook with your
-          #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") project collaborators].
-          All changes are #[strong synchronized in real-time].
+          #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") project collaborators] – all changes are #[strong synchronized in real-time].
         p.
-          #{NAME} takes care of all tedious aspects:
+          You no longer have to worry about setting up your Python environment, installing/updating/maintaining your libraries, or backing up files.
+          #{NAME} manages everything for you!
+        p.
+          Beyond that, #{NAME} is #[strong made for teaching]!
         ul
-          li don't bother setting up a Python environment
-          li you no longer have to fight with installing all the libraries you need
-          li don't worry about Jupyter kernel configurations
-          li and let #{NAME} maintain everything for you
+          li.
+            A sophisticated #[a(href="./teaching.html") course management] keeps track of all notebooks of all students.
+            It supports distributing and collecting assignments as well as grading.
+          li.
+            #{NAME}'s Jupyter Notebooks fully support #[strong automatic grading] – similar and compatible to #[a(href="https://nbgrader.readthedocs.io/en/stable/" target="_blank") NBGrader]!
+            The teacher notebook contains cells for students and test cells, some of which students can also run to get immediate feedback.
+            Once collected, you tell #{NAME} to automatically run the full test suite across all student notebooks and tabulate the results.
         p.
           To get started,
-        ol
-          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project],
-          li #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
+          #[a(href="https://doc.cocalc.com/getting-started.html") sign up and create a project].
+          Then #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
         p.
           #{NAME} supports many kernels right out of the box:
           several Python environments, #[a(href="http://www.sagemath.org/") SageMath],
           #[a(href="http://www.r-project.org/") R Statistical Software], #[a(href="http://julialang.org") Julia] and many more.
-          Consult the #[a(href=PREFIX + "doc/software.html") Available Software page] for more information.
 
 
   +start_free_banner
-
 
   a.anchor#a-overview
   div.space#overview
