@@ -48,7 +48,8 @@ import {
   Table,
   redux,
   Store,
-  AppRedux
+  AppRedux,
+  TypedMap
 } from "./app-framework";
 
 import { ProjectConfiguration } from "./project_configuration";
@@ -93,7 +94,7 @@ export interface ProjectStoreState {
 
   // Project Files
   activity: any; // immutable,
-  active_file_sort?: any; // computed {column_name : string, is_descending : boolean}
+  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
   file_action?: string; // undefineds is meaningfully none here
   file_search?: string;
@@ -248,6 +249,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
       show_library: false,
       show_new: false,
       file_listing_scroll_top: undefined,
+      active_file_sort: TypedMap({
+        is_descending: false,
+        column_name:
+          redux
+            .getStore("account")
+            ?.getIn(["other_settings", "default_file_sort"]) ?? "time"
+      }),
 
       // Project New
       library: immutable.Map({}),
@@ -283,21 +291,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
             client_db
           );
         };
-      }
-    },
-
-    active_file_sort: {
-      fn: () => {
-        if (this.getIn(["active_file_sort"]) != null) {
-          return this.getIn(["active_file_sort"]).toJS();
-        } else {
-          const is_descending = false;
-          const column_name = (this.redux.getStore("account") as any).getIn([
-            "other_settings",
-            "default_file_sort"
-          ]);
-          return { is_descending, column_name };
-        }
       }
     },
 
@@ -358,7 +351,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         const sorter = (() => {
-          switch (this.get("active_file_sort").column_name) {
+          switch (this.get("active_file_sort").get("column_name")) {
             case "name":
               return _sort_on_string_field("name");
             case "time":
@@ -383,7 +376,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
         listing.sort(sorter);
 
-        if (this.get("active_file_sort").is_descending) {
+        if (this.get("active_file_sort").get("is_descending")) {
           listing.reverse();
         }
 
