@@ -504,6 +504,10 @@ export class StudentProjectsActions {
       } // always re-invite students on running this.
       await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
+    } catch (err) {
+      this.course_actions.set_error(
+        `Error configuring student projects - ${err}`
+      );
     } finally {
       if (this.course_actions.is_closed()) return;
       this.course_actions.setState({ configuring_projects: false });
