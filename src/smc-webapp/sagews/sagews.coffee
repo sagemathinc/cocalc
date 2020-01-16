@@ -104,7 +104,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             persistent      : true   # so sage session **not** killed when everybody closes the tab.
 
         super(editor, opts0)
-        window.sagews = @
 
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
