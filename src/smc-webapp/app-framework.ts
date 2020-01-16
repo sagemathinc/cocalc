@@ -332,13 +332,14 @@ export class AppRedux {
   }
 
   /**
-   * Hook to connect a function component to a project store.
-   * Opposed to `getProjectStore`, the project store MUST already by defined
+   * A React Hook to connect a function component to a project store.
+   * Opposed to `getProjectStore`, the project store will not initialize
+   * if it's not defined already.
    *
-   * @param project_id id of the project to connect to
    * @param selectFrom selector to run on the store.
    *    The result will be compared to the previous result to determine
    *    if the component should rerender
+   * @param project_id id of the project to connect to
    */
   useProjectStore<T>(
     selectFrom: (store?: ProjectStore) => T,
