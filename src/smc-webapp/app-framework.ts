@@ -341,8 +341,8 @@ export class AppRedux {
    *    if the component should rerender
    */
   useProjectStore<T>(
-    project_id?: string,
-    selectFrom: (store?: ProjectStore) => T
+    selectFrom: (store?: ProjectStore) => T,
+    project_id?: string
   ): T {
     return useSelector<any, T>(_ => {
       let projectStore = undefined;

@@ -13,7 +13,7 @@ import { redux } from "../../app-framework";
 interface Props {
   create_file: (name?: string) => void;
   project_id?: string;
-  children?: React.ReactNode
+  children?: React.ReactNode;
 }
 
 // Use Rows and Cols to append more buttons to this class.
@@ -28,9 +28,9 @@ export const FileTypeSelector: React.FC<Props> = ({
     false
   );
 
-  const available_features = redux.useProjectStore(project_id, store => {
+  const available_features = redux.useProjectStore(store => {
     return store?.get("available_features");
-  });
+  }, project_id);
 
   if (!create_file || !create_file || !project_id) {
     return null;
