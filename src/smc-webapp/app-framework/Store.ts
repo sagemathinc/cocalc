@@ -4,6 +4,7 @@ import { createSelector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
+import * as immutable from "immutable";
 import * as misc from "../../smc-util/misc";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
@@ -119,15 +120,18 @@ export class Store<State> extends EventEmitter {
     path: any[],
     notSetValue?: any
   ): any => {
-    return this.redux._redux_store
-      .getState()
-      .getIn([this.name].concat(path), notSetValue);
+    return immutable.getIn(this.get(path[0]), path.slice(1), notSetValue);
   };
 
+  /**
+  * Same as `getIn` but provides no type safety.
+  *
+  * Use as an escape hatch if you want to traverse more than 5 levels deep.
+  * However you may want to consider normalizing your state.
+  * https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape/
+  */
   unsafe_getIn(path: any[], notSetValue?: any): any {
-    return this.redux._redux_store
-      .getState()
-      .getIn([this.name].concat(path), notSetValue);
+    return (this.getIn as any)(path, notSetValue) as any;
   }
 
   /**

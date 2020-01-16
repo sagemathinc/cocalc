@@ -561,7 +561,7 @@ export class DBDocument implements Document {
           return;
         }
         const k = to_key(val);
-        const matches = index.get(k).delete(n);
+        const matches = (index.get(k) as any).delete(n);
         if (matches.size === 0) {
           index = index.delete(k);
         } else {
