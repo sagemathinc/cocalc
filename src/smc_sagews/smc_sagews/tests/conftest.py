@@ -23,7 +23,7 @@ default_timeout = 20
 
 def unicode8(s):
     try:
-        return str(s, 'utf8')
+        return str(s).encode('utf-8')
     except:
         try:
             return str(s)
