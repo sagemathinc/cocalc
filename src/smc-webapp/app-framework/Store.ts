@@ -84,7 +84,7 @@ export class Store<State> extends EventEmitter {
         misc.top_sort(dependency_graph);
       } catch {
         throw new Error(
-          `redux store "${name}" has cycle in its selector dependencies`
+          `redux store "${this.name}" has cycle in its selector dependencies`
         );
       }
       return;
