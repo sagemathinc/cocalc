@@ -29,14 +29,16 @@ For debugging, this may help:
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
 import six
 import os, sys, time, operator
 import __future__ as future
 from functools import reduce
 
+
 def is_string(s):
     return isinstance(s, six.string_types)
+
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
@@ -1306,8 +1308,8 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         for code_decorator in reversed(code_decorators):
             # eval is for backward compatibility
             if hasattr(code_decorator, 'eval'):
-                print((code_decorator.eval(code, locals=self.namespace)),
-                      end=' ')
+                print(code_decorator.eval(
+                    code, locals=self.namespace))  # removed , end=' '
                 code = ''
             elif code_decorator is sage:
                 # special case -- the sage module (i.e., %sage) should do nothing.
@@ -1366,8 +1368,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         self._flush_stdio()
-        tex = obj if is_string(obj) else self.namespace['latex'](obj, **
-                                                                       kwds)
+        tex = obj if is_string(obj) else self.namespace['latex'](obj, **kwds)
         self._send_output(tex={
             'tex': tex,
             'display': display
