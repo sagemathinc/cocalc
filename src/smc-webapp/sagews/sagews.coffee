@@ -104,18 +104,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             persistent      : true   # so sage session **not** killed when everybody closes the tab.
 
         super(editor, opts0)
+        window.sagews = @
 
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
-    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    # Since we can't use in super cbs, use _init_cb as the function which
+    # will be called by the parent
     _init_cb: =>
         @readonly = @_syncstring.is_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
         @init_hide_show_gutter()  # must be after @readonly set
 
         @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
-
         if not @readonly
             @status cb: (err, status) =>
                 if not status?.running

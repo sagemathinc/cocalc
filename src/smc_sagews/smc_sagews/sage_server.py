@@ -35,6 +35,8 @@ import os, sys, time, operator
 import __future__ as future
 from functools import reduce
 
+def is_string(s):
+    return isinstance(s, six.string_types)
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
@@ -1279,7 +1281,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         code blocks that are set to any non-default code_decorator.
         """
         import sage  # used below as a code decorator
-        if isinstance(code_decorators, str):
+        if is_string(code_decorators):
             code_decorators = [code_decorators]
 
         if preparse:
@@ -1315,7 +1317,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
             if code is None:
                 code = ''
 
-        if code != '' and isinstance(code, str):
+        if code != '' and is_string(code):
             self.execute(code,
                          preparse=preparse,
                          namespace=namespace,
@@ -1364,7 +1366,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         self._flush_stdio()
-        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj, **
+        tex = obj if is_string(obj) else self.namespace['latex'](obj, **
                                                                        kwds)
         self._send_output(tex={
             'tex': tex,
@@ -1394,7 +1396,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - output -- string or object
 
         """
-        stdout = output if isinstance(output, str) else unicode8(output)
+        stdout = output if is_string(output) else unicode8(output)
         self._send_output(stdout=stdout, done=done, id=self._id, once=once)
         return self
 
@@ -1408,7 +1410,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - output -- string or object
 
         """
-        stderr = output if isinstance(output, str) else unicode8(output)
+        stderr = output if is_string(output) else unicode8(output)
         self._send_output(stderr=stderr, done=done, id=self._id, once=once)
         return self
 
@@ -1424,7 +1426,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         Send a code message, which is to be rendered as code by the client, with
         appropriate syntax highlighting, maybe a link to open the source file, etc.
         """
-        source = source if isinstance(source, str) else unicode8(source)
+        source = source if is_string(source) else unicode8(source)
         code = {
             'source': source,
             'filename': filename,

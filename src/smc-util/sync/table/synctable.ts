@@ -238,6 +238,15 @@ export class SyncTable extends EventEmitter {
     }
   }
 
+  /* Return the number of records in the table. */
+  public size(): number {
+    this.assert_not_closed("size");
+    if (this.value == null) {
+      throw Error("table not yet initialized");
+    }
+    return this.value.size;
+  }
+
   /*
   Get one record from this table.  Especially useful when
   there is only one record, which is an important special

@@ -25,6 +25,10 @@ import copy, os, sys, types, re
 import sage.all
 
 
+def is_string(s):
+    return isinstance(s, six.string_types)
+
+
 def is_dataframe(obj):
     if 'pandas' not in str(type(obj)):
         # avoid having to import pandas unless it's really likely to be necessary.
@@ -190,7 +194,7 @@ class InteractCell(object):
                 for row in layout:
                     new_row = []
                     for x in row:
-                        if isinstance(x, str):
+                        if is_string(x):
                             x = (x, )
                         if len(x) == 1:
                             new_row.append((str(x[0]), 12 // len(row), None))
@@ -653,8 +657,8 @@ def automatic_control(default):
     default_value = None
 
     for _ in range(2):
-        if isinstance(default, tuple) and len(default) == 2 and isinstance(
-                default[0], str):
+        if isinstance(default, tuple) and len(default) == 2 and is_string(
+                default[0]):
             label, default = default
         if isinstance(default, tuple) and len(default) == 2 and hasattr(
                 default[1], '__iter__'):
@@ -664,9 +668,9 @@ def automatic_control(default):
         if label:
             default._opts['label'] = label
         return default
-    elif isinstance(default, str):
+    elif is_string(default):
         return input_box(default, label=label, type=str)
-    elif isinstance(default, str):
+    elif is_string(default):
         return input_box(default, label=label, type=str)
     elif isinstance(default, bool):
         return checkbox(default, label=label)
@@ -719,7 +723,7 @@ def interact_control(arg, value):
 
 
 def sage_eval(x, locals=None, **kwds):
-    if isinstance(x, str):
+    if is_string(x):
         x = str(x).strip()
         if x.isspace():
             return None
@@ -732,7 +736,7 @@ class ParseValue:
         self._type = type
 
     def _eval(self, value):
-        if isinstance(value, str):
+        if is_string(value):
             if not value:
                 return ''
             return sage_eval(
@@ -1196,7 +1200,7 @@ def selector(values,
     for i in range(len(vals)):
         if lbls[i] is None:
             v = vals[i]
-            lbls[i] = v if isinstance(v, str) else str(v)
+            lbls[i] = v if is_string(v) else str(v)
 
     if default is None:
         default = 0
@@ -1366,7 +1370,7 @@ class HTML:
             '''
             This not only deals with unicode strings, but also converts e.g. `Integer` objects to a str
             '''
-            if not isinstance(s, str):
+            if not is_string(s):
                 try:
                     return str(s, 'utf8')
                 except:
@@ -1737,10 +1741,10 @@ class Capture:
 
                 def write_stdout(buf):
                     stdout.write(buf)
-            elif isinstance(stdout, str):
+            elif is_string(stdout):
                 if (stdout not in salvus.namespace) or not append:
                     salvus.namespace[stdout] = ''
-                if not isinstance(salvus.namespace[stdout], str):
+                if not is_string(salvus.namespace[stdout]):
                     salvus.namespace[stdout] = str(salvus.namespace[stdout])
 
                 def write_stdout(buf):
@@ -1771,10 +1775,10 @@ class Capture:
 
                 def write_stderr(buf):
                     stderr.write(buf)
-            elif isinstance(stderr, str):
+            elif is_string(stderr):
                 if (stderr not in salvus.namespace) or not append:
                     salvus.namespace[stderr] = ''
-                if not isinstance(salvus.namespace[stderr], str):
+                if not is_string(salvus.namespace[stderr]):
                     salvus.namespace[stderr] = str(salvus.namespace[stderr])
 
                 def write_stderr(buf):
@@ -1954,7 +1958,7 @@ class script:
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT,
-                                 shell=isinstance(self._args, str),
+                                 shell=is_string(self._args),
                                  env=self._env)
             s.stdin.write(code)
             s.stdin.close()
@@ -2920,7 +2924,7 @@ def show(*objs, **kwds):
                 show_graph_using_d3(obj, **kwds)
             else:
                 show(obj.plot(), **kwds)
-        elif isinstance(obj, str):
+        elif is_string(obj):
             return obj
         elif isinstance(obj, (list, tuple)):
             v = []
@@ -3334,7 +3338,7 @@ def dynamic(*args, **kwds):
          t = 5          # this changes the control
     """
     for var in args:
-        if not isinstance(var, str):
+        if not is_string(var):
             i = id(var)
             for k, v in salvus.namespace.items():
                 if id(v) == i:
@@ -3460,7 +3464,7 @@ reset.__doc__ += sage.misc.reset.reset.__doc__
 
 def restore(vars=None):
     ""
-    if isinstance(vars, str):
+    if is_string(vars):
         vars = str(vars)  # sage.misc.reset is unicode ignorant
         if ',' in vars:  # sage.misc.reset is stupid about commas and space -- TODO: make a patch to sage
             vars = [v.strip() for v in vars.split(',')]
@@ -3729,7 +3733,7 @@ def pandoc(fmt, doc=None, hide=True):
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
                          stdin=subprocess.PIPE)
-    if not isinstance(doc, str):
+    if not is_string(doc):
         doc = str(doc, 'utf8')
     p.stdin.write(doc.encode('UTF-8'))
     p.stdin.close()
@@ -3800,7 +3804,7 @@ def attach(*args):
     # can't (yet) pass "attach = True" to load(), so do this
 
     if len(args) == 1:
-        if isinstance(args[0], str):
+        if is_string(args[0]):
             args = tuple(args[0].replace(',', ' ').split())
         if isinstance(args[0], (list, tuple)):
             args = args[0]
@@ -3870,7 +3874,7 @@ def load(*args, **kwds):
     ALIAS: %runfile is the same as %load, for compatibility with IPython.
     """
     if len(args) == 1:
-        if isinstance(args[0], str):
+        if is_string(args[0]):
             args = (args[0].strip(), )
         if isinstance(args[0], (list, tuple)):
             args = args[0]
@@ -4039,7 +4043,7 @@ def typeset_mode(on=True, display=True, **args):
          typeset_mode(True, display=False) # typesetting mode on, but do not make output big and centered
 
     """
-    if isinstance(on, str):  # e.g.,   %typeset_mode False
+    if is_string(on):  # e.g.,   %typeset_mode False
         on = sage_eval(on, {'false': False, 'true': True})
     if on:
 

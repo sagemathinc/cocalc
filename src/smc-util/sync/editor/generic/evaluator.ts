@@ -484,15 +484,14 @@ export class Evaluator {
     }
     await this.ensure_sage_session_exists();
     if (input.event === "execute_code") {
-      // We do NOT actually create the socket (which makes a running process)
-      // for other input events. This is because, e.g., input.event == 'status'
-      // is used to check whether or not sage has already been started in order to know
-      // whether or not to evaluate all of the %auto code.
+      // We only need to actually create the socket, which makes a running process,
+      // if we are going to execute code.  The other events, e.g., 'status' don't
+      // need a running sage session.
       if (!this.sage_session.is_running()) {
         await callback(this.sage_session.init_socket);
       }
     }
-    dbg("send code to sage", to_json(input));
+    dbg("send call to backend sage session manager", to_json(input));
     this.sage_session.call({ input, cb });
   }
 
