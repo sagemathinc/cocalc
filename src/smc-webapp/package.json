@@ -44,6 +44,7 @@
     "crypto-browserify": "^3.12.0",
     "css-color-names": "0.0.4",
     "d3": "^3.5.6",
+    "darkreader": "^4.7.15",
     "dog-names": "^1.0.2",
     "eonasdan-bootstrap-datetimepicker": "^4.15.35",
     "esm": "^3.2.25",

@@ -1370,12 +1370,13 @@ class HTML:
             '''
             This not only deals with unicode strings, but also converts e.g. `Integer` objects to a str
             '''
-            if not is_string(s):
-                try:
+            try:
+                if six.PY3:
                     return str(s, 'utf8')
-                except:
-                    return str(str(s), 'utf8')
-            return s
+                else:
+                    return str(s).encode('utf-8')
+            except:
+                return "?".encode('utf-8')
 
         def mk_row(row, header=False):
             is_vector = hasattr(row, 'is_vector') and row.is_vector()
@@ -3734,7 +3735,10 @@ def pandoc(fmt, doc=None, hide=True):
                          stderr=subprocess.PIPE,
                          stdin=subprocess.PIPE)
     if not is_string(doc):
-        doc = str(doc, 'utf8')
+        if six.PY2:
+            doc = str(doc).encode('utf-8')
+        else:
+            doc = str(doc, 'utf8')
     p.stdin.write(doc.encode('UTF-8'))
     p.stdin.close()
     err = p.stderr.read()

@@ -44,7 +44,10 @@ def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
     try:
-        return str(s, 'utf8')
+        if six.PY2:
+            return str(s).encode('utf-8')
+        else:
+            return str(s, 'utf-8')
     except:
         try:
             return str(s)
@@ -502,7 +505,10 @@ class BufferedOutputStream(object):
         try:
             self._f(self._buf, done=done)
         except UnicodeDecodeError:
-            self._f(str(self._buf, errors='replace'), done=done)
+            if six.PY2:  # str doesn't have errors option in python2!
+                self._f(unicode(self._buf, errors='replace'), done=done)
+            else:
+                self._f(str(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):
