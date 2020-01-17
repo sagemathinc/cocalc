@@ -44,7 +44,10 @@ def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
     try:
-        return str(s).encode('utf-8')
+        if six.PY2:
+            return str(s).encode('utf-8')
+        else:
+            return str(s, 'utf-8')
     except:
         try:
             return str(s)
