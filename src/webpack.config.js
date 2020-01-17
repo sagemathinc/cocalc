@@ -328,7 +328,7 @@ const pug2app = new HtmlWebpackPlugin({
 // they only depend on the css chunk
 const staticPages = [];
 // in the root directory (doc/ and policies/ is below)
-for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
+for (let [fn_in, fn_out] of [["index.pug", "index.html"], ["about.pug", "about.html"]]) {
   staticPages.push(
     new HtmlWebpackPlugin({
       date: BUILD_DATE,
