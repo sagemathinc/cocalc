@@ -141,8 +141,8 @@ export class StudentProjectsActions {
       const last_email_invite = student.get("last_email_invite");
       if (
         force_send_invite_by_email ||
-        (!last_email_invite ||
-          new Date(last_email_invite) < days_ago(EMAIL_REINVITE_DAYS))
+        !last_email_invite ||
+        new Date(last_email_invite) < days_ago(EMAIL_REINVITE_DAYS)
       ) {
         await invite(student.get("email_address"));
         this.course_actions.set({
@@ -170,6 +170,20 @@ export class StudentProjectsActions {
         await invite(account_id);
       }
     }
+
+    // Set license key if known; remove if not.
+    const site_license_id = s.getIn(["settings", "site_license_id"]);
+    const actions = redux.getActions("projects");
+    if (site_license_id) {
+      await actions.add_site_license_to_project(
+        student_project_id,
+        site_license_id
+      );
+    } else {
+      // ensure no license set
+      await actions.remove_site_license_from_project(student_project_id);
+    }
+
     // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
     // The problem is that student_account_id might not yet be known to the .course, even though
     // the student has been added and the account_id exists, and is known to the account opening
@@ -490,6 +504,10 @@ export class StudentProjectsActions {
       } // always re-invite students on running this.
       await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
+    } catch (err) {
+      this.course_actions.set_error(
+        `Error configuring student projects - ${err}`
+      );
     } finally {
       if (this.course_actions.is_closed()) return;
       this.course_actions.setState({ configuring_projects: false });

@@ -24,7 +24,15 @@ component_to_hex = (c) ->
     else
         return hex
 
-rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + component_to_hex(b)
+rgb_to_hex = (r, g, b) ->
+    # Unfortunately, some code thinks the range is 0 to 255, and other (sage)
+    # thinks it is 0 to 1.  So we use a *heuristic*, which is horrible, but
+    # I don't know an alternative, and this is LIKELY to be ok in practice.
+    if r <= 1 and g <= 1 and b <= 1
+        r = Math.round(r*255)
+        g = Math.round(g*255)
+        b = Math.round(b*255)
+    return "#" + component_to_hex(r) + component_to_hex(g) + component_to_hex(b)
 
 _loading_threejs_callbacks = []
 
@@ -90,6 +98,9 @@ class WebappThreeJS
             stop_when_gone  : undefined  # if given, animation, etc., stops when this html element (not jquery!) is no longer in the DOM
             frame           : undefined  # if given call set_frame with opts.frame as input when init_done called
             cb              : undefined  # opts.cb(undefined, this object)
+
+        if misc.is_array(@opts.background)
+            @opts.background = rgb_to_hex(@opts.background[0], @opts.background[1], @opts.background[2])
 
         @init_eval_note()
         opts.cb?(undefined, @)

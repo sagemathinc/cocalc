@@ -108,19 +108,21 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
-    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    # Since we can't use in super cbs, use _init_cb as the function which
+    # will be called by the parent
     _init_cb: =>
         @readonly = @_syncstring.is_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
         @init_hide_show_gutter()  # must be after @readonly set
 
         @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
-
         if not @readonly
             @status cb: (err, status) =>
                 if not status?.running
+                    # nobody has started the worksheet running yet, so enqueue the %auto cells
                     @execute_auto_cells()
                 else
+                    # worksheet is running, but do something just to ensure it works
                     # Kick the worksheet process into gear if it isn't running already
                     @introspect_line
                         line     : "return?"

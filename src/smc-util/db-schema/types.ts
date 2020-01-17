@@ -37,7 +37,7 @@ interface TableSchema<F extends Fields> {
   db_standby?: "unsafe" | "safer";
   durability?: "soft" | "hard"; // Default is hard
   anonymous?: boolean;
-  virtual?: string; // Must be another table name
+  virtual?: string | true; // Must be another table name or true
   pg_indexes?: any[];
   user_query?: {
     get?: {

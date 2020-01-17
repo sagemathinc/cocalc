@@ -42,6 +42,9 @@ interface CellListProps {
   cell_toolbar?: string;
   trust?: boolean;
   use_windowed_list?: boolean;
+  // NOTE: if the value of use_windowed_list *changes* while mounted, we don't re-render everything,
+  // which would be a mess and is not really a good idea... since the main use of windowing is to
+  // make the initial render fast.  If it is already rendered, why mess it up?
 }
 
 export class CellList extends Component<CellListProps> {
