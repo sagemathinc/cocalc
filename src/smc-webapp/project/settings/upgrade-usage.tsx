@@ -6,6 +6,7 @@ import { redux, rtypes, rclass, Rendered } from "smc-webapp/app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";
+import { SiteLicense } from "./site-license";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
@@ -24,6 +25,7 @@ interface Props {
   site_license_upgrades?: object;
   all_projects_have_been_loaded?: boolean;
   actions: ProjectsActions; // projects actions
+  site_license_ids: string[];
 
   // redux props
   is_commercial?: boolean;
@@ -136,12 +138,23 @@ class UpgradeUsage extends React.Component<Props, State> {
     );
   }
 
+  private render_site_license(): Rendered {
+    return (
+      <SiteLicense
+        project_id={this.props.project_id}
+        site_license_ids={this.props.site_license_ids}
+      />
+    );
+  }
+
   public render(): Rendered {
     return (
       <SettingBox title="Project usage and quotas" icon="dashboard">
         {this.render_upgrades_button()}
         {this.render_upgrade_adjustor()}
         {this.render_quota_console()}
+        <hr />
+        {this.render_site_license()}
         <hr />
         {this.render_support()}
       </SettingBox>

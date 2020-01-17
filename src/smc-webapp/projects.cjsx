@@ -556,6 +556,8 @@ class ProjectsActions extends Actions
     # Use a site license key to upgrade a project.  This only has an
     # impact when the project is restarted.
     add_site_license_to_project: (project_id, license_id) =>
+        if not misc.is_valid_uuid_string(license_id)
+            throw Error("invalid license key '#{license_id}' -- it must be a 36-character valid v4 uuid")
         project = store.getIn(['project_map', project_id])
         if not project?
             return
@@ -585,6 +587,7 @@ class ProjectsActions extends Actions
             for x of site_license
                 site_license[x] = null
         await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
+
 
     # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
@@ -925,6 +928,15 @@ class ProjectsStore extends Store
                 for prop, val of info ? {}
                     upgrades[prop] = (upgrades[prop] ? 0) + parseInt(val)
         return upgrades
+
+    # Return string array of the site licenses that are applied to this project.
+    get_site_license_ids: (project_id) =>
+        site_license = store.getIn(['project_map', project_id, 'site_license'])
+        if not site_license?
+            return []
+        return misc.keys(site_license.toJS())
+
+
 
     # Get the total quotas for the given project, including free base
     # values, site_license contribution and all user upgrades.

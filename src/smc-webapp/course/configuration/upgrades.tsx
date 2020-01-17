@@ -64,7 +64,7 @@ import {
 
 import { Alert, Card } from "antd";
 
-const LICENSE_STYLE = {
+export const LICENSE_STYLE = {
   width: "100%",
   margin: "15px 0",
   padding: "10px",
@@ -649,7 +649,6 @@ class StudentProjectUpgrades extends Component<
     return (
       <div>
         <Button
-          bsStyle="primary"
           onClick={() => {
             this.setState({
               show_site_license: true,
