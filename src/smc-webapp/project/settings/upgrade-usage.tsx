@@ -139,6 +139,7 @@ class UpgradeUsage extends React.Component<Props, State> {
   }
 
   private render_site_license(): Rendered {
+    if (!this.props.is_commercial) return;
     return (
       <SiteLicense
         project_id={this.props.project_id}
