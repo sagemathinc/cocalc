@@ -61,12 +61,22 @@ export const ProjectCapabilities = rclass<ReactProps>(
         any_nonavail = !available;
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
         const icon = available ? "check-square" : "minus-square";
+        let extra = "";
+        if (key == "sage") {
+          const main = this.props.configuration.get("main");
+          const sage_version = main.capabilities?.sage_version;
+          if (sage_version != null) {
+            extra = `(version ${sage_version.join(".")})`;
+          }
+        }
         features.push(
           <React.Fragment key={key}>
             <dt>
               <Icon name={icon} style={{ color }} />
             </dt>
-            <dd>{display}</dd>
+            <dd>
+              {display} {extra}
+            </dd>
           </React.Fragment>
         );
       }
