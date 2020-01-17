@@ -22,6 +22,7 @@ import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
 import { MainConfiguration } from "../../../project_configuration";
+import { TypedMap } from "../../../app-framework";
 
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");
@@ -32,7 +33,7 @@ interface Props {
   redux: AppRedux;
 
   name: string;
-  active_file_sort?: any;
+  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   listing: any[];
   file_map: object;
   file_search: string;

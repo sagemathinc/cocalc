@@ -1,11 +1,12 @@
 import * as React from "react";
+import { TypedMap } from "../../../app-framework";
 
 import { Icon, Space } from "../../../r_misc";
 const { Row, Col } = require("react-bootstrap");
 
 // TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
-  active_file_sort: { column_name: string; is_descending: boolean };
+  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   sort_by: (heading: string) => void;
 }
 
@@ -33,11 +34,11 @@ export class ListingHeader extends React.Component<Props> {
       >
         {display_name}
         <Space />
-        {this.props.active_file_sort.column_name === column_name ? (
+        {this.props.active_file_sort.get("column_name") === column_name ? (
           <Icon
             style={inner_icon_style}
             name={
-              this.props.active_file_sort.is_descending
+              this.props.active_file_sort.get("is_descending")
                 ? "caret-up"
                 : "caret-down"
             }
