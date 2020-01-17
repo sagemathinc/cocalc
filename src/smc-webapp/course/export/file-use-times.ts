@@ -72,7 +72,7 @@ async function paths_to_scan(
   project_id: string,
   src_path: string,
   target_path: string
-): string[] {
+): Promise<string[]> {
   const { stdout } = await exec({
     command: "find",
     args: ["."],

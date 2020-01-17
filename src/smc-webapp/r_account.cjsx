@@ -23,7 +23,7 @@
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
+{A, ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
 {SiteName, TermsOfService} = require('./customize')
 
@@ -1441,10 +1441,22 @@ OtherSettings = rclass
             Allow mentioning others in chats (disable to work around a bug)
         </Checkbox>
 
+
+    render_dark_mode: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('dark_mode')}
+            ref      = 'allow_mentions'
+            onChange = {(e)=>@on_change('dark_mode', e.target.checked)}
+            style    = {color: 'rgba(229, 224, 216, 0.65)', backgroundColor: 'rgb(36, 37, 37)', marginLeft: '-5px', padding: '5px', borderRadius: '3px'}
+        >
+            Dark mode: reduce eye strain by showing a dark background (via <A href="https://darkreader.org/">Dark Reader</A>)
+        </Checkbox>
+
     render: ->
         if not @props.other_settings
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
+            {@render_dark_mode()}
             {@render_confirm()}
             {@render_first_steps()}
             {@render_global_banner()}
