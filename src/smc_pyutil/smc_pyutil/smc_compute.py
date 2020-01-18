@@ -175,10 +175,12 @@ class Project(object):
             dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
             projects=PROJECTS,
             single=False,
-            kucalc=False):
+            kucalc=False,
+            kubernetes=False):
         self._dev = dev
         self._single = single
         self._kucalc = kucalc
+        self._kubernetes = kubernetes
         if kucalc:
             projects = '/home'
         check_uuid(project_id)
@@ -1059,7 +1061,7 @@ def main():
         def g(args):
             special = [
                 k for k in args.__dict__.keys() if k not in
-                ['project_id', 'func', 'dev', 'projects', 'single', 'kucalc']
+                ['project_id', 'func', 'dev', 'projects', 'single', 'kucalc', 'kubernetes']
             ]
             out = []
             errors = False
@@ -1074,7 +1076,8 @@ def main():
                             dev=args.dev,
                             projects=args.projects,
                             single=args.single,
-                            kucalc=args.kucalc), function)(**kwds)
+                            kucalc=args.kucalc,
+                            kubernetes=args.kubernetes), function)(**kwds)
                 except Exception as mesg:
                     raise  #-- for debugging
                     errors = True
@@ -1119,7 +1122,16 @@ def main():
         default=False,
         action="store_const",
         const=True,
-        help="run inside a project container inside KuCalc")
+        help="run inside a project container inside KuCalc, the commercial scalable Kubernetes")
+
+    parser.add_argument(
+        "--kubernetes",
+        default=False,
+        action="store_const",
+        const=True,
+        help=
+        "mode for cocalc-kubernetes: monolithic server with one pod for each project"
+    )
 
     parser.add_argument(
         "--projects",
