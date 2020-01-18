@@ -603,10 +603,11 @@ spec:
             open(path, 'w').write(yaml)
             self.cmd("kubectl apply -f {path}".format(path=path))
         finally:
-            pass
-            #os.unlink(path)
+            os.unlink(path)
 
     def stop(self, ephemeral_state, ephemeral_disk):
+        if self._kubernetes:
+            return self.kubernetes_stop(ephemeral_state, ephemeral_disk)
         self.killall()
         self.delete_user()
         self.remove_smc_path()
@@ -615,6 +616,9 @@ spec:
         if ephemeral_disk:
             # Also delete home directory of project
             shutil.rmtree(self.project_path)
+
+    def kubernetes_stop(self, ephemeral_state, ephemeral_disk):
+        self.cmd("kubectl delete pod project-{project_id}".format(project_id=self.project_id))
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
                 ephemeral_disk):
