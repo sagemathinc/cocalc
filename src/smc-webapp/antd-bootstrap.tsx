@@ -129,3 +129,4 @@ export function Col(props: any) {
   }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
+
