@@ -3,12 +3,12 @@ const this_file:string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, TestGetBoolean } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, TestGetBoolean } from "./types";
+import { time_log2 } from "./time_log";
 import { Page } from "puppeteer";
 const puppeteer = require("puppeteer");
 
-export const is_admin = async function (opts: Opts, page: Page): Promise<TestGetBoolean> {
+export const is_admin = async function (creds: Creds, opts: Opts, page: Page): Promise<TestGetBoolean> {
   let pfcounts: TestGetBoolean = new TestGetBoolean();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog('skipping test: ' + this_file);
@@ -19,14 +19,14 @@ export const is_admin = async function (opts: Opts, page: Page): Promise<TestGet
     const tm_is_admin = process.hrtime.bigint()
 
     // look for "Help" button, just to make sure we're in the right place
-    let sel = '*[cocalc-test="Account"]';
+    let sel = '*[cocalc-test="account"]';
     await page.waitForSelector(sel);
     debuglog('found Account tab');
 
     // look for "Admin" button - return true if it's found within 2 sec
     pfcounts.result = false;
     try {
-      let sel = '*[cocalc-test="Admin"]';
+      let sel = '*[cocalc-test="admin"]';
       await page.waitForSelector(sel, {timeout: 2000});
       debuglog('found Admin tab');
       pfcounts.result = true;
@@ -39,7 +39,7 @@ export const is_admin = async function (opts: Opts, page: Page): Promise<TestGet
       }
     }
 
-    time_log(this_file, tm_is_admin);
+    await time_log2(this_file, tm_is_admin, creds, opts);
     pfcounts.pass += 1;
 
   } catch (e) {

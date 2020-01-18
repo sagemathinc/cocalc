@@ -5,7 +5,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 const puppeteer = require("puppeteer");
 import chalk from "chalk";
 import { Creds, Opts, PassFail, TestGetBoolean } from "./types";
-import { time_log, time_log2 } from "./time_log";
+import { time_log2 } from "./time_log";
 import { test_tex } from "./test_tex";
 import { test_widget } from "./test_widget";
 import { test_sage_ker } from "./test_sage_ker";
@@ -45,7 +45,6 @@ export const login_tests = async function(
     const version: string = await page.browser().version();
     debuglog("browser", version);
 
-    time_log("launch browser", tm_launch_browser);
     await time_log2("launch browser", tm_launch_browser, creds, opts);
     const tm_login = process.hrtime.bigint();
     await page.setDefaultTimeout(LONG_TIMEOUT);
@@ -72,7 +71,7 @@ export const login_tests = async function(
 
     sel = '*[cocalc-test="sign-in-submit"]';
     await page.click(sel);
-    time_log("login", tm_login);
+    await time_log2("login with gui", tm_login, creds, opts);
 
     const tm_open_project = process.hrtime.bigint();
     sel = '*[cocalc-test="project-button"]';
@@ -94,22 +93,22 @@ export const login_tests = async function(
 
     xpt = '//button[text()="Check All"]';
     await page.waitForXPath(xpt);
-    time_log("open project", tm_open_project);
+    await time_log2("open project", tm_open_project, creds, opts);
     pfcounts.pass += 1;
 
-    if (opts.xprj) pfcounts.add(await del_hide_project(opts, page));
+    if (opts.xprj) pfcounts.add(await del_hide_project(creds, opts, page));
     if (opts.xprj === undefined || opts.xprj !== "delete") {
-      pfcounts.add(await test_tex(opts, page));
-      pfcounts.add(await test_ir(opts, page));
-      pfcounts.add(await test_widget(opts, page));
-      pfcounts.add(await test_sage_ker(opts, page));
-      pfcounts.add(await test_sagews(opts, page));
-      const tgb: TestGetBoolean = await is_admin(opts, page);
+      pfcounts.add(await test_tex(creds, opts, page));
+      pfcounts.add(await test_ir(creds, opts, page));
+      pfcounts.add(await test_widget(creds, opts, page));
+      pfcounts.add(await test_sage_ker(creds, opts, page));
+      pfcounts.add(await test_sagews(creds, opts, page));
+      const tgb: TestGetBoolean = await is_admin(creds, opts, page);
       pfcounts.add(tgb);
       pfcounts.add(await test_shared_file(creds, opts, browser!));
     }
 
-    time_log("login session total", tm_launch_browser);
+    await time_log2("login session total", tm_launch_browser, creds, opts);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

@@ -3,13 +3,13 @@ const this_file:string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-export const test_sagews = async function (opts: Opts, page: Page): Promise<PassFail> {
+export const test_sagews = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   let pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog('skipping test: ' + this_file);
@@ -41,7 +41,7 @@ export const test_sagews = async function (opts: Opts, page: Page): Promise<Pass
     await page.click(sel);
     debuglog('clicked file line');
 
-    time_log(`open ${TestFiles.sagewsfile}`, tm_open_sagews);
+    await time_log2(`open ${TestFiles.sagewsfile}`, tm_open_sagews, creds, opts);
     const tm_sagews_test = process.hrtime.bigint()
 
     sel = 'a[data-original-title="Execute current or selected cells (unless input hidden)."]';
@@ -74,7 +74,7 @@ export const test_sagews = async function (opts: Opts, page: Page): Promise<Pass
     await page.waitForSelector(sel);
     debuglog('got file search');
 
-    time_log(this_file, tm_sagews_test);
+    await time_log2(this_file, tm_sagews_test, creds, opts);
     await screenshot(page, opts, 'cocalc-sagews-1.png');
     pfcounts.pass += 1;
 

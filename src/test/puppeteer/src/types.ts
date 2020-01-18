@@ -27,6 +27,7 @@ export interface InstallOpts {
   create_project: boolean;
   headless?: string;
   path?: string | boolean;
+  csv_log: string;
 }
 
 export const ExtChromePath: string = "/usr/bin/chromium-browser";
