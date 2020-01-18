@@ -457,10 +457,14 @@ class Project(object):
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
               ephemeral_disk):
+        if self._kubernetes:
+            return self.kubernetes_start(cores, memory, cpu_shares, base_url, ephemeral_state,
+              ephemeral_disk)
+
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
-
         self.ensure_bashrc()
+
         self.remove_forever_path()  # probably not needed anymore
         self.remove_snapshots_path()
         self.create_user()
@@ -551,6 +555,56 @@ class Project(object):
         else:
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
+
+    def kubernetes_start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+              ephemeral_disk):
+        log = self._log("kubernetes_start")
+        log("kubernetes start")
+        yaml = """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "project-{project_id}"
+  labels:
+    run: "project"
+    project_id: "{project_id}"
+spec:
+  containers:
+    - name: "project-{project_id}"
+      image: "{registry}cocalc-kubernetes-project"
+      env:
+        - name: COCALC_PROJECT_ID
+          value: "{project_id}"
+      ports:
+        - containerPort: 6000
+          name: "local-hub"
+          protocol: TCP
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 6001 # port number configured in Dockerfile and supervisord.conf
+        initialDelaySeconds: 60
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 20
+      volumeMounts:
+        - name: home
+          mountPath: /home/user
+  automountServiceAccountToken: false
+  volumes: # TODO: switch to NFS
+    - name: home
+      emptyDir:
+        medium: "Memory"
+""".format(project_id=self.project_id, registry='localhost:30000/')
+        # for now pull image from localhost:30000/ as in kucalc; later
+        # will have to make this an option.
+        path = "/tmp/project-{project_id}".format(project_id=self.project_id)
+        try:
+            open(path, 'w').write(yaml)
+            self.cmd("kubectl apply -f {path}".format(path=path))
+        finally:
+            pass
+            #os.unlink(path)
 
     def stop(self, ephemeral_state, ephemeral_disk):
         self.killall()
