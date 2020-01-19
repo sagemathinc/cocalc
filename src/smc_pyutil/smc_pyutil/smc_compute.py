@@ -42,7 +42,7 @@ from subprocess import Popen, PIPE
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 USER_SWAP_MB = 1000  # amount of swap users get in addition to how much RAM they have.
 PLATFORM = platform.system().lower()
-PROJECTS = '/projects'
+PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
 
 
 def quota_to_int(x):
@@ -89,12 +89,11 @@ def cmd(s,
         signal.signal(signal.SIGALRM, handle)
         signal.alarm(timeout)
     try:
-        out = Popen(
-            s,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE,
-            shell=not isinstance(s, list))
+        out = Popen(s,
+                    stdin=PIPE,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    shell=not isinstance(s, list))
         x = out.stdout.read() + out.stderr.read()
         e = out.wait(
         )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
@@ -254,8 +253,8 @@ class Project(object):
     def pids(self):
         return [
             int(x)
-            for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).
-            replace('ERROR', '').split()
+            for x in self.cmd(['pgrep', '-u', self.uid],
+                              ignore_errors=True).replace('ERROR', '').split()
         ]
 
     def num_procs(self):
@@ -386,9 +385,8 @@ class Project(object):
         if z not in cur:
             open("/etc/cgrules.conf", 'a').write(z)
         try:
-            pids = self.cmd(
-                "ps -o pid -u %s" % self.username,
-                ignore_errors=False).split()[1:]
+            pids = self.cmd("ps -o pid -u %s" % self.username,
+                            ignore_errors=False).split()[1:]
             self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
             # ignore cgclassify errors, since processes come and go, etc.
         except:
@@ -396,9 +394,8 @@ class Project(object):
 
     def cgclassify(self):
         try:
-            pids = self.cmd(
-                "ps -o pid -u %s" % self.username,
-                ignore_errors=False).split()[1:]
+            pids = self.cmd("ps -o pid -u %s" % self.username,
+                            ignore_errors=False).split()[1:]
             self.cmd(["cgclassify"] + pids, ignore_errors=True)
             # ignore cgclassify errors, since processes come and go, etc.":
         except:
@@ -458,8 +455,8 @@ class Project(object):
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
               ephemeral_disk):
         if self._kubernetes:
-            return self.kubernetes_start(cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk)
+            return self.kubernetes_start(cores, memory, cpu_shares, base_url,
+                                         ephemeral_state, ephemeral_disk)
 
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
@@ -495,8 +492,8 @@ class Project(object):
             self.cmd("smc-local-hub start")
 
             def started():
-                return os.path.exists(
-                    "%s/local_hub/local_hub.port" % self.smc_path)
+                return os.path.exists("%s/local_hub/local_hub.port" %
+                                      self.smc_path)
 
             i = 0
             while not started():
@@ -556,8 +553,8 @@ class Project(object):
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
 
-    def kubernetes_start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk):
+    def kubernetes_start(self, cores, memory, cpu_shares, base_url,
+                         ephemeral_state, ephemeral_disk):
         log = self._log("kubernetes_start")
         log("kubernetes start")
         yaml = """
@@ -618,7 +615,8 @@ spec:
             shutil.rmtree(self.project_path)
 
     def kubernetes_stop(self, ephemeral_state, ephemeral_disk):
-        self.cmd("kubectl delete pod project-{project_id}".format(project_id=self.project_id))
+        self.cmd("kubectl delete pod project-{project_id}".format(
+            project_id=self.project_id))
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
                 ephemeral_disk):
@@ -921,8 +919,8 @@ spec:
                             raise RuntimeError(
                                 "path (=%s) must be at most %s bytes, but it is at least %s bytes"
                                 % (path, maxsize, size))
-                        arcname = os.path.join(
-                            os.path.relpath(root, relroot), file)
+                        arcname = os.path.join(os.path.relpath(root, relroot),
+                                               file)
                         zip.write(filename, arcname)
 
             # Mark the files as having been created on Windows so that
@@ -1118,8 +1116,10 @@ def main():
 
         def g(args):
             special = [
-                k for k in args.__dict__.keys() if k not in
-                ['project_id', 'func', 'dev', 'projects', 'single', 'kucalc', 'kubernetes']
+                k for k in args.__dict__.keys() if k not in [
+                    'project_id', 'func', 'dev', 'projects', 'single',
+                    'kucalc', 'kubernetes'
+                ]
             ]
             out = []
             errors = False
@@ -1129,13 +1129,12 @@ def main():
                 kwds = dict([(k, getattr(args, k)) for k in special])
                 try:
                     result = getattr(
-                        Project(
-                            project_id=project_id,
-                            dev=args.dev,
-                            projects=args.projects,
-                            single=args.single,
-                            kucalc=args.kucalc,
-                            kubernetes=args.kubernetes), function)(**kwds)
+                        Project(project_id=project_id,
+                                dev=args.dev,
+                                projects=args.projects,
+                                single=args.single,
+                                kucalc=args.kucalc,
+                                kubernetes=args.kubernetes), function)(**kwds)
                 except Exception as mesg:
                     raise  #-- for debugging
                     errors = True
@@ -1152,8 +1151,10 @@ def main():
             if errors:
                 sys.exit(1)
 
-        subparser.add_argument(
-            "project_id", help="UUID of project", type=str, nargs="+")
+        subparser.add_argument("project_id",
+                               help="UUID of project",
+                               type=str,
+                               nargs="+")
         subparser.set_defaults(func=g)
 
     # optional arguments to all subcommands
@@ -1180,7 +1181,9 @@ def main():
         default=False,
         action="store_const",
         const=True,
-        help="run inside a project container inside KuCalc, the commercial scalable Kubernetes")
+        help=
+        "run inside a project container inside KuCalc, the commercial scalable Kubernetes"
+    )
 
     parser.add_argument(
         "--kubernetes",
@@ -1191,12 +1194,12 @@ def main():
         "mode for cocalc-kubernetes: monolithic server with one pod for each project"
     )
 
-    parser.add_argument(
-        "--projects",
-        help="/projects mount point [default: '/projects']",
-        dest="projects",
-        default='/projects',
-        type=str)
+    parser.add_argument("--projects",
+                        help="/projects mount point [default: '%s']" %
+                        PROJECTS,
+                        dest="projects",
+                        default=PROJECTS,
+                        type=str)
 
     # start project running
     parser_start = subparsers.add_parser(
@@ -1240,31 +1243,39 @@ def main():
 
     parser_status = subparsers.add_parser(
         'status', help='get status of servers running in the project')
-    parser_status.add_argument(
-        "--timeout", help="seconds to run command", default=60, type=int)
-    parser_status.add_argument(
-        "--base_url", help="ignored", type=str, default='')
+    parser_status.add_argument("--timeout",
+                               help="seconds to run command",
+                               default=60,
+                               type=int)
+    parser_status.add_argument("--base_url",
+                               help="ignored",
+                               type=str,
+                               default='')
 
     f(parser_status)
 
     parser_state = subparsers.add_parser(
         'state', help='get state of project')  # {state:?}
-    parser_state.add_argument(
-        "--timeout", help="seconds to run command", default=60, type=int)
-    parser_state.add_argument(
-        "--base_url", help="ignored", type=str, default='')
+    parser_state.add_argument("--timeout",
+                              help="seconds to run command",
+                              default=60,
+                              type=int)
+    parser_state.add_argument("--base_url",
+                              help="ignored",
+                              type=str,
+                              default='')
     f(parser_state)
 
     # disk quota
-    parser_disk_quota = subparsers.add_parser(
-        'disk_quota', help='set disk quota')
+    parser_disk_quota = subparsers.add_parser('disk_quota',
+                                              help='set disk quota')
     parser_disk_quota.add_argument(
         "quota", help="quota in MB (or 0 for no disk_quota).", type=float)
     f(parser_disk_quota)
 
     # compute quota
-    parser_compute_quota = subparsers.add_parser(
-        'compute_quota', help='set compute quotas')
+    parser_compute_quota = subparsers.add_parser('compute_quota',
+                                                 help='set compute quotas')
     parser_compute_quota.add_argument(
         "--cores",
         help="number of cores (default: 0=don't change/set) float",
@@ -1283,15 +1294,17 @@ def main():
     f(parser_compute_quota)
 
     # create Linux user for project
-    parser_create_user = subparsers.add_parser(
-        'create_user', help='create Linux user')
-    parser_create_user.add_argument(
-        "--login_shell", help="", type=str, default='/bin/bash')
+    parser_create_user = subparsers.add_parser('create_user',
+                                               help='create Linux user')
+    parser_create_user.add_argument("--login_shell",
+                                    help="",
+                                    type=str,
+                                    default='/bin/bash')
     f(parser_create_user)
 
     # delete Linux user for project
-    parser_delete_user = subparsers.add_parser(
-        'delete_user', help='delete Linux user')
+    parser_delete_user = subparsers.add_parser('delete_user',
+                                               help='delete Linux user')
     f(parser_delete_user)
 
     # kill all processes by Linux user for project
@@ -1316,8 +1329,8 @@ def main():
         const=True)
     f(parser_stop)
 
-    parser_restart = subparsers.add_parser(
-        'restart', help='stop then start project')
+    parser_restart = subparsers.add_parser('restart',
+                                           help='stop then start project')
     parser_restart.add_argument(
         "--cores",
         help="number of cores (default: 0=don't change/set) float",
@@ -1359,19 +1372,17 @@ def main():
     parser_directory_listing = subparsers.add_parser(
         'directory_listing',
         help='list files (and info about them) in a directory in the project')
-    parser_directory_listing.add_argument(
-        "--path",
-        help="relative path in project",
-        dest="path",
-        default='',
-        type=str)
-    parser_directory_listing.add_argument(
-        "--hidden",
-        help="if given, show hidden files",
-        dest="hidden",
-        default=False,
-        action="store_const",
-        const=True)
+    parser_directory_listing.add_argument("--path",
+                                          help="relative path in project",
+                                          dest="path",
+                                          default='',
+                                          type=str)
+    parser_directory_listing.add_argument("--hidden",
+                                          help="if given, show hidden files",
+                                          dest="hidden",
+                                          default=False,
+                                          action="store_const",
+                                          const=True)
     parser_directory_listing.add_argument(
         "--time",
         help="if given, sort by time with newest first",
@@ -1426,12 +1437,11 @@ def main():
         dest="target_project_id",
         default="",
         type=str)
-    parser_copy_path.add_argument(
-        "--path",
-        help="relative path or filename in project",
-        dest="path",
-        default='',
-        type=str)
+    parser_copy_path.add_argument("--path",
+                                  help="relative path or filename in project",
+                                  dest="path",
+                                  default='',
+                                  type=str)
     parser_copy_path.add_argument(
         "--target_path",
         help="relative path into target project (defaults to --path)",
@@ -1469,8 +1479,9 @@ def main():
     f(parser_copy_path)
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')
-    parser_mkdir.add_argument(
-        "path", help="relative path or filename in project", type=str)
+    parser_mkdir.add_argument("path",
+                              help="relative path or filename in project",
+                              type=str)
     f(parser_mkdir)
 
     args = parser.parse_args()
