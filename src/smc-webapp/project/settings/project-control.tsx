@@ -30,7 +30,7 @@ import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
 import { Popconfirm, Icon as AntIcon } from "antd";
-
+import { KUCALC_COCALC_COM } from "../../customize";
 let {
   COMPUTE_IMAGES,
   DEFAULT_COMPUTE_IMAGE
@@ -42,7 +42,6 @@ const misc = require("smc-util/misc");
 
 interface ReactProps {
   project: Project;
-  allow_ssh: boolean;
 }
 
 interface ReduxProps {
@@ -340,19 +339,22 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_select_compute_image_row() {
-      if (this.props.kucalc !== "yes") {
+      if (this.props.kucalc !== KUCALC_COCALC_COM) {
         return;
       }
       return (
-        <div>
-          <LabeledRow
-            key="cpu-usage"
-            label="Software Environment"
-            style={this.rowstyle(true)}
-          >
-            {this.render_select_compute_image()}
-          </LabeledRow>
-        </div>
+        <>
+          <hr />
+          <div>
+            <LabeledRow
+              key="cpu-usage"
+              label="Software Environment"
+              style={this.rowstyle(true)}
+            >
+              {this.render_select_compute_image()}
+            </LabeledRow>
+          </div>
+        </>
       );
     }
 
@@ -516,7 +518,6 @@ export const ProjectControl = rclass<ReactProps>(
           <LabeledRow key="project_id" label="Project id">
             <pre>{this.props.project.get("project_id")}</pre>
           </LabeledRow>
-          {this.props.kucalc !== "yes" ? <hr /> : undefined}
           {this.render_select_compute_image_row()}
         </SettingBox>
       );
