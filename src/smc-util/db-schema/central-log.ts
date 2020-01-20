@@ -24,6 +24,19 @@ export const central_log = create({
       "Table for logging system stuff that happens.  Meant to help in running and understanding the system better.",
     primary_key: "id",
     durability: "soft", // loss of some log data not serious, since used only for analytics
-    pg_indexes: ["time", "event"]
+    pg_indexes: ["time", "event"],
+    user_query: {
+      set: {
+        fields: {
+          id: null,
+          event: null,
+          value: null,
+          time: null
+        },
+        before_change: (_database, _old_val, new_val) => {
+          new_val.event = "webapp " + new_val.event;
+        }
+      }
+    }
   }
 });
