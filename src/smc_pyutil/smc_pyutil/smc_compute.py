@@ -588,11 +588,14 @@ spec:
         - name: home
           mountPath: /home/user
   automountServiceAccountToken: false
-  volumes: # TODO: switch to NFS
+  volumes:
     - name: home
-      emptyDir:
-        medium: "Memory"
-""".format(project_id=self.project_id, registry='localhost:30000/')
+      nfs:
+         server: {nfs_server_ip}
+         path: "/{project_id}"
+""".format(project_id=self.project_id,
+           nfs_server_ip='10.101.19.164',  # TODO
+           registry='localhost:30000/')
         # for now pull image from localhost:30000/ as in kucalc; later
         # will have to make this an option.
         path = "/tmp/project-{project_id}".format(project_id=self.project_id)
