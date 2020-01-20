@@ -185,7 +185,6 @@ async function capabilities(): Promise<MainCapabilities> {
   if (caps.sage) {
     caps.sage_version = sage.version;
   }
-  console.log(JSON.stringify(caps, null, 2))
   return caps;
 }
 
