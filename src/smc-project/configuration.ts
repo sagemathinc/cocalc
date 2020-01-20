@@ -164,7 +164,7 @@ async function get_hashsums(): Promise<Capabilities> {
 }
 
 // assemble capabilities object
-async function capabilities(): Promise<{MainCapabilities> {
+async function capabilities(): Promise<MainCapabilities> {
   const hashsums = await get_hashsums();
   const sage_info_future = sage_info();
   const caps: MainCapabilities = {
