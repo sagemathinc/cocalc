@@ -44,6 +44,8 @@ USER_SWAP_MB = 1000  # amount of swap users get in addition to how much RAM they
 PLATFORM = platform.system().lower()
 PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
 
+KUBERNETES_UID = 2001
+KUBERNETES_PROJECTS = "/projects/home"
 
 def quota_to_int(x):
     return int(math.ceil(x))
@@ -180,11 +182,14 @@ class Project(object):
         self._single = single
         self._kucalc = kucalc
         self._kubernetes = kubernetes
-        if kucalc:
+        if self._kucalc:
             projects = '/home'
+        if self._kubernetes:
+            # no matter what use this path; overwrites --projects
+            projects = KUBERNETES_PROJECTS
         check_uuid(project_id)
         if not os.path.exists(projects):
-            if self._dev:
+            if self._dev or self._kubernetes:
                 os.makedirs(projects)
             else:
                 raise RuntimeError("mount point %s doesn't exist" % projects)
@@ -196,7 +201,10 @@ class Project(object):
             self.project_path = os.path.join(self._projects, project_id)
         self.smc_path = os.path.join(self.project_path, '.smc')
         self.forever_path = os.path.join(self.project_path, '.forever')
-        self.uid = uid(self.project_id)
+        if self._kubernetes:
+            self.uid = KUBERNETES_UID
+        else:
+            self.uid = uid(self.project_id)
         self.username = self.project_id.replace('-', '')
         self.open_fail_file = os.path.join(self.project_path,
                                            '.sagemathcloud-open-failed')
@@ -224,7 +232,7 @@ class Project(object):
         # However, since we're changing the uid mapping, we really do have to do this every time,
         # or we break existing installs.
         self.chown(self.project_path)
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username],
             ignore_errors=True)
@@ -235,7 +243,7 @@ class Project(object):
             ignore_errors=True)
 
     def delete_user(self):
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         cmd(['/usr/sbin/userdel', self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
@@ -262,6 +270,9 @@ class Project(object):
 
     def killall(self, grace_s=0.5, max_tries=15):
         log = self._log('killall')
+        if self._kubernetes:
+            log("killall shouldn't do anything in kubernetes mode")
+            return
         if self._dev:
             self.dev_env()
             os.chdir(self.project_path)
@@ -287,7 +298,7 @@ class Project(object):
         log("WARNING: failed to kill all procs after %s tries" % max_tries)
 
     def chown(self, path, recursive=True):
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         if recursive:
             cmd(["chown", "%s:%s" % (self.uid, self.uid), '-R', path])
@@ -349,7 +360,7 @@ class Project(object):
         memory     - megabytes of RAM (int)
         cpu_shares - determines relative share of cpu (e.g., 256=most users)
         """
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         cfs_quota = int(100000 * cores)
 
@@ -412,6 +423,8 @@ class Project(object):
         """
         Remove the ~/.snapshots path
         """
+        if self._kubernetes:  # don't touch it for this, since we have no snapshots
+            return
         p = os.path.join(self.project_path, '.snapshots')
         if os.path.exists(p):
             shutil.rmtree(p, ignore_errors=True)
@@ -594,9 +607,9 @@ spec:
          server: {nfs_server_ip}
          path: "/{project_id}"
 """.format(project_id=self.project_id,
-           nfs_server_ip='10.101.19.164',  # TODO
+           nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
            registry='localhost:30000/')
-        # for now pull image from localhost:30000/ as in kucalc; later
+        # TODO: for now pull image from localhost:30000/ as in kucalc; later
         # will have to make this an option.
         path = "/tmp/project-{project_id}".format(project_id=self.project_id)
         try:
@@ -1194,7 +1207,7 @@ def main():
         action="store_const",
         const=True,
         help=
-        "mode for cocalc-kubernetes: monolithic server with one pod for each project"
+        "running inside of cocalc-kubernetes, which has a monolithic server and one pod for each project; /projects/home/[project_id] is where the projects are stored and /projects/home is NFS exported. All users are uid 2001."
     )
 
     parser.add_argument("--projects",

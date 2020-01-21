@@ -101,6 +101,8 @@ smc_compute = (opts) =>
         v = ["/usr/local/bin/smc-compute"]
     if program.single
         v.push("--single")
+    if program.kubernetes
+        v.push("--kubernetes")
 
     misc_node.execute_code
         command : command
@@ -1290,6 +1292,7 @@ try
         .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
         .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
         .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
+        .option('--kubernetes',              'if given, assumes running in cocalc-kubernetes, so projects are stored at /projects/home are NFS exported via a service called cocalc-kubernetes-server-nfs; projects run as pods in the cluster.  This is all taken care of by the smc-compute script, which gets the --kubernetes option.')
         .parse(process.argv)
 catch e
     # Stupid bug in the command module when loaded as a module.
