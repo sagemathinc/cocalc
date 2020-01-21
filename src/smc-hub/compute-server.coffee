@@ -1045,7 +1045,7 @@ firewall = (opts) ->
         args = [firewall_cmd, opts.command].concat(opts.args)
     else
         command = firewall_cmd
-        args = [opts.command].concact(opts.args)
+        args = [opts.command].concat(opts.args)
 
     misc_node.execute_code
         command : command
