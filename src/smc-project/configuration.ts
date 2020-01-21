@@ -6,6 +6,9 @@
 
 import * as which from "which";
 import { access as fs_access, constants as fs_constaints } from "fs";
+import { exec as child_process_exec } from "child_process";
+import { promisify } from "util";
+const exec = promisify(child_process_exec);
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 import { ConfigurationAspect } from "../smc-webapp/project_configuration";
 import {
@@ -48,11 +51,32 @@ async function x11(): Promise<boolean> {
   return await have("xpra");
 }
 
-// do we have "sage"?
-async function sage(): Promise<boolean> {
+// do we have "sage"? which version?
+async function sage_info(): Promise<{
+  exists: boolean;
+  version: number[] | undefined;
+}> {
   // TODO probably also check if smc_sagews is working? or the sage server?
   // without sage, sagews files are disabled
-  return await have("sage");
+  const exists = await have("sage");
+  let version: number[] | undefined = undefined;
+  if (exists) {
+    // We need the version of sage (--version runs quickly)
+    try {
+      const info = (await exec("sage --version")).stdout.trim();
+      const m = info.match(/version ([\d+.]+[\d+])/);
+      if (m != null) {
+        const v = m[1];
+        if (v != null && v.length > 1) {
+          version = v.split(".").map((x) => parseInt(x));
+          //console.log(`Sage version info: ${info} ->  ${version}`);
+        }
+      }
+    } catch (err) {
+      console.log("Problem fetching sage version info -- ignoring", err);
+    }
+  }
+  return { exists, version };
 }
 
 // this checks the level of jupyter support. none (false), or classical, lab, ...
@@ -142,18 +166,25 @@ async function get_hashsums(): Promise<Capabilities> {
 // assemble capabilities object
 async function capabilities(): Promise<MainCapabilities> {
   const hashsums = await get_hashsums();
+  const sage_info_future = sage_info();
   const caps: MainCapabilities = {
     jupyter: await jupyter(),
     formatting: await formatting(),
     hashsums,
     latex: await latex(hashsums),
-    sage: await sage(),
+    sage: false,
+    sage_version: undefined,
     x11: await x11(),
     rmd: await rmd(),
     spellcheck: await spellcheck(),
     library: await library(),
     sshd: await sshd()
   };
+  const sage = await sage_info_future;
+  caps.sage = sage.exists;
+  if (caps.sage) {
+    caps.sage_version = sage.version;
+  }
   return caps;
 }
 

@@ -10,6 +10,7 @@ import { redux } from "../../app-framework";
 import { callback2 } from "smc-util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
+import { CompressedPatch } from "smc-util/sync/editor/generic/types";
 
 export function server_time(): Date {
   return webapp_client.server_time();
@@ -132,7 +133,8 @@ export async function prettier(
   project_id: string,
   path: string,
   options: ParserOptions
-): Promise<void> {
+  // undefined is only for old projects; can be removed when all projects have restarted...
+): Promise<CompressedPatch | undefined> {
   const resp = await callback2(webapp_client.prettier, {
     project_id,
     path,
@@ -149,6 +151,8 @@ export async function prettier(
     } else {
       throw Error("Syntax error prevented formatting code.");
     }
+  } else {
+    return resp.patch;
   }
 }
 

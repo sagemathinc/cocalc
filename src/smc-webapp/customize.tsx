@@ -23,9 +23,30 @@ const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");
 const theme = require("smc-util/theme");
 
+export const KUCALC_DISABLED = "no";
+export const KUCALC_COCALC_COM = "yes";
+export const KUCALC_CLOUDCALC = "cloudcalc";
+
 // make it true if starts with y
-function test_commercial(c) {
+function convert_to_boolean(c): boolean {
   return (c[0] != null ? c[0].toLowerCase() : undefined) === "y";
+}
+
+// this sets UI modes for using a kubernetes based back-end
+// 'yes' (historic value) equals 'cocalc.com'
+function validate_kucalc(k): string {
+  const val = k.trim().toLowerCase();
+  if (val == "yes" || val == "cocalc.com") {
+    return KUCALC_COCALC_COM;
+  }
+  if (val == "cloudcalc") {
+    return KUCALC_CLOUDCALC;
+  }
+  if (val == "no") {
+    return KUCALC_DISABLED;
+  }
+  console.warn(`site settings customize: invalid kucalc value ${k}`);
+  return KUCALC_DISABLED;
 }
 
 const result: any[] = [];
@@ -34,7 +55,9 @@ for (const k in schema.site_settings_conf) {
   result.push([k, v.default]);
 }
 const defaults = misc.dict(result);
-defaults.is_commercial = test_commercial(defaults.commercial);
+defaults.is_commercial = convert_to_boolean(defaults.commercial);
+// commercial setups do have the SSH gateway
+defaults.have_ssh_gateway = convert_to_boolean(defaults.commercial);
 defaults._is_configured = false; // will be true after set via call to server
 
 // TODO type the store. it's an extension of what's in SiteSettings
@@ -70,7 +93,12 @@ if (typeof $ !== "undefined" && $ != undefined) {
     if (status === "success") {
       obj.commercial =
         obj.commercial != undefined ? obj.commercial : defaults.commercial;
-      obj.is_commercial = commercial = test_commercial(obj.commercial);
+      obj.is_commercial = commercial = convert_to_boolean(obj.commercial);
+      obj.have_ssh_gateway =
+        obj.ssh_gateway != undefined
+          ? convert_to_boolean(obj.ssh_gateway)
+          : defaults.have_ssh_gateway;
+      obj.kucalc = validate_kucalc(obj.kucalc);
       obj._is_configured = true;
       actions.setState(obj);
     }
