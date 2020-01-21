@@ -57,8 +57,11 @@ interface TableSchema<F extends Fields> {
       fields: { [key in keyof Partial<F>]: any };
       admin?: boolean;
       // HOOKS which allow for running arbitrary code in response to
-      // user set queries.  In each case, new_val below is only the part
+      // user set queries.  In each case below, query is QUERY, only the part
       // of the object that the user requested to change.
+      // ie: client_call(query: {[db_table_name]: QUERY})
+      //
+      // old_val is the matching result from QUERY that will be replaced
 
       /**
        * 0. CHECK: Runs before doing any further processing; has callback, so this
@@ -68,7 +71,7 @@ interface TableSchema<F extends Fields> {
        */
       check_hook?: (
         database,
-        obj,
+        query,
         account_id: string,
         project_id: string,
         cb: Function
@@ -76,13 +79,13 @@ interface TableSchema<F extends Fields> {
 
       /**
        * 1. BEFORE: If before_change is set, it is called with input
-       *   (database, old_val, new_val, account_id, cb)
+       *   (database, old_val, query, account_id, cb)
        * before the actual change to the database is made.
        */
       before_change?: (
         database,
         old_val,
-        new_val,
+        query,
         account_id: string,
         cb: Function
       ) => void;
@@ -91,31 +94,31 @@ interface TableSchema<F extends Fields> {
       // into db.touch since that would cause another write to the file_use table!)
       /**
        * 2. INSTEAD OF: If instead_of_change is set, then it is called with input
-       *      (database, old_val, new_val, account_id, cb)
+       *      (database, old_val, query, account_id, cb)
        * *instead* of actually doing the update/insert to
        * the database.  This makes it possible to run arbitrary
        * code whenever the user does a certain type of set query.
-       * Obviously, if that code doesn't set the new_val in the
-       * database, then new_val won't be the new val.
+       * Obviously, if that code doesn't set the query in the
+       * database, then query won't be the new val.
        */
       instead_of_change?: (
         database,
         old_val,
-        new_val,
+        query,
         account_id: string,
         cb: Function
       ) => void;
 
       /**
        * 3. AFTER:  If set, the on_change is called with
-       *   (database, old_val, new_val, account_id, cb)
+       *   (database, old_val, query, account_id, cb)
        * after everything the database has been modified.
        */
       on_change?: (
         database,
-        obj,
+        old_val,
+        query,
         account_id: string,
-        project_id: string,
         cb: Function
       ) => void;
     };

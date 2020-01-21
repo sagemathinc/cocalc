@@ -33,8 +33,9 @@ export const central_log = create({
           value: null,
           time: null
         },
-        before_change: (_database, _old_val, new_val) => {
-          new_val.event = "webapp " + new_val.event;
+        check_hook: (_db, query, _account_id, _project_id, cb) => {
+          query.event = "webapp " + query.event;
+          cb();
         }
       }
     }
