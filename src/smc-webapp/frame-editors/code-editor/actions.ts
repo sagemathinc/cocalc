@@ -1341,21 +1341,36 @@ export class Actions<
     }
   }
 
-  set_syncstring_to_codemirror(id?: string): void {
+  set_syncstring_to_codemirror(id?: string, do_not_exit_undo_mode?: boolean): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return;
     }
-    this.set_syncstring(cm.getValue());
+    this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
   }
 
-  set_syncstring(value: string): void {
+  private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
     if (this._state === "closed") return;
     const cur = this._syncstring.to_str();
     if (cur === value) {
       // did not actually change.
       return;
     }
+    if (!do_not_exit_undo_mode) {
+      // If we are NOT doing an undo operation, then setting the
+      // syncstring due to any
+      // change in the codemirror editor (user editing, application of
+      // formatting like bold, etc.) should exit undo mode.  Otherwise,
+      // if the user *immediately* does an undo, they will undo from
+      // the wrong point in time.... which is very confusing.  See
+      // https://github.com/sagemathinc/cocalc/issues/1323
+      // NOTE: we only have to be careful about this because we
+      // are directly using syncstring.from_str below and not set_doc,
+      // because tricky stuff involving the codemirror editor having
+      // separate state and changing.
+      this._syncstring.exit_undo_mode();
+    }
+    // Now actually set the value.
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -1413,7 +1428,7 @@ export class Actions<
     const value = this._syncstring.undo().to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this._syncstring.commit();
   }
 
@@ -1434,7 +1449,7 @@ export class Actions<
     const value = doc.to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this._syncstring.commit();
   }
 
