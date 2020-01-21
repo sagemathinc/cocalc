@@ -47,6 +47,7 @@ PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
 KUBERNETES_UID = 2001
 KUBERNETES_PROJECTS = "/projects/home"
 
+
 def quota_to_int(x):
     return int(math.ceil(x))
 
@@ -569,6 +570,9 @@ class Project(object):
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
 
+    def kubernetes_pod_name(self):
+        return "project-" + self.project_id
+
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
                          ephemeral_state, ephemeral_disk):
         log = self._log("kubernetes_start")
@@ -577,13 +581,13 @@ class Project(object):
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "project-{project_id}"
+  name: "{pod_name}"
   labels:
     run: "project"
     project_id: "{project_id}"
 spec:
   containers:
-    - name: "project-{project_id}"
+    - name: "{pod_name}"
       image: "{registry}cocalc-kubernetes-project"
       env:
         - name: COCALC_PROJECT_ID
@@ -609,9 +613,11 @@ spec:
       nfs:
          server: {nfs_server_ip}
          path: "/{project_id}"
-""".format(project_id=self.project_id,
-           nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
-           registry='localhost:30000/')
+""".format(
+            pod_name=self.kubernetes_pod_name(),
+            project_id=self.project_id,
+            nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
+            registry='localhost:30000/')
         # for now pull image from localhost:30000/ as in kucalc; later
         # will have to make this an option.
         path = "/tmp/project-{project_id}".format(project_id=self.project_id)
@@ -719,6 +725,9 @@ spec:
         return s
 
     def state(self, timeout=60, base_url=''):
+        if self._kubernetes:
+            return self.kubernetes_state()
+
         log = self._log("state")
 
         if (self._dev
@@ -770,6 +779,31 @@ spec:
                 log("error running status command -- %s", err)
                 s['state'] = 'broken'
         return s
+
+    def kubernetes_state(self):
+        log = self._log("kubernetes_state")
+
+        if not os.path.exists(self.project_path):
+            log("create project path")
+            self.create_project_path()
+
+        pod_name = self.kubernetes_pod_name()
+        log("pod name is %s"%pod_name)
+        try:
+            # Check if the pod is running in Kubernetes at all
+            out = self.cmd("kubectl get pod {pod_name}".format(pod_name=pod_name),
+                     ignore_errors=False)
+            log("It is starting or running or stopping... " + out)
+            # Rest of the status is canonical or easy to get locally.
+            s = {"state":"running", "local_hub/local_hub.port":6000,
+                 "local_hub/raw.port":6001}
+            secret_token_path = os.path.join(self.smc_path, 'secret_token')
+            if os.path.exists(secret_token_path):
+                s['secret_token'] = open(secret_token_path).read()
+            return s
+        except:
+            # Not running
+            return {"state":"opened"}
 
     def _exclude(self, prefix='', extras=[]):
         return [
