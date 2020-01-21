@@ -46,6 +46,8 @@ PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
 
 KUBERNETES_UID = 2001
 KUBERNETES_PROJECTS = "/projects/home"
+KUBERNETES_LOCAL_HUB_PORT = 6000
+KUBERNETES_RAW_PORT = 6001
 
 
 def quota_to_int(x):
@@ -804,6 +806,8 @@ spec:
             status['state'] = state
             if state == 'running' and "." in v[5]: # TODO: should do better...
                 status["ip"] = v[5]
+            status['local_hub.port'] = KUBERNETES_LOCAL_HUB_PORT
+            status['raw.port'] = KUBERNETES_RAW_PORT
         except Exception as err:
             log("pod not running?  kubernetes messed up? -- %s" % err)
             # Not running
