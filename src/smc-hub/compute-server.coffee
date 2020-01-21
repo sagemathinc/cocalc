@@ -1319,7 +1319,9 @@ main = () ->
 
     fs.exists CONF, (exists) ->
         if exists
-            fs.chmod(CONF, 0o700)     # just in case...
+            fs.chmod CONF, 0o700, (err) ->
+                if err
+                    winston.debug("WARNING: something went wrong fixing configuration directory permissions", err)
 
     daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
