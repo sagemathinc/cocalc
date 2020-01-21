@@ -133,13 +133,9 @@ export async function prettier(
   project_id: string,
   path: string,
   options: ParserOptions
-<<<<<<< HEAD
-): Promise<void> {
+  // undefined is only for old projects; can be removed when all projects have restarted...
+): Promise<CompressedPatch | undefined> {
   const resp = await callback2(webapp_client.prettier, {
-=======
-): Promise<CompressedPatch | undefined> {  // undefined is only for old projects; can be removed when all projects have restarted...
-  let resp = await callback2(webapp_client.prettier, {
->>>>>>> syncdoc_history
     project_id,
     path,
     options
