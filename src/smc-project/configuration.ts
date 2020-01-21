@@ -5,6 +5,7 @@
  */
 
 import * as which from "which";
+import * as process from "process";
 import { access as fs_access, constants as fs_constaints } from "fs";
 import { exec as child_process_exec } from "child_process";
 import { promisify } from "util";
@@ -19,10 +20,24 @@ import {
 } from "../smc-webapp/project_configuration";
 import { parser2tool, Tool as FormatTool } from "../smc-util/code-formatter";
 
+// we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
+// they can't be set as defaults for projects since this could break it from starting up
+function construct_path(): string {
+  const env = process.env;
+  // we can safely assume that PATH is defined
+  const entries = env.PATH!.split(":");
+  const home = env.HOME ?? "/home/user";
+  entries.unshift(`${home}/.local/bin`);
+  entries.unshift(`${home}/bin`);
+  return entries.join(":");
+}
+
+const PATH = construct_path();
+
 // test if the given utiltiy "name" exists (executable in the PATH)
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>(resolve => {
-    which(name, function(error, path) {
+    which(name, { path: PATH }, function(error, path) {
       resolve(error == null && path != null);
     });
   });
@@ -63,7 +78,9 @@ async function sage_info(): Promise<{
   if (exists) {
     // We need the version of sage (--version runs quickly)
     try {
-      const info = (await exec("sage --version")).stdout.trim();
+      const info = (
+        await exec(`env PATH="${PATH}" sage --version`)
+      ).stdout.trim();
       const m = info.match(/version ([\d+.]+[\d+])/);
       if (m != null) {
         const v = m[1];
