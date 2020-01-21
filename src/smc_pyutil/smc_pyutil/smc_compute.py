@@ -789,10 +789,33 @@ spec:
         secret_token_path = os.path.join(self.smc_path, 'secret_token')
         if os.path.exists(secret_token_path):
             status['secret_token'] = open(secret_token_path).read()
+        pod_name = self.kubernetes_pod_name()
+        log("pod name is %s" % pod_name)
+        try:
+            # Check if the pod is running in Kubernetes at all
+            out = self.cmd(
+                "kubectl get pod {pod_name} -o wide | tail -1".format(
+                    pod_name=pod_name),
+                ignore_errors=True)
+            if "NotFound" in out:
+                return {"state": 'opened'}
+            v = out.split()
+            state = self.kubernetes_output_to_state(v[2])
+            status['state'] = state
+            if state == 'running' and "." in v[5]: # TODO: should do better...
+                status["ip"] = v[5]
+        except Exception as err:
+            log("pod not running?  kubernetes messed up? -- %s" % err)
+            # Not running
+            status['state'] = 'opened'
+
+        return status
+
         # TODO: status for kucalc looks like this and filling this sort of thing in would result in
         # nice information in the frontend client UI:
         #  {"cpu": {"usage": 5379.858459433}, "time": 1579646626058, "memory": {"rss": 248464, "cache": 17660, "limit": 1536000}, "disk_MB": 89, "start_ts": 1578092846508, "oom_kills": 0, "processes": {"count": 7}, "secret_token": "fd541386e146f1ce62edbaffdcf35c899077f1ed70fdcc9c3cac06fd5b422011"}
-        return status
+        # Another note -- in kucalc state has the ip address, but here status has the ip address.  That's because compute-server
+        # has a strong constraint about the structure of state, but status is generic and just passed to the caller.
 
     def kubernetes_state(self):
         log = self._log("kubernetes_state")
@@ -809,14 +832,7 @@ spec:
                 "kubectl get pod {pod_name} -o wide | tail -1".format(
                     pod_name=pod_name),
                 ignore_errors=True)
-            if "NotFound" in out:
-                return {"state": 'opened'}
-            v = out.split()
-            state = self.kubernetes_output_to_state(v[2])
-            s = {"state": state}
-            if state == 'running' and "." in v[5]: # TODO: should do better...
-                s["ip"] = v[5]
-            return s
+            return {"state": self.kubernetes_output_to_state(out)}
         except Exception as err:
             log("pod not running?  kubernetes messed up? -- %s" % err)
             # Not running
@@ -829,6 +845,8 @@ spec:
             return 'stopping'
         if 'Pending' in out:
             return 'Pending'
+        if 'NotFound' in out:
+            return 'opened'
         return 'starting'
 
     def _exclude(self, prefix='', extras=[]):

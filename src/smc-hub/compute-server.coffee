@@ -511,7 +511,7 @@ class Project
                     cb()
             ], (err) =>
                 if err
-                    dbg("error getting status -- #{err}")
+                    dbg("error getting state -- #{err}")
                 else
                     if result.state != before
                         @_state = result.state
