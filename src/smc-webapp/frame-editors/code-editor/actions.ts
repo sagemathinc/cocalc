@@ -63,6 +63,8 @@ import {
   format_parser_for_extension
 } from "smc-util/code-formatter";
 
+import { apply_patch } from "smc-util/sync/editor/generic/util";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -1927,7 +1929,18 @@ export class Actions<
 
     this.set_status("Running code formatter...");
     try {
-      await prettier(this.project_id, this.path, options);
+      const patch = await prettier(this.project_id, this.path, options);
+      if (patch != null) {
+        // Apply the patch.
+        // NOTE: old backends that haven't restarted just return {status:'ok'}
+        // and directly make the change.  Delete this comment in a month or so.
+        // See https://github.com/sagemathinc/cocalc/issues/4335
+        this.set_syncstring_to_codemirror();
+        const new_val = apply_patch(patch, this._syncstring.to_str())[0];
+        this._syncstring.from_str(new_val);
+        this._syncstring.commit();
+        this.set_codemirror_to_syncstring();
+      }
       this.set_error("");
     } catch (err) {
       this.set_error(`Error formatting code: \n${err}`, "monospace");
