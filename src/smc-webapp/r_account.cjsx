@@ -186,8 +186,6 @@ EmailAddressSetting = rclass
             return
         @setState
             state : 'saving'
-        if @props.is_anonymous
-            log("email_sign_up", {source: "anonymous_account"});
         webapp_client.change_email
             new_email_address : @state.email_address
             password          : @state.password
@@ -199,6 +197,8 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error -- #{err}"
                 else
+                    if @props.is_anonymous
+                        log("email_sign_up", {source: "anonymous_account"});
                     @setState
                         state    : 'view'
                         error    : ''
