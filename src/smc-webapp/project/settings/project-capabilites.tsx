@@ -1,10 +1,11 @@
 import * as React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
-import { rclass, rtypes } from "../../app-framework";
+import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
 import * as misc from "smc-util/misc2";
+import { Button } from "antd";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
 const { COLORS } = require("smc-util/theme");
@@ -43,7 +44,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       ]);
     }
 
-    render_features(avail) {
+    private render_features(avail): [Rendered, boolean] {
       const feature_map = [
         ["spellcheck", "Spellchecking"],
         ["rmd", "RMarkdown"],
@@ -61,12 +62,22 @@ export const ProjectCapabilities = rclass<ReactProps>(
         any_nonavail = !available;
         const color = available ? COLORS.BS_GREEN_D : COLORS.BS_RED;
         const icon = available ? "check-square" : "minus-square";
+        let extra = "";
+        if (key == "sage") {
+          const main = this.props.configuration.get("main");
+          const sage_version = main.capabilities?.sage_version;
+          if (sage_version != null) {
+            extra = `(version ${sage_version.join(".")})`;
+          }
+        }
         features.push(
           <React.Fragment key={key}>
             <dt>
               <Icon name={icon} style={{ color }} />
             </dt>
-            <dd>{display}</dd>
+            <dd>
+              {display} {extra}
+            </dd>
           </React.Fragment>
         );
       }
@@ -81,7 +92,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    render_formatter(formatter) {
+    private render_formatter(formatter): [Rendered, boolean] | Rendered {
       if (formatter === false) {
         return <div>No code formatters are available</div>;
       }
@@ -129,7 +140,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    render_noavail_info() {
+    private render_noavail_info(): Rendered {
       return (
         <>
           <hr />
@@ -143,7 +154,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       );
     }
 
-    render_available() {
+    private render_available(): Rendered {
       const avail = this.props.available_features;
       if (avail == undefined) {
         return (
@@ -169,7 +180,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       );
     }
 
-    render_debug_info(conf) {
+    private render_debug_info(conf): Rendered {
       if (conf != null && DEBUG) {
         return (
           <pre style={{ fontSize: "9px", color: "black" }}>
@@ -177,6 +188,20 @@ export const ProjectCapabilities = rclass<ReactProps>(
           </pre>
         );
       }
+    }
+
+    private reload(): void {
+      const project_id = this.props.project.get("project_id");
+      const pa = redux.getProjectActions(project_id);
+      pa.reload_configuration();
+    }
+
+    private render_reload(): Rendered {
+      return (
+        <Button onClick={() => this.reload()} icon={"reload"}>
+          Refresh
+        </Button>
+      );
     }
 
     render() {
@@ -189,6 +214,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
         >
           {this.render_debug_info(conf)}
           {this.render_available()}
+          {this.render_reload()}
         </SettingBox>
       );
     }

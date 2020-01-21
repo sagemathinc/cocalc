@@ -183,7 +183,7 @@ class ThreeJS(object):
                 'sprite_alignment': str(sprite_alignment)
             })
 
-    def animate(self, fps=None, stop=None, mouseover=True):
+    def animate(self, fps=None, stop=None, mouseover=True, loop=True):
         self._call('animate(obj)',
                    obj={
                        'fps': noneint(fps),

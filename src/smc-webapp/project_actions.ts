@@ -2045,8 +2045,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == null) return;
 
     store.on("started", () => {
-      this.clear_configuration();
-      this.init_configuration("main");
+      this.reload_configuration();
     });
 
     store.on("stopped", () => {
@@ -2060,6 +2059,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       configuration: undefined,
       available_features: undefined
     });
+  }
+
+  reload_configuration(): void {
+    this.clear_configuration();
+    this.init_configuration("main");
   }
 
   // retrieve project configuration (capabilities, etc.) from the back-end

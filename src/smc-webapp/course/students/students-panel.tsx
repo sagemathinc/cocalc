@@ -75,7 +75,6 @@ import {
   IsGradingMap,
   NBgraderRunInfo
 } from "../store";
-import { literal } from "../../app-framework/literal";
 import { redux } from "../../frame-editors/generic/test/util";
 import { CourseActions } from "../actions";
 import { Set } from "immutable";
@@ -247,7 +246,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       existing_students.email = {};
       // For each student in course add account_id and/or email_address:
       this.props.students.map(val => {
-        for (const n of literal(["account_id", "email_address"])) {
+        for (const n of ["account_id", "email_address"] as const) {
           if (val.get(n) != null) {
             already_added[val.get(n)] = true;
           }

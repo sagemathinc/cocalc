@@ -14,6 +14,7 @@ export interface SiteSettings {
   help_email: Config;
   commercial: Config;
   kucalc: Config;
+  ssh_gateway: Config;
   version_min_project: Config;
   version_min_browser: Config;
   version_recommended_browser: Config;
@@ -56,11 +57,16 @@ export const site_settings_conf: SiteSettings = {
     default: "no"
   },
   kucalc: {
-    name: "KuCalc UI ('yes' or 'no')",
+    name: "KuCalc UI",
     desc:
-      "Whether to show UI elements adapted to what the KuCalc backend provides",
+      "Configure which UI elements to show in order to match the Kubernetes backend. 'yes' or 'cocalc.com' for production, 'cloudcalc' for on-prem k8s, or 'no'",
     default: "no"
   }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+  ssh_gateway: {
+    name: "SSH Gateway",
+    desc: "'yes' if an ssh gateway exists to show UI elements; or 'no'",
+    default: "no"
+  },
   version_min_project: {
     name: "Required project version",
     desc:

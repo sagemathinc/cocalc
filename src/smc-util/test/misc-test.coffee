@@ -1373,6 +1373,14 @@ describe 'top_sort', ->
         expect () => misc.top_sort(DAG3)
         .toThrow("No sources were detected")
 
+    DAG4 =
+        node1 : ["node0"]
+        node2 : ["node0", "node1"]
+
+    it 'Works with implict sources', ->
+        expect misc.top_sort(DAG4)
+        .toEqual [ 'node0', 'node1', 'node2' ]
+
 describe 'create_dependency_graph', ->
     store_def =
         first_name : => "Joe"
