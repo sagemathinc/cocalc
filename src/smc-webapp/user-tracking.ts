@@ -20,7 +20,7 @@ export function log(eventName: string, payload: any) {
           account_id: redux.getStore("account")?.get("account_id"),
           analytics_cookie: get_cookie(analytics),
           cocalc_version: version,
-          payload
+          ...payload
         },
         time: Date.now()
       }
