@@ -1012,7 +1012,7 @@ exports.commands =
         graph_2dplot:
             insert : "show(graphs.PetersenGraph())"
         graph_3dplot:
-            insert : "show(graphs.PetersenGraph().plot3d(), frame=False)"
+            insert : "show(graphs.PetersenGraph().plot3d())"
         factor:
             insert : "factor(2015)"
         primes:

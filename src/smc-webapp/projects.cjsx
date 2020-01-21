@@ -72,11 +72,11 @@ _create_project_tokens = {}
 # Define projects actions
 class ProjectsActions extends Actions
     # **THIS IS AN ASYNC FUNCTION!**
-    projects_table_set: (obj) =>
+    projects_table_set: (obj, merge='deep') =>
         the_table = @redux.getTable('projects')
         if not the_table?  # silently fail???
             return
-        await the_table.set(obj)
+        await the_table.set(obj, merge)
 
     # Set whether the "add collaborators" component is displayed
     # for the given project in the project listing.
@@ -553,6 +553,43 @@ class ProjectsActions extends Actions
         await @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     # **THIS IS AN ASYNC FUNCTION!**
+    # Use a site license key to upgrade a project.  This only has an
+    # impact when the project is restarted.
+    add_site_license_to_project: (project_id, license_id) =>
+        if not misc.is_valid_uuid_string(license_id)
+            throw Error("invalid license key '#{license_id}' -- it must be a 36-character valid v4 uuid")
+        project = store.getIn(['project_map', project_id])
+        if not project?
+            return
+        site_license = project.get('site_license', immutable.Map()).toJS()
+        if site_license[license_id]?
+            return
+        site_license[license_id] = {}
+        await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
+
+    # Removes a given (or all) site licenses from a project. If license_id is not
+    # set then removes all of them.
+    remove_site_license_from_project: (project_id, license_id='') =>
+        project = store.getIn(['project_map', project_id])
+        if not project?
+            return
+        site_license = project.get('site_license', immutable.Map()).toJS()
+        if not license_id and misc.len(site_license) == 0
+            # common special case that is easy
+            return
+        # The null stuff here is confusing, but that's just because our SyncTable functionality
+        # makes deleting things tricky.
+        if license_id
+            if not site_license[license_id]?
+                return
+            site_license[license_id] = null
+        else
+            for x of site_license
+                site_license[x] = null
+        await @projects_table_set({project_id:project_id, site_license:site_license}, "shallow")
+
+
+    # **THIS IS AN ASYNC FUNCTION!**
     save_project: (project_id) =>
         await @projects_table_set
             project_id     : project_id
@@ -563,6 +600,10 @@ class ProjectsActions extends Actions
         await @projects_table_set
             project_id     : project_id
             action_request : {action:'start', time:webapp_client.server_time()}
+        # Doing an exec further increases the chances project will be
+        # definitely running in all environments.
+        opts = { project_id:project_id, command: "pwd" }
+        await callback2(webapp_client.exec.bind(webapp_client), opts)
 
     # **THIS IS AN ASYNC FUNCTION!**
     stop_project: (project_id) =>
@@ -876,14 +917,37 @@ class ProjectsStore extends Store
             mintime += info?.getIn(['upgrades', 'mintime']) ? 0
         return new Date((last_edited - 0) + 1000*mintime)
 
-    # Get the total quotas for the given project, including free base values and all user upgrades
+    # Returns the TOTAL of the quotas contributed by all
+    # site licenses.  Does not return undefined, even if all
+    # contributions are 0.
+    get_total_site_license_upgrades_to_project: (project_id) =>
+        site_license = @getIn(['project_map', project_id, 'site_license'])?.toJS()
+        upgrades = Object.assign({}, ZERO_QUOTAS)
+        if site_license?
+            for license_id, info of site_license
+                for prop, val of info ? {}
+                    upgrades[prop] = (upgrades[prop] ? 0) + parseInt(val)
+        return upgrades
+
+    # Return string array of the site licenses that are applied to this project.
+    get_site_license_ids: (project_id) =>
+        site_license = store.getIn(['project_map', project_id, 'site_license'])
+        if not site_license?
+            return []
+        return misc.keys(site_license.toJS())
+
+
+
+    # Get the total quotas for the given project, including free base
+    # values, site_license contribution and all user upgrades.
     get_total_project_quotas: (project_id) =>
         base_values = @getIn(['project_map', project_id, 'settings'])?.toJS()
         if not base_values?
             return
         misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
-        return misc.map_sum(base_values, upgrades)
+        site_license = @get_total_site_license_upgrades_to_project(project_id)
+        return misc.map_sum(misc.map_sum(base_values, upgrades), site_license)
 
     # we allow URLs in projects, which have member hosting or internet access
     # this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators
@@ -1003,7 +1067,10 @@ load_recent_projects = =>
     redux.createTable('projects', ProjectsTable)
     await once(redux.getTable('projects')._table, "connected")
     if redux.getTable('projects')._table.get().size == 0
-        await load_all_projects()
+        # WARNING: that the following is done is assumed in
+        # render_new_project_creator below! See
+        # https://github.com/sagemathinc/cocalc/issues/4306
+        await redux.getActions('projects').load_all_projects()
 
 
 if not COCALC_MINIMAL
@@ -1595,6 +1662,22 @@ exports.ProjectsPage = ProjectsPage = rclass
         @actions('projects').setState(selected_hashtags:{})
         @refs.search.clear_and_focus_search_input()
 
+    render_new_project_creator: ->
+        n = @project_list().length
+        if n == 0 and not @props.load_all_projects_done
+            # In this case we always trigger a full load,
+            # so better wait for it to finish before
+            # rendering the new project creator... since
+            # it shows the creation dialog depending entirely
+            # on n when it is *first* rendered.
+            return
+        <NewProjectCreator
+            start_in_edit_mode={n==0}
+            default_value={if @props.search then @props.search else 'Untitled'}
+            images = {@props.images}
+        />
+
+
     render: ->
         if not @props.project_map?
             if redux.getStore('account')?.get_user_type() == 'public'
@@ -1640,11 +1723,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                             <UpgradeStatus />
                         </div>
                     </VisibleMDLG>
-                    <NewProjectCreator
-                        start_in_edit_mode = {@project_list().length == 0}
-                        default_value={if @props.search then @props.search else 'Untitled'}
-                        images = {@props.images}
-                    />
+                    {@render_new_project_creator()}
                 </Col>
             </Row>
             <Row>
@@ -1715,7 +1794,7 @@ LoadAllProjects = rclass
         </div>
 
 
-exports.ProjectTitle = ProjectTitle = rclass
+ProjectTitle = rclass
     displayName: 'Projects-ProjectTitle'
 
     reduxProps:
@@ -1745,3 +1824,21 @@ exports.ProjectTitle = ProjectTitle = rclass
             <a onClick={@handle_click} style={@props.style} role='button'>{html_to_text(title)}</a>
         else
             <span style={@props.style}>(Private project)</span>
+
+exports.ProjectTitle = rclass
+    propTypes:
+        project_id   : rtypes.string.isRequired
+        handle_click : rtypes.func
+        style        : rtypes.object
+    render: ->
+        # wrapped this way because of this hard to debug issue:
+        #   https://github.com/sagemathinc/cocalc/issues/4310
+        <Redux redux={redux}>
+            <ProjectTitle
+                project_id={@props.project_id}
+                handle_click={@props.handle_click}
+                style={@props.style}
+                />
+        </Redux>
+
+

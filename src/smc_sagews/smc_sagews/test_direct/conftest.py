@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+
 def pytest_addoption(parser):
     """specify comma-delimited list of kernel names to limit test"""
     parser.addoption("--kname", action="store", help="kernel name")

@@ -35,7 +35,7 @@ import * as immutable from "immutable";
 import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
-import { Provider, connect } from "react-redux";
+import { Provider, connect, useSelector } from "react-redux";
 import * as json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
@@ -331,9 +331,30 @@ export class AppRedux {
     return this.hasStore(project_redux_name(project_id));
   }
 
+  /**
+   * A React Hook to connect a function component to a project store.
+   * Opposed to `getProjectStore`, the project store will not initialize
+   * if it's not defined already.
+   *
+   * @param selectFrom selector to run on the store.
+   *    The result will be compared to the previous result to determine
+   *    if the component should rerender
+   * @param project_id id of the project to connect to
+   */
+  useProjectStore<T>(
+    selectFrom: (store?: ProjectStore) => T,
+    project_id?: string
+  ): T {
+    return useSelector<any, T>(_ => {
+      let projectStore = undefined;
+      if (project_id) {
+        projectStore = this.getStore(project_redux_name(project_id)) as any;
+      }
+      return selectFrom(projectStore);
+    });
+  }
+
   // getProject... is safe to call any time. All structures will be created if they don't exist
-  // TODO -- Typing: Type project Store
-  // <T, C extends Store<T>>
   getProjectStore = (project_id: string): ProjectStore => {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();

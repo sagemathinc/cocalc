@@ -72,9 +72,9 @@ import {
   AssignmentsMap,
   SortDescription,
   StudentRecord,
-  IsGradingMap
+  IsGradingMap,
+  NBgraderRunInfo
 } from "../store";
-import { literal } from "../../app-framework/literal";
 import { redux } from "../../frame-editors/generic/test/util";
 import { CourseActions } from "../actions";
 import { Set } from "immutable";
@@ -100,6 +100,7 @@ interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
   active_student_sort?: SortDescription;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentsPanelState {
@@ -151,7 +152,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         [name]: {
           expanded_students: rtypes.immutable.Set,
           active_student_sort: rtypes.immutable.Map,
-          active_feedback_edits: rtypes.immutable.Map
+          active_feedback_edits: rtypes.immutable.Map,
+          nbgrader_run_info: rtypes.immutable.Map
         }
       };
     };
@@ -179,7 +181,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           "name",
           "project_id",
           "assignments",
-          "active_feedback_edits"
+          "active_feedback_edits",
+          "nbgrader_run_info"
         ])
       );
     }
@@ -243,7 +246,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       existing_students.email = {};
       // For each student in course add account_id and/or email_address:
       this.props.students.map(val => {
-        for (const n of literal(["account_id", "email_address"])) {
+        for (const n of ["account_id", "email_address"] as const) {
           if (val.get(n) != null) {
             already_added[val.get(n)] = true;
           }
@@ -789,6 +792,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           student_name={name}
           display_account_name={true}
           active_feedback_edits={this.props.active_feedback_edits}
+          nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
     }
@@ -929,6 +933,7 @@ interface StudentProps {
   student_name: StudentNameDescription;
   display_account_name?: boolean;
   active_feedback_edits: IsGradingMap;
+  nbgrader_run_info?: NBgraderRunInfo;
 }
 
 interface StudentState {
@@ -984,7 +989,8 @@ class Student extends Component<StudentProps, StudentState> {
         "assignments",
         "background",
         "is_expanded",
-        "active_feedback_edits"
+        "active_feedback_edits",
+        "nbgrader_run_info"
       ]) ||
       (this.props.student_name != null
         ? this.props.student_name.full
@@ -1386,10 +1392,15 @@ class Student extends Component<StudentProps, StudentState> {
           assignment={assignment}
           grade={grade}
           comments={comments}
+          nbgrader_scores={store.get_nbgrader_scores(
+            assignment.get("assignment_id"),
+            this.props.student.get("student_id")
+          )}
           info={info}
           is_editing={!!edited_feedback}
           edited_comments={edited_comments}
           edited_grade={edited_grade}
+          nbgrader_run_info={this.props.nbgrader_run_info}
         />
       );
     }
@@ -1486,7 +1497,7 @@ class Student extends Component<StudentProps, StudentState> {
     // it'll be the antd modal popup anyways...
     // See https://github.com/sagemathinc/cocalc/issues/4286
     return (
-      <div style={{whiteSpace:'normal'}}>
+      <div style={{ whiteSpace: "normal" }}>
         <Row>
           <Col md={16}>{this.render_project_access()}</Col>
           <Col md={8}>{this.render_delete_button()}</Col>

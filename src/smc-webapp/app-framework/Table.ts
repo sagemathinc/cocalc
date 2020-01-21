@@ -14,7 +14,7 @@ export abstract class Table {
   }
 
   abstract query(): void;
-  
+
   protected abstract _change(table: any, keys: string[]): void;
 
   protected no_changefeed(): boolean {
@@ -52,7 +52,7 @@ export abstract class Table {
 
   async set(
     changes: object,
-    merge?: "deep" | "shallow" | "none",
+    merge?: "deep" | "shallow" | "none",  // The actual default is "deep" (see smc-util/sync/table/synctable.ts)
     cb?: (error?: string) => void
   ): Promise<void> {
     if (cb == null) {

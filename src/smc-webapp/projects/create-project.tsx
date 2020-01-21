@@ -11,6 +11,8 @@ import {
   custom_image_name
 } from "../custom-software/init";
 
+import { delay } from "awaiting";
+
 import { CustomSoftware } from "../custom-software/selector";
 
 const {
@@ -75,9 +77,19 @@ export class NewProjectCreator extends Component<Props, State> {
 
   componentDidMount() {
     this.is_mounted = true;
+    this.select_text();
   }
+
   componentWillUnmount() {
     this.is_mounted = false;
+  }
+
+  private async select_text(): Promise<void> {
+    // wait for next render loop so the title actually is in the DOM...
+    await delay(1);
+    const text = ReactDOM.findDOMNode(this.refs.new_project_title);
+    if (text == null) return;
+    text.select();
   }
 
   start_editing() {
@@ -85,6 +97,7 @@ export class NewProjectCreator extends Component<Props, State> {
       state: "edit",
       title_text: this.props.default_value ? this.props.default_value : ""
     });
+    this.select_text();
   }
 
   cancel_editing = () => {

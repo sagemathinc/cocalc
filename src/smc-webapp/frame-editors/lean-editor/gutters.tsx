@@ -68,8 +68,9 @@ function message_component(
       placement={"right"}
       stable={true}
       popover_style={{
-        marginLeft: "10px",
+        padding: 0,
         border: `2px solid ${color}`,
+        borderRadius: "3px",
         width: "700px",
         maxWidth: "80%"
       }}

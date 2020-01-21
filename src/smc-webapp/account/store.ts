@@ -3,8 +3,7 @@ import { AccountState } from "./types";
 import { get_total_upgrades } from "smc-util/upgrades";
 import * as misc from "smc-util/misc2";
 import * as lodash from "lodash";
-import { Map } from "immutable";
-import { literal } from "../app-framework/literal";
+import { Map, List } from "immutable";
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -29,6 +28,7 @@ export class AccountStore extends Store<AccountState> {
       "is_paying_member",
       "get_page_size"
     ]);
+    this.setup_selectors();
   }
 
   get_user_type(): string {
@@ -39,23 +39,29 @@ export class AccountStore extends Store<AccountState> {
     return this.get("account_id");
   }
 
-  selectors: any = {
+  selectors = {
     is_anonymous: {
       fn: () => {
         return is_anonymous(
           this.get("is_logged_in"),
           this.get("email_address"),
-          this.get("passports")
+          this.get("passports"),
+          this.get("lti_id")
         );
       },
-      dependencies: literal(["email_address", "passports", "is_logged_in"])
+      dependencies: [
+        "email_address",
+        "passports",
+        "is_logged_in",
+        "lti_id"
+      ] as const
     },
     is_admin: {
       fn: () => {
         const groups = this.get("groups");
         return !!groups && groups.includes("admin");
       },
-      dependencies: literal(["groups"])
+      dependencies: ["groups"] as const
     }
   };
 
@@ -135,7 +141,8 @@ export class AccountStore extends Store<AccountState> {
 function is_anonymous(
   is_logged_in: boolean,
   email_address: string | undefined | null,
-  passports: Map<string, any> | undefined | null
+  passports: Map<string, any> | undefined | null,
+  lti_id: List<string> | undefined | null
 ): boolean {
   if (!is_logged_in) {
     return false;
@@ -144,6 +151,9 @@ function is_anonymous(
     return false;
   }
   if (passports != null && passports.size > 0) {
+    return false;
+  }
+  if (lti_id != null && lti_id.size > 0) {
     return false;
   }
   return true;

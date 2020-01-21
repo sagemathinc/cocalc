@@ -18,6 +18,18 @@
 //
 //##############################################################################
 
+/*
+BUG:
+
+ - this code is buggy since the SearchInput component below is NOT controlled,
+   but some of the code assumes it is, which makes no sense.
+   E.g., there is a clear_search prop that is passed in, which is
+   nonsense, because the state of the search is local to the
+   SearchInput. That's why the calls to clear
+   the search in all the code below are all broken.
+
+*/
+
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 
@@ -26,11 +38,16 @@ import { is_different } from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
 
 // React libraries
-import { React, ReactDOM, Component } from "../../app-framework";
-import { Icon, SearchInput, SkinnyError } from "../../r_misc";
-import { Button, ButtonGroup, FormControl, FormGroup } from "../../antd-bootstrap";
+import { React, ReactDOM, Component, Rendered } from "../../app-framework";
+import { Icon, SearchInput, Space } from "../../r_misc";
+import {
+  Button,
+  ButtonGroup,
+  FormControl,
+  FormGroup
+} from "../../antd-bootstrap";
 
-import { Row, Col } from "antd";
+import { Card, Row, Col } from "antd";
 
 import { callback2 } from "smc-util/async-utils";
 
@@ -53,12 +70,14 @@ interface MultipleAddSearchState {
 }
 
 // Multiple result selector
-// use on_change and search to control the search bar
+// use on_change and search to control the search bar.
 // Coupled with Assignments Panel and Handouts Panel
 class MultipleAddSearch extends Component<
   MultipleAddSearchProps,
   MultipleAddSearchState
 > {
+  private search?: string;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -212,6 +231,32 @@ class MultipleAddSearch extends Component<
     );
   }
 
+  private render_create_new_assignment(): Rendered {
+    if (!this.search) return;
+    const target = this.search.trim();
+    if (!target) return;
+    return (
+      <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
+        Create new folder and assignment named '{target}'?
+        <br />
+        <br />
+        <Button onClick={() => this.clear_and_focus_search_input()}>
+          Cancel
+        </Button>
+        <Space />
+        <Button
+          bsStyle="default"
+          onClick={() => {
+            this.props.add_selected([target]);
+            this.props.clear_search();
+          }}
+        >
+          Yes, create it
+        </Button>
+      </Card>
+    );
+  }
+
   render() {
     return (
       <div>
@@ -220,19 +265,17 @@ class MultipleAddSearch extends Component<
           ref="search_input"
           default_value=""
           placeholder={`Add ${this.props.item_name} by folder name (enter to see available folders)...`}
-          on_submit={this.props.do_search}
+          on_submit={search => {
+            this.props.do_search(search);
+            this.search = search;
+          }}
           on_clear={this.clear_and_focus_search_input}
           buttonAfter={this.search_button()}
           style={SEARCH_STYLE}
         />
-        {this.props.none_found ? (
-          <SkinnyError
-            error_text="No matching folders were found"
-            on_close={this.clear_and_focus_search_input}
-          />
-        ) : (
-          undefined
-        )}
+        {this.props.none_found
+          ? this.render_create_new_assignment()
+          : undefined}
         {this.state.show_selector ? this.render_add_selector() : undefined}
       </div>
     );
@@ -240,41 +283,54 @@ class MultipleAddSearch extends Component<
 }
 
 // Filter directories based on contents of all_items
-const filter_results = function(directories, search, all_items) {
-  if (directories.length > 0) {
-    // Omit any -collect directory (unless explicitly searched for).
-    // Omit any currently assigned directory
-    const paths_to_omit: string[] = [];
-
-    const active_items = all_items.filter(val => !val.get("deleted"));
-    active_items.map(val => {
-      const path = val.get("path");
-      if (path) {
-        // path might not be set in case something went wrong (this has been hit in production)
-        return paths_to_omit.push(path);
-      }
-    });
-
-    const should_omit = path => {
-      if (path.indexOf("-collect") !== -1 && search.indexOf("collect") === -1) {
-        // omit assignment collection folders unless explicitly searched (could cause confusion...)
-        return true;
-      }
-      return paths_to_omit.includes(path);
-    };
-
-    directories = directories.filter(x => !should_omit(x));
-    directories.sort();
+function filter_results(
+  directories: string[],
+  search: string,
+  all_items: immutable.Map<string, any>
+): string[] {
+  if (directories.length == 0) {
+    return directories;
   }
+
+  // Omit any -collect directory (unless explicitly searched for).
+  // Omit any currently assigned directory or subdirectories of them.
+  const paths_to_omit: string[] = [];
+
+  const active_items = all_items.filter(val => !val.get("deleted"));
+  active_items.map(val => {
+    const path = val.get("path");
+    if (path) {
+      // path might not be set in case something went wrong (this has been hit in production)
+      return paths_to_omit.push(path);
+    }
+  });
+
+  function should_omit(path: string): boolean {
+    if (path.indexOf("-collect") !== -1 && search.indexOf("collect") === -1) {
+      // omit assignment collection folders unless explicitly searched (could cause confusion...)
+      return true;
+    }
+    if (paths_to_omit.includes(path)) {
+      return true;
+    }
+    // finally check if path is contained in any ommited path.
+    for (const omit of paths_to_omit) {
+      if (path.startsWith(omit + "/")) return true;
+    }
+    return false;
+  }
+
+  directories = directories.filter(x => !should_omit(x));
+  directories.sort();
   return directories;
-};
+}
 
 interface FoldersToolbarProps {
   search?: string;
   search_change: (search_value: string) => void; // search_change(current_search_value)
   num_omitted?: number;
   project_id?: string;
-  items: object;
+  items: immutable.Map<string, any>;
   add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
   plural_item_name: string;

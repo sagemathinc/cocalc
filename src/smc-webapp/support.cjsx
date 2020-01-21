@@ -391,32 +391,26 @@ SupportInfo = rclass
             <h2 style={marginTop:'-5px'}>Frequent questions</h2>
             <ul>
                 <li>
-                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b>Looking for documentation and help?</b></a>
+                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b><SiteName/> Documentation and help</b></a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription problems</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">Sage worksheet or Jupyter notebook is slow or will not run?</a>
+                   Jupyter notebook or SageMath worksheet  <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">slow</a> or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">crashing</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about SageMath</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about how to use Sage?</a>
-                </li>
-                <li>
-                    <b>Requesting that we install software?</b> Fill out the form below...
-                </li>
-                <li>
-                    <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
-                </li>
-                <li>
-                    <b>Just trying to sign out?</b>  Click on Account on the top right, then click
+                    <b>Trying to sign out:</b>  Click on Account on the top right, then click
                     "Sign out..." in Preferences.
+                </li>
+                <li>
+                    <b>Hit a bug, just need to talk with us, or request that we install software:</b> Fill out the form below...
                 </li>
             </ul>
 
@@ -526,16 +520,22 @@ SupportForm = rclass
                     type        = 'text'
                     tabIndex    = {2}
                     label       = 'Message'
-                    placeholder = "Summarize the problem ..."
+                    placeholder = "Very short summary..."
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
             <FormGroup>
+                <b>
+                1. What did you do exactly?
+                2. What happened?
+                3. How did this differ from what you expected?
+                </b>
+                <br/>
                 <FormControl
                     componentClass = "textarea"
                     ref         = 'body'
                     tabIndex    = {3}
-                    placeholder = 'Describe the problem ...'
+                    placeholder = 'Describe in detail...'
                     rows        = {6}
                     value       = {@props.body}
                     onChange    = {@data_change} />
@@ -553,7 +553,7 @@ exports.Support = rclass
         show        : false
         email       : ''
         subject     : ''
-        body        : '1. What did you do exactly?\n\n2. What happened?\n\n3. How did this differ from what you expected?'
+        body        : ''
         state       : STATE.NEW
         url         : ''
         err         : ''
@@ -612,7 +612,7 @@ exports.Support = rclass
             err       = {@props.err} />
 
     render_body: (show_form) ->
-        <div>
+        <div style={color:'#333'}>
             {@render_info()}
             {@render_form(show_form)}
         </div>

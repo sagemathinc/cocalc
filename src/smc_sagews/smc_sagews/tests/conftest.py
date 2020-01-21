@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import pytest
 import os
 import re
@@ -7,6 +8,7 @@ import signal
 import struct
 import hashlib
 import time
+import six
 from datetime import datetime
 
 # timeout for socket to sage_server in seconds
@@ -21,10 +23,13 @@ default_timeout = 20
 
 def unicode8(s):
     try:
-        return unicode(s, 'utf8')
+        if six.PY3:
+            return str(s, 'utf8')
+        else:
+            return str(s).encode('utf-8')
     except:
         try:
-            return unicode(s)
+            return str(s)
         except:
             return s
 
@@ -58,17 +63,18 @@ def uuidsha1(data):
 
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(
-            conn, ConnectionJSON
-        )  # avoid common mistake -- conn is supposed to be from socket.socket...
+        # avoid common mistake -- conn is supposed to be from socket.socket...
+        assert not isinstance(conn, ConnectionJSON)
         self._conn = conn
 
     def close(self):
         self._conn.close()
 
     def _send(self, s):
+        if six.PY3 and type(s) == str:
+            s = s.encode('utf8')
         length_header = struct.pack(">L", len(s))
-        self._conn.send(length_header + s.encode())
+        self._conn.send(length_header + s)
 
     def send_json(self, m):
         m = json.dumps(m)
@@ -78,7 +84,14 @@ class ConnectionJSON(object):
 
     def send_blob(self, blob):
         s = uuidsha1(blob)
-        self._send('b' + s + blob)
+
+        if six.PY3 and type(blob) == bytes:
+            # we convert all to bytes first, to avoid unnecessary conversions
+            self._send(('b' + s).encode('utf8') + blob)
+        else:
+            # old sage py2 code
+            self._send('b' + s + blob)
+
         return s
 
     def send_file(self, filename):
@@ -89,9 +102,8 @@ class ConnectionJSON(object):
         return self.send_blob(data)
 
     def _recv(self, n):
-        for i in range(
-                20
-        ):  # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        for i in range(20):
             try:
                 r = self._conn.recv(n)
                 return r
@@ -107,7 +119,7 @@ class ConnectionJSON(object):
     def recv(self):
         n = self._recv(4)
         if len(n) < 4:
-            print("expecting 4 byte header, got", n)
+            print(("expecting 4 byte header, got", n))
             tries = 0
             while tries < 5:
                 tries += 1
@@ -126,10 +138,13 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
 
+        if six.PY3 and type(s) == bytes:
+            s = s.decode('utf8')
+
         mtyp = s[0]
         if mtyp == 'j':
             try:
-                return 'json', json.loads(s[1:].decode())
+                return 'json', json.loads(s[1:])
             except Exception as msg:
                 log("Unable to parse JSON '%s'" % s[1:])
                 raise
@@ -153,7 +168,7 @@ def truncate_text(s, max_size):
 class Message(object):
     def _new(self, event, props={}):
         m = {'event': event}
-        for key, val in props.items():
+        for key, val in list(props.items()):
             if key != 'self':
                 m[key] = val
         return m
@@ -206,15 +221,18 @@ class Message(object):
         did_truncate = False
         import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
-            code['source'], did_truncate, tmsg = t(
-                code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
+            code['source'], did_truncate, tmsg = t(code['source'],
+                                                   sage_server.MAX_CODE_SIZE,
+                                                   'MAX_CODE_SIZE')
             m['code'] = code
         if stderr is not None and len(stderr) > 0:
-            m['stderr'], did_truncate, tmsg = t(
-                stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
+            m['stderr'], did_truncate, tmsg = t(stderr,
+                                                sage_server.MAX_STDERR_SIZE,
+                                                'MAX_STDERR_SIZE')
         if stdout is not None and len(stdout) > 0:
-            m['stdout'], did_truncate, tmsg = t(
-                stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
+            m['stdout'], did_truncate, tmsg = t(stdout,
+                                                sage_server.MAX_STDOUT_SIZE,
+                                                'MAX_STDOUT_SIZE')
         if html is not None and len(html) > 0:
             m['html'], did_truncate, tmsg = t(html, sage_server.MAX_HTML_SIZE,
                                               'MAX_HTML_SIZE')
@@ -222,8 +240,9 @@ class Message(object):
             m['md'], did_truncate, tmsg = t(md, sage_server.MAX_MD_SIZE,
                                             'MAX_MD_SIZE')
         if tex is not None and len(tex) > 0:
-            tex['tex'], did_truncate, tmsg = t(
-                tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
+            tex['tex'], did_truncate, tmsg = t(tex['tex'],
+                                               sage_server.MAX_TEX_SIZE,
+                                               'MAX_TEX_SIZE')
             m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
@@ -317,7 +336,7 @@ def get_sage_server_info(log_file=default_log_file):
         pytest.fail(
             "Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"
             % log_file)
-    print("got host %s  port %s" % (host, port))
+    print(("got host %s  port %s" % (host, port)))
     return host, int(port)
 
 
@@ -452,7 +471,6 @@ def execdoc(request, sagews, test_id):
         def test_assg(execdoc):
             execdoc("random?")
     """
-
     def execfn(code, pattern='Docstring'):
         m = message.execute_code(code=code, id=test_id)
         sagews.send_json(m)
@@ -518,7 +536,6 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-
     def execfn(code,
                output=None,
                pattern=None,
@@ -529,7 +546,7 @@ def exec2(request, sagews, test_id):
         m['preparse'] = True
 
         if timeout is not None:
-            print('overriding socket timeout to {}'.format(timeout))
+            print(('overriding socket timeout to {}'.format(timeout)))
             sagews.set_timeout(timeout)
 
         # send block of code to be executed
@@ -589,7 +606,6 @@ def execbuf(request, sagews, test_id):
     Test fails if non-`stdout` message is received before
     match or receive times out.
     """
-
     def execfn(code, output=None, pattern=None):
         m = message.execute_code(code=code, id=test_id)
         m['preparse'] = True
@@ -665,7 +681,7 @@ def execblob(request, sagews, test_id):
                 assert want_blob
                 want_blob = False
                 # when a blob is sent, the first 36 bytes are the sha1 uuid
-                print("blob len %s" % len(mesg))
+                print(("blob len %s" % len(mesg)))
                 file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == uuidsha1(mesg[SHA_LEN:])
 
@@ -696,7 +712,6 @@ def execblob(request, sagews, test_id):
                             "missing one of file types {} in response from sage_server".format(file_type)
                     else:
                         assert 0
-
 
         # final response is json "done" message
         typ, mesg = sagews.recv()
@@ -732,7 +747,7 @@ def sagews(request):
     """
     # setup connection to sage_server TCP listener
     host, port = get_sage_server_info()
-    print("host %s  port %s" % (host, port))
+    print(("host %s  port %s" % (host, port)))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     sock.settimeout(default_timeout)
@@ -753,7 +768,7 @@ def sagews(request):
     typ, mesg = conn.recv()
     assert typ == 'json'
     pid = mesg['pid']
-    print("sage_server PID = %s" % pid)
+    print(("sage_server PID = %s" % pid))
 
     # teardown needed - terminate session nicely
     # use yield instead of request.addfinalizer in newer versions of pytest
@@ -769,7 +784,7 @@ def sagews(request):
                 break
             time.sleep(0.5)
         else:
-            print("sending sigterm to %s" % pid)
+            print(("sending sigterm to %s" % pid))
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError:

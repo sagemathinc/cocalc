@@ -23,6 +23,7 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
+import { KUCALC_COCALC_COM } from "../../customize";
 
 const { webapp_client } = require("../../webapp_client");
 const { Col, Row } = require("react-bootstrap");
@@ -114,9 +115,14 @@ export const Body = rclass<ReactProps>(
       const all_upgrades_to_this_project = this.props.get_upgrades_to_project(
         id
       );
-      const allow_urls = redux
-        .getStore("projects")
-        .allow_urls_in_emails(this.props.project_id);
+      const store = redux.getStore("projects");
+      const site_license_upgrades = store.get_total_site_license_upgrades_to_project(
+        this.props.project_id
+      );
+      const site_license_ids: string[] = store.get_site_license_ids(
+        this.props.project_id
+      );
+      const allow_urls = store.allow_urls_in_emails(this.props.project_id);
 
       const { commercial } = require("../../customize");
 
@@ -184,6 +190,8 @@ export const Body = rclass<ReactProps>(
                 all_projects_have_been_loaded={
                   this.props.all_projects_have_been_loaded
                 }
+                site_license_upgrades={site_license_upgrades}
+                site_license_ids={site_license_ids}
               />
 
               <HideDeleteBox
@@ -191,7 +199,7 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 actions={redux.getActions("projects")}
               />
-              {this.props.kucalc === "yes" ? (
+              {this.props.kucalc === KUCALC_COCALC_COM ? (
                 <SSHPanel
                   key="ssh-keys"
                   project={this.props.project}
@@ -224,7 +232,6 @@ export const Body = rclass<ReactProps>(
               <ProjectControl
                 key="control"
                 project={this.props.project}
-                allow_ssh={this.props.kucalc !== "yes"}
               />
               <SagewsControl key="worksheet" project={this.props.project} />
               {have_jupyter_notebook ? (

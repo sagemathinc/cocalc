@@ -136,20 +136,20 @@ exports.Task = rclass
 
         <Grid style={style} onClick={@on_click} fluid={true}>
             <Row>
-                <Col md={1}>
+                <Col sm={1}>
                     {@render_drag_handle()}
                     {@render_min_toggle(min_toggle)}
                 </Col>
-                <Col md={8}>
+                <Col sm={8}>
                     {@render_desc()}
                 </Col>
-                <Col md={1}>
+                <Col sm={1}>
                     {@render_due_date()}
                 </Col>
-                <Col md={1}>
+                <Col sm={1}>
                     {@render_last_edited()}
                 </Col>
-                <Col md={1}>
+                <Col sm={1}>
                     {@render_done_checkbox()}
                 </Col>
             </Row>
