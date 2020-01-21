@@ -7,6 +7,12 @@ import { copy, deep_copy, keys } from "smc-util/misc2";
 
 import { site_settings_conf } from "smc-util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
+const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
+
+const FIELD_DEFAULTS = {
+  default_quotas: ON_PREM_DEFAULT_QUOTAS,
+  max_quotas: MAX_UPGRADES
+} as const;
 
 import { isEqual } from "lodash";
 
@@ -22,10 +28,9 @@ interface SiteSettingsState {
 }
 
 export class SiteSettings extends Component<{}, SiteSettingsState> {
-
   constructor(props, state) {
     super(props, state);
-    this.on_default_quota_change = this.on_default_quota_change.bind(this);
+    this.on_json_entry_change = this.on_json_entry_change.bind(this);
     this.state = { state: "view" };
   }
 
@@ -143,7 +148,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
-  private on_default_quota_change(name) {
+  private on_json_entry_change(name) {
     const e = copy(this.state.edited);
     try {
       const new_val = ReactDOM.findDOMNode(this.refs[name]).value;
@@ -158,9 +163,10 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   // this is specific to on-premises kubernetes setups
   // the production site works differently
   // TODO make this a more sophisticated data editor
-  private render_default_quota(name, data) {
+  private render_json_entry(name, data) {
     const jval = JSON.parse(data ?? "{}") ?? {};
-    const quotas = Object.assign({}, ON_PREM_DEFAULT_QUOTAS, jval);
+    const dflt = FIELD_DEFAULTS[name];
+    const quotas = Object.assign({}, dflt, jval);
     const value = JSON.stringify(quotas);
     return (
       <FormGroup>
@@ -168,7 +174,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
           ref={name}
           type="text"
           value={value}
-          onChange={() => this.on_default_quota_change(name)}
+          onChange={() => this.on_json_entry_change(name)}
         />
         (the entry above must be JSON)
       </FormGroup>
@@ -177,8 +183,9 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
   private render_row_entry(name: string, value: string) {
     switch (name) {
-      case "default_quota":
-        return this.render_default_quota(name, value);
+      case "default_quotas":
+      case "max_quotas":
+        return this.render_json_entry(name, value);
       default:
         return (
           <FormGroup>
@@ -211,8 +218,11 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       </Tip>
     );
 
-    // do not show default quota unless it is for on-premp k8s setups
-    if (name == "default_quota" && this.state.edited.kucalc != "cloudcalc") {
+    // do not show quota fields unless it is for on-premp k8s setups
+    if (
+      (name == "default_quotas" || name == "max_quotas") &&
+      this.state.edited.kucalc != "cloudcalc"
+    ) {
       return undefined;
     } else {
       return (

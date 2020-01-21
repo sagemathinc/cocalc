@@ -85,6 +85,25 @@ interface Settings {
   cpu_shares?: string;
 }
 
+// base quota + calculated default quotas is the quota object each project gets by default
+// any additional quotas are added on top of it, up until the given limits
+const BASE_QUOTAS: Partial<Quota> = {
+  network: false,
+  member_host: false,
+  memory_request: 0, // will hold guaranteed RAM in MB
+  cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
+  privileged: false // for elevated docker privileges (FUSE mounting, later more)
+} as const;
+
+function calc_default_quotas(): Partial<Quota> {
+  return {
+    disk_quota: DEFAULT_QUOTAS.disk_quota,
+    memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
+    cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
+    idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
+  };
+}
+
 exports.quota = function(
   settings_arg?: Settings,
   users_arg?: Users,
@@ -101,63 +120,57 @@ exports.quota = function(
   );
 
   // new quota object, we modify it in-place below and return it.
-  const quota: Quota = {
-    network: false,
-    member_host: false,
-    disk_quota: DEFAULT_QUOTAS.disk_quota,
-    memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
-    memory_request: 0, // will hold guaranteed RAM in MB
-    cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
-    cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
-    privileged: false, // for elevated docker privileges (FUSE mounting, later more)
-    idle_timeout: DEFAULT_QUOTAS.mintime
-  };
+  const quota: Quota = Object.assign({}, BASE_QUOTAS, calc_default_quotas());
 
   // network access
-  if (settings.network) {
-    // free admin-set
-    quota.network = true;
-  } else {
-    // paid by some user
-    for (const userid in users) {
-      const val = users[userid];
-      if (val != null && val.upgrades && val.upgrades.network) {
-        quota.network = true;
-        break;
-      }
-    }
-    // or some site license
-    if (!quota.network && site_license != null) {
-      for (const license_id in site_license) {
-        const val = site_license[license_id];
-        if (val != null && val.network) {
+  if (!quota.network) {
+    if (settings.network) {
+      // free admin-set
+      quota.network = true;
+    } else {
+      // paid by some user
+      for (const userid in users) {
+        const val = users[userid];
+        if (val != null && val.upgrades && val.upgrades.network) {
           quota.network = true;
           break;
+        }
+      }
+      // or some site license
+      if (!quota.network && site_license != null) {
+        for (const license_id in site_license) {
+          const val = site_license[license_id];
+          if (val != null && val.network) {
+            quota.network = true;
+            break;
+          }
         }
       }
     }
   }
 
   // member hosting, which translates to "not pre-emptible"
-  if (settings.member_host) {
-    // free admin-set
-    quota.member_host = true;
-  } else {
-    // paid by some user
-    for (const userid in users) {
-      const val = users[userid];
-      if (val != null && val.upgrades && val.upgrades.member_host) {
-        quota.member_host = true;
-        break;
-      }
-    }
-    // or some site license
-    if (!quota.member_host && site_license != null) {
-      for (const license_id in site_license) {
-        const val = site_license[license_id];
-        if (val != null && val.member_host) {
+  if (!quota.member_host) {
+    if (settings.member_host) {
+      // free admin-set
+      quota.member_host = true;
+    } else {
+      // paid by some user
+      for (const userid in users) {
+        const val = users[userid];
+        if (val != null && val.upgrades && val.upgrades.member_host) {
           quota.member_host = true;
           break;
+        }
+      }
+      // or some site license
+      if (!quota.member_host && site_license != null) {
+        for (const license_id in site_license) {
+          const val = site_license[license_id];
+          if (val != null && val.member_host) {
+            quota.member_host = true;
+            break;
+          }
         }
       }
     }
