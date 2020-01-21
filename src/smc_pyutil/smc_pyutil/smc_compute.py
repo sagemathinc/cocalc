@@ -656,6 +656,8 @@ spec:
         return 0  # no longer supported
 
     def status(self, timeout=60, base_url=''):
+        if self._kubernetes:
+            return self.kubernetes_status()
         log = self._log("status")
         s = {}
 
@@ -724,6 +726,7 @@ spec:
                 s['state'] = 'broken'
         return s
 
+    # State is just like status but *ONLY* includes the state field in the object.
     def state(self, timeout=60, base_url=''):
         if self._kubernetes:
             return self.kubernetes_state()
@@ -780,8 +783,8 @@ spec:
                 s['state'] = 'broken'
         return s
 
-    def kubernetes_state(self):
-        log = self._log("kubernetes_state")
+    def kubernetes_status(self):
+        log = self._log("kubernetes_status")
 
         if not os.path.exists(self.project_path):
             log("create project path")
@@ -801,7 +804,7 @@ spec:
         log("Pod is starting or running or stopping... " + out)
         # Rest of the status is canonical or easy to get locally.
         s = {
-            "state": "running",
+            "state": self.kubernetes_output_to_state(out),
             "local_hub/local_hub.port": 6000,
             "local_hub/raw.port": 6001
         }
@@ -809,6 +812,35 @@ spec:
         if os.path.exists(secret_token_path):
             s['secret_token'] = open(secret_token_path).read()
         return s
+
+    def kubernetes_state(self):
+        log = self._log("kubernetes_state")
+
+        if not os.path.exists(self.project_path):
+            log("create project path")
+            self.create_project_path()
+
+        pod_name = self.kubernetes_pod_name()
+        log("pod name is %s" % pod_name)
+        try:
+            # Check if the pod is running in Kubernetes at all
+            out = self.cmd(
+                "kubectl get pod {pod_name}".format(pod_name=pod_name),
+                ignore_errors=False)
+            return {"state": self.kubernetes_output_to_state(out)}
+        except Exception as err:
+            log("pod not running -- %s" % err)
+            # Not running
+            return {"state": "opened"}
+
+    def kubernetes_output_to_state(self, out):
+        if 'Running' in out:
+            return 'running'
+        if 'Terminating' in out:
+            return 'stopping'
+        if 'Pending' in out:
+            return 'Pending'
+        return 'starting'
 
     def _exclude(self, prefix='', extras=[]):
         return [
