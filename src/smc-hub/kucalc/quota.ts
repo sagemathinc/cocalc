@@ -85,6 +85,15 @@ interface Settings {
   cpu_shares?: string;
 }
 
+/*
+ * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_overcomm":10,"mem_overcomm":25}
+ * max_quotas: Quota
+ */
+interface SiteSettingsQuotas {
+  default_quotas: { [key: string]: string | number };
+  max_quotas: { [key: string]: string | number };
+}
+
 // base quota + calculated default quotas is the quota object each project gets by default
 // any additional quotas are added on top of it, up until the given limits
 const BASE_QUOTAS: Partial<Quota> = {
@@ -95,19 +104,37 @@ const BASE_QUOTAS: Partial<Quota> = {
   privileged: false // for elevated docker privileges (FUSE mounting, later more)
 } as const;
 
-function calc_default_quotas(): Partial<Quota> {
-  return {
+function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
+  const extras = {
     disk_quota: DEFAULT_QUOTAS.disk_quota,
     memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
     cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
     idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
   };
+
+  // overwrite/set extras for any set default quota in the site setting
+  const dq = site_settings?.default_quotas;
+  if (dq != null) {
+    if (dq.internet != null) extras.network = dq.internet;
+    if (dq.mintime != null) extras.mintime = dq.mintime;
+    if (dq.mem != null) extras.memory_limit = dq.mem;
+    if (dq.mem_overcomm != null)
+      // % value
+      extras.memory_request = (dq.mem_overcomm * dq.mem) / 100;
+    if (dq.cpu != null) extras.cpu_limit = dq.cpu;
+    if (dq.cpu_overcomm != null)
+      // % value
+      extras.cpu_request = (1024 * dq.cpu_overcomm * dq.cpu) / 100;
+  }
+
+  return Object.assign({}, BASE_QUOTAS, extras);
 }
 
 exports.quota = function(
   settings_arg?: Settings,
   users_arg?: Users,
-  site_license?: { [license_id: string]: Settings }
+  site_license?: { [license_id: string]: Settings },
+  site_settings?: SiteSettingsQuotas
 ) {
   // we want settings and users to be defined below and make sure the
   // arguments can't be modified
@@ -120,7 +147,13 @@ exports.quota = function(
   );
 
   // new quota object, we modify it in-place below and return it.
-  const quota: Quota = Object.assign({}, BASE_QUOTAS, calc_default_quotas());
+  const quota: Quota = calc_default_quotas(site_settings);
+
+  // site settings max quotas overwrite the hardcoded values
+  const max_upgrades =
+    site_settings?.max_quotas != null
+      ? site_settings?.max_quotas
+      : MAX_UPGRADES;
 
   // network access
   if (!quota.network) {
@@ -204,13 +237,13 @@ exports.quota = function(
       // settings "overwrite" the default quotas
       if (settings[upgrade]) {
         quota[name] = factor * parse_num(settings[upgrade]);
-        return Math.min(quota[name], factor * MAX_UPGRADES[upgrade]);
+        return Math.min(quota[name], factor * max_upgrades[upgrade]);
       } else {
         return quota[name];
       }
     })();
     // compute how much is left for contributed user upgrades
-    const remain = Math.max(0, factor * MAX_UPGRADES[upgrade] - base);
+    const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];
