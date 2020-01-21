@@ -108,6 +108,7 @@ exports.compute_server = compute_server = (opts) ->
         base_url : ''
         dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
         single   : false          # single -- for single-server use/development; everything runs on a single machine.
+        kubernetes : false        # kubernetes -- monolithic cocalc-kubernetes mode
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -120,6 +121,7 @@ class ComputeServerClient
             database : undefined
             dev      : false
             single   : false
+            kubernetes : false
             base_url : ''     # base url of webserver -- passed on to local_hub so it can start servers with correct base_url
             cb       : required
         dbg = @dbg("constructor")
@@ -129,6 +131,7 @@ class ComputeServerClient
         @_project_cache_cb = {}
         @_dev = opts.dev
         @_single = opts.single
+        @_kubernetes = opts.kubernetes
         async.series([
             (cb) =>
                 @_init_db(opts, cb)
@@ -194,7 +197,7 @@ class ComputeServerClient
             cb           : required
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
-        if @_single
+        if @_single or @_kubernetes
             dbg("single machine server -- just copy files directly")
             @_add_server_single(opts)
             return
@@ -901,6 +904,7 @@ class ProjectClient extends EventEmitter
         @compute_server = opts.compute_server
         @_dev           = @compute_server._dev
         @_single        = @compute_server._single
+        @_kubernetes        = @compute_server._kubernetes
 
         dbg = @dbg('constructor')
         dbg()
@@ -1105,7 +1109,7 @@ class ProjectClient extends EventEmitter
             return {state : @_state, time : @_state_time, error : @_state_error}
 
         if not @host
-            if @_dev or @_single
+            if @_dev or @_single or @_kubernetes
                 # in case of dev or single mode, open will properly setup the host.
                 the_state = undefined
                 async.series([
@@ -1255,7 +1259,7 @@ class ProjectClient extends EventEmitter
             return
         dbg = @dbg("open")
         dbg()
-        if @_dev or @_single
+        if @_dev or @_single and @_kubernetes   # kubernetes mode doesn't really use the host and leaves it to k8s to assign
             host = 'localhost'
             async.series([
                 (cb) =>
@@ -1315,7 +1319,7 @@ class ProjectClient extends EventEmitter
         )
 
 
-    # start local_hub daemon running (must be opened somewhere)
+    # start project local_hub daemon running (must be opened somewhere)
     start: (opts) =>
         opts = defaults opts,
             set_quotas : true   # if true, also sets all quotas
@@ -1365,10 +1369,10 @@ class ProjectClient extends EventEmitter
                     timeout : 30
                     cb      : cb
             (cb) =>
-                if opts.set_quotas
-                    # CRITICAL: the quotas **MUST** also be set after the project has started, since some of
+                if opts.set_quotas and not @_kubernetes
+                    # CRITICAL: for non-kubernetes the quotas **MUST** also be set after the project has started, since some of
                     # the quotas, e.g., disk space and network, can't be set until the Linux account
-                    # has been created.
+                    # has been created.   Kubernetes is of course the opposite...
                     dbg("setting all quotas")
                     @set_all_quotas(cb:cb)
                 else
@@ -2047,7 +2051,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             member_host : required
             cb          : required
-        if @_dev or @_single or not @host
+        if @_kubernetes or @_dev or @_single or not @host
             # dev environments -- only one host.   Or, not open on any host.
             opts.cb()
             return
