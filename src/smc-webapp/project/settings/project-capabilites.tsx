@@ -198,7 +198,11 @@ export const ProjectCapabilities = rclass<ReactProps>(
 
     private render_reload(): Rendered {
       return (
-        <Button onClick={() => this.reload()} icon={"reload"}>
+        <Button
+          onClick={() => this.reload()}
+          icon={"reload"}
+          disabled={this.props.configuration_loading}
+        >
           Refresh
         </Button>
       );
