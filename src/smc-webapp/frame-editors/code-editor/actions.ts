@@ -55,6 +55,8 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
+import { apply_patch } from "smc-util/sync/editor/generic/util";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -293,9 +295,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     this._syncstring.once("error", err => {
       this.set_error(
-        `Fatal error opening ${
-          this.path
-        } -- ${err}\nFix this, then try opening the file again.`
+        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
     });
 
@@ -530,7 +530,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
-    // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
+  // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
   _assert_is_leaf_id(id: string, caller: string) {
     if (!this._is_leaf_id(id)) {
       throw Error(`${caller} -- no leaf with id ${id}`);
@@ -1668,7 +1668,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     this.set_status("Running code formatter...");
     try {
-      await prettier(this.project_id, this.path, options);
+      const patch = await prettier(this.project_id, this.path, options);
+      if (patch != null) {
+        // Apply the patch.
+        // NOTE: old backends that haven't restarted just return {status:'ok'}
+        // and directly make the change.  Delete this comment in a month or so.
+        // See https://github.com/sagemathinc/cocalc/issues/4335
+        this.set_syncstring_to_codemirror();
+        const new_val = apply_patch(patch, this._syncstring.to_str())[0];
+        this._syncstring.from_str(new_val);
+        this._syncstring.commit();
+        this.set_codemirror_to_syncstring();
+      }
       this.set_error("");
     } catch (err) {
       this.set_error(`Error formatting code: \n${err}`, "monospace");

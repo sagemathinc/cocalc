@@ -32,6 +32,11 @@ export class API {
     return await this.call({ cmd: "capabilities" }, 15000);
   }
 
+  // Returns  { status: "ok", patch:... the patch} or
+  // { status: "error", phase: "format", error: err.message }.
+  // We return a patch rather than the entire file, since often
+  // the file is very large, but the formatting is tiny.  This is purely
+  // a data compression technique.
   async prettier(path: string, options: any): Promise<any> {
     return await this.call(
       { cmd: "prettier", path: path, options: options },

@@ -10,6 +10,7 @@ import { redux } from "../../app-framework";
 import { callback2 } from "smc-util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
+import { CompressedPatch } from "smc-util/sync/editor/generic/types";
 
 export function server_time(): Date {
   return webapp_client.server_time();
@@ -128,7 +129,7 @@ export async function prettier(
   project_id: string,
   path: string,
   options: ParserOptions
-): Promise<void> {
+): Promise<CompressedPatch | undefined> {  // undefined is only for old projects; can be removed when all projects have restarted...
   let resp = await callback2(webapp_client.prettier, {
     project_id,
     path,
@@ -138,15 +139,15 @@ export async function prettier(
     let loc = resp.error.loc;
     if (loc && loc.start) {
       throw Error(
-        `Syntax error prevented formatting code (possibly on line ${
-          loc.start.line
-        } column ${loc.start.column}) -- fix and run again.`
+        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
       );
     } else if (resp.error) {
       throw Error(resp.error);
     } else {
       throw Error("Syntax error prevented formatting code.");
     }
+  } else {
+    return resp.patch;
   }
 }
 
@@ -178,9 +179,9 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
-import { DataServer } from 'smc-util/sync/editor/generic/sync-doc';
+import { DataServer } from "smc-util/sync/editor/generic/sync-doc";
 
-import { SyncString } from 'smc-util/sync/editor/string/sync';
+import { SyncString } from "smc-util/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -216,7 +217,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from 'smc-util/sync/editor/db/sync';
+import { SyncDB } from "smc-util/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -291,4 +292,3 @@ import { API } from "smc-webapp/project/websocket/api";
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
 }
-
