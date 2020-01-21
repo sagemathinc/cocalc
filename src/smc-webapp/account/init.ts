@@ -4,6 +4,7 @@ const remember_me = webapp_client.remember_me_key();
 import { AccountActions } from "./actions";
 import { AccountStore } from "./store";
 import { AccountTable } from "./table";
+import { init_dark_mode } from "./dark-mode";
 
 export function init(redux) {
   // Register account store
@@ -22,6 +23,7 @@ export function init(redux) {
   const actions = redux.createActions("account", AccountActions);
 
   actions._init(store);
+  init_dark_mode(store);
 
   redux.createTable("account", AccountTable);
 

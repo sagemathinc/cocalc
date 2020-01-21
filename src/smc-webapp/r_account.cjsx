@@ -23,7 +23,7 @@
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
+{A, ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
 {SiteName, TermsOfService} = require('./customize')
 
@@ -954,7 +954,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_exec_warning         : 'warn that certain files are not directly executable'
     ask_jupyter_kernel        : 'ask which kernel to use for a new Jupyter Notebook'
     jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
-    disable_jupyter_windowing         : 'do NOT use windowing with Jupyter notebooks (windowing makes it possible to work with very large notebooks)'
+    disable_jupyter_windowing         : 'never use windowing with Jupyter notebooks (windowing is sometimes used to make very large notebooks render quickly, but can lead to trouble in edge cases)'
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
@@ -1442,10 +1442,22 @@ OtherSettings = rclass
             Allow mentioning others in chats (disable to work around a bug)
         </Checkbox>
 
+
+    render_dark_mode: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('dark_mode')}
+            ref      = 'allow_mentions'
+            onChange = {(e)=>@on_change('dark_mode', e.target.checked)}
+            style    = {color: 'rgba(229, 224, 216, 0.65)', backgroundColor: 'rgb(36, 37, 37)', marginLeft: '-5px', padding: '5px', borderRadius: '3px'}
+        >
+            Dark mode: reduce eye strain by showing a dark background (via <A href="https://darkreader.org/">Dark Reader</A>)
+        </Checkbox>
+
     render: ->
         if not @props.other_settings
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
+            {@render_dark_mode()}
             {@render_confirm()}
             {@render_first_steps()}
             {@render_announcement_high()}

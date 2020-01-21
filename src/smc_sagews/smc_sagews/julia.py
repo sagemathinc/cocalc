@@ -23,6 +23,10 @@ from __future__ import absolute_import
 
 import os, pexpect
 
+import six
+def is_string(s):
+    return isinstance(s, six.string_types)
+
 from uuid import uuid4
 
 
@@ -77,7 +81,7 @@ class Julia(Expect):
     def eval(self, code, **ignored):
         """
         """
-        if isinstance(code, str):
+        if is_string(code):
             code = code.encode('utf8')
 
         START = "\x1b[?2004l\x1b[0m"

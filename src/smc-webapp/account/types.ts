@@ -44,4 +44,5 @@ export interface AccountState {
   is_admin: boolean;
   is_ready: boolean; // user signed in and account settings have been loaded.
   doing_anonymous_setup?: boolean;
+  lti_id?: immutable.List<string>;
 }

@@ -403,7 +403,6 @@ export const ProjectNewForm = rclass<ReactProps>(
                 Select the type of file
               </div>
               <FileTypeSelector
-                name={this.props.name}
                 create_file={this.submit}
                 project_id={this.props.project_id}
               >
