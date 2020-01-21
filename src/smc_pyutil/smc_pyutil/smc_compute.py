@@ -788,22 +788,27 @@ spec:
             self.create_project_path()
 
         pod_name = self.kubernetes_pod_name()
-        log("pod name is %s"%pod_name)
+        log("pod name is %s" % pod_name)
         try:
             # Check if the pod is running in Kubernetes at all
-            out = self.cmd("kubectl get pod {pod_name}".format(pod_name=pod_name),
-                     ignore_errors=False)
-            log("It is starting or running or stopping... " + out)
-            # Rest of the status is canonical or easy to get locally.
-            s = {"state":"running", "local_hub/local_hub.port":6000,
-                 "local_hub/raw.port":6001}
-            secret_token_path = os.path.join(self.smc_path, 'secret_token')
-            if os.path.exists(secret_token_path):
-                s['secret_token'] = open(secret_token_path).read()
-            return s
-        except:
+            out = self.cmd(
+                "kubectl get pod {pod_name}".format(pod_name=pod_name),
+                ignore_errors=False)
+        except Exception as err:
+            log("pod not running -- %s" % err)
             # Not running
-            return {"state":"opened"}
+            return {"state": "opened"}
+        log("Pod is starting or running or stopping... " + out)
+        # Rest of the status is canonical or easy to get locally.
+        s = {
+            "state": "running",
+            "local_hub/local_hub.port": 6000,
+            "local_hub/raw.port": 6001
+        }
+        secret_token_path = os.path.join(self.smc_path, 'secret_token')
+        if os.path.exists(secret_token_path):
+            s['secret_token'] = open(secret_token_path).read()
+        return s
 
     def _exclude(self, prefix='', extras=[]):
         return [
