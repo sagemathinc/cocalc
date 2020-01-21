@@ -341,6 +341,9 @@ class Project(object):
             shutil.rmtree(self.smc_path, ignore_errors=True)
 
     def disk_quota(self, quota=0):  # quota in megabytes
+        if self._dev or self._kubernetes:
+            # TODO: For kubernetes this can be done via groups, hopefully.
+            return
         try:
             quota = quota_to_int(quota)
             # requires quotas to be setup as explained nicely at
@@ -609,7 +612,7 @@ spec:
 """.format(project_id=self.project_id,
            nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
            registry='localhost:30000/')
-        # TODO: for now pull image from localhost:30000/ as in kucalc; later
+        # for now pull image from localhost:30000/ as in kucalc; later
         # will have to make this an option.
         path = "/tmp/project-{project_id}".format(project_id=self.project_id)
         try:

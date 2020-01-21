@@ -719,6 +719,8 @@ handle_status_mesg = (mesg, socket, cb) ->
                     # http://stackoverflow.com/questions/11987495/linux-proc-loadavg
                     x = misc.split(data.toString())
                     # this is normalized based on number of procs
+                    # TODO: I just looked at the source code and
+                    # STATS.nproc is never updated, so this is silly.
                     status.load = (parseFloat(x[i])/STATS.nproc for i in [0..2])
                     v = x[3].split('/')
                     status.num_tasks   = parseInt(v[1])
@@ -942,9 +944,11 @@ start_tcp_server = (cb) ->
 
 # Initialize basic information about this node once and for all.
 # So far, not much -- just number of processors.
-STATS = {}
+STATS = {nproc:1}
 init_stats = (cb) =>
-    if DEV
+    if DEV or program.kubernetes
+        # not meaningful
+        cb()
         return
     misc_node.execute_code
         command : "nproc"
