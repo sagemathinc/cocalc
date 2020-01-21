@@ -806,10 +806,11 @@ spec:
         try:
             # Check if the pod is running in Kubernetes at all
             out = self.cmd(
-                "kubectl get pod {pod_name} -o wide | tail -1".format(pod_name=pod_name),
+                "kubectl get pod {pod_name} -o wide | tail -1".format(
+                    pod_name=pod_name),
                 ignore_errors=False)
             v = out.split()
-            return {"state": self.kubernetes_output_to_state(v[2]), ip:v[5]}
+            return {"state": self.kubernetes_output_to_state(v[2]), "ip": v[5]}
         except Exception as err:
             log("pod not running -- %s" % err)
             # Not running
