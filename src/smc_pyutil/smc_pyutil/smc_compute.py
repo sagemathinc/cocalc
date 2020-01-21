@@ -785,33 +785,14 @@ spec:
 
     def kubernetes_status(self):
         log = self._log("kubernetes_status")
-
-        if not os.path.exists(self.project_path):
-            log("create project path")
-            self.create_project_path()
-
-        pod_name = self.kubernetes_pod_name()
-        log("pod name is %s" % pod_name)
-        try:
-            # Check if the pod is running in Kubernetes at all
-            out = self.cmd(
-                "kubectl get pod {pod_name}".format(pod_name=pod_name),
-                ignore_errors=False)
-        except Exception as err:
-            log("pod not running -- %s" % err)
-            # Not running
-            return {"state": "opened"}
-        log("Pod is starting or running or stopping... " + out)
-        # Rest of the status is canonical or easy to get locally.
-        s = {
-            "state": self.kubernetes_output_to_state(out),
-            "local_hub/local_hub.port": 6000,
-            "local_hub/raw.port": 6001
-        }
+        status = {}
         secret_token_path = os.path.join(self.smc_path, 'secret_token')
         if os.path.exists(secret_token_path):
-            s['secret_token'] = open(secret_token_path).read()
-        return s
+            status['secret_token'] = open(secret_token_path).read()
+        # TODO: status for kucalc looks like this and filling this sort of thing in would result in
+        # nice information in the frontend client UI:
+        #  {"cpu": {"usage": 5379.858459433}, "time": 1579646626058, "memory": {"rss": 248464, "cache": 17660, "limit": 1536000}, "disk_MB": 89, "start_ts": 1578092846508, "oom_kills": 0, "processes": {"count": 7}, "secret_token": "fd541386e146f1ce62edbaffdcf35c899077f1ed70fdcc9c3cac06fd5b422011"}
+        return status
 
     def kubernetes_state(self):
         log = self._log("kubernetes_state")
@@ -825,9 +806,10 @@ spec:
         try:
             # Check if the pod is running in Kubernetes at all
             out = self.cmd(
-                "kubectl get pod {pod_name}".format(pod_name=pod_name),
+                "kubectl get pod {pod_name} -o wide | tail -1".format(pod_name=pod_name),
                 ignore_errors=False)
-            return {"state": self.kubernetes_output_to_state(out)}
+            v = out.split()
+            return {"state": self.kubernetes_output_to_state(v[2]), ip:v[5]}
         except Exception as err:
             log("pod not running -- %s" % err)
             # Not running
