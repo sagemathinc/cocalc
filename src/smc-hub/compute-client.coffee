@@ -1259,7 +1259,7 @@ class ProjectClient extends EventEmitter
             return
         dbg = @dbg("open")
         dbg()
-        if @_dev or @_single and @_kubernetes   # kubernetes mode doesn't really use the host and leaves it to k8s to assign
+        if @_dev or @_single or @_kubernetes   # kubernetes mode doesn't really use the host and leaves it to k8s to assign
             host = 'localhost'
             async.series([
                 (cb) =>
