@@ -10,7 +10,7 @@ import { redux } from "./app-framework";
 import { version } from "../smc-util/smc-version";
 const { get_cookie } = require("./misc_page");
 
-export function log(eventName: string, payload: any) {
+export function log(eventName: string, payload: any): void {
   query({
     query: {
       central_log: {

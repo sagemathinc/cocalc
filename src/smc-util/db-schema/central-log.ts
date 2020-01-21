@@ -33,7 +33,7 @@ export const central_log = create({
           value: null,
           time: null
         },
-        check_hook: (_db, query, _account_id, _project_id, cb) => {
+        check_hook: (_db, query, _account_id, _project_id, cb): void => {
           query.event = "webapp-" + query.event;
           cb();
         }
