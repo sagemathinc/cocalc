@@ -3,6 +3,30 @@
    completely change this if we want. */
 
 import { callback2 } from "smc-util/async-utils";
+import { query } from "./frame-editors/generic/client";
+import { uuid } from "../smc-util/misc2";
+import { analytics_cookie_name as analytics } from "../smc-util/misc";
+import { redux } from "./app-framework";
+import { version } from "../smc-util/smc-version";
+const { get_cookie } = require("./misc_page");
+
+export function log(eventName: string, payload: any) {
+  query({
+    query: {
+      central_log: {
+        id: uuid(),
+        event: eventName,
+        value: {
+          account_id: redux.getStore("account")?.get("account_id"),
+          analytics_cookie: get_cookie(analytics),
+          cocalc_version: version,
+          payload
+        },
+        time: Date.now()
+      }
+    }
+  });
+}
 
 // This function should never raise an exception -- instead it
 // shows a warning in the console.

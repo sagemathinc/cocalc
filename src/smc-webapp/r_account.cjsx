@@ -37,6 +37,9 @@
 
 {SignOut} =require('./account/sign-out')
 
+{log} = require("./user-tracking")
+
+
 md5 = require('md5')
 
 misc       = require('smc-util/misc')
@@ -183,6 +186,8 @@ EmailAddressSetting = rclass
             return
         @setState
             state : 'saving'
+        if @props.is_anonymous
+            log("email_sign_up", {source: "anonymous_account"});
         webapp_client.change_email
             new_email_address : @state.email_address
             password          : @state.password
@@ -482,7 +487,7 @@ AccountSettings = rclass
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
-                    onClick={=>@setState(add_strategy_link:undefined)}>
+                    onClick={=>@setState(add_strategy_link:undefined); log("add_passport", {passport: name})}>
                     <Icon name="external-link" /> Link My {name} Account
                 </Button>
                 <Button onClick={=>@setState(add_strategy_link:undefined)} >
@@ -541,7 +546,7 @@ AccountSettings = rclass
         if strategy != 'email'
             <Button
                 disabled={@props.is_anonymous and not @state.terms_checkbox}
-                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
+                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined}); log("toggle_open_passport", {passport: strategy, is_terms_checked: @state.terms_checkbox})}
                 key     = {strategy}
                 bsStyle = {if strategy in strategies then 'info' else 'default'}>
                 <Icon name={strategy} /> {misc.capitalize(strategy)}...
@@ -666,7 +671,7 @@ AccountSettings = rclass
             style.border = '2px solid red'
         <FormGroup style={ style }>
             <Checkbox
-              onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
+              onChange={(e) => this.setState({ terms_checkbox: e.target.checked }); log("agree_to_terms_anonymous_account")}
             >
                  <TermsOfService />
             </Checkbox>
