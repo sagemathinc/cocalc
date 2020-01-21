@@ -808,11 +808,17 @@ spec:
             out = self.cmd(
                 "kubectl get pod {pod_name} -o wide | tail -1".format(
                     pod_name=pod_name),
-                ignore_errors=False)
+                ignore_errors=True)
+            if "NotFound" in out:
+                return {"state": 'opened'}
             v = out.split()
-            return {"state": self.kubernetes_output_to_state(v[2]), "ip": v[5]}
+            state = self.kubernetes_output_to_state(v[2])
+            s = {"state": state}
+            if state == 'running' and "." in v[5]: # TODO: should do better...
+                s["ip"] = v[5]
+            return s
         except Exception as err:
-            log("pod not running -- %s" % err)
+            log("pod not running?  kubernetes messed up? -- %s" % err)
             # Not running
             return {"state": "opened"}
 
