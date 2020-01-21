@@ -1048,6 +1048,10 @@ init_firewall = (cb) ->
         dbg("running in single machine mode; not creating firewall")
         cb()
         return
+    if program.kubernetes
+        dbg("running as part of a Kubernetes cluster, so not compute server does not have to program the firewall")
+        cb()
+        return
     hostname = require("os").hostname()
     if not misc.startswith(hostname, 'compute')
         dbg("not starting firewall since hostname does not start with 'compute'")
