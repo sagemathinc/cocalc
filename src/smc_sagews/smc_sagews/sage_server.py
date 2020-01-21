@@ -29,18 +29,25 @@ For debugging, this may help:
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
 import six
 import os, sys, time, operator
 import __future__ as future
 from functools import reduce
 
 
+def is_string(s):
+    return isinstance(s, six.string_types)
+
+
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
     try:
-        return str(s, 'utf8')
+        if six.PY2:
+            return str(s).encode('utf-8')
+        else:
+            return str(s, 'utf-8')
     except:
         try:
             return str(s)
@@ -130,7 +137,13 @@ def reload_attached_files_if_mod_smc():
 # were to try to use this server outside of cloud.sagemath.com.
 _info_path = os.path.join(os.environ['SMC'], 'info.json')
 if os.path.exists(_info_path):
-    INFO = json.loads(open(_info_path).read())
+    try:
+        INFO = json.loads(open(_info_path).read())
+    except:
+        # This will fail, e.g., if info.json is invalid (maybe a blank file).
+        # We definitely don't want sage server startup to be completely broken
+        # in this case, so we fall back to "no info".
+        INFO = {}
 else:
     INFO = {}
 if 'base_url' not in INFO:
@@ -492,7 +505,10 @@ class BufferedOutputStream(object):
         try:
             self._f(self._buf, done=done)
         except UnicodeDecodeError:
-            self._f(str(self._buf, errors='replace'), done=done)
+            if six.PY2:  # str doesn't have errors option in python2!
+                self._f(unicode(self._buf, errors='replace'), done=done)
+            else:
+                self._f(str(self._buf, errors='replace'), done=done)
         self._buf = ''
 
     def isatty(self):
@@ -1273,7 +1289,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         code blocks that are set to any non-default code_decorator.
         """
         import sage  # used below as a code decorator
-        if isinstance(code_decorators, str):
+        if is_string(code_decorators):
             code_decorators = [code_decorators]
 
         if preparse:
@@ -1298,8 +1314,8 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         for code_decorator in reversed(code_decorators):
             # eval is for backward compatibility
             if hasattr(code_decorator, 'eval'):
-                print((code_decorator.eval(code, locals=self.namespace)),
-                      end=' ')
+                print(code_decorator.eval(
+                    code, locals=self.namespace))  # removed , end=' '
                 code = ''
             elif code_decorator is sage:
                 # special case -- the sage module (i.e., %sage) should do nothing.
@@ -1309,7 +1325,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
             if code is None:
                 code = ''
 
-        if code != '' and isinstance(code, str):
+        if code != '' and is_string(code):
             self.execute(code,
                          preparse=preparse,
                          namespace=namespace,
@@ -1358,8 +1374,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         self._flush_stdio()
-        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj, **
-                                                                       kwds)
+        tex = obj if is_string(obj) else self.namespace['latex'](obj, **kwds)
         self._send_output(tex={
             'tex': tex,
             'display': display
@@ -1388,7 +1403,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - output -- string or object
 
         """
-        stdout = output if isinstance(output, str) else unicode8(output)
+        stdout = output if is_string(output) else unicode8(output)
         self._send_output(stdout=stdout, done=done, id=self._id, once=once)
         return self
 
@@ -1402,7 +1417,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - output -- string or object
 
         """
-        stderr = output if isinstance(output, str) else unicode8(output)
+        stderr = output if is_string(output) else unicode8(output)
         self._send_output(stderr=stderr, done=done, id=self._id, once=once)
         return self
 
@@ -1418,7 +1433,7 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         Send a code message, which is to be rendered as code by the client, with
         appropriate syntax highlighting, maybe a link to open the source file, etc.
         """
-        source = source if isinstance(source, str) else unicode8(source)
+        source = source if is_string(source) else unicode8(source)
         code = {
             'source': source,
             'filename': filename,

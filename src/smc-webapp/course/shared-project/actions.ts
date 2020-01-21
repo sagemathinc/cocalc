@@ -144,6 +144,10 @@ export class SharedProjectActions {
         // ensure no license set
         await actions.remove_site_license_from_project(shared_project_id);
       }
+    } catch (err) {
+      this.actions.set_error(
+        `Error configuring shared project - ${err}`
+      );
     } finally {
       this.actions.set_activity({ id });
     }

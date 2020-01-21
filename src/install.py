@@ -3,6 +3,10 @@ from __future__ import print_function
 import argparse, os, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
+# This install script is not the place to do type checking -- that should happen
+# only during development.
+os.environ['TS_TRANSPILE_ONLY'] = 'true'
+
 WORKERS = 3
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
