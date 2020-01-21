@@ -38,6 +38,7 @@ STATES = require('smc-util/schema').COMPUTE_STATES
 
 net         = require('net')
 fs          = require('fs')
+os          = require('os')
 
 async       = require('async')
 winston     = require('winston')
@@ -68,13 +69,13 @@ TIMEOUT = 60*60
 
 if process.env.SMC_STORAGE?
     STORAGE = process.env.SMC_STORAGE
-else if misc.startswith(require('os').hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
+else if misc.startswith(os.hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
     STORAGE = 'storage0-us'
 else
     STORAGE = ''
     # TEMPORARY:
 
-
+USERNAME = os.userInfo().username
 
 #################################################################
 #
@@ -97,8 +98,12 @@ smc_compute = (opts) =>
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
-        command = "sudo"
-        v = ["/usr/local/bin/smc-compute"]
+        if USERNAME != 'root'
+            command = "sudo"
+            v = ["/usr/local/bin/smc-compute"]
+        else
+            command = '/usr/local/bin/smc-compute'
+            v = []
     if program.single
         v.push("--single")
     if program.kubernetes
@@ -1034,9 +1039,17 @@ firewall = (opts) ->
     if opts.command == 'outgoing' and NO_OUTGOING_FIREWALL
         opts.cb()
         return
+    firewall_cmd = "#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py"
+    if USERNAME != 'root'
+        command = 'sudo'
+        args = [firewall_cmd, opts.command].concat(opts.args)
+    else
+        command = firewall_cmd
+        args = [opts.command].concact(opts.args)
+
     misc_node.execute_code
-        command : 'sudo'
-        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py", opts.command].concat(opts.args)
+        command : command
+        args    : args
         bash    : false
         timeout : 30
         path    : process.cwd()
