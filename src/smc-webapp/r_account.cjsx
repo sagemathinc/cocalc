@@ -52,6 +52,9 @@ smc_version = require('smc-util/smc-version')
 
 {APIKeySetting} = require('./api-key')
 
+log_strategy = (is_anonymous, name) ->
+    if is_anonymous
+        log("add_passport", {passport: name, source: "anonymous_account"})
 
 # Define a component for working with the user's basic
 # account information.
@@ -487,7 +490,7 @@ AccountSettings = rclass
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
-                    onClick={=>@setState(add_strategy_link:undefined); log("add_passport", {passport: name})}>
+                    onClick={=>@setState(add_strategy_link:undefined); log_strategy(@props.is_anonymous, name)}>
                     <Icon name="external-link" /> Link My {name} Account
                 </Button>
                 <Button onClick={=>@setState(add_strategy_link:undefined)} >
@@ -546,7 +549,7 @@ AccountSettings = rclass
         if strategy != 'email'
             <Button
                 disabled={@props.is_anonymous and not @state.terms_checkbox}
-                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined}); log("toggle_open_passport", {passport: strategy, is_terms_checked: @state.terms_checkbox})}
+                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
                 key     = {strategy}
                 bsStyle = {if strategy in strategies then 'info' else 'default'}>
                 <Icon name={strategy} /> {misc.capitalize(strategy)}...
@@ -671,7 +674,7 @@ AccountSettings = rclass
             style.border = '2px solid red'
         <FormGroup style={ style }>
             <Checkbox
-              onChange={(e) => this.setState({ terms_checkbox: e.target.checked }); log("agree_to_terms_anonymous_account")}
+              onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
             >
                  <TermsOfService />
             </Checkbox>
