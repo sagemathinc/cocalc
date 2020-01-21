@@ -6,6 +6,7 @@ import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";
 
 import { site_settings_conf } from "smc-util/schema";
+import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
 
 import { isEqual } from "lodash";
 
@@ -21,8 +22,10 @@ interface SiteSettingsState {
 }
 
 export class SiteSettings extends Component<{}, SiteSettingsState> {
+
   constructor(props, state) {
     super(props, state);
+    this.on_default_quota_change = this.on_default_quota_change.bind(this);
     this.state = { state: "view" };
   }
 
@@ -140,7 +143,64 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
-  render_row(name: string, value: string): Rendered {
+  private on_default_quota_change(name) {
+    const e = copy(this.state.edited);
+    try {
+      const new_val = ReactDOM.findDOMNode(this.refs[name]).value;
+      JSON.parse(new_val); // does it throw?
+      e[name] = new_val;
+      this.setState({ edited: e });
+    } catch (err) {
+      console.log("default quota error:", err.message);
+    }
+  }
+
+  // this is specific to on-premises kubernetes setups
+  // the production site works differently
+  // TODO make this a more sophisticated data editor
+  private render_default_quota(name, data) {
+    const jval = JSON.parse(data ?? "{}") ?? {};
+    const quotas = Object.assign({}, ON_PREM_DEFAULT_QUOTAS, jval);
+    const value = JSON.stringify(quotas);
+    return (
+      <FormGroup>
+        <FormControl
+          ref={name}
+          type="text"
+          value={value}
+          onChange={() => this.on_default_quota_change(name)}
+        />
+        (the entry above must be JSON)
+      </FormGroup>
+    );
+  }
+
+  private render_row_entry(name: string, value: string) {
+    switch (name) {
+      case "default_quota":
+        return this.render_default_quota(name, value);
+      default:
+        return (
+          <FormGroup>
+            <FormControl
+              ref={name}
+              type="text"
+              value={value}
+              onChange={() => {
+                const e = copy(this.state.edited);
+                e[name] = ReactDOM.findDOMNode(this.refs[name]).value;
+                return this.setState({ edited: e });
+              }}
+            />
+            {name === "version_recommended_browser"
+              ? this.render_version_hint(value)
+              : undefined}
+          </FormGroup>
+        );
+    }
+  }
+
+  render_row(name: string, value: string): Rendered | undefined {
     if (value == null) {
       value = site_settings_conf[name].default;
     }
@@ -150,25 +210,17 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         {conf.name}
       </Tip>
     );
-    return (
-      <LabeledRow label={label} key={name}>
-        <FormGroup>
-          <FormControl
-            ref={name}
-            type="text"
-            value={value}
-            onChange={() => {
-              const e = copy(this.state.edited);
-              e[name] = ReactDOM.findDOMNode(this.refs[name]).value;
-              return this.setState({ edited: e });
-            }}
-          />
-          {name === "version_recommended_browser"
-            ? this.render_version_hint(value)
-            : undefined}
-        </FormGroup>
-      </LabeledRow>
-    );
+
+    // do not show default quota unless it is for on-premp k8s setups
+    if (name == "default_quota" && this.state.edited.kucalc != "cloudcalc") {
+      return undefined;
+    } else {
+      return (
+        <LabeledRow label={label} key={name}>
+          {this.render_row_entry(name, value)}
+        </LabeledRow>
+      );
+    }
   }
 
   render_editor(): Rendered[] {

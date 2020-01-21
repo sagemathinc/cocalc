@@ -19,6 +19,7 @@ export interface SiteSettings {
   version_min_browser: Config;
   version_recommended_browser: Config;
   iframe_comm_hosts: Config;
+  default_quota: Config;
 }
 
 export const site_settings_conf: SiteSettings = {
@@ -89,5 +90,11 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
     default: ""
+  },
+  default_quota: {
+    name: "Default Quota",
+    desc:
+      "A JSON-formatted default quota for projects. This is for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
+    default: "{}"
   }
 };
