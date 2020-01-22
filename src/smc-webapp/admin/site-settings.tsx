@@ -8,6 +8,7 @@ import { copy, deep_copy, keys } from "smc-util/misc2";
 import { site_settings_conf } from "smc-util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
 const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
+import { KUCALC_ON_PREMISES } from "smc-util/db-schema/site-defaults";
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
@@ -221,7 +222,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     // do not show quota fields unless it is for on-premp k8s setups
     if (
       (name == "default_quotas" || name == "max_quotas") &&
-      this.state.edited.kucalc != "cloudcalc"
+      this.state.edited.kucalc != KUCALC_ON_PREMISES
     ) {
       return undefined;
     } else {

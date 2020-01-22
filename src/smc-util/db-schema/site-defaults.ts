@@ -23,6 +23,10 @@ export interface SiteSettings {
   max_quotas: Config;
 }
 
+export const KUCALC_DISABLED = "no";
+export const KUCALC_COCALC_COM = "yes";
+export const KUCALC_ON_PREMISES = "onprem";
+
 export const site_settings_conf: SiteSettings = {
   site_name: {
     name: "Site name",
@@ -60,9 +64,8 @@ export const site_settings_conf: SiteSettings = {
   },
   kucalc: {
     name: "KuCalc UI",
-    desc:
-      "Configure which UI elements to show in order to match the Kubernetes backend. 'yes' or 'cocalc.com' for production, 'cloudcalc' for on-prem k8s, or 'no'",
-    default: "no"
+    desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
+    default: KUCALC_DISABLED
   }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
   ssh_gateway: {
     name: "SSH Gateway",

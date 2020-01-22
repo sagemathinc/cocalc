@@ -23,9 +23,11 @@ const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");
 const theme = require("smc-util/theme");
 
-export const KUCALC_DISABLED = "no";
-export const KUCALC_COCALC_COM = "yes";
-export const KUCALC_CLOUDCALC = "cloudcalc";
+import {
+  KUCALC_DISABLED,
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES
+} from "smc-util/db-schema/site-defaults";
 
 // make it true if starts with y
 function convert_to_boolean(c): boolean {
@@ -36,14 +38,8 @@ function convert_to_boolean(c): boolean {
 // 'yes' (historic value) equals 'cocalc.com'
 function validate_kucalc(k): string {
   const val = k.trim().toLowerCase();
-  if (val == "yes" || val == "cocalc.com") {
-    return KUCALC_COCALC_COM;
-  }
-  if (val == "cloudcalc") {
-    return KUCALC_CLOUDCALC;
-  }
-  if (val == "no") {
-    return KUCALC_DISABLED;
+  if ([KUCALC_DISABLED, KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(val)) {
+    return val;
   }
   console.warn(`site settings customize: invalid kucalc value ${k}`);
   return KUCALC_DISABLED;
