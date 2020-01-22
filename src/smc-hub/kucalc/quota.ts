@@ -86,7 +86,7 @@ interface Settings {
 }
 
 /*
- * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_overcomm":10,"mem_overcomm":25}
+ * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
  * max_quotas: Quota
  */
 interface SiteSettingsQuotas {
@@ -113,18 +113,18 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   };
 
   // overwrite/set extras for any set default quota in the site setting
-  const dq = site_settings?.default_quotas;
-  if (dq != null) {
+  if (site_settings != null) {
+    const dq = site_settings?.default_quotas;
     if (dq.internet != null) extras.network = dq.internet;
     if (dq.mintime != null) extras.mintime = dq.mintime;
     if (dq.mem != null) extras.memory_limit = dq.mem;
-    if (dq.mem_overcomm != null)
-      // % value
-      extras.memory_request = (dq.mem_overcomm * dq.mem) / 100;
+    if (dq.mem_oc != null)
+      // ratio is 1:mem_oc
+      extras.memory_request = Math.round(dq.mem / dq.mem_oc);
     if (dq.cpu != null) extras.cpu_limit = dq.cpu;
-    if (dq.cpu_overcomm != null)
-      // % value
-      extras.cpu_request = (1024 * dq.cpu_overcomm * dq.cpu) / 100;
+    if (dq.cpu_oc != null)
+      // ratio is 1:cpu_oc
+      extras.cpu_request = Math.round((1024 * dq.cpu) / dq.cpu_oc);
   }
 
   return Object.assign({}, BASE_QUOTAS, extras);
