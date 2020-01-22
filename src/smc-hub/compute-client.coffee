@@ -1849,6 +1849,8 @@ class ProjectClient extends EventEmitter
     # decay backing off up to 15s between attempts.
     # If/when it works, the returned address object will definitely have the
     # host, port and secret_token set.
+    # In some cases it will ip set, which should be
+    # preferred to host.
     address: (opts) =>
         opts = defaults opts,
             cb : required
