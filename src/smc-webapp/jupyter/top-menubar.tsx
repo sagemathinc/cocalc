@@ -270,12 +270,12 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         .concat([
           "",
           "zoom in",
-          "zoom out",
-          "",
+          "zoom out"
+          /* "",
           "<Show Notebook as...",
           shownb.normal,
-          shownb.raw,
-          shownb.json
+          shownb.raw
+          shownb.json */
         ])
     });
   }

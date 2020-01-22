@@ -8,7 +8,7 @@ import { List } from "immutable";
 
 import * as React from "react";
 
-const { Icon, Tip } = require("smc-webapp/r_misc");
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 import { RenderedMessage, message_color, message_icon } from "./lean-messages";
 
@@ -68,8 +68,9 @@ function message_component(
       placement={"right"}
       stable={true}
       popover_style={{
-        marginLeft: "10px",
+        padding: 0,
         border: `2px solid ${color}`,
+        borderRadius: "3px",
         width: "700px",
         maxWidth: "80%"
       }}

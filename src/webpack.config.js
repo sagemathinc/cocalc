@@ -837,8 +837,6 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
-      path.resolve(__dirname, "cocalc-ui"),
-      path.resolve(__dirname, "cocalc-ui/node_modules"),
       path.resolve(__dirname, "node_modules")
     ]
   },

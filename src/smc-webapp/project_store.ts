@@ -36,7 +36,7 @@ if (typeof window !== "undefined" && window !== null) {
 }
 import * as immutable from "immutable";
 
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
@@ -51,9 +51,8 @@ import {
   AppRedux
 } from "./app-framework";
 
-import { literal } from "./app-framework/literal";
-
 import { ProjectConfiguration } from "./project_configuration";
+import { ProjectLogMap } from "./project/history/types";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -112,18 +111,20 @@ export interface ProjectStoreState {
   ext_selection?: string;
 
   // Project Log
-  project_log?: any; // immutable,
-  project_log_all?: any; // immutable,
+  project_log?: ProjectLogMap;
+  project_log_all?: ProjectLogMap;
   search?: string;
   page?: number;
 
   // Project New
   default_filename?: string;
   file_creation_error?: string;
+  downloading_file: boolean;
   library: immutable.Map<any, any>;
   library_selected?: object;
   library_is_copying: boolean; // for the copy button, to signal an ongoing copy process
   library_docs_sorted?: any; //computed(immutable.List),
+  library_search?: string; // if given, restricts to library entries that match the search
 
   // Project Find
   user_input: string;
@@ -161,6 +162,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   constructor(a, b) {
     super(a, b);
     this._projects_store_change = this._projects_store_change.bind(this);
+    this.setup_selectors();
   }
 
   _init = (): void => {
@@ -250,6 +252,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project New
       library: immutable.Map({}),
       library_is_copying: false, // for the copy button, to signal an ongoing copy process
+      downloading_file: false,
 
       // Project Find
       user_input: "",
@@ -262,9 +265,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  // Selectors
-  // TODO [J3]: Fix Selectors. They are pretty broken.
-  selectors: any = {
+  selectors = {
     other_settings: {
       fn: () => {
         return (this.redux.getStore("account") as any).get("other_settings");
@@ -303,7 +304,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     // cached pre-processed file listing, which should always be up to date when
     // called, and properly depends on dependencies.
     displayed_listing: {
-      dependencies: literal([
+      dependencies: [
         "active_file_sort",
         "current_path",
         "directory_listings",
@@ -312,7 +313,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "other_settings",
         "show_hidden",
         "show_masked"
-      ]),
+      ] as const,
       fn: () => {
         const search_escape_char = "/";
         let listing = this.get("directory_listings").get(
@@ -435,7 +436,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     },
 
     stripped_public_paths: {
-      dependencies: literal(["public_paths"]),
+      dependencies: ["public_paths"] as const,
       fn: () => {
         const public_paths = this.get("public_paths");
         if (public_paths != null) {
@@ -455,10 +456,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
     },
 
     library_docs_sorted: {
-      dependencies: literal(["library"]),
+      dependencies: ["library", "library_search"] as const,
       fn: () => {
-        const docs = this.get("library").getIn(["examples", "documents"]);
+        let docs = this.get("library").getIn(["examples", "documents"]);
         const metadata = this.get("library").getIn(["examples", "metadata"]);
+        if (this.get("library_search")) {
+          const search = misc.search_split(this.get("library_search"));
+          // Using JSON of the doc is pretty naive but it's fast enough
+          // and I don't want to spend much time on this!
+          docs = docs.filter(doc =>
+            misc.search_match(JSON.stringify(doc.toJS()).toLowerCase(), search)
+          );
+        }
 
         if (docs != null) {
           // sort by a triplet: idea is to have the docs sorted by their category,

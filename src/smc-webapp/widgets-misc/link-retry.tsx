@@ -1,6 +1,6 @@
 import { Component, Rendered, React } from "../app-framework";
 
-const { Loading, Space, Icon } = require("../r_misc");
+import { Loading, Space, Icon } from "../r_misc";
 
 const { Button } = require("react-bootstrap");
 

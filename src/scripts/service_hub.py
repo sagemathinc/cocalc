@@ -55,6 +55,9 @@ def hub_args(server_id):
     if args.kucalc:
         s += ' --kucalc '
 
+    if args.lti:
+        s += ' --lti '
+
     if args.dev:
         s += ' --dev '
 
@@ -166,6 +169,14 @@ if __name__ == "__main__":
         '--kucalc',
         help="kucalc",
         dest='kucalc',
+        action="store_const",
+        const=True,
+        default=False)
+
+    parser.add_argument(
+        '--lti',
+        help="lti",
+        dest='lti',
         action="store_const",
         const=True,
         default=False)

@@ -8,7 +8,7 @@ import {
 } from "react-bootstrap";
 import "./style.scss";
 
-const { Loading, SearchInput } = require("../r_misc");
+import { Loading, SearchInput } from "../r_misc";
 
 interface Item {
   key: any;

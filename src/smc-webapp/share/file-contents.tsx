@@ -11,7 +11,7 @@ import { filename_extension, path_split } from "smc-util/misc2";
 
 import { Component, Rendered, React, Redux, redux } from "../app-framework";
 
-const { HTML, Markdown } = require("../r_misc");
+import { HTML, Markdown } from "../r_misc";
 
 import * as file_editors from "../file-editors";
 

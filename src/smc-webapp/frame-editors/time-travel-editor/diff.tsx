@@ -39,11 +39,7 @@ export class Diff extends Component<Props> {
     if (textarea == null) return; // can't happen
     const options: any = cm_options(
       this.props.use_json ? "a.js" : this.props.path,
-      this.props.editor_settings,
-      [],
-      undefined,
-      undefined,
-      ""
+      this.props.editor_settings
     );
     options.readOnly = true;
     this.cm = CodeMirror.fromTextArea(textarea, options);

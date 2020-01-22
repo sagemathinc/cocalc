@@ -43,8 +43,8 @@ export interface TypedMap<TProps extends Record<string, any>>
     ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
   ): this;
 
-  mergeWith(
-    merger: (oldVal: any, newVal: any, key: keyof TProps) => any,
+  mergeWith<K extends keyof TProps>(
+    merger: (oldVal: any, newVal: any, key: K) => any,
     ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
   ): this;
   mergeDeepWith(
@@ -112,6 +112,7 @@ export interface TypedMap<TProps extends Record<string, any>>
 
   filter(fn: (predicate) => boolean): this;
   some: Map<string, any>["some"];
+  forEach: Map<string, TProps[keyof TProps]>["forEach"];
 }
 
 interface TypedMapFactory<TProps extends Record<string, any>> {

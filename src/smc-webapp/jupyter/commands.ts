@@ -495,7 +495,7 @@ export function commands(
 
     "nbgrader assign": {
       m: "Create student version...",
-      menu: "Student version...",
+      menu: "Generate student version...",
       f: () => jupyter_actions.nbgrader_actions.confirm_assign()
     },
 
@@ -809,7 +809,7 @@ export function commands(
       m: "User interface tour"
     },*/
 
-    "view notebook normal": {
+    /* "view notebook normal": {
       m: "View notebook as cells (normal)",
       menu: "Cells (normal)",
       f: () => frame_actions.set_view_mode("normal")
@@ -825,7 +825,7 @@ export function commands(
       m: "View notebook as raw .ipynb (file)",
       menu: "Raw .ipynb (file)",
       f: () => frame_actions.set_view_mode("raw")
-    },
+    },*/
 
     "zoom in": {
       m: "Zoom in",

@@ -4,9 +4,8 @@ import { MentionsMap, MentionFilter } from "./mentions/types";
 import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
-import { typedMap } from "../app-framework/TypedMap";
 
-const { ProjectTitleAuto } = require("../projects");
+const { ProjectTitle } = require("../projects");
 
 const { Panel } = require("react-bootstrap");
 
@@ -37,17 +36,18 @@ export function NotificationList({
   mentions
     .filter(notification => notification.get("target") === account_id)
     .filter(notification => {
-      const status =
-        notification.getIn(["users", account_id]) ||
-        typedMap({ read: false, saved: false });
+      const status = notification.getIn(["users", account_id])?.toJS() ?? {
+        read: false,
+        saved: false
+      };
 
       switch (filter) {
         case "unread":
-          return status.get("read") === false;
+          return status.read === false;
         case "read":
-          return status.get("read") === true;
+          return status.read === true;
         case "saved":
-          return status.get("saved") === true;
+          return status.saved === true;
         case "all":
           return true;
         default:
@@ -81,7 +81,7 @@ export function NotificationList({
     project_panels.push(
       <Panel
         key={project_id}
-        header={<ProjectTitleAuto project_id={project_id} />}
+        header={<ProjectTitle project_id={project_id} />}
       >
         <ul>{mentions_per_project[project_id]}</ul>
       </Panel>

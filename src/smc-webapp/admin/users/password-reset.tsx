@@ -2,7 +2,7 @@ import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { Button } from "react-bootstrap";
 
-const { Icon, ErrorDisplay } = require("smc-webapp/r_misc");
+import { Icon, ErrorDisplay } from "smc-webapp/r_misc";
 
 const { webapp_client } = require("../../webapp_client");
 
@@ -71,7 +71,7 @@ export class PasswordReset extends Component<Props, State> {
     return (
       <ErrorDisplay
         error={this.state.error}
-        onClick={() => {
+        onClose={() => {
           this.setState({ error: undefined });
         }}
       />
@@ -94,7 +94,7 @@ export class PasswordReset extends Component<Props, State> {
           </a>
           <br />
           Tell them to visit the link to reset their password sometime within
-          the next 8 hours.
+          the next 24 hours.
           <br />
           This link can only be used once.
         </div>

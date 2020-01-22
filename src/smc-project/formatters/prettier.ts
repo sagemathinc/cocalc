@@ -24,7 +24,9 @@ const { bib_format } = require("./bib-format");
 const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
 const { gofmt } = require("./gofmt");
+const { rust_format } = require("./rust-format");
 const misc = require("../smc-util/misc");
+const { make_patch } = require("../smc-util/sync/editor/generic/util");
 const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // from project Jupyter
 
 import { once } from "../smc-util/async-utils";
@@ -70,9 +72,11 @@ export async function run_prettier(
   if (options.parser === "markdown") {
     pretty = math_unescape(replace_math(pretty, math));
   }
-  syncstring.from_str(pretty);
-  await syncstring.save();
-  return { status: "ok" };
+  // NOTE: the code used to make the change here on the backend.
+  // See https://github.com/sagemathinc/cocalc/issues/4335 for why
+  // that leads to confusion.
+  const patch = make_patch(input, pretty);
+  return { status: "ok", patch };
 }
 
 export async function run_prettier_string(
@@ -109,6 +113,10 @@ export async function run_prettier_string(
       break;
     case "gofmt":
       pretty = await gofmt(str, options, logger);
+      break;
+    case "rust":
+    case "rustfmt":
+      pretty = await rust_format(str, options, logger);
       break;
     default:
       pretty = prettier.format(str, options);

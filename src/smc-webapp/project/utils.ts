@@ -22,7 +22,7 @@ export type NewFilenameTypes =
   | "ymd_semantic";
 
 export const NewFilenameFamilies = Object.freeze<
-  Readonly<{ [name in NewFilenameTypes]: string }>
+  { [name in NewFilenameTypes]: string }
 >({
   iso: "Current time",
   heroku: "Heroku-like",
@@ -48,7 +48,7 @@ export class NewFilenames {
     this.fullname = fullname;
   }
 
-  public set_ext(ext: string): void {
+  public set_ext(ext?: string): void {
     if (this.ext != ext || ext == null) {
       this.start = 0;
     }

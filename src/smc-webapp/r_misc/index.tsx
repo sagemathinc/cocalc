@@ -1,7 +1,7 @@
 export { A } from "./A";
 export { Icon } from "./icon";
 export { Tip } from "./tip";
-export { Loading } from "./loading";
+export { Loading, Estimate as LoadingEstimate } from "./loading";
 export { r_join } from "./r_join";
 export { Space } from "./space";
 export { CloseX } from "./close-x";
@@ -19,6 +19,9 @@ export { TimeElapsed } from "./time-elapsed";
 export { SettingBox } from "./setting-box";
 export { ProfileIcon } from "./profile-icon";
 export { DropdownMenu, MenuItem, MenuDivider } from "./dropdown-menu";
+export { WindowedList } from "./windowed-list";
+export { UncommittedChanges } from "./uncommited-changes";
+export { DateTimePicker } from "./date-time-picker";
 
 export const {
   MarkdownInput,
@@ -42,7 +45,6 @@ export const {
   ActivityDisplay,
   SaveButton,
   PathLink,
-  DateTimePicker,
   Calendar,
   DirectoryInput,
   DeletedProjectWarning,

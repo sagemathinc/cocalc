@@ -7,8 +7,7 @@ import {
   project_redux_name
 } from "../../app-framework";
 
-const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
-
+import { ErrorDisplay, Loading, LoadingEstimate } from "smc-webapp/r_misc";
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
@@ -43,7 +42,7 @@ interface FrameTreeEditorReduxProps {
   errorstyle: ErrorStyles;
   cursors: Map<string, any>;
   status: string;
-  load_time_estimate?: Map<string, any>;
+  load_time_estimate?: LoadingEstimate;
   value?: string;
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.

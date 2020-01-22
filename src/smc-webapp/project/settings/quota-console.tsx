@@ -28,6 +28,7 @@ interface Props {
   quota_params: object; // from the schema
   account_groups: any[];
   total_project_quotas?: object; // undefined if viewing as admin
+  site_license_upgrades?: object;
   all_upgrades_to_this_project: object;
   is_commercial?: boolean;
   kucalc?: string;
@@ -100,7 +101,8 @@ export class QuotaConsole extends React.Component<Props, State> {
       display_unit: string;
       display: string;
       desc: string;
-    }
+    },
+    site_license: number
   ): Rendered {
     if (this.props.kucalc == "no" && name != "mintime") {
       // In anything except KuCalc, only the mintime quota is implemented.
@@ -113,14 +115,14 @@ export class QuotaConsole extends React.Component<Props, State> {
     const factor = params_data.display_factor;
     const unit = params_data.display_unit;
 
-    const text = function(val) {
+    function text(val) {
       const amount = misc.round2(val * factor);
       if (name === "mintime") {
         return misc.seconds2hm(val);
       } else {
         return `${amount} ${misc.plural(amount, unit)}`;
       }
-    };
+    }
 
     const upgrade_list: JSX.Element[] = [];
     if (upgrades != undefined) {
@@ -139,7 +141,14 @@ export class QuotaConsole extends React.Component<Props, State> {
     if (base_value && this.props.is_commercial) {
       // amount given by free project
       upgrade_list.unshift(
-        <li key="free">{text(base_value)} given by free project</li>
+        <li key="free">{text(base_value)} included for free</li>
+      );
+    }
+
+    if (site_license) {
+      // amount given by site licenses
+      upgrade_list.unshift(
+        <li key="site-license">{text(site_license)} provided by site license</li>
       );
     }
 
@@ -297,7 +306,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             this.setState({ [label]: e.target.checked ? 1 : 0 } as any)
           }
         >
-          {this.state[label] ? "Enabled" : "Enable"}
+          {this.state[label] ? "Enabled" : "Disabled"}
         </Checkbox>
       );
     } else {
@@ -509,6 +518,10 @@ export class QuotaConsole extends React.Component<Props, State> {
     };
 
     const upgrades = this.props.all_upgrades_to_this_project;
+    const site_license =
+      this.props.site_license_upgrades != null
+        ? this.props.site_license_upgrades
+        : {};
 
     return (
       <div>
@@ -519,7 +532,8 @@ export class QuotaConsole extends React.Component<Props, State> {
             quotas[name],
             settings.get(name),
             upgrades[name],
-            quota_params[name]
+            quota_params[name],
+            site_license[name]
           );
         })}
       </div>

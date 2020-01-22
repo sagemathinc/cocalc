@@ -62,15 +62,7 @@ required = defaults.required
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
-read_password_from_disk = ->
-    filename = (process.env.SMC_ROOT ? '.') + '/data/secrets/postgres'
-    try
-        #winston.debug("Loading password from '#{filename}'")
-        return fs.readFileSync(filename).toString().trim()
-    catch
-        #winston.debug("NO PASSWORD FILE!")
-        # no password file
-        return
+{read_db_password_from_disk} = require('./utils')
 
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->
@@ -110,7 +102,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_warn = opts.concurrent_warn
         @_user = opts.user
         @_database = opts.database
-        @_password = opts.password ? read_password_from_disk()
+        @_password = opts.password ? read_db_password_from_disk()
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
@@ -269,7 +261,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # issues with scope of "client" below.
                 init_client = (host) =>
                     client = new pg.Client
-                        user     : 'smc'
+                        user     : @_user
                         host     : host
                         port     : @_port
                         password : @_password

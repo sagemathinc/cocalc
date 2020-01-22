@@ -201,6 +201,11 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     icon: "globe",
     desc: "A user friendly Open Source Geographic Information System."
   },
+  grass: {
+    label: "GRASS",
+    icon: "globe",
+    desc: "Geographic Resources Analysis Support System"
+  },
   ds9: {
     icon: "star",
     label: "SAOImage DS9",

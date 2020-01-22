@@ -84,7 +84,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`
 });
 
-export function jupyter_backend(syncdb: SyncDB, client: any) {
+export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const dbg = client.dbg("jupyter_backend");
   dbg();
   const app_data = require("smc-webapp/app-framework");
@@ -96,6 +96,15 @@ export function jupyter_backend(syncdb: SyncDB, client: any) {
   const path = original_path(syncdb.get_path());
 
   const redux_name = app_data.redux_name(project_id, path);
+  if (
+    app_data.redux.getStore(redux_name) != null &&
+    app_data.redux.getActions(redux_name) != null
+  ) {
+    // The redux info for this notebook already exists, so don't
+    // try to make it again (which would be an error).
+    // See https://github.com/sagemathinc/cocalc/issues/4331
+    return;
+  }
   const store = app_data.redux.createStore(redux_name, JupyterStore);
   const actions = app_data.redux.createActions(redux_name, JupyterActions);
 
@@ -239,12 +248,18 @@ export class JupyterKernel extends EventEmitter
     const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
-    const opts: any = { detached: true, stdio: "ignore" };
+    const opts: any = { detached: true, stdio: "ignore", env: {} };
 
     if (this.name.indexOf("sage") == 0) {
       dbg("setting special environment for sage.* kernels");
-      opts.env = SAGE_JUPYTER_ENV;
+      opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
     }
+
+    // Make cocalc default to the colab renderer for cocalc-jupyter, since
+    // this one happens to work best for us, and they don't have a custom
+    // one for us.  See https://plot.ly/python/renderers/ and
+    // https://github.com/sagemathinc/cocalc/issues/4259
+    opts.env.PLOTLY_RENDERER = "colab";
 
     if (this._directory !== "") {
       opts.cwd = this._directory;

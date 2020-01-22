@@ -391,6 +391,7 @@ class Project extends EventEmitter
             bwlimit           : undefined
             wait_until_done   : 'true'  # by default, wait until done. false only gives the ID to query the status later
             scheduled         : undefined # string, parseable by new Date()
+            public            : false     # if true, will use the share server files rather than start the source project running.
             cb                : undefined
 
         dbg = @dbg("copy_path('#{opts.path}', id='#{copy_id}')")
@@ -432,6 +433,7 @@ class Project extends EventEmitter
                         "target_project_id ::UUID"      : opts.target_project_id
                         "target_path       ::TEXT"      : opts.target_path
                         "overwrite_newer   ::BOOLEAN"   : opts.overwrite_newer
+                        "public            ::BOOLEAN"   : opts.public
                         "delete_missing    ::BOOLEAN"   : opts.delete_missing
                         "backup            ::BOOLEAN"   : opts.backup
                         "bwlimit           ::TEXT"      : opts.bwlimit

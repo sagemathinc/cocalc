@@ -8,8 +8,7 @@ import { React, Component, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";
-const { Markdown } = require("../r_misc");
-import { Icon } from "../r_misc/icon";
+import { Icon, Markdown } from "../r_misc";
 import { CodeMirror } from "./codemirror";
 import { InputPrompt } from "./prompt";
 import { Complete } from "./complete";
@@ -214,7 +213,13 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private render_markdown(): Rendered {
-    let value = this.props.cell.get("input", "").trim();
+    let value = this.props.cell.get("input")
+    if (typeof value != 'string') {
+      // E.g., if it is null.  This shouldn't happen, but typescript doesn't
+      // guarantee it. I might have hit this in production...
+      value = "";
+    }
+    value = value.trim();
     if (value === "" && this.props.actions) {
       value = "Type *Markdown* and LaTeX: $\\alpha^2$";
     }

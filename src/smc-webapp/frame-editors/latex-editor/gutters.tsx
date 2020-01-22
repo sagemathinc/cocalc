@@ -9,7 +9,7 @@ import * as React from "react";
 
 import { capitalize } from "smc-util/misc2";
 
-const { Icon, Tip } = require("smc-webapp/r_misc");
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 import { SPEC, SpecItem } from "./errors-and-warnings";
 
@@ -57,9 +57,10 @@ function component(
       icon={spec.icon}
       stable={true}
       popover_style={{
-        marginLeft: "10px",
+        padding: 0,
         opacity: 0.9,
-        border: `2px solid ${spec.color}`
+        border: `2px solid ${spec.color}`,
+        borderRadius: "3px"
       }}
       delayShow={0}
       allow_touch={true}

@@ -78,10 +78,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
                 v.push <ProjectsPage key={'projects'}/>
             when 'account'
                 v.push <AccountPage key={'account'}/>
-            when 'about'
+            when 'help', 'about'
                 v.push <HelpPage key={'about'}/>
-            when 'help'
-                v.push <div key={'help'}>To be implemented</div>
             when 'file-use'
                 v.push <FileUsePage redux={redux} key={'file-use'}/>
             when 'notifications'
@@ -89,7 +87,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
             when 'admin'
                 v.push <AdminPage redux={redux} key={'admin'}/>
             when undefined
-                v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+                v.push <div key={'broken'}>Please click a button on the top tab.</div>
 
     if v.length == 0
         # this happens upon loading a URL for a project, but the project isn't open yet.
@@ -102,7 +100,7 @@ exports.NavTab = rclass
 
     propTypes :
         name            : rtypes.string
-        label           : rtypes.string
+        label           : rtypes.oneOfType([rtypes.string,rtypes.element])
         label_class     : rtypes.string
         icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
         close           : rtypes.bool
@@ -126,7 +124,7 @@ exports.NavTab = rclass
 
     render_label: ->
         if @props.show_label and @props.label?
-            <span style={marginLeft: 5} className={@props.label_class} cocalc-test={@props.label}>
+            <span style={marginLeft: 5} className={@props.label_class} cocalc-test={@props.name}>
                 {@props.label}
             </span>
 

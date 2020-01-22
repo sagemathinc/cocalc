@@ -22,12 +22,14 @@ exports.get_user_auth_token = (opts) ->
         account_id      : required
         user_account_id : required
         password        : required    # admin can get token by using password = ''.
+        lti             : false       # LTI auth mode
         cb              : required
     types opts,
         database        : types.object.isRequired
         account_id      : types.string.isRequired
         user_account_id : types.string.isRequired
         password        : types.string.isRequired
+        lti             : types.bool               # LTI auth mode
         cb              : types.func.isRequired    # cb(err, auth_token)
 
     auth_token = undefined
@@ -37,6 +39,7 @@ exports.get_user_auth_token = (opts) ->
         return
 
     is_admin = false
+    is_lti = false
 
     async.series([
         (cb) ->
@@ -44,14 +47,23 @@ exports.get_user_auth_token = (opts) ->
                 is_admin = false
                 cb()
                 return
-            # must be an admin or NOPE.
-            opts.database.is_admin
-                account_id : opts.account_id
-                cb         : (err, _is_admin) =>
-                    is_admin = _is_admin
-                    cb(err)
+            if not opts.lti
+                # must be an admin or NOPE.
+                opts.database.is_admin
+                    account_id : opts.account_id
+                    cb         : (err, _is_admin) =>
+                        is_admin = _is_admin
+                        cb(err)
+            else
+                # must have an lti_id
+                opts.database.get_account
+                    account_id : opts.account_id
+                    columns    : ["lti_id"]
+                    cb         : (err, lti_id) =>
+                        is_lti = !!lti_id
+                        cb(err)
         (cb) ->
-            if is_admin and opts.password == ''
+            if (is_admin or is_lti) and opts.password == ''
                 # no need to do anything further
                 cb()
                 return

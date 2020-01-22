@@ -80,14 +80,14 @@ exports.FileTab = rclass
             @close_file(e, misc.tab_to_path(@props.name))
 
     render : ->
-        styles = {}
+        style = {}
 
         if @props.file_tab
-            styles = misc.copy(exports.DEFAULT_FILE_TAB_STYLES)
+            style = misc.copy(exports.DEFAULT_FILE_TAB_STYLES)
             if @props.is_active
-                styles.backgroundColor = COLORS.BLUE_BG
+                style.backgroundColor = COLORS.BLUE_BG
         else
-            styles.flex = 'none'
+            style.flex = 'none'
 
         icon_style =
             fontSize: '15pt'
@@ -98,17 +98,31 @@ exports.FileTab = rclass
         if @props.has_activity
             icon_style.color = 'orange'
 
-        label_styles =
+        content_style =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            # textOverflow : 'ellipsis'   # removed, since it ends up wasting precious space!
 
-        x_button_styles =
+        if @props.file_tab
+            content_style.display = 'flex'
+
+        label_style =
+            flex         : 1
+            padding      : '0 5px'
+            overflow     : 'hidden'
+
+        if @props.label.indexOf('/') != -1
+            # using a full path for the label instead of just a filename
+            label_style.textOverflow = 'ellipsis'
+            # so the ellipsis are on the left side of the path, which is most useful
+            label_style.direction = 'rtl'
+            label_style.padding = '0 1px';  # need less since have ...
+
+        x_button_style =
             float      : 'right'
             whiteSpace : 'nowrap'
 
         if @state.x_hovered
-            x_button_styles.color = 'lightblue'
+            x_button_style.color = 'lightblue'
 
         text_color = 'white' if @props.is_active
 
@@ -117,30 +131,34 @@ exports.FileTab = rclass
         else
             label = <HiddenXS>{@props.label if not @props.shrink}</HiddenXS>
 
-        content = <Fragment><Icon style={icon_style} name={@props.icon} /> {label} </Fragment>
-
         if @props.file_tab
-            # ONLY show for filenames, name file/new/find, etc. since stable.
-            content = <Tip title={@props.tooltip} stable={true} placement={'bottom'} size={'small'}> {content} </Tip>
+            # ONLY show tooltip for filename (it provides the full path).
+            label = <Tip title={@props.tooltip} stable={false} placement={'bottom'}> {label} </Tip>
+            # The dir="ltr" below is needed because of the direction 'rtl' in label_style, which
+            # we have to compensate for in some situations, e.g.., a file name "this is a file!"
+            # will have the ! moved to the beginning by rtl.
+            label = <div style={label_style}><span dir="ltr">{label}</span></div>
 
-        <NavItem
-            ref         = 'tab'
-            style       = {styles}
-            active      = {@props.is_active}
-            onClick     = {@click}
-            cocalc-test = {@props.label}
-            onMouseDown = {@onMouseDown}
-        >
-            <div style={width:'100%', color:text_color, cursor : 'pointer'}>
-                <div style={x_button_styles}>
+        body = <div style={width:'100%', color:text_color, cursor : 'pointer'}>
+                <div style={x_button_style}>
                     {<Icon
                         onMouseOver = {@mouse_over_x} onMouseOut={@mouse_out_x}
                         name        = 'times'
                         onClick     = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}
                 </div>
-                <div style={label_styles}>
-                    {content}
+                <div style={content_style}>
+                    <Icon style={icon_style} name={@props.icon} /> {label}
                 </div>
             </div>
+
+        <NavItem
+            ref         = 'tab'
+            style       = {style}
+            active      = {@props.is_active}
+            onClick     = {@click}
+            cocalc-test = {@props.label}
+            onMouseDown = {@onMouseDown}
+        >
+            {body}
         </NavItem>

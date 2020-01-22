@@ -188,8 +188,10 @@ export class CodeExecutionEmitter extends EventEmitter
       this.kernel.removeListener("stdin", this._handle_stdin);
     }
     this.kernel.removeListener("shell", this._handle_shell);
-    this.kernel._execute_code_queue.shift(); // finished
-    this.kernel._process_execute_code_queue(); // start next exec
+    if (this.kernel._execute_code_queue != null) {
+      this.kernel._execute_code_queue.shift(); // finished
+      this.kernel._process_execute_code_queue(); // start next exec
+    }
     this._push_mesg({ done: true });
     this.close();
     if (this._go_cb !== undefined) {

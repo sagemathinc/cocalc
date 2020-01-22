@@ -4,8 +4,8 @@
 
 mixin start_button
   p
-    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
-  p or #[a(href=PREFIX + "app") sign in] with your account
+    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app?anonymous=true") Try CoCalc Now!
+  p #[a(href=PREFIX + "app") sign in or create an account]
 
 
 mixin video-player
@@ -155,6 +155,9 @@ html.no-js(lang="en")
           ul.nav.navbar-nav.navbar-right
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
+
+            li(class=navbar_highlight('share'))
+              a(href=PREFIX + "share/") Shared Files
 
             li(class=navbar_highlight('features'))
               a(href=PREFIX + "doc/index.html") Features

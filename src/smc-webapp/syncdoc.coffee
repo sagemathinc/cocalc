@@ -330,7 +330,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     if changeObj.origin != 'setValue'
                         @_last_change_time = new Date()
                         @save_state_debounce?()
-                        @_syncstring.exit_undo_mode()
                 update_unsaved_uncommitted_changes()
 
             @emit('connect')   # successful connection
@@ -356,7 +355,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         #console.log 'user action so setting'
         @_user_action = false
         @_last_val = val = @codemirror.getValue()
-        @_syncstring.from_str(val)
+        if val != @_syncstring.to_str()
+            @_syncstring.exit_undo_mode()
+            @_syncstring.from_str(val)
         #@_debug_sync_state('after')
 
     # Set value of the codemirror editor to equal current value of the syncstring

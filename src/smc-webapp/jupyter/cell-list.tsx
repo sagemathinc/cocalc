@@ -6,13 +6,11 @@ declare const $: any;
 
 const DEFAULT_ROW_SIZE: number = 64;
 
-import { WindowedList } from "../r_misc/windowed-list";
-
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { React, Component, Rendered } from "../app-framework";
-import { Loading } from "../r_misc/loading";
+import { Loading, WindowedList } from "../r_misc";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 
@@ -44,6 +42,9 @@ interface CellListProps {
   cell_toolbar?: string;
   trust?: boolean;
   use_windowed_list?: boolean;
+  // NOTE: if the value of use_windowed_list *changes* while mounted, we don't re-render everything,
+  // which would be a mess and is not really a good idea... since the main use of windowing is to
+  // make the initial render fast.  If it is already rendered, why mess it up?
 }
 
 export class CellList extends Component<CellListProps> {
@@ -56,7 +57,8 @@ export class CellList extends Component<CellListProps> {
     super(props);
     this.use_windowed_list =
       !!this.props.use_windowed_list &&
-      (this.props.actions != null && this.props.frame_actions != null);
+      this.props.actions != null &&
+      this.props.frame_actions != null;
     if (this.use_windowed_list && this.props.frame_actions != null) {
       this.props.frame_actions.set_windowed_list_ref(this.windowed_list_ref);
     }

@@ -2,7 +2,7 @@ import { delay } from "awaiting";
 
 import { List, Map } from "immutable";
 
-import { Icon } from "../../../r_misc";
+import { Icon, Loading } from "../../../r_misc";
 
 import {
   Component,
@@ -11,7 +11,6 @@ import {
   rtypes,
   rclass
 } from "../../../app-framework";
-import { Loading } from "../../../r_misc/loading";
 
 import { redux_name } from "../jupyter-actions";
 

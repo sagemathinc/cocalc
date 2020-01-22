@@ -11,6 +11,8 @@ import {
   custom_image_name
 } from "../custom-software/init";
 
+import { delay } from "awaiting";
+
 import { CustomSoftware } from "../custom-software/selector";
 
 const {
@@ -25,7 +27,7 @@ const {
   ErrorDisplay
 } = require("react-bootstrap");
 
-const { Icon, Space } = require("../r_misc");
+import { Icon, Space } from "../r_misc";
 
 const misc = require("smc-util/misc");
 
@@ -68,15 +70,26 @@ export class NewProjectCreator extends Component<Props, State> {
     super(props);
     this.state = Object.assign({}, INIT_STATE, {
       // view --> edit --> saving --> view
-      state: props.start_in_edit_mode ? "edit" : "view"
+      state: props.start_in_edit_mode ? "edit" : "view",
+      title_text: props.default_value ? props.default_value : ""
     });
   }
 
   componentDidMount() {
     this.is_mounted = true;
+    this.select_text();
   }
+
   componentWillUnmount() {
     this.is_mounted = false;
+  }
+
+  private async select_text(): Promise<void> {
+    // wait for next render loop so the title actually is in the DOM...
+    await delay(1);
+    const text = ReactDOM.findDOMNode(this.refs.new_project_title);
+    if (text == null) return;
+    text.select();
   }
 
   start_editing() {
@@ -84,6 +97,7 @@ export class NewProjectCreator extends Component<Props, State> {
       state: "edit",
       title_text: this.props.default_value ? this.props.default_value : ""
     });
+    this.select_text();
   }
 
   cancel_editing = () => {
@@ -271,7 +285,9 @@ export class NewProjectCreator extends Component<Props, State> {
               A <b>project</b> is your own, private computational workspace that
               you can share with others.
               <br />
-              You can easily change the project title in project settings.
+              <br />
+              You can easily change the project's title at any time in project
+              settings.
             </div>
           </Col>
         </Row>

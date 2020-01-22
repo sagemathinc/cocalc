@@ -9,8 +9,8 @@ This is a renderer using pdf.js.
 const WINDOW_SIZE: number = 3000;
 const HIGHLIGHT_TIME_S: number = 6;
 
-const { Icon, Loading, Markdown } = require("smc-webapp/r_misc");
-import { Alert } from "cocalc-ui";
+import { Icon, Loading, Markdown } from "smc-webapp/r_misc";
+import { Alert } from "antd";
 
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";

@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'latex';
-    subtitle = 'Online LaTeX Editor';
+    subtitle = 'Edit LaTeX Documents Online';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -30,37 +30,45 @@ block content
       div.col-sm-2.col-sm-offset-5.center
         img(src=require("webapp-lib/assets/latex-logo.svg")).fit
       div.col-sm-12.center
-        h1 #{subtitle}
+        h1 Online LaTeX Editor
+        p
+          em Focus on the content and #{NAME} takes care of everything else
+      div.space
       div.col-sm-6
         img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
       div.col-sm-6
         p.
-          Collaboratively #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser],
-          without a limit on the number of collaborators!
+          #[strong Edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser] – no software install required!
         p.
-          #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] has a
-          #[strong side-by-side preview],
-          compiles on the fly, marks errors in the source file,
-          and #[strong forward/inverse search] helps to navigate around.
+          #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] supports
+        ul
+          li #[strong #[a(href="#a-realtimesync") collaborative editing]] without a limit,
+          li #[strong side-by-side preview] with #[strong forward/inverse search],
+          li compiles upon saving on the fly and marks errors in the source file,
+          li #[strong #[a(href="#a-calculations") run embedded calculations]] right inside the document,
+          li #[strong multi-file support] discovers included files automatically,
+          li and all #[strong #[a(href="#a-timetravel") changes are tracked]] while you type.
+        p.
+          #{NAME} makes working with LaTeX easy:
+        ul
+          li Scared of breaking a document? #[strong Revert recent changes via #[a(href="#a-timetravel") time-travel] edit history].
+          li You do not have to worry about installing and maintaining your LaTeX environment.
+          li You can work from anywhere; you only need a web-browser and internet access.
+          li Periodic #[a(href="#a-backups") backups] keep all your files safe and secure.
+      div.col-sm-8.col-sm-offset-2.center
         p.
           #[strong Ready out of the box]:
           #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
           and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file and you're ready to tex.
-        p.
-          All tedious details are taken care of:
-        ul
-          li You no longer have to install and maintain a LaTeX environment.
-          li You do not have to configure the LaTeX engine and install packages.
-          li Full #[a(href="#a-timetravel") edit-history] and periodic #[a(href="#a-backups") backups] keep your content safe.
 
   +start_free_banner
 
   a.anchor#a-overview
-  div.space#overview
+  div.space(style="margin-top: 2rem")#overview
     div.container
       div.row
         div.col-md-8.col-md-offset-2.center
-          h1 Focus on the content and #{NAME} takes care of everything else
+          h1 Overview
 
     a.anchor#a-environments
     div.container.space#environments
@@ -123,13 +131,15 @@ block content
             or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook page]
             for more information.
 
-    div.container
+    a.anchor#a-calculations
+    div.container#calculations
       div.row
         div.col-md-8.col-md-offset-2.center
-          h2 Dynamic content for your LaTeX documents!
+          h2 Run calculations inside your LaTeX documents!
         div.col-md-8.col-md-offset-2.
-          Embed snippets of code into LaTeX doucuments,
-          which will be evaluated during compilation and their output is included in the generated document.
+          Embed Sage, R, or Python code in your document to automatically generate text, plots, formulas or tables.
+          The code is evaluated as part of the compilation process
+          and the output will be included in the generated document.
 
     a.anchor#a-sagetex
     div.container.space#sagetex
@@ -184,7 +194,7 @@ block content
         div.col-md-6
           div.
             #{NAME}'s Latex editor also supports #[strong #[a(href="https://yihui.name/knitr/") Knitr .Rnw]] documents.
-            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file.
+            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Software] commands and plots in your LaTeX file.
           div.
             Behind the scenes, #{NAME} deals with all underlying details for you:
           ul
@@ -213,7 +223,7 @@ block content
           div.
             Let #{NAME} help you find your way around in large documents!
           div.
-            #[strong Forward Search] let's you jump from the LaTeX source to the corresponding part in the rendered preview.
+            #[strong Forward Search] lets you jump from the LaTeX source to the corresponding part in the rendered preview.
             That saves you time looking for the output by scrolling around.
           div.
             #[strong Inverse search] does the opposite: double-click on a part in the output and

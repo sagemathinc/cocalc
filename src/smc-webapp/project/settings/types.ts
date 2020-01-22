@@ -27,4 +27,5 @@ export type Project = TypedMap<{
   status: ProjectStatus;
   settings: ProjectSettings;
   compute_image: string;
+  site_license: { [license_id: string]: object };
 }>;

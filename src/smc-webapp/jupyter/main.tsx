@@ -2,11 +2,19 @@
 Top-level react component, which ties everything together
 */
 
+// Only use windowing when there are at least this many cells.
+// (Of course what really matters is the combination of the number
+// of cells and how long each takes to render, but that's really
+// complicated to check quickly, so we just take into account
+// the number.)  We may have to adjust this over time...
+const WINDOWED_LIST_THRESHOLD = 75;
+
 import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Loading } from "../r_misc/loading";
+import { is_safari } from "../frame-editors/generic/browser";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
@@ -275,6 +283,30 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
+  private use_windowed_list(): boolean {
+    if (
+      this.props.frame_actions == null ||
+      this.props.editor_settings == null ||
+      this.props.cell_list == null ||
+      this.props.editor_settings.get("disable_jupyter_windowing")
+    ) {
+      // very obvious reasons to disable windowing...
+      return false;
+    }
+    if (this.props.cell_list.size < WINDOWED_LIST_THRESHOLD) {
+      // Windowing is generally not as good and can cause subtle issues, so let's
+      // avoid it if possible for smaller notebooks.
+      return false;
+    }
+    // OK, we have a big notebook.  Let's window if we're not on Safari, where I
+    // don't know what is going on... (see #4320).
+    if (is_safari()) {
+      return false;
+    }
+    // OK, let's do it.
+    return true;
+  }
+
   render_cells() {
     if (
       this.props.cell_list == null ||
@@ -318,11 +350,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         scroll={this.props.scroll}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
-        use_windowed_list={
-          this.props.frame_actions != null &&
-          this.props.editor_settings != null &&
-          !this.props.editor_settings.get("disable_jupyter_windowing")
-        }
+        use_windowed_list={this.use_windowed_list()}
       />
     );
   }
@@ -487,6 +515,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
     return (
       <RawEditor
+        name={this.props.name}
         actions={this.props.actions}
         font_size={this.props.font_size}
         raw_ipynb={this.props.raw_ipynb}

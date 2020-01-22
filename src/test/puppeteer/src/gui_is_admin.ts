@@ -39,7 +39,7 @@ export const is_admin = async function (opts: Opts, page: Page): Promise<TestGet
       }
     }
 
-    time_log("sagews test", tm_is_admin);
+    time_log(this_file, tm_is_admin);
     pfcounts.pass += 1;
 
   } catch (e) {

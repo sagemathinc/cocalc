@@ -19,8 +19,10 @@
 #
 ###############################################################################
 
+from __future__ import absolute_import
+
 import json, math
-import sage_salvus
+from . import sage_salvus
 
 from uuid import uuid4
 
@@ -87,8 +89,8 @@ class ThreeJS(object):
         self._id = uuid()
         self._selector = "#%s" % self._id
         self._obj = "$('%s').data('salvus-threejs')" % self._selector
-        self._salvus.html(
-            "<span id=%s class='salvus-3d-container'></span>" % self._id)
+        self._salvus.html("<span id=%s class='salvus-3d-container'></span>" %
+                          self._id)
         if not isinstance(spin, bool):
             spin = json_float(spin)
         if frame_aspect_ratio is not None:
@@ -101,18 +103,17 @@ class ThreeJS(object):
                 raise TypeError("aspect_ratio must be None, 1 or a 3-tuple ")
             else:
                 aspect_ratio = [json_float(x) for x in aspect_ratio]
-        self._salvus.javascript(
-            "$('%s').salvus_threejs(obj)" % self._selector,
-            once=False,
-            obj={
-                'renderer': renderer,
-                'width': noneint(width),
-                'height': noneint(height),
-                'background': background,
-                'foreground': foreground,
-                'spin': spin,
-                'aspect_ratio': aspect_ratio
-            })
+        self._salvus.javascript("$('%s').salvus_threejs(obj)" % self._selector,
+                                once=False,
+                                obj={
+                                    'renderer': renderer,
+                                    'width': noneint(width),
+                                    'height': noneint(height),
+                                    'background': background,
+                                    'foreground': foreground,
+                                    'spin': spin,
+                                    'aspect_ratio': aspect_ratio
+                                })
         self._graphics = []
         self._call('init()')
 
@@ -176,24 +177,19 @@ class ThreeJS(object):
                 [json_float(pos[0]),
                  json_float(pos[1]),
                  json_float(pos[2])],
-                'text':
-                str(text),
-                'fontsize':
-                int(fontsize),
-                'fontface':
-                str(fontface),
-                'sprite_alignment':
-                str(sprite_alignment)
+                'text': str(text),
+                'fontsize': int(fontsize),
+                'fontface': str(fontface),
+                'sprite_alignment': str(sprite_alignment)
             })
 
-    def animate(self, fps=None, stop=None, mouseover=True):
-        self._call(
-            'animate(obj)',
-            obj={
-                'fps': noneint(fps),
-                'stop': stop,
-                'mouseover': mouseover
-            })
+    def animate(self, fps=None, stop=None, mouseover=True, loop=True):
+        self._call('animate(obj)',
+                   obj={
+                       'fps': noneint(fps),
+                       'stop': stop,
+                       'mouseover': mouseover
+                   })
 
     def init_done(self):
         self._call('init_done()')
@@ -599,7 +595,7 @@ class InteractiveGraphics(object):
 
         sage_salvus.salvus.namespace[id] = f
         x = {}
-        for ev in self._events.keys():
+        for ev in list(self._events.keys()):
             x[ev] = id
 
         sage_salvus.salvus.file(filename, show=True, events=x)
@@ -762,8 +758,8 @@ def graph_to_d3_jsonable(G,
                     # Multiple edges. The first one has curve 15, then
                     # -15, then 30, then -30, ...
                     seen[u, v] = seen.get((u, v), 0) + 1
-                    curve = (1 if seen[u, v] % 2 else
-                             -1) * (seen[u, v] // 2) * 15
+                    curve = (1 if seen[u, v] % 2 else -1) * (seen[u, v] //
+                                                             2) * 15
 
         elif not directed and multiple_edges:
             # Same formula as above for multiple edges

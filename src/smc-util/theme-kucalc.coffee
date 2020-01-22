@@ -14,7 +14,7 @@ Note: it is not possible to "require" assets, like the logos -- they're defined 
 exports.SITE_NAME            = 'CoCalc'
 exports.COMPANY_NAME         = 'SageMath, Inc.'
 exports.COMPANY_EMAIL        = 'office@sagemath.com'
-exports.APP_TAGLINE          = 'Collaborative Calculation in the Cloud'
+exports.APP_TAGLINE          = 'Collaborative Calculation and Data Science'
 exports.DNS                  = 'cocalc.com'
 exports.DOMAIN_NAME          = 'https://' + exports.DNS
 

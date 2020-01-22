@@ -4,7 +4,7 @@ import { ComputeImages } from "./init";
 //const misc = require("smc-util/misc");
 //import * as misc2 from "smc-util/misc2";
 // const { open_new_tab } = require("smc-webapp/misc_page");
-const {
+import {
   A,
   Icon,
   COLORS
@@ -12,7 +12,7 @@ const {
   //   HiddenXSSM,
   //   VisibleMDLG,
   //   VisibleXSSM
-} = require("../r_misc");
+} from "../r_misc";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 import { ProjectMap } from "smc-webapp/todo-types";

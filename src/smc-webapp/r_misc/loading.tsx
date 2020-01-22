@@ -2,13 +2,15 @@ import * as React from "react";
 import { Icon } from "./icon";
 import { TypedMap } from "../app-framework/TypedMap";
 
+export type Estimate = TypedMap<{
+  time: number; // Time in seconds
+  type: "new" | "ready" | "archived";
+}>;
+
 interface Props {
   style?: React.CSSProperties;
   text?: string;
-  estimate?: TypedMap<{
-    time: number; // Time in seconds
-    type: "new" | "ready" | "archived";
-  }>;
+  estimate?: Estimate;
   theme?: "medium" | undefined;
 }
 

@@ -391,32 +391,26 @@ SupportInfo = rclass
             <h2 style={marginTop:'-5px'}>Frequent questions</h2>
             <ul>
                 <li>
-                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b>Looking for documentation and help?</b></a>
+                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b><SiteName/> Documentation and help</b></a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription problems</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">Sage worksheet or Jupyter notebook is slow or will not run?</a>
+                   Jupyter notebook or SageMath worksheet  <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">slow</a> or <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">crashing</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about SageMath</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about how to use Sage?</a>
-                </li>
-                <li>
-                    <b>Requesting that we install software?</b> Fill out the form below...
-                </li>
-                <li>
-                    <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
-                </li>
-                <li>
-                    <b>Just trying to sign out?</b>  Click on Account on the top right, then click
+                    <b>Trying to sign out:</b>  Click on Account on the top right, then click
                     "Sign out..." in Preferences.
+                </li>
+                <li>
+                    <b>Hit a bug, just need to talk with us, or request that we install software:</b> Fill out the form below...
                 </li>
             </ul>
 
@@ -526,20 +520,22 @@ SupportForm = rclass
                     type        = 'text'
                     tabIndex    = {2}
                     label       = 'Message'
-                    placeholder = "Summarize the problem ..."
+                    placeholder = "Very short summary..."
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
-            <div style={margin:'10px', color:'#666'}>
-                1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
-                <br/>
-            </div>
             <FormGroup>
+                <b>
+                1. What did you do exactly?
+                2. What happened?
+                3. How did this differ from what you expected?
+                </b>
+                <br/>
                 <FormControl
                     componentClass = "textarea"
                     ref         = 'body'
                     tabIndex    = {3}
-                    placeholder = 'Describe the problem ...'
+                    placeholder = 'Describe in detail...'
                     rows        = {6}
                     value       = {@props.body}
                     onChange    = {@data_change} />
@@ -575,6 +571,8 @@ exports.Support = rclass
             err          : rtypes.string
             email_err    : rtypes.string
             valid        : rtypes.bool
+        account:
+            is_anonymous : rtypes.bool
 
     componentWillReceiveProps: (newProps) ->
         newProps.actions.check_valid()
@@ -589,6 +587,37 @@ exports.Support = rclass
         event?.preventDefault()
         @props.actions.support()
 
+    show_account: ->
+        @close()
+        redux.getActions('page').set_active_tab('account')
+
+    render_form: (show_form)->
+        if @props.is_anonymous
+            return <h3>In order to create a support ticket first <a onClick={=>@show_account()}>create an account...</a></h3>
+        else
+            <SupportForm
+                actions   = {@props.actions}
+                email     = {@props.email}
+                email_err = {@props.email_err}
+                subject   = {@props.subject}
+                body      = {@props.body}
+                show      = {show_form}
+                submit    = {(e) => @submit(e)} />
+
+    render_info: ->
+        <SupportInfo
+            actions   = {@props.actions}
+            state     = {@props.state}
+            url       = {@props.url}
+            err       = {@props.err} />
+
+    render_body: (show_form) ->
+        <div style={color:'#333'}>
+            {@render_info()}
+            {@render_form(show_form)}
+        </div>
+
+
     render: () ->
         show_form = false
 
@@ -601,19 +630,7 @@ exports.Support = rclass
             </Modal.Header>
 
             <Modal.Body>
-                <SupportInfo
-                    actions   = {@props.actions}
-                    state     = {@props.state}
-                    url       = {@props.url}
-                    err       = {@props.err} />
-                <SupportForm
-                    actions   = {@props.actions}
-                    email     = {@props.email}
-                    email_err = {@props.email_err}
-                    subject   = {@props.subject}
-                    body      = {@props.body}
-                    show      = {show_form}
-                    submit    = {(e) => @submit(e)} />
+            {@render_body(show_form)}
             </Modal.Body>
 
             <SupportFooter

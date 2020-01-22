@@ -10,7 +10,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
-{UpgradeRestartWarning} = require('./upgrade_restart_warning')
+{UpgradeRestartWarning} = require('./upgrade-restart-warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -53,9 +53,6 @@ exports.UpgradesPage = rclass
 
             <Space/>
             <DedicatedVM />
-
-            <Space/>
-            <DedicatedVM/>
 
             <hr/>
             <FAQ/>

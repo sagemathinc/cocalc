@@ -58,6 +58,7 @@ const { defaults, required } = misc;
 import { Actions, project_redux_name, redux } from "./app-framework";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
+import { ProjectEvent } from "./project/history/types";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -593,7 +594,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           const { name, Editor } = this.init_file_react_redux(path, is_public);
           info.redux_name = name;
           info.Editor = Editor;
-          this.open_files.set(path, 'component', info);
+          this.open_files.set(path, "component", info);
         }
 
         this.show_file(path);
@@ -668,15 +669,26 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  // report a log event to the backend -- will indirectly result in a new entry in the store...
-  // Returns the random log entry uuid. If called later with that id, then the time isn't
-  // changed and the event is merely updated.
-  // Returns undefined if log event is ignored
+  /**
+   *
+   * Report a log event to the backend -- will indirectly result in a new entry in the store...
+   * Allows for updating logs via merging if `id` is provided
+   *
+   * Returns the random log entry uuid. If called later with that id, then the time isn't
+   * changed and the event is merely updated.
+   * Returns undefined if log event is ignored
+   */
   // NOTE: we can't just make this log function async since it returns
   // an id that we use later to update the log, and we would have
   // to change whatever client code uses that id to be async.  Maybe later.
   // So we make the new function async_log below.
-  log(event, id?: string, cb?: Function): string | undefined {
+  log(event: ProjectEvent): string | undefined;
+  log(
+    event: Partial<ProjectEvent>,
+    id: string,
+    cb?: (err?: any) => void
+  ): string | undefined;
+  log(event: ProjectEvent, id?: string, cb?: Function): string | undefined {
     const my_role = (this.redux.getStore("projects") as any).get_my_group(
       this.project_id
     );
@@ -730,7 +742,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return id;
   }
 
-  public async async_log(event, id?: string): Promise<void> {
+  public async async_log(event: ProjectEvent, id?: string): Promise<void> {
     await callback(this.log.bind(this), event, id);
   }
 
@@ -890,7 +902,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       event: "open",
       action: "open",
       filename: path
-    };
+    } as const;
     const id = this.log(event);
 
     // Save the log entry id, so it is possible to optionally
@@ -991,7 +1003,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!open_files.has(opts.path)) {
       // Make the visible tab appear ASAP, even though
       // some stuff that may await below needs to happen...
-      this.open_files.set(opts.path, 'component', {});
+      this.open_files.set(opts.path, "component", {});
     }
 
     // Next get the group.
@@ -1066,6 +1078,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes.
     open_files = store.get("open_files");
+    if (open_files == null || this.open_files == null) {
+      // project is closing
+      return;
+    }
     const file_info = open_files.getIn([opts.path, "component"], {
       is_public: false
     });
@@ -1078,9 +1094,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
 
       // Add it to open files
-      this.open_files.set(opts.path, 'component', {is_public});
-      this.open_files.set(opts.path, 'is_chat_open', opts.chat);
-      this.open_files.set(opts.path, 'chat_width', opts.chat_width);
+      this.open_files.set(opts.path, "component", { is_public });
+      this.open_files.set(opts.path, "is_chat_open", opts.chat);
+      this.open_files.set(opts.path, "chat_width", opts.chat_width);
 
       if (opts.chat) {
         require("./chat/register").init(
@@ -1933,7 +1949,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // function used internally by things that call webapp_client.exec
-  private _finish_exec(id) {
+  private _finish_exec(id, cb?) {
     // returns a function that takes the err and output and does the right activity logging stuff.
     return (err, output) => {
       this.fetch_directory_listing();
@@ -1946,6 +1962,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_activity({ id, error: output.error });
       }
       this.set_activity({ id, stop: "" });
+      if (cb != null) {
+        cb(err);
+      }
     };
   }
 
@@ -2026,8 +2045,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == null) return;
 
     store.on("started", () => {
-      this.clear_configuration();
-      this.init_configuration("main");
+      this.reload_configuration();
     });
 
     store.on("stopped", () => {
@@ -2041,6 +2059,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       configuration: undefined,
       available_features: undefined
     });
+  }
+
+  reload_configuration(): void {
+    this.clear_configuration();
+    this.init_configuration("main");
   }
 
   // retrieve project configuration (capabilities, etc.) from the back-end
@@ -2368,24 +2391,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts = defaults(opts, {
       public: false,
       src_project_id: required, // id of source project
-      src: required, // list of relative paths of directors or files in the source project
-      target_project_id: required, // if of target project
+      src: required, // list of relative paths of directories or files in the source project
+      target_project_id: required, // id of target project
       target_path: undefined, // defaults to src_path
       overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
       delete_missing: false, // delete files in dest that are missing from source (destructive)
       backup: false, // make ~ backup files instead of overwriting changed files
       timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
       exclude_history: false, // if true, exclude all files of the form *.sage-history
-      id: undefined
+      id: undefined,
+      cb: undefined // optional callback when all done.
     });
-    // TODO: wrote this but *NOT* tested yet -- needed "copy_click".
     const id = opts.id != null ? opts.id : misc.uuid();
     this.set_activity({
       id,
       status: `Copying ${opts.src.length} ${misc.plural(
         opts.src.length,
         "path"
-      )} to another project`
+      )} to a project`
     });
     const { src } = opts;
     delete opts.src;
@@ -2408,7 +2431,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       );
       webapp_client.copy_path_between_projects(opts0);
     };
-    return async.mapLimit(src, 3, f, this._finish_exec(id));
+    async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }
 
   private _move_files(opts) {
@@ -2774,7 +2797,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       d = "root directory of project";
     }
     const id = misc.uuid();
-    this.set_active_tab("files", { update_file_listing: false });
+    this.setState({ downloading_file: true });
     this.set_activity({
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
@@ -2787,6 +2810,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: err => {
         this.fetch_directory_listing();
         this.set_activity({ id, stop: "" });
+        this.setState({ downloading_file: false });
+        this.set_active_tab("files", { update_file_listing: false });
         typeof cb === "function" ? cb(err) : undefined;
       }
     });
@@ -2973,7 +2998,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } else {
         max_depth = "--max-depth=0";
       }
-      cmd = `git rev-parse --is-inside-work-tree && git grep -n -I -H ${ins} ${max_depth} ${search_query} || `;
+      // The || true is so that if git rev-parse has exit code 0,
+      // but "git grep" finds nothing (hence has exit code 1), we don't
+      // fall back to normal git (the other side of the ||). See
+      //    https://github.com/sagemathinc/cocalc/issues/4276
+      cmd = `git rev-parse --is-inside-work-tree && (git grep -n -I -H ${ins} ${max_depth} ${search_query} || true) || `;
     } else {
       cmd = "";
     }

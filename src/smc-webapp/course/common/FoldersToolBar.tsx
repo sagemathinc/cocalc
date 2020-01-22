@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -25,25 +18,38 @@
 //
 //##############################################################################
 
+/*
+BUG:
+
+ - this code is buggy since the SearchInput component below is NOT controlled,
+   but some of the code assumes it is, which makes no sense.
+   E.g., there is a clear_search prop that is passed in, which is
+   nonsense, because the state of the search is local to the
+   SearchInput. That's why the calls to clear
+   the search in all the code below are all broken.
+
+*/
+
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 
 // CoCalc libraries
-const misc = require("smc-util/misc");
-const { webapp_client } = require("smc-webapp/webapp_client");
+import { is_different } from "smc-util/misc";
+import { webapp_client } from "../../webapp-client";
 
 // React libraries
-import { React, ReactDOM, Component } from "smc-webapp/app-framework";
-const { Icon, SearchInput, SkinnyError } = require("smc-webapp/r_misc");
-const {
+import { React, ReactDOM, Component, Rendered } from "../../app-framework";
+import { Icon, SearchInput, Space } from "../../r_misc";
+import {
   Button,
-  ButtonToolbar,
+  ButtonGroup,
   FormControl,
-  FormGroup,
-  Row,
-  Col,
-  Grid
-} = require("react-bootstrap");
+  FormGroup
+} from "../../antd-bootstrap";
+
+import { Card, Row, Col } from "antd";
+
+import { callback2 } from "smc-util/async-utils";
 
 const SEARCH_STYLE = { marginBottom: "0px" };
 
@@ -64,12 +70,14 @@ interface MultipleAddSearchState {
 }
 
 // Multiple result selector
-// use on_change and search to control the search bar
+// use on_change and search to control the search bar.
 // Coupled with Assignments Panel and Handouts Panel
 class MultipleAddSearch extends Component<
   MultipleAddSearchProps,
   MultipleAddSearchState
 > {
+  private search?: string;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -82,7 +90,7 @@ class MultipleAddSearch extends Component<
 
   shouldComponentUpdate(newProps, newState) {
     return (
-      misc.is_different(this.props, newProps, [
+      is_different(this.props, newProps, [
         "search_results",
         "item_name",
         "is_searching",
@@ -178,10 +186,10 @@ class MultipleAddSearch extends Component<
         >
           {this.render_results_list()}
         </FormControl>
-        <ButtonToolbar style={{ marginTop: "15px" }}>
+        <ButtonGroup style={{ marginTop: "15px" }}>
           {this.render_add_selector_button()}
           <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
-        </ButtonToolbar>
+        </ButtonGroup>
       </FormGroup>
     );
   }
@@ -223,6 +231,32 @@ class MultipleAddSearch extends Component<
     );
   }
 
+  private render_create_new_assignment(): Rendered {
+    if (!this.search) return;
+    const target = this.search.trim();
+    if (!target) return;
+    return (
+      <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
+        Create new folder and assignment named '{target}'?
+        <br />
+        <br />
+        <Button onClick={() => this.clear_and_focus_search_input()}>
+          Cancel
+        </Button>
+        <Space />
+        <Button
+          bsStyle="default"
+          onClick={() => {
+            this.props.add_selected([target]);
+            this.props.clear_search();
+          }}
+        >
+          Yes, create it
+        </Button>
+      </Card>
+    );
+  }
+
   render() {
     return (
       <div>
@@ -231,19 +265,17 @@ class MultipleAddSearch extends Component<
           ref="search_input"
           default_value=""
           placeholder={`Add ${this.props.item_name} by folder name (enter to see available folders)...`}
-          on_submit={this.props.do_search}
+          on_submit={search => {
+            this.props.do_search(search);
+            this.search = search;
+          }}
           on_clear={this.clear_and_focus_search_input}
           buttonAfter={this.search_button()}
           style={SEARCH_STYLE}
         />
-        {this.props.none_found ? (
-          <SkinnyError
-            error_text="No matching folders were found"
-            on_close={this.clear_and_focus_search_input}
-          />
-        ) : (
-          undefined
-        )}
+        {this.props.none_found
+          ? this.render_create_new_assignment()
+          : undefined}
         {this.state.show_selector ? this.render_add_selector() : undefined}
       </div>
     );
@@ -251,42 +283,55 @@ class MultipleAddSearch extends Component<
 }
 
 // Filter directories based on contents of all_items
-const filter_results = function(directories, search, all_items) {
-  if (directories.length > 0) {
-    // Omit any -collect directory (unless explicitly searched for).
-    // Omit any currently assigned directory
-    const paths_to_omit: string[] = [];
-
-    const active_items = all_items.filter(val => !val.get("deleted"));
-    active_items.map(val => {
-      const path = val.get("path");
-      if (path) {
-        // path might not be set in case something went wrong (this has been hit in production)
-        return paths_to_omit.push(path);
-      }
-    });
-
-    const should_omit = path => {
-      if (path.indexOf("-collect") !== -1 && search.indexOf("collect") === -1) {
-        // omit assignment collection folders unless explicitly searched (could cause confusion...)
-        return true;
-      }
-      return paths_to_omit.includes(path);
-    };
-
-    directories = directories.filter(x => !should_omit(x));
-    directories.sort();
+function filter_results(
+  directories: string[],
+  search: string,
+  all_items: immutable.Map<string, any>
+): string[] {
+  if (directories.length == 0) {
+    return directories;
   }
+
+  // Omit any -collect directory (unless explicitly searched for).
+  // Omit any currently assigned directory or subdirectories of them.
+  const paths_to_omit: string[] = [];
+
+  const active_items = all_items.filter(val => !val.get("deleted"));
+  active_items.map(val => {
+    const path = val.get("path");
+    if (path) {
+      // path might not be set in case something went wrong (this has been hit in production)
+      return paths_to_omit.push(path);
+    }
+  });
+
+  function should_omit(path: string): boolean {
+    if (path.indexOf("-collect") !== -1 && search.indexOf("collect") === -1) {
+      // omit assignment collection folders unless explicitly searched (could cause confusion...)
+      return true;
+    }
+    if (paths_to_omit.includes(path)) {
+      return true;
+    }
+    // finally check if path is contained in any ommited path.
+    for (const omit of paths_to_omit) {
+      if (path.startsWith(omit + "/")) return true;
+    }
+    return false;
+  }
+
+  directories = directories.filter(x => !should_omit(x));
+  directories.sort();
   return directories;
-};
+}
 
 interface FoldersToolbarProps {
   search?: string;
   search_change: (search_value: string) => void; // search_change(current_search_value)
   num_omitted?: number;
   project_id?: string;
-  items: object;
-  add_folders: (folders: Iterable<string>) => void; // add_folders (Iterable<T>)
+  items: immutable.Map<string, any>;
+  add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
   plural_item_name: string;
 }
@@ -305,6 +350,11 @@ export class FoldersToolbar extends Component<
   FoldersToolbarProps,
   FoldersToolbarState
 > {
+  private is_unmounted: boolean;
+  componentWillUnmount(): void {
+    this.is_unmounted = true;
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -321,7 +371,7 @@ export class FoldersToolbar extends Component<
     plural_item_name: "items"
   };
 
-  do_add_search = search => {
+  private async do_add_search(search): Promise<void> {
     search = search.trim();
 
     if (this.state.add_is_searching && search === this.state.last_add_search) {
@@ -330,60 +380,59 @@ export class FoldersToolbar extends Component<
 
     this.setState({ add_is_searching: true, last_add_search: search });
 
-    return webapp_client.find_directories({
-      project_id: this.props.project_id,
-      query: `*${search}*`,
-      cb: (err, resp) => {
-        // Disregard the results of this search of a new one was already submitted
-        if (this.state.last_add_search !== search) {
-          return;
-        }
-
-        if (err) {
-          this.setState({
-            add_is_searching: false,
-            err,
-            add_search_results: undefined
-          });
-          return;
-        }
-
-        if (resp.directories.length === 0) {
-          this.setState({
-            add_is_searching: false,
-            add_search_results: immutable.List([]),
-            none_found: true
-          });
-          return;
-        }
-
-        return this.setState(function(state, props) {
-          let merged;
-          const filtered_results = filter_results(
-            resp.directories,
-            search,
-            props.items
-          );
-
-          // Merge to prevent possible massive list alterations
-          if (
-            state.add_search_results &&
-            filtered_results.length === state.add_search_results.size
-          ) {
-            merged = state.add_search_results.merge(filtered_results);
-          } else {
-            merged = immutable.List(filtered_results);
-          }
-
-          return {
-            add_is_searching: false,
-            add_search_results: merged,
-            none_found: false
-          };
-        });
+    let resp;
+    try {
+      resp = await callback2(webapp_client.find_directories, {
+        project_id: this.props.project_id,
+        query: `*${search}*`
+      });
+      // Disregard the results of this search of a new one was already submitted
+      if (this.is_unmounted || this.state.last_add_search !== search) {
+        return;
       }
+    } catch (err) {
+      if (this.is_unmounted) return;
+      this.setState({
+        add_is_searching: false,
+        err,
+        add_search_results: undefined
+      });
+    }
+
+    if (resp.directories.length === 0) {
+      this.setState({
+        add_is_searching: false,
+        add_search_results: immutable.List([]),
+        none_found: true
+      });
+      return;
+    }
+
+    this.setState(function(state, props) {
+      let merged;
+      const filtered_results = filter_results(
+        resp.directories,
+        search,
+        props.items
+      );
+
+      // Merge to prevent possible massive list alterations
+      if (
+        state.add_search_results &&
+        filtered_results.length === state.add_search_results.size
+      ) {
+        merged = state.add_search_results.merge(filtered_results);
+      } else {
+        merged = immutable.List(filtered_results);
+      }
+
+      return {
+        add_is_searching: false,
+        add_search_results: merged,
+        none_found: false
+      };
     });
-  };
+  }
 
   submit_selected = path_list => {
     if (path_list != null) {
@@ -396,18 +445,18 @@ export class FoldersToolbar extends Component<
     return this.clear_add_search();
   };
 
-  clear_add_search = () => {
-    return this.setState({
+  private clear_add_search(): void {
+    this.setState({
       add_search_results: immutable.List([]),
       none_found: false
     });
-  };
+  }
 
   render() {
     return (
-      <Grid fluid={true} style={{ width: "100%" }}>
+      <div>
         <Row>
-          <Col md={3}>
+          <Col md={6}>
             <SearchInput
               placeholder={`Find ${this.props.plural_item_name}...`}
               default_value={this.props.search}
@@ -415,9 +464,11 @@ export class FoldersToolbar extends Component<
               style={SEARCH_STYLE}
             />
           </Col>
-          <Col md={4}>
+          <Col md={8}>
             {this.props.num_omitted ? (
-              <h5>
+              <h5
+                style={{ textAlign: "center", color: "#666", marginTop: "5px" }}
+              >
                 (Omitting {this.props.num_omitted}{" "}
                 {this.props.num_omitted > 1
                   ? this.props.plural_item_name
@@ -428,11 +479,11 @@ export class FoldersToolbar extends Component<
               undefined
             )}
           </Col>
-          <Col md={5}>
+          <Col md={10}>
             <MultipleAddSearch
-              add_selected={this.submit_selected}
-              do_search={this.do_add_search}
-              clear_search={this.clear_add_search}
+              add_selected={this.submit_selected.bind(this)}
+              do_search={this.do_add_search.bind(this)}
+              clear_search={this.clear_add_search.bind(this)}
               is_searching={this.state.add_is_searching}
               item_name={this.props.item_name}
               err={undefined}
@@ -441,7 +492,7 @@ export class FoldersToolbar extends Component<
             />
           </Col>
         </Row>
-      </Grid>
+      </div>
     );
   }
 }

@@ -11,8 +11,7 @@ import { FLAGS } from "smc-util/sagews";
 import { Stdout } from "../jupyter/output-messages/stdout";
 import { Stderr } from "../jupyter/output-messages/stderr";
 
-const { HTML, Markdown } = require("../r_misc");
-//import { HTML, Markdown } from '../r_misc';
+import { HTML, Markdown } from "../r_misc";
 
 import { fromJS } from "immutable";
 
@@ -84,9 +83,9 @@ export class CellOutput extends Component<Props> {
     if (extensions.image.has(ext)) {
       return <img key={key} src={src} />;
     } else if (extensions.video.has(ext)) {
-      return <video key={key} src={src} controls />;
+      return <video key={key} src={src} controls loop />;
     } else if (extensions.audio.has(ext)) {
-      return <audio src={src} autoPlay={true} controls={true} loop={false} />;
+      return <audio src={src} autoPlay={true} controls loop />;
     } else if (ext === "sage3d") {
       return this.render_3d(value.filename, key);
     } else {

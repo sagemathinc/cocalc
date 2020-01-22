@@ -15,7 +15,6 @@ may be used to enhance the experience of document editing.
 const stringify = require("json-stable-stringify");
 
 import { callback } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
@@ -50,9 +49,6 @@ export class Evaluator {
   private last_call_time: Date = new Date(0);
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
-    this.ensure_sage_session_running = reuseInFlight(
-      this.ensure_sage_session_running
-    );
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
@@ -463,16 +459,14 @@ export class Evaluator {
     }
   }
 
-  // NOTE: this is reuseInFlight'd
-  private async ensure_sage_session_running(): Promise<void> {
+  private ensure_sage_session_exists(): void {
     if (this.sage_session != null) return;
-    this.dbg("ensure_sage_session_running")();
-    // This happens only in the project, where client
+    this.dbg("ensure_sage_session_exists")();
+    // This code only runs in the project, where client
     // has a sage_session method.
     this.sage_session = (this.client as any).sage_session({
       path: this.syncdoc.get_path()
     });
-    await callback(this.sage_session.init_socket);
   }
 
   // Runs only in the project
@@ -484,10 +478,20 @@ export class Evaluator {
     // TODO: input also may have -- uuid, output_uuid, timeout
     if (input.event === "execute_code") {
       input = copy_with(input, ["code", "data", "preparse", "event", "id"]);
+      dbg(
+        "ensure sage session is running, so we can actually execute the code"
+      );
     }
-    dbg("ensure sage session is running");
-    await this.ensure_sage_session_running();
-    dbg("send code to sage", to_json(input));
+    await this.ensure_sage_session_exists();
+    if (input.event === "execute_code") {
+      // We only need to actually create the socket, which makes a running process,
+      // if we are going to execute code.  The other events, e.g., 'status' don't
+      // need a running sage session.
+      if (!this.sage_session.is_running()) {
+        await callback(this.sage_session.init_socket);
+      }
+    }
+    dbg("send call to backend sage session manager", to_json(input));
     this.sage_session.call({ input, cb });
   }
 

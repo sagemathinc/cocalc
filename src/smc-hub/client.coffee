@@ -59,7 +59,8 @@ MESG_QUEUE_MAX_COUNT    = 300
 MESG_QUEUE_MAX_WARN    = 50
 
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
-MESG_QUEUE_MAX_SIZE_MB  = 10
+# On the other hand, it is good to make this large enough that projects can save
+MESG_QUEUE_MAX_SIZE_MB  = 20
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
@@ -424,7 +425,7 @@ class exports.Client extends EventEmitter
         ###
         Remember me.  There are many ways to implement
         "remember me" functionality in a web app. Here's how
-        we do it with SMC:    We generate a random uuid,
+        we do it with CoCalc:    We generate a random uuid,
         which along with salt, is stored in the user's
         browser as an httponly cookie.  We password hash the
         random uuid and store that in our database.  When
@@ -453,7 +454,7 @@ class exports.Client extends EventEmitter
         # passport_login.
 
         opts = defaults opts,
-            email_address : required
+            lti_id        : undefined
             account_id    : required
             ttl           : 24*3600 *30     # 30 days, by default
             cb            : undefined
@@ -1707,6 +1708,9 @@ class exports.Client extends EventEmitter
                         else
                             cb()
             (cb) =>
+                # Obviously, no need to check write access about the source project,
+                # since we are only granting access to public files.  This function
+                # should ensure that the path is public:
                 @get_public_project
                     project_id : mesg.src_project_id
                     path       : mesg.src_path
@@ -1723,6 +1727,7 @@ class exports.Client extends EventEmitter
                     timeout         : mesg.timeout
                     exclude_history : mesg.exclude_history
                     backup          : mesg.backup
+                    public          : true
                     cb              : cb
         ], (err) =>
             if err
@@ -1762,7 +1767,7 @@ class exports.Client extends EventEmitter
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
-                    @error_to_client(id:mesg_id, error:err)
+                    @error_to_client(id:mesg_id, error:"#{err}")   # Ensure err like Error('foo') can be JSON'd
                     if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
                         dbg("changefeed got messed up, so cancel it:")
                         @database.user_query_cancel_changefeed(id : mesg_id)
@@ -2102,9 +2107,12 @@ class exports.Client extends EventEmitter
             if not await callback2(@database.account_exists, {email_address : mesg.email_address})
                 throw Error("no such account with email #{mesg.email_address}")
             # We now know that there is an account with this email address.
-            # put entry in the password_reset uuid:value table with ttl of 8 hours.
-            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:8*60*60});
-            mesg.link = "/app#forgot-#{id}"
+            # put entry in the password_reset uuid:value table with ttl of 24 hours.
+            # NOTE: when users request their own reset, the ttl is 1 hour, but when we
+            # as admins send one manually, they typically need more time, so 1 day instead.
+            # We used 8 hours for a while and it is often not enough time.
+            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
+            mesg.link = "/app?forgot=#{id}"
             @push_to_client(mesg)
         catch err
             dbg("failed -- #{err}")
