@@ -68,7 +68,7 @@ upgrades.max_per_project = {
 // this is only for on-prem kubernetes setups
 exports.ON_PREM_DEFAULT_QUOTAS = {
   internet: true,
-  mintime: 60 * 60, // 1 hour
+  idle_timeout: 60 * 60, // 1 hour
   mem: 1000,
   cpu: 1,
   cpu_oc: 10, // overcommitment ratio 10:1

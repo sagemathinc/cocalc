@@ -241,4 +241,21 @@ describe 'default quota', ->
         expect(qfree.memory_request).toBeLessThan(qmember.memory_request)
         expect(qfree.memory_limit).toBeLessThan(qmember.memory_limit)
 
+    it 'processes site_settings', ->
+        site_settings =
+            default_quotas: {"internet":true,"idle_timeout":3600,"mem":1515,"cpu":1.5,"cpu_oc":10,"mem_oc":5}
+            max_upgrades: {"disk_quota": 512, "mintime": 10101, "cpu_shares": 99, "memory_request": 1000 }
 
+        ex1 =
+            network         : true
+            member_host     : false
+            memory_request  : 303
+            memory_limit    : 1515
+            cpu_request     : 154
+            cpu_limit       : 1.5
+            privileged      : false
+            idle_timeout    : 3600
+            disk_quota      : 3000
+
+        q1 = quota({}, {userX: {}}, undefined, site_settings)
+        expect(q1).toEqual(ex1)

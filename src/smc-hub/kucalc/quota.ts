@@ -87,47 +87,51 @@ interface Settings {
 
 /*
  * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
- * max_quotas: Quota
+ * max_upgrades: Quota
  */
 interface SiteSettingsQuotas {
   default_quotas: { [key: string]: string | number };
-  max_quotas: { [key: string]: string | number };
+  max_upgrades: Partial<Settings>;
 }
 
 // base quota + calculated default quotas is the quota object each project gets by default
 // any additional quotas are added on top of it, up until the given limits
-const BASE_QUOTAS: Partial<Quota> = {
+const BASE_QUOTAS: Quota = {
   network: false,
   member_host: false,
   memory_request: 0, // will hold guaranteed RAM in MB
   cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
-  privileged: false // for elevated docker privileges (FUSE mounting, later more)
+  privileged: false, // for elevated docker privileges (FUSE mounting, later more)
+  disk_quota: DEFAULT_QUOTAS.disk_quota,
+  memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
+  cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
+  idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
 } as const;
 
 function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
-  const extras = {
-    disk_quota: DEFAULT_QUOTAS.disk_quota,
-    memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
-    cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
-    idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
-  };
+  const q: Quota = Object.assign({}, BASE_QUOTAS);
 
   // overwrite/set extras for any set default quota in the site setting
   if (site_settings != null) {
     const dq = site_settings?.default_quotas;
-    if (dq.internet != null) extras.network = dq.internet;
-    if (dq.mintime != null) extras.mintime = dq.mintime;
-    if (dq.mem != null) extras.memory_limit = dq.mem;
-    if (dq.mem_oc != null)
-      // ratio is 1:mem_oc
-      extras.memory_request = Math.round(dq.mem / dq.mem_oc);
-    if (dq.cpu != null) extras.cpu_limit = dq.cpu;
-    if (dq.cpu_oc != null)
-      // ratio is 1:cpu_oc
-      extras.cpu_request = Math.round((1024 * dq.cpu) / dq.cpu_oc);
+    if (typeof dq.internet == "boolean") q.network = dq.internet;
+    if (typeof dq.idle_timeout == "number")
+      q.idle_timeout = dq.idle_timeout as number;
+    if (typeof dq.mem == "number") {
+      q.memory_limit = dq.mem;
+      if (typeof dq.mem_oc == "number")
+        // ratio is 1:mem_oc
+        q.memory_request = Math.round(dq.mem / dq.mem_oc);
+    }
+    if (typeof dq.cpu == "number") {
+      q.cpu_limit = dq.cpu as number;
+      if (typeof dq.cpu_oc == "number")
+        // ratio is 1:cpu_oc
+        q.cpu_request = Math.round((1024 * dq.cpu) / dq.cpu_oc);
+    }
   }
 
-  return Object.assign({}, BASE_QUOTAS, extras);
+  return q;
 }
 
 exports.quota = function(
@@ -150,10 +154,11 @@ exports.quota = function(
   const quota: Quota = calc_default_quotas(site_settings);
 
   // site settings max quotas overwrite the hardcoded values
-  const max_upgrades =
-    site_settings?.max_quotas != null
-      ? site_settings?.max_quotas
-      : MAX_UPGRADES;
+  const max_upgrades = Object.assign(
+    {},
+    MAX_UPGRADES,
+    site_settings?.max_upgrades ?? {}
+  );
 
   // network access
   if (!quota.network) {
@@ -244,6 +249,7 @@ exports.quota = function(
     })();
     // compute how much is left for contributed user upgrades
     const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
+    //console.log("calc", name, upgrade, "base", base, "remain", remain, "max_upgrades", max_upgrades[upgrade]);
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];

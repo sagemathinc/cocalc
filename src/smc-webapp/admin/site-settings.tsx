@@ -12,7 +12,7 @@ import { KUCALC_ON_PREMISES } from "smc-util/db-schema/site-defaults";
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
-  max_quotas: MAX_UPGRADES
+  max_upgrades: MAX_UPGRADES
 } as const;
 
 import { isEqual } from "lodash";
@@ -185,7 +185,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   private render_row_entry(name: string, value: string) {
     switch (name) {
       case "default_quotas":
-      case "max_quotas":
+      case "max_upgrades":
         return this.render_json_entry(name, value);
       default:
         return (
@@ -221,7 +221,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
     // do not show quota fields unless it is for on-premp k8s setups
     if (
-      (name == "default_quotas" || name == "max_quotas") &&
+      (name == "default_quotas" || name == "max_upgrades") &&
       this.state.edited.kucalc != KUCALC_ON_PREMISES
     ) {
       return undefined;

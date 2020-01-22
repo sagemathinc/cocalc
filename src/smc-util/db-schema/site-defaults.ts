@@ -20,7 +20,7 @@ export interface SiteSettings {
   version_recommended_browser: Config;
   iframe_comm_hosts: Config;
   default_quotas: Config;
-  max_quotas: Config;
+  max_upgrades: Config;
 }
 
 export const KUCALC_DISABLED = "no";
@@ -101,8 +101,8 @@ export const site_settings_conf: SiteSettings = {
       "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
     default: "{}"
   },
-  max_quotas: {
-    name: "Maximum Quotas",
+  max_upgrades: {
+    name: "Maximum Quota Upgrades",
     desc:
       "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
     default: "{}"
