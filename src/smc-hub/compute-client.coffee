@@ -1246,7 +1246,7 @@ class ProjectClient extends EventEmitter
 
     # COMMANDS:
 
-    # open project files on some node.
+    # open project on some node.
     # A project is by definition opened on a host if @host is set.
     open: (opts) =>
         opts = defaults opts,
@@ -1259,7 +1259,7 @@ class ProjectClient extends EventEmitter
             return
         dbg = @dbg("open")
         dbg()
-        if @_dev or @_single or @_kubernetes   # kubernetes mode doesn't really use the host and leaves it to k8s to assign
+        if @_dev or @_single or @_kubernetes
             host = 'localhost'
             async.series([
                 (cb) =>
@@ -1832,8 +1832,6 @@ class ProjectClient extends EventEmitter
                                 cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
                                 dbg("status includes info about address...")
-                                if not @host and status['ip']
-                                    @host = status['ip']
                                 if not @host or not status['local_hub.port'] or not status.secret_token
                                     cb("unknown host, port, or secret_token")
                                     return
@@ -1841,6 +1839,7 @@ class ProjectClient extends EventEmitter
                                     host         : @host
                                     port         : status['local_hub.port']
                                     secret_token : status.secret_token
+                                    ip           : status.ip
                                 cb()
         ], (err) =>
             cb(err, address)
@@ -2176,7 +2175,7 @@ class ProjectClient extends EventEmitter
                             cb()
                 ], cb)
         ], (err) =>
-            dbg("done setting quotas")
+            dbg("done setting quotas -- #{err}")
             opts.cb(err)
         )
 
