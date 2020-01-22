@@ -1,1 +1,0 @@
-NOTE: I had to make one change to the CSS in dropzone.css!!!
