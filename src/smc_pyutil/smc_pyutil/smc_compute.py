@@ -35,7 +35,7 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid
+import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid, random
 
 from subprocess import Popen, PIPE
 
@@ -622,7 +622,8 @@ spec:
             registry='localhost:30000/')
         # for now pull image from localhost:30000/ as in kucalc; later
         # will have to make this an option.
-        path = "/tmp/project-{project_id}".format(project_id=self.project_id)
+        # TODO: should use tempfile module
+        path = "/tmp/project-{project_id}-{random}.yaml".format(project_id=self.project_id, random=random.random())
         try:
             open(path, 'w').write(yaml)
             self.cmd("kubectl apply -f {path}".format(path=path))
