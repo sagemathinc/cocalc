@@ -84,34 +84,54 @@ block content
   div.container
     div.row.intro#top
       div.col-sm-4.col-sm-offset-4.center
-        a(href="app")
+        a(href="app?anonymous=true")
           img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
       div.col-sm-12.center.descr.
         #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
+      div.col-sm-12.center.spacing
+        a(href="app?anonymous=true")
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200123-nq8.png").shadow.large
+      div.col-sm-12.center.spacing
         +start_button
 
   div.container
     div.row
-      div.col-sm-6
-        h1
-          strong Zero-setup Online Computing Environment
-      div.col-sm-6
+      div.col-md-6.col-sm-4
+        strong IMAGE
+      div.col-md-6.col-sm-8
+        h2.firstline
+          strong Zero-setup
         p.
-          Want to work with Python, R Statistics, LaTeX, Linux, or any other open source tool online?
-          #{NAME} supports #[strong #[a(href="./doc/jupyter-notebook.html") Jupyter notebooks]],
-          has a sophisticated #[strong edit #[a(href="./doc/latex-editor.html") LaTeX editor]] and
-          #[strong #[a(href="./doc/terminal.html") full Linux terminal]]
-        p You only need a web-browser!
+          Immediately start working with #[a(href="./doc/jupyter-notebook.html") Jupyter notebooks],
+          write #[a(href="./doc/latex-editor.html") LaTeX documents]
+          or use a full #[a(href="./doc/terminal.html") Linux terminal].
+        p
+          strong You only need a web-browser!
+
     div.row
-      div.col-sm-6
-        h1
-          strong Teaching in a Virtual Computer Lab
-      div.col-sm-6
+      div.col-md-6.col-md-offset-6
+        h2.firstline
+          strong Collaboration
         p.
-          #[strong #{NAME} is made for #[a(href="./doc/teaching.html") teaching a class online]]!
+          Simultaneously edit any file – including Jupyter Notebooks – and changes are synchronized in real-time.
         p.
-          Avoid the hassle of installing software on every student's machine and help your students more precisely by collaborating on their notebooks.
+          Chat and notifications let you exchange thoughts and ideas.
+
+    div.row
+      div.col-md-4
+        h2.firstline
+          strong Teaching made easy
+        p
+          img(src="https://storage.googleapis.com/cocalc-extra/icons8-classroom.png", style='height:128px; width:128px')
+      div.col-md-8
+        p.
+          #[strong #{NAME} is made for #[a(href="./doc/teaching.html") teaching a course]]!
+        p.
+          No hassle installing software on every student's machine,
+          directly help your students on their notebooks,
+          and let #{NAME} organize all files.
+
+
 
 
   a.anchor#a-explore

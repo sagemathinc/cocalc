@@ -16,6 +16,23 @@ nav#nav-main
 img[data-src]
   min-height: 50px
 
+img.shadow
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.22)
+
+img.large
+  width: 100%
+  @media (min-width: 768px)
+    width: 75%
+
+.firstline
+  margin-top: 0
+
+div.spacing
+  margin-top: 2rem
+  content: ""
+  @media (max-width: 768px)
+    display: none
+
 // actual navbar styling
 nav.navbar.navbar-default
   position : relative
