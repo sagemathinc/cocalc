@@ -5,12 +5,16 @@ Actions involving configuration of the course.
 import { SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
 import { redux } from "../../app-framework";
+import { reuseInFlight } from "async-await-utils/hof";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
 
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
+    this.push_missing_handouts_and_assignments = reuseInFlight(
+      this.push_missing_handouts_and_assignments
+    );
   }
 
   public set(obj: SyncDBRecord, commit: boolean = true): void {
@@ -103,5 +107,14 @@ export class ConfigurationActions {
     await this.course_actions.shared_project.configure();
     await this.configure_host_project();
     await this.course_actions.student_projects.configure_all_projects(force);
+  }
+
+  public async push_missing_handouts_and_assignments(): Promise<void> {
+    const store = this.course_actions.get_store();
+    for (const student_id of store.get_student_ids({ deleted: false })) {
+      await this.course_actions.students.push_missing_handouts_and_assignments(
+        student_id
+      );
+    }
   }
 }
