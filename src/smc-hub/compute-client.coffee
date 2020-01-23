@@ -1782,6 +1782,9 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
             cb            : undefined
+        if @_kubernetes or @_dev or @_single
+            opts.cb() # save not needed in these modes
+            return
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
         @_synctable.connect
@@ -1916,6 +1919,9 @@ class ProjectClient extends EventEmitter
         target_project = undefined
         async.series([
             (cb) =>
+                if @_kubernetes or @_dev or @_single
+                    cb() # project need not be running before copying in these modes
+                    return
                 @ensure_opened_or_running
                     cb : cb
             (cb) =>
@@ -1931,6 +1937,9 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 target_project = x
+                                if @_kubernetes or @_dev or @_single
+                                    cb() # project need not be running before copying in these modes
+                                    return
                                 target_project.ensure_opened_or_running
                                     cb : (err) =>
                                         if err

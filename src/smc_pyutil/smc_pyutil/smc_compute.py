@@ -126,7 +126,9 @@ def check_uuid(u):
         raise RuntimeError("invalid uuid (='%s')" % u)
 
 
-def uid(project_id):
+def uid(project_id, kubernetes=False):
+    if kubernetes:
+        return KUBERNETES_UID
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
@@ -204,10 +206,7 @@ class Project(object):
             self.project_path = os.path.join(self._projects, project_id)
         self.smc_path = os.path.join(self.project_path, '.smc')
         self.forever_path = os.path.join(self.project_path, '.forever')
-        if self._kubernetes:
-            self.uid = KUBERNETES_UID
-        else:
-            self.uid = uid(self.project_id)
+        self.uid = uid(self.project_id, self._kubernetes)
         self.username = self.project_id.replace('-', '')
         self.open_fail_file = os.path.join(self.project_path,
                                            '.sagemathcloud-open-failed')
@@ -1157,12 +1156,12 @@ spec:
         if timeout:
             options.extend(["--timeout", timeout])
 
-        u = uid(target_project_id)
+        u = uid(target_project_id, self._kubernetes)
         try:
             if socket.gethostname() == target_hostname:
                 # we *have* to do this, due to the firewall!
                 target_hostname = 'localhost'
-            if self._dev:
+            if self._dev or self._kubernetes:
                 # In local dev mode everything is as the same account on the same machine,
                 # so we just use rsync without ssh.
                 w = [src_abspath, target_abspath]
