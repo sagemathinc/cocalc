@@ -23,6 +23,7 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
+import { KUCALC_COCALC_COM } from "../../customize";
 
 const { webapp_client } = require("../../webapp_client");
 const { Col, Row } = require("react-bootstrap");
@@ -198,7 +199,7 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 actions={redux.getActions("projects")}
               />
-              {this.props.kucalc === "yes" ? (
+              {this.props.kucalc === KUCALC_COCALC_COM ? (
                 <SSHPanel
                   key="ssh-keys"
                   project={this.props.project}
@@ -231,7 +232,6 @@ export const Body = rclass<ReactProps>(
               <ProjectControl
                 key="control"
                 project={this.props.project}
-                allow_ssh={this.props.kucalc !== "yes"}
               />
               <SagewsControl key="worksheet" project={this.props.project} />
               {have_jupyter_notebook ? (

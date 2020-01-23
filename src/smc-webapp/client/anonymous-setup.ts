@@ -1,3 +1,4 @@
+import { delay} from "awaiting";
 import { callback2, once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
@@ -62,7 +63,8 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     }
 
     // This does not seem like a good idea -- nobody uses it. Better
-    // it turns out to maybe show the files page.  We will see...
+    // it turns out to maybe show the files page.  We will see.
+    // No need to await on this, of course.
     open_default_jupyter_notebook(project_id);
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
@@ -84,16 +86,25 @@ export async function do_anonymous_setup(client: any): Promise<void> {
   }
 }
 
-function open_default_jupyter_notebook(project_id: string): void {
+async function open_default_jupyter_notebook(project_id: string): Promise<void> {
   // Also change default account settings to not ask for the kernel,
   // since that adds friction.
   // log("do not ask for jupyter kernel");
-  redux.getTable("account").set({
-    editor_settings: {
-      ask_jupyter_kernel: false,
-      jupyter: { kernel: "python3" }
+  // We try/catch and loop because the set below will fail if attempted
+  // before the account table is done being initialized.
+  while (1) {
+    try {
+      await redux.getTable("account").set({
+        editor_settings: {
+          ask_jupyter_kernel: false,
+          jupyter: { kernel: "python3" }
+        }
+      });
+      break;
+    } catch (err) {
+      await delay(1000);
     }
-  });
+  }
   // Open a new Jupyter notebook:
   // log("open jupyter notebook");
   const project_actions = redux.getProjectActions(project_id);

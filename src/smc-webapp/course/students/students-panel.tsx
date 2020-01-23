@@ -75,7 +75,6 @@ import {
   IsGradingMap,
   NBgraderRunInfo
 } from "../store";
-import { literal } from "../../app-framework/literal";
 import { redux } from "../../frame-editors/generic/test/util";
 import { CourseActions } from "../actions";
 import { Set } from "immutable";
@@ -247,7 +246,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       existing_students.email = {};
       // For each student in course add account_id and/or email_address:
       this.props.students.map(val => {
-        for (const n of literal(["account_id", "email_address"])) {
+        for (const n of ["account_id", "email_address"] as const) {
           if (val.get(n) != null) {
             already_added[val.get(n)] = true;
           }
@@ -1459,6 +1458,7 @@ class Student extends Component<StudentProps, StudentState> {
       </Row>
     );
     v.push(this.render_note());
+    v.push(this.render_push_missing_handouts_and_assignments());
     return v;
   }
 
@@ -1479,6 +1479,32 @@ class Student extends Component<StudentProps, StudentState> {
         </Col>
         <Col md={6} style={{ paddingTop: "10px" }}>
           {this.render_hosting()}
+        </Col>
+      </Row>
+    );
+  }
+
+  public render_push_missing_handouts_and_assignments(): Rendered {
+    return (
+      <Row key="catchup" style={{ marginTop: "15px" }}>
+        <Col xs={4}>
+          <Tip
+            title="Catch up this student"
+            tip="Copy any assignments and handouts to this student that have been copied to at least one other student"
+          >
+            Copy missing assignments and handouts
+          </Tip>
+        </Col>
+        <Col xs={8}>
+          <Button
+            onClick={() =>
+              this.get_actions().students.push_missing_handouts_and_assignments(
+                this.props.student.get("student_id")
+              )
+            }
+          >
+            <Icon name="share-square" /> Catch up this student
+          </Button>
         </Col>
       </Row>
     );

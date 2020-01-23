@@ -600,6 +600,30 @@ export class ConfigurationPanel extends Component<
     );
   }
 
+  render_push_missing_handouts_and_assignments(): Rendered {
+    return (
+      <Card
+        title={
+          <>
+            <Icon name="share-square" /> Copy missing handouts and assignments
+          </>
+        }
+      >
+        If you <b>add new students</b> to your course, you can click this button
+        to ensure they have all the assignments and handouts that you have
+        already assigned to other students in the course.
+        <hr />
+        <Button
+          onClick={() => {
+            this.get_actions().configuration.push_missing_handouts_and_assignments();
+          }}
+        >
+          <Icon name="share-square" />  Copy missing handouts and assignments
+        </Button>
+      </Card>
+    );
+  }
+
   render_start_all_projects() {
     const r = this.get_store().num_running_projects(this.props.project_map);
     const n = this.get_store().num_students();
@@ -978,6 +1002,8 @@ export class ConfigurationPanel extends Component<
             {this.render_disable_students()}
             <br />
             {this.render_configure_all_projects()}
+            <br />
+            {this.render_push_missing_handouts_and_assignments()}
           </Col>
         </Row>
       </div>

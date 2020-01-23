@@ -35,7 +35,7 @@ import * as immutable from "immutable";
 import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
-import { Provider, connect } from "react-redux";
+import { Provider, connect, useSelector } from "react-redux";
 import * as json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
@@ -331,9 +331,30 @@ export class AppRedux {
     return this.hasStore(project_redux_name(project_id));
   }
 
+  /**
+   * A React Hook to connect a function component to a project store.
+   * Opposed to `getProjectStore`, the project store will not initialize
+   * if it's not defined already.
+   *
+   * @param selectFrom selector to run on the store.
+   *    The result will be compared to the previous result to determine
+   *    if the component should rerender
+   * @param project_id id of the project to connect to
+   */
+  useProjectStore<T>(
+    selectFrom: (store?: ProjectStore) => T,
+    project_id?: string
+  ): T {
+    return useSelector<any, T>(_ => {
+      let projectStore = undefined;
+      if (project_id) {
+        projectStore = this.getStore(project_redux_name(project_id)) as any;
+      }
+      return selectFrom(projectStore);
+    });
+  }
+
   // getProject... is safe to call any time. All structures will be created if they don't exist
-  // TODO -- Typing: Type project Store
-  // <T, C extends Store<T>>
   getProjectStore = (project_id: string): ProjectStore => {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
@@ -401,6 +422,28 @@ export class AppRedux {
       console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
     }
     return this.getActions(file_redux_name(project_id, path, is_public));
+  }
+
+  // getEditorActions but for whatever editor  -- this is mainly meant to be used
+  // from the console when debugging, e.g., smc.redux.currentEditorActions()
+  public currentEditor(): {
+    actions: Actions<any> | undefined;
+    store: Store<any> | undefined;
+  } {
+    const project_id = this.getStore("page").get("active_top_tab");
+    if (!is_valid_uuid_string(project_id)) {
+      return { actions: undefined, store: undefined };
+    }
+    const store = this.getProjectStore(project_id);
+    const tab = store.get("active_project_tab");
+    if (!tab.startsWith("editor-")) {
+      return { actions: undefined, store: undefined };
+    }
+    const path = tab.slice("editor-".length);
+    return {
+      actions: this.getEditorActions(project_id, path),
+      store: this.getEditorStore(project_id, path)
+    };
   }
 }
 

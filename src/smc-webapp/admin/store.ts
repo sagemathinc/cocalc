@@ -1,3 +1,11 @@
+/* TODO: this is done badly, as is clear from having to put user_search prefixes everywhere.
+This approach is awkward and is designed to tangle up a bunch of unrelated code, which is always
+a bad idea.
+
+Instead there should be actions and a store specific in the user/ subdirectory.  See how it's
+done much better by looking at site-licenses/
+*/
+
 import { Store, TypedMap } from "../app-framework";
 import { User as UserInterface } from "smc-webapp/frame-editors/generic/client";
 
