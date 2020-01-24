@@ -596,6 +596,8 @@ metadata:
   labels:
     run: "project"
     project_id: "{project_id}"
+    network: "outside"
+    node_selector: "member"
 spec:
   containers:
     - name: "{pod_name}"
