@@ -470,7 +470,7 @@ class Project(object):
         # id of the containing project.
         os.environ['COCALC_PROJECT_ID'] = self.project_id
         # Obviously this doesn't really work since running as a normal user who can't create other users:
-        os.environ['COCALC_USERNAME'] = self.project_id.replace('-','')
+        os.environ['COCALC_USERNAME'] = self.project_id.replace('-', '')
 
         # for development, the raw server, jupyter, etc., have
         # to listen on localhost since that is where
@@ -592,11 +592,14 @@ class Project(object):
         delay = 0.5
         while True:
             try:
-                return json.loads(self.cmd("kubectl get service cocalc-kubernetes-server-nfs -o json"))["spec"]["clusterIP"]
+                return json.loads(
+                    self.cmd(
+                        "kubectl get service cocalc-kubernetes-server-nfs -o json"
+                    ))["spec"]["clusterIP"]
             except Exception as err:
-                log("ERROR %s"%err)
+                log("ERROR %s" % err)
             time.sleep(delay)
-            delay = min(KUBECTL_MAX_DELAY_S, delay*1.3)
+            delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
                          ephemeral_state, ephemeral_disk):
@@ -652,14 +655,13 @@ spec:
       nfs:
          server: {nfs_server_ip}
          path: "/{project_id}"
-""".format(
-            pod_name=pod_name,
-            project_id=self.project_id,
-            nfs_server_ip=nfs_server_ip,
-            registry=KUBERNETES_REGISTRY,
-            cores=max(1,cores),
-            memory=max(1000, memory),
-            cpu_shares=max(50,cpu_shares),
+""".format(pod_name=pod_name,
+           project_id=self.project_id,
+           nfs_server_ip=nfs_server_ip,
+           registry=KUBERNETES_REGISTRY,
+           cores=max(1, cores),
+           memory=max(1000, memory),
+           cpu_shares=max(50, cpu_shares))
 
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
