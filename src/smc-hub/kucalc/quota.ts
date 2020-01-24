@@ -114,6 +114,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   // overwrite/set extras for any set default quota in the site setting
   if (site_settings != null) {
     const dq = site_settings?.default_quotas;
+    if (typeof dq.disk_quota == "number") q.disk_quota = dq.disk_quota;
     if (typeof dq.internet == "boolean") q.network = dq.internet;
     if (typeof dq.idle_timeout == "number")
       q.idle_timeout = dq.idle_timeout as number;
@@ -249,7 +250,6 @@ exports.quota = function(
     })();
     // compute how much is left for contributed user upgrades
     const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
-    //console.log("calc", name, upgrade, "base", base, "remain", remain, "max_upgrades", max_upgrades[upgrade]);
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];
@@ -261,6 +261,25 @@ exports.quota = function(
         const val = site_license[license_id];
         const num = val != null && val[upgrade];
         contribs += factor * parse_num(num);
+      }
+    }
+    // eventually increase a request if we have a overcommit ratio set
+    if (site_settings?.default_quotas != null) {
+      const { mem_oc, cpu_oc } = site_settings?.default_quotas;
+      if (
+        typeof cpu_oc == "number" &&
+        name == "cpu_request" &&
+        quota.cpu_limit != null
+      ) {
+        const oc_cpu = quota.cpu_limit / cpu_oc;
+        contribs = Math.max(contribs, oc_cpu - base);
+      } else if (
+        typeof mem_oc == "number" &&
+        name == "memory_request" &&
+        quota.memory_limit != null
+      ) {
+        const oc_mem = quota.memory_limit / mem_oc;
+        contribs = Math.max(contribs, oc_mem - base);
       }
     }
     contribs = Math.min(remain, contribs);
@@ -277,13 +296,13 @@ exports.quota = function(
   // idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
   calc("idle_timeout", "mintime", to_int, undefined);
 
-  // memory request
+  // memory request -- must come AFTER memory_limit calculation
   calc("memory_request", "memory_request", to_int, undefined);
 
   // "cores" is the hard upper bound the project container should get
   calc("cpu_limit", "cores", to_float, undefined);
 
-  // cpu_shares is the minimum cpu usage to request
+  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
   calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
 
   // ensure minimum cpu are met

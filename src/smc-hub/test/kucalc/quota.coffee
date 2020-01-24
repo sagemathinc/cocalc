@@ -245,12 +245,46 @@ describe 'default quota', ->
         expect(qfree.memory_request).toBeLessThan(qmember.memory_request)
         expect(qfree.memory_limit).toBeLessThan(qmember.memory_limit)
 
-    it 'processes site_settings', ->
+
+    it 'partial site_settings1/mem', ->
+        site_settings =
+            default_quotas: {internet:true, idle_timeout:3600, mem_oc:5}
+        member = {user2: { upgrades: {member_host:1, memory:4100}}}
+        q = quota({}, member, undefined, site_settings)
+        expect(q).toEqual
+            idle_timeout : 3600
+            memory_limit: 5100
+            memory_request: 1020    # (4100 + 1000) / 5
+            cpu_limit: 1
+            cpu_request: 0.05
+            disk_quota: 3000
+            member_host: true
+            network: true
+            privileged: false
+
+    it 'partial site_settings2/cpu', ->
+        site_settings =
+            default_quotas: {idle_timeout:9999, cpu_oc:10, mem_oc:2, disk_quota:5432}
+        member = {user2: { upgrades: {network:1, cores: 2}}}
+        q = quota({}, member, undefined, site_settings)
+        expect(q).toEqual
+            idle_timeout : 9999
+            memory_limit: 1000
+            memory_request: 500
+            cpu_limit: 3
+            cpu_request: 0.3
+            disk_quota: 5432
+            member_host: false
+            network: true
+            privileged: false
+
+    it 'processes site_settings default_quotas and max_upgrades', ->
         site_settings =
             default_quotas: {"internet":true,"idle_timeout":3600,"mem":1515,"cpu":1.5,"cpu_oc":10,"mem_oc":5}
             max_upgrades: {"disk_quota": 512, "mintime": 10101, "cpu_shares": 99, "memory_request": 1000 }
 
-        ex1 =
+        q1 = quota({}, {userX: {}}, undefined, site_settings)
+        expect(q1).toEqual
             network         : true
             member_host     : false
             memory_request  : 303
@@ -261,5 +295,28 @@ describe 'default quota', ->
             idle_timeout    : 3600
             disk_quota      : 3000
 
-        q1 = quota({}, {userX: {}}, undefined, site_settings)
-        expect(q1).toEqual(ex1)
+    it 'adds site-license key upgrades', ->
+        site_license =
+            '1234-5678-asdf-yxcv':
+                member_host    : true
+                network        : true
+                memory         : 3210
+                memory_request : 531
+                disk_quota     : 345
+                cores          : 1.5
+                mintime        : 24*3600
+                cpu_shares     : 1024 * 0.5
+
+
+        q1 = quota({}, {userX: {}}, site_license)
+        expect(q1).toEqual
+            idle_timeout: 24*3600 + 1800
+            memory_limit: 4210
+            memory_request: 531
+            cpu_limit: 2.5
+            cpu_request: .5
+            disk_quota: 3345  # 3gb free
+            member_host: true
+            network: true
+            privileged: false
+
