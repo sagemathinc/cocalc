@@ -108,6 +108,7 @@ exports.compute_server = compute_server = (opts) ->
         base_url : ''
         dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
         single   : false          # single -- for single-server use/development; everything runs on a single machine.
+        kubernetes : false        # kubernetes -- monolithic cocalc-kubernetes mode
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -120,6 +121,7 @@ class ComputeServerClient
             database : undefined
             dev      : false
             single   : false
+            kubernetes : false
             base_url : ''     # base url of webserver -- passed on to local_hub so it can start servers with correct base_url
             cb       : required
         dbg = @dbg("constructor")
@@ -129,6 +131,7 @@ class ComputeServerClient
         @_project_cache_cb = {}
         @_dev = opts.dev
         @_single = opts.single
+        @_kubernetes = opts.kubernetes
         async.series([
             (cb) =>
                 @_init_db(opts, cb)
@@ -194,7 +197,7 @@ class ComputeServerClient
             cb           : required
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
-        if @_single
+        if @_single or @_kubernetes
             dbg("single machine server -- just copy files directly")
             @_add_server_single(opts)
             return
@@ -901,6 +904,7 @@ class ProjectClient extends EventEmitter
         @compute_server = opts.compute_server
         @_dev           = @compute_server._dev
         @_single        = @compute_server._single
+        @_kubernetes        = @compute_server._kubernetes
 
         dbg = @dbg('constructor')
         dbg()
@@ -1105,8 +1109,8 @@ class ProjectClient extends EventEmitter
             return {state : @_state, time : @_state_time, error : @_state_error}
 
         if not @host
-            if @_dev or @_single
-                # in case of dev or single mode, open will properly setup the host.
+            if @_dev or @_single or @_kubernetes
+                # in case of dev or single or kubernetes mode, open will properly setup the host (which is just localhost)
                 the_state = undefined
                 async.series([
                     (cb) =>
@@ -1242,7 +1246,7 @@ class ProjectClient extends EventEmitter
 
     # COMMANDS:
 
-    # open project files on some node.
+    # open project on some node.
     # A project is by definition opened on a host if @host is set.
     open: (opts) =>
         opts = defaults opts,
@@ -1255,7 +1259,7 @@ class ProjectClient extends EventEmitter
             return
         dbg = @dbg("open")
         dbg()
-        if @_dev or @_single
+        if @_dev or @_single or @_kubernetes
             host = 'localhost'
             async.series([
                 (cb) =>
@@ -1315,7 +1319,7 @@ class ProjectClient extends EventEmitter
         )
 
 
-    # start local_hub daemon running (must be opened somewhere)
+    # start project local_hub daemon running (must be opened somewhere)
     start: (opts) =>
         opts = defaults opts,
             set_quotas : true   # if true, also sets all quotas
@@ -1365,10 +1369,10 @@ class ProjectClient extends EventEmitter
                     timeout : 30
                     cb      : cb
             (cb) =>
-                if opts.set_quotas
-                    # CRITICAL: the quotas **MUST** also be set after the project has started, since some of
+                if opts.set_quotas and not @_kubernetes
+                    # CRITICAL: for non-kubernetes the quotas **MUST** also be set after the project has started, since some of
                     # the quotas, e.g., disk space and network, can't be set until the Linux account
-                    # has been created.
+                    # has been created.   Kubernetes is of course the opposite...
                     dbg("setting all quotas")
                     @set_all_quotas(cb:cb)
                 else
@@ -1778,6 +1782,9 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
             cb            : undefined
+        if @_kubernetes or @_dev or @_single
+            opts.cb() # save not needed in these modes
+            return
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
         @_synctable.connect
@@ -1835,6 +1842,7 @@ class ProjectClient extends EventEmitter
                                     host         : @host
                                     port         : status['local_hub.port']
                                     secret_token : status.secret_token
+                                    ip           : status.ip
                                 cb()
         ], (err) =>
             cb(err, address)
@@ -1844,6 +1852,8 @@ class ProjectClient extends EventEmitter
     # decay backing off up to 15s between attempts.
     # If/when it works, the returned address object will definitely have the
     # host, port and secret_token set.
+    # In some cases it will ip set, which should be
+    # preferred to host.
     address: (opts) =>
         opts = defaults opts,
             cb : required
@@ -1909,6 +1919,9 @@ class ProjectClient extends EventEmitter
         target_project = undefined
         async.series([
             (cb) =>
+                if @_kubernetes or @_dev or @_single
+                    cb() # project need not be running before copying in these modes
+                    return
                 @ensure_opened_or_running
                     cb : cb
             (cb) =>
@@ -1924,6 +1937,9 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 target_project = x
+                                if @_kubernetes or @_dev or @_single
+                                    cb() # project need not be running before copying in these modes
+                                    return
                                 target_project.ensure_opened_or_running
                                     cb : (err) =>
                                         if err
@@ -2047,7 +2063,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             member_host : required
             cb          : required
-        if @_dev or @_single or not @host
+        if @_kubernetes or @_dev or @_single or not @host
             # dev environments -- only one host.   Or, not open on any host.
             opts.cb()
             return
@@ -2170,7 +2186,7 @@ class ProjectClient extends EventEmitter
                             cb()
                 ], cb)
         ], (err) =>
-            dbg("done setting quotas")
+            dbg("done setting quotas -- #{err}")
             opts.cb(err)
         )
 

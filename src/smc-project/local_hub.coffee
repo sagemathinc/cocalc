@@ -128,7 +128,7 @@ hub_client = undefined
 init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.json file written, not that INFO var is initialized.
     winston.debug("initializing INFO")
     filename = "#{SMC}/info.json"
-    if kucalc.IN_KUCALC and process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
+    if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
         username   = process.env.COCALC_USERNAME
     else

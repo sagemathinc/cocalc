@@ -35,14 +35,20 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid
+import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid, random
 
 from subprocess import Popen, PIPE
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 USER_SWAP_MB = 1000  # amount of swap users get in addition to how much RAM they have.
 PLATFORM = platform.system().lower()
-PROJECTS = '/projects'
+PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
+
+KUBERNETES_UID = 2001
+KUBERNETES_PROJECTS = "/projects/home"
+KUBERNETES_LOCAL_HUB_PORT = 6000
+KUBERNETES_RAW_PORT = 6001
+KUBECTL_MAX_DELAY_S = 5
 
 
 def quota_to_int(x):
@@ -89,12 +95,11 @@ def cmd(s,
         signal.signal(signal.SIGALRM, handle)
         signal.alarm(timeout)
     try:
-        out = Popen(
-            s,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE,
-            shell=not isinstance(s, list))
+        out = Popen(s,
+                    stdin=PIPE,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    shell=not isinstance(s, list))
         x = out.stdout.read() + out.stderr.read()
         e = out.wait(
         )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
@@ -122,7 +127,9 @@ def check_uuid(u):
         raise RuntimeError("invalid uuid (='%s')" % u)
 
 
-def uid(project_id):
+def uid(project_id, kubernetes=False):
+    if kubernetes:
+        return KUBERNETES_UID
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
@@ -175,15 +182,20 @@ class Project(object):
             dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
             projects=PROJECTS,
             single=False,
-            kucalc=False):
+            kucalc=False,
+            kubernetes=False):
         self._dev = dev
         self._single = single
         self._kucalc = kucalc
-        if kucalc:
+        self._kubernetes = kubernetes
+        if self._kucalc:
             projects = '/home'
+        if self._kubernetes:
+            # no matter what use this path; overwrites --projects
+            projects = KUBERNETES_PROJECTS
         check_uuid(project_id)
         if not os.path.exists(projects):
-            if self._dev:
+            if self._dev or self._kubernetes:
                 os.makedirs(projects)
             else:
                 raise RuntimeError("mount point %s doesn't exist" % projects)
@@ -195,7 +207,7 @@ class Project(object):
             self.project_path = os.path.join(self._projects, project_id)
         self.smc_path = os.path.join(self.project_path, '.smc')
         self.forever_path = os.path.join(self.project_path, '.forever')
-        self.uid = uid(self.project_id)
+        self.uid = uid(self.project_id, self._kubernetes)
         self.username = self.project_id.replace('-', '')
         self.open_fail_file = os.path.join(self.project_path,
                                            '.sagemathcloud-open-failed')
@@ -223,7 +235,7 @@ class Project(object):
         # However, since we're changing the uid mapping, we really do have to do this every time,
         # or we break existing installs.
         self.chown(self.project_path)
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username],
             ignore_errors=True)
@@ -234,7 +246,7 @@ class Project(object):
             ignore_errors=True)
 
     def delete_user(self):
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         cmd(['/usr/sbin/userdel', self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
@@ -252,8 +264,8 @@ class Project(object):
     def pids(self):
         return [
             int(x)
-            for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).
-            replace('ERROR', '').split()
+            for x in self.cmd(['pgrep', '-u', self.uid],
+                              ignore_errors=True).replace('ERROR', '').split()
         ]
 
     def num_procs(self):
@@ -261,6 +273,9 @@ class Project(object):
 
     def killall(self, grace_s=0.5, max_tries=15):
         log = self._log('killall')
+        if self._kubernetes:
+            log("killall shouldn't do anything in kubernetes mode")
+            return
         if self._dev:
             self.dev_env()
             os.chdir(self.project_path)
@@ -286,7 +301,7 @@ class Project(object):
         log("WARNING: failed to kill all procs after %s tries" % max_tries)
 
     def chown(self, path, recursive=True):
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         if recursive:
             cmd(["chown", "%s:%s" % (self.uid, self.uid), '-R', path])
@@ -329,6 +344,9 @@ class Project(object):
             shutil.rmtree(self.smc_path, ignore_errors=True)
 
     def disk_quota(self, quota=0):  # quota in megabytes
+        if self._dev or self._kubernetes:
+            # TODO: For kubernetes this can be done via groups, hopefully.
+            return
         try:
             quota = quota_to_int(quota)
             # requires quotas to be setup as explained nicely at
@@ -348,7 +366,7 @@ class Project(object):
         memory     - megabytes of RAM (int)
         cpu_shares - determines relative share of cpu (e.g., 256=most users)
         """
-        if self._dev:
+        if self._dev or self._kubernetes:
             return
         cfs_quota = int(100000 * cores)
 
@@ -384,9 +402,8 @@ class Project(object):
         if z not in cur:
             open("/etc/cgrules.conf", 'a').write(z)
         try:
-            pids = self.cmd(
-                "ps -o pid -u %s" % self.username,
-                ignore_errors=False).split()[1:]
+            pids = self.cmd("ps -o pid -u %s" % self.username,
+                            ignore_errors=False).split()[1:]
             self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
             # ignore cgclassify errors, since processes come and go, etc.
         except:
@@ -394,9 +411,8 @@ class Project(object):
 
     def cgclassify(self):
         try:
-            pids = self.cmd(
-                "ps -o pid -u %s" % self.username,
-                ignore_errors=False).split()[1:]
+            pids = self.cmd("ps -o pid -u %s" % self.username,
+                            ignore_errors=False).split()[1:]
             self.cmd(["cgclassify"] + pids, ignore_errors=True)
             # ignore cgclassify errors, since processes come and go, etc.":
         except:
@@ -413,6 +429,8 @@ class Project(object):
         """
         Remove the ~/.snapshots path
         """
+        if self._kubernetes:  # don't touch it for this, since we have no snapshots
+            return
         p = os.path.join(self.project_path, '.snapshots')
         if os.path.exists(p):
             shutil.rmtree(p, ignore_errors=True)
@@ -447,6 +465,11 @@ class Project(object):
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
+        # Important to set this since when running in a cocalc project, this will already be set to the
+        # id of the containing project.
+        os.environ['COCALC_PROJECT_ID'] = self.project_id
+        # Obviously this doesn't really work since running as a normal user who can't create other users:
+        os.environ['COCALC_USERNAME'] = self.project_id.replace('-','')
 
         # for development, the raw server, jupyter, etc., have
         # to listen on localhost since that is where
@@ -455,10 +478,14 @@ class Project(object):
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
               ephemeral_disk):
+        if self._kubernetes:
+            return self.kubernetes_start(cores, memory, cpu_shares, base_url,
+                                         ephemeral_state, ephemeral_disk)
+
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
-
         self.ensure_bashrc()
+
         self.remove_forever_path()  # probably not needed anymore
         self.remove_snapshots_path()
         self.create_user()
@@ -489,8 +516,8 @@ class Project(object):
             self.cmd("smc-local-hub start")
 
             def started():
-                return os.path.exists(
-                    "%s/local_hub/local_hub.port" % self.smc_path)
+                return os.path.exists("%s/local_hub/local_hub.port" %
+                                      self.smc_path)
 
             i = 0
             while not started():
@@ -536,10 +563,10 @@ class Project(object):
                     if self._single:
                         # In single-machine mode, everything is on localhost.
                         os.environ['SMC_HOST'] = 'localhost'
-                    del os.environ['SUDO_COMMAND']
-                    del os.environ['SUDO_UID']
-                    del os.environ['SUDO_GID']
-                    del os.environ['SUDO_USER']
+                    for x in ['COMMAND', 'UID', 'GID', 'USER']:
+                        y = 'SUDO_' + x
+                        if y in os.environ:
+                            del os.environ[y]
                     os.chdir(self.project_path)
                     self.cmd("smc-start")
                 else:
@@ -550,7 +577,78 @@ class Project(object):
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
 
+    def kubernetes_pod_name(self):
+        return "project-" + self.project_id
+
+    def kubernetes_start(self, cores, memory, cpu_shares, base_url,
+                         ephemeral_state, ephemeral_disk):
+        log = self._log("kubernetes_start")
+        if self.kubernetes_state()["state"] == 'running':
+            log("already running")
+            return
+        log("kubernetes start")
+        pod_name = self.kubernetes_pod_name()
+        yaml = """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{pod_name}"
+  labels:
+    run: "project"
+    project_id: "{project_id}"
+spec:
+  containers:
+    - name: "{pod_name}"
+      image: "{registry}cocalc-kubernetes-project"
+      env:
+        - name: COCALC_PROJECT_ID
+          value: "{project_id}"
+      ports:
+        - containerPort: 6000
+          name: "local-hub"
+          protocol: TCP
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 6001 # port number configured in Dockerfile and supervisord.conf
+        initialDelaySeconds: 60
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 20
+      volumeMounts:
+        - name: home
+          mountPath: /home/user
+  automountServiceAccountToken: false
+  volumes:
+    - name: home
+      nfs:
+         server: {nfs_server_ip}
+         path: "/{project_id}"
+""".format(
+            pod_name=pod_name,
+            project_id=self.project_id,
+            nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
+            registry='localhost:30000/')
+        # for now pull image from localhost:30000/ as in kucalc; later
+        # will have to make this an option.
+        # TODO: should use tempfile module
+        path = "/tmp/project-{project_id}-{random}.yaml".format(
+            project_id=self.project_id, random=random.random())
+        try:
+            open(path, 'w').write(yaml)
+            self.cmd("kubectl apply -f {path}".format(path=path))
+        finally:
+            os.unlink(path)
+        # The semantics of smc-compute are that it shouldn't return until the start action is actually finished.
+        # TODO: We should obviously do this using kubectl watch somehow instead of polling (which is less efficient).
+        delay = 1
+        while self.kubernetes_state()["state"] != 'running':
+            time.sleep(delay)
+            delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
+
     def stop(self, ephemeral_state, ephemeral_disk):
+        if self._kubernetes:
+            return self.kubernetes_stop(ephemeral_state, ephemeral_disk)
         self.killall()
         self.delete_user()
         self.remove_smc_path()
@@ -559,6 +657,17 @@ class Project(object):
         if ephemeral_disk:
             # Also delete home directory of project
             shutil.rmtree(self.project_path)
+
+    def kubernetes_stop(self, ephemeral_state, ephemeral_disk):
+        cmd = "kubectl delete pod project-{project_id}".format(
+            project_id=self.project_id)
+        self.cmd(cmd)
+        # TODO: We should obviously do this using kubectl watch somehow instead of polling...
+        delay = 1
+        while self.kubernetes_state()["state"] != 'opened':
+            time.sleep(delay)
+            delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
+            self.cmd(cmd)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
                 ephemeral_disk):
@@ -573,6 +682,8 @@ class Project(object):
         return 0  # no longer supported
 
     def status(self, timeout=60, base_url=''):
+        if self._kubernetes:
+            return self.kubernetes_status()
         log = self._log("status")
         s = {}
 
@@ -641,7 +752,11 @@ class Project(object):
                 s['state'] = 'broken'
         return s
 
+    # State is just like status but *ONLY* includes the state field in the object.
     def state(self, timeout=60, base_url=''):
+        if self._kubernetes:
+            return self.kubernetes_state()
+
         log = self._log("state")
 
         if (self._dev
@@ -693,6 +808,74 @@ class Project(object):
                 log("error running status command -- %s", err)
                 s['state'] = 'broken'
         return s
+
+    def kubernetes_status(self):
+        log = self._log("kubernetes_status")
+        status = {}
+        secret_token_path = os.path.join(self.smc_path, 'secret_token')
+        if os.path.exists(secret_token_path):
+            status['secret_token'] = open(secret_token_path).read()
+        pod_name = self.kubernetes_pod_name()
+        log("pod name is %s" % pod_name)
+        try:
+            # Check if the pod is running in Kubernetes at all
+            out = self.cmd(
+                "kubectl get pod {pod_name} -o wide | tail -1".format(
+                    pod_name=pod_name),
+                ignore_errors=True)
+            if "NotFound" in out:
+                return {"state": 'opened'}
+            v = out.split()
+            state = self.kubernetes_output_to_state(v[2])
+            status['state'] = state
+            if state == 'running' and "." in v[5]:  # TODO: should do better...
+                status["ip"] = v[5]
+            status['local_hub.port'] = KUBERNETES_LOCAL_HUB_PORT
+            status['raw.port'] = KUBERNETES_RAW_PORT
+        except Exception as err:
+            log("pod not running?  kubernetes messed up? -- %s" % err)
+            # Not running
+            status['state'] = 'opened'
+
+        return status
+
+        # TODO: status for kucalc looks like this and filling this sort of thing in would result in
+        # nice information in the frontend client UI:
+        #  {"cpu": {"usage": 5379.858459433}, "time": 1579646626058, "memory": {"rss": 248464, "cache": 17660, "limit": 1536000}, "disk_MB": 89, "start_ts": 1578092846508, "oom_kills": 0, "processes": {"count": 7}, "secret_token": "fd541386e146f1ce62edbaffdcf35c899077f1ed70fdcc9c3cac06fd5b422011"}
+        # Another note -- in kucalc state has the ip address, but here status has the ip address.  That's because compute-server
+        # has a strong constraint about the structure of state, but status is generic and just passed to the caller.
+
+    def kubernetes_state(self):
+        log = self._log("kubernetes_state")
+
+        if not os.path.exists(self.project_path):
+            log("create project path")
+            self.create_project_path()
+
+        pod_name = self.kubernetes_pod_name()
+        log("pod name is %s" % pod_name)
+        try:
+            # Check if the pod is running in Kubernetes at all
+            out = self.cmd(
+                "kubectl get pod {pod_name} -o wide | tail -1".format(
+                    pod_name=pod_name),
+                ignore_errors=True)
+            return {"state": self.kubernetes_output_to_state(out)}
+        except Exception as err:
+            log("pod not running?  kubernetes messed up? -- %s" % err)
+            # Not running
+            return {"state": "opened"}
+
+    def kubernetes_output_to_state(self, out):
+        if 'Running' in out:
+            return 'running'
+        if 'Terminating' in out:
+            return 'stopping'
+        if 'Pending' in out:
+            return 'Pending'
+        if 'NotFound' in out:
+            return 'opened'
+        return 'starting'
 
     def _exclude(self, prefix='', extras=[]):
         return [
@@ -861,8 +1044,8 @@ class Project(object):
                             raise RuntimeError(
                                 "path (=%s) must be at most %s bytes, but it is at least %s bytes"
                                 % (path, maxsize, size))
-                        arcname = os.path.join(
-                            os.path.relpath(root, relroot), file)
+                        arcname = os.path.join(os.path.relpath(root, relroot),
+                                               file)
                         zip.write(filename, arcname)
 
             # Mark the files as having been created on Windows so that
@@ -997,12 +1180,12 @@ class Project(object):
         if timeout:
             options.extend(["--timeout", timeout])
 
-        u = uid(target_project_id)
+        u = uid(target_project_id, self._kubernetes)
         try:
             if socket.gethostname() == target_hostname:
                 # we *have* to do this, due to the firewall!
                 target_hostname = 'localhost'
-            if self._dev:
+            if self._dev or self._kubernetes:
                 # In local dev mode everything is as the same account on the same machine,
                 # so we just use rsync without ssh.
                 w = [src_abspath, target_abspath]
@@ -1058,8 +1241,10 @@ def main():
 
         def g(args):
             special = [
-                k for k in args.__dict__.keys() if k not in
-                ['project_id', 'func', 'dev', 'projects', 'single', 'kucalc']
+                k for k in args.__dict__.keys() if k not in [
+                    'project_id', 'func', 'dev', 'projects', 'single',
+                    'kucalc', 'kubernetes'
+                ]
             ]
             out = []
             errors = False
@@ -1069,12 +1254,12 @@ def main():
                 kwds = dict([(k, getattr(args, k)) for k in special])
                 try:
                     result = getattr(
-                        Project(
-                            project_id=project_id,
-                            dev=args.dev,
-                            projects=args.projects,
-                            single=args.single,
-                            kucalc=args.kucalc), function)(**kwds)
+                        Project(project_id=project_id,
+                                dev=args.dev,
+                                projects=args.projects,
+                                single=args.single,
+                                kucalc=args.kucalc,
+                                kubernetes=args.kubernetes), function)(**kwds)
                 except Exception as mesg:
                     raise  #-- for debugging
                     errors = True
@@ -1091,8 +1276,10 @@ def main():
             if errors:
                 sys.exit(1)
 
-        subparser.add_argument(
-            "project_id", help="UUID of project", type=str, nargs="+")
+        subparser.add_argument("project_id",
+                               help="UUID of project",
+                               type=str,
+                               nargs="+")
         subparser.set_defaults(func=g)
 
     # optional arguments to all subcommands
@@ -1119,14 +1306,25 @@ def main():
         default=False,
         action="store_const",
         const=True,
-        help="run inside a project container inside KuCalc")
+        help=
+        "run inside a project container inside KuCalc, the commercial scalable Kubernetes"
+    )
 
     parser.add_argument(
-        "--projects",
-        help="/projects mount point [default: '/projects']",
-        dest="projects",
-        default='/projects',
-        type=str)
+        "--kubernetes",
+        default=False,
+        action="store_const",
+        const=True,
+        help=
+        "running inside of cocalc-kubernetes, which has a monolithic server and one pod for each project; /projects/home/[project_id] is where the projects are stored and /projects/home is NFS exported. All users are uid 2001."
+    )
+
+    parser.add_argument("--projects",
+                        help="/projects mount point [default: '%s']" %
+                        PROJECTS,
+                        dest="projects",
+                        default=PROJECTS,
+                        type=str)
 
     # start project running
     parser_start = subparsers.add_parser(
@@ -1170,31 +1368,39 @@ def main():
 
     parser_status = subparsers.add_parser(
         'status', help='get status of servers running in the project')
-    parser_status.add_argument(
-        "--timeout", help="seconds to run command", default=60, type=int)
-    parser_status.add_argument(
-        "--base_url", help="ignored", type=str, default='')
+    parser_status.add_argument("--timeout",
+                               help="seconds to run command",
+                               default=60,
+                               type=int)
+    parser_status.add_argument("--base_url",
+                               help="ignored",
+                               type=str,
+                               default='')
 
     f(parser_status)
 
     parser_state = subparsers.add_parser(
         'state', help='get state of project')  # {state:?}
-    parser_state.add_argument(
-        "--timeout", help="seconds to run command", default=60, type=int)
-    parser_state.add_argument(
-        "--base_url", help="ignored", type=str, default='')
+    parser_state.add_argument("--timeout",
+                              help="seconds to run command",
+                              default=60,
+                              type=int)
+    parser_state.add_argument("--base_url",
+                              help="ignored",
+                              type=str,
+                              default='')
     f(parser_state)
 
     # disk quota
-    parser_disk_quota = subparsers.add_parser(
-        'disk_quota', help='set disk quota')
+    parser_disk_quota = subparsers.add_parser('disk_quota',
+                                              help='set disk quota')
     parser_disk_quota.add_argument(
         "quota", help="quota in MB (or 0 for no disk_quota).", type=float)
     f(parser_disk_quota)
 
     # compute quota
-    parser_compute_quota = subparsers.add_parser(
-        'compute_quota', help='set compute quotas')
+    parser_compute_quota = subparsers.add_parser('compute_quota',
+                                                 help='set compute quotas')
     parser_compute_quota.add_argument(
         "--cores",
         help="number of cores (default: 0=don't change/set) float",
@@ -1213,15 +1419,17 @@ def main():
     f(parser_compute_quota)
 
     # create Linux user for project
-    parser_create_user = subparsers.add_parser(
-        'create_user', help='create Linux user')
-    parser_create_user.add_argument(
-        "--login_shell", help="", type=str, default='/bin/bash')
+    parser_create_user = subparsers.add_parser('create_user',
+                                               help='create Linux user')
+    parser_create_user.add_argument("--login_shell",
+                                    help="",
+                                    type=str,
+                                    default='/bin/bash')
     f(parser_create_user)
 
     # delete Linux user for project
-    parser_delete_user = subparsers.add_parser(
-        'delete_user', help='delete Linux user')
+    parser_delete_user = subparsers.add_parser('delete_user',
+                                               help='delete Linux user')
     f(parser_delete_user)
 
     # kill all processes by Linux user for project
@@ -1246,8 +1454,8 @@ def main():
         const=True)
     f(parser_stop)
 
-    parser_restart = subparsers.add_parser(
-        'restart', help='stop then start project')
+    parser_restart = subparsers.add_parser('restart',
+                                           help='stop then start project')
     parser_restart.add_argument(
         "--cores",
         help="number of cores (default: 0=don't change/set) float",
@@ -1289,19 +1497,17 @@ def main():
     parser_directory_listing = subparsers.add_parser(
         'directory_listing',
         help='list files (and info about them) in a directory in the project')
-    parser_directory_listing.add_argument(
-        "--path",
-        help="relative path in project",
-        dest="path",
-        default='',
-        type=str)
-    parser_directory_listing.add_argument(
-        "--hidden",
-        help="if given, show hidden files",
-        dest="hidden",
-        default=False,
-        action="store_const",
-        const=True)
+    parser_directory_listing.add_argument("--path",
+                                          help="relative path in project",
+                                          dest="path",
+                                          default='',
+                                          type=str)
+    parser_directory_listing.add_argument("--hidden",
+                                          help="if given, show hidden files",
+                                          dest="hidden",
+                                          default=False,
+                                          action="store_const",
+                                          const=True)
     parser_directory_listing.add_argument(
         "--time",
         help="if given, sort by time with newest first",
@@ -1356,12 +1562,11 @@ def main():
         dest="target_project_id",
         default="",
         type=str)
-    parser_copy_path.add_argument(
-        "--path",
-        help="relative path or filename in project",
-        dest="path",
-        default='',
-        type=str)
+    parser_copy_path.add_argument("--path",
+                                  help="relative path or filename in project",
+                                  dest="path",
+                                  default='',
+                                  type=str)
     parser_copy_path.add_argument(
         "--target_path",
         help="relative path into target project (defaults to --path)",
@@ -1399,8 +1604,9 @@ def main():
     f(parser_copy_path)
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')
-    parser_mkdir.add_argument(
-        "path", help="relative path or filename in project", type=str)
+    parser_mkdir.add_argument("path",
+                              help="relative path or filename in project",
+                              type=str)
     f(parser_mkdir)
 
     args = parser.parse_args()
