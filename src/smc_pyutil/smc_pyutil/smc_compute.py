@@ -465,6 +465,11 @@ class Project(object):
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
+        # Important to set this since when running in a cocalc project, this will already be set to the
+        # id of the containing project.
+        os.environ['COCALC_PROJECT_ID'] = self.project_id
+        # Obviously this doesn't really work since running as a normal user who can't create other users:
+        os.environ['COCALC_USERNAME'] = self.project_id.replace('-','')
 
         # for development, the raw server, jupyter, etc., have
         # to listen on localhost since that is where
