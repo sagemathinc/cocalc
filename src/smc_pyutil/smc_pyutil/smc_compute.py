@@ -478,10 +478,11 @@ class Project(object):
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk):
+              ephemeral_disk, member, network):
         if self._kubernetes:
             return self.kubernetes_start(cores, memory, cpu_shares, base_url,
-                                         ephemeral_state, ephemeral_disk)
+                                         ephemeral_state, ephemeral_disk,
+                                         member, network)
 
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
@@ -602,7 +603,7 @@ class Project(object):
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
-                         ephemeral_state, ephemeral_disk):
+                         ephemeral_state, ephemeral_disk, member, network):
         log = self._log("kubernetes_start")
         if self.kubernetes_state()["state"] == 'running':
             log("already running")
@@ -610,6 +611,8 @@ class Project(object):
         log("kubernetes start")
         nfs_server_ip = self.kubernetes_nfs_server_ip_address()
         pod_name = self.kubernetes_pod_name()
+        node_selector = "member" if member else "preempt"
+        network = "outside" if network else "none"
         yaml = """
 apiVersion: v1
 kind: Pod
@@ -618,8 +621,8 @@ metadata:
   labels:
     run: "project"
     project_id: "{project_id}"
-    network: "outside"
-    node_selector: "member"
+    network: "{network}"
+    node_selector: "{node_selector}"
 spec:
   containers:
     - name: "{pod_name}"
@@ -661,7 +664,9 @@ spec:
            registry=KUBERNETES_REGISTRY,
            cores=max(1, cores),
            memory=max(1000, memory),
-           cpu_shares=max(50, cpu_shares))
+           cpu_shares=max(50, cpu_shares),
+           network=network_label,
+           node_selector=node_selector)
 
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
@@ -702,13 +707,13 @@ spec:
             self.cmd(cmd)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-                ephemeral_disk):
+                ephemeral_disk, member, network):
         log = self._log("restart")
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
         self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
-                   ephemeral_disk)
+                   ephemeral_disk, member, network)
 
     def get_memory(self, s):
         return 0  # no longer supported
@@ -1377,6 +1382,18 @@ def main():
         type=int,
         default=0)
     parser_start.add_argument(
+        "--network",
+        help=
+        "0 or 1; if 1 enable outside network access (ONLY used by cocalc-kubernetes)",
+        type=int,
+        default=0)
+    parser_start.add_argument(
+        "--member",
+        help=
+        "0 or 1; if 1 enable member hosting (ONLY used by cocalc-kubernetes)",
+        type=int,
+        default=0)
+    parser_start.add_argument(
         "--base_url",
         help=
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
@@ -1501,6 +1518,18 @@ def main():
     parser_restart.add_argument(
         "--cpu_shares",
         help="relative share of cpu (default: 0=don't change/set) int",
+        type=int,
+        default=0)
+    parser_start.add_argument(
+        "--network",
+        help=
+        "0 or 1; if 1 enable outside network access (ONLY used by cocalc-kubernetes)",
+        type=int,
+        default=0)
+    parser_start.add_argument(
+        "--member",
+        help=
+        "0 or 1; if 1 enable member hosting (ONLY used by cocalc-kubernetes)",
         type=int,
         default=0)
     parser_restart.add_argument(
