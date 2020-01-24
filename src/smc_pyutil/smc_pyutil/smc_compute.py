@@ -636,9 +636,16 @@ spec:
         periodSeconds: 30
         timeoutSeconds: 10
         failureThreshold: 20
-      volumeMounts:
-        - name: home
-          mountPath: /home/user
+      resources:
+        limits:
+          cpu: "{cores}"
+          memory: "{memory}Mi"
+        requests:
+          cpu: {cpu_shares}m
+          memory: 500Mi
+        volumeMounts:
+          - name: home
+            mountPath: /home/user
   automountServiceAccountToken: false
   volumes:
     - name: home
@@ -649,7 +656,10 @@ spec:
             pod_name=pod_name,
             project_id=self.project_id,
             nfs_server_ip=nfs_server_ip,
-            registry=KUBERNETES_REGISTRY)
+            registry=KUBERNETES_REGISTRY,
+            cores=max(1,cores),
+            memory=max(1000, memory),
+            cpu_shares=max(50,cpu_shares),
 
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
