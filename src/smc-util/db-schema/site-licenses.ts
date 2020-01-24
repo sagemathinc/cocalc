@@ -12,7 +12,7 @@ and we have a little wiggle room.
 Later there will be a virtual table version of this that grants (read-only)
 access to users.
 
-- [ ] Add a virtual table to return data about how a given license is *actually* being used across all projects.  Idea is site_licenses.admins (and also us cocalc.com admins) will query this for active licenses to see what's going on.
+- [ ] Add a virtual table to return data about how a given license is *actually* being used across all projects.  Idea is site_licenses.users (and also us cocalc.com admins) will query this for active licenses to see what's going on.
 
 */
 
@@ -22,15 +22,14 @@ export const site_licenses = create({
       type: "uuid",
       desc: "ID that determines the license."
     },
-    name: {
+    title: {
       type: "string",
       desc:
-        "Descriptive name of the license, e.g., with the university or other information."
+        "Descriptive name of the license, e.g., the class and university or other information."
     },
-    stripe_id: {
+    description: {
       type: "string",
-      desc:
-        "If there is a stripe invoice that corresponds to this particular license, this is the id of that purchase.  (???)"
+      desc: "Longer description of the license, extra notes, etc."
     },
     expires: {
       type: "timestamp",
@@ -46,12 +45,12 @@ export const site_licenses = create({
       type: "timestamp",
       desc: "when this license was first created"
     },
-    last_active: {
+    last_used: {
       type: "timestamp",
       desc:
         "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute)."
     },
-    admins: {
+    users: {
       type: "array",
       pg_type: "TEXT[]",
       desc:
@@ -60,12 +59,17 @@ export const site_licenses = create({
     restricted: {
       type: "boolean",
       desc:
-        "If true, then only admins are allowed to set this site license on a project.  If false, anybody who knows the license key can use it on projects."
+        "If true, then only users are allowed to set this site license on a project.  If false, anybody who knows the license key can use it on projects."
     },
     upgrades: {
       type: "map",
       desc:
         "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}."
+    },
+    student_upgrades: {
+      type: "map",
+      desc:
+        "Map of the upgrades that are applied to a project when it has this site license and has the course field set."
     },
     run_limit: {
       type: "integer",
@@ -87,16 +91,19 @@ export const site_licenses = create({
       get: {
         pg_where: [],
         admin: true,
+        options: [{ order_by: "-last_used" }, { limit: 500 }],
         fields: {
           id: null,
-          name: null,
+          title: null,
+          description: null,
           expires: null,
           activates: null,
           created: null,
-          last_active: null,
-          admins: null,
+          last_used: null,
+          users: null,
           restricted: null,
           upgrades: null,
+          student_upgrades: null,
           run_limit: null,
           apply_limit: null
         }
@@ -105,14 +112,16 @@ export const site_licenses = create({
         admin: true,
         fields: {
           id: null,
-          name: null,
+          title: null,
+          description: null,
           expires: null,
           activates: null,
           created: null,
-          last_active: null,
-          admins: null,
+          last_used: null,
+          users: null,
           restricted: null,
           upgrades: null,
+          student_upgrades: null,
           run_limit: null,
           apply_limit: null
         }

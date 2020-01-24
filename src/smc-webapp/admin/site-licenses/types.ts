@@ -1,3 +1,5 @@
+import { Set } from "immutable";
+
 export interface SiteLicense {
   id: string;
   name?: string;
@@ -16,5 +18,7 @@ export interface SiteLicensesState {
   view?: boolean; // if true, open for viewing/editing
   error?: string;
   loading?: boolean;
+  creating?: boolean;
   site_licenses?: SiteLicense[];
+  editing?: Set<string>; // id's of site licenses that are currently being edited.
 }

@@ -13,14 +13,17 @@ import {
 import { ErrorDisplay, Icon, Loading, Space } from "../../r_misc";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
-import { List } from "immutable";
-import { Button } from "antd";
+import { List, Set } from "immutable";
+import { Button, Popconfirm } from "antd";
+import { License } from "./license";
 
 interface Props {
   view?: boolean; // if true, open for viewing/editing
   error?: string;
   loading?: boolean;
+  creating?: boolean;
   site_licenses?: List<TypedMap<SiteLicense>>;
+  editing?: Set<string>;
 }
 
 class SiteLicenses extends Component<Props> {
@@ -29,7 +32,10 @@ class SiteLicenses extends Component<Props> {
       "admin-site-licenses": {
         view: rtypes.bool,
         error: rtypes.string,
-        site_licenses: rtypes.immutable.List
+        loading: rtypes.bool,
+        creating: rtypes.bool,
+        site_licenses: rtypes.immutable.List,
+        editing: rtypes.immutable.Set
       }
     };
   }
@@ -52,10 +58,13 @@ class SiteLicenses extends Component<Props> {
 
   private render_license(license: TypedMap<SiteLicense>): Rendered {
     return (
-      <pre key={license.get("id")}>
-        {" "}
-        {JSON.stringify(license.toJS(), undefined, 2)}
-      </pre>
+      <License
+        license={license}
+        editing={
+          this.props.editing != null &&
+          this.props.editing.has(license.get("id"))
+        }
+      />
     );
   }
 
@@ -103,12 +112,32 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
+  private render_create_new_license(): Rendered {
+    if (!this.props.view) return;
+    return (
+      <Popconfirm
+        title={"Are you sure you want to create a new license?"}
+        onConfirm={() => actions.create_new_license()}
+        okText={"Yes"}
+        cancelText={"Cancel"}
+      >
+        <Button disabled={this.props.creating} style={{ margin: "15px 0" }}>
+          <Icon name="plus" spin={this.props.creating} />
+          <Space /> New...
+        </Button>
+      </Popconfirm>
+    );
+  }
+
   render(): Rendered {
     return (
       <div>
         {this.render_header_toggle()}
-        {this.render_reload_button()}
         {this.render_error()}
+        {this.render_reload_button()}
+        <Space />
+        <Space />
+        {this.render_create_new_license()}
         {this.render_loading()}
         {this.render_work_in_progress()}
         {this.render_main()}
