@@ -1110,7 +1110,7 @@ class ProjectClient extends EventEmitter
 
         if not @host
             if @_dev or @_single or @_kubernetes
-                # in case of dev or single mode, open will properly setup the host.
+                # in case of dev or single or kubernetes mode, open will properly setup the host (which is just localhost)
                 the_state = undefined
                 async.series([
                     (cb) =>

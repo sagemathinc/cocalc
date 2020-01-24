@@ -48,6 +48,7 @@ KUBERNETES_UID = 2001
 KUBERNETES_PROJECTS = "/projects/home"
 KUBERNETES_LOCAL_HUB_PORT = 6000
 KUBERNETES_RAW_PORT = 6001
+KUBECTL_MAX_DELAY_S = 5
 
 
 def quota_to_int(x):
@@ -577,7 +578,11 @@ class Project(object):
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
                          ephemeral_state, ephemeral_disk):
         log = self._log("kubernetes_start")
+        if self.kubernetes_state()["state"] == 'running':
+            log("already running")
+            return
         log("kubernetes start")
+        pod_name = self.kubernetes_pod_name()
         yaml = """
 apiVersion: v1
 kind: Pod
@@ -615,19 +620,26 @@ spec:
          server: {nfs_server_ip}
          path: "/{project_id}"
 """.format(
-            pod_name=self.kubernetes_pod_name(),
+            pod_name=pod_name,
             project_id=self.project_id,
             nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
             registry='localhost:30000/')
         # for now pull image from localhost:30000/ as in kucalc; later
         # will have to make this an option.
         # TODO: should use tempfile module
-        path = "/tmp/project-{project_id}-{random}.yaml".format(project_id=self.project_id, random=random.random())
+        path = "/tmp/project-{project_id}-{random}.yaml".format(
+            project_id=self.project_id, random=random.random())
         try:
             open(path, 'w').write(yaml)
             self.cmd("kubectl apply -f {path}".format(path=path))
         finally:
             os.unlink(path)
+        # The semantics of smc-compute are that it shouldn't return until the start action is actually finished.
+        # TODO: We should obviously do this using kubectl watch somehow instead of polling (which is less efficient).
+        delay = 1
+        while self.kubernetes_state()["state"] != 'running':
+            time.sleep(delay)
+            delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
     def stop(self, ephemeral_state, ephemeral_disk):
         if self._kubernetes:
@@ -642,8 +654,15 @@ spec:
             shutil.rmtree(self.project_path)
 
     def kubernetes_stop(self, ephemeral_state, ephemeral_disk):
-        self.cmd("kubectl delete pod project-{project_id}".format(
-            project_id=self.project_id))
+        cmd = "kubectl delete pod project-{project_id}".format(
+            project_id=self.project_id)
+        self.cmd(cmd)
+        # TODO: We should obviously do this using kubectl watch somehow instead of polling...
+        delay = 1
+        while self.kubernetes_state()["state"] != 'opened':
+            time.sleep(delay)
+            delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
+            self.cmd(cmd)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
                 ephemeral_disk):
@@ -804,7 +823,7 @@ spec:
             v = out.split()
             state = self.kubernetes_output_to_state(v[2])
             status['state'] = state
-            if state == 'running' and "." in v[5]: # TODO: should do better...
+            if state == 'running' and "." in v[5]:  # TODO: should do better...
                 status["ip"] = v[5]
             status['local_hub.port'] = KUBERNETES_LOCAL_HUB_PORT
             status['raw.port'] = KUBERNETES_RAW_PORT
