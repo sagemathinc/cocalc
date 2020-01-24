@@ -49,6 +49,7 @@ KUBERNETES_PROJECTS = "/projects/home"
 KUBERNETES_LOCAL_HUB_PORT = 6000
 KUBERNETES_RAW_PORT = 6001
 KUBECTL_MAX_DELAY_S = 5
+KUBERNETES_REGISTRY = os.environ.get("KUBERNETES_REGISTRY", "sagemathinc")
 
 
 def quota_to_int(x):
@@ -580,6 +581,23 @@ class Project(object):
     def kubernetes_pod_name(self):
         return "project-" + self.project_id
 
+    # Get the ip address of the NFS server in Kubernetes.
+    # We keep retrying, because maybe the service
+    # hasn't been created yet, etc.
+    # TODO: This takes about 0.1s in the best case, but it is a sort
+    # of waste, since this ip will probably never change; it would be
+    # better to save it to /tmp, maybe.
+    def kubernetes_nfs_server_ip_address(self):
+        log = self._log("kubernetes_nfs_server_ip_address")
+        delay = 0.5
+        while True:
+            try:
+                return json.loads(self.cmd("kubectl get service cocalc-kubernetes-server-nfs -o json"))["spec"]["clusterIP"]
+            except Exception as err:
+                log("ERROR %s"%err)
+            time.sleep(delay)
+            delay = min(KUBECTL_MAX_DELAY_S, delay*1.3)
+
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
                          ephemeral_state, ephemeral_disk):
         log = self._log("kubernetes_start")
@@ -587,6 +605,7 @@ class Project(object):
             log("already running")
             return
         log("kubernetes start")
+        nfs_server_ip = self.kubernetes_nfs_server_ip_address()
         pod_name = self.kubernetes_pod_name()
         yaml = """
 apiVersion: v1
@@ -601,7 +620,7 @@ metadata:
 spec:
   containers:
     - name: "{pod_name}"
-      image: "{registry}cocalc-kubernetes-project"
+      image: "{registry}/cocalc-kubernetes-project"
       env:
         - name: COCALC_PROJECT_ID
           value: "{project_id}"
@@ -629,10 +648,9 @@ spec:
 """.format(
             pod_name=pod_name,
             project_id=self.project_id,
-            nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
-            registry='localhost:30000/')
-        # for now pull image from localhost:30000/ as in kucalc; later
-        # will have to make this an option.
+            nfs_server_ip=nfs_server_ip,
+            registry=KUBERNETES_REGISTRY)
+
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
             project_id=self.project_id, random=random.random())
