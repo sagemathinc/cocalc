@@ -37,6 +37,9 @@
 
 {SignOut} =require('./account/sign-out')
 
+{log} = require("./user-tracking")
+
+
 md5 = require('md5')
 
 misc       = require('smc-util/misc')
@@ -49,6 +52,9 @@ smc_version = require('smc-util/smc-version')
 
 {APIKeySetting} = require('./api-key')
 
+log_strategy = (is_anonymous, name) ->
+    if is_anonymous
+        log("add_passport", {passport: name, source: "anonymous_account"})
 
 # Define a component for working with the user's basic
 # account information.
@@ -194,6 +200,8 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error -- #{err}"
                 else
+                    if @props.is_anonymous
+                        log("email_sign_up", {source: "anonymous_account"});
                     @setState
                         state    : 'view'
                         error    : ''
@@ -482,7 +490,7 @@ AccountSettings = rclass
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
-                    onClick={=>@setState(add_strategy_link:undefined)}>
+                    onClick={=>@setState(add_strategy_link:undefined); log_strategy(@props.is_anonymous, name)}>
                     <Icon name="external-link" /> Link My {name} Account
                 </Button>
                 <Button onClick={=>@setState(add_strategy_link:undefined)} >
