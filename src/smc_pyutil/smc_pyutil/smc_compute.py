@@ -646,9 +646,9 @@ spec:
         requests:
           cpu: {cpu_shares}m
           memory: 500Mi
-        volumeMounts:
-          - name: home
-            mountPath: /home/user
+      volumeMounts:
+        - name: home
+          mountPath: /home/user
   automountServiceAccountToken: false
   volumes:
     - name: home
