@@ -563,10 +563,10 @@ class Project(object):
                     if self._single:
                         # In single-machine mode, everything is on localhost.
                         os.environ['SMC_HOST'] = 'localhost'
-                    del os.environ['SUDO_COMMAND']
-                    del os.environ['SUDO_UID']
-                    del os.environ['SUDO_GID']
-                    del os.environ['SUDO_USER']
+                    for x in ['COMMAND', 'UID', 'GID', 'USER']:
+                        y = 'SUDO_' + x
+                        if y in os.environ:
+                            del os.environ[y]
                     os.chdir(self.project_path)
                     self.cmd("smc-start")
                 else:
