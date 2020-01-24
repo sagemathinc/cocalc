@@ -1,7 +1,11 @@
-# Make loading typescript quota.ts just work, hopefully
-require('ts-node').register()
+# this tests kucalc's quota function
+#
+# after any change to quota.ts, be a good citizen and run this test or even extend it
+# ~/src/smc-hub$ SMC_DB_RESET=true SMC_TEST=true npx mocha test/kucalc/quota.coffee
 
 init     = require('./init')
+# Make loading typescript quota.ts just work, hopefully
+require('ts-node').register()
 db       = undefined
 setup    = (cb) -> (init.setup (err) -> db=init.db(); cb(err))
 teardown = init.teardown
