@@ -167,12 +167,12 @@ describe 'default quota', ->
         settings =
             network         : 1
             member_host     : 0
-            disk_quota      : 23000 # max 20gb
+            disk_quota      : 19000 # max 20gb
             memory          : 1000 # max 16gb
             mintime         : 24*3600*33 # max 90 days
             memory_request  : 1000 # max 8gb
             cores           : 1  # max 2 shared
-            cpu_shares      : 0
+            cpu_shares      : 0.1  * 1024
 
         users =
             user1:
@@ -196,11 +196,11 @@ describe 'default quota', ->
             member_host     : true
             memory_request  : 4210
             memory_limit    : 1500 # 1500 mb free for members
-            cpu_request     : .5
+            cpu_request     : .5 + 0.1
             cpu_limit       : 3
             privileged      : false
             idle_timeout    : 24*3600*90  # 1800 secs free
-            disk_quota      : 23000
+            disk_quota      : 20000
         expect(quota(settings, users)).toEqual(exp)
 
     it 'does not allow privileged updates for users', ->
@@ -278,10 +278,10 @@ describe 'default quota', ->
             network: true
             privileged: false
 
-    it 'processes site_settings default_quotas and max_upgrades', ->
+    it 'site_settings default_quotas and max_upgrades', ->
         site_settings =
-            default_quotas: {"internet":true,"idle_timeout":3600,"mem":1515,"cpu":1.5,"cpu_oc":10,"mem_oc":5}
-            max_upgrades: {"disk_quota": 512, "mintime": 10101, "cpu_shares": 99, "memory_request": 1000 }
+            default_quotas: {"internet":true,"idle_timeout":3600,"mem":1515,"cpu":1.6,"cpu_oc":4,"mem_oc":5}
+            max_upgrades: {"disk_quota": 512, "mintime": 10101, "cpu_shares": 1024/10, "memory_request": 1000 }
 
         q1 = quota({}, {userX: {}}, undefined, site_settings)
         expect(q1).toEqual
@@ -289,13 +289,48 @@ describe 'default quota', ->
             member_host     : false
             memory_request  : 303
             memory_limit    : 1515
-            cpu_request     : 154
+            cpu_request     : .4
             cpu_limit       : 1.5
             privileged      : false
             idle_timeout    : 3600
-            disk_quota      : 3000
+            disk_quota      : 512
 
-    it 'adds site-license key upgrades', ->
+    it 'respect different (lower) max_upgrades', ->
+        site_settings =
+            max_upgrades:
+                member_host     : 0
+                disk_quota      : 616
+                memory          : 1515
+                mintime         : 4345
+                memory_request  : 505
+                cores           : 3.14
+                cpu_shares      : 2.2 * 1024
+
+        over_max =
+            user2:
+                upgrades:
+                    network         : 2
+                    member_host     : 3
+                    disk_quota      : 32000 # max 20gb
+                    memory          : 20000 # max 16gb
+                    mintime         : 24*3600*100 # max 90 days
+                    memory_request  : 10000 # max 8gb
+                    cores           : 7  # max 3
+                    cpu_shares      : 1024 * 4 # max 2 requests
+
+        maxedout = quota({}, over_max, undefined, site_settings)
+        expect(maxedout).toEqual
+            cpu_limit: 3.14
+            cpu_request: 2.2
+            disk_quota: 616
+            idle_timeout: 4345
+            member_host: false
+            memory_limit: 1515
+            memory_request: 505
+            network: true
+            privileged: false
+
+    it 'site-license upgrades /1', ->
         site_license =
             '1234-5678-asdf-yxcv':
                 member_host    : true
@@ -307,8 +342,8 @@ describe 'default quota', ->
                 mintime        : 24*3600
                 cpu_shares     : 1024 * 0.5
 
-
         q1 = quota({}, {userX: {}}, site_license)
+
         expect(q1).toEqual
             idle_timeout: 24*3600 + 1800
             memory_limit: 4210
@@ -319,4 +354,27 @@ describe 'default quota', ->
             member_host: true
             network: true
             privileged: false
+
+
+    it 'site-license upgrades /2', ->
+        site_license =
+            '1234-5678-asdf-yxcv':
+                member_host    : true
+                network        : true
+
+        users =
+            user1:
+                upgrades:
+                    network        : 1
+                    memory         : 1234
+                    disk_quota     : 751
+
+        q1 = quota({}, users, site_license)
+
+        expect(q1.memory_limit).toEqual(2234)
+        expect(q1.disk_quota).toBe(3000 + 751)
+        expect(q1.member_host).toBe(true)
+        expect(q1.network).toBe(true)
+
+
 

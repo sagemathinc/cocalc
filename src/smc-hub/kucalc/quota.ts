@@ -56,6 +56,7 @@ type NumParser = (s: string | undefined) => number;
 type Str2Num = (s: string) => number;
 type NumParserGen = (fn: Str2Num) => NumParser;
 
+// the end result
 interface Quota {
   network?: boolean;
   member_host?: boolean;
@@ -85,13 +86,26 @@ interface Settings {
   cpu_shares?: string;
 }
 
+interface Upgrades {
+  disk_quota: number;
+  memory: number;
+  memory_request: number;
+  cores: number;
+  network: number;
+  cpu_shares: number;
+  mintime: number;
+  member_host: number;
+  ephemeral_state: number;
+  ephemeral_disk: number;
+}
+
 /*
  * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
  * max_upgrades: Quota
  */
 interface SiteSettingsQuotas {
   default_quotas: { [key: string]: string | number };
-  max_upgrades: Partial<Settings>;
+  max_upgrades: Partial<Upgrades>;
 }
 
 // base quota + calculated default quotas is the quota object each project gets by default
@@ -112,7 +126,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   const q: Quota = Object.assign({}, BASE_QUOTAS);
 
   // overwrite/set extras for any set default quota in the site setting
-  if (site_settings != null) {
+  if (site_settings != null && site_settings?.default_quotas != null) {
     const dq = site_settings?.default_quotas;
     if (typeof dq.disk_quota == "number") q.disk_quota = dq.disk_quota;
     if (typeof dq.internet == "boolean") q.network = dq.internet;
@@ -160,9 +174,12 @@ exports.quota = function(
     MAX_UPGRADES,
     site_settings?.max_upgrades ?? {}
   );
+  console.log("max_upgrades", max_upgrades);
 
   // network access
-  if (!quota.network) {
+  if (max_upgrades.network == 0) {
+    quota.network = false;
+  } else if (!quota.network) {
     if (settings.network) {
       // free admin-set
       quota.network = true;
@@ -189,7 +206,9 @@ exports.quota = function(
   }
 
   // member hosting, which translates to "not pre-emptible"
-  if (!quota.member_host) {
+  if (max_upgrades.member_host == 0) {
+    quota.member_host = false;
+  } else if (!quota.member_host) {
     if (settings.member_host) {
       // free admin-set
       quota.member_host = true;
@@ -241,11 +260,12 @@ exports.quota = function(
 
     const base: number = (() => {
       // settings "overwrite" the default quotas
+      // there are also no limits to settings "admin" upgrades
       if (settings[upgrade]) {
         quota[name] = factor * parse_num(settings[upgrade]);
-        return Math.min(quota[name], factor * max_upgrades[upgrade]);
-      } else {
         return quota[name];
+      } else {
+        return Math.min(quota[name], factor * max_upgrades[upgrade]);
       }
     })();
     // compute how much is left for contributed user upgrades
@@ -263,7 +283,7 @@ exports.quota = function(
         contribs += factor * parse_num(num);
       }
     }
-    // eventually increase a request if we have a overcommit ratio set
+    // if we have some overcommit ratio set, increase a request
     if (site_settings?.default_quotas != null) {
       const { mem_oc, cpu_oc } = site_settings?.default_quotas;
       if (
@@ -283,8 +303,7 @@ exports.quota = function(
       }
     }
     contribs = Math.min(remain, contribs);
-    // use quota[name], and ignore base, because admins are allowed to contribute without limits
-    quota[name] += contribs;
+    quota[name] = base + contribs;
   };
 
   // disk space quota in MB
