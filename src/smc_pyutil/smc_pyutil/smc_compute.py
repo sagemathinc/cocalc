@@ -1520,13 +1520,13 @@ def main():
         help="relative share of cpu (default: 0=don't change/set) int",
         type=int,
         default=0)
-    parser_start.add_argument(
+    parser_restart.add_argument(
         "--network",
         help=
         "0 or 1; if 1 enable outside network access (ONLY used by cocalc-kubernetes)",
         type=int,
         default=0)
-    parser_start.add_argument(
+    parser_restart.add_argument(
         "--member",
         help=
         "0 or 1; if 1 enable member hosting (ONLY used by cocalc-kubernetes)",
