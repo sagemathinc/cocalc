@@ -278,7 +278,7 @@ class Project
             if @_ephemeral_disk
                 args.push('--ephemeral_disk')
 
-        if @_kubernetes and @_network and (opts.action == 'start' or opts.action == 'restart')
+        if @_network and (opts.action == 'start' or opts.action == 'restart')
             # networking for kubernetes is set during start or restart action.
             # TODO: similar for member hosting, etc., but we don't even have
             # information about that here.
