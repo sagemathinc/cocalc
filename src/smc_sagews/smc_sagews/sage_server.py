@@ -2123,16 +2123,15 @@ def serve(port, host, extra_imports=False):
         ##time.sleep(40)
         ##log("done with pause")
 
-        # Monkey patching interact using the new and improved Salvus
-        # implementation of interact.
-        import sagenb.notebook.interact
-        sagenb.notebook.interact.interact = sage_salvus.interact
-
         # Actually import sage now.  This must happen after the interact
         # import because of library interacts.
         log("import sage...")
         import sage.all
         log("imported sage.")
+
+        # Monkey patching interact using the new and improved Salvus
+        # implementation of interact.
+        sage.all.interact = sage_salvus.interact
 
         # Monkey patch the html command.
         try:

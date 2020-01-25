@@ -278,6 +278,13 @@ class Project
             if @_ephemeral_disk
                 args.push('--ephemeral_disk')
 
+        if @_network and (opts.action == 'start' or opts.action == 'restart')
+            # networking for kubernetes is set during start or restart action.
+            # TODO: similar for member hosting, etc., but we don't even have
+            # information about that here.
+            args.push('--network')
+            args.push(1)
+
         args.push(@project_id)
         dbg("args=#{misc.to_safe_str(args)}")
         smc_compute
