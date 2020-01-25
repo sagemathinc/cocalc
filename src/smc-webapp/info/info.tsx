@@ -31,7 +31,6 @@
  * Info Page
  */
 
-import { copy } from "smc-util/misc";
 import { React, rtypes, rclass, Rendered } from "../app-framework";
 import { ProgressBar, Table } from "react-bootstrap";
 import { Col, Row } from "../antd-bootstrap";
@@ -49,12 +48,8 @@ import {
   THIRD_PARTY,
   ABOUT_LINKS
 } from "./links";
-
-// List item style
-export const li_style: React.CSSProperties = {
-  lineHeight: "inherit",
-  marginBottom: "10px"
-};
+import { LinkList } from "./link-list";
+import { li_style } from "./style";
 
 // improve understanding of large numbers
 function fmt_large(num) {
@@ -293,85 +288,6 @@ const HelpPageUsageSection = rclass({
           <br />
           {this.render_historical_metrics()}
         </div>
-      </Col>
-    );
-  }
-} as any);
-
-const LinkList: any = rclass({
-  displayName: "HelpPage-LinkList",
-
-  propTypes: {
-    title: rtypes.string.isRequired,
-    icon: rtypes.string.isRequired,
-    links: rtypes.object.isRequired,
-    width: rtypes.number
-  },
-
-  getDefaultProps() {
-    return { width: 6 };
-  },
-
-  render_links() {
-    return (() => {
-      const result: Rendered[] = [];
-      for (let name in this.props.links) {
-        const data = this.props.links[name];
-        if (data.commercial && !require("../customize").commercial) {
-          continue;
-        }
-        const style = copy(li_style);
-        if (data.bold) {
-          style.fontWeight = "bold";
-        }
-        const is_target_blank =
-          (data.href != null ? data.href.indexOf("#") : undefined) !== 0;
-
-        result.push(
-          <div
-            key={name}
-            style={style}
-            className={data.className != null ? data.className : undefined}
-          >
-            <Icon name={data.icon} fixedWidth />{" "}
-            {data.href ? (
-              <a
-                target={is_target_blank ? "_blank" : undefined}
-                rel={is_target_blank ? "noopener" : undefined}
-                href={data.href}
-              >
-                {data.link}
-              </a>
-            ) : (
-              undefined
-            )}
-            {data.text ? (
-              <span style={{ color: COLORS.GRAY_D }}>
-                {data.href ? <span> &mdash; </span> : undefined}
-                {data.text}
-              </span>
-            ) : (
-              undefined
-            )}
-          </div>
-        );
-      }
-      return result;
-    })();
-  },
-
-  render() {
-    return (
-      <Col md={this.props.width} sm={12}>
-        {this.props.title ? (
-          <h3>
-            {" "}
-            <Icon name={this.props.icon} /> {this.props.title}
-          </h3>
-        ) : (
-          undefined
-        )}
-        {this.render_links()}
       </Col>
     );
   }

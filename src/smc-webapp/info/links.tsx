@@ -1,4 +1,4 @@
-import { React } from "../app-framework";
+import { React, Rendered } from "../app-framework";
 
 let BASE_URL;
 if (global["BACKEND"]) {
@@ -18,7 +18,18 @@ import {
   LIVE_DEMO_REQUEST
 } from "smc-util/theme";
 
-export const SUPPORT_LINKS = {
+interface LinkInfo {
+  commercial?: boolean;
+  bold?: boolean;
+  icon: string;
+  href?: string;
+  link?: Rendered | string;
+  text?: Rendered | string;
+}
+
+export type Links = { [name: string]: LinkInfo };
+
+export const SUPPORT_LINKS: Links = {
   email_help: {
     commercial: true,
     bold: true,
