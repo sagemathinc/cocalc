@@ -279,6 +279,7 @@ class Project
                 args.push('--ephemeral_disk')
             if @_network
                 args.push('--network')
+                args.push(1)
 
         args.push(@project_id)
         dbg("args=#{misc.to_safe_str(args)}")
