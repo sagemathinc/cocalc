@@ -664,7 +664,7 @@ spec:
            registry=KUBERNETES_REGISTRY,
            cores=max(1, cores),
            memory=max(1000, memory),
-           cpu_shares=max(50, cpu_shares),
+           cpu_shares=max(50, cpu_shares),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
            network=network_label,
            node_selector=node_selector)
 

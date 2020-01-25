@@ -218,28 +218,28 @@ SUPPORT_LINKS =
     teaching :
         icon : 'graduation-cap'
         href : 'https://doc.cocalc.com/teaching-instructors.html'
-        link : <span>Instructor Guide: How to teach a course with <SiteName/></span>
+        link : <span>The Instructor Guide: How to teach a course with <SiteName/></span>
+    live_demo :
+        icon : 'comments-o'
+        link : <span>Request a live video chat with the <SiteName/> developers about how to teach a course.  We will get back to you quickly and answer all of your questions.</span>
+        href : LIVE_DEMO_REQUEST
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
-    docker_image:
-        icon : 'window-maximize'
-        href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
-        link : <span>Free open source version of CoCalc to run on your own server (a $799 commercial license is available)</span>
-    courses :
-        icon : 'users'
-        href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
-        link :  <span>Courses using <SiteName/></span>
     cocalc_api :
         icon : 'gears'
         href : "#{BASE_URL}/doc/api.html"
-        link :  <span><SiteName/> API</span>
-    live_demo :
-        icon : 'comments-o'
-        link : "Request a live demo about how to teach a course"
-        href : LIVE_DEMO_REQUEST
+        link :  <span>Embed and control <SiteName/> using our powerful API</span>
+    docker_image:
+        icon : 'window-maximize'
+        href : 'https://github.com/sagemathinc/cocalc-docker'
+        link : <span>Run open source CoCalc on your computer ($799 commercial license)</span>
+    kubernetes_image:
+        icon : 'window-maximize'
+        href : 'https://github.com/sagemathinc/cocalc-kubernetes'
+        link : <span>Run open source CoCalc on your Kubernetes cluster ($1499 commercial license)</span>
 
 CONNECT_LINKS =
     share :
