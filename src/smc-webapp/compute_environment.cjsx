@@ -281,7 +281,7 @@ ComputeEnvironment = rclass
         @setState(show_version_popup: false)
 
     version_information_popup: ->
-        {li_style} = require('./r_help')
+        {li_style} = require('./info/info')
 
         lang_info          = @props.inventory['language_exes'][@state.inventory_idx]
         version            = @props.inventory[@props.selected_lang]?[@state.inventory_idx]?[@state.component_idx] ? '?'
@@ -384,7 +384,7 @@ ComputeEnvironment = rclass
         </Tabs>
 
     environment_information: ->
-        {li_style} = require('./r_help')
+        {li_style} = require('./info/info')
 
         num = {}
         for env in ['R', 'julia', 'python', 'executables']

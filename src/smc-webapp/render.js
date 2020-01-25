@@ -29,11 +29,9 @@ const static_react_pages = [
     require("./billing/static-pricing-page").render_static_pricing_page(),
     "policies/_static_pricing_page.html"
   ],
-  //[require('./r_help.cjsx').render_static_about(), '_static_about.html'],
   [require("./r_misc").render_static_footer(), "_static_footer.html"],
-  //[require('./r_misc').render_static_sage_preview(), '_static_sage_preview.html'],
   [
-    require("./r_help.cjsx").render_static_third_party_software(),
+    require("./info/info").render_static_third_party_software(),
     "_static_third_party_software.html"
   ]
 ];

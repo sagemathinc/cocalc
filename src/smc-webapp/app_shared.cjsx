@@ -26,7 +26,7 @@
 {webapp_client} = require('./webapp_client')
 misc = require('smc-util/misc')
 
-{HelpPage} = require('./r_help')
+{HelpPage} = require('./info/info')
 {ProjectsPage} = require('./projects')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
