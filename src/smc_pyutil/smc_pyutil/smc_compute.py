@@ -612,7 +612,7 @@ class Project(object):
         nfs_server_ip = self.kubernetes_nfs_server_ip_address()
         pod_name = self.kubernetes_pod_name()
         node_selector = "member" if member else "preempt"
-        network = "outside" if network else "none"
+        network_label = "outside" if network else "none"
         yaml = """
 apiVersion: v1
 kind: Pod
