@@ -65,6 +65,7 @@ const COLORS = {
     GRAY_DDD : '#dddddd',
     GRAY_DD  : '#303030',
     GRAY_D   : '#434343',
+    GRAY_M   : '#5f5f5f',
     GRAY     : '#808080',
     GRAY_L   : '#c0c0c0',
     GRAY_L0  : '#e0e0e0',

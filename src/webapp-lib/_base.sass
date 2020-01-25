@@ -1,4 +1,6 @@
 // navbar flex layout
+@import "_vars.sass"
+
 body
   display: flex
   flex-direction: column
@@ -21,24 +23,42 @@ img.shadow
 
 img.large
   width: 100%
-  @media (min-width: 768px)
+  @media (min-width: $width-md)
     width: 75%
+
+img.shrink-small
+  width: 100%
+  @media (max-width: $width-md)
+    width: 50%
+
+img.shrink-small-75
+  width: 100%
+  @media (max-width: $width-md)
+    width: 75%
+
+img.rounded
+  border-radius: 3px
 
 .firstline
   margin-top: 0
 
 div.spacing
-  margin-top: 2rem
-  content: ""
-  @media (max-width: 768px)
+  margin-top: 4rem !important
+  @media (max-width: $width-sm)
     display: none
 
+div.spacing2
+  margin-top: 8rem !important
+  content: ""
+  @media (max-width: $width-sm)
+    margin-top: 1rem !important
+
 .hide-small-screen
-  @media (max-width: 768px)
+  @media (max-width: $width-sm)
     display: none
 
 .show-small-screen
-  @media (min-width: 768px)
+  @media (min-width: $width-sm)
     display: none
 
 // actual navbar styling

@@ -23,6 +23,7 @@ block header
   script(type="text/javascript")
     include:coffee-script index.coffee
   meta(name="description" content=htmlWebpackPlugin.options.description)
+  link(href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet")
 
 block content
 
@@ -30,6 +31,7 @@ block content
   style
     :sass
       @import "smc-webapp/_colors.sass"
+      @import "webapp-lib/_vars.sass"
       body > div.space
         margin-top       : 5rem
       div#top
@@ -80,70 +82,97 @@ block content
         .ff-only
           display: block
 
+      #top2
+        background-color: $COL_YELL_L
+
+      .headline
+        font-family: 'Roboto Slab', serif
+        font-size: 250%
+        color: $COL_GRAY_M
+        font-style: italic
+        line-height: 175%
+        @media (max-width: $width-md)
+          font-size: 150%
+          line-height: 125%
+          text-align: center
+          width: 75%
+          margin: 0 auto 2rem auto
+
+
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
+      div.col-md-4.col-md-offset-4.center
         a(href="app?anonymous=true")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center.spacing
-        a(href="app?anonymous=true")
-          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200123-nq8.png").shadow.large
-      div.col-sm-12.center.spacing
+          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg')).shrink-small
+      div.col-md-12.center.descr
+        p #{htmlWebpackPlugin.options.description}
+      div.col-md-12.center.spacing
         +start_button
 
+  div.space#top2
+    div.container
+      div.row.spacing
+        div.col-md-4
+          p.headline.
+            The modern way to work with and teach scientific open-source software.
+        div.col-md-8.center
+          a(href="app?anonymous=true")
+            img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200123-nq8.png").shadow.shrink-small-75.rounded
+
   div.container
-    div.row
+    div.row.spacing2
       div.col-md-4
-        strong IMAGE
+        p.center
+          img(src="https://storage.googleapis.com/cocalc-extra/laptop-desk-clean.jpg").shrink-small
       div.col-md-8
         h2.firstline
           strong Zero-setup
-        p.
-          Immediately start working with Jupyter notebooks,
-          write LaTeX documents or use a full Linux terminal.
         p
-          strong You only need a web-browser!
+          strong All you need is a web-browser!
+        p.
+          It takes less time to run a Jupyter notebook,
+          start a LaTeX document or to work with a full Linux terminal
+          – than grabbing a cup of coffee!
         p.
           Learn more about #[a(href="./doc/jupyter-notebook.html") Jupyter Notebook support],
-          #[a(href="./doc/latex-editor.html") LaTeX editor], and #[a(href="./doc/terminal.html") Linux support].
+          the #[a(href="./doc/latex-editor.html") LaTeX editor],
+          and #[a(href="./doc/terminal.html") Linux support].
 
-    div.row
+    div.row.spacing2
       div.col-md-4
-        p
-          img(src="https://storage.googleapis.com/cocalc-extra/collab-workplace.jpg", style='height:auto; width:100%')
+        p.center
+          img(src="https://storage.googleapis.com/cocalc-extra/collab-workplace.jpg").shrink-small
       div.col-md-8
         h2.firstline
           strong Collaboration
         p.
-          Simultaneously edit any file – including Jupyter Notebooks – and #[strong all changes are synchronized in real-time].
+          Edit any file – including Jupyter Notebooks – with collaborators and #[strong all changes are synchronized in real-time].
         p.
-          Integrated chat and notifications let you exchange thoughts and ideas.
+          Integrated #[a(href="https://doc.cocalc.com/chat.html") chat and notifications] lets you exchange thoughts and ideas.
 
-    div.row
+    div.row.spacing2
       div.col-md-4
-        p
-          img(src="https://storage.googleapis.com/cocalc-extra/classroom-computer.jpg", style='height:auto; width:100%')
+        p.center
+          img(src="https://storage.googleapis.com/cocalc-extra/classroom-computer.jpg").shrink-small
       div.col-md-8
         h2.firstline
-            strong Teaching made easy
+          strong Teaching made easy
         p.
           #[strong #{NAME} is made for teaching a course]!
         p.
-          No hassle installing software on every student's machine,
-          directly help your students on their notebooks,
-          and let #{NAME} organize all files.
+          No hassle installing software on every laptop,
+          directly help your students working on their notebooks,
+          and let #{NAME} organize all files or even grade them.
         p.
           Learn more about #[a(href="./doc/teaching.html") Teaching with #{NAME}].
-
-
+      div.col-md-12.center.spacing
+        +start_button
 
 
   a.anchor#a-explore
   div.space#explore
-    div.container
+    div.container.spacing2
       div.row
         div.col-md-12.center
           h1 #[i.fa.fa-lightbulb] Explore #{NAME}
