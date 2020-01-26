@@ -6,6 +6,7 @@
   "directories": {},
   "dependencies": {
     "@passport-next/passport-google-oauth2": "^1.0.0",
+    "@sendgrid/mail": "^6.5.1",
     "@types/http-proxy": "^1.17.0",
     "@types/node": "^12.12.7",
     "async": "^1.5.2",
@@ -63,7 +64,6 @@
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
     "sanitize-html": "^1.20.1",
-    "sendgrid": "^4.7.1",
     "serve-index": "^1.9.1",
     "sharp": "^0.20.8",
     "snappy": "^6.0.1",
