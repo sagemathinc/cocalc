@@ -40,30 +40,10 @@ const { ComputeEnvironment } = require("../compute_environment");
 
 import { COLORS } from "smc-util/theme";
 
-import {
-  SUPPORT_LINKS,
-  CONNECT_LINKS,
-  THIRD_PARTY,
-  ABOUT_LINKS
-} from "./links";
+import { SUPPORT_LINKS, CONNECT_LINKS, ABOUT_LINKS } from "./links";
 import { LinkList } from "./link-list";
 import { Usage } from "./usage";
-
-
-const ThirdPartySoftware = rclass({
-  displayName: "Help-ThirdPartySoftware",
-  render() {
-    return (
-      <LinkList title="Software" icon="question-circle" links={THIRD_PARTY} />
-    );
-  }
-} as any);
-
-export function render_static_third_party_software() {
-  return (
-    <LinkList title="" icon="question-circle" width={12} links={THIRD_PARTY} />
-  );
-}
+import { ThirdPartySoftware } from "./third-party";
 
 let _HelpPage = rclass({
   displayName: "HelpPage",
@@ -176,4 +156,3 @@ export let _test = {
   SUPPORT_LINKS,
   CONNECT_LINKS
 };
-

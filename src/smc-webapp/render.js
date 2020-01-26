@@ -31,7 +31,7 @@ const static_react_pages = [
   ],
   [require("./r_misc").render_static_footer(), "_static_footer.html"],
   [
-    require("./info/info").render_static_third_party_software(),
+    require("./info/third-party").render_static_third_party_software(),
     "_static_third_party_software.html"
   ]
 ];
