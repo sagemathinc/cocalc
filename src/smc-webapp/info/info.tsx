@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -31,7 +23,7 @@
  * Info Page
  */
 
-import { React, rclass } from "../app-framework";
+import { React } from "../app-framework";
 import { Col, Row } from "../antd-bootstrap";
 import { Icon, Space, Footer } from "../r_misc";
 import { SiteDescription } from "../customize";
@@ -45,91 +37,79 @@ import { LinkList } from "./link-list";
 import { Usage } from "./usage";
 import { ThirdPartySoftware } from "./third-party";
 
-let _HelpPage = rclass({
-  displayName: "HelpPage",
+export function InfoPage(): JSX.Element {
+  const banner_style: React.CSSProperties = {
+    backgroundColor: "white",
+    padding: "15px",
+    border: `1px solid ${COLORS.GRAY}`,
+    borderRadius: "5px",
+    margin: "20px 0",
+    width: "100%",
+    fontSize: "115%",
+    textAlign: "center",
+    marginBottom: "30px"
+  };
 
-  render_compute_env() {
-    return (
-      <Row>
-        <ComputeEnvironment />
-      </Row>
-    );
-  },
+  // imports stuff that can't be imported in update_react_static.
+  const { ShowSupportLink } = require("../support");
+  const { APP_LOGO } = require("../art");
 
-  render() {
-    const banner_style: React.CSSProperties = {
-      backgroundColor: "white",
-      padding: "15px",
-      border: `1px solid ${COLORS.GRAY}`,
-      borderRadius: "5px",
-      margin: "20px 0",
-      width: "100%",
-      fontSize: "115%",
-      textAlign: "center",
-      marginBottom: "30px"
-    };
+  return (
+    <Row style={{ padding: "10px", margin: "0px", overflow: "auto" }}>
+      <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
+        <h3 style={{ textAlign: "center", marginBottom: "30px" }}>
+          <img src={`${APP_LOGO}`} style={{ width: "33%", height: "auto" }} />
+          <br />
+          <SiteDescription />
+        </h3>
 
-    // imports stuff that can't be imported in update_react_static.
-    const { ShowSupportLink } = require("../support");
-    const { APP_LOGO } = require("../art");
+        <div style={banner_style}>
+          <Icon name="medkit" />
+          <Space />
+          <Space />
+          <strong>
+            In case of any questions or problems, <em>do not hesitate</em> to
+            create a <ShowSupportLink />.
+          </strong>
+          <br />
+          We want to know if anything is broken!
+        </div>
 
-    return (
-      <Row style={{ padding: "10px", margin: "0px", overflow: "auto" }}>
-        <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
-          <h3 style={{ textAlign: "center", marginBottom: "30px" }}>
-            <img src={`${APP_LOGO}`} style={{ width: "33%", height: "auto" }} />
-            <br />
-            <SiteDescription />
-          </h3>
-
-          <div style={banner_style}>
-            <Icon name="medkit" />
-            <Space />
-            <Space />
-            <strong>
-              In case of any questions or problems, <em>do not hesitate</em> to
-              create a <ShowSupportLink />.
-            </strong>
-            <br />
-            We want to know if anything is broken!
-          </div>
-
-          <Row>
+        <Row>
+          <LinkList
+            title="Help and support"
+            icon="support"
+            links={SUPPORT_LINKS}
+          />
+          <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+        </Row>
+        <Row style={{ marginTop: "20px" }}>
+          <ThirdPartySoftware />
+          <Usage />
+        </Row>
+        <Row>
+          {require("../customize").commercial ? (
             <LinkList
-              title="Help and support"
-              icon="support"
-              links={SUPPORT_LINKS}
+              title="About"
+              icon="info-circle"
+              links={ABOUT_LINKS}
+              width={12}
             />
-            <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
-          </Row>
-          <Row style={{ marginTop: "20px" }}>
-            <ThirdPartySoftware />
-            <Usage />
-          </Row>
-          <Row>
-            {require("../customize").commercial ? (
-              <LinkList
-                title="About"
-                icon="info-circle"
-                links={ABOUT_LINKS}
-                width={12}
-              />
-            ) : (
-              undefined
-            )}
-          </Row>
-          {this.render_compute_env()}
-        </Col>
-        <Col sm={1} md={2} xsHidden></Col>
-        <Col xs={12} sm={12} md={12}>
-          <Footer />
-        </Col>
-      </Row>
-    );
-  }
-} as any);
-
-export { _HelpPage as HelpPage };
+          ) : (
+            undefined
+          )}
+        </Row>
+        <Row>
+          <ComputeEnvironment />
+        </Row>
+      </Col>
+      <Col sm={1} md={2} xsHidden></Col>
+      <Col xs={12} sm={12} md={12}>
+        <Footer />
+      </Col>
+    </Row>
+  );
+}
 
 export function render_static_about() {
   return (
@@ -146,7 +126,7 @@ export function render_static_about() {
   );
 }
 
-export let _test = {
+export const _test = {
   HelpPageSupportSection: (
     <LinkList title="Help & Support" icon="support" links={SUPPORT_LINKS} />
   ),

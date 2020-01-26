@@ -26,7 +26,7 @@
 {webapp_client} = require('./webapp_client')
 misc = require('smc-util/misc')
 
-{HelpPage} = require('./info/info')
+{InfoPage} = require('./info/info')
 {ProjectsPage} = require('./projects')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
@@ -79,7 +79,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects, kiosk_
             when 'account'
                 v.push <AccountPage key={'account'}/>
             when 'help', 'about'
-                v.push <HelpPage key={'about'}/>
+                v.push <InfoPage key={'about'}/>
             when 'file-use'
                 v.push <FileUsePage redux={redux} key={'file-use'}/>
             when 'notifications'
