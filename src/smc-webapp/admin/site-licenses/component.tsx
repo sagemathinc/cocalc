@@ -10,10 +10,10 @@ import {
   rclass,
   TypedMap
 } from "../../app-framework";
-import { ErrorDisplay, Icon, Loading, Space } from "../../r_misc";
+import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
-import { List, Set } from "immutable";
+import { List, Map, Set } from "immutable";
 import { Button, Popconfirm } from "antd";
 import { License } from "./license";
 
@@ -24,6 +24,7 @@ interface Props {
   creating?: boolean;
   site_licenses?: List<TypedMap<SiteLicense>>;
   editing?: Set<string>;
+  edits?: Map<string, TypedMap<SiteLicense>>;
 }
 
 class SiteLicenses extends Component<Props> {
@@ -35,7 +36,8 @@ class SiteLicenses extends Component<Props> {
         loading: rtypes.bool,
         creating: rtypes.bool,
         site_licenses: rtypes.immutable.List,
-        editing: rtypes.immutable.Set
+        editing: rtypes.immutable.Set,
+        edits: rtypes.immutable.Map
       }
     };
   }
@@ -57,13 +59,13 @@ class SiteLicenses extends Component<Props> {
   }
 
   private render_license(license: TypedMap<SiteLicense>): Rendered {
+    const id = license.get("id");
     return (
       <License
+        key={id}
         license={license}
-        editing={
-          this.props.editing != null &&
-          this.props.editing.has(license.get("id"))
-        }
+        editing={this.props.editing != null && this.props.editing.has(id)}
+        edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
       />
     );
   }
@@ -75,7 +77,7 @@ class SiteLicenses extends Component<Props> {
     for (const license of this.props.site_licenses) {
       v.push(this.render_license(license));
     }
-    return v;
+    return r_join(v, <div style={{ height: "20px" }}></div>);
   }
 
   private render_work_in_progress(): Rendered {
@@ -133,14 +135,16 @@ class SiteLicenses extends Component<Props> {
     return (
       <div>
         {this.render_header_toggle()}
-        {this.render_error()}
-        {this.render_reload_button()}
-        <Space />
-        <Space />
-        {this.render_create_new_license()}
-        {this.render_loading()}
-        {this.render_work_in_progress()}
-        {this.render_main()}
+        <div style={{ margin: "0 10%" }}>
+          {this.render_error()}
+          {this.render_reload_button()}
+          <Space />
+          <Space />
+          {this.render_create_new_license()}
+          {this.render_loading()}
+          {this.render_work_in_progress()}
+          {this.render_main()}
+        </div>
       </div>
     );
   }

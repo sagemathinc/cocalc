@@ -1,6 +1,6 @@
-import { Set } from "immutable";
-import { Actions, redux } from "../../app-framework";
-import { SiteLicensesState } from "./types";
+import { Map, Set } from "immutable";
+import { Actions, redux, TypedMap } from "../../app-framework";
+import { SiteLicensesState, SiteLicense, license_field_names } from "./types";
 import { store } from "./store";
 import { query, server_time } from "../../frame-editors/generic/client";
 import { uuid } from "smc-util/misc2";
@@ -56,7 +56,9 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       this.setState({ creating: true });
       const now = server_time();
       await query({
-        query: { site_licenses: { id, created: now, last_used: now } }
+        query: {
+          site_licenses: { id, created: now, last_used: now, actives: now }
+        }
       });
       await this.load(); // so will have the new license
       this.start_editing(id);
@@ -72,9 +74,42 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ editing });
   }
 
-  public done_editing(license_id: string): void {
+  public cancel_editing(license_id: string): void {
     const editing = store.get("editing", Set()).delete(license_id);
     this.setState({ editing });
+    const edits = store.get("edits");
+    if (edits == null) return;
+    this.setState({ edits: edits.delete(license_id) });
+  }
+
+  public async save_editing(license_id: string): Promise<void> {
+    const edits = store.get("edits");
+    this.cancel_editing(license_id);
+    if (edits == null) return;
+    const changes = edits.get(license_id);
+    if (changes == null || changes.size <= 1) return; // no actual changes
+    try {
+      await query({
+        query: {
+          site_licenses: changes.toJS()
+        }
+      });
+    } catch (err) {
+      this.set_error(err);
+    }
+    await this.load();
+  }
+
+  public set_edit(
+    license_id: string,
+    field: license_field_names,
+    value: any
+  ): void {
+    let edits: Map<string, TypedMap<SiteLicense>> = store.get("edits", Map());
+    let y = edits.get(license_id, Map({ id: license_id }));
+    y = y.set(field, value);
+    edits = edits.set(license_id, y as TypedMap<SiteLicense>);
+    this.setState({ edits });
   }
 }
 
