@@ -95,65 +95,13 @@ block content
               a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Request a live demo!
 
 
-  a.anchor#a-course
-  div.container.space#course
-    div.row
-      div.col-md-12.center
-        h2 #[i.fa.fa-tools] Available tools
+  +available-tools
 
-      div.col-sm-3
-        div.row
-          div.col-sm-4.col-sm-offset-4.center
-            a(href="./jupyter-notebook.html")
-              img(data-src=require("webapp-lib/assets/jupyter-logo.svg")).fit
-        h3.center.
-          #[a(href="./jupyter-notebook.html") Jupyter Notebooks]
-        p.
-          #{NAME} offers several ways for teaching with Jupyter Notebooks.
-          Its own native implementation offers real-time synchronization, time-travel, side-chat, and much more.
-        p.
-          For specific purposes, you can also run
-          #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") Jupyter Lab or the Classical Notebook interface].
 
-      div.col-sm-3
-        div.row
-          div.col-sm-4.col-sm-offset-4.center
-            a(href="https://doc.cocalc.com/sagews.html")
-              img(data-src="http://www.sagemath.org/pix/sage-sticker-1x1_inch-small.png").fit
-        h3.center.
-          #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets]
-        p.
-          A #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheet] is similar to a Jupyter Notebook,
-          but made to work well with #[a(href="https://www.sagemath.org") SageMath],
-          a sophisticated open-source mathematical software system.
+  a.anchor#a-overview
+  div.space#overview
 
-      div.col-sm-3
-        div.row
-          div.col-sm-6.col-sm-offset-3.center
-            a(href="./latex-editor.html")
-              img(data-src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit
-        h3.center.
-          #[a(href="./latex-editor.html") LaTeX Documents]
-        p.
-          #{NAME}'s online #[a(href="./latex-editor.html") LaTeX editor]
-          gives you a full LaTeX environment with zero-setup.
-          It supports online preview rendering, forward/inverse search, error reporting,
-          and #[a(href="https://doc.cocalc.com/latex.html") much more]!
-
-      div.col-sm-3
-        div.row
-          div.col-sm-4.col-sm-offset-4.center
-            a(href="./terminal.html")
-              img(data-src=require("webapp-lib/assets/linux-logo.svg")).fit
-        h3.center.
-          #[a(href="./terminal.html") Full Linux Terminal]
-        p.
-          A full online Linux terminal gives you all the powerful tools of an
-          #[a(href="./linux.html") Linux environment].
-          Everything is ready to teaching Linux and shell scripting,
-          compile a variety of programming languages,
-          process data or text files, and tie everything together via various command-line tools.
-
+    +nbgrader-support
 
   a.anchor#a-testimonials
   div#testimonials
