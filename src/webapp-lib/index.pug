@@ -69,9 +69,8 @@ block content
       .left,
       #statstable td.left
         text-align     : left
-      #explore,
-      #bottom
-        background-color : $COL_GRAY_LL
+      #explore
+        background-color : $COL_BLUE_LLL
         div > h3
           white-space    : nowrap
       #included > div
@@ -107,18 +106,25 @@ block content
           img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg')).shrink-small
       div.col-md-12.center.descr
         p #{htmlWebpackPlugin.options.description}
-      div.col-md-12.center.spacing
-        +start_button
+      div.col-md-12.center
+        +start_button_2
 
+
+  a.anchor#a-top2
   div.space#top2
     div.container
-      div.row.spacing
-        div.col-md-4
+      div.row
+        div.col-md-4.center
           p.headline.
-            The modern way to work with and teach scientific open-source software.
+            The modern way to learn, work and teach scientific open-source software.
+          div.center.spacing.hide-md-screen
+            +start_button_2sm
         div.col-md-8.center
           a(href="app?anonymous=true")
             img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200123-nq8.png").shadow.shrink-small-75.rounded
+      div.row.show-md-screen
+        div.col-md-12.center.show-md-screen
+          +start_button_2sm
 
   div.container
     div.row.spacing2
@@ -167,7 +173,7 @@ block content
         p.
           Learn more about #[a(href="./doc/teaching.html") Teaching with #{NAME}].
       div.col-md-12.center.spacing
-        +start_button
+        +start_button_2
 
 
   a.anchor#a-explore
@@ -179,32 +185,25 @@ block content
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-archive] Projects
           div.
-            Your work on #{htmlWebpackPlugin.options.title} happens inside #[strong #[a(href="https://doc.cocalc.com/project.html") private projects]].
-            They form your personal workspaces containing your files, computational worksheets, and data.
-            You run your computations through the web interface, via interactive worksheets and notebooks,
-            or by executing a program in a terminal.
+            #{NAME} #[strong #[a(href="https://doc.cocalc.com/project.html") projects]] are your personal, private workspaces.
+            They contains your files, computational worksheets, and data.
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-users] Collaboration
           div.
-            #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") Invite collaborators] into your project to work as a team.
-            Like you, they can edit the files in that project.
-            Edits are visible in #[strong real time] for everyone online.
-            You can share your thoughts in a #[strong side chat] next to each document.
+            #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") Invite collaborators]
+            into your project to work as a team.
+            Any changes are synchronized in real time for everyone.
         div.clearfix.visible-sm-block
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-graduation-cap] Teaching
           div.
-            #{htmlWebpackPlugin.options.title}
-            #[a(href="./doc/teaching.html") offers sophisticated tools for teaching].
-            Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
-            While students work on it, assist them by jumping right into their files where they're working.
-            Later, collect, grade and re-distribute the files.
+            #{NAME} is made for #[a(href="./doc/teaching.html") teaching].
+            It manages all files and helps you with grading.
+            If a student requires assistance, you can jump directly into the file while they're working.
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-file-alt] Authoring
           div.
-            Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]].
-            It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
-            and supports many advanced features.
+            Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") full LaTeX editor]].
 
   a.anchor#a-unique
   div.space#unique

@@ -1,9 +1,21 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
 mixin start_button
-  p
-    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app?anonymous=true") Run CoCalc Now!
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now!
   p #[a(href=PREFIX + "app") sign in or create an account]
+
+mixin start_button_2
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now!
+    a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In/Sign up
+
+
+mixin start_button_2sm
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=true") Run CoCalc!
+    a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In/Up
+
 
 //- mixin start_free
 //-   -
@@ -28,7 +40,7 @@ mixin start_free_banner
   div(style="margin-top: 6rem").darkbg
     div.container
       div.col-sm-12.center
-        +start_button
+        +start_button_2
       +start_free
 
 

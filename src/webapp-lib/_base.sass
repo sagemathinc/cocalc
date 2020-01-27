@@ -61,6 +61,16 @@ div.spacing2
   @media (min-width: $width-sm)
     display: none
 
+.hide-md-screen
+  @media (max-width: $width-md)
+    display: none
+
+.show-md-screen
+  @media (min-width: $width-md)
+    display: none
+
+
+
 // actual navbar styling
 nav.navbar.navbar-default
   position : relative
@@ -139,8 +149,12 @@ td.version
   line-height      : 1.5
   font-weight      : bold
 .cc-create-account-btn
-  font-weight      : bold
-  font-size        : 16px
+  white-space: nowrap
+  > a
+    font-weight      : bold
+    font-size        : 16px
+    margin-left      : 1rem
+    margin-right     : 1rem
 .video-player
   position         : relative
   > .video-overlay
