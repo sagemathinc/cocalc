@@ -31,7 +31,7 @@ const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
-const sendgrid = require("@sendgrid/mail");
+const sendgrid = require("@sendgrid/client");
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -231,24 +231,30 @@ exports.send_email = function(opts): void {
         dbg(`sending email to ${opts.to} starting...`);
         // Sendgrid V3 API -- https://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/index.html
 
+        // no "to" field, that's in "personalizations!"
         const msg: any = {
-          to: opts.to,
-          cc: "someone@example.org",
-          bcc: ["me@example.org", "you@example.org"],
           from: { email: opts.from, name: opts.fromname },
-          subject: "Hello world",
+          subject: opts.subject,
 
-          content: {
-            type: "text/html",
-            value: opts.body
-          },
+          content: [
+            {
+              type: "text/html",
+              value: opts.body
+            }
+          ],
           // plain template with a header (cocalc logo), a h1 title, and a footer
-          templateId: SENDGRID_TEMPLATE_ID,
-          substitutionWrappers: ["{{", "}}"],
-          substitutions: {
-            name: "Some One",
-            id: "123"
-          }
+          template_id: SENDGRID_TEMPLATE_ID,
+
+          personalizations: [
+            {
+              subject: opts.subject,
+              to: [
+                {
+                  email: opts.to
+                }
+              ]
+            }
+          ]
         };
 
         if (opts.replyto) {
@@ -257,10 +263,6 @@ exports.send_email = function(opts): void {
             email: opts.replyto
           };
         }
-
-        //  const personalization = new helper.Personalization();
-        //  personalization.setSubject(opts.subject);
-        //  personalization.addTo(to_email);
 
         if ((opts.cc != null ? opts.cc.length : undefined) > 0) {
           msg.cc = [{ email: opts.cc }];
@@ -289,12 +291,20 @@ exports.send_email = function(opts): void {
           "#title#": opts.subject
         };
 
-        dbg(`sending email to ${opts.to} data -- ${misc.to_json(msg)}`);
+        dbg(`sending email to ${opts.to} -- data -- ${misc.to_json(msg)}`);
+
+        const req = {
+          body: msg,
+          method: "POST",
+          url: "/v3/mail/send"
+        };
 
         email_server
-          .send(msg)
-          .then(() => {
-            dbg(`sending email to ${opts.to} -- success`);
+          .request(req)
+          .then(([_, body]) => {
+            dbg(
+              `sending email to ${opts.to} -- success -- ${misc.to_json(body)}`
+            );
             cb();
           })
           .catch(err => {
