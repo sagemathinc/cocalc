@@ -371,6 +371,7 @@ for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
       filename: output_fn,
       date: BUILD_DATE,
       title: TITLE,
+      description: DESCRIPTION,
       theme,
       COMP_ENV,
       components: {}, // no data needed, empty is fine
@@ -402,6 +403,7 @@ for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
       filename: output_fn,
       date: BUILD_DATE,
       title: TITLE,
+      description: DESCRIPTION,
       theme,
       COMP_ENV,
       components: {}, // no data needed, empty is fine
@@ -434,6 +436,7 @@ if (COMP_ENV) {
       filename: "doc/software.html",
       date: BUILD_DATE,
       title: TITLE,
+      description: DESCRIPTION,
       theme,
       COMP_ENV,
       components,
@@ -461,6 +464,7 @@ if (COMP_ENV) {
         filename: output_fn,
         date: BUILD_DATE,
         title: TITLE,
+        description: DESCRIPTION,
         theme,
         COMP_ENV,
         components,

@@ -35,10 +35,12 @@ block content
       body > div.space
         margin-top       : 5rem
       div#top
-        margin           : 10rem 0 5rem 0
+        padding          : 7rem 0 3rem 0
         .descr
           color          : $COL_GRAY
           font-size      : 2rem
+        @media (max-width: $width-md)
+          padding        : 3rem 0 0 0
         > div
           margin-bottom  : 2rem
       #statstable td,
@@ -81,7 +83,7 @@ block content
         .ff-only
           display: block
 
-      #top2
+      #top
         background-color: $COL_YELL_L
 
       .headline
@@ -98,33 +100,33 @@ block content
           margin: 0 auto 2rem auto
 
 
+  //- a.anchor#a-top
+  //- div.container
+  //-   div.row.intro#top
+  //-     div.col-md-4.col-md-offset-4.center
+  //-       a(href="app?anonymous=true")
+  //-         img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg')).shrink-small
+  //-     div.col-md-12.center.descr
+  //-       p #{htmlWebpackPlugin.options.description}
+  //-     div.col-md-12.center
+  //-       +start_button_2
+
+
   a.anchor#a-top
-  div.container
-    div.row.intro#top
-      div.col-md-4.col-md-offset-4.center
-        a(href="app?anonymous=true")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg')).shrink-small
-      div.col-md-12.center.descr
-        p #{htmlWebpackPlugin.options.description}
-      div.col-md-12.center
-        +start_button_2
-
-
-  a.anchor#a-top2
-  div.space#top2
+  div.space#top
     div.container
-      div.row
+      div.row.intro
         div.col-md-6.center
           p.headline.
-            The modern way to learn, work and teach scientific open-source software.
+            #{NAME}: the modern way to learn, work&nbsp;with and teach scientific open-source software.
           div.center.spacing.hide-md-screen
-            +start_button_2sm
+            +start_button_2
         div.col-md-6.center
           a(href="app?anonymous=true")
             img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200123-nq8.png").shadow.shrink-small-75.rounded
       div.row.show-md-screen
         div.col-md-12.center.show-md-screen
-          +start_button_2sm
+          +start_button_2
 
   div.container
     div.row.spacing2
@@ -133,13 +135,9 @@ block content
           img(src="https://storage.googleapis.com/cocalc-extra/laptop-desk-clean.jpg").shrink-small
       div.col-md-8
         h2.firstline
-          strong Zero-setup
-        p
-          strong All you need is a web-browser!
+          strong Zero-setup #[small all you need is a web-browser]
         p.
-          It takes less time to run a Jupyter notebook,
-          start a LaTeX document or to work with a full Linux terminal
-          – than grabbing a cup of coffee!
+          It takes less time to run a Jupyter Notebook than grabbing a cup of coffee!
         p.
           Learn more about #[a(href="./doc/jupyter-notebook.html") Jupyter Notebook support],
           the #[a(href="./doc/latex-editor.html") LaTeX editor],
@@ -151,11 +149,11 @@ block content
           img(src="https://storage.googleapis.com/cocalc-extra/collab-workplace.jpg").shrink-small
       div.col-md-8
         h2.firstline
-          strong Collaboration
+          strong Collaboration #[small with real-time synchronization]
         p.
-          Edit any file – including Jupyter Notebooks – with collaborators and #[strong all changes are synchronized in real-time].
+          All files, including Jupyter Notebooks, synchronize in real-time.
         p.
-          Integrated #[a(href="https://doc.cocalc.com/chat.html") chat and notifications] lets you exchange thoughts and ideas.
+          Integrated #[a(href="https://doc.cocalc.com/chat.html") chat with notifications] to exchange thoughts and ideas.
 
     div.row.spacing2
       div.col-md-4
@@ -163,12 +161,10 @@ block content
           img(src="https://storage.googleapis.com/cocalc-extra/classroom-computer.jpg").shrink-small
       div.col-md-8
         h2.firstline
-          strong Teaching made easy
+          strong Teaching a course #[small made easy]
         p.
-          #[strong #{NAME} is made for teaching a course]!
-        p.
-          No hassle installing software on every laptop,
-          directly help your students working on their notebooks,
+          No hassle installing software,
+          directly help your students on their notebooks,
           and let #{NAME} organize all files or even grade them.
         p.
           Learn more about #[a(href="./doc/teaching.html") Teaching with #{NAME}].

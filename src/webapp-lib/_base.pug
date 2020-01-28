@@ -121,7 +121,7 @@ mixin available-tools
           h3.center.
             #[a(href=PREFIX + "doc/terminal.html") Linux Terminal]
           p.
-            Access all powerful tools of a #[a(href=PREFIX + "doc/linux.html") full Linux environment].
+            Access all powerful tools in a #[a(href=PREFIX + "doc/linux.html") full Linux environment].
 
 
 mixin software-environment-table(lang)
@@ -253,6 +253,10 @@ html.no-js(lang="en")
 
             li
               a.get-started(href=PREFIX + "app") Sign In
+
+        //- that line is below the logo, on the left
+        div.navbar-descr.hide-md-screen.
+          #{htmlWebpackPlugin.options.description}
 
         if navbar_active == 'features' || navbar_active == 'index'
           div.collapse.navbar-collapse
