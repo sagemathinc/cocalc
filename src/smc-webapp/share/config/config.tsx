@@ -315,11 +315,14 @@ class Configure extends Component<Props, State> {
     );
   }
 
-  private render_link(): Rendered {
+  private render_link(parent_is_public: boolean): Rendered {
     const url = public_share_url(
       this.props.project_id,
-      this.props.path,
-      this.props.isdir
+      parent_is_public && this.props.public != null
+        ? this.props.public.path
+        : this.props.path,
+      this.props.isdir,
+      this.props.path
     );
 
     const button_before = (
@@ -351,7 +354,7 @@ class Configure extends Component<Props, State> {
           {this.render_license(parent_is_public)}
         </Col>
         <Col sm={6} style={{ color: "#666" }}>
-          {this.render_link()}
+          {this.render_link(parent_is_public)}
         </Col>
       </Row>
     );
@@ -372,9 +375,8 @@ class Configure extends Component<Props, State> {
         </a>{" "}
         either indexed by search engines (listed), or only visible with the link
         (unlisted). Files are automatically copied to the public server within
-        about 30 seconds after you explicitly edit them.
-        (To instead privately collaborate, go to Project
-        settings and "Add new collaborators".)
+        about 30 seconds after you explicitly edit them. (To instead privately
+        collaborate, go to Project settings and "Add new collaborators".)
       </div>
     );
   }

@@ -274,6 +274,7 @@ exports.init_http_proxy_server = (opts) ->
         tm = misc.walltime()
         host       = undefined
         port       = undefined
+        project    = undefined
         async.series([
             (cb) ->
                 if not remember_me?
@@ -300,17 +301,29 @@ exports.init_http_proxy_server = (opts) ->
                         else
                             cb()
             (cb) ->
-                if host?
-                    cb()
-                else
-                    compute_server.project
-                        project_id : project_id
-                        cb         : (err, project) ->
-                            dbg("first compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
-                            if err
-                                cb(err)
+                compute_server.project
+                    project_id : project_id
+                    cb         : (err, _project) ->
+                        dbg("first compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
+                        if err
+                            cb(err)
+                        else
+                            project = _project
+                            host = project.host
+                            cb()
+            (cb) ->
+                if not project._kubernetes  # this is ugly -- i need to change host in case of kubernetes.
+                    cb();
+                    return
+                project.status
+                    cb : (err, status) ->
+                        if err
+                            cb(err)
+                        else
+                            if not status.ip
+                                cb("must wait for project to start")
                             else
-                                host = project.host
+                                host = status.ip  # actual ip of the pod
                                 cb()
             (cb) ->
                 #dbg("determine the port")
