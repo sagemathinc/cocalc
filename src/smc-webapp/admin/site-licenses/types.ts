@@ -1,6 +1,29 @@
 import { Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
 
+export type upgrade_fields_type =
+  | "disk_quota"
+  | "memory"
+  | "memory_request"
+  | "cores"
+  | "network"
+  | "cpu_shares"
+  | "mintime"
+  | "member_host";
+
+export const upgrade_fields: upgrade_fields_type[] = [
+  "disk_quota",
+  "memory",
+  "memory_request",
+  "cores",
+  "network",
+  "cpu_shares",
+  "mintime",
+  "member_host"
+];
+
+type Upgrades = { [field: upgrade_fields_type]: number };
+
 export interface SiteLicense {
   id: string;
   title?: string;
@@ -11,8 +34,8 @@ export interface SiteLicense {
   last_used?: Date;
   users?: string[];
   restricted?: boolean;
-  upgrades?: any; // todo -- there is a type for this
-  student_upgrades?: any;
+  upgrades?: Upgrades;
+  student_upgrades?: Upgrades;
   run_limit?: number;
   apply_limit?: number;
 }
@@ -42,7 +65,9 @@ export type license_field_names =
   | "run_limit"
   | "apply_limit";
 
-export const license_fields: { [field: license_field_names]: license_field_type } = {
+export const license_fields: {
+  [field: license_field_names]: license_field_type;
+} = {
   id: "readonly",
   title: "string",
   description: "paragraph",
@@ -54,8 +79,8 @@ export const license_fields: { [field: license_field_names]: license_field_type 
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   student_upgrades: "upgrades",
-  run_limit: "number",
-  apply_limit: "number"
+  run_limit: "number"
+  //apply_limit: "number"
 };
 
 // export const source_fields = ["expires", "activates", "created", "last_used"];
