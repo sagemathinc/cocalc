@@ -50,6 +50,8 @@ client_aggregate = require('./client-aggregate')
 
 {validate_client_query} = require('./schema-validate')
 
+{NOT_SIGNED_IN} = require('./consts')
+
 defaults = misc.defaults
 required = defaults.required
 
@@ -2000,7 +2002,7 @@ class exports.Connection extends EventEmitter
                 options : opts.options
                 standby : opts.standby
                 cb      : (err, resp) =>
-                    if err == 'not signed in'
+                    if err == NOT_SIGNED_IN
                         if new Date().valueOf() - @_signed_in_time >= 60000
                             # If you did NOT recently sign in, and you're
                             # getting this error, we sign you out.  Right
