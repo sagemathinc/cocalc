@@ -50,8 +50,8 @@ export const license_fields: { [field: license_field_names]: license_field_type 
   activates: "date",
   created: "readonly",
   last_used: "date",
-  users: "account_id[]",
-  restricted: "boolean",
+  // users: "account_id[]",  // hide for now since not implemented at all
+  // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   student_upgrades: "upgrades",
   run_limit: "number",

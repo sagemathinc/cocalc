@@ -4,14 +4,19 @@ import { actions } from "./actions";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
-import { capitalize, is_date } from "smc-util/misc2";
+import { capitalize, is_date, replace_all } from "smc-util/misc2";
 import { DateTimePicker, NumberInput, TimeAgo } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
+import { DisplayUpgrades, EditUpgrades } from "./upgrades";
 
 interface Props {
   editing?: boolean;
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
+}
+
+function format_as_label(field: string): string {
+  return replace_all(capitalize(field), "_", " ");
 }
 
 export class License extends Component<Props> {
@@ -26,7 +31,7 @@ export class License extends Component<Props> {
       if (val == null && !this.props.editing) continue;
       v.push(
         <Row key={field} style={{ borderBottom: "1px solid lightgrey" }}>
-          <Col span={4}>{capitalize(field)}</Col>
+          <Col span={4}>{format_as_label(field)}</Col>
           <Col span={20}>
             {this.render_value(field, val)}
             {field == "id" ? this.render_buttons() : undefined}
@@ -87,16 +92,26 @@ export class License extends Component<Props> {
           );
           break;
         case "upgrades":
-          x = "(todo: upgrades)";
+          x = (
+            <EditUpgrades
+              upgrades={val}
+              onChange={onChange}
+              license_id={this.props.license.get("id")}
+              license_field={field}
+            />
+          );
           break;
         case "number":
           x = (
-            <NumberInput
-              on_change={onChange}
-              min={0}
-              unit="projects"
-              number={val != null ? val : 0}
-            />
+            <span>
+              <NumberInput
+                on_change={onChange}
+                min={0}
+                unit="projects"
+                number={val != null ? val : 0}
+              />{" "}
+              (0 = no limits)
+            </span>
           );
           break;
         case "readonly":
@@ -108,14 +123,22 @@ export class License extends Component<Props> {
           }
       }
     } else {
-      if (is_date(val)) {
-        x = (
-          <span>
-            <TimeAgo date={val} />
-          </span>
-        );
-      } else {
-        x = `${val}`;
+      switch (type) {
+        case "paragraph":
+          x = <div style={{ whiteSpace: "pre" }}>{val}</div>;
+          break;
+        case "date":
+          if (val == null) {
+            x = "";
+          } else {
+            x = <TimeAgo date={val} />;
+          }
+          break;
+        case "upgrades":
+          x = <DisplayUpgrades upgrades={val} />;
+          break;
+        default:
+          x = `${val}`;
       }
     }
     return x;

@@ -4,6 +4,7 @@ import { SiteLicensesState, SiteLicense, license_field_names } from "./types";
 import { store } from "./store";
 import { query, server_time } from "../../frame-editors/generic/client";
 import { uuid } from "smc-util/misc2";
+import { normalize_upgrades_for_save } from "./upgrades";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {
@@ -57,7 +58,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       const now = server_time();
       await query({
         query: {
-          site_licenses: { id, created: now, last_used: now, actives: now }
+          site_licenses: { id, created: now, last_used: now, activates: now }
         }
       });
       await this.load(); // so will have the new license
@@ -88,10 +89,16 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     if (edits == null) return;
     const changes = edits.get(license_id);
     if (changes == null || changes.size <= 1) return; // no actual changes
+    let site_licenses = changes.toJS();
+    for (const field of ["upgrades", "student_upgrades"]) {
+      if (!site_licenses[field]) continue;
+      normalize_upgrades_for_save(site_licenses[field]);
+    }
+
     try {
       await query({
         query: {
-          site_licenses: changes.toJS()
+          site_licenses
         }
       });
     } catch (err) {
