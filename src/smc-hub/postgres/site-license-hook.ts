@@ -45,15 +45,9 @@ export async function site_license_hook(
 
   // Check for site licenses, then set the site_license field for this project.
 
-  /*
-  The only site license rule right now is that *any* project associated to a course with a
-  student whose email address contains ucla.edu gets automatically upgraded.  This is
-  a temporary one-off site license that will be redone once we have experience with it.
-  */
-
   const project = await query({
     db,
-    select: ["site_license", "course"],
+    select: ["site_license"],
     table: "projects",
     where: { project_id },
     one: true
@@ -110,12 +104,7 @@ export async function site_license_hook(
 
     if (is_valid) {
       if (license == null) throw Error("bug");
-      // The confusing code below is supposed to choose the student_upgrades if the project has a course
-      // field and student_upgrades; otherwise, choose the normal upgrades.
-      const upgrades =
-        project.course != null
-          ? license.get("student_upgrades")
-          : license.get("upgrades");
+      const upgrades = license.get("upgrades");
       if (upgrades != null) {
         const x = upgrades.toJS();
         dbg(

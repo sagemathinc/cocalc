@@ -35,7 +35,6 @@ export interface SiteLicense {
   users?: string[];
   restricted?: boolean;
   upgrades?: Upgrades;
-  student_upgrades?: Upgrades;
   run_limit?: number;
   apply_limit?: number;
 }
@@ -61,7 +60,6 @@ export type license_field_names =
   | "users"
   | "restricted"
   | "upgrades"
-  | "student_upgrades"
   | "run_limit"
   | "apply_limit";
 
@@ -78,7 +76,6 @@ export const license_fields: {
   // users: "account_id[]",  // hide for now since not implemented at all
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
-  student_upgrades: "upgrades",
   run_limit: "number"
   //apply_limit: "number"
 };

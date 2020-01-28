@@ -36,7 +36,6 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               users: null,
               restricted: null,
               upgrades: null,
-              student_upgrades: null,
               run_limit: null,
               apply_limit: null
             }
@@ -90,9 +89,8 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     const changes = edits.get(license_id);
     if (changes == null || changes.size <= 1) return; // no actual changes
     let site_licenses = changes.toJS();
-    for (const field of ["upgrades", "student_upgrades"]) {
-      if (!site_licenses[field]) continue;
-      normalize_upgrades_for_save(site_licenses[field]);
+    if (site_licenses.upgrades) {
+      normalize_upgrades_for_save(site_licenses.upgrades);
     }
 
     try {

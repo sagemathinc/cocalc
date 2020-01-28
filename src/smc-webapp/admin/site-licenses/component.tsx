@@ -80,11 +80,6 @@ class SiteLicenses extends Component<Props> {
     return r_join(v, <div style={{ height: "20px" }}></div>);
   }
 
-  private render_work_in_progress(): Rendered {
-    if (!this.props.view) return;
-    return <div>WARNING: this is a work in progress.</div>;
-  }
-
   private render_header_toggle(): Rendered {
     return (
       <h4
@@ -142,7 +137,6 @@ class SiteLicenses extends Component<Props> {
           <Space />
           {this.render_create_new_license()}
           {this.render_loading()}
-          {this.render_work_in_progress()}
           {this.render_main()}
         </div>
       </div>

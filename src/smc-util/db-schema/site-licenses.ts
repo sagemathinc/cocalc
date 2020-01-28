@@ -66,11 +66,6 @@ export const site_licenses = create({
       desc:
         "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}."
     },
-    student_upgrades: {
-      type: "map",
-      desc:
-        "Map of the upgrades that are applied to a project when it has this site license and has the course field set."
-    },
     run_limit: {
       type: "integer",
       desc:
@@ -103,7 +98,6 @@ export const site_licenses = create({
           users: null,
           restricted: null,
           upgrades: null,
-          student_upgrades: null,
           run_limit: null,
           apply_limit: null
         }
@@ -121,7 +115,6 @@ export const site_licenses = create({
           users: null,
           restricted: null,
           upgrades: null,
-          student_upgrades: null,
           run_limit: null,
           apply_limit: null
         }
