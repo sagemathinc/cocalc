@@ -37,7 +37,7 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 theme   = require('smc-util/theme')
 {DOMAIN_NAME} = theme
-{VERSION_COOKIE_NAME} = require('smc-util/misc2')
+{VERSION_COOKIE_NAME} = require('smc-util/consts')
 
 hub_projects = require('./projects')
 auth = require('./auth')

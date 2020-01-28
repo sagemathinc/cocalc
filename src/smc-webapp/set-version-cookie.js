@@ -15,7 +15,7 @@ const cookies = new Cookies();
 
 const { version } = require("smc-util/smc-version");
 const { APP_BASE_URL } = require("./misc_page");
-import { VERSION_COOKIE_NAME } from "smc-util/misc2";
+import { VERSION_COOKIE_NAME } from "smc-util/consts";
 
 // We don't really want this cookie to expire.  All it does is record the version of
 // the code the client has loaded, and the version only goes up.
