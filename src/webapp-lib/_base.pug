@@ -81,56 +81,47 @@ mixin available-tools
 
         div.col-sm-3
           div.row
-            div.col-sm-4.col-sm-offset-4.center
-              a(href="./jupyter-notebook.html")
-                img(data-src=require("webapp-lib/assets/jupyter-logo.svg")).fit
+            div.col-md-4.col-md-offset-4.center
+              a(href=PREFIX + "doc/jupyter-notebook.html")
+                img(data-src=require("webapp-lib/assets/jupyter-logo.svg")).fit-shrink
           h3.center.
-            #[a(href="./jupyter-notebook.html") Jupyter Notebooks]
+            #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebooks]
           p.
-            #{NAME} offers several ways for teaching with Jupyter Notebooks.
-            Its own native implementation offers real-time synchronization, time-travel, side-chat, and much more.
-          p.
-            For specific purposes, you can also run
-            #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") Jupyter Lab or the Classical Notebook interface].
+            #{NAME}'s own #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook] implementation
+            offers real-time synchronization, time-travel, automatic grading, side-chat, and much more.
 
         div.col-sm-3
           div.row
-            div.col-sm-4.col-sm-offset-4.center
+            div.col-md-4.col-md-offset-4.center
               a(href="https://doc.cocalc.com/sagews.html")
-                img(data-src="http://www.sagemath.org/pix/sage-sticker-1x1_inch-small.png").fit
+                img(data-src="https://www.sagemath.org/pix/sage-sticker-1x1_inch-small.png").fit-shrink
           h3.center.
             #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets]
           p.
-            A #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheet] is similar to a Jupyter Notebook,
-            but made to work well with #[a(href="https://www.sagemath.org") SageMath],
-            a sophisticated open-source mathematical software system.
+            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets] are similar to a Jupyter Notebooks,
+            but made to work well with #[a(href="https://www.sagemath.org") SageMath].
 
         div.col-sm-3
           div.row
-            div.col-sm-6.col-sm-offset-3.center
-              a(href="./latex-editor.html")
-                img(data-src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit
+            div.col-md-6.col-md-offset-3.center
+              a(href=PREFIX + "doc/latex-editor.html")
+                img(data-src=require("webapp-lib/assets/latex-logo.svg") style="padding: 10px 0").fit-shrink
           h3.center.
-            #[a(href="./latex-editor.html") LaTeX Documents]
+            #[a(href=PREFIX + "doc/latex-editor.html") LaTeX Editor]
           p.
-            #{NAME}'s online #[a(href="./latex-editor.html") LaTeX editor]
-            gives you a full LaTeX environment with zero-setup.
-            It supports online preview rendering, forward/inverse search, error reporting,
+            A full #[a(href=PREFIX + "doc/latex-editor.html") LaTeX editor]
+            supporting preview rendering, forward/inverse search, error reporting,
             and #[a(href="https://doc.cocalc.com/latex.html") much more]!
 
         div.col-sm-3
           div.row
-            div.col-sm-4.col-sm-offset-4.center
-              a(href="./terminal.html")
-                img(data-src=require("webapp-lib/assets/linux-logo.svg")).fit
+            div.col-md-4.col-md-offset-4.center
+              a(href=PREFIX + "doc/terminal.html")
+                img(data-src=require("webapp-lib/assets/linux-logo.svg")).fit-shrink
           h3.center.
-            #[a(href="./terminal.html") Full Linux Terminal]
+            #[a(href=PREFIX + "doc/terminal.html") Linux Terminal]
           p.
-            A full online Linux terminal gives you all the powerful tools of an
-            #[a(href="./linux.html") Linux environment].
-            Everything is ready to teaching Linux and shell scripting,
-            compile a variety of programming languages,
-            process data or text files, and tie everything together via various command-line tools.
+            Access all powerful tools of a #[a(href=PREFIX + "doc/linux.html") full Linux environment].
 
 
 mixin software-environment-table(lang)

@@ -36,6 +36,13 @@ img.shrink-small-75
   @media (max-width: $width-md)
     width: 75%
 
+img.shrink-small-25
+  width: 100%
+  height: auto
+  @media (max-width: $width-md)
+    width: 25%
+    height: auto
+
 img.rounded
   border-radius: 3px
 
@@ -114,6 +121,12 @@ div.jumbotron
 .fit
   width          : 100%
   heigh          : auto
+.fit-shrink
+  width          : 100%
+  heigh          : auto
+  @media (max-width: $width-md)
+    width: 25%
+    height: 25%
 
 div.intro
   img.fit
