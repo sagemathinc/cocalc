@@ -221,28 +221,6 @@ schema.blobs = {
   }
 };
 
-schema.central_log = {
-  desc:
-    "Table for logging system stuff that happens.  Meant to help in running and understanding the system better.",
-  primary_key: "id",
-  durability: "soft", // loss of some log data not serious, since used only for analytics
-  fields: {
-    id: {
-      type: "uuid"
-    },
-    event: {
-      type: "string"
-    },
-    value: {
-      type: "map"
-    },
-    time: {
-      type: "timestamp"
-    }
-  },
-  pg_indexes: ["time", "event"]
-};
-
 schema.client_error_log = {
   primary_key: "id",
   durability: "soft", // loss of some log data not serious, since used only for analytics

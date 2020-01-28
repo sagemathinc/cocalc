@@ -7,6 +7,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { delay } from "awaiting";
@@ -62,6 +63,8 @@ import {
   parser2tool,
   format_parser_for_extension
 } from "smc-util/code-formatter";
+
+import { apply_patch } from "smc-util/sync/editor/generic/util";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
@@ -171,6 +174,8 @@ export class Actions<
     this.code_editors = new CodeEditorManager<CodeEditorState>(
       (this as unknown) as Actions<CodeEditorState>
     );
+
+    this.format = reuseInFlight(this.format);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -1341,21 +1346,36 @@ export class Actions<
     }
   }
 
-  set_syncstring_to_codemirror(id?: string): void {
+  set_syncstring_to_codemirror(id?: string, do_not_exit_undo_mode?: boolean): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return;
     }
-    this.set_syncstring(cm.getValue());
+    this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
   }
 
-  set_syncstring(value: string): void {
+  private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
     if (this._state === "closed") return;
     const cur = this._syncstring.to_str();
     if (cur === value) {
       // did not actually change.
       return;
     }
+    if (!do_not_exit_undo_mode) {
+      // If we are NOT doing an undo operation, then setting the
+      // syncstring due to any
+      // change in the codemirror editor (user editing, application of
+      // formatting like bold, etc.) should exit undo mode.  Otherwise,
+      // if the user *immediately* does an undo, they will undo from
+      // the wrong point in time.... which is very confusing.  See
+      // https://github.com/sagemathinc/cocalc/issues/1323
+      // NOTE: we only have to be careful about this because we
+      // are directly using syncstring.from_str below and not set_doc,
+      // because tricky stuff involving the codemirror editor having
+      // separate state and changing.
+      this._syncstring.exit_undo_mode();
+    }
+    // Now actually set the value.
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -1413,7 +1433,7 @@ export class Actions<
     const value = this._syncstring.undo().to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this._syncstring.commit();
   }
 
@@ -1434,7 +1454,7 @@ export class Actions<
     const value = doc.to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this._syncstring.commit();
   }
 
@@ -1883,6 +1903,9 @@ export class Actions<
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
+  // Also, format is reuseInFlight, so if you call this multiple times while
+  // it is being called, it really only does the formatting once, which avoids
+  // corrupting your code:  https://github.com/sagemathinc/cocalc/issues/4343
   async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
@@ -1912,7 +1935,18 @@ export class Actions<
 
     this.set_status("Running code formatter...");
     try {
-      await prettier(this.project_id, this.path, options);
+      const patch = await prettier(this.project_id, this.path, options);
+      if (patch != null) {
+        // Apply the patch.
+        // NOTE: old backends that haven't restarted just return {status:'ok'}
+        // and directly make the change.  Delete this comment in a month or so.
+        // See https://github.com/sagemathinc/cocalc/issues/4335
+        this.set_syncstring_to_codemirror();
+        const new_val = apply_patch(patch, this._syncstring.to_str())[0];
+        this._syncstring.from_str(new_val);
+        this._syncstring.commit();
+        this.set_codemirror_to_syncstring();
+      }
       this.set_error("");
     } catch (err) {
       this.set_error(`Error formatting code: \n${err}`, "monospace");

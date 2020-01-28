@@ -108,14 +108,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
-    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    # Since we can't use in super cbs, use _init_cb as the function which
+    # will be called by the parent
     _init_cb: =>
         @readonly = @_syncstring.is_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
         @init_hide_show_gutter()  # must be after @readonly set
 
         @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
-
         if not @readonly
             @status cb: (err, status) =>
                 if not status?.running
@@ -1592,7 +1592,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             output.append($("<br><strong>WARNING:</strong> webm animations not supported on Safari or IE; use an animated gif instead, e.g., the gif=True option to show.<br>"))
                         if $.browser.firefox
                             output.append($("<br><strong>WARNING:</strong> Right click and select play.<br>"))
-                        video = $("<video src='#{target}' class='sagews-output-video' controls></video>")
+                        video = $("<video src='#{target}' class='sagews-output-video' controls loop></video>")
                         output.append(video)
 
                     when 'sage3d'

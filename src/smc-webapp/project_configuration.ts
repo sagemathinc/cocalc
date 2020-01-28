@@ -37,6 +37,7 @@ export interface MainCapabilities {
   hashsums: Capabilities;
   latex: boolean;
   sage: boolean;
+  sage_version?: number[];
   x11: boolean;
   rmd: boolean;
   spellcheck: boolean;

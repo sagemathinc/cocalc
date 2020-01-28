@@ -1595,7 +1595,11 @@ const mathjax_environments = [
   "Vmatrix",
   "vmatrix"
 ];
-const mathjax_delim = [["$$", "$$"], ["\\(", "\\)"], ["\\[", "\\]"]];
+const mathjax_delim = [
+  ["$$", "$$"],
+  ["\\(", "\\)"],
+  ["\\[", "\\]"]
+];
 for (let env of Array.from(mathjax_environments)) {
   mathjax_delim.push([`\\begin{${env}}`, `\\end{${env}}`]);
 }
@@ -2647,7 +2651,8 @@ exports.log = function() {
 exports.wrap_log = function() {
   if (
     !exports.RUNNING_IN_NODE &&
-    (typeof window !== "undefined" && window !== null)
+    typeof window !== "undefined" &&
+    window !== null
   ) {
     window.console.log_original = window.console.log;
     return (window.console.log = exports.log);
@@ -2877,30 +2882,38 @@ exports.top_sort = function(DAG, opts) {
   const { omit_sources } = opts;
   const source_names = [];
   let num_edges = 0;
-  const data = {};
+  const graph_nodes = {};
 
-  // Ready the data for top sort
+  // Ready the nodes for top sort
   for (let name in DAG) {
     const parents = DAG[name];
-    if (data[name] == null) {
-      data[name] = {};
+    if (graph_nodes[name] == null) {
+      graph_nodes[name] = {};
     }
-    const node = data[name];
+    const node = graph_nodes[name];
     node.name = name;
     if (node.children == null) {
       node.children = [];
     }
     node.parent_set = {};
-    for (let parent_name of Array.from(parents)) {
+    for (let parent_name of parents) {
       node.parent_set[parent_name] = true; // include element in "parent_set" (see https://github.com/sagemathinc/cocalc/issues/1710)
-      if (data[parent_name] == null) {
-        data[parent_name] = {};
+
+      if (graph_nodes[parent_name] == null) {
+        graph_nodes[parent_name] = {};
+
+        // Cover implicit nodes which are assumed to be source nodes
+        if (DAG[parent_name] == undefined) {
+          source_names.push(parent_name);
+        }
       }
-      if (data[parent_name].children == null) {
-        data[parent_name].children = [];
+      if (graph_nodes[parent_name].children == null) {
+        graph_nodes[parent_name].children = [];
       }
-      data[parent_name].children.push(node);
+
+      graph_nodes[parent_name].children.push(node);
     }
+
     if (parents.length === 0) {
       source_names.push(name);
     } else {
@@ -2909,15 +2922,19 @@ exports.top_sort = function(DAG, opts) {
   }
 
   // Top sort! Non-recursive method since recursion is way slow in javascript
+  // https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm
   const path = [];
   const num_sources = source_names.length;
-  while (source_names.length > 0) {
+  let walked_edges = 0;
+
+  while (source_names.length !== 0) {
     const curr_name = source_names.shift();
     path.push(curr_name);
-    for (let child of Array.from(data[curr_name].children)) {
+
+    for (let child of graph_nodes[curr_name].children) {
       delete child.parent_set[curr_name];
-      num_edges -= 1;
-      if (exports.len(child.parent_set) === 0) {
+      walked_edges++;
+      if (Object.keys(child.parent_set).length === 0) {
         source_names.push(child.name);
       }
     }
@@ -2929,7 +2946,7 @@ exports.top_sort = function(DAG, opts) {
   }
 
   // Detect cycles
-  if (num_edges !== 0) {
+  if (num_edges !== walked_edges) {
     if (typeof window !== "undefined" && window !== null) {
       window._DAG = DAG;
     } // so it's possible to debug in browser

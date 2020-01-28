@@ -23,7 +23,10 @@ default_timeout = 20
 
 def unicode8(s):
     try:
-        return str(s, 'utf8')
+        if six.PY3:
+            return str(s, 'utf8')
+        else:
+            return str(s).encode('utf-8')
     except:
         try:
             return str(s)

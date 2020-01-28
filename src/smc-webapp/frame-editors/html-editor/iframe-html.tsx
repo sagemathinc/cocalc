@@ -16,7 +16,7 @@ import { Component, React, ReactDOM, Rendered } from "../../app-framework";
 import * as CSS from "csstype";
 
 const STYLE: CSS.Properties = {
-  overflowY: "scroll",
+  overflowY: "auto",
   width: "100%"
 };
 
