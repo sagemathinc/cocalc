@@ -90,4 +90,6 @@ export interface SiteLicensesState {
   site_licenses?: SiteLicense[];
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   edits?: Map<string, TypedMap<SiteLicense>>;
+  search?: string;
+  matches_search?: Set<string>|undefined; // id's of licenses that match search
 }

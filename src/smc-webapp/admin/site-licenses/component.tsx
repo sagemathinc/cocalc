@@ -25,6 +25,8 @@ interface Props {
   site_licenses?: List<TypedMap<SiteLicense>>;
   editing?: Set<string>;
   edits?: Map<string, TypedMap<SiteLicense>>;
+  search?: string;
+  matches_search?: Set<string>;
 }
 
 class SiteLicenses extends Component<Props> {
@@ -37,7 +39,9 @@ class SiteLicenses extends Component<Props> {
         creating: rtypes.bool,
         site_licenses: rtypes.immutable.List,
         editing: rtypes.immutable.Set,
-        edits: rtypes.immutable.Map
+        edits: rtypes.immutable.Map,
+        search: rtypes.string,
+        matches_search: rtypes.immutable.Set
       }
     };
   }
@@ -54,7 +58,7 @@ class SiteLicenses extends Component<Props> {
 
   private render_loading(): Rendered {
     if (this.props.loading) {
-      return <Loading />;
+      return <Loading theme="medium" />;
     }
   }
 
@@ -75,6 +79,13 @@ class SiteLicenses extends Component<Props> {
     if (!this.props.site_licenses) return;
     const v: Rendered[] = [];
     for (const license of this.props.site_licenses) {
+      if (
+        this.props.search &&
+        this.props.matches_search != null &&
+        !this.props.matches_search.has(license.get("id"))
+      ) {
+        continue;
+      }
       v.push(this.render_license(license));
     }
     return r_join(v, <div style={{ height: "20px" }}></div>);
@@ -126,17 +137,48 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
+  private render_search(): Rendered {
+    if (!this.props.view) return;
+    return (
+      <span>
+        <input
+          placeholder={"Search"}
+          style={{ marginLeft: "5px", width: "40ex", padding: "5px" }}
+          value={this.props.search ?? ""}
+          onChange={e => actions.set_search((e.target as any).value.trim())}
+        />
+      </span>
+    );
+  }
+
+  private render_search_restriction_note(): Rendered {
+    if (this.props.matches_search != null && this.props.site_licenses != null) {
+      return (
+        <b style={{ marginLeft: "10px" }}>
+          Showing {this.props.matches_search.size} of{" "}
+          {this.props.site_licenses.size} matching licenses
+        </b>
+      );
+    }
+  }
+
   render(): Rendered {
     return (
       <div>
         {this.render_header_toggle()}
         <div style={{ margin: "0 10%" }}>
           {this.render_error()}
-          {this.render_reload_button()}
-          <Space />
-          <Space />
-          {this.render_create_new_license()}
-          {this.render_loading()}
+          <div>
+            {this.render_reload_button()}
+            <Space />
+            <Space />
+            {this.render_create_new_license()}
+            <Space />
+            <Space />
+            {this.render_search()}
+            {this.render_search_restriction_note()}
+            {this.render_loading()}
+          </div>
           {this.render_main()}
         </div>
       </div>

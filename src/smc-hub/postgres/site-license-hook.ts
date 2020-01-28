@@ -30,6 +30,9 @@ async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
         "student_upgrades",
         "run_limit"
       ]
+      // TODO: Not bothing with the where condition will be fine up to a few thousand (?) site
+      // licenses, but after that it could take nontrivial time/memory during hub startup.
+      // So... this is a ticking time bomb.
       //, where: { expires: { ">=": new Date() }, activates: { "<=": new Date() } }
     });
   }
