@@ -2,7 +2,7 @@ import { schema } from "./db-schema";
 import { account_creation_actions } from "./account-creation-actions";
 import { accounts } from "./accounts";
 import { lti } from "./lti";
-import { site_licenses, site_license_usage_stats } from "./site-licenses";
+import { site_licenses, site_license_usage_stats, projects_using_site_license } from "./site-licenses";
 import { file_use_times } from "./file-use-times";
 import { central_log } from "./central-log";
 const misc = require("../misc");
@@ -14,6 +14,7 @@ export const SCHEMA = {
   lti,
   site_licenses,
   site_license_usage_stats,
+  projects_using_site_license,
   file_use_times,
   central_log
 };

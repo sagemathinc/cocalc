@@ -31,7 +31,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
 {set_account_info_if_possible} = require('./postgres/account-queries')
-{site_license_usage_stats} = require('./postgres/site-license-hook')
+{site_license_usage_stats, projects_using_site_license} = require('./postgres/site-license-hook')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -3036,3 +3036,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     site_license_usage_stats: () =>
         return await site_license_usage_stats(@)
+
+    projects_using_site_license: (license_id) =>
+        return await projects_using_site_license(@, license_id)

@@ -165,3 +165,40 @@ export const site_license_usage_stats = create({
     }
   }
 });
+
+export const projects_using_site_license = create({
+  fields: {
+    license_id: {
+      type: "string",
+      desc: "the id of the license"
+    },
+    projects: {
+      type: "array",
+      desc: "list of the ids of projects that are currently actively running using this site license for upgrades"
+    },
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc: "Site License usage information for running projects for a particular license",
+    anonymous: false,
+    primary_key: ["license_id"],
+    user_query: {
+      get: {
+        fields: {
+          license_id: null,
+          projects: null
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          const obj: any = Object.assign({}, opts.query);
+          try {
+            obj.projects = await database.projects_using_site_license(obj.license_id);
+            cb(undefined, obj);
+          } catch (err) {
+            cb(err);
+          }
+        }
+      }
+    }
+  }
+});

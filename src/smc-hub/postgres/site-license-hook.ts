@@ -232,3 +232,16 @@ async function update_last_used(
     where: { id: license_id }
   });
 }
+
+export async function projects_using_site_license(
+  db: PostgreSQL,
+  license_id: string
+): Promise<string[]> {
+  const query = `SELECT project_id FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
+  const x = await callback2(db._query.bind(db), { query });
+  const v: string[] = [];
+  for (const row of x.rows) {
+    v.push(row.project_id);
+  }
+  return v;
+}
