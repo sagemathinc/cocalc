@@ -56,8 +56,11 @@ export class API {
     return await this.call({ cmd: "canonical_paths", paths }, 15000);
   }
 
-  async configuration(aspect: ConfigurationAspect): Promise<object[]> {
-    return await this.call({ cmd: "configuration", aspect }, 15000);
+  async configuration(
+    aspect: ConfigurationAspect,
+    no_cache = false
+  ): Promise<object[]> {
+    return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
   }
 
   // Returns  { status: "ok", patch:... the patch} or
@@ -236,7 +239,7 @@ export class API {
   async jupyter_run_notebook(opts: RunNotebookOptions): Promise<string> {
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
-      60000   // TODO: implement timeout taking into account opts.limits as second option
+      60000 // TODO: implement timeout taking into account opts.limits as second option
     );
   }
 
