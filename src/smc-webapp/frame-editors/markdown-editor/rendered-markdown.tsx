@@ -92,7 +92,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
     return (
       <div
         style={{
-          overflowY: "scroll",
+          overflowY: "auto",
           width: "100%",
           zoom: (this.props.font_size != null ? this.props.font_size : 16) / 16
         }}

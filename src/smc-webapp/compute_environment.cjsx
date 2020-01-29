@@ -27,6 +27,8 @@
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
 theme  = require('smc-util/theme')
+{li_style} = require('./info/style')
+
 
 # This depends on two files: compute-inventory.json and compute-components.json described in webapp-lib/README.md
 
@@ -281,8 +283,6 @@ ComputeEnvironment = rclass
         @setState(show_version_popup: false)
 
     version_information_popup: ->
-        {li_style} = require('./r_help')
-
         lang_info          = @props.inventory['language_exes'][@state.inventory_idx]
         version            = @props.inventory[@props.selected_lang]?[@state.inventory_idx]?[@state.component_idx] ? '?'
         # we're optimistic and treat 'description' as markdown,
@@ -384,8 +384,6 @@ ComputeEnvironment = rclass
         </Tabs>
 
     environment_information: ->
-        {li_style} = require('./r_help')
-
         num = {}
         for env in ['R', 'julia', 'python', 'executables']
             num[env] = misc.keys(@props.components[env] ? {}).length ? 0

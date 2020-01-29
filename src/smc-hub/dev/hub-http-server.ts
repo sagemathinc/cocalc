@@ -105,10 +105,11 @@ export async function init_http_proxy(
         database
       );
     } catch (err) {
+      logger.debug(`http_proxy: internal error: ${err}`);
       res.status(500).send(`internal error: ${err}`);
       return;
     }
-    logger.debug(`port='${port}'`);
+    logger.debug(`http_proxy: port='${port}'`);
     const target = `http://localhost:${port}`;
     proxy = createProxyServer({
       ws: false,
@@ -151,12 +152,12 @@ export function init_websocket_proxy(
 ): void {
   async function handle_upgrade(req, socket, head): Promise<void> {
     if (hub_proxy.version_check(req, undefined, base_url)) {
-      logger.debug("http_proxy: websocket upgrade -- version check failed");
+      logger.debug("http_proxy.init_websocket_proxy: websocket upgrade -- version check failed");
       return;
     }
     let proxy;
     const req_url = req.url.slice(base_url.length);
-    logger.debug(`websocket_proxy.handle_upgrade: "${req_url}"`);
+    logger.debug(`http_proxy.init_websocket_proxy.handle_upgrade: "${req_url}"`);
     const { type, key, port_number, project_id } = target_parse_req(req_url);
     proxy = websocket_proxy_cache[key];
     if (proxy !== undefined) {
@@ -165,7 +166,7 @@ export function init_websocket_proxy(
       return;
     }
 
-    logger.debug("websocket", "upgrade -- creating proxy");
+    logger.debug("http_proxy.init_websocket_proxy.handle_upgrade", "upgrade -- creating proxy");
     let port;
     try {
       port = await get_port(
@@ -187,7 +188,7 @@ export function init_websocket_proxy(
     });
     proxy.on("error", function(e) {
       logger.debug(
-        "websocket",
+        "http_proxy.init_websocket_proxy.error event",
         `websocket proxy error, so clearing cache -- ${e}`
       );
       delete websocket_proxy_cache[key];

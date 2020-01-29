@@ -579,7 +579,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 return
             connect_to_a_local_hub
                 port         : @address.port
-                host         : @address.host
+                host         : @address.ip ? @address.host   # prefer @address.ip if it exists (e.g., for cocalc-kubernetes); otherwise use host (which is where compute server is).
                 secret_token : @address.secret_token
                 cb           : cb
         socket = undefined

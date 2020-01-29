@@ -7,6 +7,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { delay } from "awaiting";
@@ -173,6 +174,8 @@ export class Actions<
     this.code_editors = new CodeEditorManager<CodeEditorState>(
       (this as unknown) as Actions<CodeEditorState>
     );
+
+    this.format = reuseInFlight(this.format);
 
     this.set_resize = this.set_resize.bind(this);
     window.addEventListener("resize", this.set_resize);
@@ -1900,6 +1903,9 @@ export class Actions<
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
+  // Also, format is reuseInFlight, so if you call this multiple times while
+  // it is being called, it really only does the formatting once, which avoids
+  // corrupting your code:  https://github.com/sagemathinc/cocalc/issues/4343
   async format(id: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;

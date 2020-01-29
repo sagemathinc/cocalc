@@ -369,6 +369,7 @@ init_compute_server = (cb) ->
             database : database
             dev      : program.dev
             single   : program.single
+            kubernetes : program.kubernetes
             base_url : BASE_URL
             cb       : f
 
@@ -733,6 +734,7 @@ command_line = () ->
         .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+        .option('--kubernetes', 'if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .option('--lti', 'just start the LTI service')
