@@ -850,6 +850,34 @@ export class CourseStore extends Store<CourseState> {
     delete x.store;
     return x;
   }
+
+  // List of ids of (non-deleted) assignments that have been
+  // assigned to at least one student.
+  public get_assigned_assignment_ids(): string[] {
+    const v: string[] = [];
+    for (const [assignment_id, val] of this.get_assignments()) {
+      if (val.get("deleted")) continue;
+      const x = val.get(`last_assignment`);
+      if (x != null && x.size > 0) {
+        v.push(assignment_id);
+      }
+    }
+    return v;
+  }
+
+  // List of ids of (non-deleted) handouts that have been copied
+  // out to at least one student.
+  public get_assigned_handout_ids(): string[] {
+    const v: string[] = [];
+    for (const [handout_id, val] of this.get_handouts()) {
+      if (val.get("deleted")) continue;
+      const x = val.get(`status`);
+      if (x != null && x.size > 0) {
+        v.push(handout_id);
+      }
+    }
+    return v;
+  }
 }
 
 export function get_nbgrader_score(scores: {

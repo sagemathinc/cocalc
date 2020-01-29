@@ -69,7 +69,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
     return (
       <div
         style={{
-          overflowY: "scroll",
+          overflowY: "auto",
           width: "100%",
           fontSize: `${this.props.font_size}px`
         }}

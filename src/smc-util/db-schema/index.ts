@@ -4,6 +4,7 @@ import { accounts } from "./accounts";
 import { lti } from "./lti";
 import { site_licenses } from "./site-licenses";
 import { file_use_times } from "./file-use-times";
+import { central_log } from "./central-log";
 const misc = require("../misc");
 
 export const SCHEMA = {
@@ -12,7 +13,8 @@ export const SCHEMA = {
   accounts,
   lti,
   site_licenses,
-  file_use_times
+  file_use_times,
+  central_log
 };
 
 export {

@@ -10,12 +10,16 @@ import { map } from "awaiting";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { defaults, required, uuid } from "smc-util/misc";
+import { reuseInFlight } from "async-await-utils/hof";
 
 export class StudentsActions {
   private course_actions: CourseActions;
 
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
+    this.push_missing_handouts_and_assignments = reuseInFlight(
+      this.push_missing_handouts_and_assignments
+    );
   }
 
   private get_store(): CourseStore {
@@ -196,5 +200,49 @@ export class StudentsActions {
       table: "students",
       student_id
     });
+  }
+
+  /*
+  Function to "catch up a student" by pushing out all (non-deleted) handouts and assignments to
+  this student that have been pushed to at least one student so far.
+  */
+  public async push_missing_handouts_and_assignments(
+    student_id: string
+  ): Promise<void> {
+    const { student, store } = this.course_actions.resolve({ student_id });
+    if (student == null) {
+      throw Error("no such student");
+    }
+    const name = store.get_student_name(student_id);
+    const id = this.course_actions.set_activity({
+      desc: `Catching up ${name}...`
+    });
+    try {
+      for (const assignment_id of store.get_assigned_assignment_ids()) {
+        if (
+          !store.student_assignment_info(student_id, assignment_id)
+            .last_assignment
+        ) {
+          await this.course_actions.assignments.copy_assignment(
+            "assigned",
+            assignment_id,
+            student_id
+          );
+          if (this.course_actions.is_closed()) return;
+        }
+      }
+      for (const handout_id of store.get_assigned_handout_ids()) {
+        if (store.student_handout_info(student_id, handout_id).status == null) {
+          await this.course_actions.handouts.copy_handout_to_student(
+            handout_id,
+            student_id,
+            true
+          );
+          if (this.course_actions.is_closed()) return;
+        }
+      }
+    } finally {
+      this.course_actions.set_activity({ id });
+    }
   }
 }

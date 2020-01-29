@@ -523,7 +523,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         style={{
           backgroundColor: "white",
           margin: "15px",
-          overflowY: "scroll"
+          overflowY: "auto"
         }}
       >
         There is no rendered PDF file available. {this.render_other_viewers()}
@@ -546,7 +546,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     return (
       <div
         style={{
-          overflow: "scroll",
+          overflow: "auto",
           width: "100%",
           cursor: "default",
           textAlign: "center",
