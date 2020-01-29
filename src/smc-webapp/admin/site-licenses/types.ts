@@ -12,14 +12,14 @@ export type upgrade_fields_type =
   | "member_host";
 
 export const upgrade_fields: upgrade_fields_type[] = [
+  "member_host",
+  "network",
+  "mintime",
   "disk_quota",
   "memory",
   "memory_request",
   "cores",
-  "network",
-  "cpu_shares",
-  "mintime",
-  "member_host"
+  "cpu_shares"
 ];
 
 type Upgrades = { [field: upgrade_fields_type]: number };
@@ -91,6 +91,6 @@ export interface SiteLicensesState {
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
-  matches_search?: Set<string>|undefined; // id's of licenses that match search
-  usage_stats?: Map<string, number>;  // {license_id:number of running projects using that license}
+  matches_search?: Set<string> | undefined; // id's of licenses that match search
+  usage_stats?: Map<string, number>; // {license_id:number of running projects using that license}
 }

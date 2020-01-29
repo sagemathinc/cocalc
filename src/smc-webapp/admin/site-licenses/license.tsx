@@ -6,7 +6,7 @@ import { Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
 import { capitalize, is_date, replace_all } from "smc-util/misc2";
 import { plural } from "smc-util/misc";
-import { DateTimePicker, TimeAgo } from "../../r_misc";
+import { CopyToClipBoard, DateTimePicker, TimeAgo } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
 
@@ -40,9 +40,10 @@ export class License extends Component<Props> {
       if (field == "id") {
         x = (
           <>
-            <pre style={{ display: "inline-block", margin: 0, color: "#666" }}>
-              {x}
-            </pre>
+            <CopyToClipBoard
+              value={x}
+              style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            />
             {this.render_buttons()}
           </>
         );
@@ -98,7 +99,7 @@ export class License extends Component<Props> {
             <DateTimePicker
               value={val}
               onChange={onChange}
-              style={{ width: "100%" }}
+              style={{ width: "100%", maxWidth: "40ex" }}
             />
           );
           break;
