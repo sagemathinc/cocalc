@@ -10,6 +10,8 @@ import { DateTimePicker, TimeAgo } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
 
+const BACKGROUNDS = ["white", "#fafafa"];
+
 interface Props {
   editing?: boolean;
   license: TypedMap<SiteLicense>;
@@ -25,19 +27,37 @@ export class License extends Component<Props> {
   private render_data(): Rendered[] {
     const v: Rendered[] = [];
     const edits = this.props.edits;
+    let i = 0;
     for (const field in license_fields) {
       const val =
         this.props.editing && edits != null && edits.has(field)
           ? edits.get(field)
           : this.props.license.get(field);
       if (val == null && !this.props.editing) continue;
+      const backgroundColor = BACKGROUNDS[i % 2];
+      i += 1;
+      let x = this.render_value(field, val);
+      if (field == "id") {
+        x = (
+          <>
+            <pre style={{ display: "inline-block", margin: 0, color: "#666" }}>
+              {x}
+            </pre>
+            {this.render_buttons()}
+          </>
+        );
+      }
       v.push(
-        <Row key={field} style={{ borderBottom: "1px solid lightgrey" }}>
+        <Row
+          key={field}
+          style={{
+            borderBottom: "1px solid lightgrey",
+            backgroundColor,
+            padding: this.props.editing ? "5px 0" : undefined
+          }}
+        >
           <Col span={4}>{format_as_label(field)}</Col>
-          <Col span={20}>
-            {this.render_value(field, val)}
-            {field == "id" ? this.render_buttons() : undefined}
-          </Col>
+          <Col span={20}>{x}</Col>
         </Row>
       );
     }
@@ -191,7 +211,7 @@ export class License extends Component<Props> {
     } else {
       buttons = <Button onClick={() => actions.start_editing(id)}>Edit</Button>;
     }
-    return <div style={{ float: "right", marginTop: "-10px" }}>{buttons}</div>;
+    return <div style={{ float: "right" }}>{buttons}</div>;
   }
 
   public render(): Rendered {
@@ -199,9 +219,8 @@ export class License extends Component<Props> {
       <div
         style={{
           border: "1px solid lightgrey",
-          borderRadius: "3px",
-          padding: "10px",
-          backgroundColor: "#fcfcfc"
+          borderRadius: "5px",
+          padding: "10px"
         }}
       >
         {this.render_data()}

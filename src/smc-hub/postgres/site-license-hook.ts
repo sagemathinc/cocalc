@@ -147,8 +147,11 @@ export async function site_license_hook(
       where: { project_id },
       jsonb_set: { site_license }
     });
-
-    await update_last_used(db, license_id);
+  }
+  for (const license_id in site_license) {
+    if (len(site_license[license_id]) > 0) {
+      await update_last_used(db, license_id, dbg);
+    }
   }
 }
 
@@ -202,7 +205,30 @@ export async function site_license_usage_stats(
   return usage;
 }
 
-async function update_last_used(db: PostgreSQL, license_id:string) : Promise<void> {
-  // const query = "UPDATE site_licenses SET last_used="
-  // TODO
+const last_used: { [licensed_id: string]: number } = {};
+async function update_last_used(
+  db: PostgreSQL,
+  license_id: string,
+  dbg: Function
+): Promise<void> {
+  dbg(`update_last_used {license_id}`);
+  const now = new Date().valueOf();
+  if (
+    last_used[license_id] != null &&
+    now - last_used[license_id] <= 60 * 1000
+  ) {
+    dbg(`update_last_used {license_id} - recently updated so waiting`);
+    // If we updated this entry in the database already within a minute, don't again.
+    return;
+  }
+  last_used[license_id] = now;
+  dbg(
+    `update_last_used {license_id} - did NOT recently update, so updating in database`
+  );
+
+  await callback2(db._query.bind(db), {
+    query: "UPDATE site_licenses",
+    set: { last_used: "NOW()" },
+    where: { id: license_id }
+  });
 }
