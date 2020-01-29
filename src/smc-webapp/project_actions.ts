@@ -2062,7 +2062,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   reload_configuration(): void {
-    this.clear_configuration();
     this.init_configuration("main", true);
   }
 
@@ -2081,13 +2080,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    // already done before?
     const prev = store.get("configuration") as ProjectConfiguration;
-    if (prev != null) {
-      const conf = prev.get(aspect) as Configuration;
-      if (conf != null) {
-        this.setState({ configuration_loading: false });
-        return conf;
+    if (!no_cache) {
+      // already done before?
+      if (prev != null) {
+        const conf = prev.get(aspect) as Configuration;
+        if (conf != null) {
+          this.setState({ configuration_loading: false });
+          return conf;
+        }
       }
     }
 
