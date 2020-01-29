@@ -5,7 +5,8 @@ import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
 import { capitalize, is_date, replace_all } from "smc-util/misc2";
-import { DateTimePicker, NumberInput, TimeAgo } from "../../r_misc";
+import { plural } from "smc-util/misc";
+import { DateTimePicker, TimeAgo } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
 
@@ -13,6 +14,7 @@ interface Props {
   editing?: boolean;
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
+  usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
 }
 
 function format_as_label(field: string): string {
@@ -104,11 +106,10 @@ export class License extends Component<Props> {
         case "number":
           x = (
             <span>
-              <NumberInput
-                on_change={onChange}
-                min={0}
-                unit="projects"
-                number={val != null ? val : 0}
+              <input
+                style={{ width: "100%" }}
+                value={val != null ? val : "0"}
+                onChange={e => onChange((e.target as any).value)}
               />{" "}
               (0 = no limits)
             </span>
@@ -141,7 +142,34 @@ export class License extends Component<Props> {
           x = `${val}`;
       }
     }
+
+    if (field == "run_limit" && this.props.usage_stats) {
+      return (
+        <Row>
+          <Col md={8}>{x}</Col>
+          <Col md={16}>{this.render_usage_stats(val)}</Col>
+        </Row>
+      );
+    }
+
     return x;
+  }
+
+  private render_usage_stats(run_limit): Rendered {
+    if (!this.props.usage_stats) return;
+    const style: React.CSSProperties = { fontStyle: "italic" };
+    if (run_limit && this.props.usage_stats >= run_limit) {
+      // hitting the limit -- make it clearer!
+      style.color = "red";
+      style.fontWeight = "bold";
+    }
+    return (
+      <span style={style}>
+        {this.props.usage_stats} running{" "}
+        {plural(this.props.usage_stats, "project")} currently using this
+        license.
+      </span>
+    );
   }
 
   private render_buttons(): Rendered {

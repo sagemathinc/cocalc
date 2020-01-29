@@ -92,4 +92,5 @@ export interface SiteLicensesState {
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
   matches_search?: Set<string>|undefined; // id's of licenses that match search
+  usage_stats?: Map<string, number>;  // {license_id:number of running projects using that license}
 }

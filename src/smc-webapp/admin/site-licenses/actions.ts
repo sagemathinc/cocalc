@@ -45,6 +45,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
         }
       });
       this.setState({ site_licenses: x.query.site_licenses });
+      await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);
     } finally {
@@ -93,6 +94,16 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     let site_licenses = changes.toJS();
     if (site_licenses.upgrades) {
       normalize_upgrades_for_save(site_licenses.upgrades);
+    }
+    if (site_licenses.run_limit) {
+      const val = parseInt(site_licenses.run_limit);
+      if (isNaN(val) || !isFinite(val) || val < 0) {
+        this.set_error(
+          `invalid value ${site_licenses.run_limit} for run limit`
+        );
+        return;
+      }
+      site_licenses.run_limit = val;
     }
 
     try {
@@ -153,6 +164,17 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_search(search: string): void {
     this.setState({ search });
     this.update_search();
+  }
+
+  public async update_usage_stats(): Promise<void> {
+    try {
+      const x = await query({
+        query: { site_license_usage_stats: { running: null } }
+      });
+      this.setState({ usage_stats: x.query.site_license_usage_stats.running });
+    } catch (err) {
+      this.set_error(err);
+    }
   }
 }
 

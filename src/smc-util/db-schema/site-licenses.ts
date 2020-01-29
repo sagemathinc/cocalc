@@ -122,3 +122,46 @@ export const site_licenses = create({
     }
   }
 });
+
+// A virtual table that can be queried only by admins and gets global information
+// about how site licenses are currently being used by active projects.
+
+export const site_license_usage_stats = create({
+  fields: {
+    running: {
+      type: "map",
+      desc:
+        "Map from license_id to a count of how many *running* projects are using that license right now.  Only includes licenses that are being used."
+    },
+    time: {
+      type: "timestamp",
+      desc: "When the data was grabbed."
+    }
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc: "Site License usage information for running projects",
+    anonymous: false,
+    primary_key: ["time"],
+    user_query: {
+      get: {
+        admin: true,
+        fields: {
+          running: null,
+          time: null
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          const obj: any = Object.assign({}, opts.query);
+          try {
+            obj.running = await database.site_license_usage_stats();
+            obj.time = new Date();
+            cb(undefined, obj);
+          } catch (err) {
+            cb(err);
+          }
+        }
+      }
+    }
+  }
+});

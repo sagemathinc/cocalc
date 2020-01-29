@@ -2,7 +2,7 @@ import { isEqual } from "lodash";
 import { PostgreSQL } from "./types";
 import { query } from "./query";
 import { TypedMap } from "../../smc-webapp/app-framework";
-import { is_valid_uuid_string } from "../smc-util/misc2";
+import { is_valid_uuid_string, len } from "../smc-util/misc2";
 import { callback2 } from "../smc-util/async-utils";
 
 let licenses: any = undefined;
@@ -147,6 +147,8 @@ export async function site_license_hook(
       where: { project_id },
       jsonb_set: { site_license }
     });
+
+    await update_last_used(db, license_id);
   }
 }
 
@@ -166,4 +168,41 @@ export async function number_of_running_projects_using_license(
   const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
   const x = await callback2(db._query.bind(db), { query });
   return parseInt(x.rows[0].count);
+}
+
+/* Returns information about how licenses are being used across ALL running projects
+   in the system right now.
+
+   The following query excludes anything with site_license null or {}, due to how sql works:
+
+   select site_license from projects where state#>>'{state}' in ('running', 'starting') and site_license!='{}';
+
+   We then just process the result in Javascript.  It would be possible to make a more complicated query that
+   does all the processing in the database, and returns less data as output, but that would be harder for me,
+   so I leave that to others or later (since this query is not likely to be used too much).
+*/
+export async function site_license_usage_stats(
+  db: PostgreSQL
+): Promise<{ [license_id: string]: number }> {
+  const query =
+    "select site_license from projects where state#>>'{state}' in ('running', 'starting') and site_license!='{}'";
+  const result = await callback2(db._query.bind(db), { query });
+  const usage: { [license_id: string]: number } = {};
+  for (let row of result.rows) {
+    for (const license_id in row.site_license) {
+      if (len(row.site_license[license_id]) > 0) {
+        if (usage[license_id] == null) {
+          usage[license_id] = 1;
+        } else {
+          usage[license_id] += 1;
+        }
+      }
+    }
+  }
+  return usage;
+}
+
+async function update_last_used(db: PostgreSQL, license_id:string) : Promise<void> {
+  // const query = "UPDATE site_licenses SET last_used="
+  // TODO
 }
