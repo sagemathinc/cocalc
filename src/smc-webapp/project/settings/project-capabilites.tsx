@@ -184,7 +184,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       if (conf != null && DEBUG) {
         return (
           <pre style={{ fontSize: "9px", color: "black" }}>
-            {JSON.stringify(conf, () => {}, 2)}
+            {JSON.stringify(conf, undefined, 2)}
           </pre>
         );
       }
@@ -198,23 +198,28 @@ export const ProjectCapabilities = rclass<ReactProps>(
 
     private render_reload(): Rendered {
       return (
-        <Button onClick={() => this.reload()} icon={"reload"}>
+        <Button
+          onClick={() => this.reload()}
+          icon={"reload"}
+          disabled={this.props.configuration_loading}
+          style={{ float: "right", marginTop: "-7.5px" }}  // that compensates for bootstrap's 15px's all over the place...
+        >
           Refresh
         </Button>
       );
+    }
+
+    private render_title(): Rendered {
+      return <span>{this.render_reload()}Features and configuration</span>;
     }
 
     render() {
       const conf = this.props.configuration;
 
       return (
-        <SettingBox
-          title={"Features and configuration"}
-          icon={"clipboard-check"}
-        >
+        <SettingBox title_el={this.render_title()} icon={"clipboard-check"}>
           {this.render_debug_info(conf)}
           {this.render_available()}
-          {this.render_reload()}
         </SettingBox>
       );
     }
