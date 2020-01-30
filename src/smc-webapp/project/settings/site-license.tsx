@@ -71,7 +71,8 @@ export class SiteLicense extends Component<Props, State> {
         license to this project when it is started. Clear the field below to
         stop applying those upgrades. Upgrades from the license are only applied
         when a project is started. Create a <ShowSupportLink /> if you would
-        like to purchase a license key.
+        like to purchase a license key.  (You can also enter more than one key separated
+        by a space.)
         <input
           style={LICENSE_STYLE}
           type="text"

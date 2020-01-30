@@ -1,0 +1,376 @@
+//- in-depth explanation
+
+//- important detail: those anchor links aren't generated automatically. they need to adhere to a given pattern:
+//- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
+//- the corresponding anchor link is then a.anchor#a-name
+
+//- development:
+//- webpack-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors
+//- webpack-watch-staticpages: env CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors --watch --watch-poll=1000
+
+extends _base.pug
+
+block vars
+  - var subtitle = htmlWebpackPlugin.options.description;
+  - var navbar_active = 'index';
+
+block header
+  - var recent_times = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES
+  - var stat_times_keys = htmlWebpackPlugin.options.SCHEMA.RECENT_TIMES_KEY
+  - var stat_times = JSON.stringify([stat_times_keys.last_hour, stat_times_keys.last_day, stat_times_keys.last_week, stat_times_keys.last_month])
+  script(type="text/javascript").
+    window.stat_times = !{stat_times};
+  script(type="text/javascript")
+    include:coffee-script index.coffee
+  meta(name="description" content=htmlWebpackPlugin.options.description)
+
+block content
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      #statstable td,
+      #statstable th
+        text-align       : right
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #statstable td.left
+        text-align     : left
+      #explore,
+      #bottom
+        background-color : $COL_GRAY_LL
+        div > h3
+          white-space    : nowrap
+      #included > div
+        padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      //- div.col-sm-12.center.alert.alert-info(role="alert").
+      //-   Looking for #[strong SageMathCloud]? #{NAME} is a rebranding.
+      //-   Your old account and projects are still there.
+      //-   #[a(href="app") Sign in] with your existing account and you're ready to go.
+      div.col-sm-4.col-sm-offset-4.center
+        a(href="app")
+          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
+        +start_button
+
+    div.row
+      div.col-sm-12.center
+        h1 Online computing environment
+      div.col-sm-6
+        h4  Intro to CoCalc by Mark Quinn (University of Sheffield)
+        //- img(src=require('!file-loader!sagepreview/01-worksheet.png'))
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
+      div.col-sm-6
+        h4
+          strong #{NAME} is a sophisticated online workspace
+        p.
+          #{NAME} supports #[strong #[a(href="./doc/jupyter-notebook.html") Jupyter notebooks]]
+          and #[strong #[a(href="https://doc.cocalc.com/sagews.html") SageMath worksheets]].
+        p.
+          Fully managed #[strong #[a(href="./doc/python.html") Python]] and
+          #[strong #[a(href="./doc/r-statistical-software.html") R Statistics]] environments
+          provide #[strong #[a(href="./doc/software.html") a lot of packages/libraries]] out of the box.
+        p.
+          It is also possible to #[strong edit #[a(href="./doc/latex-editor.html") LaTeX files]] and
+          #[strong #[a(href="./doc/r-statistical-software.html") R documents]] right inside your browser.
+        p.
+          A #[strong #[a(href="./doc/terminal.html") full Linux terminal]] and
+          an environment to #[strong run #[a(href="./doc/x11.html") graphical applications]] complete #{NAME} as a very versatile platform.
+        p.
+          Beyond that, #[strong #{NAME} is made for #[a(href="./doc/teaching.html") teaching a class online]]!
+          Avoid the hassle of installing software on every student's machine and help your students more precisely by collaborating on their notebooks.
+
+  div.container
+    div.row
+      div.col-sm-6
+        h4
+          strong Zero Setup
+        p.
+          #[a(href="https://doc.cocalc.com/getting-started.html") Getting started] does not require any software setup.
+          #[a(href="./app") Sign up] and create a #[strong project] to instantiate your own private workspace.
+          Then create a #[strong notebook]/#[strong worksheet] or #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your own files –
+          #{NAME} takes care of everything else!
+        ul
+          li.
+            #[strong #[a(href="./doc/software.html") Available software environments]]:
+            #[strong #[a(href="./doc/python.html") Python]],
+            #[strong #[a(href="./doc/r-statistical-software.html") R Statistics]], Julia, ...
+          li.
+            #[strong Mathematical calculation]:
+            #[a(href="http://www.sagemath.org/") SageMath],
+            #[a(href="https://www.gap-system.org/") GAP],
+            #[a(href="https://www.sympy.org/") SymPy],
+            #[a(href="http://maxima.sourceforge.net/") Maxima],
+            …
+          li.
+            #[strong Statistics and Data Science]:
+            #[a(href="https://www.r-project.org/") R Project],
+            #[a(href="http://pandas.pydata.org/") Pandas],
+            #[a(href="http://www.statsmodels.org/") Statsmodels],
+            #[a(href="http://scikit-learn.org/") Scikit-Learn],
+            #[a(href="https://www.tensorflow.org/") TensorFlow],
+            #[a(href="http://www.nltk.org/") NLTK],
+            …
+          li.
+            #[strong Document authoring]:
+            #[a(href="https://www.latex-project.org/") LaTeX],
+            #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown/HTML],
+            #[a(href="https://rmarkdown.rstudio.com/") RMarkdown],
+            ...
+          li.
+            #[strong General purpose computing]:
+            #[a(href="https://www.python.org/") Python],
+            #[a(href="https://www.gnu.org/software/octave/") Octave],
+            #[a(href="https://julialang.org/") Julia],
+            #[a(href="https://www.scala-lang.org/") Scala],
+            …
+      div.col-sm-6
+        h4
+          strong Collaborative environment
+        ul
+          li.
+            Share your files #[strong privately] with project collaborators &mdash; all files are synchronized in real-time.
+          li.
+            Exchange thoughts and ideas via
+            #[a(href="https://doc.cocalc.com/chat.html") #[strong chat rooms] or #[strong side-chat]].
+          li.
+            #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel]] is a detailed history
+            of all your edits and everything is backed up in #[strong consistent snapshots].
+          li.
+            Finally, select any document to #[strong #[a(href="https://share.cocalc.com/share/") publish it online]].
+
+
+
+  a.anchor#a-presentation
+  div.container
+    div.row
+      div.col-sm-6
+        h4  CoCalc talk by William Stein (Harvard, 2018)
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/G5SIwRinEYk?rel=0" frameborder="0" allowfullscreen)
+      div.col-sm-6
+        h4
+          strong Presentation outline
+        ul
+          li Background and history of CoCalc
+          li Demonstration of functionality
+          li Architectural overview, underlying tech stack, ...
+          li Synchronization of documents, the backbone of collaboration
+          li Collaboration and chat
+          li Culture, open-source, academic and commercial usage
+
+
+  a.anchor#a-startnow
+  div.container
+    div.row(style="margin-top: 6rem")
+      +start_free
+      div.col-sm-12.center
+        +start_button
+
+  a.anchor#a-explore
+  div.space#explore
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-lightbulb] Explore #{NAME}
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-archive] Projects
+          div.
+            Your work on #{htmlWebpackPlugin.options.title} happens inside #[strong #[a(href="https://doc.cocalc.com/project.html") private projects]].
+            They form your personal workspaces containing your files, computational worksheets, and data.
+            You run your computations through the web interface, via interactive worksheets and notebooks,
+            or by executing a program in a terminal.
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-users] Collaboration
+          div.
+            #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") Invite collaborators] into your project to work as a team.
+            Like you, they can edit the files in that project.
+            Edits are visible in #[strong real time] for everyone online.
+            You can share your thoughts in a #[strong side chat] next to each document.
+        div.clearfix.visible-sm-block
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-graduation-cap] Teaching
+          div.
+            #{htmlWebpackPlugin.options.title}
+            #[a(href="./doc/teaching.html") offers sophisticated tools for teaching].
+            Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
+            While students work on it, assist them by jumping right into their files where they're working.
+            Later, collect, grade and re-distribute the files.
+        div.col-md-3.col-sm-6
+          h3 #[i.fa.fa-file-alt] Authoring
+          div.
+            Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]].
+            It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
+            and supports many advanced features.
+
+  a.anchor#a-unique
+  div.space#unique
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-exclamation-circle] Unique Features
+        div.col-md-6
+          h2 #[img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="width:30px")] Native Jupyter Notebooks
+          div.
+            This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
+            It is tightly integrated into #{NAME} and adds real-time collaboration,
+            time-travel history and more.
+          p.
+            #[a(href="https://doc.cocalc.com/jupyter.html") Native Jupyter documentation]
+          br/
+          div
+            img(data-src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
+        div.col-md-6
+          h2 #[i.fa.fa-comment] Chat rooms
+          div.
+            #[a(href="https://doc.cocalc.com/chat.html") #[strong Stand-alone] chat rooms and #[strong side-by-side] chat] for each file
+            give you the ability to discuss your work with your collegues.
+            Collaborators who are not online will be notified about new messages the next time they sign in.
+            Chat supports markdown formatting, Latex formulas and @mentioning a collaborator.
+          p.
+            #[a(href="https://doc.cocalc.com/chat.html") Chat documentation]
+          br/
+          div
+            img(data-src=require("webapp-lib/assets/smc-side-chat-20170508.png")).fit
+      div.row
+        div.col-md-6
+          h2 #[i.fa.fa-history] Time-Travel
+          div.
+            All your changes are recorded in fine detail.
+            You can go back and forth in time across hundreds of changes to recover your previous edits.
+          p.
+            #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel documentation]
+          br/
+          div
+            +video-player
+              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.webm" type="video/webm; codecs=vp9")
+              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
+        div.col-md-6
+          h2 #[i.fa.fa-camera-retro] Backups
+          div.
+            Every couple of minutes, all files are saved in consistent read-only snapshots.
+            This means we can recover previous versions of your files
+            in case they got corrupted or accidentally deleted.
+          p.
+            #[a(href="https://doc.cocalc.com/project-files.html#snapshot-backups") Snapshot backup documentation]
+          br/
+          div
+            img(data-src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+
+  a.anchor#a-authoring
+  div.space#authoring
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-file-alt] Authoring
+        div.col-md-6
+          h2 LaTeX Editor
+          div.
+            #{NAME} includes a full #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]] with
+            #[strong side-by-side] preview and forward/inverse search.
+            This allows you to not only do computations online,
+            but also create scientific documents for their dissemination.
+          div.
+            Additionally, there is support for:
+            #[a(href="./doc/latex-editor.html#a-sagetex") SageTeX, PythonTeX and R's Knitr].
+          br/
+          div
+            img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
+        div.col-md-6
+          h2 Markdown/HTML/Rmd
+          div.
+            Conveniently edit
+            #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] #[code .md]
+            or HTML documents
+            with side-by-side live preview, showing LaTeX formulas and embedded graphics.
+          div.
+            #{NAME} also supports
+            #[a(href="https://rmarkdown.rstudio.com/") RMarkdown] #[code .Rmd] files
+            to include #[a(href="https://www.r-project.org/") R] and
+            #[a(href="https://www.python.org/") Python] calculations and plots.
+          br/
+          div
+            img(data-src="https://storage.googleapis.com/cocalc-extra/smc-mdhtml-20170516.png").fit
+
+  a.anchor#a-bottom
+  div.space#bottom
+    div.container
+      div.row
+        a.anchor#a-included
+        div.col-md-6#included
+          h2 #[i.fa.fa-battery-three-quarters] Batteries included
+          p.
+            Out of the box hundreds of open-source tools are available for you.
+            Here is a short list of a selected few:
+          include _static_third_party_software.html
+          if htmlWebpackPlugin.options.COMP_ENV
+            a.btn.btn-default(href="doc/software.html" role="button") Software environment details &raquo
+        a.anchor#a-stats
+        div.col-md-6#stats
+          h2 #[i.fa.fa-chart-line] Statistics
+          div.
+            There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
+          div(style="margin-top: 3rem")
+            table.table.bordered.condensed.hover.cc-help-stats-table#statstable
+              thead
+                tr
+                  th past
+                  th hour
+                  th day
+                  th week
+                  th month
+              tbody
+                tr
+                  td.left(colspan="4") Loading ...
+                tr
+                tr
+
+  div
+    div.container
+      div.row(style="margin-top: 6rem")
+        +start_free
+        div.col-sm-12.center
+          +start_button

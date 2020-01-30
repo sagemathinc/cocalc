@@ -12,7 +12,7 @@ and we have a little wiggle room.
 Later there will be a virtual table version of this that grants (read-only)
 access to users.
 
-- [ ] Add a virtual table to return data about how a given license is *actually* being used across all projects.  Idea is site_licenses.admins (and also us cocalc.com admins) will query this for active licenses to see what's going on.
+- [ ] Add a virtual table to return data about how a given license is *actually* being used across all projects.  Idea is site_licenses.users (and also us cocalc.com admins) will query this for active licenses to see what's going on.
 
 */
 
@@ -22,15 +22,14 @@ export const site_licenses = create({
       type: "uuid",
       desc: "ID that determines the license."
     },
-    name: {
+    title: {
       type: "string",
       desc:
-        "Descriptive name of the license, e.g., with the university or other information."
+        "Descriptive name of the license, e.g., the class and university or other information."
     },
-    stripe_id: {
+    description: {
       type: "string",
-      desc:
-        "If there is a stripe invoice that corresponds to this particular license, this is the id of that purchase.  (???)"
+      desc: "Longer description of the license, extra notes, etc."
     },
     expires: {
       type: "timestamp",
@@ -46,12 +45,12 @@ export const site_licenses = create({
       type: "timestamp",
       desc: "when this license was first created"
     },
-    last_active: {
+    last_used: {
       type: "timestamp",
       desc:
         "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute)."
     },
-    admins: {
+    users: {
       type: "array",
       pg_type: "TEXT[]",
       desc:
@@ -60,7 +59,7 @@ export const site_licenses = create({
     restricted: {
       type: "boolean",
       desc:
-        "If true, then only admins are allowed to set this site license on a project.  If false, anybody who knows the license key can use it on projects."
+        "If true, then only users are allowed to set this site license on a project.  If false, anybody who knows the license key can use it on projects."
     },
     upgrades: {
       type: "map",
@@ -87,14 +86,16 @@ export const site_licenses = create({
       get: {
         pg_where: [],
         admin: true,
+        options: [{ order_by: "-last_used" }, { limit: 500 }],
         fields: {
           id: null,
-          name: null,
+          title: null,
+          description: null,
           expires: null,
           activates: null,
           created: null,
-          last_active: null,
-          admins: null,
+          last_used: null,
+          users: null,
           restricted: null,
           upgrades: null,
           run_limit: null,
@@ -105,16 +106,97 @@ export const site_licenses = create({
         admin: true,
         fields: {
           id: null,
-          name: null,
+          title: null,
+          description: null,
           expires: null,
           activates: null,
           created: null,
-          last_active: null,
-          admins: null,
+          last_used: null,
+          users: null,
           restricted: null,
           upgrades: null,
           run_limit: null,
           apply_limit: null
+        }
+      }
+    }
+  }
+});
+
+// A virtual table that can be queried only by admins and gets global information
+// about how site licenses are currently being used by active projects.
+
+export const site_license_usage_stats = create({
+  fields: {
+    running: {
+      type: "map",
+      desc:
+        "Map from license_id to a count of how many *running* projects are using that license right now.  Only includes licenses that are being used."
+    },
+    time: {
+      type: "timestamp",
+      desc: "When the data was grabbed."
+    }
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc: "Site License usage information for running projects",
+    anonymous: false,
+    primary_key: ["time"],
+    user_query: {
+      get: {
+        admin: true,
+        fields: {
+          running: null,
+          time: null
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          const obj: any = Object.assign({}, opts.query);
+          try {
+            obj.running = await database.site_license_usage_stats();
+            obj.time = new Date();
+            cb(undefined, obj);
+          } catch (err) {
+            cb(err);
+          }
+        }
+      }
+    }
+  }
+});
+
+export const projects_using_site_license = create({
+  fields: {
+    license_id: {
+      type: "string",
+      desc: "the id of the license"
+    },
+    projects: {
+      type: "array",
+      desc: "list of the ids of projects that are currently actively running using this site license for upgrades"
+    },
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc: "Site License usage information for running projects for a particular license",
+    anonymous: false,
+    primary_key: ["license_id"],
+    user_query: {
+      get: {
+        fields: {
+          license_id: null,
+          projects: null
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          const obj: any = Object.assign({}, opts.query);
+          try {
+            obj.projects = await database.projects_using_site_license(obj.license_id);
+            cb(undefined, obj);
+          } catch (err) {
+            cb(err);
+          }
         }
       }
     }

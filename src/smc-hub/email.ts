@@ -30,8 +30,8 @@ const os_path = require("path");
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 
-// sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
-const sendgrid = require("sendgrid");
+// sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
+const sendgrid = require("@sendgrid/client");
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -215,7 +215,8 @@ exports.send_email = function(opts): void {
               email_server = { disabled: true };
               cb();
             } else {
-              email_server = sendgrid(api_key);
+              sendgrid.setApiKey(api_key);
+              email_server = sendgrid;
               dbg("started sendgrid client");
               cb();
             }
@@ -229,74 +230,87 @@ exports.send_email = function(opts): void {
         }
         dbg(`sending email to ${opts.to} starting...`);
         // Sendgrid V3 API -- https://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/index.html
-        const helper = sendgrid.mail;
-        const from_email = new helper.Email(opts.from, opts.fromname);
-        const to_email = new helper.Email(opts.to);
-        const content = new helper.Content("text/html", opts.body);
-        const mail = new helper.Mail(
-          from_email,
-          opts.subject,
-          to_email,
-          content
-        );
+
+        // no "to" field, that's in "personalizations!"
+        const msg: any = {
+          from: { email: opts.from, name: opts.fromname },
+          subject: opts.subject,
+
+          content: [
+            {
+              type: "text/html",
+              value: opts.body
+            }
+          ],
+          // plain template with a header (cocalc logo), a h1 title, and a footer
+          template_id: SENDGRID_TEMPLATE_ID,
+
+          personalizations: [
+            {
+              subject: opts.subject,
+              to: [
+                {
+                  email: opts.to
+                }
+              ]
+            }
+          ]
+        };
+
         if (opts.replyto) {
-          const replyto_name =
-            opts.replyto_name != null ? opts.replyto_name : opts.replyto;
-          mail.setReplyTo(new helper.Email(opts.replyto, replyto_name));
+          msg.reply_to = {
+            name: opts.replyto_name ?? opts.replyto,
+            email: opts.replyto
+          };
         }
 
-        const personalization = new helper.Personalization();
-        personalization.setSubject(opts.subject);
-        personalization.addTo(to_email);
         if ((opts.cc != null ? opts.cc.length : undefined) > 0) {
-          personalization.addCc(new helper.Email(opts.cc));
+          msg.cc = [{ email: opts.cc }];
         }
         if ((opts.bcc != null ? opts.bcc.length : undefined) > 0) {
-          personalization.addBcc(new helper.Email(opts.bcc));
+          msg.bcc = [{ email: opts.bcc }];
         }
 
         // one or more strings to categorize the sent emails on sendgrid
         if (opts.category != null) {
-          mail.addCategory(new helper.Category(opts.category));
+          if (typeof opts.category == "string") {
+            msg.categories = [opts.category];
+          } else if (Array.isArray(opts.category)) {
+            msg.categories = opts.category;
+          }
         }
 
         // to unsubscribe only from a specific type of email, not everything!
         // https://app.sendgrid.com/suppressions/advanced_suppression_manager
         if (opts.asm_group != null) {
-          mail.setAsm(new helper.Asm(opts.asm_group));
+          msg.asm = { group_id: opts.asm_group };
         }
 
-        // plain template with a header (cocalc logo), a h1 title, and a footer
-        mail.setTemplateId(SENDGRID_TEMPLATE_ID);
         // This #title# will end up below the header in an <h1> according to the template
-        personalization.addSubstitution(
-          new helper.Substitution("#title#", opts.subject)
-        );
+        msg.substitutions = {
+          "#title#": opts.subject
+        };
 
-        mail.addPersonalization(personalization);
+        dbg(`sending email to ${opts.to} -- data -- ${misc.to_json(msg)}`);
 
-        // dbg("sending email to #{opts.to} data -- #{misc.to_json(mail.toJSON())}")
-
-        // Sendgrid V3 API
-        const request = email_server.emptyRequest({
+        const req = {
+          body: msg,
           method: "POST",
-          path: "/v3/mail/send",
-          body: mail.toJSON()
-        });
+          url: "/v3/mail/send"
+        };
 
-        email_server.API(request, function(err, res) {
-          dbg(
-            `sending email to ${opts.to} done...; got err=${misc.to_json(
-              err
-            )} and res=${misc.to_json(res)}`
-          );
-          if (err) {
-            dbg(`sending email -- error = ${misc.to_json(err)}`);
-          } else {
-            dbg(`sending email -- success = ${misc.to_json(res)}`);
-          }
-          cb(err);
-        });
+        email_server
+          .request(req)
+          .then(([_, body]) => {
+            dbg(
+              `sending email to ${opts.to} -- success -- ${misc.to_json(body)}`
+            );
+            cb();
+          })
+          .catch(err => {
+            dbg(`sending email to ${opts.to} -- error = ${misc.to_json(err)}`);
+            cb(err);
+          });
       }
     ],
     function(err, message) {

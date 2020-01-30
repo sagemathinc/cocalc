@@ -79,7 +79,7 @@ async function handle_api_call(
     case "canonical_paths":
       return canonical_paths(data.paths);
     case "configuration":
-      return await get_configuration(data.aspect);
+      return await get_configuration(data.aspect, data.no_cache);
     case "prettier":
       return await run_prettier(client, data.path, data.options, logger);
     case "prettier_string":

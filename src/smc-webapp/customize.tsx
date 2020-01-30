@@ -191,11 +191,11 @@ export function SiteName() {
 }
 
 interface SiteDescriptionProps {
-  style: React.CSSProperties;
-  site_description: string;
+  style?: React.CSSProperties;
+  site_description?: string;
 }
 
-const SiteDescription0 = rclass<{ style: React.CSSProperties }>(
+const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
   class SiteDescription extends React.Component<SiteDescriptionProps> {
     public static reduxProps() {
       return {
@@ -219,7 +219,7 @@ const SiteDescription0 = rclass<{ style: React.CSSProperties }>(
   }
 );
 
-export function SiteDescription({ style }: { style: React.CSSProperties }) {
+export function SiteDescription({ style }: { style?: React.CSSProperties }) {
   return (
     <Redux>
       <SiteDescription0 style={style} />

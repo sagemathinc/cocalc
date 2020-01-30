@@ -1,4 +1,6 @@
 // navbar flex layout
+@import "_vars.sass"
+
 body
   display: flex
   flex-direction: column
@@ -15,6 +17,67 @@ nav#nav-main
 // min height for placeholder
 img[data-src]
   min-height: 50px
+
+img.shadow
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.22)
+
+img.large
+  width: 100%
+  @media (min-width: $width-md)
+    width: 75%
+
+img.shrink-small
+  width: 100%
+  @media (max-width: $width-md)
+    width: 50%
+
+img.shrink-small-75
+  width: 100%
+  @media (max-width: $width-md)
+    width: 75%
+
+img.shrink-small-25
+  width: 100%
+  height: auto
+  @media (max-width: $width-md)
+    width: 25%
+    height: auto
+
+img.rounded
+  border-radius: 3px
+
+.firstline
+  margin-top: 0
+
+div.spacing
+  margin-top: 4rem !important
+  @media (max-width: $width-sm)
+    display: none
+
+div.spacing2
+  margin-top: 8rem !important
+  content: ""
+  @media (max-width: $width-sm)
+    margin-top: 1rem !important
+
+.hide-small-screen
+  @media (max-width: $width-sm)
+    display: none
+
+.show-small-screen
+  @media (min-width: $width-sm)
+    display: none
+
+.hide-md-screen
+  @media (max-width: $width-md)
+    display: none
+
+.show-md-screen
+  @media (min-width: $width-md)
+    display: none
+
+#available-tools
+  background-color : $COL_BLUE_LLL
 
 // actual navbar styling
 nav.navbar.navbar-default
@@ -44,6 +107,12 @@ nav.navbar.navbar-default
     &.active>a
       font-weight       : bold
 
+div.navbar-descr
+  float: left
+  font-size: 85%
+  color: $COL_GRAY_M
+  padding-top: 3px
+
 div.jumbotron
   padding-top      : 10rem
   background-color : $COL_GRAY_LL
@@ -58,6 +127,12 @@ div.jumbotron
 .fit
   width          : 100%
   heigh          : auto
+.fit-shrink
+  width          : 100%
+  heigh          : auto
+  @media (max-width: $width-md)
+    width: 25%
+    height: 25%
 
 div.intro
   img.fit
@@ -69,9 +144,9 @@ body
     > footer
       margin-top     : 6rem
     > div.row#top
-      margin         : 5rem 0 5rem 0
+      padding       : 5rem 0 5rem 0
       @media (min-width: 992px)
-        margin       : 5rem 0 5rem 0
+        padding     : 5rem 0 5rem 0
     > div#software-env-top
       margin         : 2rem 0 5rem 0
 
@@ -94,8 +169,12 @@ td.version
   line-height      : 1.5
   font-weight      : bold
 .cc-create-account-btn
-  font-weight      : bold
-  font-size        : 16px
+  white-space: nowrap
+  > a
+    font-weight      : bold
+    font-size        : 16px
+    margin-left      : 1rem
+    margin-right     : 1rem
 .video-player
   position         : relative
   > .video-overlay

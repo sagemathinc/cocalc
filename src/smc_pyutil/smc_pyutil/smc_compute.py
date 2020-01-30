@@ -49,6 +49,7 @@ KUBERNETES_PROJECTS = "/projects/home"
 KUBERNETES_LOCAL_HUB_PORT = 6000
 KUBERNETES_RAW_PORT = 6001
 KUBECTL_MAX_DELAY_S = 5
+KUBERNETES_REGISTRY = os.environ.get("KUBERNETES_REGISTRY", "sagemathinc")
 
 
 def quota_to_int(x):
@@ -469,7 +470,7 @@ class Project(object):
         # id of the containing project.
         os.environ['COCALC_PROJECT_ID'] = self.project_id
         # Obviously this doesn't really work since running as a normal user who can't create other users:
-        os.environ['COCALC_USERNAME'] = self.project_id.replace('-','')
+        os.environ['COCALC_USERNAME'] = self.project_id.replace('-', '')
 
         # for development, the raw server, jupyter, etc., have
         # to listen on localhost since that is where
@@ -477,10 +478,11 @@ class Project(object):
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk):
+              ephemeral_disk, member, network):
         if self._kubernetes:
             return self.kubernetes_start(cores, memory, cpu_shares, base_url,
-                                         ephemeral_state, ephemeral_disk)
+                                         ephemeral_state, ephemeral_disk,
+                                         member, network)
 
         # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.remove_smc_path()
@@ -580,14 +582,37 @@ class Project(object):
     def kubernetes_pod_name(self):
         return "project-" + self.project_id
 
+    # Get the ip address of the NFS server in Kubernetes.
+    # We keep retrying, because maybe the service
+    # hasn't been created yet, etc.
+    # TODO: This takes about 0.1s in the best case, but it is a sort
+    # of waste, since this ip will probably never change; it would be
+    # better to save it to /tmp, maybe.
+    def kubernetes_nfs_server_ip_address(self):
+        log = self._log("kubernetes_nfs_server_ip_address")
+        delay = 0.5
+        while True:
+            try:
+                return json.loads(
+                    self.cmd(
+                        "kubectl get service cocalc-kubernetes-server-nfs -o json"
+                    ))["spec"]["clusterIP"]
+            except Exception as err:
+                log("ERROR %s" % err)
+            time.sleep(delay)
+            delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
+
     def kubernetes_start(self, cores, memory, cpu_shares, base_url,
-                         ephemeral_state, ephemeral_disk):
+                         ephemeral_state, ephemeral_disk, member, network):
         log = self._log("kubernetes_start")
         if self.kubernetes_state()["state"] == 'running':
             log("already running")
             return
         log("kubernetes start")
+        nfs_server_ip = self.kubernetes_nfs_server_ip_address()
         pod_name = self.kubernetes_pod_name()
+        node_selector = "member" if member else "preempt"
+        network_label = "outside" if network else "none"
         yaml = """
 apiVersion: v1
 kind: Pod
@@ -596,10 +621,12 @@ metadata:
   labels:
     run: "project"
     project_id: "{project_id}"
+    network: "{network}"
+    node_selector: "{node_selector}"
 spec:
   containers:
     - name: "{pod_name}"
-      image: "{registry}cocalc-kubernetes-project"
+      image: "{registry}/cocalc-kubernetes-project"
       env:
         - name: COCALC_PROJECT_ID
           value: "{project_id}"
@@ -615,6 +642,13 @@ spec:
         periodSeconds: 30
         timeoutSeconds: 10
         failureThreshold: 20
+      resources:
+        limits:
+          cpu: "{cores}"
+          memory: "{memory}Mi"
+        requests:
+          cpu: {cpu_shares}m
+          memory: 500Mi
       volumeMounts:
         - name: home
           mountPath: /home/user
@@ -624,13 +658,16 @@ spec:
       nfs:
          server: {nfs_server_ip}
          path: "/{project_id}"
-""".format(
-            pod_name=pod_name,
-            project_id=self.project_id,
-            nfs_server_ip='10.101.19.164',  # TODO -- use kubectl to get the ip
-            registry='localhost:30000/')
-        # for now pull image from localhost:30000/ as in kucalc; later
-        # will have to make this an option.
+""".format(pod_name=pod_name,
+           project_id=self.project_id,
+           nfs_server_ip=nfs_server_ip,
+           registry=KUBERNETES_REGISTRY,
+           cores=max(1, cores),
+           memory=max(1000, memory),
+           cpu_shares=max(50, cpu_shares),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
+           network=network_label,
+           node_selector=node_selector)
+
         # TODO: should use tempfile module
         path = "/tmp/project-{project_id}-{random}.yaml".format(
             project_id=self.project_id, random=random.random())
@@ -670,13 +707,13 @@ spec:
             self.cmd(cmd)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-                ephemeral_disk):
+                ephemeral_disk, member, network):
         log = self._log("restart")
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
         self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
-                   ephemeral_disk)
+                   ephemeral_disk, member, network)
 
     def get_memory(self, s):
         return 0  # no longer supported
@@ -1345,6 +1382,18 @@ def main():
         type=int,
         default=0)
     parser_start.add_argument(
+        "--network",
+        help=
+        "0 or 1; if 1 enable outside network access (ONLY used by cocalc-kubernetes)",
+        type=int,
+        default=0)
+    parser_start.add_argument(
+        "--member",
+        help=
+        "0 or 1; if 1 enable member hosting (ONLY used by cocalc-kubernetes)",
+        type=int,
+        default=0)
+    parser_start.add_argument(
         "--base_url",
         help=
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
@@ -1469,6 +1518,18 @@ def main():
     parser_restart.add_argument(
         "--cpu_shares",
         help="relative share of cpu (default: 0=don't change/set) int",
+        type=int,
+        default=0)
+    parser_restart.add_argument(
+        "--network",
+        help=
+        "0 or 1; if 1 enable outside network access (ONLY used by cocalc-kubernetes)",
+        type=int,
+        default=0)
+    parser_restart.add_argument(
+        "--member",
+        help=
+        "0 or 1; if 1 enable member hosting (ONLY used by cocalc-kubernetes)",
         type=int,
         default=0)
     parser_restart.add_argument(
