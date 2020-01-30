@@ -1,3 +1,4 @@
+import { Map } from "immutable";
 import { isEqual } from "lodash";
 import { PostgreSQL } from "./types";
 import { query } from "./query";
@@ -12,8 +13,7 @@ interface License {
   title?: string;
   expires?: Date;
   activates?: Date;
-  upgrades?: object;
-  student_upgrades?: object;
+  upgrades?: Map<string, number>;
   run_limit?: number;
 }
 
@@ -22,14 +22,7 @@ async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
   if (licenses == null) {
     licenses = await callback2(db.synctable.bind(db), {
       table: "site_licenses",
-      columns: [
-        "title",
-        "expires",
-        "activates",
-        "upgrades",
-        "student_upgrades",
-        "run_limit"
-      ]
+      columns: ["title", "expires", "activates", "upgrades", "run_limit"]
       // TODO: Not bothing with the where condition will be fine up to a few thousand (?) site
       // licenses, but after that it could take nontrivial time/memory during hub startup.
       // So... this is a ticking time bomb.
