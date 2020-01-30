@@ -142,7 +142,7 @@ exports.FileTab = rclass
         body = <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_style}>
                     {<Icon
-                        onMouseOver = {@mouse_over_x} onMouseOut={@mouse_out_x}
+                        onMouseOver = {=>@mouse_over_x()} onMouseOut={=>@mouse_out_x()}
                         name        = 'times'
                         onClick     = {(e)=>@close_file(e, misc.tab_to_path(@props.name))}
                     /> if @props.file_tab}
