@@ -3,7 +3,8 @@ Top-level react component for editing R markdown documents
 */
 
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
-import { set, change_filename_extension } from "smc-util/misc2";
+import { set } from "smc-util/misc2";
+import { derive_rmd_output_filename } from "./utils";
 import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -44,7 +45,7 @@ const EDITOR_SPEC = {
     component: IFrameHTML,
     mode: "rmd",
     path(path) {
-      return change_filename_extension(path, "html");
+      return derive_rmd_output_filename(path, "html");
     },
     buttons: set([
       "print",
@@ -68,7 +69,7 @@ const EDITOR_SPEC = {
     style: { background: "#525659" },
     renderer: "canvas",
     path(path) {
-      return change_filename_extension(path, "pdf");
+      return derive_rmd_output_filename(path, "pdf");
     }
   },
 
