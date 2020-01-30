@@ -8,14 +8,17 @@ mixin start_button
 mixin start_button_2
   p.cc-create-account-btn
     a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
-    a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In/Sign up
+    a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
 
 
 mixin start_button_2sm
   p.cc-create-account-btn
     a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=true") Run CoCalc!
-    a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In/Up
+    a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In
 
+mixin start_button_3
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
 
 //- mixin start_free
 //-   -
@@ -88,7 +91,7 @@ mixin available-tools
             #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebooks]
           p.
             #{NAME}'s own #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook] implementation
-            offers real-time synchronization, time-travel, automatic grading, side-chat, and much more.
+            offers real-time synchronization, time-travel, automatic grading, side-chat, and more.
 
         div.col-sm-3
           div.row
@@ -98,7 +101,7 @@ mixin available-tools
           h3.center.
             #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets]
           p.
-            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets] are similar to a Jupyter Notebooks,
+            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets] are similar to Jupyter Notebooks,
             but made to work well with #[a(href="https://www.sagemath.org") SageMath].
 
         div.col-sm-3
@@ -111,7 +114,7 @@ mixin available-tools
           p.
             A full #[a(href=PREFIX + "doc/latex-editor.html") LaTeX editor]
             supporting preview rendering, forward/inverse search, error reporting,
-            and #[a(href="https://doc.cocalc.com/latex.html") much more]!
+            and #[a(href="https://doc.cocalc.com/latex.html") more].
 
         div.col-sm-3
           div.row
