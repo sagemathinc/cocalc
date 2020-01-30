@@ -41,29 +41,32 @@ block content
           #{NAME} is an online web service where you can
           #[strong run #[a(href="http://jupyter.org/") Jupyter notebooks] right inside your browser].
           You can privately share your notebook with your
-          #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") project collaborators].
-          All changes are #[strong synchronized in real-time].
+          #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") project collaborators] – all changes are #[strong synchronized in real-time].
         p.
-          #{NAME} takes care of all tedious aspects:
+          You no longer have to worry about setting up your Python environment, installing/updating/maintaining your libraries, or backing up files.
+          #{NAME} manages everything for you!
+        p.
+          Beyond that, #{NAME} is #[strong made for teaching]!
         ul
-          li don't bother setting up a Python environment
-          li you no longer have to fight with installing all the libraries you need
-          li don't worry about Jupyter kernel configurations
-          li and let #{NAME} maintain everything for you
+          li.
+            A sophisticated #[strong #[a(href="./teaching.html") course management system]] keeps track of all notebooks of all students.
+            It manages distributing and collecting files as well as grading.
+          li.
+            #{NAME}'s Jupyter Notebooks fully support #[strong automatic grading]!
+            The teacher's notebook contains exercise cells for students and test cells, some of which students can also run to get immediate feedback.
+            Once collected, you tell #{NAME} to automatically run the full test suite across all student notebooks and tabulate the results.
+            Learn more about #[a(href="https://doc.cocalc.com/teaching-nbgrader.html") NBGrader-like grading].
         p.
           To get started,
-        ol
-          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project],
-          li #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
+          #[a(href="https://doc.cocalc.com/getting-started.html") sign up and create a project].
+          Then #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
         p.
           #{NAME} supports many kernels right out of the box:
           several Python environments, #[a(href="http://www.sagemath.org/") SageMath],
           #[a(href="http://www.r-project.org/") R Statistical Software], #[a(href="http://julialang.org") Julia] and many more.
-          Consult the #[a(href=PREFIX + "doc/software.html") Available Software page] for more information.
 
 
   +start_free_banner
-
 
   a.anchor#a-overview
   div.space#overview
@@ -122,32 +125,13 @@ block content
             You can also relive the entire process of creating the notebook from the start.
             This lets you discover how you arrived at a particular solution and see what you (or your student) tried before.
 
-    a.anchor#a-native
-    div.container.space#native
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
-        div.col-md-6
-          img(data-src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
-        div.col-md-6
-          div.
-            #{NAME} offers a #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
-            It is tightly integrated into #{NAME} and adds real-time collaboration,
-            time-travel history and
-            #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
-          div.
-            This rewrite does not change the underlying Jupyter notebook file format.
-            Therefore, you can download your #[code *.ipynb] file at any time and continue working in another environment.
-          div.
-            Despite that, there is also support for the "Classical notebook".
-            This assures that you can still use all libraries relying on the specifics of that implementation.
-            #{NAME} does add collaborative editing and a chat, too.
+    +nbgrader-support
 
     a.anchor#a-chat
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comments-o] Chat panel
+          h2 #[i.fa.fa-comments] Chat panel
         div.col-md-6
           img(data-src=require("webapp-lib/assets/cocalc-chat-jupyter-20171120-2.png")).fit
         div.col-md-6
@@ -172,6 +156,27 @@ block content
             You just have to select from many pre-installed and #[strong fully managed kernels] to start with your work.
           div.
             Look at our #[a(href=PREFIX + "/doc/software.html") list of available software] for more details.
+
+    a.anchor#a-native
+    div.container.space#native
+      div.row
+        div.col-md-12
+          h2 Native Jupyter Notebooks
+        div.col-md-6
+          img(data-src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
+        div.col-md-6
+          div.
+            #{NAME} offers a #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
+            It is tightly integrated into #{NAME} and adds real-time collaboration,
+            time-travel history and
+            #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") more].
+          div.
+            This rewrite does not change the underlying Jupyter notebook file format.
+            Therefore, you can download your #[code *.ipynb] file at any time and continue working in another environment.
+          div.
+            Despite that, there is also support for the "Classical notebook".
+            This assures that you can still use all libraries relying on the specifics of that implementation.
+            #{NAME} does add collaborative editing and a chat, too.
 
     a.anchor#a-monitoring
     div.container.space#monitoring

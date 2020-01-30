@@ -162,12 +162,14 @@ export async function get_configuration(
   webapp_client: any,
   project_id: string,
   aspect: ConfigurationAspect = "main",
-  prev: ProjectConfiguration
+  prev: ProjectConfiguration,
+  no_cache = false
 ): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
   const config: Configuration = await webapp_client.configuration(
     project_id,
-    aspect
+    aspect,
+    no_cache
   );
   if (config == null) return prev;
   // console.log("project_actions::init_configuration", aspect, config);
