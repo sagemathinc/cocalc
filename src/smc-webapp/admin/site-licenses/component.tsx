@@ -25,6 +25,7 @@ interface Props {
   site_licenses?: List<TypedMap<SiteLicense>>;
   editing?: Set<string>;
   edits?: Map<string, TypedMap<SiteLicense>>;
+  projects_using_license?: Map<string, Set<string>>;
   search?: string;
   matches_search?: Set<string>;
   usage_stats?: Map<string, number>;
@@ -41,6 +42,7 @@ class SiteLicenses extends Component<Props> {
         site_licenses: rtypes.immutable.List,
         editing: rtypes.immutable.Set,
         edits: rtypes.immutable.Map,
+        projects_using_license: rtypes.immutable.Map,
         search: rtypes.string,
         matches_search: rtypes.immutable.Set,
         usage_stats: rtypes.immutable.Map
@@ -72,6 +74,11 @@ class SiteLicenses extends Component<Props> {
         license={license}
         editing={this.props.editing != null && this.props.editing.has(id)}
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
+        projects_using_license={
+          this.props.projects_using_license != null
+            ? this.props.projects_using_license.get(id)
+            : undefined
+        }
         usage_stats={
           this.props.usage_stats != null
             ? this.props.usage_stats.get(id)

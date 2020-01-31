@@ -1,3 +1,4 @@
+import { Set } from "immutable";
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
@@ -9,6 +10,7 @@ import { plural } from "smc-util/misc";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
+import { ProjectsUsingLicense } from "./projects-using-license";
 
 const BACKGROUNDS = ["white", "#fafafa"];
 
@@ -17,6 +19,7 @@ interface Props {
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
+  projects_using_license?: Set<string>;
 }
 
 function format_as_label(field: string): string {
@@ -266,6 +269,17 @@ export class License extends Component<Props> {
     return x;
   }
 
+  private render_projects_using_license(): Rendered {
+    if (!this.props.projects_using_license) return;
+    return (
+      <div>
+        <ProjectsUsingLicense
+          projects_using_license={this.props.projects_using_license}
+        />
+      </div>
+    );
+  }
+
   private render_usage_stats(run_limit): Rendered {
     if (!this.props.usage_stats) return;
     const style: React.CSSProperties = { fontStyle: "italic" };
@@ -275,11 +289,19 @@ export class License extends Component<Props> {
       style.fontWeight = "bold";
     }
     return (
-      <span style={style}>
-        {this.props.usage_stats} running{" "}
-        {plural(this.props.usage_stats, "project")} currently using this
-        license.
-      </span>
+      <>
+        <a
+          onClick={() =>
+            actions.fetch_projects_using_license(this.props.license.get("id"))
+          }
+          style={style}
+        >
+          {this.props.usage_stats} running{" "}
+          {plural(this.props.usage_stats, "project")} currently using this
+          license...
+        </a>
+        {this.render_projects_using_license()}
+      </>
     );
   }
 
