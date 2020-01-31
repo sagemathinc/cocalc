@@ -128,21 +128,28 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   // overwrite/set extras for any set default quota in the site setting
   if (site_settings != null && site_settings?.default_quotas != null) {
     const dq = site_settings?.default_quotas;
-    if (typeof dq.disk_quota == "number") q.disk_quota = dq.disk_quota;
-    if (typeof dq.internet == "boolean") q.network = dq.internet;
-    if (typeof dq.idle_timeout == "number")
+    if (typeof dq.disk_quota == "number") {
+      q.disk_quota = dq.disk_quota;
+    }
+    if (typeof dq.internet == "boolean") {
+      q.network = dq.internet;
+    }
+    if (typeof dq.idle_timeout == "number") {
       q.idle_timeout = dq.idle_timeout as number;
+    }
     if (typeof dq.mem == "number") {
       q.memory_limit = dq.mem;
-      if (typeof dq.mem_oc == "number")
+      if (typeof dq.mem_oc == "number") {
         // ratio is 1:mem_oc
         q.memory_request = Math.round(dq.mem / dq.mem_oc);
+      }
     }
     if (typeof dq.cpu == "number") {
       q.cpu_limit = dq.cpu as number;
-      if (typeof dq.cpu_oc == "number")
+      if (typeof dq.cpu_oc == "number") {
         // ratio is 1:cpu_oc
-        q.cpu_request = Math.round((1024 * dq.cpu) / dq.cpu_oc);
+        q.cpu_request = dq.cpu / dq.cpu_oc;
+      }
     }
   }
 
@@ -174,7 +181,6 @@ exports.quota = function(
     MAX_UPGRADES,
     site_settings?.max_upgrades ?? {}
   );
-  console.log("max_upgrades", max_upgrades);
 
   // network access
   if (max_upgrades.network == 0) {
@@ -270,6 +276,7 @@ exports.quota = function(
     })();
     // compute how much is left for contributed user upgrades
     const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
+
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];

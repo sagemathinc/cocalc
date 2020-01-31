@@ -264,36 +264,23 @@ describe 'default quota', ->
 
     it 'partial site_settings2/cpu', ->
         site_settings =
-            default_quotas: {idle_timeout:9999, cpu_oc:10, mem_oc:2, disk_quota:5432}
-        member = {user2: { upgrades: {network:1, cores: 2}}}
+            default_quotas:
+                idle_timeout : 9999
+                cpu_oc       :   10
+                mem_oc       :    2
+                disk_quota   : 5432
+        member = {user2: { upgrades: {network:1, cores: 1.4}}}
         q = quota({}, member, undefined, site_settings)
         expect(q).toEqual
             idle_timeout : 9999
             memory_limit: 1000
             memory_request: 500
-            cpu_limit: 3
-            cpu_request: 0.3
+            cpu_limit: 2.4
+            cpu_request: 0.24
             disk_quota: 5432
             member_host: false
             network: true
             privileged: false
-
-    it 'site_settings default_quotas and max_upgrades', ->
-        site_settings =
-            default_quotas: {"internet":true,"idle_timeout":3600,"mem":1515,"cpu":1.6,"cpu_oc":4,"mem_oc":5}
-            max_upgrades: {"disk_quota": 512, "mintime": 10101, "cpu_shares": 1024/10, "memory_request": 1000 }
-
-        q1 = quota({}, {userX: {}}, undefined, site_settings)
-        expect(q1).toEqual
-            network         : true
-            member_host     : false
-            memory_request  : 303
-            memory_limit    : 1515
-            cpu_request     : .4
-            cpu_limit       : 1.5
-            privileged      : false
-            idle_timeout    : 3600
-            disk_quota      : 512
 
     it 'respect different (lower) max_upgrades', ->
         site_settings =
@@ -361,6 +348,8 @@ describe 'default quota', ->
             '1234-5678-asdf-yxcv':
                 member_host    : true
                 network        : true
+            '1234-5678-asdf-asdf':
+                disk_quota     : 111
 
         users =
             user1:
@@ -372,9 +361,109 @@ describe 'default quota', ->
         q1 = quota({}, users, site_license)
 
         expect(q1.memory_limit).toEqual(2234)
-        expect(q1.disk_quota).toBe(3000 + 751)
+        expect(q1.disk_quota).toBe(3000 + 751 + 111)
         expect(q1.member_host).toBe(true)
         expect(q1.network).toBe(true)
 
+    it 'uses different default_quotas', ->
+        site_settings =
+            default_quotas:
+                internet     : true
+                idle_timeout : 9999
+                cpu          :  1.5
+                cpu_oc       :   10
+                mem          : 2000
+                mem_oc       :    4
+                disk_quota   : 5432
+        q1 = quota({}, {userX: {}}, undefined, site_settings)
+        expect(q1).toEqual
+            network         : true
+            member_host     : false
+            memory_request  : 500   # OC 1:4 of 2000mb
+            memory_limit    : 2000  # default
+            cpu_request     : 0.15  # OC 1:10 and cpu 1.5
+            cpu_limit       : 1.5   # default
+            privileged      : false
+            idle_timeout    : 9999
+            disk_quota      : 5432
 
 
+    it 'site_settings default_quotas and max_upgrades/1', ->
+        site_settings =
+            default_quotas:
+                internet     : true
+                idle_timeout : 9999
+                mem          : 1515
+                cpu          :  1.6
+                cpu_oc       :    4
+                mem_oc       :    5
+            max_upgrades:
+                disk_quota     :   512
+                mintime        :  3600
+                cpu_shares     :  1024/10
+                memory_request :  1000
+
+        q1 = quota({}, {userX: {}}, undefined, site_settings)
+        expect(q1).toEqual
+            network         : true
+            member_host     : false
+            memory_request  : 303   # OC 1:5 of 1515mb
+            memory_limit    : 1515  # default
+            cpu_request     : 0.1   # OC 1:4 and cpu 1.6 → 0.4, but cpu_shares .1!
+            cpu_limit       : 1.6   # default
+            privileged      : false
+            idle_timeout    : 3600  # capped by max_upgrades
+            disk_quota      : 512   # capped hardcoded default by max_upgrades
+
+
+    it 'site_settings default_quotas and max_upgrades/2', ->
+        site_settings =
+            default_quotas:
+                internet     : true
+                cpu          :  1
+                cpu_oc       :  5
+            max_upgrades:
+                cpu_request  : .1
+                cores        : .5
+                cpu_shares   :  1024/10  # .1 core
+
+        q1 = quota({}, {userX: {}}, undefined, site_settings)
+        expect(q1).toEqual
+            network         : true
+            member_host     : false
+            memory_request  : 200  # non-member minimum
+            memory_limit    : 1000
+            cpu_request     : 0.1   # max upgrade
+            cpu_limit       : 0.5   # cores max_upgrades
+            privileged      : false
+            idle_timeout    : 1800
+            disk_quota      : 3000
+
+
+    it 'site_settings default_quotas and max_upgrades/3', ->
+        site_settings =
+            default_quotas:
+                internet     : true
+                idle_timeout : 9999
+                mem          : 2000
+                mem_oc       :    2
+                cpu          :  2.2
+                cpu_oc       :    4
+            max_upgrades:
+                disk_quota     :   512
+                mintime        :  3600
+                cpu_shares     :  1024  # 1 core limit
+                cores          :     2
+                memory_request :   500
+
+        q1 = quota({}, {userX: {}}, undefined, site_settings)
+        expect(q1).toEqual
+            network         : true
+            member_host     : false
+            memory_request  : 500   # OC 1:5 of 1515mb
+            memory_limit    : 2000  # default
+            cpu_request     : 0.55  # OC 1:4 of 2.2, not at maximum
+            cpu_limit       : 2     # default limited by max_upgrades
+            privileged      : false
+            idle_timeout    : 3600  # capped by max_upgrades
+            disk_quota      : 512   # capped hardcoded default by max_upgrades
