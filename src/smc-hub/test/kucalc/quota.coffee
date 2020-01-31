@@ -348,6 +348,7 @@ describe 'default quota', ->
             '1234-5678-asdf-yxcv':
                 member_host    : true
                 network        : true
+                disk_quota     : 222
             '1234-5678-asdf-asdf':
                 disk_quota     : 111
 
@@ -356,14 +357,18 @@ describe 'default quota', ->
                 upgrades:
                     network        : 1
                     memory         : 1234
-                    disk_quota     : 751
+                    disk_quota     : 321
+            user2:
+                upgrades:
+                    cores          : 0.25
 
         q1 = quota({}, users, site_license)
 
         expect(q1.memory_limit).toEqual(2234)
-        expect(q1.disk_quota).toBe(3000 + 751 + 111)
+        expect(q1.disk_quota).toBe(3000 + 321 + 111 + 222)
         expect(q1.member_host).toBe(true)
         expect(q1.network).toBe(true)
+        expect(q1.cpu_limit).toBe(1.25)
 
     it 'uses different default_quotas', ->
         site_settings =
@@ -387,6 +392,35 @@ describe 'default quota', ->
             idle_timeout    : 9999
             disk_quota      : 5432
 
+    it 'derfaults capped by lower max_upgrades', ->
+        site_settings =
+            max_upgrades:
+                member_host    : false
+                network        : false
+                disk_quota     :  333
+                mintime        :  999
+                cpu_shares     :  1
+                cores          :  0.44
+                memory_request :  1
+                memory_limit   : 555
+
+        over_max =
+            user2:
+                upgrades:
+                    network         : 1
+                    member_host     : 1
+
+        q1 = quota({}, over_max, undefined, site_settings)
+        expect(q1).toEqual
+            network         : false # user upgrade not allowed
+            member_host     : false # user upgrade not allowed
+            memory_request  : 200   # lower cap is 200
+            memory_limit    : 1000 # should be 555, but global minimum trump this
+            cpu_request     : .02   # lower cap is 0.02
+            cpu_limit       : .44
+            privileged      : false
+            idle_timeout    : 999
+            disk_quota      : 333
 
     it 'site_settings default_quotas and max_upgrades/1', ->
         site_settings =
