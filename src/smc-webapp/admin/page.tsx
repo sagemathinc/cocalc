@@ -7,7 +7,7 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import { List } from "immutable";
-import { SiteLicenses } from "./site-licenses/component";
+import { SiteLicenses } from "../site-licenses/admin/component";
 
 import { User } from "./store";
 

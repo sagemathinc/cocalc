@@ -9,7 +9,7 @@ import { plural } from "smc-util/misc";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
-import { Projects } from "../users/projects";
+import { Projects } from "../../admin/users/projects";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 

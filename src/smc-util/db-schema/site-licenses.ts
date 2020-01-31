@@ -1,21 +1,19 @@
+/*
+Table of all site licenses.
+
+From wikipedia https://en.wikipedia.org/wiki/Site_license: "A site license is a type of software license that allows the user to install a software package in several computers simultaneously, such as at a particular site (facility) or across a corporation.[1] Depending on the amount of fees paid, the license may be unlimited or may limit simultaneous access to a certain number of users. The latter is called a concurrent site license.[2]"
+
+That's sort of what we're doing here.  We've defined a license that let's users
+*use* several upgraded projects with simultaneous access limits
+(e.g., number of projects at once).
+
+A possibly confusing point is that a single University might have many site
+licenses for different purposes (e.g., one license for faculty and one license
+for students).
+*/
+
 import { create } from "./types";
 import { is_valid_uuid_string } from "../misc2";
-
-/* This will be a table of all site licenses.
-
-TODO:
-There are many fields below and statements about limits, etc., but this
-is NOT all implemented yet.  **This is just the plan.**  We also might
-make the limits more like quota where they are more like soft limits,
-and we have a little wiggle room.
-
-- [ ] Initially this table will be only readable/writable by the cocalc.com admins.
-Later there will be a virtual table version of this that grants (read-only)
-access to users.
-
-- [ ] Add a virtual table to return data about how a given license is *actually* being used across all projects.  Idea is site_licenses.users (and also us cocalc.com admins) will query this for active licenses to see what's going on.
-
-*/
 
 export const site_licenses = create({
   fields: {
@@ -256,7 +254,7 @@ export const site_license_public_info = create({
   },
   rules: {
     desc: "Publicly available information about site licenses",
-    anonymous: false,  // do need to be signed in.
+    anonymous: false, // do need to be signed in.
     primary_key: ["id"],
     virtual: "site_licenses",
     user_query: {
