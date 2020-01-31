@@ -71,7 +71,7 @@ export const license_fields: {
   description: "paragraph",
   expires: "date",
   activates: "date",
-  created: "readonly",
+  created: "date",
   last_used: "date",
   // users: "account_id[]",  // hide for now since not implemented at all
   // restricted: "boolean",  // hide for now since not implemented at all

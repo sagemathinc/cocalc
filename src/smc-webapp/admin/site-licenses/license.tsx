@@ -2,11 +2,11 @@ import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
-import { Row, Col } from "antd";
+import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
 import { capitalize, is_date, replace_all } from "smc-util/misc2";
 import { plural } from "smc-util/misc";
-import { CopyToClipBoard, DateTimePicker, TimeAgo } from "../../r_misc";
+import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
 
@@ -23,6 +23,11 @@ function format_as_label(field: string): string {
   return replace_all(capitalize(field), "_", " ");
 }
 
+const STATUS_STYLE: React.CSSProperties = {
+  display: "inline-block",
+  marginBottom: "5px"
+};
+
 export class License extends Component<Props> {
   private render_data(): Rendered[] {
     const v: Rendered[] = [];
@@ -33,7 +38,7 @@ export class License extends Component<Props> {
         this.props.editing && edits != null && edits.has(field)
           ? edits.get(field)
           : this.props.license.get(field);
-      if (val == null && !this.props.editing) continue;
+      //if (val == null && !this.props.editing) continue;
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
       let x = this.render_value(field, val);
@@ -44,7 +49,6 @@ export class License extends Component<Props> {
               value={x}
               style={{ display: "inline-block", width: "50ex", margin: 0 }}
             />
-            {this.render_buttons()}
           </>
         );
       }
@@ -95,13 +99,17 @@ export class License extends Component<Props> {
           );
           break;
         case "date":
-          x = (
-            <DateTimePicker
-              value={val}
-              onChange={onChange}
-              style={{ width: "100%", maxWidth: "40ex" }}
-            />
-          );
+          if (field == "created" || field == "last_used") {
+            x = <TimeAgo date={val} />;
+          } else {
+            x = (
+              <DateTimePicker
+                value={val}
+                onChange={onChange}
+                style={{ width: "100%", maxWidth: "40ex" }}
+              />
+            );
+          }
           break;
         case "account_id[]":
           x = "(TODO: list of users)";
@@ -132,7 +140,7 @@ export class License extends Component<Props> {
                 value={val != null ? val : "0"}
                 onChange={e => onChange((e.target as any).value)}
               />{" "}
-              (0 = no limits)
+              (0 = no limit)
             </span>
           );
           break;
@@ -147,13 +155,84 @@ export class License extends Component<Props> {
     } else {
       switch (type) {
         case "paragraph":
-          x = <div style={{ whiteSpace: "pre" }}>{val}</div>;
+          x = (
+            <div
+              style={{
+                whiteSpace: "pre",
+                background: val ? undefined : "yellow"
+              }}
+            >
+              {val ? val : "Please enter a description"}
+            </div>
+          );
+          break;
+        case "string":
+          x = (
+            <div
+              style={{
+                whiteSpace: "pre",
+                background: val ? undefined : "yellow"
+              }}
+            >
+              {val ? val : "Please enter a title"}
+            </div>
+          );
           break;
         case "date":
           if (val == null) {
             x = "";
           } else {
             x = <TimeAgo date={val} />;
+          }
+          if (field == "expires") {
+            if (!val) {
+              x = (
+                <span style={{ background: "yellow" }}>
+                  <Icon name="warning" /> Never expires -- you should probably
+                  set an expiration date
+                </span>
+              );
+            } else if (val <= new Date()) {
+              x = (
+                <span
+                  style={{
+                    background: "darkred",
+                    color: "white"
+                  }}
+                >
+                  Expired {x}
+                </span>
+              );
+            } else {
+              x = <span>Will expire {x}</span>;
+            }
+          } else if (field == "activates") {
+            if (!val) {
+              x = (
+                <div
+                  style={{
+                    background: "darkred",
+                    color: "white"
+                  }}
+                >
+                  <Icon name="warning" /> Never actives -- please set an
+                  activation date!
+                </div>
+              );
+            } else if (val > new Date()) {
+              x = (
+                <div
+                  style={{
+                    background: "darkred",
+                    color: "white"
+                  }}
+                >
+                  Will activate {x}
+                </div>
+              );
+            } else {
+              x = <span>Activated {x}</span>;
+            }
           }
           break;
         case "upgrades":
@@ -162,10 +241,21 @@ export class License extends Component<Props> {
         default:
           x = `${val}`;
       }
+      if (field == "run_limit" && !val) {
+        x = (
+          <div
+            style={{
+              background: "yellow"
+            }}
+          >
+            <Icon name="warning" /> No limit -- you should probably set a limit
+          </div>
+        );
+      }
     }
 
     if (field == "run_limit" && this.props.usage_stats) {
-      return (
+      x = (
         <Row>
           <Col md={8}>{x}</Col>
           <Col md={16}>{this.render_usage_stats(val)}</Col>
@@ -215,6 +305,77 @@ export class License extends Component<Props> {
     return <div style={{ float: "right" }}>{buttons}</div>;
   }
 
+  private is_active(): { is_active: boolean; why_not?: string } {
+    // Is it active?
+    const activates = this.props.license.get("activates");
+    if (!activates)
+      return { is_active: false, why_not: "no activation date set" };
+    if (activates > new Date())
+      return { is_active: false, why_not: "it has not yet become activated" };
+    // Has it expired?
+    const expires = this.props.license.get("expires");
+    if (expires && expires <= new Date())
+      return { is_active: false, why_not: "it has expired" };
+    // Any actual upgrades?
+    const upgrades = this.props.license.get("upgrades");
+    if (upgrades == null || upgrades.size == 0)
+      return { is_active: false, why_not: "no upgrades are configured" };
+
+    for (let [field, val] of upgrades) {
+      field = field; // typescript
+      if (val) return { is_active: true }; // actual upgrade, so yes is having an impact.
+    }
+    return { is_active: false, why_not: "no upgrades are configured" };
+  }
+
+  // Show a message explaining whether -- with the current saved settings --
+  // this license will upgrade any projects.  Only shown in view mode, to
+  // avoid potentional confusion in edit mode.
+  private render_status(): Rendered {
+    if (this.props.editing) {
+      return (
+        <Alert
+          style={STATUS_STYLE}
+          type="info"
+          message={
+            <span>
+              <Icon name="edit" /> Editing this license...
+            </span>
+          }
+        />
+      );
+    }
+
+    const { is_active, why_not } = this.is_active();
+    if (is_active) {
+      return (
+        <Alert
+          style={STATUS_STYLE}
+          type="success"
+          message={
+            <span>
+              <Icon name="user-check" /> License is currently active and can
+              upgrade projects.
+            </span>
+          }
+        />
+      );
+    } else {
+      return (
+        <Alert
+          style={STATUS_STYLE}
+          type="warning"
+          message={
+            <span>
+              <Icon name="user-slash" /> License CANNOT upgrade projects because{" "}
+              {why_not}.
+            </span>
+          }
+        />
+      );
+    }
+  }
+
   public render(): Rendered {
     return (
       <div
@@ -224,6 +385,8 @@ export class License extends Component<Props> {
           padding: "10px"
         }}
       >
+        {this.render_buttons()}
+        {this.render_status()}
         {this.render_data()}
       </div>
     );

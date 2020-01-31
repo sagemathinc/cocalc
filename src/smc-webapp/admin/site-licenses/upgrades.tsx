@@ -9,7 +9,7 @@ import {
   upgrade_fields
 } from "./types";
 import { plural } from "smc-util/misc2";
-
+import { Icon } from "../../r_misc";
 
 interface UpgradeParams {
   display: string;
@@ -58,8 +58,26 @@ export class DisplayUpgrades extends Component<DisplayProps> {
     return rows;
   }
 
+  private render_no_upgrades_warning(): Rendered {
+    return (
+      <div
+        style={{
+          background: "darkred",
+          color: "white"
+        }}
+      >
+        <Icon name="warning" /> No upgrades -- please edit to set some upgrades!
+      </div>
+    );
+  }
+
   public render(): Rendered {
-    return <div>{this.render_rows()}</div>;
+    const rows = this.render_rows();
+    if (rows.length == 0) {
+      return this.render_no_upgrades_warning();
+    } else {
+      return <div>{rows}</div>;
+    }
   }
 }
 
