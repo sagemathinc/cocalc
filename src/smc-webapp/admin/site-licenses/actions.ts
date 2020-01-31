@@ -35,7 +35,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               activates: null,
               created: null,
               last_used: null,
-              users: null,
+              managers: null,
               restricted: null,
               upgrades: null,
               run_limit: null,
@@ -130,19 +130,14 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ edits });
   }
 
-  public async fetch_projects_using_license(license_id: string): Promise<void> {
-    const x = await query({
-      query: { projects_using_site_license: { license_id, projects: null } }
-    });
-    let projects_using_license: Map<string, Set<string>> = store.get(
-      "projects_using_license",
-      Map()
-    );
-    projects_using_license = projects_using_license.set(
-      license_id,
-      Set(x.query.projects_using_site_license.projects)
-    );
-    this.setState({ projects_using_license });
+  public toggle_show_projects(license_id: string): void {
+    let show_projects = store.get("show_projects", Set());
+    if (show_projects.has(license_id)) {
+      show_projects = show_projects.delete(license_id);
+    } else {
+      show_projects = show_projects.add(license_id);
+    }
+    this.setState({ show_projects });
   }
 
   public update_search(): void {

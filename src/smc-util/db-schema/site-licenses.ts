@@ -1,4 +1,5 @@
 import { create } from "./types";
+import { is_valid_uuid_string } from "../misc2";
 
 /* This will be a table of all site licenses.
 
@@ -50,16 +51,16 @@ export const site_licenses = create({
       desc:
         "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute)."
     },
-    users: {
+    managers: {
       type: "array",
       pg_type: "TEXT[]",
       desc:
-        "A list of the account_id's of users that are allowed to see information about how this site license is being used."
+        "A list of the account_id's of users that are allowed to manage how this site license is being used."
     },
     restricted: {
       type: "boolean",
       desc:
-        "If true, then only users are allowed to set this site license on a project.  If false, anybody who knows the license key can use it on projects."
+        "If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects."
     },
     upgrades: {
       type: "map",
@@ -95,7 +96,7 @@ export const site_licenses = create({
           activates: null,
           created: null,
           last_used: null,
-          users: null,
+          managers: null,
           restricted: null,
           upgrades: null,
           run_limit: null,
@@ -112,7 +113,7 @@ export const site_licenses = create({
           activates: null,
           created: null,
           last_used: null,
-          users: null,
+          managers: null,
           restricted: null,
           upgrades: null,
           run_limit: null,
@@ -166,34 +167,73 @@ export const site_license_usage_stats = create({
   }
 });
 
+import { schema } from "./db-schema";
 export const projects_using_site_license = create({
   fields: {
     license_id: {
       type: "string",
       desc: "the id of the license"
     },
-    projects: {
-      type: "array",
-      desc: "list of the ids of projects that are currently actively running using this site license for upgrades"
-    },
+    project_id: schema.projects.project_id,
+    title: schema.projects.title,
+    description: schema.projects.description,
+    users: schema.projects.users,
+    last_active: schema.projects.last_active,
+    last_edited: schema.projects.last_edited
   },
   rules: {
     virtual: true, // don't make an actual table
-    desc: "Site License usage information for running projects for a particular license",
+    desc:
+      "Site License usage information for running projects with a particular license",
     anonymous: false,
-    primary_key: ["license_id"],
+    primary_key: ["license_id", "project_id"],
     user_query: {
       get: {
+        admin: true, // for now admins only; TODO: later *managers* of the site license will also get access...
         fields: {
           license_id: null,
-          projects: null
+          project_id: null,
+          title: null,
+          description: null,
+          users: null,
+          last_active: null,
+          last_edited: null
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
-          const obj: any = Object.assign({}, opts.query);
+          if (!opts.multi) {
+            cb("query must be an array (getting multiple values back)");
+            return;
+          }
+          const obj = opts.query;
+          if (typeof obj != "object" || !is_valid_uuid_string(obj.license_id)) {
+            cb("query must be of the form [{license_id:uuid, ...}]");
+            return;
+          }
+          const fields: string[] = [];
+          for (const field of [
+            // this approach ensures requests for bad fields don't cause SQL injection...
+            "project_id",
+            "title",
+            "description",
+            "users",
+            "last_active",
+            "last_edited"
+          ]) {
+            if (obj[field] === null) {  // === is important here since we don't want to pick up not set field!
+              fields.push(field);
+            }
+          }
           try {
-            obj.projects = await database.projects_using_site_license(obj.license_id);
-            cb(undefined, obj);
+            const projects = await database.projects_using_site_license(
+              obj.license_id,
+              fields
+            );
+            for (const project of projects) {
+              // for consistency with how queries work, we fill this in.
+              project.license_id = obj.license_id;
+            }
+            cb(undefined, projects);
           } catch (err) {
             cb(err);
           }

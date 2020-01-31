@@ -3,7 +3,7 @@ import { isEqual } from "lodash";
 import { PostgreSQL } from "./types";
 import { query } from "./query";
 import { TypedMap } from "../../smc-webapp/app-framework";
-import { is_valid_uuid_string, len } from "../smc-util/misc2";
+import { is_valid_uuid_string, len, copy_with } from "../smc-util/misc2";
 import { callback2 } from "../smc-util/async-utils";
 
 let licenses: any = undefined;
@@ -228,13 +228,16 @@ async function update_last_used(
 
 export async function projects_using_site_license(
   db: PostgreSQL,
-  license_id: string
-): Promise<string[]> {
-  const query = `SELECT project_id FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
+  license_id: string,
+  fields: string[] // assumed sanitized by caller!
+): Promise<{ [field: string]: any }[]> {
+  const query = `SELECT ${fields.join(
+    ","
+  )} FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
   const x = await callback2(db._query.bind(db), { query });
-  const v: string[] = [];
+  const v: { [field: string]: any }[] = [];
   for (const row of x.rows) {
-    v.push(row.project_id);
+    v.push(copy_with(row, fields));
   }
   return v;
 }

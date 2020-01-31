@@ -32,7 +32,7 @@ export interface SiteLicense {
   activates?: Date;
   created?: Date;
   last_used?: Date;
-  users?: string[];
+  managers?: string[];
   restricted?: boolean;
   upgrades?: Upgrades;
   run_limit?: number;
@@ -57,7 +57,7 @@ export type license_field_names =
   | "activates"
   | "created"
   | "last_used"
-  | "users"
+  | "managers"
   | "restricted"
   | "upgrades"
   | "run_limit"
@@ -73,7 +73,7 @@ export const license_fields: {
   activates: "date",
   created: "date",
   last_used: "date",
-  // users: "account_id[]",  // hide for now since not implemented at all
+  // managers: "account_id[]",  // hide for now since not implemented at all
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   run_limit: "number"
@@ -89,7 +89,7 @@ export interface SiteLicensesState {
   creating?: boolean;
   site_licenses?: SiteLicense[];
   editing?: Set<string>; // id's of site licenses that are currently being edited.
-  projects_using_license?: Map<string, Set<string>>; // map from id of license to id's projects using that license (when requested)
+  show_projects?: Set<string>; // id's where we should show the projects that are using the license.
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
   matches_search?: Set<string> | undefined; // id's of licenses that match search

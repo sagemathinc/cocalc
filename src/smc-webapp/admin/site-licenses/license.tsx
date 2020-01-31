@@ -1,4 +1,3 @@
-import { Set } from "immutable";
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
@@ -10,16 +9,16 @@ import { plural } from "smc-util/misc";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
-import { ProjectsUsingLicense } from "./projects-using-license";
+import { Projects } from "../users/projects";
 
-const BACKGROUNDS = ["white", "#fafafa"];
+const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
+  show_projects?: boolean;
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
-  projects_using_license?: Set<string>;
 }
 
 function format_as_label(field: string): string {
@@ -115,7 +114,7 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = "(TODO: list of users)";
+          x = "(TODO: list of managers)";
           break;
         case "boolean":
           x = (
@@ -269,12 +268,13 @@ export class License extends Component<Props> {
     return x;
   }
 
-  private render_projects_using_license(): Rendered {
-    if (!this.props.projects_using_license) return;
+  private render_projects(): Rendered {
+    if (!this.props.show_projects) return;
     return (
-      <div>
-        <ProjectsUsingLicense
-          projects_using_license={this.props.projects_using_license}
+      <div style={{ marginTop: "30px" }}>
+        <Projects
+          license_id={this.props.license.get("id")}
+          title={"Running projects upgraded with this license"}
         />
       </div>
     );
@@ -289,19 +289,16 @@ export class License extends Component<Props> {
       style.fontWeight = "bold";
     }
     return (
-      <>
-        <a
-          onClick={() =>
-            actions.fetch_projects_using_license(this.props.license.get("id"))
-          }
-          style={style}
-        >
-          {this.props.usage_stats} running{" "}
-          {plural(this.props.usage_stats, "project")} currently using this
-          license...
-        </a>
-        {this.render_projects_using_license()}
-      </>
+      <a
+        onClick={() =>
+          actions.toggle_show_projects(this.props.license.get("id"))
+        }
+        style={style}
+      >
+        {this.props.usage_stats} running{" "}
+        {plural(this.props.usage_stats, "project")} currently using this
+        license...
+      </a>
     );
   }
 
@@ -410,6 +407,7 @@ export class License extends Component<Props> {
         {this.render_buttons()}
         {this.render_status()}
         {this.render_data()}
+        {this.render_projects()}
       </div>
     );
   }
