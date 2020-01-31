@@ -56,10 +56,18 @@ export class SiteLicense extends Component<Props, State> {
       this.props.site_license_ids,
       license_ids
     )) {
-      await actions.remove_site_license_from_project(
-        this.props.project_id,
-        license_id
-      );
+      try {
+        await actions.remove_site_license_from_project(
+          this.props.project_id,
+          license_id
+        );
+      } catch (err) {
+        alert_message({
+          type: "error",
+          message: `Unable to remove license key -- ${err}`
+        });
+        return;
+      }
     }
   }
 
@@ -71,8 +79,8 @@ export class SiteLicense extends Component<Props, State> {
         license to this project when it is started. Clear the field below to
         stop applying those upgrades. Upgrades from the license are only applied
         when a project is started. Create a <ShowSupportLink /> if you would
-        like to purchase a license key.  (You can also enter more than one key separated
-        by a space.)
+        like to purchase a license key. (You can also enter more than one key
+        separated by a space.)
         <input
           style={LICENSE_STYLE}
           type="text"
