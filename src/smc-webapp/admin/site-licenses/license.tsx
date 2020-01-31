@@ -84,11 +84,14 @@ export class License extends Component<Props> {
         case "string":
           x = (
             <input
-              style={{ width: "100%" }}
+              style={{ width: "50ex" }}
               value={val != null ? val : ""}
               onChange={e => onChange((e.target as any).value)}
             />
           );
+          if (field == "title") {
+            x = <span>{x} (visible to anyone who knows the id)</span>;
+          }
           break;
         case "paragraph":
           x = (
@@ -99,6 +102,15 @@ export class License extends Component<Props> {
               onChange={e => onChange((e.target as any).value)}
             />
           );
+          if (field == "description") {
+            x = (
+              <div>
+                {x}
+                <br />
+                (description is only visible to license managers)
+              </div>
+            );
+          }
           break;
         case "date":
           if (field == "created" || field == "last_used") {

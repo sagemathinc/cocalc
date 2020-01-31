@@ -220,7 +220,8 @@ export const projects_using_site_license = create({
             "last_active",
             "last_edited"
           ]) {
-            if (obj[field] === null) {  // === is important here since we don't want to pick up not set field!
+            if (obj[field] === null) {
+              // === is important here since we don't want to pick up not set field!
               fields.push(field);
             }
           }
@@ -237,6 +238,42 @@ export const projects_using_site_license = create({
           } catch (err) {
             cb(err);
           }
+        }
+      }
+    }
+  }
+});
+
+// Get publicly available information about a site license.
+// User just has to know the license id to get this info.
+//
+export const site_license_public_info = create({
+  fields: {
+    id: site_licenses.fields.id,
+    title: site_licenses.fields.title,
+    expires: site_licenses.fields.expires,
+    activates: site_licenses.fields.activates
+  },
+  rules: {
+    desc: "Publicly available information about site licenses",
+    anonymous: false,  // do need to be signed in.
+    primary_key: ["id"],
+    virtual: "site_licenses",
+    user_query: {
+      get: {
+        admin: false,
+        check_hook: (_db, obj, _account_id, _project_id, cb) => {
+          if (typeof obj.id == "string" && is_valid_uuid_string(obj.id)) {
+            cb(); // good
+          } else {
+            cb("id must be a uuid");
+          }
+        },
+        fields: {
+          id: true,
+          title: true,
+          expires: true,
+          activates: true
         }
       }
     }
