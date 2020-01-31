@@ -634,8 +634,10 @@ export class StudentAssignmentInfo extends Component<
     if (typeof error !== "string") {
       error = to_json(error);
     }
-    if (error.indexOf("No such file or directory") !== -1) {
-      error = `Somebody may have moved the folder that should have contained the assignment.\n${error}`;
+    // We search for two different error messages, since different errors happen in
+    // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
+    if (error.indexOf("No such file or directory") !== -1 || error.indexOf("ENOENT") != -1) {
+      error = `The student probably renamed the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
       error = `Try to ${name.toLowerCase()} again:\n` + error;
     }

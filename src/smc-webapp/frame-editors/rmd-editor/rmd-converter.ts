@@ -3,7 +3,7 @@ Convert R Markdown file to hidden Markdown file, then read.
 */
 
 // import { aux_file } from "../frame-tree/util";
-import { path_split /* change_filename_extension */ } from "smc-util/misc2";
+import { path_split } from "smc-util/misc2";
 import {
   exec,
   ExecOutput /* read_text_file_from_project */
@@ -17,7 +17,6 @@ export async function convert(
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
-
   // console.log("frontmatter", frontmatter);
   let cmd: string;
   // https://www.rdocumentation.org/packages/rmarkdown/versions/1.10/topics/render
@@ -27,9 +26,10 @@ export async function convert(
     frontmatter.indexOf("self_contained") >= 0 ||
     frontmatter.indexOf("output:") >= 0
   ) {
+    // , output_file = '${outfile}'
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE)`;
   } else {
-    cmd = `rmarkdown::render('${infile}', output_format = NULL, output_options = list(self_contained = FALSE) , run_pandoc = TRUE)`;
+    cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE, output_options = list(self_contained = FALSE))`;
   }
   // console.log("rmd cmd", cmd);
 
