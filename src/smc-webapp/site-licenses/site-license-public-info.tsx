@@ -3,12 +3,14 @@ import { Component, React, Rendered, redux } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
 import { Icon, Loading, TimeAgo } from "../r_misc";
-import { Alert } from "antd";
+import { alert_message } from "../alerts";
+import { Alert, Button, Popconfirm } from "antd";
 import { DisplayUpgrades } from "./admin/upgrades";
 import { plural } from "smc-util/misc2";
 
 interface Props {
   license_id: string;
+  project_id: string;
   upgrades?: Map<string, number>;
 }
 
@@ -88,7 +90,12 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
   private render_upgrades(): Rendered {
     if (!this.provides_upgrades()) {
-      return <div>Currently providing no upgrades</div>;
+      return (
+        <div>
+          Currently providing no upgrades (license limit may have been reached
+          or you may have to restart project)
+        </div>
+      );
     }
     if (this.props.upgrades == null) throw Error("make typescript happy");
     return (
@@ -98,9 +105,8 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         <DisplayUpgrades
           upgrades={this.props.upgrades}
           style={{
-            border: "1px solid lightgrey",
+            border: "1px solid #ddd",
             padding: "0 15px",
-            borderRadius: "5px",
             backgroundColor: "white",
             margin: "5px 15px"
           }}
@@ -117,15 +123,66 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
   }
 
+  private async remove_license(): Promise<void> {
+    const actions = redux.getActions("projects");
+    // newly added licenses
+    try {
+      await actions.remove_site_license_from_project(
+        this.props.project_id,
+        this.props.license_id
+      );
+    } catch (err) {
+      alert_message({
+        type: "error",
+        message: `Unable to add license key -- ${err}`
+      });
+      return;
+    }
+  }
+
+  private render_remove_button(): Rendered {
+    const extra = this.provides_upgrades() ? (
+      <>
+        <br />
+        The project will no longer get upgraded using this license, and it may
+        restart.
+      </>
+    ) : (
+      undefined
+    );
+    return (
+      <Popconfirm
+        title={
+          <div>
+            Are you sure you want to remove this license from the project?
+            {extra}
+          </div>
+        }
+        onConfirm={() => this.remove_license()}
+        okText={"Yes"}
+        cancelText={"Cancel"}
+      >
+        <Button style={{ float: "right" }}>Remove License...</Button>
+      </Popconfirm>
+    );
+  }
+
   public render(): Rendered {
     const message = (
-      <span>
+      <div>
+        {this.render_remove_button()}
         <Icon name="key" /> {this.render_body()}
         <br />
         {this.render_id()}
         {this.render_upgrades()}
-      </span>
+      </div>
     );
-    return <Alert message={message} type={this.get_type()} />;
+    return (
+      <Alert
+        style={{ marginTop: "5px" }}
+        message={message}
+        type={this.get_type()}
+      />
+    );
   }
 }

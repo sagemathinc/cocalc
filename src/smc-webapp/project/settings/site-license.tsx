@@ -95,6 +95,7 @@ export class SiteLicense extends Component<Props, State> {
         <SiteLicensePublicInfo
           key={license_id}
           license_id={license_id}
+          project_id={this.props.project_id}
           upgrades={upgrades}
         />
       );
