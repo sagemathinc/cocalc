@@ -103,6 +103,13 @@ export async function site_license_hook(
       const upgrades = license.get("upgrades");
       if (upgrades != null) {
         const x = upgrades.toJS();
+        // remove any zero values to make frontend client code simpler and avoid waste/clutter.
+        // NOTE: I do assume these 0 fields are removed in some client code, so don't just not do this!
+        for (const field in x) {
+          if (!x[field]) {
+            delete x[field];
+          }
+        }
         dbg(
           `site_license_hook -- Found a valid license "${license_id}".  Upgrade using it to ${JSON.stringify(
             x
