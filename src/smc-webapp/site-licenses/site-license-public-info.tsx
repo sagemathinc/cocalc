@@ -1,9 +1,11 @@
 import { Map } from "immutable";
-import { Component, React, Rendered } from "../app-framework";
+import { Component, React, Rendered, redux } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
 import { Icon, Loading, TimeAgo } from "../r_misc";
 import { Alert } from "antd";
+import { DisplayUpgrades } from "./admin/upgrades";
+import { plural } from "smc-util/misc2";
 
 interface Props {
   license_id: string;
@@ -39,7 +41,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     return (
       <span>
         {" "}
-        (expires: <TimeAgo date={this.state.info.expires} />)
+        (expires <TimeAgo date={this.state.info.expires} />)
       </span>
     );
   }
@@ -57,19 +59,25 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private render_id(): Rendered {
+    // dumb minimal security -- only show this for now to admins.
+    // Later license managers will see it.   Of course, somebody could
+    // sniff their browser traffic and get it so this is just to
+    // discourage really trivial blatant misuse.  We will have other
+    // layers of security.
+    if (!redux.getStore("account").get("is_admin")) return;
     return (
-      <span style={{ fontFamily: "monospace" }}>{this.props.license_id}</span>
+      <div style={{ fontFamily: "monospace" }}>{this.props.license_id}</div>
     );
   }
 
   private render_license(): Rendered {
     if (!this.state.info) {
-      return <span>Invalid license key: </span>;
+      return <span>Invalid license key</span>;
     }
     return (
       <span>
         {this.state.info.title}
-        {this.render_expires()}:{" "}
+        {this.render_expires()}
       </span>
     );
   }
@@ -85,8 +93,18 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     if (this.props.upgrades == null) throw Error("make typescript happy");
     return (
       <div>
-        Currently providing these upgrades:{" "}
-        {JSON.stringify(this.props.upgrades.toJS())}
+        Currently providing the following{" "}
+        {plural(this.props.upgrades.size, "upgrade")}:
+        <DisplayUpgrades
+          upgrades={this.props.upgrades}
+          style={{
+            border: "1px solid lightgrey",
+            padding: "0 15px",
+            borderRadius: "5px",
+            backgroundColor: "white",
+            margin: "5px 15px"
+          }}
+        />
       </div>
     );
   }
@@ -105,7 +123,6 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         <Icon name="key" /> {this.render_body()}
         <br />
         {this.render_id()}
-        <br />
         {this.render_upgrades()}
       </span>
     );

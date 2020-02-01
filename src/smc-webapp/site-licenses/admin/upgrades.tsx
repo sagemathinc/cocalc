@@ -30,6 +30,7 @@ function params(field: upgrade_fields_type): UpgradeParams {
 
 interface DisplayProps {
   upgrades: undefined | Map<string, number>;
+  style?: React.CSSProperties; // only used if no warning about no upgrades.
 }
 export class DisplayUpgrades extends Component<DisplayProps> {
   private render_view(field: upgrade_fields_type): Rendered {
@@ -76,7 +77,7 @@ export class DisplayUpgrades extends Component<DisplayProps> {
     if (rows.length == 0) {
       return this.render_no_upgrades_warning();
     } else {
-      return <div>{rows}</div>;
+      return <div style={this.props.style}>{rows}</div>;
     }
   }
 }
