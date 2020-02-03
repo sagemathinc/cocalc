@@ -1033,7 +1033,9 @@ Notes:
   a path and command line arguments.
 - If option \`args\` is provided, options must be sent as a JSON object.
 - Argument \`path\` is optional. When provided, \`path\` is relative to home directory in target project
-  and specifies the working directory in which the command will be run.\
+  and specifies the working directory in which the command will be run.
+- If the project is stopped or archived, this API call will cause it to be started. Starting the project can take
+  several seconds. In this case, the call may return a timeout error and will need to be repeated. \
 `
   })
 );
