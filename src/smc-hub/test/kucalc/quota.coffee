@@ -501,3 +501,42 @@ describe 'default quota', ->
             privileged      : false
             idle_timeout    : 3600  # capped by max_upgrades
             disk_quota      : 512   # capped hardcoded default by max_upgrades
+
+    it 'takes overcommitment ratios into account for user upgrades', ->
+        site_settings =
+            default_quotas:
+                mem_oc       :    4
+                cpu_oc       :    5
+
+        users =
+            user1:
+                upgrades:
+                    memory         : 3444
+                    cores          : 1.5
+
+        q1 = quota({}, users, undefined, site_settings)
+        expect(q1.memory_request).toEqual(1111)
+        expect(q1.memory_limit).toEqual(4444)
+        expect(q1.cpu_request).toEqual(.5) # (1+1.5)/5
+        expect(q1.cpu_limit).toEqual(2.5) # sum
+
+
+    it 'takes overcommitment ratios into account for user upgrades + site updates', ->
+        site_settings =
+            default_quotas:
+                mem          : 2000
+                mem_oc       :    6
+                cpu          :    2
+                cpu_oc       :   10
+
+        users =
+            user1:
+                upgrades:
+                    memory         : 1000
+                    cores          : 0.5
+
+        q1 = quota({}, users, undefined, site_settings)
+        expect(q1.memory_request).toEqual(500)
+        expect(q1.memory_limit).toEqual(3000)
+        expect(q1.cpu_request).toEqual(0.25)
+        expect(q1.cpu_limit).toEqual(2.5)

@@ -99,12 +99,25 @@ interface Upgrades {
   ephemeral_disk: number;
 }
 
+// special quotas for on-prem setups.
+// They not only set different defaults,
+// but also tune some aspects of the overall behavior.
+interface SiteSettingsDefaultQuotas {
+  internet: boolean; // true, allow project pods to access the internet
+  idle_timeout: number; // overrides DEFAULT_QUOTAS.mintime
+  cpu: number; // shared cpu quota, in 1 core units, overrides DEFAULT_QUOTAS.cores
+  cpu_oc: number; // overcommitment ratio for cpu, 1:cpu_oc
+  mem: number; // shared memory quota, in mb, overrides DEFAULT_QUOTAS.memory
+  mem_oc: number; // overcommitment ratio for memory, 1:mem_oc
+  disk_quota: number; // overrides DEFAULT_QUOTAS.disk_quota
+}
+
 /*
  * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
  * max_upgrades: Quota
  */
 interface SiteSettingsQuotas {
-  default_quotas: { [key: string]: string | number };
+  default_quotas: Partial<SiteSettingsDefaultQuotas>;
   max_upgrades: Partial<Upgrades>;
 }
 
