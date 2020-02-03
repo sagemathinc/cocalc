@@ -1507,7 +1507,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     # Custom version: instead of doing a full query, we instead
                     # call a function and that's it.
                     dbg("do instead_of_query instead")
-                    opts1 = misc.copy_without(opts, ['cb', 'changes', 'table', 'multi'])
+                    opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
                     client_query.get.instead_of_query @, opts1, (err, result) =>
                         locals.result = result
                         cb(err)

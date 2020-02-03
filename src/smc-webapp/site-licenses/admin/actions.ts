@@ -35,7 +35,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               activates: null,
               created: null,
               last_used: null,
-              users: null,
+              managers: null,
               restricted: null,
               upgrades: null,
               run_limit: null,
@@ -128,6 +128,16 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     y = y.set(field, value);
     edits = edits.set(license_id, y as TypedMap<SiteLicense>);
     this.setState({ edits });
+  }
+
+  public toggle_show_projects(license_id: string): void {
+    let show_projects = store.get("show_projects", Set());
+    if (show_projects.has(license_id)) {
+      show_projects = show_projects.delete(license_id);
+    } else {
+      show_projects = show_projects.add(license_id);
+    }
+    this.setState({ show_projects });
   }
 
   public update_search(): void {

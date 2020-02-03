@@ -3037,5 +3037,5 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     site_license_usage_stats: () =>
         return await site_license_usage_stats(@)
 
-    projects_using_site_license: (license_id) =>
-        return await projects_using_site_license(@, license_id)
+    projects_using_site_license: (license_id, fields) =>
+        return await projects_using_site_license(@, license_id, fields)

@@ -25,6 +25,7 @@ interface Props {
   site_licenses?: List<TypedMap<SiteLicense>>;
   editing?: Set<string>;
   edits?: Map<string, TypedMap<SiteLicense>>;
+  show_projects?: Set<string>;
   search?: string;
   matches_search?: Set<string>;
   usage_stats?: Map<string, number>;
@@ -41,6 +42,7 @@ class SiteLicenses extends Component<Props> {
         site_licenses: rtypes.immutable.List,
         editing: rtypes.immutable.Set,
         edits: rtypes.immutable.Map,
+        show_projects: rtypes.immutable.Set,
         search: rtypes.string,
         matches_search: rtypes.immutable.Set,
         usage_stats: rtypes.immutable.Map
@@ -72,6 +74,11 @@ class SiteLicenses extends Component<Props> {
         license={license}
         editing={this.props.editing != null && this.props.editing.has(id)}
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
+        show_projects={
+          this.props.show_projects != null
+            ? this.props.show_projects.has(id)
+            : undefined
+        }
         usage_stats={
           this.props.usage_stats != null
             ? this.props.usage_stats.get(id)
@@ -113,7 +120,7 @@ class SiteLicenses extends Component<Props> {
     );
   }
 
-  private render_reload_button(): Rendered {
+  private render_refresh_button(): Rendered {
     if (!this.props.view) return;
     return (
       <Button
@@ -122,7 +129,7 @@ class SiteLicenses extends Component<Props> {
         style={{ margin: "15px 0" }}
       >
         <Icon name="sync" spin={this.props.loading} />
-        <Space /> Reload
+        <Space /> Refresh
       </Button>
     );
   }
@@ -173,10 +180,10 @@ class SiteLicenses extends Component<Props> {
     return (
       <div>
         {this.render_header_toggle()}
-        <div style={{ margin: "0 10%" }}>
+        <div style={{ margin: "0 30px" }}>
           {this.render_error()}
           <div>
-            {this.render_reload_button()}
+            {this.render_refresh_button()}
             <Space />
             <Space />
             {this.render_create_new_license()}

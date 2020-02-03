@@ -4,16 +4,17 @@ import { actions } from "./actions";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
-import { capitalize, is_date, replace_all } from "smc-util/misc2";
-import { plural } from "smc-util/misc";
+import { capitalize, is_date, replace_all, plural } from "smc-util/misc2";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import { DisplayUpgrades, EditUpgrades } from "./upgrades";
+import { Projects } from "../../admin/users/projects";
 
-const BACKGROUNDS = ["white", "#fafafa"];
+const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
+  show_projects?: boolean;
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
@@ -82,11 +83,14 @@ export class License extends Component<Props> {
         case "string":
           x = (
             <input
-              style={{ width: "100%" }}
+              style={{ width: "50ex" }}
               value={val != null ? val : ""}
               onChange={e => onChange((e.target as any).value)}
             />
           );
+          if (field == "title") {
+            x = <span>{x} (visible to anyone who knows the id)</span>;
+          }
           break;
         case "paragraph":
           x = (
@@ -97,6 +101,15 @@ export class License extends Component<Props> {
               onChange={e => onChange((e.target as any).value)}
             />
           );
+          if (field == "description") {
+            x = (
+              <div>
+                {x}
+                <br />
+                (description is only visible to license managers)
+              </div>
+            );
+          }
           break;
         case "date":
           if (field == "created" || field == "last_used") {
@@ -112,7 +125,7 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = "(TODO: list of users)";
+          x = "(TODO: list of managers)";
           break;
         case "boolean":
           x = (
@@ -266,6 +279,18 @@ export class License extends Component<Props> {
     return x;
   }
 
+  private render_projects(): Rendered {
+    if (!this.props.show_projects) return;
+    return (
+      <div style={{ marginTop: "30px" }}>
+        <Projects
+          license_id={this.props.license.get("id")}
+          title={"Running projects upgraded with this license"}
+        />
+      </div>
+    );
+  }
+
   private render_usage_stats(run_limit): Rendered {
     if (!this.props.usage_stats) return;
     const style: React.CSSProperties = { fontStyle: "italic" };
@@ -275,11 +300,16 @@ export class License extends Component<Props> {
       style.fontWeight = "bold";
     }
     return (
-      <span style={style}>
+      <a
+        onClick={() =>
+          actions.toggle_show_projects(this.props.license.get("id"))
+        }
+        style={style}
+      >
         {this.props.usage_stats} running{" "}
         {plural(this.props.usage_stats, "project")} currently using this
-        license.
-      </span>
+        license...
+      </a>
     );
   }
 
@@ -388,6 +418,7 @@ export class License extends Component<Props> {
         {this.render_buttons()}
         {this.render_status()}
         {this.render_data()}
+        {this.render_projects()}
       </div>
     );
   }
