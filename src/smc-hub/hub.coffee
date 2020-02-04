@@ -82,11 +82,14 @@ hub_http_server = require('./hub_http_server')
 
 try
     {LTIService} = require('./lti/lti')
-catch
-    # silly stub
-    class LTIService
-        start: =>
-            throw new Error('NO LTI MODULE')
+catch err
+    if DEBUG
+        throw err
+    else
+        # silly stub
+        class LTIService
+            start: =>
+                throw new Error('NO LTI MODULE')
 
 
 # registers the hub with the database periodically
