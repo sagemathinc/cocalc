@@ -18,7 +18,7 @@ import {
   TestGetString,
   TestFiles
 } from "./types";
-import { time_log, num_log } from "./time_log";
+import { time_log2, num_log } from "./time_log";
 import { get_api_key } from "./get_api_key";
 import { api_create_file } from "./api_create_file";
 import { api_create_project } from "./api_create_project";
@@ -41,6 +41,7 @@ const cli_parse = function() {
       )
       .option("-j, --create-project", "create project for tests")
       .option("-p, --path-to-chrome [chromepath]")
+      .option("-m, --csv-log <file>", "timing log file", "./log.csv")
       .parse(process.argv);
     const creds_file: string = program.creds;
     debuglog("creds file:", creds_file);
@@ -55,6 +56,7 @@ const cli_parse = function() {
       install_folder: program.installPath,
       create_project: program.createProject,
       headless: program.headless,
+      csv_log: program.csvLog,
       path: cpath
     };
     debuglog("iopts", iopts);
@@ -76,6 +78,7 @@ const install_api_session = async function(
     const tm_start = process.hrtime.bigint();
     const opts: Opts = {
       headless: iopts.headless,
+      csv_log: iopts.csv_log,
       path: iopts.path
     };
     let ags: TestGetString = await get_api_key(creds, opts);
@@ -85,9 +88,9 @@ const install_api_session = async function(
 
     let project_id: string;
     if (iopts.create_project) {
-      ags = await api_create_project(creds, api_key);
+      ags = await api_create_project(creds, opts, api_key);
     } else {
-      ags = await get_project_id(creds, api_key);
+      ags = await get_project_id(creds, opts, api_key);
     }
     project_id = ags.result;
     pfcounts.add(ags);
@@ -99,7 +102,7 @@ const install_api_session = async function(
       const file_path: string = path.join(iopts.install_folder, file_name);
       const text: string = fs.readFileSync(file_path, "utf8");
       pfcounts.add(
-        await api_create_file(creds, file_name, api_key, project_id, text)
+        await api_create_file(creds, opts, file_name, api_key, project_id, text)
       );
     }
 
@@ -107,7 +110,7 @@ const install_api_session = async function(
     // project_id: id of project where file is created (required)
     // path: path to file, relative to home directory in destination project (required)
     // content: contents of the text file to be written (required)
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

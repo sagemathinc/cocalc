@@ -3,8 +3,8 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail } from "./types";
+import { time_log2 } from "./time_log";
 import { Page } from "puppeteer";
 
 import screenshot from "./screenshot";
@@ -14,6 +14,7 @@ function sleep(ms: number = 0): Promise<void> {
 }
 
 export const del_hide_project = async function(
+  creds: Creds,
   opts: Opts,
   page: Page
 ): Promise<PassFail> {
@@ -61,7 +62,7 @@ export const del_hide_project = async function(
     sel = '*[cocalc-test="search-input"]';
     await page.waitForSelector(sel);
 
-    time_log(`project ${opts.xprj}`, tm_del_hide);
+    await time_log2(`project ${opts.xprj}`, tm_del_hide, creds, opts);
     pfcounts.pass += 1;
   } catch (e) {
     pfcounts.fail += 1;
