@@ -753,7 +753,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     );
 
     return (
-      <Tip title="Use Markdown" tip={tip}>
+      <Tip title="Use Markdown" tip={tip} delayShow={2500}>
         <div
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
@@ -774,6 +774,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             LaTeX
           </a>
           . Emoticons: {misc.emoticons}.
+          Chat outside CoCalc <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow">on Discord</a>.
         </div>
       </Tip>
     );

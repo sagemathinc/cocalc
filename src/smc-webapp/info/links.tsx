@@ -105,8 +105,13 @@ export const SUPPORT_LINKS: Links = {
 };
 
 export const CONNECT_LINKS = {
-  share: {
+  discord: {
     bold: true,
+    icon: "fab fa-discord",
+    href: "https://discord.gg/Pz3h5bH",
+    link: "Discord - chat about CoCalc"
+  },
+  share: {
     icon: "bullhorn",
     href: `${BASE_URL}/share`,
     link: "Shared public files"

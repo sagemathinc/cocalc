@@ -412,6 +412,9 @@ SupportInfo = rclass
                 <li>
                     <b>Hit a bug, just need to talk with us, or request that we install software:</b> Fill out the form below...
                 </li>
+                <li>
+                    Just <b>want to chat</b> with somebody?  Visit <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow">our Discord server</a>.
+                </li>
             </ul>
 
             <h2>Create a support ticket</h2>

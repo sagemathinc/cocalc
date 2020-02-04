@@ -149,17 +149,18 @@ ChatRoom = rclass ({name}) ->
         if not project?
             return
         <div>
-            <div style={margin:'10px 0px'}>
-                Who else would you like to work with?
+            Stream your screen or chat <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow">using Discord.</a>
+            <div>
+                Add people to this project below:
             </div>
             <AddCollaborators
                 project = {project}
                 inline  = {true}
                 allow_urls = {allow_urls}
             />
-            <span style={color:'#666'}>
-                NOTE: Anybody you add can work with you on any file in this project. Remove people in settings.
-            </span>
+            <div style={color:'#666', marginTop:'-15px'}>
+                (Anybody you add will see all files in this project.)
+            </div>
         </div>
 
     render_collab_list: ->
@@ -182,7 +183,7 @@ ChatRoom = rclass ({name}) ->
         </div>
 
     render_project_users: ->
-        <div style={margin:'5px 15px', maxHeight: '20%', overflow: 'auto', borderBottom: '1px solid lightgrey'}>
+        <div style={margin:'5px 15px', maxHeight: '25%', overflow: 'auto', borderBottom: '1px solid lightgrey'}>
             {@render_collab_list()}
             {@render_add_collab()}
         </div>

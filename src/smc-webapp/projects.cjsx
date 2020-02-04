@@ -1690,6 +1690,11 @@ exports.ProjectsPage = ProjectsPage = rclass
             style={overflowY:'auto', paddingTop:'20px'}
         >
             <Row>
+                <VisibleMDLG>
+                    <div style={{float:'right'}}>
+                        <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow"><Icon name="fab fa-discord"/> Chat about CoCalc on Discord...</a>
+                    </div>
+                </VisibleMDLG>
                 <Col sm={4}>
                     {@render_projects_title()}
                 </Col>
