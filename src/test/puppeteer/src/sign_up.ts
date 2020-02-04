@@ -5,7 +5,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 const puppeteer = require("puppeteer");
 import chalk from "chalk";
 import { Creds, Opts, PassFail } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import { Page } from "puppeteer";
 
 const LONG_TIMEOUT = 70000; // msec
@@ -36,7 +36,7 @@ export const sign_up = async function(
     const version: string = await page.browser().version();
     debuglog("browser", version);
 
-    time_log("launch browser", tm_launch_browser);
+    await time_log2("launch browser", tm_launch_browser, creds, opts);
     const tm_signup = process.hrtime.bigint();
     await page.setDefaultTimeout(LONG_TIMEOUT);
 
@@ -87,10 +87,10 @@ export const sign_up = async function(
     await page.waitForSelector(sel);
     await page.click(sel);
 
-    time_log("signup", tm_signup);
+    await time_log2("signup", tm_signup, creds, opts);
     pfcounts.pass += 1;
 
-    time_log(this_file, tm_launch_browser);
+    await time_log2(this_file, tm_launch_browser, creds, opts);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

@@ -4,7 +4,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
 import { Creds, Opts, PassFail } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page, Browser } from "puppeteer";
 //import { expect } from "chai";
@@ -40,7 +40,7 @@ export const test_shared_file = async function(creds: Creds, opts: Opts, browser
     await screenshot(page1, opts, "cocalc-shared-folder.png");
     await page1.close;
     pfcounts.pass += 1;
-    time_log("shared folder", tm_shared_folder);
+    await time_log2("shared folder", tm_shared_folder, creds, opts);
 
     const tm_shared_file = process.hrtime.bigint();
     const page2: Page = (await browser!.newPage());
@@ -54,7 +54,7 @@ export const test_shared_file = async function(creds: Creds, opts: Opts, browser
     await screenshot(page2, opts, "cocalc-shared-file.png");
     await page2.close;
     pfcounts.pass += 1;
-    time_log(this_file, tm_shared_file);
+    await time_log2(this_file, tm_shared_file, creds, opts);
   } catch (e) {
     pfcounts.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

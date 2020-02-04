@@ -3,13 +3,13 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-export const test_widget = async function(opts: Opts, page: Page): Promise<PassFail> {
+export const test_widget = async function(creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -41,7 +41,7 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     await page.click(sel);
     debuglog("clicked file line");
 
-    time_log(`open ${TestFiles.widgetfile}`, tm_open_widget);
+    await time_log2(`open ${TestFiles.widgetfile}`, tm_open_widget, creds, opts);
     const tm_widget_test = process.hrtime.bigint();
 
     sel = '*[cocalc-test="jupyter-cell"]';
@@ -154,7 +154,7 @@ export const test_widget = async function(opts: Opts, page: Page): Promise<PassF
     await page.waitForSelector(sel);
     debuglog("gotfile search");
 
-    time_log("widget test", tm_widget_test);
+    await time_log2("widget test", tm_widget_test, creds, opts);
     await screenshot(page, opts, "cocalc-widget.png");
     pfcounts.pass += 1;
   } catch (e) {
