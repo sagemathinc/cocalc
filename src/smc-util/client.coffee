@@ -2148,10 +2148,12 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
     # This is async, so do "await smc_webapp.configuration(...project_id...)".
-    configuration: (project_id, aspect) =>
-        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+    configuration: (project_id, aspect, no_cache) =>
+        if not misc.is_valid_uuid_string(project_id)
             throw Error("project_id must be a valid uuid")
-        return (await @project_websocket(project_id)).api.configuration(aspect)
+        if typeof aspect != 'string'
+            throw Error("aspect (=#{aspect}) must be a string")
+        return (await @project_websocket(project_id)).api.configuration(aspect, no_cache)
 
     syncdoc_history: (opts) =>
         opts = defaults opts,

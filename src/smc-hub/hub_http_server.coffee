@@ -153,7 +153,7 @@ exports.init_express_http_server = (opts) ->
     router.use '/doc',
         express.static(path_module.join(STATIC_PATH, 'doc'), {maxAge: 0})
 
-    router.get '/', (req, res) ->
+    handle_root = (req, res) ->
         # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
         # that's not a security issue b/c the hub will do the heavy lifting
         # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
@@ -167,6 +167,9 @@ exports.init_express_http_server = (opts) ->
         else
             #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
             res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+
+    router.get '/', handle_root
+    router.get '/index.html', handle_root
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })

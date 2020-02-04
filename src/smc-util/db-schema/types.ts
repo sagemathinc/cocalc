@@ -52,6 +52,13 @@ interface TableSchema<F extends Fields> {
         instead_of_query,
         cb: Function
       ) => void;
+      check_hook?: (
+        database,
+        query,
+        account_id: string,
+        project_id: string,
+        cb: Function
+      ) => void;
     };
     set?: {
       fields: { [key in keyof Partial<F>]: any };

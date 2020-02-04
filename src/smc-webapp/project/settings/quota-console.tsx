@@ -148,7 +148,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     if (site_license) {
       // amount given by site licenses
       upgrade_list.unshift(
-        <li key="site-license">{text(site_license)} provided by site license</li>
+        <li key="site-license">{text(site_license)} provided by site license (see below)</li>
       );
     }
 

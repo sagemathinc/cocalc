@@ -89,7 +89,12 @@ export class UserResult extends Component<Props, State> {
     if (!this.state.projects) {
       return;
     }
-    return <Projects account_id={this.props.account_id} />;
+    return (
+      <Projects
+        account_id={this.props.account_id}
+        title={`Recently active projects that ${this.props.first_name} ${this.props.last_name} collaborates on`}
+      />
+    );
   }
 
   render_activity(): Rendered {
