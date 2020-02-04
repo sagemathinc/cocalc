@@ -1,19 +1,20 @@
 // NOTE: some code here is similar to code in
 // src/smc-webapp/course/configuration/upgrades.tsx
 
-import { difference } from "lodash";
+import { Map } from "immutable";
 import { redux, Component, Rendered, React } from "../../app-framework";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { LICENSE_STYLE } from "../../course/configuration/upgrades";
 import { split } from "smc-util/misc2";
 import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
+import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
 
 const { ShowSupportLink } = require("../../support");
 
 interface Props {
   project_id: string;
-  site_license_ids: string[];
+  site_license?: Map<string, Map<string, number>>;
 }
 
 interface State {
@@ -34,10 +35,7 @@ export class SiteLicense extends Component<Props, State> {
 
     const actions = redux.getActions("projects");
     // newly added licenses
-    for (const license_id of difference(
-      license_ids,
-      this.props.site_license_ids
-    )) {
+    for (const license_id of license_ids) {
       try {
         await actions.add_site_license_to_project(
           this.props.project_id,
@@ -51,16 +49,6 @@ export class SiteLicense extends Component<Props, State> {
         return;
       }
     }
-    // removed site licenses
-    for (const license_id of difference(
-      this.props.site_license_ids,
-      license_ids
-    )) {
-      await actions.remove_site_license_from_project(
-        this.props.project_id,
-        license_id
-      );
-    }
   }
 
   private render_site_license_text(): Rendered {
@@ -71,7 +59,8 @@ export class SiteLicense extends Component<Props, State> {
         license to this project when it is started. Clear the field below to
         stop applying those upgrades. Upgrades from the license are only applied
         when a project is started. Create a <ShowSupportLink /> if you would
-        like to purchase a license key.
+        like to purchase a license key. (You can also enter more than one key
+        separated by a space.)
         <input
           style={LICENSE_STYLE}
           type="text"
@@ -98,14 +87,32 @@ export class SiteLicense extends Component<Props, State> {
     );
   }
 
+  private render_current_licenses(): Rendered {
+    if (!this.props.site_license) return;
+    const v: Rendered[] = [];
+    for (const [license_id, upgrades] of this.props.site_license) {
+      v.push(
+        <SiteLicensePublicInfo
+          key={license_id}
+          license_id={license_id}
+          project_id={this.props.project_id}
+          upgrades={upgrades}
+        />
+      );
+    }
+    return <div>{v}</div>;
+  }
+
   public render(): Rendered {
     return (
       <div>
+        <h4>Licenses</h4>
+        {this.render_current_licenses()}
+        <br />
         <Button
           onClick={() => {
             this.setState({
-              show_site_license: true,
-              site_license_ids: this.props.site_license_ids.join("   ")
+              show_site_license: true
             });
           }}
           disabled={this.state.show_site_license}

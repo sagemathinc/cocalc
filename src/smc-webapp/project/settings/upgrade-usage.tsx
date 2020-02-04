@@ -143,7 +143,7 @@ class UpgradeUsage extends React.Component<Props, State> {
     return (
       <SiteLicense
         project_id={this.props.project_id}
-        site_license_ids={this.props.site_license_ids}
+        site_license={this.props.project.get("site_license") as any}
       />
     );
   }

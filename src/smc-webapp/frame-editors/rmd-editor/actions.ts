@@ -10,7 +10,8 @@ import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
-import { change_filename_extension, path_split } from "smc-util/misc2";
+import { path_split } from "smc-util/misc2";
+import { derive_rmd_output_filename } from "./utils";
 
 const custom_pdf_error_message: string = `
 To create a PDF document from R Markdown, you specify the \`pdf_document\` output format in the
@@ -82,8 +83,8 @@ export class RmdActions extends Actions {
 
     let existing = Set();
     for (const ext of ["pdf", "html", "nb.html"]) {
-      // full path
-      const expected_fn = change_filename_extension(this.path, ext);
+      // full path – basename might change
+      const expected_fn = derive_rmd_output_filename(this.path, ext);
       const fn_exists = listing.some(entry => {
         const name = entry.get("name");
         return name === path_split(expected_fn).tail;

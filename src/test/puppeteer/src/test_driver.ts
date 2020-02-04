@@ -29,6 +29,7 @@ const cli_parse = function() {
       .option("-p, --path-to-chrome [chromepath]")
       .option("-k, --skip <pattern>", "skip tests matching pattern")
       .option("-x, --xprj <cmd>", "delete|undelete|hide|unhide project")
+      .option("-m, --csv-log <file>", "timing log file", "./log.csv")
       .parse(process.argv);
     const creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -53,6 +54,7 @@ const cli_parse = function() {
       screenshot: program.screenshot,
       xprj: program.xprj,
       path: cpath,
+      csv_log: program.csvLog,
       skip: skip
     };
     debuglog("opts", opts);

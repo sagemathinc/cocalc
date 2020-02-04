@@ -3,8 +3,8 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
@@ -13,7 +13,7 @@ import { expect } from "chai";
 //  return new Promise(resolve => setTimeout(resolve, ms));
 //}
 
-export const test_ir = async function(opts: Opts, page: Page): Promise<PassFail> {
+export const test_ir = async function(creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -45,7 +45,7 @@ export const test_ir = async function(opts: Opts, page: Page): Promise<PassFail>
     await page.click(sel);
     debuglog("clicked file line");
 
-    time_log(`open ${TestFiles.irfile}`, tm_open_ir);
+    await time_log2(`open ${TestFiles.irfile}`, tm_open_ir, creds, opts);
     const tm_ir_test = process.hrtime.bigint();
 
     sel = '*[cocalc-test="jupyter-cell"]';
@@ -89,7 +89,7 @@ export const test_ir = async function(opts: Opts, page: Page): Promise<PassFail>
     await page.waitForSelector(sel);
     debuglog("gotfile search");
 
-    time_log(this_file, tm_ir_test);
+    await time_log2(this_file, tm_ir_test, creds, opts);
     await screenshot(page, opts, "cocalc-widget.png");
     pfcounts.pass += 1;
   } catch (e) {

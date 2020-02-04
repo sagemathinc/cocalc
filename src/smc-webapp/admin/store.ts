@@ -3,7 +3,7 @@ This approach is awkward and is designed to tangle up a bunch of unrelated code,
 a bad idea.
 
 Instead there should be actions and a store specific in the user/ subdirectory.  See how it's
-done much better by looking at site-licenses/
+done much better by looking at smc-webapp/site-licenses/admin/
 */
 
 import { Store, TypedMap } from "../app-framework";

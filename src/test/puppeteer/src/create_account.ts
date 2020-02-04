@@ -26,6 +26,7 @@ const cli_parse = function() {
       .option("-s, --screenshot", "take screenshots", false)
       .option("-p, --path-to-chrome [chromepath]")
       .option("-k, --skip <pattern>", "skip tests matching pattern")
+      .option("-m, --csv-log <file>", "timing log file", "./log.csv")
       .parse(process.argv);
     const creds_file = program.creds;
     //if (!creds_file.includes("/")) {creds_file = "./" + creds_file;}
@@ -44,6 +45,7 @@ const cli_parse = function() {
       headless: program.headless,
       screenshot: program.screenshot,
       path: cpath,
+      csv_log: program.csvLog,
       skip: skip
     };
     debuglog("opts", opts);
