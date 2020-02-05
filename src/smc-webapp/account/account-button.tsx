@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Popconfirm, Popover } from "antd";
-import { Icon } from "../r_misc";
 const { NavItem } = require("react-bootstrap");
 import { AccountActions } from "../account";
 
@@ -31,6 +30,7 @@ export const AccountTabDropdown: React.FC<Props> = ({
       content={links}
     >
       <NavItem
+        active={is_active}
         style={{
           float: "left",
           position: "relative",
@@ -40,7 +40,7 @@ export const AccountTabDropdown: React.FC<Props> = ({
         <div style={{ padding: "10px" }}>
           {icon}
           <span style={{ marginLeft: 5 }} className={label_class}>
-            Account
+            {show_label ? "Account" : undefined}
           </span>
         </div>
       </NavItem>
@@ -49,10 +49,9 @@ export const AccountTabDropdown: React.FC<Props> = ({
 };
 
 interface LinksProps {
-  actions: AccountActions;
+  account_actions: AccountActions;
+  page_actions: any;
 }
-
-function DropdownLink() {}
 
 export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
   account_actions, // Type AccountActions
@@ -69,7 +68,7 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               display: "inline-block"
             }}
             className={"cocalc-account-button"}
-            onClick={_ => {
+            onClick={event => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("account"); /// Set to the Subs and course packs tab
@@ -87,7 +86,7 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               display: "inline-block"
             }}
             className={"cocalc-account-button"}
-            onClick={_ => {
+            onClick={event => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("billing"); /// Set to the Preferences tab
@@ -105,7 +104,7 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               display: "inline-block"
             }}
             className={"cocalc-account-button"}
-            onClick={_ => {
+            onClick={event => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("upgrades"); /// Set to the Preferences tab
@@ -123,7 +122,7 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               display: "inline-block"
             }}
             className={"cocalc-account-button"}
-            onClick={_ => {
+            onClick={event => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("support"); /// Set to the Preferences tab
@@ -135,9 +134,9 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
         </li>
         <li>
           <Popconfirm
-            title={<div style={{ maxWidth: "60ex" }}>{title}</div>}
-            onConfirm={() => account_actions.sign_out()}
-            okText={"Yes, sign out?"}
+            title={"Sign out of your account?"}
+            onConfirm={() => account_actions.sign_out(false, false)}
+            okText={"Yes, sign out"}
             cancelText={"Cancel"}
           >
             <a

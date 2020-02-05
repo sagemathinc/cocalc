@@ -4,7 +4,6 @@ import { Button, Popconfirm } from "antd";
 interface Props {
   everywhere?: boolean;
   sign_in?: boolean;
-  danger?: boolean;
 }
 
 export class SignOut extends Component<Props> {
@@ -50,9 +49,7 @@ export class SignOut extends Component<Props> {
         okText={`Yes, sign out${this.props.everywhere ? " everywhere" : ""}`}
         cancelText={"Cancel"}
       >
-        <Button icon={"logout"} type={this.props.danger ? "danger" : undefined}>
-          {this.render_body()}
-        </Button>
+        <Button icon={"logout"}>{this.render_body()}</Button>
       </Popconfirm>
     );
   }
