@@ -22,7 +22,7 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "cpu_shares"
 ];
 
-type Upgrades = { [field: upgrade_fields_type]: number };
+export type Upgrades = { [field: upgrade_fields_type]: number };
 
 export interface SiteLicense {
   id: string;
