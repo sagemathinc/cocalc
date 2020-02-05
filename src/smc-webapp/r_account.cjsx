@@ -128,7 +128,7 @@ EmailVerification = rclass
             if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
             else
-                [
+                <React.Fragment>
                     <span key={1} style={color: 'red', paddingRight: '3em'}>Not Verified</span>
                     <Button
                         key        = {2}
@@ -143,12 +143,9 @@ EmailVerification = rclass
                                 'Send Verification Email'
                         }
                     </Button>
-                ]
+                </React.Fragment>
 
     render : ->
-        # disabled since it is very confusing and not used at all yet:
-        #   see https://github.com/sagemathinc/cocalc/issues/3147 and https://github.com/sagemathinc/cocalc/issues/3148
-        return <span></span>
         <LabeledRow label='Email verification' style={marginBottom: '15px'}>
             <div>
                 Status: {@test()}
@@ -721,8 +718,8 @@ AccountSettings = rclass
                 account_id             = {@props.account_id}
                 email_address          = {@props.email_address}
                 email_address_verified = {@props.email_address_verified}
-                ref                    = 'email_address_verified'
-                />
+                ref                    = {'email_address_verified'}
+            />
             {@render_newsletter()}
             {@render_password()}
             {if not @props.is_anonymous then <APIKeySetting />}

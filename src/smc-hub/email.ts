@@ -401,22 +401,18 @@ exports.mass_email = function(opts): void {
   );
 };
 
-/*
-verify_email_html = (token_url) -> """
+const verify_email_html = token_url => `
 <p style="margin-top:0;margin-bottom:10px;">
 <strong>
-Please <a href="#{token_url}">click here</a> to verify your email address!  If this link does not work, please copy/paste this URL into a new browser tab and open the link:
+Please <a href="${token_url}">click here</a> to verify your email address!
+If this link does not work, please copy/paste this URL into a new browser tab and open the link:
 </strong>
 </p>
 
 <pre style="margin-top:10px;margin-bottom:10px;font-size:11px;">
-*{token_url}
+${token_url}
 </pre>
-"""
-*/
-
-// Disable verify email message for now, since verify isn't working (?).
-const verify_email_html = _ => "";
+`;
 
 // beware, this needs to be HTML which is compatible with email-clients!
 const welcome_email_html = token_url => `\
@@ -529,7 +525,7 @@ exports.welcome_email = function(opts): void {
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`
   );
-  const endpoint = os_path.join("/", base_url, "auth/verify");
+  const endpoint = os_path.join("/", base_url, "auth", "verify");
   const token_url = `${DOMAIN_NAME}${endpoint}?${token_query}`;
 
   if (opts.only_verify) {
@@ -553,4 +549,51 @@ exports.welcome_email = function(opts): void {
     category,
     asm_group: 147985
   }); // https://app.sendgrid.com/suppressions/advanced_suppression_manager
+};
+
+exports.email_verified_successfully = url => {
+  const title = `${SITE_NAME}: Email verification successful`;
+
+  return `<DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="refresh" content="5;url=${url}" />
+<style>
+* {font-family: sans-serif;}
+</style>
+  <title>${title}</title>
+</head>
+<body>
+<h1>Email verification successful!</h1>
+<div>
+Click <a href="${url}">here</a> if you aren't automatically redirected to <a href="${url}">${SITE_NAME}</a>.
+</div>
+</body>
+</html>
+`;
+};
+
+exports.email_verification_problem = (url, problem) => {
+  const title = `${SITE_NAME}: Email verification problem`;
+
+  return `<DOCTYPE html>
+<html>
+<head>
+<style>
+div, p, h1, h2 {font-family: sans-serif;}
+div {margin-top: 1rem;}
+</style>
+  <title>${title}</title>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div>There was a problem verifying your email address.</div>
+  <div>Reason: <code>${problem}</code></div>
+  <div>
+    Continue to <a href="${url}">${SITE_NAME}</a> or
+    contact support: <a href="mailto:${HELP_EMAIL}">${HELP_EMAIL}</a>.
+  </div>
+</body>
+</html>
+  `;
 };

@@ -69,6 +69,8 @@ express_session = require('express-session')
 
 { HELP_EMAIL } = require("smc-util/theme")
 
+{email_verified_successfully, email_verification_problem} = require('./email')
+
 {defaults, required} = misc
 
 api_key_cookie_name = (base_url) ->
@@ -452,7 +454,11 @@ exports.init_passport = (opts) ->
         res.json(strategies)
 
     router.get '/auth/verify', (req, res) ->
-        res.header("Content-Type", "text/plain")
+        {DOMAIN_NAME} = require('smc-util/theme')
+        base_url      = require('./base-url').base_url()
+        path          = require('path').join('/', base_url, '/app')
+        url           = "#{DOMAIN_NAME}#{path}"
+        res.header("Content-Type", "text/html")
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         if not (req.query.token and req.query.email)
             res.send("ERROR: I need email and corresponding token data")
@@ -464,15 +470,10 @@ exports.init_passport = (opts) ->
             email_address : email
             token         : token
             cb            : (err) ->
-                if err and err.indexOf('This email address is already verified') == -1
-                    res.send("Problem verifying your email address: #{err}")
+                if err
+                    res.send(email_verification_problem(url, err))
                 else
-                    #res.send("Email verified!")
-                    {DOMAIN_NAME} = require('smc-util/theme')
-                    base_url      = require('./base-url').base_url()
-                    path          = require('path').join('/', base_url, '/app')
-                    url           = "#{DOMAIN_NAME}#{path}"
-                    res.redirect(301, url)
+                    res.send(email_verified_successfully(url))
 
     # Set the site conf like this:
     #
