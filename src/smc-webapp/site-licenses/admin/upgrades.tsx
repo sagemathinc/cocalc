@@ -1,5 +1,6 @@
 import { Component, React, Rendered } from "../../app-framework";
 import { Map } from "immutable";
+import { DebounceInput } from "react-debounce-input";
 import { upgrades } from "smc-util/upgrade-spec";
 import { Row, Col } from "antd";
 import { actions } from "./actions";
@@ -10,6 +11,7 @@ import {
 } from "./types";
 import { plural } from "smc-util/misc2";
 import { Icon } from "../../r_misc";
+import { INPUT_STYLE } from "./license";
 
 interface UpgradeParams {
   display: string;
@@ -105,9 +107,10 @@ export class EditUpgrades extends Component<EditProps> {
     }
     return (
       <span>
-        <input
+        <DebounceInput
           onChange={e => this.on_change(field, (e.target as any).value)}
           value={val}
+          style={INPUT_STYLE}
         />{" "}
         {params(field).display_unit}
       </span>

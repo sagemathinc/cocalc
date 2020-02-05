@@ -1,10 +1,17 @@
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
+import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
-import { capitalize, is_date, replace_all, plural } from "smc-util/misc2";
+import {
+  capitalize,
+  is_date,
+  merge,
+  replace_all,
+  plural
+} from "smc-util/misc2";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import {
@@ -32,6 +39,12 @@ function format_as_label(field: string): string {
 const STATUS_STYLE: React.CSSProperties = {
   display: "inline-block",
   marginBottom: "5px"
+};
+
+export const INPUT_STYLE: React.CSSProperties = {
+  border: "1px solid lightgrey",
+  borderRadius: "3px",
+  padding: "0 5px"
 };
 
 export class License extends Component<Props> {
@@ -92,8 +105,8 @@ export class License extends Component<Props> {
       switch (type) {
         case "string":
           x = (
-            <input
-              style={{ width: "50ex" }}
+            <DebounceInput
+              style={merge({ width: "50ex" }, INPUT_STYLE)}
               value={val != null ? val : ""}
               onChange={e => onChange((e.target as any).value)}
             />
@@ -104,9 +117,11 @@ export class License extends Component<Props> {
           break;
         case "paragraph":
           x = (
-            <textarea
-              style={{ width: "100%", border: "1px solid lightgray" }}
-              rows={3}
+            <DebounceInput
+              element="textarea"
+              forceNotifyByEnter={false}
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              rows={5}
               value={val != null ? val : ""}
               onChange={e => onChange((e.target as any).value)}
             />
@@ -158,8 +173,8 @@ export class License extends Component<Props> {
         case "number":
           x = (
             <span>
-              <input
-                style={{ width: "100%" }}
+              <DebounceInput
+                style={merge({ width: "100%" }, INPUT_STYLE)}
                 value={val != null ? val : "0"}
                 onChange={e => onChange((e.target as any).value)}
               />{" "}

@@ -99,6 +99,7 @@
     "query-string": "^6.9.0",
     "react": "^16.9.0",
     "react-bootstrap": "^0.31.5",
+    "react-debounce-input": "^3.2.2",
     "react-dom": "^16.9.0",
     "react-draggable": "^3.0.0",
     "react-dropzone-component": "^3.2.0",
