@@ -39,6 +39,8 @@ misc_page = require('./misc_page')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
 
+{AccountTabDropdown, DefaultAccountDropDownLinks} = require('./account-button') #correct import? Typed in response to Console error undefined AccountTabDropdown when trying to load test server
+
 # CoCalc Libraries
 misc = require('smc-util/misc')
 
@@ -128,8 +130,18 @@ Page = rclass
 
     render_account_tab: ->
         if @props.is_anonymous
-            a = undefined
-        else if @props.account_id
+            return <NavTab
+                        name           = 'account'
+                        label          = {<Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>}
+                        style          = {{marginTop:'-10px'}}
+                        label_class    = {nav_class}
+                        icon           = {undefined}
+                        actions        = {@actions('page')}
+                        active_top_tab = {@props.active_top_tab}
+                        show_label     = {@state.show_label}
+                    />
+
+        if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -139,23 +151,14 @@ Page = rclass
         else
             a = 'cog'
 
-        if @props.is_anonymous
-            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
-            style = {marginTop:'-10px'}  # compensate for using a button
-        else
-            label = "Account"
-            style = undefined
-
-        <NavTab
-            name           = 'account'
-            label          = {label}
-            style          = {style}
-            label_class    = {nav_class}
-            icon           = {a}
-            actions        = {@actions('page')}
-            active_top_tab = {@props.active_top_tab}
-            show_label     = {@state.show_label}
-        />
+        return <AccountTabDropdown
+                user_label = {@props.redux.getStore("account").get_fullname()}
+                icon = {a}
+                links = {<DefaultAccountDropDownLinks account_actions={@actions("account")}  page_actions={@actions("page")} />}
+                label_class = {nav_class}
+                show_label = {@state.show_label}
+                is_active = {@props.active_top_tab == 'account'}
+            />
 
     render_admin_tab: ->
         <NavTab
