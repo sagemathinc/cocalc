@@ -73,7 +73,7 @@ export const license_fields: {
   activates: "date",
   created: "date",
   last_used: "date",
-  // managers: "account_id[]",  // hide for now since not implemented at all
+  managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   run_limit: "number"
