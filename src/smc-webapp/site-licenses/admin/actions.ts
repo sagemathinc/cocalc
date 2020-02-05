@@ -85,37 +85,52 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ edits: edits.delete(license_id) });
   }
 
+  public start_saving(license_id: string): void {
+    const saving = store.get("saving", Set()).add(license_id);
+    this.setState({ saving });
+  }
+
+  public cancel_saving(license_id: string): void {
+    const saving = store.get("saving", Set()).delete(license_id);
+    this.setState({ saving });
+  }
+
   public async save_editing(license_id: string): Promise<void> {
     const edits = store.get("edits");
-    this.cancel_editing(license_id);
     if (edits == null) return;
-    const changes = edits.get(license_id);
-    if (changes == null || changes.size <= 1) return; // no actual changes
-    let site_licenses = changes.toJS();
-    if (site_licenses.upgrades) {
-      normalize_upgrades_for_save(site_licenses.upgrades);
-    }
-    if (site_licenses.run_limit) {
-      const val = parseInt(site_licenses.run_limit);
-      if (isNaN(val) || !isFinite(val) || val < 0) {
-        this.set_error(
-          `invalid value ${site_licenses.run_limit} for run limit`
-        );
-        return;
-      }
-      site_licenses.run_limit = val;
-    }
-
     try {
-      await query({
-        query: {
-          site_licenses
+      this.start_saving(license_id);
+      const changes = edits.get(license_id);
+      if (changes == null || changes.size <= 1) return; // no actual changes
+      let site_licenses = changes.toJS();
+      if (site_licenses.upgrades) {
+        normalize_upgrades_for_save(site_licenses.upgrades);
+      }
+      if (site_licenses.run_limit) {
+        const val = parseInt(site_licenses.run_limit);
+        if (isNaN(val) || !isFinite(val) || val < 0) {
+          this.set_error(
+            `invalid value ${site_licenses.run_limit} for run limit`
+          );
+          return;
         }
-      });
-    } catch (err) {
-      this.set_error(err);
+        site_licenses.run_limit = val;
+      }
+
+      try {
+        await query({
+          query: {
+            site_licenses
+          }
+        });
+      } catch (err) {
+        this.set_error(err);
+      }
+      await this.load();
+    } finally {
+      this.cancel_editing(license_id);
+      this.cancel_saving(license_id);
     }
-    await this.load();
   }
 
   public set_edit(

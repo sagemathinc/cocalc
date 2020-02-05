@@ -7,13 +7,18 @@ import { license_fields, license_field_type } from "./types";
 import { capitalize, is_date, replace_all, plural } from "smc-util/misc2";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
-import { DisplayUpgrades, EditUpgrades } from "./upgrades";
+import {
+  DisplayUpgrades,
+  EditUpgrades,
+  scale_by_display_factors
+} from "./upgrades";
 import { Projects } from "../../admin/users/projects";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
+  saving?: boolean;
   show_projects?: boolean;
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
@@ -35,11 +40,16 @@ export class License extends Component<Props> {
     const edits = this.props.edits;
     let i = 0;
     for (const field in license_fields) {
-      const val =
-        this.props.editing && edits != null && edits.has(field)
-          ? edits.get(field)
-          : this.props.license.get(field);
-      //if (val == null && !this.props.editing) continue;
+      let val;
+      if (this.props.editing && edits != null && edits.has(field)) {
+        val = edits.get(field);
+      } else {
+        val = this.props.license.get(field);
+        if (val != null && field == "upgrades") {
+          // tedious detail: some upgrades have to be scaled before displaying to be edited...
+          val = scale_by_display_factors(val);
+        }
+      }
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
       let x = this.render_value(field, val);
@@ -319,13 +329,22 @@ export class License extends Component<Props> {
     if (this.props.editing) {
       buttons = (
         <ButtonGroup>
-          <Button onClick={() => actions.cancel_editing(id)}>Cancel</Button>
           <Button
-            disabled={this.props.edits == null || this.props.edits.size <= 1}
+            onClick={() => actions.cancel_editing(id)}
+            disabled={this.props.saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={
+              this.props.edits == null ||
+              this.props.edits.size <= 1 ||
+              this.props.saving
+            }
             bsStyle="success"
             onClick={() => actions.save_editing(id)}
           >
-            Save
+            <Icon name={"save"} /> {this.props.saving ? "Saving..." : "Save"}
           </Button>
         </ButtonGroup>
       );

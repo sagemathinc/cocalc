@@ -36,10 +36,10 @@ export class DisplayUpgrades extends Component<DisplayProps> {
   private render_view(field: upgrade_fields_type): Rendered {
     if (this.props.upgrades == null || !this.props.upgrades.get(field)) return;
     let val = this.props.upgrades.get(field, 0);
-    const { display_factor, display_unit } = params(field);
+    const { display_unit } = params(field);
     return (
       <span>
-        {val * display_factor} {plural(val * display_factor, display_unit)}
+        {val} {plural(val, display_unit)}
       </span>
     );
   }
@@ -85,7 +85,7 @@ export class DisplayUpgrades extends Component<DisplayProps> {
 interface EditProps {
   license_id: string;
   license_field: license_field_names;
-  upgrades: undefined | Map<string, number>;
+  upgrades: undefined | Map<string, number | string>;
   onChange: Function;
 }
 
@@ -101,11 +101,7 @@ export class EditUpgrades extends Component<EditProps> {
     if (this.props.upgrades == null || this.props.upgrades.get(field) == null) {
       val = "";
     } else {
-      val = this.props.upgrades.get(field);
-      if (typeof val == "number") {
-        val = val * params(field).display_factor;
-      }
-      val = `${val}`;
+      val = `${this.props.upgrades.get(field)}`;
     }
     return (
       <span>
@@ -140,14 +136,25 @@ export function normalize_upgrades_for_save(obj: {
   [field: upgrade_fields_type]: any;
 }): void {
   for (const field in obj) {
-    const val = parseInt(obj[field]);
+    const { display_factor, input_type } = params(field as upgrade_fields_type);
+    const val = (input_type == "number" ? parseFloat : parseInt)(obj[field]);
     if (isNaN(val) || !isFinite(val) || val < 0) {
       obj[field] = 0;
     } else {
       obj[field] = Math.min(
-        val / params(field as upgrade_fields_type).display_factor,
+        val / display_factor,
         upgrades.max_per_project[field]
       );
     }
   }
+}
+
+export function scale_by_display_factors(
+  upgrades: Map<string, number>
+): Map<string, number> {
+  let x: Map<string, number> = Map();
+  for (const [field, val] of upgrades) {
+    x = x.set(field, val * params(field as upgrade_fields_type).display_factor);
+  }
+  return x;
 }

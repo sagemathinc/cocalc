@@ -24,6 +24,7 @@ interface Props {
   creating?: boolean;
   site_licenses?: List<TypedMap<SiteLicense>>;
   editing?: Set<string>;
+  saving?: Set<string>;
   edits?: Map<string, TypedMap<SiteLicense>>;
   show_projects?: Set<string>;
   search?: string;
@@ -41,6 +42,7 @@ class SiteLicenses extends Component<Props> {
         creating: rtypes.bool,
         site_licenses: rtypes.immutable.List,
         editing: rtypes.immutable.Set,
+        saving: rtypes.immutable.Set,
         edits: rtypes.immutable.Map,
         show_projects: rtypes.immutable.Set,
         search: rtypes.string,
@@ -62,7 +64,11 @@ class SiteLicenses extends Component<Props> {
 
   private render_loading(): Rendered {
     if (this.props.loading) {
-      return <Loading theme="medium" />;
+      return (
+        <div style={{ float: "right" }}>
+          <Loading theme="medium" />
+        </div>
+      );
     }
   }
 
@@ -73,6 +79,7 @@ class SiteLicenses extends Component<Props> {
         key={id}
         license={license}
         editing={this.props.editing != null && this.props.editing.has(id)}
+        saving={this.props.saving != null && this.props.saving.has(id)}
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
         show_projects={
           this.props.show_projects != null

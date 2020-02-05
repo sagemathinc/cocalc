@@ -42,6 +42,9 @@ export function Button(props: any) {
     style.backgroundColor = "#f0ad4e";
     style.borderColor = "#eea236";
     style.color = "#ffffff";
+    if (props.disabled) {
+      style.opacity = 0.65;
+    }
   } else if (props.bsStyle === "success") {
     // antd has no analogue of "success", it's not clear to me what it should be so for
     // now just copy the style.
@@ -51,6 +54,9 @@ export function Button(props: any) {
     style.backgroundColor = "#5cb85c";
     style.borderColor = "#4cae4c";
     style.color = "#ffffff";
+    if (props.disabled) {
+      style.opacity = 0.65;
+    }
   }
 
   // The span is needed inside below, otherwise icons and labels get squashed together
@@ -129,4 +135,3 @@ export function Col(props: any) {
   }
   return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
-
