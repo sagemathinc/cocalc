@@ -79,7 +79,7 @@ async function sage_info(): Promise<{
     // We need the version of sage (--version runs quickly)
     try {
       const info = (
-        await exec(`env PATH="${PATH}" sage --version`)
+        await exec("sage --version", { env: { PATH } })
       ).stdout.trim();
       const m = info.match(/version ([\d+.]+[\d+])/);
       if (m != null) {
