@@ -5,7 +5,7 @@ const { NavItem } = require("react-bootstrap");
 import { AccountActions } from "./account";
 
 interface Props {
-  icon: string | React.ReactNode; // When clicked, show popover
+  icon: React.ReactNode; // When clicked, show popover
   links: React.ReactNode; // Should change view to correct account settings tab when clicked
   label_class: string; // class name for AccountTabDropdown label
   show_label: boolean; // This tells button to show

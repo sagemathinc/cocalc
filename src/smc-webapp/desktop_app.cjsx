@@ -24,7 +24,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Button, Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Space, Tip, Icon}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 misc_page = require('./misc_page')
 
@@ -148,8 +148,8 @@ Page = rclass
                     no_tooltip = {true}
                     no_loading = {true}
                     />
-        else
-            a = 'cog'
+        else # What does it mean to not have an account id?
+            a = <Icon name='cog'/>
 
         return <AccountTabDropdown
                 user_label = {@props.redux.getStore("account").get_fullname()}
