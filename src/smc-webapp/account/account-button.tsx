@@ -1,8 +1,8 @@
 import * as React from "react";
-import { Popover } from "antd";
-import { Icon } from "./r_misc";
+import { Popconfirm, Popover } from "antd";
+import { Icon } from "../r_misc";
 const { NavItem } = require("react-bootstrap");
-import { AccountActions } from "./account";
+import { AccountActions } from "../account";
 
 interface Props {
   icon: React.ReactNode; // When clicked, show popover
@@ -134,20 +134,25 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
           </a>
         </li>
         <li>
-          <a
-            style={{
-              width: "100%",
-              padding: "4px 8px 4px 16px",
-              display: "inline-block"
-            }}
-            className={"cocalc-account-button"}
-            onClick={_ => {
-              account_actions.sign_out();
-            }}
-            href=""
+          <Popconfirm
+            title={<div style={{ maxWidth: "60ex" }}>{title}</div>}
+            onConfirm={() => account_actions.sign_out()}
+            okText={"Yes, sign out?"}
+            cancelText={"Cancel"}
           >
-            Sign out
-          </a>
+            <a
+              style={{
+                width: "100%",
+                padding: "4px 8px 4px 16px",
+                display: "inline-block"
+              }}
+              className={"cocalc-account-button"}
+              href=""
+            >
+              Sign out...
+            </a>
+          </Popconfirm>
+          ;
         </li>
       </div>
     </>

@@ -39,7 +39,7 @@ misc_page = require('./misc_page')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
 
-{AccountTabDropdown, DefaultAccountDropDownLinks} = require('./account-button') #correct import? Typed in response to Console error undefined AccountTabDropdown when trying to load test server
+{AccountTabDropdown, DefaultAccountDropDownLinks} = require('./account/account-button') #correct import? Typed in response to Console error undefined AccountTabDropdown when trying to load test server
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
