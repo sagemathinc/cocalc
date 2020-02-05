@@ -9,7 +9,7 @@ Cache = require('expiring-lru-cache')
 auth    = require('./auth')
 
 # Do NOT change this - this exact string is assumed in smc-util/client
-NOT_SIGNED_IN = "not signed in"
+{NOT_SIGNED_IN} = require("smc-util/consts")
 
 remember_me_cache = new Cache(size:5000, expiry:60000)
 

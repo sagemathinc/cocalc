@@ -37,6 +37,7 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 theme   = require('smc-util/theme')
 {DOMAIN_NAME} = theme
+{VERSION_COOKIE_NAME} = require('smc-util/consts')
 
 hub_projects = require('./projects')
 auth = require('./auth')
@@ -60,32 +61,47 @@ exports.init_smc_version = init_smc_version = (db) ->
 
 exports.version_check = (req, res, base_url) ->
     c = new Cookies(req)
-    # The arbitrary name of the cookie 'cocalc_version' is
+    # The arbitrary name of the cookie $VERSION_COOKIE_NAME ('cocalc_version') is
     # also used in the frontend code file
     #     smc-webapp/set-version-cookie.js
-    # The encodeURIComponent below is because js-cookie does
-    # the same in order to *properly* deal with / characters.
-    version = parseInt(c.get(encodeURIComponent(base_url) + 'cocalc_version'))
+    # pre Nov'19: The encodeURIComponent below is because js-cookie does
+    #             the same in order to *properly* deal with / characters.
+    # post Nov'19: switching to universal-cookie in the client, because it supports
+    #              SameSite=none. Now, the client explicitly encodes the base_url.
+    #              The cookie name is set in smc-util/misc2
+    raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME)
+    if not raw_val?
+        # try legacy cookie fallback
+        raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME + "-legacy")
+    version = parseInt(raw_val)
     min_version = server_settings.version.version_min_browser
     winston.debug('client version_check', version, min_version)
     if isNaN(version) or version < min_version
         if res?
-            res.writeHead(500, {'Content-Type':'text/html'})
-            res.end("REFRESH YOUR BROWSER -- version=#{version} < required_version=#{min_version}")
+            # status code 4xx to indicate this is a client problem and not 5xx, a server problem
+            # 426 means "upgrade required"
+            res.writeHead(426, {'Content-Type':'text/html'})
+            res.end("426 (UPGRADE REQUIRED): reload CoCalc tab or restart your browser -- version=#{version} < required_version=#{min_version}")
         return true
     else
         return false
 
 # In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
 # passing anything along via the proxy.
+# Nov'19: actually two cookies due to same-site changes. See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+#         also, there was no base_url support. no clue why...
 exports.strip_remember_me_cookie = (cookie) ->
     if not cookie?
         return {cookie: cookie, remember_me:undefined}
     else
         v = []
+        remember_me = undefined
         for c in cookie.split(';')
             z = c.split('=')
-            if z[0].trim() == 'remember_me'
+            if z[0].trim() == auth.remember_me_cookie_name('', false)
+                remember_me = z[1].trim()
+            # fallback, "true" for legacy variant
+            else if (not remember_me?) and (z[0].trim() == auth.remember_me_cookie_name('', true))
                 remember_me = z[1].trim()
             else
                 v.push(c)

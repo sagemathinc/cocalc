@@ -65,13 +65,12 @@ require("script-loader!term/color_themes.js")
 # Make html look nice
 require("script-loader!jsbeautify/beautify-html.min.js")
 
-
 # after this lib.js package, the real smc.js app starts loading
 window.smcLoadStatus("Starting main application ...")
 
 require('antd/dist/antd.css')
 
-# SASS Style file for SMC
+# SASS style file for CoCalc
 require('./smc-webapp/index.sass')
 
 require('./smc-webapp/client_browser.coffee')

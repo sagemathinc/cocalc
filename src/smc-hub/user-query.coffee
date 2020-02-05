@@ -8,12 +8,15 @@ across the cluster in a stateless way.
 ###
 
 async   = require('async')
+winston = require('winston')
 
 misc = require('smc-util/misc')
 
 {get_account_id} = require('./user-remember-me')
 
-exports.init = (router, cookie_name, database) ->
+{remember_me_cookie_name} = require('./auth')
+
+exports.init = (router, base_url, database) ->
     handle_request = (req, res) ->
         if not req.body.query?
             res.send({error:'missing query'})
@@ -31,10 +34,29 @@ exports.init = (router, cookie_name, database) ->
             res.send({error:"JSON parse error -- '#{err}'"})
             return
         async.series([
+            # there are two remember_me cookies to check. the default and a legacy fallback
+            # https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
             (cb) ->
-                get_account_id database, req.cookies[cookie_name], (err, account_id) ->
-                    locals.account_id = account_id
+                remme = remember_me_cookie_name(base_url, false)
+                winston.debug("user-query/remember_me_cookie_name/1", remme)
+                get_account_id database, req.cookies[remme], (err, account_id) ->
+                    if account_id
+                        locals.account_id = account_id
                     cb(err)
+
+            (cb) ->
+                # fallback, same as above except legacy=true
+                if locals.account_id
+                    cb()
+                    return
+
+                remme = remember_me_cookie_name(base_url, true)
+                winston.debug("user-query/remember_me_cookie_name/2", remme)
+                get_account_id database, req.cookies[remme], (err, account_id) ->
+                    if account_id
+                        locals.account_id = account_id
+                    cb(err)
+
             (cb) ->
                 database.user_query
                     client_id  : locals.account_id  # for query throttling.

@@ -67,7 +67,7 @@ exports.init_express_http_server = (opts) ->
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         database       : required
         compute_server : required
-        cookie_options : undefined
+        cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
@@ -160,7 +160,8 @@ exports.init_express_http_server = (opts) ->
         # looks for the has_remember_me value (set by the client in accounts).
         # This could be done in different ways, it's not clear what works best.
         #remember_me = req.cookies[opts.base_url + 'remember_me']
-        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url)]
+        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url, false)] \
+                        or req.cookies[auth.remember_me_cookie_name(opts.base_url, true)]
         if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
             res.redirect(opts.base_url + '/app')
         else
@@ -249,12 +250,12 @@ exports.init_express_http_server = (opts) ->
                     res.send(resp)
 
     # HTTP-POST-based user queries
-    require('./user-query').init(router, auth.remember_me_cookie_name(opts.base_url), opts.database)
+    require('./user-query').init(router, opts.base_url, opts.database)
 
     # HTTP-POST-based user API
     require('./user-api').init
         router         : router
-        cookie_name    : auth.remember_me_cookie_name(opts.base_url)
+        base_url       : opts.base_url
         database       : opts.database
         compute_server : opts.compute_server
         logger         : winston
@@ -311,8 +312,20 @@ exports.init_express_http_server = (opts) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
             maxAge = 1000*24*3600*30*6  # 6 months -- long is fine now since we support "sign out everywhere" ?
-            cookies = new Cookies(req, res, opts.cookie_options)
-            cookies.set(req.query.set, req.query.value, {maxAge:maxAge})
+            # fallback, legacy behavior, don't set sameSite
+            # https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+
+            winston.debug("hub_http_server/cookies #{req.query.set}=#{req.query.value}")
+            if req.query.set.endsWith(auth.remember_me_cookie_name('', true))
+                # legacy = true case, without sameSite
+                cookies = new Cookies(req, res)
+                conf = misc.copy_without(opts.cookie_options, ['sameSite'])
+                conf = Object.assign(conf, {maxAge:maxAge})
+            else
+                cookies = new Cookies(req, res)
+                conf = Object.assign({}, opts.cookie_options, {maxAge:maxAge})
+            winston.debug("hub_http_server/cookies conf=#{JSON.stringify(conf)}")
+            cookies.set(req.query.set, req.query.value, conf)
         res.end()
 
     # Used to determine whether or not a token is needed for
