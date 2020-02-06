@@ -4,6 +4,7 @@ interface Config {
   name: string;
   desc: string;
   default: string;
+  allowed?: string[];
 }
 
 export interface SiteSettings {
@@ -21,6 +22,7 @@ export interface SiteSettings {
   iframe_comm_hosts: Config;
   default_quotas: Config;
   max_upgrades: Config;
+  email_enabled: Config;
 }
 
 export const KUCALC_DISABLED = "no";
@@ -106,5 +108,12 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
     default: "{}"
+  },
+  email_enabled: {
+    name: "Email sending enabled",
+    desc:
+      "Controls visibility of UI elements to send emails. This is independent of the particular email configuration!",
+    default: "false",
+    allowed: ["true", "false"]
   }
 };

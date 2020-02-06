@@ -15,6 +15,8 @@ const FIELD_DEFAULTS = {
   max_upgrades: MAX_UPGRADES
 } as const;
 
+import { EXTRAS, Extra } from "smc-util/db-schema/site-settings-extras";
+
 import { isEqual } from "lodash";
 
 import { ErrorDisplay, LabeledRow, Space, Tip } from "../r_misc";
@@ -182,7 +184,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
-  private render_row_entry(name: string, value: string) {
+  private render_row_entry(name: string, value: string, password: boolean) {
     switch (name) {
       case "default_quotas":
       case "max_upgrades":
@@ -192,7 +194,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
           <FormGroup>
             <FormControl
               ref={name}
-              type="text"
+              type={password ? "password" : "text"}
               value={value}
               onChange={() => {
                 const e = copy(this.state.edited);
@@ -208,7 +210,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     }
   }
 
-  render_row(name: string, value: string): Rendered | undefined {
+  private render_row(name: string, value: string): Rendered | undefined {
     if (value == null) {
       value = site_settings_conf[name].default;
     }
@@ -228,19 +230,50 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     } else {
       return (
         <LabeledRow label={label} key={name}>
-          {this.render_row_entry(name, value)}
+          {this.render_row_entry(name, value, false)}
         </LabeledRow>
       );
     }
   }
 
-  render_editor(): Rendered[] {
+  private render_extras_row(name): Rendered | undefined {
+    const extra: Extra = EXTRAS[name];
+    if (typeof extra.show == "function" && !extra.show(this.state.edited)) {
+      return undefined;
+    }
+    const value = this.state.edited[name] ?? extra.default;
+    const label = (
+      <Tip key={name} title={extra.title} tip={extra.descr}>
+        {extra.title}
+      </Tip>
+    );
+    return (
+      <LabeledRow label={label} key={name}>
+        {this.render_row_entry(name, value, extra.password ?? false)}
+      </LabeledRow>
+    );
+  }
+
+  private render_editor_site_settings(): Rendered[] {
     return keys(site_settings_conf).map(name =>
       this.render_row(name, this.state.edited[name])
     );
   }
 
-  render_buttons(): Rendered {
+  private render_editor_extras(): Rendered[] {
+    return keys(EXTRAS).map(name => this.render_extras_row(name));
+  }
+
+  private render_editor(): Rendered {
+    return (
+      <React.Fragment>
+        {this.render_editor_site_settings()}
+        {this.render_editor_extras()}
+      </React.Fragment>
+    );
+  }
+
+  private render_buttons(): Rendered {
     return (
       <div>
         {this.render_save_button()}
