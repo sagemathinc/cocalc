@@ -32,6 +32,7 @@ immutable = require('immutable')
 {SSHKeysPage}                            = require('./account_ssh_keys')
 {Icon, Loading}                          = require('./r_misc')
 {set_url}                                = require('./history')
+{site_settings_conf}                     = require('smc-util/db-schema/site-defaults')
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     account_id              : rtypes.string
@@ -79,6 +80,7 @@ exports.AccountPage = rclass
             project_map             : rtypes.immutable.Map
         customize :
             kucalc                  : rtypes.string
+            email_enabled           : rtypes.string
         account : ACCOUNT_SPEC
 
     propTypes :
@@ -86,7 +88,7 @@ exports.AccountPage = rclass
         redux   : rtypes.object.isRequired
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project_map', 'kucalc']) or \
+        return misc.is_different(@props, props, ['project_map', 'kucalc', 'email_enabled']) or \
                misc.is_different(@props, props, ACCOUNT_FIELDS)
 
     getDefaultProps: ->
@@ -115,6 +117,8 @@ exports.AccountPage = rclass
         />
 
     render_account_settings: ->
+        email_enabled = site_settings_conf.email_enabled.to_val(@props.email_enabled)
+
         <AccountSettingsTop
             redux                  = {@props.redux}
             account_id             = {@props.account_id}
@@ -135,7 +139,9 @@ exports.AccountPage = rclass
             stripe_customer        = {@props.stripe_customer}
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
-            groups                 = {@props.groups} />
+            groups                 = {@props.groups}
+            email_enabled          = {email_enabled}
+        />
 
     render_landing_page: ->
         <LandingPage

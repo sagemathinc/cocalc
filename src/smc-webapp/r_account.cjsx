@@ -453,6 +453,7 @@ AccountSettings = rclass
         delete_account_error   : rtypes.string
         other_settings         : rtypes.object
         is_anonymous           : rtypes.bool
+        email_enabled          : rtypes.bool
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -714,12 +715,12 @@ AccountSettings = rclass
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <div style={marginBottom:'15px'}></div>
-            <EmailVerification
+            {<EmailVerification
                 account_id             = {@props.account_id}
                 email_address          = {@props.email_address}
                 email_address_verified = {@props.email_address_verified}
                 ref                    = {'email_address_verified'}
-            />
+              /> if @props.email_enabled}
             {@render_newsletter()}
             {@render_password()}
             {if not @props.is_anonymous then <APIKeySetting />}
@@ -1503,6 +1504,7 @@ exports.AccountSettingsTop = rclass
         groups                 : rtypes.immutable.List
         stripe_customer        : rtypes.immutable.Map
         is_anonymous           : rtypes.bool
+        email_enabled          : rtypes.bool
 
     render_account_settings: ->
         <AccountSettings
@@ -1516,7 +1518,9 @@ exports.AccountSettingsTop = rclass
             everywhere             = {@props.everywhere}
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
-            redux                  = {@props.redux} />
+            email_enabled          = {@props.email_enabled}
+            redux                  = {@props.redux}
+        />
 
 
     render: ->

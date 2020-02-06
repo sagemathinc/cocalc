@@ -5,6 +5,7 @@ interface Config {
   desc: string;
   default: string;
   allowed?: string[];
+  to_val?: (raw: string) => boolean | string | number;
 }
 
 export interface SiteSettings {
@@ -114,6 +115,7 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "Controls visibility of UI elements to send emails. This is independent of the particular email configuration!",
     default: "false",
-    allowed: ["true", "false"]
+    allowed: ["true", "false"],
+    to_val: raw => raw === "true"
   }
 };

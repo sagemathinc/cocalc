@@ -1,5 +1,5 @@
 import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
-
+import * as humanizeList from "humanize-list";
 import { React, Component, Rendered, ReactDOM } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
@@ -15,7 +15,11 @@ const FIELD_DEFAULTS = {
   max_upgrades: MAX_UPGRADES
 } as const;
 
-import { EXTRAS, Extra } from "smc-util/db-schema/site-settings-extras";
+import {
+  EXTRAS,
+  Extra,
+  ExtraAllowed
+} from "smc-util/db-schema/site-settings-extras";
 
 import { isEqual } from "lodash";
 
@@ -184,16 +188,65 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
-  private render_row_entry(name: string, value: string, password: boolean) {
+  private render_row_entry_parsed(parsed_val?: string): Rendered | undefined {
+    if (parsed_val != null) {
+      return (
+        <p>
+          {" "}
+          Understood as <code>{parsed_val}</code>{" "}
+        </p>
+      );
+    } else {
+      return undefined;
+    }
+  }
+
+  private render_row_entry_allowed(
+    allowed?: ExtraAllowed
+  ): Rendered | undefined {
+    if (allowed != null && Array.isArray(allowed)) {
+      return <p>Allowed values: {humanizeList(allowed)}</p>;
+    } else {
+      return undefined;
+    }
+  }
+
+  private render_row_version_hint(name, value): Rendered | undefined {
+    if (name === "version_recommended_browser") {
+      return this.render_version_hint(value);
+    } else {
+      return undefined;
+    }
+  }
+
+  private row_entry_style(value, allowed?: ExtraAllowed): React.CSSProperties {
+    if (
+      (Array.isArray(allowed) && !allowed.includes(value)) ||
+      (typeof allowed == "function" && !allowed(value))
+    ) {
+      return { backgroundColor: "red", color: "white" };
+    }
+    return {};
+  }
+
+  private render_row_entry(
+    name: string,
+    value: string,
+    password: boolean,
+    parsed_val?: string,
+    allowed?: ExtraAllowed
+  ) {
     switch (name) {
       case "default_quotas":
       case "max_upgrades":
         return this.render_json_entry(name, value);
       default:
+        const style = this.row_entry_style(parsed_val ?? value, allowed);
         return (
           <FormGroup>
             <FormControl
               ref={name}
+              style={style}
               type={password ? "password" : "text"}
               value={value}
               onChange={() => {
@@ -202,9 +255,9 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
                 return this.setState({ edited: e });
               }}
             />
-            {name === "version_recommended_browser"
-              ? this.render_version_hint(value)
-              : undefined}
+            {this.render_row_version_hint(name, value)}
+            {this.render_row_entry_parsed(parsed_val)}
+            {this.render_row_entry_allowed(allowed)}
           </FormGroup>
         );
     }
@@ -241,7 +294,13 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     if (typeof extra.show == "function" && !extra.show(this.state.edited)) {
       return undefined;
     }
-    const value = this.state.edited[name] ?? extra.default;
+    const raw_value = this.state.edited[name] ?? extra.default;
+
+    const parsed_value: string | undefined =
+      typeof extra.to_val == "function"
+        ? `${extra.to_val(raw_value)}`
+        : undefined;
+
     const label = (
       <Tip key={name} title={extra.title} tip={extra.descr}>
         {extra.title}
@@ -249,7 +308,13 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
     return (
       <LabeledRow label={label} key={name}>
-        {this.render_row_entry(name, value, extra.password ?? false)}
+        {this.render_row_entry(
+          name,
+          raw_value,
+          extra.password ?? false,
+          parsed_value,
+          extra.allowed
+        )}
       </LabeledRow>
     );
   }
