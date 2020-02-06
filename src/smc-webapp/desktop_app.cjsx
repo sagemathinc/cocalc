@@ -24,7 +24,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Button, Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Space, Tip, Icon}   = require('./r_misc')
+{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 misc_page = require('./misc_page')
 
@@ -38,8 +38,6 @@ misc_page = require('./misc_page')
 {FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
-
-{AccountTabDropdown, DefaultAccountDropDownLinks} = require('./account/account-button') #correct import? Typed in response to Console error undefined AccountTabDropdown when trying to load test server
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
@@ -130,6 +128,38 @@ Page = rclass
 
     render_account_tab: ->
         if @props.is_anonymous
+            a = undefined
+        else if @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else
+            a = 'cog'
+
+        if @props.is_anonymous
+            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            style = {marginTop:'-10px'}  # compensate for using a button
+        else
+            label = "Account"
+            style = undefined
+
+        <NavTab
+            name           = 'account'
+            label          = {label}
+            style          = {style}
+            label_class    = {nav_class}
+            icon           = {a}
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+            show_label     = {@state.show_label}
+        />
+
+    # This is the new version with a dropdown menu.
+    xxx_render_account_tab: ->
+        if @props.is_anonymous
             return <NavTab
                         name           = 'account'
                         label          = {<Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>}
@@ -159,6 +189,7 @@ Page = rclass
                 show_label = {@state.show_label}
                 is_active = {@props.active_top_tab == 'account'}
             />
+
 
     render_admin_tab: ->
         <NavTab
