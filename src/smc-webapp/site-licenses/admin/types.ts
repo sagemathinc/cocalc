@@ -22,7 +22,7 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "cpu_shares"
 ];
 
-type Upgrades = { [field: upgrade_fields_type]: number };
+export type Upgrades = { [field: upgrade_fields_type]: number };
 
 export interface SiteLicense {
   id: string;
@@ -73,7 +73,7 @@ export const license_fields: {
   activates: "date",
   created: "date",
   last_used: "date",
-  // managers: "account_id[]",  // hide for now since not implemented at all
+  managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   run_limit: "number"

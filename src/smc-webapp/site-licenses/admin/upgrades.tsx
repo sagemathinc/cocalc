@@ -1,8 +1,8 @@
 import { Component, React, Rendered } from "../../app-framework";
-import { Map } from "immutable";
+import { fromJS, Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
 import { upgrades } from "smc-util/upgrade-spec";
-import { Row, Col } from "antd";
+import { Row, Col, Dropdown, Menu } from "antd";
 import { actions } from "./actions";
 import {
   license_field_names,
@@ -12,6 +12,7 @@ import {
 import { plural } from "smc-util/misc2";
 import { Icon } from "../../r_misc";
 import { INPUT_STYLE } from "./license";
+import { presets } from "./upgrade-presets";
 
 interface UpgradeParams {
   display: string;
@@ -130,8 +131,50 @@ export class EditUpgrades extends Component<EditProps> {
     return rows;
   }
 
+  private render_preset_item(product): Rendered {
+    return (
+      <Menu.Item
+        onClick={() =>
+          actions.set_edit(
+            this.props.license_id,
+            this.props.license_field,
+            scale_by_display_factors(fromJS(product.upgrades))
+          )
+        }
+        key={product.desc}
+      >
+        {product.desc}
+      </Menu.Item>
+    );
+  }
+
+  private render_presets(): Rendered {
+    const v: Rendered[] = [];
+    const PRESETS = presets();
+    for (const preset in PRESETS) {
+      v.push(this.render_preset_item(PRESETS[preset]));
+    }
+    return (
+      <Row key={"presets"}>
+        <Col md={8}></Col>
+        <Col md={16}>
+          <Dropdown overlay={<Menu>{v}</Menu>}>
+            <a className="ant-dropdown-link" href="#">
+              Presets <Icon name="caret-down" />
+            </a>
+          </Dropdown>
+        </Col>
+      </Row>
+    );
+  }
+
   public render(): Rendered {
-    return <div>{this.render_rows()}</div>;
+    return (
+      <div>
+        {this.render_presets()}
+        {this.render_rows()}
+      </div>
+    );
   }
 }
 

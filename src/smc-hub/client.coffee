@@ -7,7 +7,10 @@ Client = a client that is connected via a persistent connection to the hub
 uuid                 = require('node-uuid')
 async                = require('async')
 
-exports.COOKIE_OPTIONS = COOKIE_OPTIONS = {secure:true}
+# we also have to support legacy behavior for older browsers,
+# but this setting is for newer ones.
+# https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+exports.COOKIE_OPTIONS = COOKIE_OPTIONS = Object.freeze(secure:true, sameSite:'none')
 
 Cookies              = require('cookies')            # https://github.com/jed/cookies
 misc                 = require('smc-util/misc')

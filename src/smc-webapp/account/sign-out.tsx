@@ -1,10 +1,12 @@
 import { Component, React, Rendered, redux } from "../app-framework";
 import { Button, Popconfirm } from "antd";
 
-export class SignOut extends Component<
-  { everywhere?: boolean; sign_in?: boolean },
-  {}
-> {
+interface Props {
+  everywhere?: boolean;
+  sign_in?: boolean;
+}
+
+export class SignOut extends Component<Props> {
   private sign_out(): void {
     const account = redux.getActions("account");
     if (account != null) {

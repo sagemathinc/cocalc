@@ -20,6 +20,10 @@ import {
   scale_by_display_factors
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
+import {
+  DisplayManagers,
+  EditManagers,
+} from "./managers";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
@@ -68,12 +72,10 @@ export class License extends Component<Props> {
       let x = this.render_value(field, val);
       if (field == "id") {
         x = (
-          <>
-            <CopyToClipBoard
-              value={x}
-              style={{ display: "inline-block", width: "50ex", margin: 0 }}
-            />
-          </>
+          <CopyToClipBoard
+            value={x}
+            style={{ display: "inline-block", width: "50ex", margin: 0 }}
+          />
         );
       }
       v.push(
@@ -150,7 +152,14 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = "(TODO: list of managers)";
+          x = (
+            <EditManagers
+              managers={val}
+              onChange={onChange}
+              license_id={this.props.license.get("id")}
+              license_field={field}
+            />
+          );
           break;
         case "boolean":
           x = (
@@ -272,6 +281,9 @@ export class License extends Component<Props> {
               x = <span>Activated {x}</span>;
             }
           }
+          break;
+        case "account_id[]":
+          x = <DisplayManagers managers={val} />;
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;

@@ -19,6 +19,7 @@ import {
   LIBRARY_INDEX_FILE
 } from "../smc-webapp/project_configuration";
 import { parser2tool, Tool as FormatTool } from "../smc-util/code-formatter";
+import { copy } from "../smc-util/misc2"
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up
@@ -78,18 +79,20 @@ async function sage_info(): Promise<{
   if (exists) {
     // We need the version of sage (--version runs quickly)
     try {
-      const info = (
-        await exec(`env PATH="${PATH}" sage --version`)
-      ).stdout.trim();
+      const env = copy(process.env);
+      env.PATH = PATH;
+      const info = (await exec("sage --version", { env })).stdout.trim();
       const m = info.match(/version ([\d+.]+[\d+])/);
       if (m != null) {
         const v = m[1];
         if (v != null && v.length > 1) {
           version = v.split(".").map(x => parseInt(x));
-          //console.log(`Sage version info: ${info} ->  ${version}`);
+          // console.log(`Sage version info: ${info} ->  ${version}`, env);
         }
       }
     } catch (err) {
+      // TODO: do something better than silently ignoring errors.  This console.log
+      // isn't going to be seen by the user.
       console.log("Problem fetching sage version info -- ignoring", err);
     }
   }

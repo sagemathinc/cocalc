@@ -183,25 +183,32 @@ class SiteLicenses extends Component<Props> {
     }
   }
 
+  private render_body(): Rendered {
+    if (!this.props.view) return;
+    return (
+      <div style={{ margin: "0 30px" }}>
+        {this.render_error()}
+        <div>
+          {this.render_refresh_button()}
+          <Space />
+          <Space />
+          {this.render_create_new_license()}
+          <Space />
+          <Space />
+          {this.render_search()}
+          {this.render_search_restriction_note()}
+          {this.render_loading()}
+        </div>
+        {this.render_main()}
+      </div>
+    );
+  }
+
   render(): Rendered {
     return (
       <div>
         {this.render_header_toggle()}
-        <div style={{ margin: "0 30px" }}>
-          {this.render_error()}
-          <div>
-            {this.render_refresh_button()}
-            <Space />
-            <Space />
-            {this.render_create_new_license()}
-            <Space />
-            <Space />
-            {this.render_search()}
-            {this.render_search_restriction_note()}
-            {this.render_loading()}
-          </div>
-          {this.render_main()}
-        </div>
+        {this.render_body()}
       </div>
     );
   }

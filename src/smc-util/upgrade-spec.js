@@ -65,6 +65,16 @@ upgrades.max_per_project = {
   ephemeral_disk: 1
 };
 
+// this is only for on-prem kubernetes setups
+exports.ON_PREM_DEFAULT_QUOTAS = {
+  internet: true,
+  idle_timeout: 60 * 60, // 1 hour
+  mem: 1000,
+  cpu: 1,
+  cpu_oc: 10, // overcommitment ratio 10:1
+  mem_oc: 5 // overcommitment ratio 5:1
+};
+
 // In the params listed below you *MUST* define all of display, display_unit,
 // display_factor, pricing_unit, pricing_factor, input_type, and desc!   This
 // is assumed elsewhere.

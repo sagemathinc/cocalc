@@ -681,7 +681,7 @@ AccountSettings = rclass
         if @props.is_anonymous
             return <h2><b>Thank you for using CoCalc!</b></h2>
         else
-            return <h2> <Icon name='user' /> Account settings</h2>
+            return <h2> <Icon name='user' /> Account</h2>
 
     render: ->
         <Panel header={@render_header()}>
@@ -935,7 +935,7 @@ TerminalSettings = rclass
     render: ->
         if not @props.terminal?
             return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal settings</h2>}>
+        <Panel header={<h2> <Icon name='terminal' /> Terminal</h2>}>
             {@render_color_scheme()}
             {@render_font_family()}
         </Panel>
@@ -1222,7 +1222,7 @@ EditorSettings = rclass
     render: ->
         if not @props.editor_settings?
             return <Loading />
-        <Panel header={<h2> <Icon name='edit' /> Editor settings</h2>}>
+        <Panel header={<h2> <Icon name='edit' /> Editor</h2>}>
             <EditorSettingsFontSize
                 on_change={@on_change} font_size={@props.font_size} />
             <EditorSettingsAutosaveInterval
@@ -1460,7 +1460,7 @@ OtherSettings = rclass
     render: ->
         if not @props.other_settings
             return <Loading />
-        <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
+        <Panel header={<h2> <Icon name='gear' /> Other</h2>}>
             {@render_dark_mode()}
             {@render_confirm()}
             {@render_first_steps()}

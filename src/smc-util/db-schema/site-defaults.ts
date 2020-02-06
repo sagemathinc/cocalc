@@ -19,7 +19,13 @@ export interface SiteSettings {
   version_min_browser: Config;
   version_recommended_browser: Config;
   iframe_comm_hosts: Config;
+  default_quotas: Config;
+  max_upgrades: Config;
 }
+
+export const KUCALC_DISABLED = "no";
+export const KUCALC_COCALC_COM = "yes";
+export const KUCALC_ON_PREMISES = "onprem";
 
 export const site_settings_conf: SiteSettings = {
   site_name: {
@@ -58,9 +64,8 @@ export const site_settings_conf: SiteSettings = {
   },
   kucalc: {
     name: "KuCalc UI",
-    desc:
-      "Configure which UI elements to show in order to match the Kubernetes backend. 'yes' or 'cocalc.com' for production, 'cloudcalc' for on-prem k8s, or 'no'",
-    default: "no"
+    desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
+    default: KUCALC_DISABLED
   }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
   ssh_gateway: {
     name: "SSH Gateway",
@@ -89,5 +94,17 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
     default: ""
+  },
+  default_quotas: {
+    name: "Default Quotas",
+    desc:
+      "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
+    default: "{}"
+  },
+  max_upgrades: {
+    name: "Maximum Quota Upgrades",
+    desc:
+      "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
+    default: "{}"
   }
 };

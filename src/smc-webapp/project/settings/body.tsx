@@ -23,7 +23,7 @@ import { ProjectControl } from "./project-control";
 import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
-import { KUCALC_COCALC_COM } from "../../customize";
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
 const { webapp_client } = require("../../webapp_client");
 const { Col, Row } = require("react-bootstrap");
