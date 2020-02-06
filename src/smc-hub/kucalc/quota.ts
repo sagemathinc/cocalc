@@ -139,7 +139,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   const q: Quota = Object.assign({}, BASE_QUOTAS);
 
   // overwrite/set extras for any set default quota in the site setting
-  if (site_settings != null && site_settings?.default_quotas != null) {
+  if (site_settings != null && site_settings.default_quotas != null) {
     const dq = site_settings?.default_quotas;
     if (typeof dq.disk_quota == "number") {
       q.disk_quota = dq.disk_quota;
