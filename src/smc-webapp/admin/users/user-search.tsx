@@ -11,6 +11,7 @@ import {
   rclass,
   rtypes
 } from "../../app-framework";
+import { Icon } from "../../r_misc";
 import { DebounceInput } from "react-debounce-input";
 
 import { User } from "smc-webapp/frame-editors/generic/client";
@@ -19,6 +20,7 @@ import { User as UserMap } from "./store";
 import { actions } from "./actions";
 
 interface ReduxProps {
+  view?: boolean;
   state?: "edit" | "running";
   status?: string;
   query?: string;
@@ -29,6 +31,7 @@ class UserSearch extends Component<ReduxProps> {
   static reduxProps() {
     return {
       "admin-users": {
+        view: rtypes.bool,
         state: rtypes.string,
         status: rtypes.string,
         query: rtypes.string,
@@ -113,18 +116,42 @@ class UserSearch extends Component<ReduxProps> {
     return v;
   }
 
-  render(): Rendered {
+  private render_header_toggle(): Rendered {
     return (
-      <div>
-        <h4>Search for a User</h4>
+      <h4
+        onClick={() => actions.set_view(!this.props.view)}
+        style={{ cursor: "pointer" }}
+      >
+        <Icon
+          style={{ width: "20px" }}
+          name={this.props.view ? "caret-down" : "caret-right"}
+        />{" "}
+        Users
+      </h4>
+    );
+  }
+
+  private render_body(): Rendered {
+    if (!this.props.view) return;
+    return (
+      <div style={{ margin: "0 30px" }}>
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          Search for a given user.
+          Search for users:
         </div>
         <div>
           {this.render_form()}
           {this.render_status()}
           {this.render_result()}
         </div>
+      </div>
+    );
+  }
+
+  render(): Rendered {
+    return (
+      <div>
+        {this.render_header_toggle()}
+        {this.render_body()}
       </div>
     );
   }

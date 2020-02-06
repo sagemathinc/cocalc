@@ -51,6 +51,10 @@ export class AdminUsersActions extends Actions<StoreState> {
       result: fromJS(result) as List<ImmutableUser>
     });
   }
+
+  public set_view(view: boolean): void {
+    this.setState({ view });
+  }
 }
 
 export const actions = redux.createActions("admin-users", AdminUsersActions);

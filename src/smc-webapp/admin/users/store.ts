@@ -6,6 +6,8 @@ import { User as UserInterface } from "../../frame-editors/generic/client";
 export type User = TypedMap<UserInterface>;
 
 export interface StoreState {
+  view?: boolean; // if true, open for viewing/editing
+
   state: "edit" | "running";
   status: string;
   query: string;
@@ -13,6 +15,7 @@ export interface StoreState {
 }
 
 export const initial_state: StoreState = {
+  view: false,
   state: "edit",
   status: "",
   query: "",

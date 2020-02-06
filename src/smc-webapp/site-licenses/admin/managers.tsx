@@ -24,12 +24,17 @@ export interface EditProps {
 }
 
 export class EditManagers extends Component<EditProps> {
+  private render_add_search() {
+    return <input />;
+  }
+
   public render(): Rendered {
-    if (this.props.managers == null) {
-      return <span />;
-    }
     return (
-      <pre>{JSON.stringify(this.props.managers.toJS(), undefined, 2)}</pre>
+      <div>
+        <pre>{JSON.stringify(this.props.managers?.toJS(), undefined, 2)}</pre>
+        <br />
+        {this.render_add_search()}
+      </div>
     );
   }
 }

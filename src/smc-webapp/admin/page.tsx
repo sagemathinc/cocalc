@@ -21,9 +21,9 @@ export function AdminPage(): Rendered {
       <hr />
       <UserSearch />
       <hr />
-      <SiteSettings />
-      <hr />
       <SiteLicenses />
+      <hr />
+      <SiteSettings />
       <hr />
       <StripeAPIKeys />
       <hr />
