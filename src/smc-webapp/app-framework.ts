@@ -47,7 +47,9 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminStore, AdminActions } from "./admin";
+import { AdminUsersActions } from "./admin/users/actions";
+import { AdminUsersStore } from "./admin/users/store";
+
 import { AccountStore, AccountActions } from "./account";
 
 import { MentionsActions, MentionsStore } from "./notifications";
@@ -206,7 +208,7 @@ export class AppRedux {
   getActions(name: "projects"): any;
   getActions(name: "billing"): any;
   getActions(name: "page"): any;
-  getActions(name: "admin-page"): AdminActions;
+  getActions(name: "admin-users"): AdminUsersActions;
   getActions(name: "mentions"): MentionsActions;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
@@ -270,7 +272,7 @@ export class AppRedux {
   getStore(name: "page"): any;
   getStore(name: "billing"): any;
   getStore(name: "mentions"): MentionsStore;
-  getStore(name: "admin-page"): AdminStore;
+  getStore(name: "admin-users"): AdminUsersStore;
   getStore(name: "file_use"): FileUseStore | undefined;
   getStore<State>(name: string): Store<State>;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
