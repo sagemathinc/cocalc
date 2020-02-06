@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import * as async from "async";
 import { createSelector } from "reselect";
+import { fromJS } from "immutable";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
@@ -123,9 +124,32 @@ export class Store<State> extends EventEmitter {
     path: any[],
     notSetValue?: any
   ): any => {
-    return this.redux._redux_store
-      .getState()
-      .getIn([this.name].concat(path), notSetValue);
+    if (path.length == 0) {
+      return undefined;
+    }
+    // Assumes no nested stores
+    const first_key = path[0];
+    if (this.selectors && this.selectors[first_key] != undefined) {
+      let top_value = this.selectors[first_key].fn(this.getState());
+      if (path.length == 1) {
+        return top_value;
+      } else if (typeof top_value.getIn === "function") {
+        return top_value.getIn(path.slice(1), notSetValue);
+      } else {
+        console.warn(
+          "Calling getIn on",
+          this.name,
+          "but",
+          path[0],
+          "is not immutable"
+        );
+        return fromJS(top_value).getIn(path.slice(1), notSetValue);
+      }
+    } else {
+      return this.redux._redux_store
+        .getState()
+        .getIn([this.name].concat(path), notSetValue);
+    }
   };
 
   unsafe_getIn(path: any[], notSetValue?: any): any {
