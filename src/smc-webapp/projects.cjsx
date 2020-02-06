@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -40,7 +40,7 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, A} = require('./r_misc')
 {WindowedList} = require("./r_misc/windowed-list")
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {UsersViewing} = require('./other-users')
@@ -48,6 +48,7 @@ markdown = require('./markdown')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {fromPairs} = require('lodash')
 ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
+{DISCORD_INVITE} = require('smc-util/theme')
 
 { reuseInFlight } = require("async-await-utils/hof")
 
@@ -1692,7 +1693,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             <Row>
                 <VisibleMDLG>
                     <div style={{float:'right'}}>
-                        <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow"><Icon name="fab fa-discord"/> Chat about CoCalc on Discord...</a>
+                        <A href={DISCORD_INVITE}><Icon name="fab fa-discord"/> Chat about <SiteName/> on Discord...</A>
                     </div>
                 </VisibleMDLG>
                 <Col sm={4}>
