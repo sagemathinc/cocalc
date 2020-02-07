@@ -48,15 +48,15 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     );
   }
 
-  private get_type(): "info" | "error" | "success" {
+  private get_type(): "warning" | "error" | "success" {
     if (this.state.loading || this.state.info != null) {
       if (this.provides_upgrades()) {
         return "success";
       } else {
-        return "info";
+        return "error";
       }
     } else {
-      return "error";
+      return "warning";
     }
   }
 
@@ -92,8 +92,8 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     if (!this.provides_upgrades()) {
       return (
         <div>
-          Currently providing no upgrades (license limit may have been reached
-          or you may have to restart project)
+          Currently providing no upgrades - you probably need to restart your
+          project (it's also possible that the license limit has been reached)
         </div>
       );
     }
