@@ -1,12 +1,30 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
-interface Config {
-  name: string;
-  desc: string;
-  default: string;
-  allowed?: string[];
-  to_val?: (raw: string) => boolean | string | number;
+export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
+
+export interface Config {
+  readonly name: string;
+  readonly desc: string;
+  readonly default: string;
+  // list of allowed strings or a validator function
+  readonly valid?: ConfigValid;
+  readonly password?: boolean;
+  readonly show?: (conf: any) => boolean;
+  // this optional function derives the actual value of this setting from current value.
+  readonly to_val?: (val: string) => boolean | string | number;
 }
+
+export const is_email_enabled = conf =>
+  conf.email_enabled === "true" && conf.email_backend !== "none";
+export const only_for_smtp = conf =>
+  is_email_enabled(conf) && conf.email_backend === "smtp";
+export const only_for_sendgrid = conf =>
+  is_email_enabled(conf) && conf.email_backend === "sendgrid";
+export const only_for_password_reset_smtp = conf =>
+  is_email_enabled(conf) && conf.password_reset_override === "smtp";
+export const to_bool = val => val === "true";
+export const only_booleans = ["true", "false"];
+export const to_int = val => parseInt(val);
 
 export interface SiteSettings {
   site_name: Config;
@@ -24,6 +42,7 @@ export interface SiteSettings {
   default_quotas: Config;
   max_upgrades: Config;
   email_enabled: Config;
+  verify_emails: Config;
 }
 
 export const KUCALC_DISABLED = "no";
@@ -115,7 +134,15 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "Controls visibility of UI elements to send emails. This is independent of the particular email configuration!",
     default: "false",
-    allowed: ["true", "false"],
+    valid: only_booleans,
     to_val: raw => raw === "true"
+  },
+  verify_emails: {
+    name: "Verify email addresses",
+    desc:
+      "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
+    default: "false",
+    show: is_email_enabled,
+    to_val: to_bool
   }
 };

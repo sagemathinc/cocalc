@@ -15,11 +15,8 @@ const FIELD_DEFAULTS = {
   max_upgrades: MAX_UPGRADES
 } as const;
 
-import {
-  EXTRAS,
-  Extra,
-  ExtraAllowed
-} from "smc-util/db-schema/site-settings-extras";
+import { EXTRAS } from "smc-util/db-schema/site-settings-extras";
+import { ConfigValid, Config } from "smc-util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
@@ -201,11 +198,9 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     }
   }
 
-  private render_row_entry_allowed(
-    allowed?: ExtraAllowed
-  ): Rendered | undefined {
-    if (allowed != null && Array.isArray(allowed)) {
-      return <p>Allowed values: {humanizeList(allowed)}</p>;
+  private render_row_entry_valid(valid?: ConfigValid): Rendered | undefined {
+    if (valid != null && Array.isArray(valid)) {
+      return <p>Valid values: {humanizeList(valid)}</p>;
     } else {
       return undefined;
     }
@@ -219,10 +214,10 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     }
   }
 
-  private row_entry_style(value, allowed?: ExtraAllowed): React.CSSProperties {
+  private row_entry_style(value, valid?: ConfigValid): React.CSSProperties {
     if (
-      (Array.isArray(allowed) && !allowed.includes(value)) ||
-      (typeof allowed == "function" && !allowed(value))
+      (Array.isArray(valid) && !valid.includes(value)) ||
+      (typeof valid == "function" && !valid(value))
     ) {
       return { backgroundColor: "red", color: "white" };
     }
@@ -234,14 +229,14 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     value: string,
     password: boolean,
     parsed_val?: string,
-    allowed?: ExtraAllowed
+    valid?: ConfigValid
   ) {
     switch (name) {
       case "default_quotas":
       case "max_upgrades":
         return this.render_json_entry(name, value);
       default:
-        const style = this.row_entry_style(parsed_val ?? value, allowed);
+        const style = this.row_entry_style(parsed_val ?? value, valid);
         return (
           <FormGroup>
             <FormControl
@@ -257,7 +252,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
             />
             {this.render_row_version_hint(name, value)}
             {this.render_row_entry_parsed(parsed_val)}
-            {this.render_row_entry_allowed(allowed)}
+            {this.render_row_entry_valid(valid)}
           </FormGroup>
         );
     }
@@ -290,7 +285,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   }
 
   private render_extras_row(name): Rendered | undefined {
-    const extra: Extra = EXTRAS[name];
+    const extra: Config = EXTRAS[name];
     if (typeof extra.show == "function" && !extra.show(this.state.edited)) {
       return undefined;
     }
@@ -302,8 +297,8 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         : undefined;
 
     const label = (
-      <Tip key={name} title={extra.title} tip={extra.descr}>
-        {extra.title}
+      <Tip key={name} title={extra.name} tip={extra.desc}>
+        {extra.name}
       </Tip>
     );
     return (
@@ -313,7 +308,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
           raw_value,
           extra.password ?? false,
           parsed_value,
-          extra.allowed
+          extra.valid
         )}
       </LabeledRow>
     );

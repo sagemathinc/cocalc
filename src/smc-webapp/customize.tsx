@@ -48,7 +48,9 @@ function validate_kucalc(k): string {
 const result: any[] = [];
 for (const k in schema.site_settings_conf) {
   const v = schema.site_settings_conf[k];
-  result.push([k, v.default]);
+  const value: any =
+    typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
+  result.push([k, value]);
 }
 const defaults = misc.dict(result);
 defaults.is_commercial = convert_to_boolean(defaults.commercial);
@@ -95,6 +97,14 @@ if (typeof $ !== "undefined" && $ != undefined) {
           ? convert_to_boolean(obj.ssh_gateway)
           : defaults.have_ssh_gateway;
       obj.kucalc = validate_kucalc(obj.kucalc);
+
+      for (const k in schema.site_settings_conf) {
+        const v = schema.site_settings_conf[k];
+        if (typeof v.to_val === "function" && obj[k] != null) {
+          obj[k] = v.to_val(obj[k]);
+        }
+      }
+
       obj._is_configured = true;
       actions.setState(obj);
     }

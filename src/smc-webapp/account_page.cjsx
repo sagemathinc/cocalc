@@ -80,7 +80,8 @@ exports.AccountPage = rclass
             project_map             : rtypes.immutable.Map
         customize :
             kucalc                  : rtypes.string
-            email_enabled           : rtypes.string
+            email_enabled           : rtypes.bool
+            verify_emails           : rtypes.bool
         account : ACCOUNT_SPEC
 
     propTypes :
@@ -88,7 +89,7 @@ exports.AccountPage = rclass
         redux   : rtypes.object.isRequired
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project_map', 'kucalc', 'email_enabled']) or \
+        return misc.is_different(@props, props, ['project_map', 'kucalc', 'email_enabled', 'verify_emails']) or \
                misc.is_different(@props, props, ACCOUNT_FIELDS)
 
     getDefaultProps: ->
@@ -117,8 +118,6 @@ exports.AccountPage = rclass
         />
 
     render_account_settings: ->
-        email_enabled = site_settings_conf.email_enabled.to_val(@props.email_enabled)
-
         <AccountSettingsTop
             redux                  = {@props.redux}
             account_id             = {@props.account_id}
@@ -140,7 +139,8 @@ exports.AccountPage = rclass
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
             groups                 = {@props.groups}
-            email_enabled          = {email_enabled}
+            email_enabled          = {@props.email_enabled}
+            verify_emails          = {@props.verify_emails}
         />
 
     render_landing_page: ->

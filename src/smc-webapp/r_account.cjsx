@@ -454,6 +454,7 @@ AccountSettings = rclass
         other_settings         : rtypes.object
         is_anonymous           : rtypes.bool
         email_enabled          : rtypes.bool
+        verify_emails          : rtypes.bool
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -720,7 +721,7 @@ AccountSettings = rclass
                 email_address          = {@props.email_address}
                 email_address_verified = {@props.email_address_verified}
                 ref                    = {'email_address_verified'}
-              /> if @props.email_enabled}
+              /> if @props.email_enabled and @props.verify_emails}
             {@render_newsletter()}
             {@render_password()}
             {if not @props.is_anonymous then <APIKeySetting />}
@@ -1505,6 +1506,7 @@ exports.AccountSettingsTop = rclass
         stripe_customer        : rtypes.immutable.Map
         is_anonymous           : rtypes.bool
         email_enabled          : rtypes.bool
+        verify_emails          : rtypes.bool
 
     render_account_settings: ->
         <AccountSettings
@@ -1519,6 +1521,7 @@ exports.AccountSettingsTop = rclass
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
             email_enabled          = {@props.email_enabled}
+            verify_emails          = {@props.verify_emails}
             redux                  = {@props.redux}
         />
 
