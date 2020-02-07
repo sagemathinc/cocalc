@@ -188,10 +188,10 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   private render_row_entry_parsed(parsed_val?: string): Rendered | undefined {
     if (parsed_val != null) {
       return (
-        <p>
+        <span>
           {" "}
-          Understood as <code>{parsed_val}</code>{" "}
-        </p>
+          Understood as <code>{parsed_val}</code>.{" "}
+        </span>
       );
     } else {
       return undefined;
@@ -200,7 +200,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
   private render_row_entry_valid(valid?: ConfigValid): Rendered | undefined {
     if (valid != null && Array.isArray(valid)) {
-      return <p>Valid values: {humanizeList(valid)}</p>;
+      return <span>Valid values: {humanizeList(valid)}.</span>;
     } else {
       return undefined;
     }
@@ -236,7 +236,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       case "max_upgrades":
         return this.render_json_entry(name, value);
       default:
-        const style = this.row_entry_style(parsed_val ?? value, valid);
+        const style = this.row_entry_style(value, valid);
         return (
           <FormGroup>
             <FormControl
@@ -258,47 +258,38 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     }
   }
 
-  private render_row(name: string, value: string): Rendered | undefined {
-    if (value == null) {
-      value = site_settings_conf[name].default;
-    }
-    const conf = site_settings_conf[name];
-    const label = (
-      <Tip key={name} title={conf.name} tip={conf.desc}>
-        {conf.name}
-      </Tip>
-    );
+  private render_default_row(name): Rendered | undefined {
+    const conf: Config = site_settings_conf[name];
+    return this.render_row2(name, conf);
+  }
 
+  private render_extras_row(name): Rendered | undefined {
+    const conf: Config = EXTRAS[name];
+    return this.render_row2(name, conf);
+  }
+
+  private render_row2(name: string, conf: Config): Rendered | undefined {
     // do not show quota fields unless it is for on-premp k8s setups
     if (
       (name == "default_quotas" || name == "max_upgrades") &&
       this.state.edited.kucalc != KUCALC_ON_PREMISES
     ) {
       return undefined;
-    } else {
-      return (
-        <LabeledRow label={label} key={name}>
-          {this.render_row_entry(name, value, false)}
-        </LabeledRow>
-      );
     }
-  }
 
-  private render_extras_row(name): Rendered | undefined {
-    const extra: Config = EXTRAS[name];
-    if (typeof extra.show == "function" && !extra.show(this.state.edited)) {
+    if (typeof conf.show == "function" && !conf.show(this.state.edited)) {
       return undefined;
     }
-    const raw_value = this.state.edited[name] ?? extra.default;
+    const raw_value = this.state.edited[name] ?? conf.default;
 
     const parsed_value: string | undefined =
-      typeof extra.to_val == "function"
-        ? `${extra.to_val(raw_value)}`
+      typeof conf.to_val == "function"
+        ? `${conf.to_val(raw_value)}`
         : undefined;
 
     const label = (
-      <Tip key={name} title={extra.name} tip={extra.desc}>
-        {extra.name}
+      <Tip key={name} title={conf.name} tip={conf.desc}>
+        {conf.name}
       </Tip>
     );
     return (
@@ -306,18 +297,16 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         {this.render_row_entry(
           name,
           raw_value,
-          extra.password ?? false,
+          conf.password ?? false,
           parsed_value,
-          extra.valid
+          conf.valid
         )}
       </LabeledRow>
     );
   }
 
   private render_editor_site_settings(): Rendered[] {
-    return keys(site_settings_conf).map(name =>
-      this.render_row(name, this.state.edited[name])
-    );
+    return keys(site_settings_conf).map(name => this.render_default_row(name));
   }
 
   private render_editor_extras(): Rendered[] {

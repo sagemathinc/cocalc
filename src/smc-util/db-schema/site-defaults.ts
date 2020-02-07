@@ -22,6 +22,7 @@ export const only_for_sendgrid = conf =>
   is_email_enabled(conf) && conf.email_backend === "sendgrid";
 export const only_for_password_reset_smtp = conf =>
   is_email_enabled(conf) && conf.password_reset_override === "smtp";
+export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const to_bool = val => val === "true";
 export const only_booleans = ["true", "false"];
 export const to_int = val => parseInt(val);
@@ -87,7 +88,8 @@ export const site_settings_conf: SiteSettings = {
   kucalc: {
     name: "KuCalc UI",
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
-    default: KUCALC_DISABLED
+    default: KUCALC_DISABLED,
+    valid: [KUCALC_COCALC_COM, KUCALC_ON_PREMISES, KUCALC_DISABLED]
   }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
   ssh_gateway: {
     name: "SSH Gateway",
@@ -121,13 +123,15 @@ export const site_settings_conf: SiteSettings = {
     name: "Default Quotas",
     desc:
       "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
-    default: "{}"
+    default: "{}",
+    show: only_onprem
   },
   max_upgrades: {
     name: "Maximum Quota Upgrades",
     desc:
       "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
-    default: "{}"
+    default: "{}",
+    show: only_onprem
   },
   email_enabled: {
     name: "Email sending enabled",
@@ -135,7 +139,7 @@ export const site_settings_conf: SiteSettings = {
       "Controls visibility of UI elements to send emails. This is independent of the particular email configuration!",
     default: "false",
     valid: only_booleans,
-    to_val: raw => raw === "true"
+    to_val: to_bool
   },
   verify_emails: {
     name: "Verify email addresses",
@@ -143,6 +147,7 @@ export const site_settings_conf: SiteSettings = {
       "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
     default: "false",
     show: is_email_enabled,
+    valid: only_booleans,
     to_val: to_bool
   }
 };

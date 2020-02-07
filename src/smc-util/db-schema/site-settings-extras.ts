@@ -10,6 +10,8 @@ import {
   to_int
 } from "./site-defaults";
 
+const { is_valid_email_address } = require("smc-util/misc");
+
 // not public, but admins can edit them
 export const EXTRAS: { [key: string]: Config } = {
   email_backend: {
@@ -28,6 +30,13 @@ export const EXTRAS: { [key: string]: Config } = {
     name: "SMTP server",
     desc: "the hostname to talk to",
     default: "",
+    show: only_for_smtp
+  },
+  email_smtp_from: {
+    name: "SMTP server FROM",
+    desc: "the FROM and REPLYTO email address",
+    default: "",
+    valid: is_valid_email_address,
     show: only_for_smtp
   },
   email_smtp_login: {
@@ -69,6 +78,13 @@ export const EXTRAS: { [key: string]: Config } = {
     name: "PW reset SMTP server",
     desc: "hostname sending password reset emails",
     default: "",
+    show: only_for_password_reset_smtp
+  },
+  password_reset_smpt_from: {
+    name: "PW reset FROM",
+    desc: "This sets the FROM and REPLYTO email address",
+    default: "",
+    valid: is_valid_email_address,
     show: only_for_password_reset_smtp
   },
   password_reset_smpt_login: {
