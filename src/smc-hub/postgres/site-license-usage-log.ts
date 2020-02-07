@@ -6,7 +6,7 @@ about how site licenses are being used.
 This function is not *automatically* called periodically by all possible ways
 of running CoCalc!  Probably (hopefully?) only cocalc.com actually manages or sells
 site license, and in kucalc (the backend used by cocalc.com) this function happens
-to get called periodically from manage-actions.
+to get called periodically from one of the manage-* services.
 
 It's also enabled in dev mode by the hub so that cc-in-cc hub developemnt is easier.
 */
