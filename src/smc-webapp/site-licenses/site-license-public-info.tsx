@@ -53,10 +53,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
       if (this.provides_upgrades()) {
         return "success";
       } else {
-        return "error";
+        return "warning";
       }
     } else {
-      return "warning";
+      return "error";
     }
   }
 
@@ -90,6 +90,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
   private render_upgrades(): Rendered {
     if (!this.provides_upgrades()) {
+      if (!this.state.info) return;
       return (
         <div>
           Currently providing no upgrades - you probably need to restart your
