@@ -148,7 +148,7 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
 
   // overwrite/set extras for any set default quota in the site setting
   if (site_settings != null && site_settings.default_quotas != null) {
-    const dq = site_settings?.default_quotas;
+    const dq = site_settings.default_quotas;
 
     if (typeof dq.disk_quota == "number") {
       q.disk_quota = dq.disk_quota;
@@ -316,7 +316,7 @@ exports.quota = function(
     }
     // if we have some overcommit ratio set, increase a request
     if (site_settings?.default_quotas != null) {
-      const { mem_oc, cpu_oc } = site_settings?.default_quotas;
+      const { mem_oc, cpu_oc } = site_settings.default_quotas;
       if (name == "cpu_request" && quota.cpu_limit != null) {
         const oc = sani_oc(cpu_oc);
         if (oc != null) {
