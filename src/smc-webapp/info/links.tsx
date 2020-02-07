@@ -15,7 +15,8 @@ import {
   HELP_EMAIL,
   DOC_URL,
   TWITTER_HANDLE,
-  LIVE_DEMO_REQUEST
+  LIVE_DEMO_REQUEST,
+  DISCORD_INVITE
 } from "smc-util/theme";
 
 interface LinkInfo {
@@ -108,8 +109,12 @@ export const CONNECT_LINKS = {
   discord: {
     bold: true,
     icon: "fab fa-discord",
-    href: "https://discord.gg/Pz3h5bH",
-    link: "Discord - chat about CoCalc"
+    href: DISCORD_INVITE,
+    link: (
+      <span>
+        Discord - chat about <SiteName />
+      </span>
+    )
   },
   share: {
     icon: "bullhorn",

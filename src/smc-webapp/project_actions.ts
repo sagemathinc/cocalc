@@ -1657,12 +1657,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const current = store.get("active_file_sort");
-    if ((current != null ? current.column_name : undefined) === column_name) {
-      is_descending = !current.is_descending;
+    if (current.get("column_name") === column_name) {
+      is_descending = !current.get("is_descending");
     } else {
       is_descending = false;
     }
-    const next_file_sort = { is_descending, column_name };
+    const next_file_sort = current
+      .set("is_descending", is_descending)
+      .set("column_name", column_name);
     this.setState({ active_file_sort: next_file_sort });
   }
 

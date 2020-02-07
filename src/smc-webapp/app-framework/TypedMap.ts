@@ -119,7 +119,7 @@ interface TypedMapFactory<TProps extends Record<string, any>> {
   new (values: TProps): TypedMap<TProps>;
 }
 
-export function typedMap<TProps extends object>(
+export function TypedMap<TProps extends object>(
   defaults: Partial<TProps> = {}
 ): TypedMap<TProps> {
   // Add `& readonly TProps` to enable property access?
