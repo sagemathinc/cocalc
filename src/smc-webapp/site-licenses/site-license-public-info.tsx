@@ -5,7 +5,7 @@ import { site_license_public_info } from "./util";
 import { Icon, Loading, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Popconfirm } from "antd";
-import { DisplayUpgrades } from "./admin/upgrades";
+import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural } from "smc-util/misc2";
 
 interface Props {
@@ -103,7 +103,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         Currently providing the following{" "}
         {plural(this.props.upgrades.size, "upgrade")}:
         <DisplayUpgrades
-          upgrades={this.props.upgrades}
+          upgrades={scale_by_display_factors(this.props.upgrades)}
           style={{
             border: "1px solid #ddd",
             padding: "0 15px",

@@ -32,7 +32,7 @@ function params(field: upgrade_fields_type): UpgradeParams {
 }
 
 interface DisplayProps {
-  upgrades: undefined | Map<string, number>;
+  upgrades: undefined | Map<string, number>; // assumed *already* scaled using scale_by_display_factors!!
   style?: React.CSSProperties; // only used if no warning about no upgrades.
 }
 export class DisplayUpgrades extends Component<DisplayProps> {
