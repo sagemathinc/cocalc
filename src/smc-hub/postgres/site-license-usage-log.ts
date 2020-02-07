@@ -1,3 +1,15 @@
+/*
+The update_site_license_usage_log function exported from this file should be called
+periodically to make the site_license_usage_log table contain useful information
+about how site licenses are being used.
+
+This function is not *automatically* called periodically by all possible ways
+of running CoCalc!  Probably (hopefully?) only cocalc.com actually manages or sells
+site license, and in kucalc (the backend used by cocalc.com) this function happens
+to get called periodically from manage-actions.
+
+It's also enabled in dev mode by the hub so that cc-in-cc hub developemnt is easier.
+*/
 import { PostgreSQL } from "./types";
 import { query } from "./query";
 
