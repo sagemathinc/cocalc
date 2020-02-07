@@ -277,3 +277,30 @@ export const site_license_public_info = create({
     }
   }
 });
+
+export const site_license_usage_log = create({
+  fields: {
+    license_id: {
+      type: "uuid",
+      desc: "id of the site license"
+    },
+    project_id: {
+      type: "uuid",
+      desc: "id of the project"
+    },
+    start: {
+      type: "timestamp",
+      desc: "When the project started running using this site license"
+    },
+    stop: {
+      type: "timestamp",
+      desc: "When the project stopped running using this site license"
+    }
+  },
+  rules: {
+    desc:
+      "Table for logging when site licenses are used to upgrade running projects.",
+    primary_key: ["license_id", "project_id", "start"],
+    pg_indexes: ["license_id"]
+  }
+});
