@@ -321,8 +321,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   /*
-   * select all kernels, which are ranked highest for a specific language
-   * and do have a priority weight > 0.
+   * select all kernels, which are ranked highest for a specific language.
    *
    * kernel metadata looks like that
    *
@@ -333,7 +332,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
    *    "cocalc": {
    *      "priority": 10,
    *      "description": "Open-source mathematical software system",
-   *      "url": "https://www.sagemath.org/"
+   *      "url": "https://www.sagemath.org/",
+   *      "disabled": true
    *    }
    *  }
    *

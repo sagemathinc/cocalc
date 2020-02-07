@@ -268,7 +268,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_error(err);
       return;
     }
-    const kernels = immutable.fromJS(data);
+    // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
+    const kernels = immutable
+      .fromJS(data)
+      .filter(k => !k.getIn(["metadata", "cocalc", "disabled"], false));
     const key = this.store.jupyter_kernel_key();
     jupyter_kernels = jupyter_kernels.set(key, kernels); // global
     this.setState({ kernels });
