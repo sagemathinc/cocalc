@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
-import { rtypes, rclass, redux } from "../../app-framework";
+import { rtypes, rclass, redux, TypedMap } from "../../app-framework";
 import {
   ActivityDisplay,
   Icon,
@@ -77,7 +77,7 @@ interface ReduxProps {
   kucalc?: string;
   site_name?: string;
   images: ComputeImages;
-  active_file_sort?: object;
+  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   current_path: string;
   history_path: string;
   activity?: object;
@@ -153,7 +153,7 @@ export const Explorer = rclass<ReactProps>(
         },
 
         [name]: {
-          active_file_sort: rtypes.object,
+          active_file_sort: rtypes.immutable.Map,
           current_path: rtypes.string,
           history_path: rtypes.string,
           activity: rtypes.object,
