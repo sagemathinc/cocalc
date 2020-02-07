@@ -162,7 +162,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       // figure out what matches the search
       const site_licenses = store.get("site_licenses");
       if (site_licenses != null) {
-        const terms = search_split(search);
+        const terms = search_split(search.toLowerCase());
         matches_search = Set<string>([]);
         const x = site_licenses.toJS();
         for (const license of x) {
