@@ -326,7 +326,7 @@ exports.quota = function(
       } else if (name == "memory_request" && quota.memory_limit != null) {
         const oc = sani_oc(mem_oc);
         if (oc != null) {
-          const oc_mem = quota.memory_limit / oc;
+          const oc_mem = Math.round(quota.memory_limit / oc);
           contribs = Math.max(contribs, oc_mem - base);
         }
       }
