@@ -20,5 +20,3 @@ send_email({
   asm_group: 147985,
   cb: cb
 });
-
-

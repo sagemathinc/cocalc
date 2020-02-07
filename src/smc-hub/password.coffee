@@ -37,6 +37,9 @@ exports.forgot_password = (opts) ->
     opts.mesg.email_address = misc.lower_email_address(opts.mesg.email_address)
 
     id = null
+    locals =
+        settings : undefined
+
     async.series([
         (cb) ->
             # Record this password reset attempt in our database
@@ -100,6 +103,16 @@ exports.forgot_password = (opts) ->
                 ttl           : 60*60
                 cb            : (err, _id) ->
                     id = _id; cb(err)
+
+        (cb) =>
+            opts.database.get_server_settings_cached
+                cb: (err, settings) =>
+                    if err
+                        cb(err)
+                    else
+                        locals.settings = settings
+                        cb()
+
         (cb) ->
             # send an email to opts.mesg.email_address that has a password reset link
             {DOMAIN_NAME, HELP_EMAIL, SITE_NAME} = require('smc-util/theme')
@@ -125,12 +138,13 @@ exports.forgot_password = (opts) ->
                 """
 
             email.send_email
-                subject : "#{SITE_NAME} Password Reset"
-                body    : body
-                from    : "CoCalc Help <#{HELP_EMAIL}>"
-                to      : opts.mesg.email_address
-                category: "password_reset"
-                cb      : cb
+                subject  : "#{SITE_NAME} Password Reset"
+                body     : body
+                from     : "CoCalc Help <#{HELP_EMAIL}>"
+                to       : opts.mesg.email_address
+                category : "password_reset"
+                settings : locals.settings
+                cb       : cb
     ], opts.cb)
 
 exports.reset_forgot_password = (opts) ->

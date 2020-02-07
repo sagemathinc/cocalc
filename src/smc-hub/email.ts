@@ -22,6 +22,7 @@
 //########################################
 // Sending emails
 //########################################
+// import { callback } from "awaiting";
 
 const BANNED_DOMAINS = { "qq.com": true };
 
@@ -32,6 +33,8 @@ const winston = require("./winston-metrics").get_logger("email");
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 const sendgrid = require("@sendgrid/client");
+
+import * as nodemailer from "nodemailer";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -141,7 +144,8 @@ function create_email_body(
 
 exports.create_email_body = create_email_body;
 
-let email_server: any | undefined = undefined;
+let sendgrid_server: any | undefined = undefined;
+let smtp_pw_reset_server: any | undefined = undefined;
 
 const is_banned = (exports.is_banned = function(address): boolean {
   const i = address.indexOf("@");
@@ -151,6 +155,24 @@ const is_banned = (exports.is_banned = function(address): boolean {
   const x = address.slice(i + 1).toLowerCase();
   return !!BANNED_DOMAINS[x];
 });
+
+async function init_pw_reset_smtp_server(opts): Promise<void> {
+  const s = opts.settings;
+  if (smtp_pw_reset_server != null && s.password_reset_override == "smtp") {
+    return;
+  }
+
+  // s.password_reset_smpt_from;
+  smtp_pw_reset_server = await nodemailer.createTransport({
+    host: s.password_reset_smpt_server,
+    port: s.password_reset_smpt_port,
+    secure: s.password_reset_smpt_secure, // true for 465, false for other ports
+    auth: {
+      user: s.password_reset_smpt_login,
+      pass: s.password_reset_smpt_password
+    }
+  });
+}
 
 // here's how I test this function:
 //    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
@@ -172,7 +194,8 @@ exports.send_email = function(opts): void {
     verbose: true,
     cb: undefined,
     category: undefined,
-    asm_group: undefined
+    asm_group: undefined,
+    settings: undefined
   });
 
   if (opts.verbose) {
@@ -191,10 +214,14 @@ exports.send_email = function(opts): void {
   }
 
   let disabled = false;
+  const pw_reset_smtp =
+    opts.category == "password_reset" &&
+    opts.settings.password_reset_override == "smtp";
+
   return async.series(
     [
       function(cb): void {
-        if (email_server != null) {
+        if (sendgrid_server != null) {
           cb();
           return;
         }
@@ -209,22 +236,50 @@ exports.send_email = function(opts): void {
             api_key = api_key.toString().trim();
             if (api_key.length === 0) {
               dbg(
-                "email_server: explicitly disabled -- so pretend to always succeed for testing purposes"
+                "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
               );
               disabled = true;
-              email_server = { disabled: true };
+              sendgrid_server = { disabled: true };
               cb();
             } else {
               sendgrid.setApiKey(api_key);
-              email_server = sendgrid;
+              sendgrid_server = sendgrid;
               dbg("started sendgrid client");
               cb();
             }
           }
         });
       },
+      async function(cb) {
+        if (!pw_reset_smtp) {
+          cb();
+          return;
+        }
+        dbg("initializing PW SMTP server...");
+        await init_pw_reset_smtp_server(opts);
+        cb();
+      },
+      async function(cb) {
+        // maybe treat PW resets differently
+        if (!pw_reset_smtp) {
+          cb();
+          return;
+        }
+        //const ts = new Date().toISOString();
+        dbg("sending PW reset via SMTP server ...");
+        const info = await smtp_pw_reset_server.sendMail({
+          from: opts.settings.password_reset_smpt_from,
+          replyTo: opts.settings.password_reset_smpt_from,
+          to: opts.to,
+          subject: opts.subject,
+          html: opts.body
+        });
+
+        dbg(`SMTP PW reset email sent: ${info.messageId}`);
+        cb();
+      },
       function(cb): void {
-        if (disabled || (email_server != null ? email_server.disabled : true)) {
+        if (pw_reset_smtp || disabled || sendgrid_server?.disabled === true) {
           cb(undefined, "sendgrid email disabled -- no actual message sent");
           return;
         }
@@ -299,7 +354,7 @@ exports.send_email = function(opts): void {
           url: "/v3/mail/send"
         };
 
-        email_server
+        sendgrid_server
           .request(req)
           .then(([_, body]) => {
             dbg(
@@ -316,7 +371,7 @@ exports.send_email = function(opts): void {
     function(err, message) {
       if (err) {
         // so next time it will try fresh to connect to email server, rather than being wrecked forever.
-        email_server = undefined;
+        sendgrid_server = undefined;
         err = `error sending email -- ${misc.to_json(err)}`;
         dbg(err);
       } else {
