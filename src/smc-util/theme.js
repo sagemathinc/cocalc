@@ -51,6 +51,7 @@ exports.SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
 // asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
 exports.SENDGRID_ASM_INVITES = 699;
 exports.SENDGRID_ASM_NEWSLETTER = 698;
+exports.DISCORD_INVITE = "https://discord.gg/nEHs2GK";
 
 // This is the applications color scheme
 const COLORS = {

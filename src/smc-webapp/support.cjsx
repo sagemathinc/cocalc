@@ -23,12 +23,13 @@ $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./app-framework')
 {Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
-{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
+{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer, A} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
 {HelpEmailLink, SiteName} = require('./customize')
+{DISCORD_INVITE} = require('smc-util/theme')
 
 STATE =
     NEW        : 'new'      # new/default/resetted/no problem
@@ -413,7 +414,7 @@ SupportInfo = rclass
                     <b>Hit a bug, just need to talk with us, or request that we install software:</b> Fill out the form below...
                 </li>
                 <li>
-                    Just <b>want to chat</b> with somebody?  Visit <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow">our Discord server</a>.
+                    Just <b>want to chat</b> with somebody?  Visit <A href={DISCORD_INVITE}>our Discord server</A>.
                 </li>
             </ul>
 

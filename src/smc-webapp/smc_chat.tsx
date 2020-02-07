@@ -29,6 +29,8 @@ const { Avatar } = require("./other-users");
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 
+const { DISCORD_INVITE } = require("smc-util/theme");
+
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
 import { ChatInput } from "./chat/input";
@@ -40,7 +42,7 @@ import { MentionList } from "./chat/store";
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
 
-import { Icon, Loading, Tip, SearchInput, TimeAgo } from "./r_misc";
+import { Icon, Loading, Tip, SearchInput, TimeAgo, A } from "./r_misc";
 
 import {
   Button,
@@ -773,8 +775,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           >
             LaTeX
           </a>
-          . Emoticons: {misc.emoticons}.
-          Chat outside CoCalc <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow">on Discord</a>.
+          . Emoticons: {misc.emoticons}. Chat outside CoCalc{" "}
+          <A href={DISCORD_INVITE}>on Discord</A>.
         </div>
       </Tip>
     );

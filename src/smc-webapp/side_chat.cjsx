@@ -29,13 +29,13 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
 {webapp_client} = require('./webapp_client')
-
+{DISCORD_INVITE} = require('smc-util/theme')
 {alert_message} = require('./alerts')
 {analytics_event} = require('./tracker')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, SearchInput, Space, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, SearchInput, Space, TimeAgo, Tip, A} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -149,7 +149,7 @@ ChatRoom = rclass ({name}) ->
         if not project?
             return
         <div>
-            Stream your screen or chat <a href="https://discord.gg/Pz3h5bH" target="_blank" rel="nofollow">using Discord.</a>
+            Stream your screen or chat <A href={DISCORD_INVITE}>using Discord</A>.
             <div>
                 Add people to this project below:
             </div>
