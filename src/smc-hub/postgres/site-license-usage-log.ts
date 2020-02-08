@@ -232,3 +232,78 @@ WHERE
 `;
   await query({ db, query: q });
 }
+
+/* Answer questions about active usage of a site license by projects */
+
+// An interval of time.
+export interface Interval {
+  begin: Date;
+  end: Date;
+}
+
+// Return the number of distinct projects that used the license during the given
+// interval of time.
+export async function number_of_projects_that_used_license(
+  db: PostgreSQL,
+  license_id: string,
+  interval: Interval
+): Promise<number> {
+  const dbg = db._dbg(
+    `number_of_projects_that_used_license("${license_id}",${interval.begin},${interval.end})`
+  );
+  dbg();
+  return -1;
+}
+
+// Return the total number of hours of usage of the given license by projects during
+// the given interval of time.
+export async function number_of_hours_projects_used_license(
+  db: PostgreSQL,
+
+  license_id: string,
+  interval: Interval
+): Promise<number> {
+  const dbg = db._dbg(
+    `number_of_hours_projects_used_license("${license_id}",${interval.begin},${interval.end})`
+  );
+  dbg();
+  return -1;
+}
+
+// Given a license_id and an interval of time [begin, end], returns
+// all projects that used the license during an interval that overlaps with [begin, end].
+// Projects are returned as a list of objects:
+//     {project_id, [any other fields from the projects table (e.g., title)]}
+export async function projects_that_used_license(
+  db: PostgreSQL,
+  license_id: string,
+  interval: Interval,
+  fields: string[] = ["project_id"],
+  limit: number = 500 // at most this many results; results are ordered by project_id.
+): Promise<object[]> {
+  const dbg = db._dbg(
+    `projects_that_used_license("${license_id}",${interval.begin},${interval.end})`
+  );
+  dbg([fields, limit]);
+  return [];
+
+  /*
+  After restricting to a given license, the site_license_usage_log table gives us a set of triples
+      (project_id, start, stop)
+  where stop may be null in case the project is still running.
+
+
+               [begin ----------------------- end]
+
+  [start ------------- stop]
+  [start --------------------------------------------- stop]
+                   [start ----------- stop]
+                                [start ----------------stop]
+
+  One of these triples overlaps with the interval from begin to end if:
+
+      - start <= begin and begin <= stop, i.e. begin is in ther interval [start, stop]
+      - begin = start and start <= end  , i.e. starts is in the interval [begin, end]
+
+  */
+}
