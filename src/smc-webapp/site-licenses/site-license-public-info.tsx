@@ -39,7 +39,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private render_expires(): Rendered {
-    if (!this.state.info || !this.state.info.expires) return;
+    if (!this.state.info) return;
+    if (!this.state.info.expires) {
+      return <span> (no expiration date set)</span>;
+    }
     return (
       <span>
         {" "}

@@ -268,10 +268,10 @@ export const site_license_public_info = create({
           }
         },
         fields: {
-          id: true,
-          title: true,
-          expires: true,
-          activates: true
+          id: null,
+          title: null,
+          expires: null,
+          activates: null
         }
       }
     }
