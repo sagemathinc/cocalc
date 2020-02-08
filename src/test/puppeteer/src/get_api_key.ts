@@ -5,7 +5,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 const puppeteer = require("puppeteer");
 import chalk from "chalk";
 import { Creds, Opts, TestGetString } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import { expect } from "chai";
 
 const LONG_TIMEOUT = 70000; // msec
@@ -34,7 +34,7 @@ export const get_api_key = async function(
     const version: string = await page.browser().version();
     debuglog("browser", version);
 
-    time_log("launch browser for api key", tm_launch_browser);
+    await time_log2("launch browser for api key", tm_launch_browser, creds, opts);
     const tm_login = process.hrtime.bigint();
     await page.setDefaultTimeout(LONG_TIMEOUT);
 
@@ -57,7 +57,7 @@ export const get_api_key = async function(
     sel = '*[cocalc-test="sign-in-submit"]';
     await page.click(sel);
     debuglog("clicked submit");
-    time_log("login", tm_login);
+    await time_log2("login for api key", tm_login, creds, opts);
 
     // intercepted url looks like https://authenticated/?api_key=sk_hJKSJax....
     const api_key: string = await new Promise<string>(function(resolve) {
@@ -77,7 +77,7 @@ export const get_api_key = async function(
     ags.pass += 1;
     ags.result = api_key;
 
-    time_log(this_file, tm_launch_browser);
+    await time_log2(this_file, tm_launch_browser, creds, opts);
   } catch (e) {
     ags.fail += 1;
     console.log(chalk.red(`ERROR: ${e.message}`));

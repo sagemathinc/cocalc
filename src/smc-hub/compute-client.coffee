@@ -68,6 +68,8 @@ misc_node   = require('smc-util-node/misc_node')
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
+{site_license_hook} = require('./postgres/site-license-hook')
+
 # Set the log level
 try
     winston.remove(winston.transports.Console)
@@ -1056,6 +1058,15 @@ class ProjectClient extends EventEmitter
             opts.cb('project must be open before doing this action - no known host')
             return
         dbg("args=#{misc.to_safe_str(opts.args)}")
+
+        if opts.action == 'start'
+            try
+                await site_license_hook(@compute_server.database, @project_id)
+            catch err
+                # ignore - don't not start the project just because
+                # of a database issue/bug...
+                dbg("ERROR in site license hook #{err}")
+
         dbg("calling compute server at '#{@host}'")
         @compute_server.call
             host    : @host

@@ -1657,12 +1657,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const current = store.get("active_file_sort");
-    if ((current != null ? current.column_name : undefined) === column_name) {
-      is_descending = !current.is_descending;
+    if (current.get("column_name") === column_name) {
+      is_descending = !current.get("is_descending");
     } else {
       is_descending = false;
     }
-    const next_file_sort = { is_descending, column_name };
+    const next_file_sort = current
+      .set("is_descending", is_descending)
+      .set("column_name", column_name);
     this.setState({ active_file_sort: next_file_sort });
   }
 
@@ -2062,14 +2064,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   reload_configuration(): void {
-    this.clear_configuration();
-    this.init_configuration("main");
+    this.init_configuration("main", true);
   }
 
   // retrieve project configuration (capabilities, etc.) from the back-end
   // also return it as a convenience
   async init_configuration(
-    aspect: ConfigurationAspect = "main"
+    aspect: ConfigurationAspect = "main",
+    no_cache = false
   ): Promise<Configuration | void> {
     this.setState({ configuration_loading: true });
 
@@ -2080,13 +2082,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    // already done before?
     const prev = store.get("configuration") as ProjectConfiguration;
-    if (prev != null) {
-      const conf = prev.get(aspect) as Configuration;
-      if (conf != null) {
-        this.setState({ configuration_loading: false });
-        return conf;
+    if (!no_cache) {
+      // already done before?
+      if (prev != null) {
+        const conf = prev.get(aspect) as Configuration;
+        if (conf != null) {
+          this.setState({ configuration_loading: false });
+          return conf;
+        }
       }
     }
 
@@ -2100,7 +2104,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             webapp_client,
             this.project_id,
             aspect,
-            prev
+            prev,
+            no_cache
           );
         } catch (e) {
           // not implemented error happens, when the project is still the old one

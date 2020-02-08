@@ -16,6 +16,10 @@ export type ProjectStatus = TypedMap<{
 
 export type ProjectSettings = Map<string, any>;
 
+export type SiteLicense = TypedMap<{
+  [license_id: string]: { [prop: string]: number };
+}>;
+
 export type Project = TypedMap<{
   title: string;
   description: string;
@@ -27,5 +31,5 @@ export type Project = TypedMap<{
   status: ProjectStatus;
   settings: ProjectSettings;
   compute_image: string;
-  site_license: { [license_id: string]: object };
+  site_license: SiteLicense;
 }>;

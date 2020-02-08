@@ -56,6 +56,7 @@ type NumParser = (s: string | undefined) => number;
 type Str2Num = (s: string) => number;
 type NumParserGen = (fn: Str2Num) => NumParser;
 
+// the end result
 interface Quota {
   network?: boolean;
   member_host?: boolean;
@@ -85,10 +86,105 @@ interface Settings {
   cpu_shares?: string;
 }
 
+interface Upgrades {
+  disk_quota: number;
+  memory: number;
+  memory_request: number;
+  cores: number;
+  network: number;
+  cpu_shares: number;
+  mintime: number;
+  member_host: number;
+  ephemeral_state: number;
+  ephemeral_disk: number;
+}
+
+// special quotas for on-prem setups.
+// They not only set different defaults,
+// but also tune some aspects of the overall behavior.
+interface SiteSettingsDefaultQuotas {
+  internet: boolean; // true, allow project pods to access the internet
+  idle_timeout: number; // overrides DEFAULT_QUOTAS.mintime
+  cpu: number; // shared cpu quota, in 1 core units, overrides DEFAULT_QUOTAS.cores
+  cpu_oc: number; // overcommitment ratio for cpu, 1:cpu_oc
+  mem: number; // shared memory quota, in mb, overrides DEFAULT_QUOTAS.memory
+  mem_oc: number; // overcommitment ratio for memory, 1:mem_oc
+  disk_quota: number; // overrides DEFAULT_QUOTAS.disk_quota
+}
+
+/*
+ * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
+ * max_upgrades: Quota
+ */
+interface SiteSettingsQuotas {
+  default_quotas: Partial<SiteSettingsDefaultQuotas>;
+  max_upgrades: Partial<Upgrades>;
+}
+
+// base quota + calculated default quotas is the quota object each project gets by default
+// any additional quotas are added on top of it, up until the given limits
+const BASE_QUOTAS: Quota = {
+  network: false,
+  member_host: false,
+  memory_request: 0, // will hold guaranteed RAM in MB
+  cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
+  privileged: false, // for elevated docker privileges (FUSE mounting, later more)
+  disk_quota: DEFAULT_QUOTAS.disk_quota,
+  memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
+  cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
+  idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
+} as const;
+
+// sanitize the overcommitment ratio or discard it
+function sani_oc(oc: number | undefined): number | undefined {
+  if (typeof oc == "number" && !isNaN(oc)) {
+    return Math.max(1, oc);
+  }
+  return undefined;
+}
+
+function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
+  const q: Quota = Object.assign({}, BASE_QUOTAS);
+
+  // overwrite/set extras for any set default quota in the site setting
+  if (site_settings != null && site_settings.default_quotas != null) {
+    const dq = site_settings.default_quotas;
+
+    if (typeof dq.disk_quota == "number") {
+      q.disk_quota = dq.disk_quota;
+    }
+    if (typeof dq.internet == "boolean") {
+      q.network = dq.internet;
+    }
+    if (typeof dq.idle_timeout == "number") {
+      q.idle_timeout = dq.idle_timeout as number;
+    }
+    if (typeof dq.mem == "number") {
+      q.memory_limit = dq.mem;
+      const oc = sani_oc(dq.mem_oc);
+      // ratio is 1:mem_oc -- sanitize it first
+      if (oc != null) {
+        q.memory_request = Math.round(dq.mem / oc);
+      }
+    }
+    if (typeof dq.cpu == "number") {
+      q.cpu_limit = dq.cpu as number;
+      // ratio is 1:cpu_oc -- sanitize it first
+      const oc = sani_oc(dq.cpu_oc);
+      if (oc != null) {
+        q.cpu_request = dq.cpu / oc;
+      }
+    }
+  }
+
+  return q;
+}
+
 exports.quota = function(
   settings_arg?: Settings,
   users_arg?: Users,
-  site_license?: { [license_id: string]: Settings }
+  site_license?: { [license_id: string]: Settings },
+  site_settings?: SiteSettingsQuotas
 ) {
   // we want settings and users to be defined below and make sure the
   // arguments can't be modified
@@ -101,63 +197,68 @@ exports.quota = function(
   );
 
   // new quota object, we modify it in-place below and return it.
-  const quota: Quota = {
-    network: false,
-    member_host: false,
-    disk_quota: DEFAULT_QUOTAS.disk_quota,
-    memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
-    memory_request: 0, // will hold guaranteed RAM in MB
-    cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
-    cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
-    privileged: false, // for elevated docker privileges (FUSE mounting, later more)
-    idle_timeout: DEFAULT_QUOTAS.mintime
-  };
+  const quota: Quota = calc_default_quotas(site_settings);
+
+  // site settings max quotas overwrite the hardcoded values
+  const max_upgrades = Object.assign(
+    {},
+    MAX_UPGRADES,
+    site_settings?.max_upgrades ?? {}
+  );
 
   // network access
-  if (settings.network) {
-    // free admin-set
-    quota.network = true;
-  } else {
-    // paid by some user
-    for (const userid in users) {
-      const val = users[userid];
-      if (val != null && val.upgrades && val.upgrades.network) {
-        quota.network = true;
-        break;
-      }
-    }
-    // or some site license
-    if (!quota.network && site_license != null) {
-      for (const license_id in site_license) {
-        const val = site_license[license_id];
-        if (val != null && val.network) {
+  if (max_upgrades.network == 0) {
+    quota.network = false;
+  } else if (!quota.network) {
+    if (settings.network) {
+      // free admin-set
+      quota.network = true;
+    } else {
+      // paid by some user
+      for (const userid in users) {
+        const val = users[userid];
+        if (val != null && val.upgrades && val.upgrades.network) {
           quota.network = true;
           break;
+        }
+      }
+      // or some site license
+      if (!quota.network && site_license != null) {
+        for (const license_id in site_license) {
+          const val = site_license[license_id];
+          if (val != null && val.network) {
+            quota.network = true;
+            break;
+          }
         }
       }
     }
   }
 
   // member hosting, which translates to "not pre-emptible"
-  if (settings.member_host) {
-    // free admin-set
-    quota.member_host = true;
-  } else {
-    // paid by some user
-    for (const userid in users) {
-      const val = users[userid];
-      if (val != null && val.upgrades && val.upgrades.member_host) {
-        quota.member_host = true;
-        break;
-      }
-    }
-    // or some site license
-    if (!quota.member_host && site_license != null) {
-      for (const license_id in site_license) {
-        const val = site_license[license_id];
-        if (val != null && val.member_host) {
+  if (max_upgrades.member_host == 0) {
+    quota.member_host = false;
+  } else if (!quota.member_host) {
+    if (settings.member_host) {
+      // free admin-set
+      quota.member_host = true;
+    } else {
+      // paid by some user
+      for (const userid in users) {
+        const val = users[userid];
+        if (val != null && val.upgrades && val.upgrades.member_host) {
           quota.member_host = true;
           break;
+        }
+      }
+      // or some site license
+      if (!quota.member_host && site_license != null) {
+        for (const license_id in site_license) {
+          const val = site_license[license_id];
+          if (val != null && val.member_host) {
+            quota.member_host = true;
+            break;
+          }
         }
       }
     }
@@ -189,15 +290,17 @@ exports.quota = function(
 
     const base: number = (() => {
       // settings "overwrite" the default quotas
+      // there are also no limits to settings "admin" upgrades
       if (settings[upgrade]) {
         quota[name] = factor * parse_num(settings[upgrade]);
-        return Math.min(quota[name], factor * MAX_UPGRADES[upgrade]);
-      } else {
         return quota[name];
+      } else {
+        return Math.min(quota[name], factor * max_upgrades[upgrade]);
       }
     })();
     // compute how much is left for contributed user upgrades
-    const remain = Math.max(0, factor * MAX_UPGRADES[upgrade] - base);
+    const remain = Math.max(0, factor * max_upgrades[upgrade] - base);
+
     let contribs = 0;
     for (const userid in users) {
       const val = users[userid];
@@ -211,9 +314,25 @@ exports.quota = function(
         contribs += factor * parse_num(num);
       }
     }
+    // if we have some overcommit ratio set, increase a request
+    if (site_settings?.default_quotas != null) {
+      const { mem_oc, cpu_oc } = site_settings.default_quotas;
+      if (name == "cpu_request" && quota.cpu_limit != null) {
+        const oc = sani_oc(cpu_oc);
+        if (oc != null) {
+          const oc_cpu = quota.cpu_limit / oc;
+          contribs = Math.max(contribs, oc_cpu - base);
+        }
+      } else if (name == "memory_request" && quota.memory_limit != null) {
+        const oc = sani_oc(mem_oc);
+        if (oc != null) {
+          const oc_mem = Math.round(quota.memory_limit / oc);
+          contribs = Math.max(contribs, oc_mem - base);
+        }
+      }
+    }
     contribs = Math.min(remain, contribs);
-    // use quota[name], and ignore base, because admins are allowed to contribute without limits
-    quota[name] += contribs;
+    quota[name] = base + contribs;
   };
 
   // disk space quota in MB
@@ -225,13 +344,13 @@ exports.quota = function(
   // idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
   calc("idle_timeout", "mintime", to_int, undefined);
 
-  // memory request
+  // memory request -- must come AFTER memory_limit calculation
   calc("memory_request", "memory_request", to_int, undefined);
 
   // "cores" is the hard upper bound the project container should get
   calc("cpu_limit", "cores", to_float, undefined);
 
-  // cpu_shares is the minimum cpu usage to request
+  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
   calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
 
   // ensure minimum cpu are met

@@ -4,7 +4,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
 import { Creds, Opts, TestGetString } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
@@ -42,7 +42,7 @@ const get_auth_token = async function(
     expect(response.data.event, "ERROR-B:").to.equal("user_auth_token");
     const auth_token: string = response.data.auth_token;
     expect(auth_token.length).to.equal(24);
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
     debuglog("auth_token", auth_token.substr(0, 5) + "...");
     ags.result = auth_token;
     ags.pass += 1;

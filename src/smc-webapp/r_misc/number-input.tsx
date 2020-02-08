@@ -3,8 +3,8 @@ const { Col, FormControl, FormGroup, Row } = require("react-bootstrap");
 
 interface Props {
   number: number;
-  min: number;
-  max: number;
+  min?: number;
+  max?: number;
   on_change: (n: number) => void;
   unit?: string;
   disabled?: boolean;
@@ -37,9 +37,9 @@ export class NumberInput extends React.Component<Props, State> {
         n = this.props.number;
       }
     }
-    if (n < this.props.min) {
+    if (this.props.min != null && n < this.props.min) {
       n = this.props.min;
-    } else if (n > this.props.max) {
+    } else if (this.props.max != null && n > this.props.max) {
       n = this.props.max;
     }
     this.setState({ number: n });

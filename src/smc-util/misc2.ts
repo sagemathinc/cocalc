@@ -573,13 +573,6 @@ export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
 }
 
-// typescript tuple, use this to convert an array to a literal type. e.g.
-// const types = tuple("error", "default", "success", "info");
-// type Severity = typeof types[number];
-export function tuple<T extends Array<string>>(o: T) {
-  return o;
-}
-
 // TODO: Move this var and the `delete_local_storage` to a new front-end-misc or something
 // TS rightfully complains about this missing when built on back end systems
 // HSY: the local storage management module is in misc/local-storage.ts

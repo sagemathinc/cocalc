@@ -3,13 +3,14 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Opts, PassFail, TestFiles } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail, TestFiles } from "./types";
+import { time_log2 } from "./time_log";
 import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
 export const test_sage_ker = async function(
+  creds: Creds,
   opts: Opts,
   page: Page
 ): Promise<PassFail> {
@@ -44,7 +45,7 @@ export const test_sage_ker = async function(
     await page.click(sel);
     debuglog("clicked file line");
 
-    time_log(`open ${TestFiles.sageipynbfile}`, tm_open_sage_ker);
+    await time_log2(`open ${TestFiles.sageipynbfile}`, tm_open_sage_ker, creds, opts);
     const tm_sage_ker_test = process.hrtime.bigint();
 
     sel = '*[cocalc-test="jupyter-cell"]';
@@ -110,7 +111,7 @@ export const test_sage_ker = async function(
     await page.waitForSelector(sel);
     debuglog("got file search");
 
-    time_log(this_file, tm_sage_ker_test);
+    await time_log2(this_file, tm_sage_ker_test, creds, opts);
     await screenshot(page, opts, "cocalc-sage-ipynb.png");
     pfcounts.pass += 1;
   } catch (e) {

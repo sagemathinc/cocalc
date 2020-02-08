@@ -3,8 +3,8 @@ const this_file: string = path.basename(__filename, ".js");
 const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
-import { Creds, PassFail } from "./types";
-import { time_log } from "./time_log";
+import { Creds, Opts, PassFail } from "./types";
+import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
@@ -14,6 +14,7 @@ function sleep(ms: number = 0): Promise<void> {
 
 export const api_create_file = async function(
   creds: Creds,
+  opts: Opts,
   file_path: string,
   api_key: string,
   project_id: string,
@@ -57,7 +58,7 @@ export const api_create_file = async function(
       expect(response.data.event).to.equal("file_written_to_project");
       break;
     }
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
     pfcounts.pass += 1;
   } catch (e) {
     pfcounts.fail += 1;

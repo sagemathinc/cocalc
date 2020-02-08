@@ -15,7 +15,8 @@ import {
   HELP_EMAIL,
   DOC_URL,
   TWITTER_HANDLE,
-  LIVE_DEMO_REQUEST
+  LIVE_DEMO_REQUEST,
+  DISCORD_INVITE
 } from "smc-util/theme";
 
 interface LinkInfo {
@@ -105,8 +106,17 @@ export const SUPPORT_LINKS: Links = {
 };
 
 export const CONNECT_LINKS = {
-  share: {
+  discord: {
     bold: true,
+    icon: "fab fa-discord",
+    href: DISCORD_INVITE,
+    link: (
+      <span>
+        Discord - chat about <SiteName />
+      </span>
+    )
+  },
+  share: {
     icon: "bullhorn",
     href: `${BASE_URL}/share`,
     link: "Shared public files"

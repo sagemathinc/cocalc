@@ -23,7 +23,6 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-{project_action_request_pre_hook} = require('./postgres/project-action-hooks')
 {file_use_times} = require('./postgres/file-use-times')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
@@ -799,12 +798,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 cb        : cb
         async.series([
             (cb) =>
-                try
-                    await project_action_request_pre_hook(@, action_request.action, opts.project_id, dbg)
-                    cb()
-                catch err
-                    cb(err)
-            (cb) =>
                 action_request.started = new Date()
                 set_action_request(cb)
             (cb) =>
@@ -1458,13 +1451,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("error parsing query opts -- #{err}")
             opts.cb(err)
             return
-        if client_query.get.instead_of_query?
-            # Custom version: instead of doing a full query, we instead
-            # call a function and that's it.
-            dbg("do instead_of_query instead")
-            client_query.get.instead_of_query(@,
-                        misc.copy_without(opts, ['cb', 'changes', 'table', 'multi']), opts.cb)
-            return
 
         _query_opts = {}  # this will be the input to the @_query command.
         locals =
@@ -1492,6 +1478,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     _query_opts.where = where
                     cb(err)
             (cb) =>
+                if client_query.get.instead_of_query?
+                    cb();
+                    return
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query, client_query.get.remove_from_query)
                 x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.options)
                 if x.err
@@ -1513,6 +1502,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 else
                     cb()
             (cb) =>
+
+                if client_query.get.instead_of_query?
+                    if opts.changes?
+                        cb("changefeeds are not supported for querying this table")
+                        return
+                    # Custom version: instead of doing a full query, we instead
+                    # call a function and that's it.
+                    dbg("do instead_of_query instead")
+                    opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
+                    client_query.get.instead_of_query @, opts1, (err, result) =>
+                        locals.result = result
+                        cb(err)
+                    return
+
                 if _query_opts.only_changes
                     dbg("skipping query")
                     locals.result = undefined

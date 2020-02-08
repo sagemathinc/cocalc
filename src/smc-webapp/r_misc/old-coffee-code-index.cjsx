@@ -1523,6 +1523,7 @@ exports.CopyToClipBoard = rclass
         value         : rtypes.string
         button_before : rtypes.element # Optional button to place before the copy text
         hide_after    : rtypes.bool    # Hide the default after button
+        style         : rtypes.object
 
     getInitialState: ->
         show_tooltip : false
@@ -1554,7 +1555,7 @@ exports.CopyToClipBoard = rclass
         </InputGroup.Button>
 
     render: ->
-        <FormGroup>
+        <FormGroup style={@props.style}>
             <InputGroup>
                 {<InputGroup.Button>
                     {@props.button_before}

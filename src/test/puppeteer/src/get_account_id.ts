@@ -4,7 +4,7 @@ const debuglog = require("util").debuglog("cc-" + this_file);
 
 import chalk from "chalk";
 import { Creds, Opts, TestGetString } from "./types";
-import { time_log } from "./time_log";
+import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
@@ -39,7 +39,7 @@ const get_account_id = async function(
     const account_id: string = response.data.results[0].account_id;
     expect(account_id.length).to.equal(36);
     debuglog("account_id:", account_id);
-    time_log(this_file, tm_start);
+    await time_log2(this_file, tm_start, creds, opts);
     ags.result = account_id;
     ags.pass += 1;
   } catch (e) {
