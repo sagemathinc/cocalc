@@ -1,4 +1,4 @@
-import { Map } from "immutable";
+import { fromJS, Map } from "immutable";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
@@ -10,7 +10,7 @@ import { plural } from "smc-util/misc2";
 
 interface Props {
   license_id: string;
-  project_id: string;
+  project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   upgrades?: Map<string, number>;
 }
 
@@ -69,7 +69,11 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     // sniff their browser traffic and get it so this is just to
     // discourage really trivial blatant misuse.  We will have other
     // layers of security.
-    if (!redux.getStore("account").get("is_admin")) return;
+    // However, if no project_id specified, this license is being used
+    // as part of a course config (or something else), so we still show
+    // the license id.
+    if (this.props.project_id && !redux.getStore("account").get("is_admin"))
+      return;
     return (
       <div style={{ fontFamily: "monospace" }}>{this.props.license_id}</div>
     );
@@ -91,13 +95,49 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     return this.props.upgrades != null && this.props.upgrades.size > 0;
   }
 
+  private run_limit(): string {
+    if (!this.state.info) return "";
+    if (!this.state.info.run_limit) {
+      return "to an unlimited number of simultaneous running projects";
+    }
+    return `to up to ${this.state.info.run_limit} simultaneous running projects`;
+  }
+
+  private render_what_license_provides_overall(): Rendered {
+    if (!this.state.info) return;
+    if (!this.state.info.upgrades) return;
+    return (
+      <div>
+        Provides the following upgrades {this.run_limit()}
+        <DisplayUpgrades
+          upgrades={scale_by_display_factors(fromJS(this.state.info.upgrades))}
+          style={{
+            border: "1px solid #ddd",
+            padding: "0 15px",
+            backgroundColor: "white",
+            margin: "5px 15px"
+          }}
+        />
+      </div>
+    );
+  }
+
   private render_upgrades(): Rendered {
+    if (!this.props.project_id) {
+      // component not being used in the context of a specific project.
+      return this.render_what_license_provides_overall();
+    }
+    let run_limit = this.run_limit();
+    if (run_limit) {
+      run_limit = "This license can be applied " + run_limit;
+    }
     if (!this.provides_upgrades()) {
       if (!this.state.info) return;
       return (
         <div>
           Currently providing no upgrades - you probably need to restart your
-          project (it's also possible that the license limit has been reached)
+          project (it's also possible that the license limit has been reached).
+          {" "}{run_limit}
         </div>
       );
     }
@@ -115,6 +155,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
             margin: "5px 15px"
           }}
         />
+        {" "}{run_limit}
       </div>
     );
   }
@@ -128,6 +169,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private async remove_license(): Promise<void> {
+    if (!this.props.project_id) return;
     const actions = redux.getActions("projects");
     // newly added licenses
     try {
@@ -145,6 +187,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private render_remove_button(): Rendered {
+    if (!this.props.project_id) return;
     const extra = this.provides_upgrades() ? (
       <>
         <br />

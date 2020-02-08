@@ -63,7 +63,7 @@ export const site_licenses = create({
     restricted: {
       type: "boolean",
       desc:
-        "If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects."
+        "NOTE IMPLEMENTED YET: If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects."
     },
     upgrades: {
       type: "map",
@@ -257,7 +257,9 @@ export const site_license_public_info = create({
     id: site_licenses.fields.id,
     title: site_licenses.fields.title,
     expires: site_licenses.fields.expires,
-    activates: site_licenses.fields.activates
+    activates: site_licenses.fields.activates,
+    upgrades: site_licenses.fields.upgrades,
+    run_limit: site_licenses.fields.run_limit
   },
   rules: {
     desc: "Publicly available information about site licenses",
@@ -278,7 +280,9 @@ export const site_license_public_info = create({
           id: null,
           title: null,
           expires: null,
-          activates: null
+          activates: null,
+          upgrades: null,
+          run_limit: null
         }
       }
     }

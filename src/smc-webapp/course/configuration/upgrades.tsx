@@ -38,6 +38,7 @@ import {
 } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
+import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
 
 const { ShowSupportLink } = require("../../support");
 
@@ -645,9 +646,22 @@ class StudentProjectUpgrades extends Component<
     );
   }
 
+  render_current_license(): Rendered {
+    if (!this.props.site_license_id) return;
+    return (
+      <div style={{ margin: "15px 0" }}>
+        This project and all student projects will be upgraded using the
+        following license:
+        <br />
+        <SiteLicensePublicInfo license_id={this.props.site_license_id} />
+      </div>
+    );
+  }
+
   render_site_license() {
     return (
       <div>
+        {this.render_current_license()}
         <Button
           onClick={() => {
             this.setState({
@@ -657,7 +671,10 @@ class StudentProjectUpgrades extends Component<
           }}
           disabled={this.state.show_site_license}
         >
-          <Icon name="key" /> Upgrade using a license key...
+          <Icon name="key" />{" "}
+          {this.props.site_license_id
+            ? "Change or remove site license"
+            : "Upgrade using a license key..."}
         </Button>
         {this.render_site_license_text()}
       </div>
