@@ -20,10 +20,7 @@ import {
   scale_by_display_factors
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
-import {
-  DisplayManagers,
-  EditManagers,
-} from "./managers";
+import { DisplayManagers, EditManagers } from "./managers";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
@@ -37,6 +34,11 @@ interface Props {
 }
 
 function format_as_label(field: string): string {
+  // Some replacements that look better.
+  if (field == "info") {
+    field = "Structured JSON information";
+  }
+
   return replace_all(capitalize(field), "_", " ");
 }
 
@@ -191,6 +193,23 @@ export class License extends Component<Props> {
             </span>
           );
           break;
+        case "map":
+          x = (
+            <DebounceInput
+              element="textarea"
+              forceNotifyByEnter={false}
+              placeholder={
+                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+              }
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              rows={4}
+              value={
+                typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
+              }
+              onChange={e => onChange((e.target as any).value)}
+            />
+          );
+          break;
         case "readonly":
         default:
           if (is_date(val)) {
@@ -287,6 +306,17 @@ export class License extends Component<Props> {
           break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
+          break;
+        case "map":
+          if (!val) {
+            x = "";
+          } else {
+            x = (
+              <pre style={{ margin: 0, padding: "5px" }}>
+                {JSON.stringify(val, undefined, 2)}
+              </pre>
+            );
+          }
           break;
         default:
           x = `${val}`;

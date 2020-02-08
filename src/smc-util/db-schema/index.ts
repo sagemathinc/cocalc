@@ -6,7 +6,8 @@ import {
   site_licenses,
   site_license_usage_stats,
   site_license_public_info,
-  projects_using_site_license
+  projects_using_site_license,
+  site_license_usage_log
 } from "./site-licenses";
 import { file_use_times } from "./file-use-times";
 import { central_log } from "./central-log";
@@ -21,6 +22,7 @@ export const SCHEMA = {
   site_license_usage_stats,
   projects_using_site_license,
   site_license_public_info,
+  site_license_usage_log,
   file_use_times,
   central_log
 };

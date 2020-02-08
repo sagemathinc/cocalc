@@ -135,12 +135,21 @@ const BASE_QUOTAS: Quota = {
   idle_timeout: DEFAULT_QUOTAS.mintime // minimum uptime
 } as const;
 
+// sanitize the overcommitment ratio or discard it
+function sani_oc(oc: number | undefined): number | undefined {
+  if (typeof oc == "number" && !isNaN(oc)) {
+    return Math.max(1, oc);
+  }
+  return undefined;
+}
+
 function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   const q: Quota = Object.assign({}, BASE_QUOTAS);
 
   // overwrite/set extras for any set default quota in the site setting
-  if (site_settings != null && site_settings?.default_quotas != null) {
-    const dq = site_settings?.default_quotas;
+  if (site_settings != null && site_settings.default_quotas != null) {
+    const dq = site_settings.default_quotas;
+
     if (typeof dq.disk_quota == "number") {
       q.disk_quota = dq.disk_quota;
     }
@@ -152,16 +161,18 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
     }
     if (typeof dq.mem == "number") {
       q.memory_limit = dq.mem;
-      if (typeof dq.mem_oc == "number") {
-        // ratio is 1:mem_oc
-        q.memory_request = Math.round(dq.mem / dq.mem_oc);
+      const oc = sani_oc(dq.mem_oc);
+      // ratio is 1:mem_oc -- sanitize it first
+      if (oc != null) {
+        q.memory_request = Math.round(dq.mem / oc);
       }
     }
     if (typeof dq.cpu == "number") {
       q.cpu_limit = dq.cpu as number;
-      if (typeof dq.cpu_oc == "number") {
-        // ratio is 1:cpu_oc
-        q.cpu_request = dq.cpu / dq.cpu_oc;
+      // ratio is 1:cpu_oc -- sanitize it first
+      const oc = sani_oc(dq.cpu_oc);
+      if (oc != null) {
+        q.cpu_request = dq.cpu / oc;
       }
     }
   }
@@ -305,21 +316,19 @@ exports.quota = function(
     }
     // if we have some overcommit ratio set, increase a request
     if (site_settings?.default_quotas != null) {
-      const { mem_oc, cpu_oc } = site_settings?.default_quotas;
-      if (
-        typeof cpu_oc == "number" &&
-        name == "cpu_request" &&
-        quota.cpu_limit != null
-      ) {
-        const oc_cpu = quota.cpu_limit / cpu_oc;
-        contribs = Math.max(contribs, oc_cpu - base);
-      } else if (
-        typeof mem_oc == "number" &&
-        name == "memory_request" &&
-        quota.memory_limit != null
-      ) {
-        const oc_mem = quota.memory_limit / mem_oc;
-        contribs = Math.max(contribs, oc_mem - base);
+      const { mem_oc, cpu_oc } = site_settings.default_quotas;
+      if (name == "cpu_request" && quota.cpu_limit != null) {
+        const oc = sani_oc(cpu_oc);
+        if (oc != null) {
+          const oc_cpu = quota.cpu_limit / oc;
+          contribs = Math.max(contribs, oc_cpu - base);
+        }
+      } else if (name == "memory_request" && quota.memory_limit != null) {
+        const oc = sani_oc(mem_oc);
+        if (oc != null) {
+          const oc_mem = Math.round(quota.memory_limit / oc);
+          contribs = Math.max(contribs, oc_mem - base);
+        }
       }
     }
     contribs = Math.min(remain, contribs);

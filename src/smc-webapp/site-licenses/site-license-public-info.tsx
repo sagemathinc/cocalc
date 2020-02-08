@@ -5,7 +5,7 @@ import { site_license_public_info } from "./util";
 import { Icon, Loading, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
 import { Alert, Button, Popconfirm } from "antd";
-import { DisplayUpgrades } from "./admin/upgrades";
+import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural } from "smc-util/misc2";
 
 interface Props {
@@ -39,7 +39,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   }
 
   private render_expires(): Rendered {
-    if (!this.state.info || !this.state.info.expires) return;
+    if (!this.state.info) return;
+    if (!this.state.info.expires) {
+      return <span> (no expiration date set)</span>;
+    }
     return (
       <span>
         {" "}
@@ -48,12 +51,12 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     );
   }
 
-  private get_type(): "info" | "error" | "success" {
+  private get_type(): "warning" | "error" | "success" {
     if (this.state.loading || this.state.info != null) {
       if (this.provides_upgrades()) {
         return "success";
       } else {
-        return "info";
+        return "warning";
       }
     } else {
       return "error";
@@ -90,10 +93,11 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
   private render_upgrades(): Rendered {
     if (!this.provides_upgrades()) {
+      if (!this.state.info) return;
       return (
         <div>
-          Currently providing no upgrades (license limit may have been reached
-          or you may have to restart project)
+          Currently providing no upgrades - you probably need to restart your
+          project (it's also possible that the license limit has been reached)
         </div>
       );
     }
@@ -103,7 +107,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         Currently providing the following{" "}
         {plural(this.props.upgrades.size, "upgrade")}:
         <DisplayUpgrades
-          upgrades={this.props.upgrades}
+          upgrades={scale_by_display_factors(this.props.upgrades)}
           style={{
             border: "1px solid #ddd",
             padding: "0 15px",

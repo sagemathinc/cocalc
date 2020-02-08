@@ -2,6 +2,7 @@
 Viewing and configuring site licenses
 */
 
+import { DebounceInput } from "react-debounce-input";
 import {
   React,
   Rendered,
@@ -161,14 +162,18 @@ class SiteLicenses extends Component<Props> {
   private render_search(): Rendered {
     if (!this.props.view) return;
     return (
-      <span>
-        <input
-          placeholder={"Search"}
-          style={{ marginLeft: "5px", width: "40ex", padding: "5px" }}
-          value={this.props.search ?? ""}
-          onChange={e => actions.set_search((e.target as any).value.trim())}
-        />
-      </span>
+      <DebounceInput
+        placeholder={"Search"}
+        style={{
+          marginLeft: "5px",
+          width: "40ex",
+          padding: "5px",
+          border: "1px solid lightgrey",
+          borderRadius: "3px"
+        }}
+        value={this.props.search ?? ""}
+        onChange={e => actions.set_search((e.target as any).value)}
+      />
     );
   }
 

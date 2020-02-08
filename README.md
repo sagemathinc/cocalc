@@ -28,7 +28,6 @@ The name was coined in fall 2016 and changed around spring 2017.
 
 ### Current highly active contributors
 
-   * John Jeng
    * Harald Schilly
    * Hal Snyder
    * William Stein
@@ -36,6 +35,7 @@ The name was coined in fall 2016 and changed around spring 2017.
 
 ### Past contributors
 
+   * John Jeng
    * Greg Bard
    * Rob Beezer
    * Keith Clawson
