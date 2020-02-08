@@ -32,11 +32,13 @@ async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
   return licenses.get();
 }
 
+// Call this any time about to *start* the project.
+
 export async function site_license_hook(
   db: PostgreSQL,
-  project_id: string,
-  dbg: Function
+  project_id: string
 ): Promise<void> {
+  const dbg = db._dbg(`site_license_hook("${project_id}")`);
   dbg("site_license_hook -- checking for site license");
 
   // Check for site licenses, then set the site_license field for this project.

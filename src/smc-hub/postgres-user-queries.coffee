@@ -23,7 +23,6 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-{project_action_request_pre_hook} = require('./postgres/project-action-hooks')
 {file_use_times} = require('./postgres/file-use-times')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
@@ -798,12 +797,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 jsonb_set : {action_request : action_request}
                 cb        : cb
         async.series([
-            (cb) =>
-                try
-                    await project_action_request_pre_hook(@, action_request.action, opts.project_id, dbg)
-                    cb()
-                catch err
-                    cb(err)
             (cb) =>
                 action_request.started = new Date()
                 set_action_request(cb)
