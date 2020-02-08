@@ -31,6 +31,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               id: null,
               title: null,
               description: null,
+              info: null,
               expires: null,
               activates: null,
               created: null,
@@ -106,6 +107,16 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       if (site_licenses.upgrades) {
         normalize_upgrades_for_save(site_licenses.upgrades);
       }
+      if (site_licenses.info != null) {
+        try {
+          site_licenses.info = JSON.parse(site_licenses.info);
+        } catch (err) {
+          this.set_error(`unable to parse JSON info field -- ${err}`);
+          return;
+        }
+        // We have to set info differently since otherwise it gets deep
+        // merged in.
+      }
       if (site_licenses.run_limit) {
         const val = parseInt(site_licenses.run_limit);
         if (isNaN(val) || !isFinite(val) || val < 0) {
@@ -126,9 +137,9 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       } catch (err) {
         this.set_error(err);
       }
+      this.cancel_editing(license_id);
       await this.load();
     } finally {
-      this.cancel_editing(license_id);
       this.cancel_saving(license_id);
     }
   }
@@ -156,7 +167,10 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public update_search(): void {
-    const search = store.get("search","").trim().toLowerCase();
+    const search = store
+      .get("search", "")
+      .trim()
+      .toLowerCase();
     let matches_search: undefined | Set<string> = undefined;
     if (search) {
       // figure out what matches the search

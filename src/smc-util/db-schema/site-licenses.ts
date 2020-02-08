@@ -30,6 +30,11 @@ export const site_licenses = create({
       type: "string",
       desc: "Longer description of the license, extra notes, etc."
     },
+    info: {
+      type: "map",
+      desc:
+        "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map."
+    },
     expires: {
       type: "timestamp",
       desc:
@@ -90,6 +95,7 @@ export const site_licenses = create({
           id: null,
           title: null,
           description: null,
+          info: null,
           expires: null,
           activates: null,
           created: null,
@@ -107,6 +113,7 @@ export const site_licenses = create({
           id: null,
           title: null,
           description: null,
+          info: null,
           expires: null,
           activates: null,
           created: null,

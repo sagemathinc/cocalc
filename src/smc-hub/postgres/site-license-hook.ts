@@ -213,20 +213,18 @@ async function update_last_used(
   license_id: string,
   dbg: Function
 ): Promise<void> {
-  dbg(`update_last_used {license_id}`);
+  dbg(`update_last_used("${license_id}")`);
   const now = new Date().valueOf();
   if (
     last_used[license_id] != null &&
     now - last_used[license_id] <= 60 * 1000
   ) {
-    dbg(`update_last_used {license_id} - recently updated so waiting`);
+    dbg("recently updated so waiting");
     // If we updated this entry in the database already within a minute, don't again.
     return;
   }
   last_used[license_id] = now;
-  dbg(
-    `update_last_used {license_id} - did NOT recently update, so updating in database`
-  );
+  dbg("did NOT recently update, so updating in database");
 
   await callback2(db._query.bind(db), {
     query: "UPDATE site_licenses",
