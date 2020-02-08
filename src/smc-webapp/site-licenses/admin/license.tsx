@@ -1,19 +1,32 @@
 import { React, Rendered, Component, TypedMap } from "../../app-framework";
+import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
 import { license_fields, license_field_type } from "./types";
-import { capitalize, is_date, replace_all, plural } from "smc-util/misc2";
+import {
+  capitalize,
+  is_date,
+  merge,
+  replace_all,
+  plural
+} from "smc-util/misc2";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
-import { DisplayUpgrades, EditUpgrades } from "./upgrades";
+import {
+  DisplayUpgrades,
+  EditUpgrades,
+  scale_by_display_factors
+} from "./upgrades";
 import { Projects } from "../../admin/users/projects";
+import { DisplayManagers, EditManagers } from "./managers";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
+  saving?: boolean;
   show_projects?: boolean;
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
@@ -21,6 +34,11 @@ interface Props {
 }
 
 function format_as_label(field: string): string {
+  // Some replacements that look better.
+  if (field == "info") {
+    field = "Structured JSON information";
+  }
+
   return replace_all(capitalize(field), "_", " ");
 }
 
@@ -29,28 +47,37 @@ const STATUS_STYLE: React.CSSProperties = {
   marginBottom: "5px"
 };
 
+export const INPUT_STYLE: React.CSSProperties = {
+  border: "1px solid lightgrey",
+  borderRadius: "3px",
+  padding: "0 5px"
+};
+
 export class License extends Component<Props> {
   private render_data(): Rendered[] {
     const v: Rendered[] = [];
     const edits = this.props.edits;
     let i = 0;
     for (const field in license_fields) {
-      const val =
-        this.props.editing && edits != null && edits.has(field)
-          ? edits.get(field)
-          : this.props.license.get(field);
-      //if (val == null && !this.props.editing) continue;
+      let val;
+      if (this.props.editing && edits != null && edits.has(field)) {
+        val = edits.get(field);
+      } else {
+        val = this.props.license.get(field);
+        if (val != null && field == "upgrades") {
+          // tedious detail: some upgrades have to be scaled before displaying to be edited...
+          val = scale_by_display_factors(val);
+        }
+      }
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
       let x = this.render_value(field, val);
       if (field == "id") {
         x = (
-          <>
-            <CopyToClipBoard
-              value={x}
-              style={{ display: "inline-block", width: "50ex", margin: 0 }}
-            />
-          </>
+          <CopyToClipBoard
+            value={x}
+            style={{ display: "inline-block", width: "50ex", margin: 0 }}
+          />
         );
       }
       v.push(
@@ -82,8 +109,8 @@ export class License extends Component<Props> {
       switch (type) {
         case "string":
           x = (
-            <input
-              style={{ width: "50ex" }}
+            <DebounceInput
+              style={merge({ width: "50ex" }, INPUT_STYLE)}
               value={val != null ? val : ""}
               onChange={e => onChange((e.target as any).value)}
             />
@@ -94,9 +121,11 @@ export class License extends Component<Props> {
           break;
         case "paragraph":
           x = (
-            <textarea
-              style={{ width: "100%", border: "1px solid lightgray" }}
-              rows={3}
+            <DebounceInput
+              element="textarea"
+              forceNotifyByEnter={false}
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              rows={5}
               value={val != null ? val : ""}
               onChange={e => onChange((e.target as any).value)}
             />
@@ -125,7 +154,14 @@ export class License extends Component<Props> {
           }
           break;
         case "account_id[]":
-          x = "(TODO: list of managers)";
+          x = (
+            <EditManagers
+              managers={val}
+              onChange={onChange}
+              license_id={this.props.license.get("id")}
+              license_field={field}
+            />
+          );
           break;
         case "boolean":
           x = (
@@ -148,13 +184,30 @@ export class License extends Component<Props> {
         case "number":
           x = (
             <span>
-              <input
-                style={{ width: "100%" }}
+              <DebounceInput
+                style={merge({ width: "100%" }, INPUT_STYLE)}
                 value={val != null ? val : "0"}
                 onChange={e => onChange((e.target as any).value)}
               />{" "}
               (0 = no limit)
             </span>
+          );
+          break;
+        case "map":
+          x = (
+            <DebounceInput
+              element="textarea"
+              forceNotifyByEnter={false}
+              placeholder={
+                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+              }
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              rows={4}
+              value={
+                typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
+              }
+              onChange={e => onChange((e.target as any).value)}
+            />
           );
           break;
         case "readonly":
@@ -248,8 +301,22 @@ export class License extends Component<Props> {
             }
           }
           break;
+        case "account_id[]":
+          x = <DisplayManagers managers={val} />;
+          break;
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
+          break;
+        case "map":
+          if (!val) {
+            x = "";
+          } else {
+            x = (
+              <pre style={{ margin: 0, padding: "5px" }}>
+                {JSON.stringify(val, undefined, 2)}
+              </pre>
+            );
+          }
           break;
         default:
           x = `${val}`;
@@ -319,13 +386,22 @@ export class License extends Component<Props> {
     if (this.props.editing) {
       buttons = (
         <ButtonGroup>
-          <Button onClick={() => actions.cancel_editing(id)}>Cancel</Button>
           <Button
-            disabled={this.props.edits == null || this.props.edits.size <= 1}
+            onClick={() => actions.cancel_editing(id)}
+            disabled={this.props.saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={
+              this.props.edits == null ||
+              this.props.edits.size <= 1 ||
+              this.props.saving
+            }
             bsStyle="success"
             onClick={() => actions.save_editing(id)}
           >
-            Save
+            <Icon name={"save"} /> {this.props.saving ? "Saving..." : "Save"}
           </Button>
         </ButtonGroup>
       );

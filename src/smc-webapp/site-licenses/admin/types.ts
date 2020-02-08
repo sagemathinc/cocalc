@@ -22,12 +22,13 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "cpu_shares"
 ];
 
-type Upgrades = { [field: upgrade_fields_type]: number };
+export type Upgrades = { [field: upgrade_fields_type]: number };
 
 export interface SiteLicense {
   id: string;
   title?: string;
   description?: string;
+  info?: { [key: string]: any };
   expires?: Date;
   activates?: Date;
   created?: Date;
@@ -44,6 +45,7 @@ export type license_field_type =
   | "paragraph"
   | "date"
   | "account_id[]"
+  | "map"
   | "boolean"
   | "upgrades"
   | "number"
@@ -53,6 +55,7 @@ export type license_field_names =
   | "id"
   | "title"
   | "description"
+  | "info"
   | "expires"
   | "activates"
   | "created"
@@ -69,11 +72,12 @@ export const license_fields: {
   id: "readonly",
   title: "string",
   description: "paragraph",
+  info: "map",
   expires: "date",
   activates: "date",
   created: "date",
   last_used: "date",
-  // managers: "account_id[]",  // hide for now since not implemented at all
+  managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   run_limit: "number"
@@ -89,6 +93,7 @@ export interface SiteLicensesState {
   creating?: boolean;
   site_licenses?: SiteLicense[];
   editing?: Set<string>; // id's of site licenses that are currently being edited.
+  saving?: Set<string>; // id's of site licenses that are currently being saved to the backend.
   show_projects?: Set<string>; // id's where we should show the projects that are using the license.
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;

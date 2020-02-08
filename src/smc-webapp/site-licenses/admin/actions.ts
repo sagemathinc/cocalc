@@ -31,6 +31,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               id: null,
               title: null,
               description: null,
+              info: null,
               expires: null,
               activates: null,
               created: null,
@@ -85,37 +86,62 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ edits: edits.delete(license_id) });
   }
 
+  public start_saving(license_id: string): void {
+    const saving = store.get("saving", Set()).add(license_id);
+    this.setState({ saving });
+  }
+
+  public cancel_saving(license_id: string): void {
+    const saving = store.get("saving", Set()).delete(license_id);
+    this.setState({ saving });
+  }
+
   public async save_editing(license_id: string): Promise<void> {
     const edits = store.get("edits");
-    this.cancel_editing(license_id);
     if (edits == null) return;
-    const changes = edits.get(license_id);
-    if (changes == null || changes.size <= 1) return; // no actual changes
-    let site_licenses = changes.toJS();
-    if (site_licenses.upgrades) {
-      normalize_upgrades_for_save(site_licenses.upgrades);
-    }
-    if (site_licenses.run_limit) {
-      const val = parseInt(site_licenses.run_limit);
-      if (isNaN(val) || !isFinite(val) || val < 0) {
-        this.set_error(
-          `invalid value ${site_licenses.run_limit} for run limit`
-        );
-        return;
-      }
-      site_licenses.run_limit = val;
-    }
-
     try {
-      await query({
-        query: {
-          site_licenses
+      this.start_saving(license_id);
+      const changes = edits.get(license_id);
+      if (changes == null || changes.size <= 1) return; // no actual changes
+      let site_licenses = changes.toJS();
+      if (site_licenses.upgrades) {
+        normalize_upgrades_for_save(site_licenses.upgrades);
+      }
+      if (site_licenses.info != null) {
+        try {
+          site_licenses.info = JSON.parse(site_licenses.info);
+        } catch (err) {
+          this.set_error(`unable to parse JSON info field -- ${err}`);
+          return;
         }
-      });
-    } catch (err) {
-      this.set_error(err);
+        // We have to set info differently since otherwise it gets deep
+        // merged in.
+      }
+      if (site_licenses.run_limit) {
+        const val = parseInt(site_licenses.run_limit);
+        if (isNaN(val) || !isFinite(val) || val < 0) {
+          this.set_error(
+            `invalid value ${site_licenses.run_limit} for run limit`
+          );
+          return;
+        }
+        site_licenses.run_limit = val;
+      }
+
+      try {
+        await query({
+          query: {
+            site_licenses
+          }
+        });
+      } catch (err) {
+        this.set_error(err);
+      }
+      this.cancel_editing(license_id);
+      await this.load();
+    } finally {
+      this.cancel_saving(license_id);
     }
-    await this.load();
   }
 
   public set_edit(
@@ -141,7 +167,10 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public update_search(): void {
-    const search = store.get("search");
+    const search = store
+      .get("search", "")
+      .trim()
+      .toLowerCase();
     let matches_search: undefined | Set<string> = undefined;
     if (search) {
       // figure out what matches the search

@@ -24,7 +24,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Button, Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Space, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Space, Tip, Icon}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 misc_page = require('./misc_page')
 
@@ -156,6 +156,40 @@ Page = rclass
             active_top_tab = {@props.active_top_tab}
             show_label     = {@state.show_label}
         />
+
+    # This is the new version with a dropdown menu.
+    xxx_render_account_tab: ->
+        if @props.is_anonymous
+            return <NavTab
+                        name           = 'account'
+                        label          = {<Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>}
+                        style          = {{marginTop:'-10px'}}
+                        label_class    = {nav_class}
+                        icon           = {undefined}
+                        actions        = {@actions('page')}
+                        active_top_tab = {@props.active_top_tab}
+                        show_label     = {@state.show_label}
+                    />
+
+        if @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else # What does it mean to not have an account id?
+            a = <Icon name='cog'/>
+
+        return <AccountTabDropdown
+                user_label = {@props.redux.getStore("account").get_fullname()}
+                icon = {a}
+                links = {<DefaultAccountDropDownLinks account_actions={@actions("account")}  page_actions={@actions("page")} />}
+                label_class = {nav_class}
+                show_label = {@state.show_label}
+                is_active = {@props.active_top_tab == 'account'}
+            />
+
 
     render_admin_tab: ->
         <NavTab

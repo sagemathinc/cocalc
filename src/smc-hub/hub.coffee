@@ -425,6 +425,29 @@ init_update_stats = (cb) ->
     setInterval(update_stats, 60000)
     update_stats(cb)
 
+
+# async function
+update_site_license_usage_log = (cb) ->
+    # This calculates and updates the site_license_usage_log
+    # It's important that we call this periodically, if we want
+    # to be able to monitor site license usage. This is enabled
+    # by default only for dev mode (so for development).
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            try
+                await database.update_site_license_usage_log()
+                cb()
+            catch err
+                cb(err)
+    ], (err) -> cb?(err))
+
+init_update_site_license_usage_log = (cb) ->
+    setInterval(update_site_license_usage_log, 30000)
+    update_site_license_usage_log(cb)
+
+
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
     dbg()
@@ -452,12 +475,9 @@ exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
     winston.debug("dev = #{program.dev}")
-    if program.dev
-        # So cookies work over http, which dev mode can allow (e.g., on localhost).
-        client.COOKIE_OPTIONS.secure = false
-    else
-        # Be very sure cookies do NOT work unless over https.  IMPORTANT.
-        client.COOKIE_OPTIONS.secure = true
+    # Be very sure cookies do NOT work unless over https.  IMPORTANT.
+    if not client.COOKIE_OPTIONS.secure
+        throw Error("client cookie options are not secure")
 
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
@@ -572,6 +592,10 @@ exports.start_server = start_server = (cb) ->
             if not program.dev
                 cb(); return
             init_update_stats(cb)
+        (cb) ->
+            if not program.dev
+                cb(); return
+            init_update_site_license_usage_log(cb)
         (cb) ->
             if not program.port
                 cb(); return

@@ -81,7 +81,11 @@ export function InfoPage(): JSX.Element {
             icon="support"
             links={SUPPORT_LINKS}
           />
-          <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+          <LinkList
+            title="Connect"
+            icon="plug"
+            links={CONNECT_LINKS}
+          />
         </Row>
         <Row style={{ marginTop: "20px" }}>
           <ThirdPartySoftware />

@@ -35,7 +35,7 @@ export async function convert(
 
   return await exec({
     allow_post: false, // definitely could take a long time to fully run all the R stuff...
-    timeout: 90,
+    timeout: 4 * 60,
     bash: true, // so timeout is enforced by ulimit
     command: "Rscript",
     args: ["-e", cmd],

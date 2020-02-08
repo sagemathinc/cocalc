@@ -74,8 +74,10 @@ express_session = require('express-session')
 api_key_cookie_name = (base_url) ->
     return base_url + 'get_api_key'
 
-exports.remember_me_cookie_name = remember_me_cookie_name = (base_url) ->
-    return base_url + 'remember_me'
+# Nov'19: actually two cookies due to same-site changes.
+# See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+exports.remember_me_cookie_name = remember_me_cookie_name = (base_url, legacy) ->
+    return "#{base_url}remember_me#{if !!legacy then '-legacy' else ''}"
 
 ########################################
 # Password hashing

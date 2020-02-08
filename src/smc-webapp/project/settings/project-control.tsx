@@ -30,7 +30,7 @@ import { alert_message } from "../../alerts";
 import { Project } from "./types";
 import { Map, fromJS } from "immutable";
 import { Popconfirm, Icon as AntIcon } from "antd";
-import { KUCALC_COCALC_COM } from "../../customize";
+import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 let {
   COMPUTE_IMAGES,
   DEFAULT_COMPUTE_IMAGE

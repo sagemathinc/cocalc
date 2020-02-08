@@ -2,6 +2,7 @@
 Viewing and configuring site licenses
 */
 
+import { DebounceInput } from "react-debounce-input";
 import {
   React,
   Rendered,
@@ -24,6 +25,7 @@ interface Props {
   creating?: boolean;
   site_licenses?: List<TypedMap<SiteLicense>>;
   editing?: Set<string>;
+  saving?: Set<string>;
   edits?: Map<string, TypedMap<SiteLicense>>;
   show_projects?: Set<string>;
   search?: string;
@@ -41,6 +43,7 @@ class SiteLicenses extends Component<Props> {
         creating: rtypes.bool,
         site_licenses: rtypes.immutable.List,
         editing: rtypes.immutable.Set,
+        saving: rtypes.immutable.Set,
         edits: rtypes.immutable.Map,
         show_projects: rtypes.immutable.Set,
         search: rtypes.string,
@@ -62,7 +65,11 @@ class SiteLicenses extends Component<Props> {
 
   private render_loading(): Rendered {
     if (this.props.loading) {
-      return <Loading theme="medium" />;
+      return (
+        <div style={{ float: "right" }}>
+          <Loading theme="medium" />
+        </div>
+      );
     }
   }
 
@@ -73,6 +80,7 @@ class SiteLicenses extends Component<Props> {
         key={id}
         license={license}
         editing={this.props.editing != null && this.props.editing.has(id)}
+        saving={this.props.saving != null && this.props.saving.has(id)}
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
         show_projects={
           this.props.show_projects != null
@@ -154,14 +162,18 @@ class SiteLicenses extends Component<Props> {
   private render_search(): Rendered {
     if (!this.props.view) return;
     return (
-      <span>
-        <input
-          placeholder={"Search"}
-          style={{ marginLeft: "5px", width: "40ex", padding: "5px" }}
-          value={this.props.search ?? ""}
-          onChange={e => actions.set_search((e.target as any).value.trim())}
-        />
-      </span>
+      <DebounceInput
+        placeholder={"Search"}
+        style={{
+          marginLeft: "5px",
+          width: "40ex",
+          padding: "5px",
+          border: "1px solid lightgrey",
+          borderRadius: "3px"
+        }}
+        value={this.props.search ?? ""}
+        onChange={e => actions.set_search((e.target as any).value)}
+      />
     );
   }
 
@@ -176,25 +188,32 @@ class SiteLicenses extends Component<Props> {
     }
   }
 
+  private render_body(): Rendered {
+    if (!this.props.view) return;
+    return (
+      <div style={{ margin: "0 30px" }}>
+        {this.render_error()}
+        <div>
+          {this.render_refresh_button()}
+          <Space />
+          <Space />
+          {this.render_create_new_license()}
+          <Space />
+          <Space />
+          {this.render_search()}
+          {this.render_search_restriction_note()}
+          {this.render_loading()}
+        </div>
+        {this.render_main()}
+      </div>
+    );
+  }
+
   render(): Rendered {
     return (
       <div>
         {this.render_header_toggle()}
-        <div style={{ margin: "0 30px" }}>
-          {this.render_error()}
-          <div>
-            {this.render_refresh_button()}
-            <Space />
-            <Space />
-            {this.render_create_new_license()}
-            <Space />
-            <Space />
-            {this.render_search()}
-            {this.render_search_restriction_note()}
-            {this.render_loading()}
-          </div>
-          {this.render_main()}
-        </div>
+        {this.render_body()}
       </div>
     );
   }
