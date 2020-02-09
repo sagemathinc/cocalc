@@ -92,9 +92,6 @@ export class ConfigurationActions {
           course_project_id,
           site_license_id
         );
-      } else {
-        // ensure no license set
-        await actions.remove_site_license_from_project(course_project_id);
       }
     } catch (err) {
       this.course_actions.set_error(`Error configuring host project - ${err}`);
