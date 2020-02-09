@@ -671,7 +671,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.order_by?
             opts.query += " ORDER BY #{opts.order_by} "
 
-        if opts.limit?
+        if opts.limit?  # TODO: type checking and sanitization for limit, etc....
             opts.query += " LIMIT #{opts.limit} "
 
         if opts.offset?
