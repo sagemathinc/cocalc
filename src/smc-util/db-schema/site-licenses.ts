@@ -177,14 +177,24 @@ export const projects_using_site_license = create({
   fields: {
     license_id: {
       type: "string",
-      desc: "the id of the license"
+      desc: "the id of the license -- must be specified"
     },
-    project_id: schema.projects.project_id,
-    title: schema.projects.title,
-    description: schema.projects.description,
-    users: schema.projects.users,
-    last_active: schema.projects.last_active,
-    last_edited: schema.projects.last_edited
+    cutoff: {
+      type: "timestamp",
+      desc:
+        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW()."
+    },
+    limit: {
+      type: "integer",
+      desc:
+        "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine."
+    },
+    project_id: schema.projects.project_id, // id of project
+    title: schema.projects.title, // first 80 characters of title of project
+    description: schema.projects.description, // first 80 characters of description of project
+    users: schema.projects.users, // users of the project
+    last_active: schema.projects.last_active, // who last active used project
+    last_edited: schema.projects.last_edited // when project was last edited
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -197,6 +207,8 @@ export const projects_using_site_license = create({
         admin: true, // for now admins only; TODO: later *managers* of the site license will also get access...
         fields: {
           license_id: null,
+          cutoff: null,
+          limit: null,
           project_id: null,
           title: null,
           description: null,
@@ -215,6 +227,9 @@ export const projects_using_site_license = create({
             cb("query must be of the form [{license_id:uuid, ...}]");
             return;
           }
+          if (!obj.limit) {
+            obj.limit = 1000;
+          }
           const fields: string[] = [];
           for (const field of [
             // this approach ensures requests for bad fields don't cause SQL injection...
@@ -231,10 +246,13 @@ export const projects_using_site_license = create({
             }
           }
           try {
-            const projects = await database.projects_using_site_license(
-              obj.license_id,
-              fields
-            );
+            const projects = await database.projects_using_site_license({
+              license_id: obj.license_id,
+              fields: fields,
+              cutoff: obj.cutoff,
+              limit: obj.limit,
+              truncate: 80
+            });
             for (const project of projects) {
               // for consistency with how queries work, we fill this in.
               project.license_id = obj.license_id;

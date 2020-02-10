@@ -27,7 +27,7 @@ interface Props {
   editing?: Set<string>;
   saving?: Set<string>;
   edits?: Map<string, TypedMap<SiteLicense>>;
-  show_projects?: Set<string>;
+  show_projects?: Map<string, "now" | Date>;
   search?: string;
   matches_search?: Set<string>;
   usage_stats?: Map<string, number>;
@@ -82,16 +82,8 @@ class SiteLicenses extends Component<Props> {
         editing={this.props.editing != null && this.props.editing.has(id)}
         saving={this.props.saving != null && this.props.saving.has(id)}
         edits={this.props.edits != null ? this.props.edits.get(id) : undefined}
-        show_projects={
-          this.props.show_projects != null
-            ? this.props.show_projects.has(id)
-            : undefined
-        }
-        usage_stats={
-          this.props.usage_stats != null
-            ? this.props.usage_stats.get(id)
-            : undefined
-        }
+        show_projects={this.props.show_projects?.get(id)}
+        usage_stats={this.props.usage_stats?.get(id)}
       />
     );
   }

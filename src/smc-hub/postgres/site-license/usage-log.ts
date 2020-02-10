@@ -10,8 +10,8 @@ to get called periodically from one of the manage-* services.
 
 It's also enabled in dev mode by the hub so that cc-in-cc hub developemnt is easier.
 */
-import { PostgreSQL } from "./types";
-import { query } from "./query";
+import { PostgreSQL } from "../types";
+import { query } from "../query";
 
 export async function update_site_license_usage_log(
   db: PostgreSQL

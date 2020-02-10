@@ -1,10 +1,11 @@
 import { Map } from "immutable";
 import { isEqual } from "lodash";
-import { PostgreSQL } from "./types";
-import { query } from "./query";
-import { TypedMap } from "../../smc-webapp/app-framework";
-import { is_valid_uuid_string, len, copy_with } from "../smc-util/misc2";
-import { callback2 } from "../smc-util/async-utils";
+import { PostgreSQL } from "../types";
+import { query } from "../query";
+import { TypedMap } from "../../../smc-webapp/app-framework";
+import { is_valid_uuid_string, len } from "../../smc-util/misc2";
+import { callback2 } from "../../smc-util/async-utils";
+import { number_of_running_projects_using_license } from "./analytics";
 
 let licenses: any = undefined;
 
@@ -157,56 +158,6 @@ export async function site_license_hook(
   }
 }
 
-export async function number_of_running_projects_using_license(
-  db: PostgreSQL,
-  license_id: string
-): Promise<number> {
-  /* Do a query to count the number of projects that:
-      (1) are running,
-      (2) have the given license_id has a key in their site_license field with
-          a nontrivial value.
-
-
-  select project_id, site_license, state from projects where state#>>'{state}' in ('running', 'starting') and site_license#>>'{f3942ea1-ff3f-4d9f-937a-c5007babc693}'!='{}';
-  */
-
-  const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
-  const x = await callback2(db._query.bind(db), { query });
-  return parseInt(x.rows[0].count);
-}
-
-/* Returns information about how licenses are being used across ALL running projects
-   in the system right now.
-
-   The following query excludes anything with site_license null or {}, due to how sql works:
-
-   select site_license from projects where state#>>'{state}' in ('running', 'starting') and site_license!='{}';
-
-   We then just process the result in Javascript.  It would be possible to make a more complicated query that
-   does all the processing in the database, and returns less data as output, but that would be harder for me,
-   so I leave that to others or later (since this query is not likely to be used too much).
-*/
-export async function site_license_usage_stats(
-  db: PostgreSQL
-): Promise<{ [license_id: string]: number }> {
-  const query =
-    "select site_license from projects where state#>>'{state}' in ('running', 'starting') and site_license!='{}'";
-  const result = await callback2(db._query.bind(db), { query });
-  const usage: { [license_id: string]: number } = {};
-  for (let row of result.rows) {
-    for (const license_id in row.site_license) {
-      if (len(row.site_license[license_id]) > 0) {
-        if (usage[license_id] == null) {
-          usage[license_id] = 1;
-        } else {
-          usage[license_id] += 1;
-        }
-      }
-    }
-  }
-  return usage;
-}
-
 const last_used: { [licensed_id: string]: number } = {};
 async function update_last_used(
   db: PostgreSQL,
@@ -231,20 +182,4 @@ async function update_last_used(
     set: { last_used: "NOW()" },
     where: { id: license_id }
   });
-}
-
-export async function projects_using_site_license(
-  db: PostgreSQL,
-  license_id: string,
-  fields: string[] // assumed sanitized by caller!
-): Promise<{ [field: string]: any }[]> {
-  const query = `SELECT ${fields.join(
-    ","
-  )} FROM projects WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
-  const x = await callback2(db._query.bind(db), { query });
-  const v: { [field: string]: any }[] = [];
-  for (const row of x.rows) {
-    v.push(copy_with(row, fields));
-  }
-  return v;
 }

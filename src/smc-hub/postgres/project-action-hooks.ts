@@ -1,5 +1,5 @@
 import { PostgreSQL } from "./types";
-import { site_license_hook } from "./site-license-hook";
+import { site_license_hook } from "./site-license/hook";
 
 export async function project_action_request_pre_hook(
   db: PostgreSQL,
