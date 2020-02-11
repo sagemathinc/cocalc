@@ -26,13 +26,15 @@
 
 const BANNED_DOMAINS = { "qq.com": true };
 
-const fs = require("fs");
-const os_path = require("path");
+import { promisify } from "util";
+import * as fs from "fs";
+import * as os_path from "path";
+const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
-const sendgrid = require("@sendgrid/client");
+import * as sendgrid from "@sendgrid/client";
 
 import * as nodemailer from "nodemailer";
 
@@ -91,6 +93,117 @@ export function escape_email_body(body: string, allow_urls: boolean): string {
     allowedTags.push("a");
   }
   return sanitizeHtml(body, { allowedTags });
+}
+
+async function get_sendgrid(dbg) {
+  dbg("starting sendgrid client...");
+  const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
+  try {
+    let api_key = await fs_readFile_prom(filename, "utf8");
+    api_key = api_key.toString().trim();
+    if (api_key.length === 0) {
+      dbg(
+        "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
+      );
+      return { disabled: true };
+    } else {
+      sendgrid.setApiKey(api_key);
+      sendgrid_server = sendgrid;
+      dbg("started sendgrid client");
+      return sendgrid_server;
+    }
+  } catch (err) {
+    throw new Error(
+      `unable to read the file '${filename}', which is needed to send emails -- ${err}`
+    );
+    dbg(err);
+  }
+}
+
+async function send_via_sendgrid(opts, dbg) {
+  dbg(`sending email to ${opts.to} starting...`);
+  // Sendgrid V3 API -- https://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/index.html
+
+  // no "to" field, that's in "personalizations!"
+  const msg: any = {
+    from: { email: opts.from, name: opts.fromname },
+    subject: opts.subject,
+
+    content: [
+      {
+        type: "text/html",
+        value: opts.body
+      }
+    ],
+    // plain template with a header (cocalc logo), a h1 title, and a footer
+    template_id: SENDGRID_TEMPLATE_ID,
+
+    personalizations: [
+      {
+        subject: opts.subject,
+        to: [
+          {
+            email: opts.to
+          }
+        ]
+      }
+    ]
+  };
+
+  if (opts.replyto) {
+    msg.reply_to = {
+      name: opts.replyto_name ?? opts.replyto,
+      email: opts.replyto
+    };
+  }
+
+  if ((opts.cc != null ? opts.cc.length : undefined) > 0) {
+    msg.cc = [{ email: opts.cc }];
+  }
+  if ((opts.bcc != null ? opts.bcc.length : undefined) > 0) {
+    msg.bcc = [{ email: opts.bcc }];
+  }
+
+  // one or more strings to categorize the sent emails on sendgrid
+  if (opts.category != null) {
+    if (typeof opts.category == "string") {
+      msg.categories = [opts.category];
+    } else if (Array.isArray(opts.category)) {
+      msg.categories = opts.category;
+    }
+  }
+
+  // to unsubscribe only from a specific type of email, not everything!
+  // https://app.sendgrid.com/suppressions/advanced_suppression_manager
+  if (opts.asm_group != null) {
+    msg.asm = { group_id: opts.asm_group };
+  }
+
+  // This #title# will end up below the header in an <h1> according to the template
+  msg.substitutions = {
+    "#title#": opts.subject
+  };
+
+  dbg(`sending email to ${opts.to} -- data -- ${misc.to_json(msg)}`);
+
+  const req = {
+    body: msg,
+    method: "POST",
+    url: "/v3/mail/send"
+  };
+
+  return new Promise((done, fail) => {
+    sendgrid_server
+      .request(req)
+      .then(([_, body]) => {
+        dbg(`sending email to ${opts.to} -- success -- ${misc.to_json(body)}`);
+        done();
+      })
+      .catch(err => {
+        dbg(`sending email to ${opts.to} -- error = ${misc.to_json(err)}`);
+        fail(err);
+      });
+  });
 }
 
 // constructs the email body, also containing sign up instructions pointing to a project.
@@ -176,7 +289,7 @@ async function init_pw_reset_smtp_server(opts): Promise<void> {
 
 // here's how I test this function:
 //    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
-exports.send_email = function(opts): void {
+exports.send_email = async function(opts): Promise<void> {
   let dbg;
   if (opts == null) {
     opts = {};
@@ -214,172 +327,53 @@ exports.send_email = function(opts): void {
   }
 
   let disabled = false;
+  let message: string | undefined = undefined;
   const pw_reset_smtp =
     opts.category == "password_reset" &&
     opts.settings.password_reset_override == "smtp";
 
-  return async.series(
-    [
-      function(cb): void {
-        if (sendgrid_server != null) {
-          cb();
-          return;
-        }
-        dbg("starting sendgrid client...");
-        const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
-        fs.readFile(filename, "utf8", function(error, api_key) {
-          if (error) {
-            const err = `unable to read the file '${filename}', which is needed to send emails.`;
-            dbg(err);
-            cb(err);
-          } else {
-            api_key = api_key.toString().trim();
-            if (api_key.length === 0) {
-              dbg(
-                "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
-              );
-              disabled = true;
-              sendgrid_server = { disabled: true };
-              cb();
-            } else {
-              sendgrid.setApiKey(api_key);
-              sendgrid_server = sendgrid;
-              dbg("started sendgrid client");
-              cb();
-            }
-          }
-        });
-      },
-      async function(cb) {
-        if (!pw_reset_smtp) {
-          cb();
-          return;
-        }
-        dbg("initializing PW SMTP server...");
-        await init_pw_reset_smtp_server(opts);
-        cb();
-      },
-      async function(cb) {
-        // maybe treat PW resets differently
-        if (!pw_reset_smtp) {
-          cb();
-          return;
-        }
-        //const ts = new Date().toISOString();
-        dbg("sending PW reset via SMTP server ...");
-        const info = await smtp_pw_reset_server.sendMail({
-          from: opts.settings.password_reset_smpt_from,
-          replyTo: opts.settings.password_reset_smpt_from,
-          to: opts.to,
-          subject: opts.subject,
-          html: opts.body
-        });
-
-        dbg(`SMTP PW reset email sent: ${info.messageId}`);
-        cb();
-      },
-      function(cb): void {
-        if (pw_reset_smtp || disabled || sendgrid_server?.disabled === true) {
-          cb(undefined, "sendgrid email disabled -- no actual message sent");
-          return;
-        }
-        dbg(`sending email to ${opts.to} starting...`);
-        // Sendgrid V3 API -- https://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/index.html
-
-        // no "to" field, that's in "personalizations!"
-        const msg: any = {
-          from: { email: opts.from, name: opts.fromname },
-          subject: opts.subject,
-
-          content: [
-            {
-              type: "text/html",
-              value: opts.body
-            }
-          ],
-          // plain template with a header (cocalc logo), a h1 title, and a footer
-          template_id: SENDGRID_TEMPLATE_ID,
-
-          personalizations: [
-            {
-              subject: opts.subject,
-              to: [
-                {
-                  email: opts.to
-                }
-              ]
-            }
-          ]
-        };
-
-        if (opts.replyto) {
-          msg.reply_to = {
-            name: opts.replyto_name ?? opts.replyto,
-            email: opts.replyto
-          };
-        }
-
-        if ((opts.cc != null ? opts.cc.length : undefined) > 0) {
-          msg.cc = [{ email: opts.cc }];
-        }
-        if ((opts.bcc != null ? opts.bcc.length : undefined) > 0) {
-          msg.bcc = [{ email: opts.bcc }];
-        }
-
-        // one or more strings to categorize the sent emails on sendgrid
-        if (opts.category != null) {
-          if (typeof opts.category == "string") {
-            msg.categories = [opts.category];
-          } else if (Array.isArray(opts.category)) {
-            msg.categories = opts.category;
-          }
-        }
-
-        // to unsubscribe only from a specific type of email, not everything!
-        // https://app.sendgrid.com/suppressions/advanced_suppression_manager
-        if (opts.asm_group != null) {
-          msg.asm = { group_id: opts.asm_group };
-        }
-
-        // This #title# will end up below the header in an <h1> according to the template
-        msg.substitutions = {
-          "#title#": opts.subject
-        };
-
-        dbg(`sending email to ${opts.to} -- data -- ${misc.to_json(msg)}`);
-
-        const req = {
-          body: msg,
-          method: "POST",
-          url: "/v3/mail/send"
-        };
-
-        sendgrid_server
-          .request(req)
-          .then(([_, body]) => {
-            dbg(
-              `sending email to ${opts.to} -- success -- ${misc.to_json(body)}`
-            );
-            cb();
-          })
-          .catch(err => {
-            dbg(`sending email to ${opts.to} -- error = ${misc.to_json(err)}`);
-            cb(err);
-          });
-      }
-    ],
-    function(err, message) {
-      if (err) {
-        // so next time it will try fresh to connect to email server, rather than being wrecked forever.
-        sendgrid_server = undefined;
-        err = `error sending email -- ${misc.to_json(err)}`;
-        dbg(err);
-      } else {
-        dbg("successfully sent email");
-      }
-      typeof opts.cb === "function" ? opts.cb(err, message) : undefined;
+  try {
+    if (sendgrid_server == null) {
+      sendgrid_server = await get_sendgrid(dbg);
+      disabled = sendgrid_server.disabled === true;
     }
-  );
+
+    if (pw_reset_smtp) {
+      dbg("initializing PW SMTP server...");
+      await init_pw_reset_smtp_server(opts);
+
+      //const ts = new Date().toISOString();
+      dbg("sending PW reset via SMTP server ...");
+      const info = await smtp_pw_reset_server.sendMail({
+        from: opts.settings.password_reset_smpt_from,
+        replyTo: opts.settings.password_reset_smpt_from,
+        to: opts.to,
+        subject: opts.subject,
+        html: opts.body
+      });
+
+      dbg(`SMTP PW reset email sent: ${info.messageId}`);
+    } else {
+      if (disabled || sendgrid_server?.disabled === true) {
+        message = "sendgrid email disabled -- no actual message sent";
+      } else {
+        await send_via_sendgrid(opts, dbg);
+      }
+    }
+
+    // all fine, no errors
+    typeof opts.cb === "function" ? opts.cb(undefined, message) : undefined;
+  } catch (err) {
+    if (err) {
+      // so next time it will try fresh to connect to email server, rather than being wrecked forever.
+      sendgrid_server = undefined;
+      err = `error sending email -- ${misc.to_json(err)}`;
+      dbg(err);
+    } else {
+      dbg("successfully sent email");
+    }
+    typeof opts.cb === "function" ? opts.cb(err, message) : undefined;
+  }
 };
 
 // Send a mass email to every address in a file.
