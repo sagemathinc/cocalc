@@ -885,7 +885,8 @@ schema.projects = {
     "last_edited",
     "USING GIN (users)", // so get_collaborator_ids is fast
     "USING GIN (host jsonb_path_ops)", // so get_projects_on_compute_server is fast
-    "lti_id"
+    "lti_id",
+    "USING GIN (state)",  // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
   ],
 
   user_query: {
