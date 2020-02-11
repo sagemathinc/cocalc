@@ -124,6 +124,7 @@ WHERE site_license_usage_log.license_id=stopped.license_id AND
       site_license_usage_log.start = stopped.start;
 
 */
+
   const q = `
 WITH missing AS
 (
@@ -138,7 +139,6 @@ WITH missing AS
       FROM
          projects
       WHERE
-         last_edited >= NOW() - INTERVAL '1 day'
          AND state #>> '{state}' = 'running'
    )
    SELECT
@@ -197,7 +197,6 @@ WITH stopped AS
       FROM
          projects
       WHERE
-         last_edited >= NOW() - INTERVAL '1 day'
          AND state #>> '{state}' = 'running'
    )
    SELECT
