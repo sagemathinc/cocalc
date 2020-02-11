@@ -3,6 +3,7 @@ import * as humanizeList from "humanize-list";
 import { React, Component, Rendered, ReactDOM } from "../app-framework";
 
 import { Icon, Markdown } from "../r_misc";
+import { Select } from "antd";
 
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";
@@ -36,6 +37,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   constructor(props, state) {
     super(props, state);
     this.on_json_entry_change = this.on_json_entry_change.bind(this);
+    this.on_change_entry = this.on_change_entry.bind(this);
     this.state = { state: "view" };
   }
 
@@ -150,9 +152,9 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     return (
       <div style={{ marginTop: "15px", color: "#666" }}>
         Your browser version:{" "}
-        <pre style={{ background: "white", fontSize: "10pt" }}>
+        <code style={{ background: "white", fontSize: "10pt" }}>
           {smc_version.version}
-        </pre>
+        </code>{" "}
         {error}
       </div>
     );
@@ -241,6 +243,40 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     return {};
   }
 
+  private on_change_entry(name, val?) {
+    const e = copy(this.state.edited);
+    e[name] = val ?? ReactDOM.findDOMNode(this.refs[name]).value;
+    return this.setState({ edited: e });
+  }
+
+  private render_row_entry_inner(name, value, valid, password): Rendered {
+    if (Array.isArray(valid)) {
+      return (
+        <Select
+          defaultValue={value}
+          onChange={val => this.on_change_entry(name, val)}
+          style={{ width: "100%" }}
+        >
+          {valid.map(e => (
+            <Select.Option value={e} key={e}>
+              {e}
+            </Select.Option>
+          ))}
+        </Select>
+      );
+    } else {
+      return (
+        <FormControl
+          ref={name}
+          style={this.row_entry_style(value, valid)}
+          type={password ? "password" : "text"}
+          value={value}
+          onChange={() => this.on_change_entry(name)}
+        />
+      );
+    }
+  }
+
   private render_row_entry(
     name: string,
     value: string,
@@ -254,20 +290,9 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       case "max_upgrades":
         return this.render_json_entry(name, value);
       default:
-        const style = this.row_entry_style(value, valid);
         return (
           <FormGroup>
-            <FormControl
-              ref={name}
-              style={style}
-              type={password ? "password" : "text"}
-              value={value}
-              onChange={() => {
-                const e = copy(this.state.edited);
-                e[name] = ReactDOM.findDOMNode(this.refs[name]).value;
-                return this.setState({ edited: e });
-              }}
-            />
+            {this.render_row_entry_inner(name, value, valid, password)}
             <p style={{ fontSize: "90%" }}>
               {this.render_row_version_hint(name, value)}
               {hint}
