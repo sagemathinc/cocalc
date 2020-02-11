@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+
 {isMobile} = require('./feature')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
@@ -41,6 +42,8 @@ misc_page = require('./misc_page')
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
+
+{AccountTabDropdown, DefaultAccountDropDownLinks} = require('./account')
 
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
@@ -126,7 +129,7 @@ Page = rclass
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()
 
-    render_account_tab: ->
+    xxx_render_account_tab: ->
         if @props.is_anonymous
             a = undefined
         else if @props.account_id
@@ -158,7 +161,7 @@ Page = rclass
         />
 
     # This is the new version with a dropdown menu.
-    xxx_render_account_tab: ->
+    render_account_tab: ->
         if @props.is_anonymous
             return <NavTab
                         name           = 'account'
@@ -188,9 +191,10 @@ Page = rclass
                 label_class = {nav_class}
                 show_label = {@state.show_label}
                 is_active = {@props.active_top_tab == 'account'}
+                account_actions={@actions("account")}
+                page_actions={@actions("page")}
             />
-
-
+    
     render_admin_tab: ->
         <NavTab
             name           = 'admin'

@@ -1,7 +1,8 @@
 import * as React from "react";
-import { Popconfirm, Popover } from "antd";
+import { Popconfirm, Popover, Icon as Ant_icon } from "antd";
 const { NavItem } = require("react-bootstrap");
 import { AccountActions } from "../account";
+import { Icon } from "../r_misc";
 
 interface Props {
   icon: React.ReactNode; // When clicked, show popover
@@ -10,6 +11,8 @@ interface Props {
   show_label: boolean; // This tells button to show
   is_active: boolean; // if true set button background to ACTIVE_BG_COLOR
   user_label: string;
+  account_actions: AccountActions;
+  page_actions: any;
 }
 
 export const AccountTabDropdown: React.FC<Props> = ({
@@ -18,10 +21,10 @@ export const AccountTabDropdown: React.FC<Props> = ({
   label_class,
   show_label,
   is_active,
-  user_label
+  user_label,
+  account_actions,
+  page_actions
 }) => {
-  // If icon is a string then use the Icon component
-  // Else (it is a node already) just render icon
   return (
     <Popover
       placement="bottom"
@@ -37,14 +40,59 @@ export const AccountTabDropdown: React.FC<Props> = ({
           height: "30px"
         }}
       >
-        <div style={{ padding: "10px" }}>
+        <div
+          style={{ padding: "10px" }}
+          onClick={event => {
+            event.preventDefault();
+            page_actions.set_active_tab("account"); // Set to account page
+            account_actions.set_active_tab("account"); /// Set to the Preferences tab
+          }}
+        >
           {icon}
           <span style={{ marginLeft: 5 }} className={label_class}>
-            {show_label ? "Account" : undefined}
+            {show_label ? "Account" : ""}
           </span>
         </div>
       </NavItem>
     </Popover>
+  );
+};
+
+interface LinksProps {
+  name: string;
+  label: string;
+  icon: string;
+  account_actions: AccountActions;
+  page_actions: any;
+}
+
+const DropDownLinks: React.FC<LinksProps> = ({
+  name,
+  label,
+  icon,
+  account_actions,
+  page_actions
+}) => {
+  return (
+    <a
+      style={{
+        width: "100%",
+        padding: "4px 8px 4px 16px",
+        display: "block"
+      }}
+      className={"cocalc-account-button"}
+      onClick={event => {
+        event.preventDefault();
+        page_actions.set_active_tab("account"); // Set to account page
+        account_actions.set_active_tab(name); /// Set to the Preferences tab
+      }}
+      href=""
+    >
+      <span>
+        <Icon name={icon} />
+      </span>{" "}
+      {label}
+    </a>
   );
 };
 
@@ -60,99 +108,57 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
   return (
     <>
       <div className="cocalc-account-button-dropdown-links">
-        <li>
+        <DropDownLinks
+          name="account"
+          label="Preferences"
+          icon="wrench"
+          account_actions={account_actions}
+          page_actions={page_actions}
+        />
+        <DropDownLinks
+          name="billing"
+          label="Billing"
+          icon="money"
+          account_actions={account_actions}
+          page_actions={page_actions}
+        />
+        <DropDownLinks
+          name="upgrades"
+          label="Upgrades"
+          icon="arrow-circle-up"
+          account_actions={account_actions}
+          page_actions={page_actions}
+        />
+        <DropDownLinks
+          name="support"
+          label="Support"
+          icon="medkit"
+          account_actions={account_actions}
+          page_actions={page_actions}
+        />
+        <Popconfirm
+          title={"Sign out of your account?"}
+          onConfirm={() => account_actions.sign_out(false, false)}
+          okText={"Yes, sign out"}
+          cancelText={"Cancel"}
+        >
           <a
             style={{
               width: "100%",
               padding: "4px 8px 4px 16px",
-              display: "inline-block"
+              display: "block",
+              background: "#fd4747",
+              color: "white"
             }}
             className={"cocalc-account-button"}
-            onClick={event => {
-              event.preventDefault();
-              page_actions.set_active_tab("account"); // Set to account page
-              account_actions.set_active_tab("account"); /// Set to the Subs and course packs tab
-            }}
             href=""
           >
-            Preferences
+            <span>
+              <Ant_icon type="logout" />
+            </span>{" "}
+            Sign out...
           </a>
-        </li>
-        <li>
-          <a
-            style={{
-              width: "100%",
-              padding: "4px 8px 4px 16px",
-              display: "inline-block"
-            }}
-            className={"cocalc-account-button"}
-            onClick={event => {
-              event.preventDefault();
-              page_actions.set_active_tab("account"); // Set to account page
-              account_actions.set_active_tab("billing"); /// Set to the Preferences tab
-            }}
-            href=""
-          >
-            Billing
-          </a>
-        </li>
-        <li>
-          <a
-            style={{
-              width: "100%",
-              padding: "4px 8px 4px 16px",
-              display: "inline-block"
-            }}
-            className={"cocalc-account-button"}
-            onClick={event => {
-              event.preventDefault();
-              page_actions.set_active_tab("account"); // Set to account page
-              account_actions.set_active_tab("upgrades"); /// Set to the Preferences tab
-            }}
-            href=""
-          >
-            Upgrades
-          </a>
-        </li>
-        <li>
-          <a
-            style={{
-              width: "100%",
-              padding: "4px 8px 4px 16px",
-              display: "inline-block"
-            }}
-            className={"cocalc-account-button"}
-            onClick={event => {
-              event.preventDefault();
-              page_actions.set_active_tab("account"); // Set to account page
-              account_actions.set_active_tab("support"); /// Set to the Preferences tab
-            }}
-            href=""
-          >
-            Support
-          </a>
-        </li>
-        <li>
-          <Popconfirm
-            title={"Sign out of your account?"}
-            onConfirm={() => account_actions.sign_out(false, false)}
-            okText={"Yes, sign out"}
-            cancelText={"Cancel"}
-          >
-            <a
-              style={{
-                width: "100%",
-                padding: "4px 8px 4px 16px",
-                display: "inline-block"
-              }}
-              className={"cocalc-account-button"}
-              href=""
-            >
-              Sign out...
-            </a>
-          </Popconfirm>
-          ;
-        </li>
+        </Popconfirm>
       </div>
     </>
   );
