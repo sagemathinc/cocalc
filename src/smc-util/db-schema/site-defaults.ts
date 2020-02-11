@@ -34,6 +34,13 @@ export const only_ints = val =>
 export const only_nonneg_int = val =>
   (v => only_ints(v) && v >= 0)(to_int(val));
 
+export const split_iframe_comm_hosts = hosts =>
+  hosts.match(/[a-zA-Z0-9.-]+/g) || [];
+
+function dns_hosts(val) {
+  return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
+}
+
 export interface SiteSettings {
   site_name: Config;
   site_description: Config;
@@ -96,7 +103,9 @@ export const site_settings_conf: SiteSettings = {
     name: "Commercial ('yes' or 'no')",
     desc:
       "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements.",
-    default: "no"
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool
   },
   kucalc: {
     name: "KuCalc UI",
@@ -106,8 +115,10 @@ export const site_settings_conf: SiteSettings = {
   }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
   ssh_gateway: {
     name: "SSH Gateway",
-    desc: "'yes' if an ssh gateway exists to show UI elements; or 'no'",
-    default: "no"
+    desc: "Show corresponding UI elements",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool
   },
   version_min_project: {
     name: "Required project version",
@@ -119,18 +130,21 @@ export const site_settings_conf: SiteSettings = {
     name: "Required browser version",
     desc:
       "Minimal version *retuired* for browser clients (if older, forced disconnect).",
-    default: "0"
+    default: "0",
+    valid: only_nonneg_int
   },
   version_recommended_browser: {
     name: "Recommended version",
     desc: "Older clients receive an upgrade warning.",
-    default: "0"
+    default: "0",
+    valid: only_nonneg_int
   },
   iframe_comm_hosts: {
     name: "IFrame communication hosts",
     desc:
       "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
-    default: ""
+    default: "",
+    to_val: dns_hosts
   },
   default_quotas: {
     name: "Default Quotas",

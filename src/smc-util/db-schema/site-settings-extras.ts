@@ -17,7 +17,8 @@ const { is_valid_email_address } = require("smc-util/misc");
 export const EXTRAS: { [key: string]: Config } = {
   email_backend: {
     name: "Email backend type",
-    desc: "The type of backend for sending emails ('none' means there is none).",
+    desc:
+      "The type of backend for sending emails ('none' means there is none).",
     default: "",
     valid: ["none", "sendgrid", "smtp"]
   },

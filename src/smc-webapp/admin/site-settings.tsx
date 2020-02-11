@@ -2,9 +2,6 @@ import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
 import * as humanizeList from "humanize-list";
 import { React, Component, Rendered, ReactDOM } from "../app-framework";
 
-import { Icon, Markdown } from "../r_misc";
-import { Select } from "antd";
-
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";
 
@@ -22,7 +19,15 @@ import { ConfigValid, Config } from "smc-util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
-import { ErrorDisplay, LabeledRow, Space /*, Tip*/ } from "../r_misc";
+import { COLORS } from "smc-util/theme";
+import { Select, Input } from "antd";
+import {
+  Icon,
+  Markdown,
+  ErrorDisplay,
+  LabeledRow,
+  Space /*, Tip*/
+} from "../r_misc";
 
 const smc_version = require("smc-util/smc-version");
 
@@ -265,15 +270,25 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         </Select>
       );
     } else {
-      return (
-        <FormControl
-          ref={name}
-          style={this.row_entry_style(value, valid)}
-          type={password ? "password" : "text"}
-          value={value}
-          onChange={() => this.on_change_entry(name)}
-        />
-      );
+      if (password) {
+        return (
+          <Input.Password
+            style={this.row_entry_style(value, valid)}
+            value={value}
+            visibilityToggle={true}
+            onChange={val => this.on_change_entry(name, val)}
+          />
+        );
+      } else {
+        return (
+          <Input
+            ref={name}
+            style={this.row_entry_style(value, valid)}
+            value={value}
+            onChange={() => this.on_change_entry(name)}
+          />
+        );
+      }
     }
   }
 
@@ -293,12 +308,12 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         return (
           <FormGroup>
             {this.render_row_entry_inner(name, value, valid, password)}
-            <p style={{ fontSize: "90%" }}>
+            <div style={{ fontSize: "90%", display: "inlineBlock" }}>
               {this.render_row_version_hint(name, value)}
               {hint}
               {this.render_row_entry_parsed(parsed_val)}
               {this.render_row_entry_valid(valid)}
-            </p>
+            </div>
           </FormGroup>
         );
     }
@@ -336,8 +351,18 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
     const hint: Rendered | undefined = this.render_row_hint(conf, raw_value);
 
+    const style: React.CSSProperties = { marginTop: "2rem" };
+    // indent optional fields
+    if (typeof conf.show == "function") {
+      Object.assign(style, {
+        borderLeft: `2px solid ${COLORS.GRAY}`,
+        marginLeft: "0px",
+        marginTop: "0px"
+      } as React.CSSProperties);
+    }
+
     return (
-      <LabeledRow label={label} key={name} style={{ marginBottom: "2rem" }}>
+      <LabeledRow label={label} key={name} style={style}>
         {this.render_row_entry(
           name,
           raw_value,
@@ -363,6 +388,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       <React.Fragment>
         {this.render_editor_site_settings()}
         {this.render_editor_extras()}
+        <Space />
       </React.Fragment>
     );
   }
