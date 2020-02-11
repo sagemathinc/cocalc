@@ -684,8 +684,7 @@ AccountSettings = rclass
         if @props.is_anonymous
             return <h2><b>Thank you for using CoCalc!</b></h2>
         else
-            sign_out = <div style={{float:'right', marginTop:'-7.5px'}}><SignOut everywhere={false} danger={true}/></div>
-            return <h2> <Icon name='user' /> Account{sign_out}</h2>
+            return <h2> <Icon name='user' /> Account</h2>
 
     render: ->
         <Panel header={@render_header()}>
