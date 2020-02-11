@@ -1,5 +1,7 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
+const { is_valid_email_address } = require("smc-util/misc");
+
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
 export interface Config {
@@ -12,6 +14,7 @@ export interface Config {
   readonly show?: (conf: any) => boolean;
   // this optional function derives the actual value of this setting from current value.
   readonly to_val?: (val: string) => boolean | string | number;
+  readonly hint?: (val: string) => string; // markdown
 }
 
 export const is_email_enabled = conf =>
@@ -23,9 +26,13 @@ export const only_for_sendgrid = conf =>
 export const only_for_password_reset_smtp = conf =>
   is_email_enabled(conf) && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
-export const to_bool = val => val === "true";
-export const only_booleans = ["true", "false"];
+export const to_bool = val => val === "true" || val === "yes";
+export const only_booleans = ["true", "yes", "false", "no"];
 export const to_int = val => parseInt(val);
+export const only_ints = val =>
+  (v => !isNaN(v) && Number.isFinite(v) && Number.isInteger(val))(to_int(val));
+export const only_nonneg_int = val =>
+  (v => only_ints(v) && v >= 0)(to_int(val));
 
 export interface SiteSettings {
   site_name: Config;
@@ -49,6 +56,11 @@ export interface SiteSettings {
 export const KUCALC_DISABLED = "no";
 export const KUCALC_COCALC_COM = "yes";
 export const KUCALC_ON_PREMISES = "onprem";
+const KUCALC_VALID_VALS = [
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+  KUCALC_DISABLED
+];
 
 export const site_settings_conf: SiteSettings = {
   site_name: {
@@ -77,7 +89,8 @@ export const site_settings_conf: SiteSettings = {
   help_email: {
     name: "Help email",
     desc: "Email address that user is directed to use for support requests",
-    default: "help@cocalc.com"
+    default: "help@cocalc.com",
+    valid: is_valid_email_address
   },
   commercial: {
     name: "Commercial ('yes' or 'no')",
@@ -89,7 +102,7 @@ export const site_settings_conf: SiteSettings = {
     name: "KuCalc UI",
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
     default: KUCALC_DISABLED,
-    valid: [KUCALC_COCALC_COM, KUCALC_ON_PREMISES, KUCALC_DISABLED]
+    valid: KUCALC_VALID_VALS
   }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
   ssh_gateway: {
     name: "SSH Gateway",

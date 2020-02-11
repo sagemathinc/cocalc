@@ -2,13 +2,14 @@ import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
 import * as humanizeList from "humanize-list";
 import { React, Component, Rendered, ReactDOM } from "../app-framework";
 
+import { Icon, Markdown } from "../r_misc";
+
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "smc-util/misc2";
 
 import { site_settings_conf } from "smc-util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
 const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
-import { KUCALC_ON_PREMISES } from "smc-util/db-schema/site-defaults";
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
@@ -20,7 +21,7 @@ import { ConfigValid, Config } from "smc-util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
-import { ErrorDisplay, LabeledRow, Space, Tip } from "../r_misc";
+import { ErrorDisplay, LabeledRow, Space /*, Tip*/ } from "../r_misc";
 
 const smc_version = require("smc-util/smc-version");
 
@@ -74,8 +75,13 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     });
   }
 
-  render_edit_button(): Rendered {
-    return <Button onClick={() => this.load()}>Edit...</Button>;
+  private toggle_view() {
+    switch (this.state.state) {
+      case "view":
+        this.load();
+      case "edit":
+        this.cancel();
+    }
   }
 
   async save(): Promise<void> {
@@ -190,7 +196,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       return (
         <span>
           {" "}
-          Understood as <code>{parsed_val}</code>.{" "}
+          Interpreted as <code>{parsed_val}</code>.{" "}
         </span>
       );
     } else {
@@ -214,6 +220,17 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     }
   }
 
+  private render_row_hint(
+    conf: Config,
+    raw_value: string
+  ): Rendered | undefined {
+    if (typeof conf.hint == "function") {
+      return <Markdown value={conf.hint(raw_value)} />;
+    } else {
+      return undefined;
+    }
+  }
+
   private row_entry_style(value, valid?: ConfigValid): React.CSSProperties {
     if (
       (Array.isArray(valid) && !valid.includes(value)) ||
@@ -229,7 +246,8 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     value: string,
     password: boolean,
     parsed_val?: string,
-    valid?: ConfigValid
+    valid?: ConfigValid,
+    hint?: Rendered
   ) {
     switch (name) {
       case "default_quotas":
@@ -250,9 +268,12 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
                 return this.setState({ edited: e });
               }}
             />
-            {this.render_row_version_hint(name, value)}
-            {this.render_row_entry_parsed(parsed_val)}
-            {this.render_row_entry_valid(valid)}
+            <p style={{ fontSize: "90%" }}>
+              {this.render_row_version_hint(name, value)}
+              {hint}
+              {this.render_row_entry_parsed(parsed_val)}
+              {this.render_row_entry_valid(valid)}
+            </p>
           </FormGroup>
         );
     }
@@ -260,23 +281,16 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
 
   private render_default_row(name): Rendered | undefined {
     const conf: Config = site_settings_conf[name];
-    return this.render_row2(name, conf);
+    return this.render_row(name, conf);
   }
 
   private render_extras_row(name): Rendered | undefined {
     const conf: Config = EXTRAS[name];
-    return this.render_row2(name, conf);
+    return this.render_row(name, conf);
   }
 
-  private render_row2(name: string, conf: Config): Rendered | undefined {
-    // do not show quota fields unless it is for on-premp k8s setups
-    if (
-      (name == "default_quotas" || name == "max_upgrades") &&
-      this.state.edited.kucalc != KUCALC_ON_PREMISES
-    ) {
-      return undefined;
-    }
-
+  private render_row(name: string, conf: Config): Rendered | undefined {
+    // don't show certain fields, i.e. where show evals to false
     if (typeof conf.show == "function" && !conf.show(this.state.edited)) {
       return undefined;
     }
@@ -288,18 +302,24 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         : undefined;
 
     const label = (
-      <Tip key={name} title={conf.name} tip={conf.desc}>
-        {conf.name}
-      </Tip>
+      <>
+        <strong>{conf.name}</strong>
+        <br />
+        <span style={{ fontSize: "90%" }}>{conf.desc}</span>
+      </>
     );
+
+    const hint: Rendered | undefined = this.render_row_hint(conf, raw_value);
+
     return (
-      <LabeledRow label={label} key={name}>
+      <LabeledRow label={label} key={name} style={{ marginBottom: "2rem" }}>
         {this.render_row_entry(
           name,
           raw_value,
           conf.password ?? false,
           parsed_value,
-          conf.valid
+          conf.valid,
+          hint
         )}
       </LabeledRow>
     );
@@ -332,10 +352,8 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
-  render_main(): Rendered {
+  private render_main(): Rendered | undefined {
     switch (this.state.state) {
-      case "view":
-        return this.render_edit_button();
       case "edit":
         return (
           <Well
@@ -353,13 +371,27 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
         return <div>Saving site configuration...</div>;
       case "load":
         return <div>Loading site configuration...</div>;
+      default:
+        return undefined;
     }
+  }
+
+  render_header(): Rendered {
+    return (
+      <h4 onClick={() => this.toggle_view()} style={{ cursor: "pointer" }}>
+        <Icon
+          style={{ width: "20px" }}
+          name={this.state.state == "edit" ? "caret-down" : "caret-right"}
+        />{" "}
+        Site Settings
+      </h4>
+    );
   }
 
   render(): Rendered {
     return (
       <div>
-        <h4>Site Settings</h4>
+        {this.render_header()}
         {this.render_main()}
         {this.render_error()}
       </div>
