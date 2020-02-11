@@ -28,6 +28,7 @@ export interface SiteLicense {
   id: string;
   title?: string;
   description?: string;
+  info?: { [key: string]: any };
   expires?: Date;
   activates?: Date;
   created?: Date;
@@ -44,6 +45,7 @@ export type license_field_type =
   | "paragraph"
   | "date"
   | "account_id[]"
+  | "map"
   | "boolean"
   | "upgrades"
   | "number"
@@ -53,6 +55,7 @@ export type license_field_names =
   | "id"
   | "title"
   | "description"
+  | "info"
   | "expires"
   | "activates"
   | "created"
@@ -69,6 +72,7 @@ export const license_fields: {
   id: "readonly",
   title: "string",
   description: "paragraph",
+  info: "map",
   expires: "date",
   activates: "date",
   created: "date",
@@ -90,7 +94,7 @@ export interface SiteLicensesState {
   site_licenses?: SiteLicense[];
   editing?: Set<string>; // id's of site licenses that are currently being edited.
   saving?: Set<string>; // id's of site licenses that are currently being saved to the backend.
-  show_projects?: Set<string>; // id's where we should show the projects that are using the license.
+  show_projects?: Map<string, Date | "now">; // id's where we should show the projects that are using the license and what cutoff date
   edits?: Map<string, TypedMap<SiteLicense>>;
   search?: string;
   matches_search?: Set<string> | undefined; // id's of licenses that match search

@@ -7,7 +7,8 @@ import {
   only_for_password_reset_smtp,
   to_bool,
   only_booleans,
-  to_int
+  to_int,
+  only_nonneg_int
 } from "./site-defaults";
 
 const { is_valid_email_address } = require("smc-util/misc");
@@ -16,7 +17,8 @@ const { is_valid_email_address } = require("smc-util/misc");
 export const EXTRAS: { [key: string]: Config } = {
   email_backend: {
     name: "Email backend type",
-    desc: "enter the type of backend, 'none' means there is none",
+    desc:
+      "The type of backend for sending emails ('none' means there is none).",
     default: "",
     valid: ["none", "sendgrid", "smtp"]
   },
@@ -57,6 +59,7 @@ export const EXTRAS: { [key: string]: Config } = {
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
     to_val: to_int,
+    valid: only_nonneg_int,
     show: only_for_smtp
   },
   email_smtp_secure: {
@@ -105,6 +108,7 @@ export const EXTRAS: { [key: string]: Config } = {
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
     to_val: to_int,
+    valid: only_nonneg_int,
     show: only_for_password_reset_smtp
   },
   password_reset_smpt_secure: {

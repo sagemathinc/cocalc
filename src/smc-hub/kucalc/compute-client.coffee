@@ -28,6 +28,8 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
+{site_license_hook} = require('../postgres/site-license/hook')
+
 
 exports.get_json = get_json = (url, cb) ->
     request.get url, (err, response, body) ->
@@ -257,6 +259,14 @@ class Project extends EventEmitter
                     dbg("done waiting for goal #{err}")
                     opts.cb?(err)
                     delete opts.cb
+
+        if opts.action == 'start'
+            try
+                await site_license_hook(@database, @project_id)
+            catch err
+                # ignore - don't not start the project just because
+                # of a database issue/bug...
+                dbg("ERROR in site license hook #{err}")
 
         dbg("request action to happen")
         @active()

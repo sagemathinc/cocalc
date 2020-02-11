@@ -12,6 +12,7 @@ import {
   replace_all,
   plural
 } from "smc-util/misc2";
+import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
 import { Checkbox } from "../../antd-bootstrap";
 import {
@@ -20,23 +21,25 @@ import {
   scale_by_display_factors
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
-import {
-  DisplayManagers,
-  EditManagers,
-} from "./managers";
+import { DisplayManagers, EditManagers } from "./managers";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
   saving?: boolean;
-  show_projects?: boolean;
+  show_projects?: Date | "now";
   license: TypedMap<SiteLicense>;
   edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
 }
 
 function format_as_label(field: string): string {
+  // Some replacements that look better.
+  if (field == "info") {
+    field = "Structured JSON information";
+  }
+
   return replace_all(capitalize(field), "_", " ");
 }
 
@@ -191,6 +194,23 @@ export class License extends Component<Props> {
             </span>
           );
           break;
+        case "map":
+          x = (
+            <DebounceInput
+              element="textarea"
+              forceNotifyByEnter={false}
+              placeholder={
+                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+              }
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              rows={4}
+              value={
+                typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
+              }
+              onChange={e => onChange((e.target as any).value)}
+            />
+          );
+          break;
         case "readonly":
         default:
           if (is_date(val)) {
@@ -288,6 +308,17 @@ export class License extends Component<Props> {
         case "upgrades":
           x = <DisplayUpgrades upgrades={val} />;
           break;
+        case "map":
+          if (!val) {
+            x = "";
+          } else {
+            x = (
+              <pre style={{ margin: 0, padding: "5px" }}>
+                {JSON.stringify(val, undefined, 2)}
+              </pre>
+            );
+          }
+          break;
         default:
           x = `${val}`;
       }
@@ -304,7 +335,7 @@ export class License extends Component<Props> {
       }
     }
 
-    if (field == "run_limit" && this.props.usage_stats) {
+    if (field == "run_limit") {
       x = (
         <Row>
           <Col md={8}>{x}</Col>
@@ -316,37 +347,98 @@ export class License extends Component<Props> {
     return x;
   }
 
+  private render_show_projects_title(): Rendered {
+    if (!this.props.show_projects) return <span />;
+    if (this.props.show_projects == "now")
+      return <span>Currently running projects upgraded with this license</span>;
+    return (
+      <span>
+        Projects that ran upgraded with this license since{" "}
+        <TimeAgo date={this.props.show_projects} />
+      </span>
+    );
+  }
+
   private render_projects(): Rendered {
     if (!this.props.show_projects) return;
     return (
       <div style={{ marginTop: "30px" }}>
+        <Button
+          style={{ float: "right", margin: "5px" }}
+          onClick={() => actions.hide_projects(this.props.license.get("id"))}
+        >
+          Close
+        </Button>
         <Projects
           license_id={this.props.license.get("id")}
-          title={"Running projects upgraded with this license"}
+          title={this.render_show_projects_title()}
+          cutoff={this.props.show_projects}
         />
       </div>
     );
   }
 
   private render_usage_stats(run_limit): Rendered {
-    if (!this.props.usage_stats) return;
     const style: React.CSSProperties = { fontStyle: "italic" };
-    if (run_limit && this.props.usage_stats >= run_limit) {
+    if (
+      run_limit &&
+      this.props.usage_stats &&
+      this.props.usage_stats >= run_limit
+    ) {
       // hitting the limit -- make it clearer!
       style.color = "red";
       style.fontWeight = "bold";
     }
     return (
-      <a
-        onClick={() =>
-          actions.toggle_show_projects(this.props.license.get("id"))
-        }
-        style={style}
-      >
-        {this.props.usage_stats} running{" "}
-        {plural(this.props.usage_stats, "project")} currently using this
-        license...
-      </a>
+      <span>
+        <span style={style}>
+          {this.props.usage_stats ?? 0} running{" "}
+          {plural(this.props.usage_stats, "project")} currently using this
+          license.
+        </span>
+        <br />
+        Show projects using license:{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), "now")
+          }
+        >
+          now
+        </a>
+        ; during the last{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), hours_ago(1))
+          }
+        >
+          hour
+        </a>
+        ,{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), days_ago(1))
+          }
+        >
+          {" "}
+          day
+        </a>
+        ,{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), weeks_ago(1))
+          }
+        >
+          week
+        </a>{" "}
+        or{" "}
+        <a
+          onClick={() =>
+            actions.show_projects(this.props.license.get("id"), months_ago(1))
+          }
+        >
+          month
+        </a>
+      </span>
     );
   }
 

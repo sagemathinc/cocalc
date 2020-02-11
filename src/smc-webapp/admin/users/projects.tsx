@@ -37,7 +37,8 @@ interface Project {
 interface Props {
   account_id?: string; // one of account_id or license_id must be given; see comments above
   license_id?: string;
-  title?: string; // Defaults to "Projects"
+  cutoff?: "now" | Date; // if given, and showing projects for a license, show projects that ran back to cutoff.
+  title?: string | Rendered; // Defaults to "Projects"
 }
 
 interface State {
@@ -73,6 +74,12 @@ export class Projects extends Component<Props, State> {
     this.mounted = false;
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.cutoff != prevProps.cutoff) {
+      this.search();
+    }
+  }
+
   status_mesg(s: string): void {
     this.setState({
       status: s
@@ -97,6 +104,10 @@ export class Projects extends Component<Props, State> {
         options: [{ account_id: this.props.account_id }]
       };
     } else if (this.props.license_id) {
+      let cutoff: undefined | Date =
+        !this.props.cutoff || this.props.cutoff == "now"
+          ? undefined
+          : this.props.cutoff;
       return {
         query: {
           projects_using_site_license: [
@@ -107,7 +118,8 @@ export class Projects extends Component<Props, State> {
               description: null,
               users: null,
               last_active: null,
-              last_edited: null
+              last_edited: null,
+              cutoff
             }
           ]
         }
@@ -140,6 +152,12 @@ export class Projects extends Component<Props, State> {
     this.setState({ projects: projects });
   }
 
+  render_number_of_projects(): Rendered {
+    if (!this.state.projects) {
+      return;
+    }
+    return <span>({this.state.projects.length})</span>;
+  }
   render_projects(): Rendered {
     if (!this.state.projects) {
       return <Loading />;
@@ -214,7 +232,7 @@ export class Projects extends Component<Props, State> {
   render(): Rendered {
     const title = (
       <span style={{ fontWeight: "bold", color: "#666" }}>
-        {this.props.title}
+        {this.props.title} {this.render_number_of_projects()}
       </span>
     );
     return <Panel header={title}>{this.render_projects()}</Panel>;

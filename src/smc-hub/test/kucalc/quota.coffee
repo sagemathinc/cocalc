@@ -520,6 +520,43 @@ describe 'default quota', ->
         expect(q1.cpu_request).toEqual(.5) # (1+1.5)/5
         expect(q1.cpu_limit).toEqual(2.5) # sum
 
+    it 'sanitizes bad overcommitment ratios', ->
+        # too low values are limited at 1
+        site_settings =
+            default_quotas:
+                mem_oc       :    .25
+                cpu_oc       :    0
+
+        users =
+            user1:
+                upgrades:
+                    memory         : 100
+                    cores          : 1
+
+        q1 = quota({}, users, undefined, site_settings)
+        expect(q1.memory_request).toEqual(1100)
+        expect(q1.memory_limit).toEqual(1100)
+        expect(q1.cpu_request).toEqual(2)
+        expect(q1.cpu_limit).toEqual(2)
+
+    it 'overcommitment with fractions', ->
+        # too low values are limited at 1
+        site_settings =
+            default_quotas:
+                mem_oc       :    2.22
+                cpu_oc       :    6.66
+
+        users =
+            user1:
+                upgrades:
+                    memory         : 234.56
+                    cores          : 0.234
+
+        q1 = quota({}, users, undefined, site_settings)
+        expect(q1.memory_request).toEqual(Math.round(1234 / 2.22))
+        expect(q1.memory_limit).toEqual(1234)
+        expect(q1.cpu_request).toEqual(1.234 / 6.66)
+        expect(q1.cpu_limit).toEqual(1.234)
 
     it 'takes overcommitment ratios into account for user upgrades + site updates', ->
         site_settings =
