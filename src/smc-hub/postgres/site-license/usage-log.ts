@@ -139,7 +139,7 @@ WITH missing AS
       FROM
          projects
       WHERE
-         AND state #>> '{state}' = 'running'
+         state #>> '{state}' = 'running'
    )
    SELECT
       running_license_info.project_id AS project_id,
@@ -197,7 +197,7 @@ WITH stopped AS
       FROM
          projects
       WHERE
-         AND state #>> '{state}' = 'running'
+         state #>> '{state}' = 'running'
    )
    SELECT
       site_license_usage_log.license_id AS license_id,
