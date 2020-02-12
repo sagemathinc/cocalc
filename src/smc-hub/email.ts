@@ -32,6 +32,7 @@ import * as os_path from "path";
 const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
+import { template } from "lodash";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -95,8 +96,12 @@ export function escape_email_body(body: string, allow_urls: boolean): string {
   return sanitizeHtml(body, { allowedTags });
 }
 
-async function get_sendgrid(dbg) {
-  dbg("starting sendgrid client...");
+async function init_sendgrid(dbg): Promise<void> {
+  if (sendgrid_server != null) {
+    return;
+  }
+
+  dbg("sendgrid not configured, starting...");
   const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
   try {
     let api_key = await fs_readFile_prom(filename, "utf8");
@@ -110,7 +115,6 @@ async function get_sendgrid(dbg) {
       sendgrid.setApiKey(api_key);
       sendgrid_server = sendgrid;
       dbg("started sendgrid client");
-      return sendgrid_server;
     }
   } catch (err) {
     throw new Error(
@@ -147,7 +151,12 @@ async function send_via_sendgrid(opts, dbg) {
           }
         ]
       }
-    ]
+    ],
+
+    // This #title# will end up below the header in an <h1> according to the template
+    substitutions: {
+      "#title#": opts.subject
+    }
   };
 
   if (opts.replyto) {
@@ -178,11 +187,6 @@ async function send_via_sendgrid(opts, dbg) {
   if (opts.asm_group != null) {
     msg.asm = { group_id: opts.asm_group };
   }
-
-  // This #title# will end up below the header in an <h1> according to the template
-  msg.substitutions = {
-    "#title#": opts.subject
-  };
 
   dbg(`sending email to ${opts.to} -- data -- ${misc.to_json(msg)}`);
 
@@ -269,6 +273,14 @@ const is_banned = (exports.is_banned = function(address): boolean {
   return !!BANNED_DOMAINS[x];
 });
 
+function make_dbg(opts) {
+  if (opts.verbose) {
+    return m => winston.debug(`send_email(to:${opts.to}) -- ${m}`);
+  } else {
+    return function(_) {};
+  }
+}
+
 async function init_pw_reset_smtp_server(opts): Promise<void> {
   const s = opts.settings;
   if (smtp_pw_reset_server != null && s.password_reset_override == "smtp") {
@@ -287,13 +299,42 @@ async function init_pw_reset_smtp_server(opts): Promise<void> {
   });
 }
 
+// construct the actual HTML body of a password reset email sent via SMTP
+// in particular, all emails must have a body explaining who sent it!
+const pw_reset_body_tmpl = template(`
+<h1>RESET EMAIL</h1>
+
+<%= body %>
+
+<p style="margin-top: 30px, font-size: 80%, text-align: center">
+Footer <%= fromname %> <%= from %>
+</p>
+`);
+
+function password_reset_body(opts: Opts): string {
+  return pw_reset_body_tmpl(opts);
+}
+
+interface Opts {
+  subject: string;
+  body: string;
+  fromname?: string;
+  from?: string;
+  to: string;
+  replyto?: string;
+  replyto_name?: string;
+  cc?: string;
+  bcc?: string;
+  verbose?: boolean;
+  cb?: string;
+  category?: string;
+  asm_group?: string;
+  settings?: string;
+}
+
 // here's how I test this function:
 //    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
-exports.send_email = async function(opts): Promise<void> {
-  let dbg;
-  if (opts == null) {
-    opts = {};
-  }
+exports.send_email = async function(opts: Opts): Promise<void> {
   opts = defaults(opts, {
     subject: required,
     body: required,
@@ -311,11 +352,7 @@ exports.send_email = async function(opts): Promise<void> {
     settings: undefined
   });
 
-  if (opts.verbose) {
-    dbg = m => winston.debug(`send_email(to:${opts.to}) -- ${m}`);
-  } else {
-    dbg = function(_) {};
-  }
+  const dbg = make_dbg(opts);
   dbg(`${opts.body.slice(0, 201)}...`);
 
   if (is_banned(opts.to) || is_banned(opts.from)) {
@@ -333,11 +370,13 @@ exports.send_email = async function(opts): Promise<void> {
     opts.settings.password_reset_override == "smtp";
 
   try {
+    await init_sendgrid(dbg);
+    // if not available for any reason …
     if (sendgrid_server == null) {
-      sendgrid_server = await get_sendgrid(dbg);
       disabled = sendgrid_server.disabled === true;
     }
 
+    // this is a password reset email, and we send it via smtp
     if (pw_reset_smtp) {
       dbg("initializing PW SMTP server...");
       await init_pw_reset_smtp_server(opts);
@@ -349,13 +388,15 @@ exports.send_email = async function(opts): Promise<void> {
         replyTo: opts.settings.password_reset_smpt_from,
         to: opts.to,
         subject: opts.subject,
-        html: opts.body
+        html: password_reset_body(opts.body)
       });
 
-      dbg(`SMTP PW reset email sent: ${info.messageId}`);
+      message = `password reset email sent via SMTP: ${info.messageId}`;
+      dbg(message);
     } else {
       if (disabled || sendgrid_server?.disabled === true) {
         message = "sendgrid email disabled -- no actual message sent";
+        dbg(message);
       } else {
         await send_via_sendgrid(opts, dbg);
       }
