@@ -13,8 +13,26 @@ import {
 
 const { is_valid_email_address } = require("smc-util/misc");
 
+export interface ExtrasInterface {
+  email_backend: Config;
+  sendgrid_key: Config;
+  email_smtp_server: Config;
+  email_smtp_from: Config;
+  email_smtp_login: Config;
+  email_smtp_password: Config;
+  email_smtp_port: Config;
+  email_smtp_secure: Config;
+  password_reset_override: Config;
+  password_reset_smpt_server: Config;
+  password_reset_smpt_from: Config;
+  password_reset_smpt_login: Config;
+  password_reset_smpt_password: Config;
+  password_reset_smpt_port: Config;
+  password_reset_smpt_secure: Config;
+}
+
 // not public, but admins can edit them
-export const EXTRAS: { [key: string]: Config } = {
+export const EXTRAS: ExtrasInterface = {
   email_backend: {
     name: "Email backend type",
     desc:

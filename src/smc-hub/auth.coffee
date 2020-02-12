@@ -762,10 +762,18 @@ exports.verify_email_send_token = (opts) ->
                 account_id : opts.account_id
                 cb         : cb
         (token, email_address, cb) =>
+             opts.database.get_server_settings_cached
+                cb: (err, settings) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(token, email_address, settings)
+        (token, email_address, settings, cb) =>
             email = require('./email')
             email.welcome_email
                 to          : email_address
                 token       : token
                 only_verify : opts.only_verify
+                settings    : settings
                 cb          : cb
     ], opts.cb)

@@ -33,6 +33,7 @@ const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 import { template } from "lodash";
+import { ExtrasInterface } from "smc-util/db-schema/site-settings-extras";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -96,6 +97,11 @@ export function escape_email_body(body: string, allow_urls: boolean): string {
   return sanitizeHtml(body, { allowedTags });
 }
 
+// global state
+let sendgrid_server: any | undefined = undefined;
+let sendgrid_server_disabled = false;
+let smtp_pw_reset_server: any | undefined = undefined;
+
 async function init_sendgrid(dbg): Promise<void> {
   if (sendgrid_server != null) {
     return;
@@ -110,7 +116,7 @@ async function init_sendgrid(dbg): Promise<void> {
       dbg(
         "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
       );
-      return { disabled: true };
+      sendgrid_server_disabled = true;
     } else {
       sendgrid.setApiKey(api_key);
       sendgrid_server = sendgrid;
@@ -212,7 +218,7 @@ async function send_via_sendgrid(opts, dbg) {
 
 // constructs the email body, also containing sign up instructions pointing to a project.
 // it might throw an error!
-function create_email_body(
+export function create_email_body(
   subject,
   body,
   email_address,
@@ -259,19 +265,14 @@ function create_email_body(
   return email_body;
 }
 
-exports.create_email_body = create_email_body;
-
-let sendgrid_server: any | undefined = undefined;
-let smtp_pw_reset_server: any | undefined = undefined;
-
-const is_banned = (exports.is_banned = function(address): boolean {
+export function is_banned(address): boolean {
   const i = address.indexOf("@");
   if (i === -1) {
     return false;
   }
   const x = address.slice(i + 1).toLowerCase();
   return !!BANNED_DOMAINS[x];
-});
+}
 
 function make_dbg(opts) {
   if (opts.verbose) {
@@ -326,31 +327,34 @@ interface Opts {
   cc?: string;
   bcc?: string;
   verbose?: boolean;
-  cb?: string;
   category?: string;
-  asm_group?: string;
-  settings?: string;
+  asm_group?: number;
+  // "Partial" b/c any might be missing for random reasons
+  settings: Partial<{ [key in keyof ExtrasInterface]: string }>;
+  cb?: (err?, msg?) => void;
 }
+
+const opts_default: Opts = {
+  subject: required,
+  body: required,
+  fromname: COMPANY_NAME,
+  from: COMPANY_EMAIL,
+  to: required,
+  replyto: undefined,
+  replyto_name: undefined,
+  cc: "",
+  bcc: "",
+  verbose: true,
+  cb: undefined,
+  category: undefined,
+  asm_group: undefined,
+  settings: {}
+};
 
 // here's how I test this function:
 //    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
-exports.send_email = async function(opts: Opts): Promise<void> {
-  opts = defaults(opts, {
-    subject: required,
-    body: required,
-    fromname: COMPANY_NAME,
-    from: COMPANY_EMAIL,
-    to: required,
-    replyto: undefined,
-    replyto_name: undefined,
-    cc: "",
-    bcc: "",
-    verbose: true,
-    cb: undefined,
-    category: undefined,
-    asm_group: undefined,
-    settings: undefined
-  });
+export async function send_email(opts: Opts): Promise<void> {
+  opts = defaults(opts, opts_default);
 
   const dbg = make_dbg(opts);
   dbg(`${opts.body.slice(0, 201)}...`);
@@ -372,8 +376,8 @@ exports.send_email = async function(opts: Opts): Promise<void> {
   try {
     await init_sendgrid(dbg);
     // if not available for any reason …
-    if (sendgrid_server == null) {
-      disabled = sendgrid_server.disabled === true;
+    if (sendgrid_server == null || sendgrid_server_disabled) {
+      disabled = true;
     }
 
     // this is a password reset email, and we send it via smtp
@@ -388,13 +392,13 @@ exports.send_email = async function(opts: Opts): Promise<void> {
         replyTo: opts.settings.password_reset_smpt_from,
         to: opts.to,
         subject: opts.subject,
-        html: password_reset_body(opts.body)
+        html: password_reset_body(opts)
       });
 
       message = `password reset email sent via SMTP: ${info.messageId}`;
       dbg(message);
     } else {
-      if (disabled || sendgrid_server?.disabled === true) {
+      if (disabled) {
         message = "sendgrid email disabled -- no actual message sent";
         dbg(message);
       } else {
@@ -415,12 +419,12 @@ exports.send_email = async function(opts: Opts): Promise<void> {
     }
     typeof opts.cb === "function" ? opts.cb(err, message) : undefined;
   }
-};
+}
 
 // Send a mass email to every address in a file.
 // E.g., put the email addresses in a file named 'a' and
 //    require('email').mass_email(subject:'TEST MESSAGE', body:'body', to:'a', cb:console.log)
-exports.mass_email = function(opts): void {
+export function mass_email(opts): void {
   opts = defaults(opts, {
     subject: required,
     body: required,
@@ -463,7 +467,7 @@ exports.mass_email = function(opts): void {
             dbg(`${n}/${recipients.length - 1}`);
           }
           n += 1;
-          exports.send_email({
+          send_email({
             subject: opts.subject,
             body: opts.body,
             from: opts.from,
@@ -473,6 +477,7 @@ exports.mass_email = function(opts): void {
             asm_group: SENDGRID_ASM_NEWSLETTER,
             category: "newsletter",
             verbose: false,
+            settings: {}, // TODO: fill in the real settings
             cb(err): void {
               if (!err) {
                 success.push(to);
@@ -489,9 +494,10 @@ exports.mass_email = function(opts): void {
     ],
     err => (typeof opts.cb === "function" ? opts.cb(err, success) : undefined)
   );
-};
+}
 
-const verify_email_html = token_url => `
+function verify_email_html(token_url) {
+  return `
 <p style="margin-top:0;margin-bottom:10px;">
 <strong>
 Please <a href="${token_url}">click here</a> to verify your email address!
@@ -503,9 +509,11 @@ If this link does not work, please copy/paste this URL into a new browser tab an
 ${token_url}
 </pre>
 `;
+}
 
 // beware, this needs to be HTML which is compatible with email-clients!
-const welcome_email_html = token_url => `\
+function welcome_email_html(token_url) {
+  return `\
 <h1>Welcome to ${SITE_NAME}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
@@ -601,13 +609,15 @@ In case of problems, concerns why you received this email, or other questions pl
 </p>
 \
 `;
+}
 
-exports.welcome_email = function(opts): void {
+export function welcome_email(opts): void {
   let body, category, subject;
   opts = defaults(opts, {
     to: required,
     token: required, // the email verification token
     only_verify: false, // TODO only send the verification token, for now this is good enough
+    settings: {},
     cb: undefined
   });
 
@@ -628,8 +638,7 @@ exports.welcome_email = function(opts): void {
     category = "welcome";
   }
 
-  // exports... because otherwise stubbing in the test suite of send_email would not work
-  exports.send_email({
+  send_email({
     subject,
     body,
     fromname: COMPANY_NAME,
@@ -637,11 +646,12 @@ exports.welcome_email = function(opts): void {
     to: opts.to,
     cb: opts.cb,
     category,
+    settings: opts.settings,
     asm_group: 147985
   }); // https://app.sendgrid.com/suppressions/advanced_suppression_manager
-};
+}
 
-exports.email_verified_successfully = url => {
+export function email_verified_successfully(url): string {
   const title = `${SITE_NAME}: Email verification successful`;
 
   return `<DOCTYPE html>
@@ -661,9 +671,9 @@ Click <a href="${url}">here</a> if you aren't automatically redirected to <a hre
 </body>
 </html>
 `;
-};
+}
 
-exports.email_verification_problem = (url, problem) => {
+export function email_verification_problem(url, problem): string {
   const title = `${SITE_NAME}: Email verification problem`;
 
   return `<DOCTYPE html>
@@ -686,4 +696,4 @@ div {margin-top: 1rem;}
 </body>
 </html>
   `;
-};
+}
