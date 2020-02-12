@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Popconfirm, Popover, Icon as Ant_icon } from "antd";
-const { NavItem } = require("react-bootstrap");
+//const { NavItem } = require("react-bootstrap");
+import { NavItem } from "react-bootstrap";
 import { AccountActions } from "../account";
 import { Icon } from "../r_misc";
 
@@ -11,7 +12,7 @@ interface Props {
   show_label: boolean; // This tells button to show
   is_active: boolean; // if true set button background to ACTIVE_BG_COLOR
   user_label: string;
-  account_actions: AccountActions;
+  account_actions: AccountActions;   // Type AccountActions
   page_actions: any;
 }
 
@@ -42,10 +43,10 @@ export const AccountTabDropdown: React.FC<Props> = ({
       >
         <div
           style={{ padding: "10px" }}
-          onClick={event => {
+          onClick={(event): void => {    //Sets Active page to account page on click
             event.preventDefault();
-            page_actions.set_active_tab("account"); // Set to account page
-            account_actions.set_active_tab("account"); /// Set to the Preferences tab
+            page_actions.set_active_tab("account"); 
+            account_actions.set_active_tab("account");
           }}
         >
           {icon}
@@ -59,13 +60,15 @@ export const AccountTabDropdown: React.FC<Props> = ({
 };
 
 interface LinksProps {
-  name: string;
-  label: string;
-  icon: string;
-  account_actions: AccountActions;
+  name: string;     // Name of tab link. Passed into accout_actions.set_active_tab(name)
+  label: string;    // String to appear on menu
+  icon: string;     // Icon to appear on menu
+  account_actions: AccountActions;  // Type AccountActions
   page_actions: any;
 }
 
+
+//Returns a single dropdown link
 const DropDownLinks: React.FC<LinksProps> = ({
   name,
   label,
@@ -81,10 +84,10 @@ const DropDownLinks: React.FC<LinksProps> = ({
         display: "block"
       }}
       className={"cocalc-account-button"}
-      onClick={event => {
+      onClick={(event): void => {
         event.preventDefault();
-        page_actions.set_active_tab("account"); // Set to account page
-        account_actions.set_active_tab(name); /// Set to the Preferences tab
+        page_actions.set_active_tab("account");
+        account_actions.set_active_tab(name);
       }}
       href=""
     >
@@ -138,7 +141,9 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
         />
         <Popconfirm
           title={"Sign out of your account?"}
-          onConfirm={() => account_actions.sign_out(false, false)}
+          onConfirm={(): void => {
+            return account_actions.sign_out(false, false);
+          }}
           okText={"Yes, sign out"}
           cancelText={"Cancel"}
         >
