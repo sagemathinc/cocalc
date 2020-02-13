@@ -163,7 +163,7 @@ export const site_settings_conf: SiteSettings = {
   email_enabled: {
     name: "Email sending enabled",
     desc:
-      "Controls visibility of UI elements to send emails. This is independent of the particular email configuration!",
+      "Controls visibility of UI elements and if any emails are sent. This is independent of any particular email configuration!",
     default: "false",
     valid: only_booleans,
     to_val: to_bool

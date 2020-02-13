@@ -31,8 +31,10 @@ import {
 
 const smc_version = require("smc-util/smc-version");
 
+type State = "view" | "load" | "edit" | "save" | "error";
+
 interface SiteSettingsState {
-  state: "view" | "load" | "edit" | "save" | "error"; // view --> load --> edit --> save --> view
+  state: State; // view --> load --> edit --> save --> view
   error?: string;
   edited?: any;
   data?: any;
@@ -58,7 +60,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   }
 
   async load(): Promise<void> {
-    this.setState({ state: "load" });
+    this.setState({ state: "load" as State });
     let result: any;
     try {
       result = await query({
@@ -75,7 +77,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       data[x.name] = x.value;
     }
     this.setState({
-      state: "edit",
+      state: "edit" as State,
       error: undefined,
       data,
       edited: deep_copy(data)
@@ -92,7 +94,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   }
 
   async save(): Promise<void> {
-    this.setState({ state: "save" });
+    this.setState({ state: "save" as State });
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (!isEqual(value, this.state.data[name])) {
@@ -103,16 +105,16 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
             }
           });
         } catch (err) {
-          this.setState({ state: "error", error: err });
+          this.setState({ state: "error" as State, error: err });
           return;
         }
       }
     }
-    this.setState({ state: "view" });
+    this.setState({ state: "view" as State });
   }
 
   cancel(): void {
-    this.setState({ state: "view" });
+    this.setState({ state: "view" as State });
   }
 
   render_save_button(): Rendered {
@@ -403,6 +405,20 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
+  private async send_pw_reset(): Promise<void> {
+    // simulates a password reset
+  }
+
+  private render_tests(): Rendered {
+    return (
+      <div>
+        Tests:
+        <Space />
+        <Button onClick={() => this.send_pw_reset()}>Password Reset</Button>
+      </div>
+    );
+  }
+
   private render_main(): Rendered | undefined {
     switch (this.state.state) {
       case "edit":
@@ -415,6 +431,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
           >
             {this.render_buttons()}
             {this.render_editor()}
+            {this.render_tests()}
             {this.render_buttons()}
           </Well>
         );

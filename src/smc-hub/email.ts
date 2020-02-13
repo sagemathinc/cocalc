@@ -2,7 +2,7 @@
 //
 //    CoCalc: Collaborative Calculation in the Cloud
 //
-//    Copyright (C) 2016 -- 2019, Sagemath Inc.
+//    Copyright (C) 2016 -- 2020, Sagemath Inc.
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 //########################################
 // Sending emails
 //########################################
-// import { callback } from "awaiting";
 
 const BANNED_DOMAINS = { "qq.com": true };
 
@@ -42,7 +41,7 @@ import * as nodemailer from "nodemailer";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
-
+import { site_settings_conf } from "smc-util/db-schema/site-defaults";
 import * as sanitizeHtml from "sanitize-html";
 import { contains_url } from "smc-util-node/misc2_node";
 
@@ -265,7 +264,8 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
   });
 }
 
-// constructs the email body, also containing sign up instructions pointing to a project.
+// constructs the email body for INVITES! (collaborator and student course)
+// this includes sign up instructions pointing to the given project
 // it might throw an error!
 export function create_email_body(
   subject,
@@ -350,14 +350,15 @@ async function init_pw_reset_smtp_server(opts): Promise<void> {
 }
 
 const smtp_footer = `
-<p style="margin-top: '30px', font-size: '80%', text-align: 'center'">
-Footer <%= fromname %> <%= from %>
+<p style="margin-top:40px; border-top: 1px solid gray; color: gray; font-size:80%; text-align:center">
+This email was sent by <%= settings.site_name %> by ${COMPANY_NAME}.
+Contact <a href="mailto:<%= settings.help_email %>"><%= settings.help_email =></a> in case of any problems.
 </p>`;
 
 // construct the actual HTML body of a password reset email sent via SMTP
 // in particular, all emails must have a body explaining who sent it!
 const pw_reset_body_tmpl = template(`
-<h1>RESET EMAIL</h1>
+<h1>Password Reset Request</h1>
 
 <%= body %>
 
@@ -431,13 +432,21 @@ export async function send_email(opts: Opts): Promise<void> {
   }
 
   // logic:
-  // 1. email_backend == none, don't send "normal" emails
+  // 0. email_enabled == false, don't send any emails, period.
+  // 1. email_backend == none, can't send usual emails
   //                  == sendgrid | smtp → send using one of these
   // 2. password_reset_override == 'default', do what (1.) is set to
-  //                            == 'smtp', override (1.), i.e. even send if "none"
+  //                            == 'smtp', override (1.), including "none"
 
-  let disabled = false;
+  // an optional message to log and report back
   let message: string | undefined = undefined;
+
+  if (opts.settings.email_enabled == false) {
+    const x = site_settings_conf.email_enabled.name;
+    message = `sending any emails is disabled -- see 'Admin/Site Settings/${x}'`;
+    dbg(message);
+  }
+
   const pw_reset_smtp =
     opts.category == "password_reset" &&
     opts.settings.password_reset_override == "smtp";
@@ -464,16 +473,13 @@ export async function send_email(opts: Opts): Promise<void> {
     } else {
       // INIT phase
       await init_sendgrid(opts, dbg);
-      // if not available for any reason …
-      if (sendgrid_server == null || sendgrid_server_disabled) {
-        disabled = true;
-      }
       await init_smtp_server(opts, dbg);
 
       // SEND phase
       switch (email_backend) {
         case "sendgrid":
-          if (disabled) {
+          // if not available for any reason …
+          if (sendgrid_server == null || sendgrid_server_disabled) {
             message = "sendgrid email is disabled -- no actual message sent";
             dbg(message);
           } else {
@@ -485,7 +491,7 @@ export async function send_email(opts: Opts): Promise<void> {
           break;
         case "none":
           message =
-            "email_backend is 'none' -- please configure it in the 'Site Settings'";
+            "no email sent, because email_backend is 'none' -- configure it in 'Admin/Site Settings'";
           dbg(message);
           break;
       }
