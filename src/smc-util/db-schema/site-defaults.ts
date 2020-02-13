@@ -24,7 +24,7 @@ export const only_for_smtp = conf =>
 export const only_for_sendgrid = conf =>
   is_email_enabled(conf) && conf.email_backend === "sendgrid";
 export const only_for_password_reset_smtp = conf =>
-  is_email_enabled(conf) && conf.password_reset_override === "smtp";
+  conf.email_enabled === "true" && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const to_bool = val => val === "true" || val === "yes";
 export const only_booleans = ["true", "yes", "false", "no"];

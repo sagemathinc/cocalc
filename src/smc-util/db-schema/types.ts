@@ -141,6 +141,6 @@ import { SettingsExtras } from "./site-settings-extras";
 // what will come out of the database and (if available) sending it through `to_val`
 export type AllSiteSettings = Partial<
   {
-    [key in keyof SiteSettings & keyof SettingsExtras]: any;
+    [key in keyof SiteSettings | keyof SettingsExtras]: any;
   }
 >;

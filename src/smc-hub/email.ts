@@ -33,7 +33,7 @@ const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 import { template } from "lodash";
-import { ExtrasInterface } from "smc-util/db-schema/site-settings-extras";
+import { AllSiteSettings } from "smc-util/db-schema/types";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -100,37 +100,86 @@ export function escape_email_body(body: string, allow_urls: boolean): string {
 // global state
 let sendgrid_server: any | undefined = undefined;
 let sendgrid_server_disabled = false;
+let smtp_server: any | undefined = undefined;
 let smtp_pw_reset_server: any | undefined = undefined;
 
-async function init_sendgrid(dbg): Promise<void> {
+async function init_sendgrid(opts: Opts, dbg): Promise<void> {
   if (sendgrid_server != null) {
     return;
   }
 
   dbg("sendgrid not configured, starting...");
-  const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
-  try {
-    let api_key = await fs_readFile_prom(filename, "utf8");
-    api_key = api_key.toString().trim();
-    if (api_key.length === 0) {
-      dbg(
-        "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
+
+  // settings.sendgrid_key takes precedence over a local config file
+  let api_key: string = "";
+  if (opts.settings.sendgrid_key.trim().length > 0) {
+    api_key = opts.settings.sendgrid_key.trim();
+  } else {
+    const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
+    try {
+      api_key = await fs_readFile_prom(filename, "utf8");
+      api_key = api_key.toString().trim();
+    } catch (err) {
+      throw new Error(
+        `unable to read the file '${filename}', which is needed to send emails -- ${err}`
       );
-      sendgrid_server_disabled = true;
-    } else {
-      sendgrid.setApiKey(api_key);
-      sendgrid_server = sendgrid;
-      dbg("started sendgrid client");
+      dbg(err);
     }
-  } catch (err) {
-    throw new Error(
-      `unable to read the file '${filename}', which is needed to send emails -- ${err}`
+  }
+
+  if (api_key.length === 0) {
+    dbg(
+      "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
     );
-    dbg(err);
+    sendgrid_server_disabled = true;
+  } else {
+    sendgrid.setApiKey(api_key);
+    sendgrid_server = sendgrid;
+    dbg("started sendgrid client");
   }
 }
 
-async function send_via_sendgrid(opts, dbg) {
+async function init_smtp_server(opts: Opts, dbg): Promise<void> {
+  if (smtp_server != null) {
+    return;
+  }
+  dbg("SMTP server not configured. setting up ...");
+  const s = opts.settings;
+  smtp_server = await nodemailer.createTransport({
+    host: s.email_smtp_server,
+    port: s.email_smtp_port,
+    secure: s.email_smtp_secure, // true for 465, false for other ports
+    auth: {
+      user: s.email_smtp_login,
+      pass: s.email_smtp_password
+    }
+  });
+  dbg("SMTP server configured");
+}
+
+async function send_via_smtp(opts: Opts, dbg): Promise<string | undefined> {
+  dbg("sending email via SMTP backend");
+  const msg: any = {
+    from: opts.from,
+    to: opts.to,
+    subject: opts.subject,
+    html: smtp_email_body(opts)
+  };
+  if (opts.replyto) {
+    msg.reply_to = opts.replyto;
+  }
+  if (opts.cc != null && opts.cc.length > 0) {
+    msg.cc = opts.cc;
+  }
+  if (opts.bcc != null && opts.bcc.length > 0) {
+    msg.bcc = opts.bcc;
+  }
+  const info = await smtp_server.sendMail(msg);
+  dbg(`sending email via SMTP succeeded -- message id='${info.messageId}'`);
+  return info.messageId;
+}
+
+async function send_via_sendgrid(opts, dbg): Promise<void> {
   dbg(`sending email to ${opts.to} starting...`);
   // Sendgrid V3 API -- https://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/index.html
 
@@ -172,10 +221,10 @@ async function send_via_sendgrid(opts, dbg) {
     };
   }
 
-  if ((opts.cc != null ? opts.cc.length : undefined) > 0) {
+  if (opts.cc != null && opts.cc.length > 0) {
     msg.cc = [{ email: opts.cc }];
   }
-  if ((opts.bcc != null ? opts.bcc.length : undefined) > 0) {
+  if (opts.bcc != null && opts.bcc.length > 0) {
     msg.bcc = [{ email: opts.bcc }];
   }
 
@@ -284,21 +333,26 @@ function make_dbg(opts) {
 
 async function init_pw_reset_smtp_server(opts): Promise<void> {
   const s = opts.settings;
-  if (smtp_pw_reset_server != null && s.password_reset_override == "smtp") {
+  if (smtp_pw_reset_server != null) {
     return;
   }
 
-  // s.password_reset_smpt_from;
+  // s.password_reset_smtp_from;
   smtp_pw_reset_server = await nodemailer.createTransport({
-    host: s.password_reset_smpt_server,
-    port: s.password_reset_smpt_port,
-    secure: s.password_reset_smpt_secure, // true for 465, false for other ports
+    host: s.password_reset_smtp_server,
+    port: s.password_reset_smtp_port,
+    secure: s.password_reset_smtp_secure, // true for 465, false for other ports
     auth: {
-      user: s.password_reset_smpt_login,
-      pass: s.password_reset_smpt_password
+      user: s.password_reset_smtp_login,
+      pass: s.password_reset_smtp_password
     }
   });
 }
+
+const smtp_footer = `
+<p style="margin-top: '30px', font-size: '80%', text-align: 'center'">
+Footer <%= fromname %> <%= from %>
+</p>`;
 
 // construct the actual HTML body of a password reset email sent via SMTP
 // in particular, all emails must have a body explaining who sent it!
@@ -307,13 +361,22 @@ const pw_reset_body_tmpl = template(`
 
 <%= body %>
 
-<p style="margin-top: 30px, font-size: 80%, text-align: center">
-Footer <%= fromname %> <%= from %>
-</p>
+${smtp_footer}
 `);
 
 function password_reset_body(opts: Opts): string {
   return pw_reset_body_tmpl(opts);
+}
+
+const smtp_email_body_tmpl = template(`
+<%= body %>
+
+${smtp_footer}
+`);
+
+// construct the email body for mails sent via smtp
+function smtp_email_body(opts: Opts): string {
+  return smtp_email_body_tmpl(opts);
 }
 
 interface Opts {
@@ -330,7 +393,7 @@ interface Opts {
   category?: string;
   asm_group?: number;
   // "Partial" b/c any might be missing for random reasons
-  settings: Partial<{ [key in keyof ExtrasInterface]: string }>;
+  settings: AllSiteSettings;
   cb?: (err?, msg?) => void;
 }
 
@@ -367,19 +430,20 @@ export async function send_email(opts: Opts): Promise<void> {
     return;
   }
 
+  // logic:
+  // 1. email_backend == none, don't send "normal" emails
+  //                  == sendgrid | smtp → send using one of these
+  // 2. password_reset_override == 'default', do what (1.) is set to
+  //                            == 'smtp', override (1.), i.e. even send if "none"
+
   let disabled = false;
   let message: string | undefined = undefined;
   const pw_reset_smtp =
     opts.category == "password_reset" &&
     opts.settings.password_reset_override == "smtp";
+  const email_backend = opts.settings.email_backend ?? "sendgrid";
 
   try {
-    await init_sendgrid(dbg);
-    // if not available for any reason …
-    if (sendgrid_server == null || sendgrid_server_disabled) {
-      disabled = true;
-    }
-
     // this is a password reset email, and we send it via smtp
     if (pw_reset_smtp) {
       dbg("initializing PW SMTP server...");
@@ -388,8 +452,8 @@ export async function send_email(opts: Opts): Promise<void> {
       //const ts = new Date().toISOString();
       dbg("sending PW reset via SMTP server ...");
       const info = await smtp_pw_reset_server.sendMail({
-        from: opts.settings.password_reset_smpt_from,
-        replyTo: opts.settings.password_reset_smpt_from,
+        from: opts.settings.password_reset_smtp_from,
+        replyTo: opts.settings.password_reset_smtp_from,
         to: opts.to,
         subject: opts.subject,
         html: password_reset_body(opts)
@@ -398,11 +462,32 @@ export async function send_email(opts: Opts): Promise<void> {
       message = `password reset email sent via SMTP: ${info.messageId}`;
       dbg(message);
     } else {
-      if (disabled) {
-        message = "sendgrid email disabled -- no actual message sent";
-        dbg(message);
-      } else {
-        await send_via_sendgrid(opts, dbg);
+      // INIT phase
+      await init_sendgrid(opts, dbg);
+      // if not available for any reason …
+      if (sendgrid_server == null || sendgrid_server_disabled) {
+        disabled = true;
+      }
+      await init_smtp_server(opts, dbg);
+
+      // SEND phase
+      switch (email_backend) {
+        case "sendgrid":
+          if (disabled) {
+            message = "sendgrid email is disabled -- no actual message sent";
+            dbg(message);
+          } else {
+            await send_via_sendgrid(opts, dbg);
+          }
+          break;
+        case "smtp":
+          await send_via_smtp(opts, dbg);
+          break;
+        case "none":
+          message =
+            "email_backend is 'none' -- please configure it in the 'Site Settings'";
+          dbg(message);
+          break;
       }
     }
 
