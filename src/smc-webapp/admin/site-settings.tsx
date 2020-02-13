@@ -278,7 +278,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
-            onChange={val => this.on_change_entry(name, val)}
+            onChange={e => this.on_change_entry(name, e.target.value)}
           />
         );
       } else {
