@@ -20,7 +20,7 @@ import { callback, delay } from "awaiting";
 import { project_has_network_access } from "../postgres/project-queries";
 import { is_paying_customer } from "../postgres/account-queries";
 
-const { send_email } = require("../email");
+import { send_email } from "../email";
 
 const { HELP_EMAIL } = require("smc-util/theme");
 
@@ -37,12 +37,12 @@ interface Key {
 
 type Action = "email" | "ignore" | "no-network";
 
-type Database = any; // TODO
+import { PostgreSQL } from "../postgres/types";
 
 // Handle all notification, then wait for the given time, then again
 // handle all unhandled notifications.
 export async function handle_mentions_loop(
-  db: Database,
+  db: PostgreSQL,
   poll_interval_s: number = POLL_INTERVAL_S
 ): Promise<void> {
   while (true) {
@@ -85,7 +85,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
 }
 
 async function determine_action(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   source: string
 ): Promise<Action> {
@@ -112,7 +112,7 @@ async function determine_action(
 }
 
 export async function handle_mention(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   source: string,
   _priority: number, // ignored for now.
@@ -145,7 +145,7 @@ export async function handle_mention(
 }
 
 async function send_email_notification(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   source: string,
   description: string = ""
@@ -181,7 +181,7 @@ async function send_email_notification(
 }
 
 async function set_action(
-  db: Database,
+  db: PostgreSQL,
   key: Key,
   action: string
 ): Promise<void> {

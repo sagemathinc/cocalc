@@ -13,7 +13,7 @@ import {
 
 const { is_valid_email_address } = require("smc-util/misc");
 
-export interface ExtrasInterface {
+export interface SettingsExtras {
   email_backend: Config;
   sendgrid_key: Config;
   email_smtp_server: Config;
@@ -32,7 +32,7 @@ export interface ExtrasInterface {
 }
 
 // not public, but admins can edit them
-export const EXTRAS: ExtrasInterface = {
+export const EXTRAS: SettingsExtras = {
   email_backend: {
     name: "Email backend type",
     desc:

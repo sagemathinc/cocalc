@@ -3,7 +3,7 @@
 require("ts-node").register();
 require("coffeescript/register");
 
-const { send_email } = require("../email");
+import { send_email } from "../email";
 
 function cb(err) {
   console.log(`cb done: err=${err}`);
@@ -18,5 +18,6 @@ send_email({
   body: body,
   to: "harald.schilly+student9191919@gmail.com",
   asm_group: 147985,
+  settings: {},
   cb: cb
 });
