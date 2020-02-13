@@ -32,6 +32,7 @@ immutable = require('immutable')
 {SSHKeysPage}                            = require('./account_ssh_keys')
 {Icon, Loading}                          = require('./r_misc')
 {set_url}                                = require('./history')
+{SignOut}                                = require('./account/sign-out')
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     account_id              : rtypes.string
@@ -191,6 +192,9 @@ exports.AccountPage = rclass
             return <div style={margin:'5% 10%'}>{@render_account_settings()}</div>
         <Row>
             <Col md={12}>
+                <div style={float:'right', marginTop:'1rem'}>
+                    <SignOut everywhere={false} danger={true}/>
+                </div>
                 <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
                     <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Preferences</span>}>
                         {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
