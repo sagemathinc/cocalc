@@ -1,4 +1,3 @@
-import { delay} from "awaiting";
 import { callback2, once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
@@ -87,24 +86,6 @@ export async function do_anonymous_setup(client: any): Promise<void> {
 }
 
 async function open_default_jupyter_notebook(project_id: string): Promise<void> {
-  // Also change default account settings to not ask for the kernel,
-  // since that adds friction.
-  // log("do not ask for jupyter kernel");
-  // We try/catch and loop because the set below will fail if attempted
-  // before the account table is done being initialized.
-  while (1) {
-    try {
-      await redux.getTable("account").set({
-        editor_settings: {
-          ask_jupyter_kernel: false,
-          jupyter: { kernel: "python3" }
-        }
-      });
-      break;
-    } catch (err) {
-      await delay(1000);
-    }
-  }
   // Open a new Jupyter notebook:
   // log("open jupyter notebook");
   const project_actions = redux.getProjectActions(project_id);
