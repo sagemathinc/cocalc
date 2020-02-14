@@ -27,7 +27,7 @@ export const only_for_password_reset_smtp = conf =>
   conf.email_enabled === "true" && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const to_bool = val => val === "true" || val === "yes";
-export const only_booleans = ["true", "yes", "false", "no"];
+export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = val => parseInt(val);
 export const only_ints = val =>
   (v => !isNaN(v) && Number.isFinite(v) && Number.isInteger(val))(to_int(val));

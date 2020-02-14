@@ -43,6 +43,7 @@ export const EXTRAS: SettingsExtras = {
   sendgrid_key: {
     name: "Sendgrid API key",
     desc: "You need a Sendgrid account and then enter a valid API key here",
+    password: true,
     default: "",
     show: only_for_sendgrid
   },

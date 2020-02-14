@@ -1,4 +1,5 @@
-import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
+import { FormGroup, FormControl, Well } from "react-bootstrap";
+import { Button } from "../antd-bootstrap";
 import * as humanizeList from "humanize-list";
 import {
   React,
@@ -50,6 +51,7 @@ interface SiteSettingsState {
   error?: string;
   edited?: any;
   data?: any;
+  disable_tests: boolean;
 }
 
 class SiteSettingsComponent extends Component<
@@ -60,7 +62,7 @@ class SiteSettingsComponent extends Component<
     super(props, state);
     this.on_json_entry_change = this.on_json_entry_change.bind(this);
     this.on_change_entry = this.on_change_entry.bind(this);
-    this.state = { state: "view" };
+    this.state = { state: "view", disable_tests: false };
   }
 
   public static reduxProps(): object {
@@ -116,8 +118,7 @@ class SiteSettingsComponent extends Component<
     }
   }
 
-  async save(): Promise<void> {
-    this.setState({ state: "save" as State });
+  private async store(): Promise<void> {
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (!isEqual(value, this.state.data[name])) {
@@ -133,10 +134,15 @@ class SiteSettingsComponent extends Component<
         }
       }
     }
+  }
+
+  private async save(): Promise<void> {
+    this.setState({ state: "save" as State });
+    await this.store();
     this.setState({ state: "view" as State });
   }
 
-  cancel(): void {
+  private cancel(): void {
     this.setState({ state: "view" as State });
   }
 
@@ -433,6 +439,11 @@ class SiteSettingsComponent extends Component<
   ): Promise<void> {
     const email = ReactDOM.findDOMNode(this.refs.test_email).value;
     console.log(`sending test email "${type}" to ${email}`);
+    // saving info
+    await this.store();
+    this.setState({ disable_tests: true });
+    // wait 3 secs
+    await new Promise(done => setTimeout(done, 3000));
     switch (type) {
       case "password_reset":
         redux.getActions("account").forgot_password(email);
@@ -446,6 +457,7 @@ class SiteSettingsComponent extends Component<
       default:
         unreachable(type);
     }
+    this.setState({ disable_tests: false });
   }
 
   private render_tests(): Rendered {
@@ -460,13 +472,32 @@ class SiteSettingsComponent extends Component<
           defaultValue={this.props.email_address}
           ref={"test_email"}
         />
-        <Button onClick={() => this.send_test_email("password_reset")}>
+        <Button
+          bsSize={"small"}
+          disabled={this.state.disable_tests}
+          onClick={() => this.send_test_email("password_reset")}
+        >
           Forgot Password
         </Button>
-        <Button onClick={() => this.send_test_email("invite_email")}>
+        <Button
+          disabled={this.state.disable_tests}
+          bsSize={"small"}
+          onClick={() => this.send_test_email("mention")}
+        >
+          Verify
+        </Button>
+        <Button
+          disabled={this.state.disable_tests}
+          bsSize={"small"}
+          onClick={() => this.send_test_email("invite_email")}
+        >
           Invite
         </Button>
-        <Button onClick={() => this.send_test_email("mention")}>
+        <Button
+          disabled={this.state.disable_tests}
+          bsSize={"small"}
+          onClick={() => this.send_test_email("mention")}
+        >
           @mention
         </Button>
       </div>

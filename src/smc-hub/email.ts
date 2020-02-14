@@ -108,35 +108,39 @@ async function init_sendgrid(opts: Opts, dbg): Promise<void> {
   }
   dbg("sendgrid not configured, starting...");
 
-  // settings.sendgrid_key takes precedence over a local config file
-  let api_key: string = "";
-  const ssgk = opts.settings.sendgrid_key;
-  if (typeof ssgk == "string" && ssgk.trim().length > 0) {
-    dbg("... using site settings/sendgrid_key");
-    api_key = ssgk.trim();
-  } else {
-    const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
-    try {
-      api_key = await fs_readFile_prom(filename, "utf8");
-      api_key = api_key.toString().trim();
-      dbg(`... using sendgrid_key stored in ${filename}`);
-    } catch (err) {
-      throw new Error(
-        `unable to read the file '${filename}', which is needed to send emails -- ${err}`
-      );
-      dbg(err);
+  try {
+    // settings.sendgrid_key takes precedence over a local config file
+    let api_key: string = "";
+    const ssgk = opts.settings.sendgrid_key;
+    if (typeof ssgk == "string" && ssgk.trim().length > 0) {
+      dbg("... using site settings/sendgrid_key");
+      api_key = ssgk.trim();
+    } else {
+      const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
+      try {
+        api_key = await fs_readFile_prom(filename, "utf8");
+        api_key = api_key.toString().trim();
+        dbg(`... using sendgrid_key stored in ${filename}`);
+      } catch (err) {
+        throw new Error(
+          `unable to read the file '${filename}', which is needed to send emails -- ${err}`
+        );
+        dbg(err);
+      }
     }
-  }
 
-  if (api_key.length === 0) {
-    dbg(
-      "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
-    );
-    sendgrid_server_disabled = true;
-  } else {
-    sendgrid.setApiKey(api_key);
-    sendgrid_server = sendgrid;
-    dbg("started sendgrid client");
+    if (api_key.length === 0) {
+      dbg(
+        "sendgrid_server: explicitly disabled -- so pretend to always succeed for testing purposes"
+      );
+      sendgrid_server_disabled = true;
+    } else {
+      sendgrid.setApiKey(api_key);
+      sendgrid_server = sendgrid;
+      dbg("started sendgrid client");
+    }
+  } catch (err) {
+    dbg(`Problem initializing Sendgrid -- ${err}`);
   }
 }
 
