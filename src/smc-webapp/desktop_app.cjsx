@@ -140,7 +140,7 @@ Page = rclass
             a = 'cog'
 
         if @props.is_anonymous
-            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            label = <Button bsStyle="success" style={fontWeight:'bold', width:'400px'}>Sign Up!</Button>
             style = {marginTop:'-10px'}  # compensate for using a button
         else
             label = "Account"
