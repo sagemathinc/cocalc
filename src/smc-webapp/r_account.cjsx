@@ -619,7 +619,7 @@ AccountSettings = rclass
                 <h4>Sign up</h4>
                 <ul>
                     <li>It is free</li>
-                    <li>Avoid losing all your work</li>
+                    <li><b><i>Avoid losing all your work</i></b></li>
                     <li>Get added to courses and projects that you were invited to</li>
                     <li>Create support tickets</li>
                     <li>Unlock additional features and controls, including unlimited additional projects, realtime collaboration and much, much more</li>
