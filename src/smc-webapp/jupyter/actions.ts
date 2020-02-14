@@ -2053,7 +2053,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.reset_more_output();
         // clear the more output handler (only on backend)
       }
-      this.syncdb.delete(); // completely empty database
+      // We delete all of the cells.
+      // We do NOT delete everything, namely the last_loaded and
+      // the settings entry in the database, because that would
+      // throw away important information, e.g., the current kernel
+      // and its state.  NOTe: Some of that extra info *should* be
+      // moved to a different ephemeral table, but I haven't got
+      // around to doing so.
+      this.syncdb.delete({ type: "cell" });
       // preserve trust state across file updates/loads
       trust = this.store.get("trust");
       set = obj => {
@@ -2061,6 +2068,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       };
     }
 
+    // Change kernel to what is in the file if necessary:
     set({ type: "settings", kernel });
     if (typeof this.ensure_backend_kernel_setup === "function") {
       this.ensure_backend_kernel_setup();
