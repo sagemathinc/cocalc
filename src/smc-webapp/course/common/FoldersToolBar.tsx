@@ -237,7 +237,7 @@ class MultipleAddSearch extends Component<
     if (!target) return;
     return (
       <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
-        Create new folder and assignment named '{target}'?
+        Create '{target}'?
         <br />
         <br />
         <Button onClick={() => this.clear_and_focus_search_input()}>
@@ -245,7 +245,7 @@ class MultipleAddSearch extends Component<
         </Button>
         <Space />
         <Button
-          bsStyle="default"
+          bsStyle="primary"
           onClick={() => {
             this.props.add_selected([target]);
             this.props.clear_search();
