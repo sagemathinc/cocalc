@@ -37,7 +37,8 @@ function convert_to_boolean(c): boolean {
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
-function validate_kucalc(k): string {
+function validate_kucalc(k?): string {
+  if (k == null) return KUCALC_DISABLED;
   const val = k.trim().toLowerCase();
   if ([KUCALC_DISABLED, KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(val)) {
     return val;

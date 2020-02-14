@@ -1,9 +1,17 @@
 import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
 import * as humanizeList from "humanize-list";
-import { React, Component, Rendered, ReactDOM } from "../app-framework";
+import {
+  React,
+  Component,
+  Rendered,
+  ReactDOM,
+  rtypes,
+  rclass,
+  redux
+} from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
-import { copy, deep_copy, keys } from "smc-util/misc2";
+import { copy, deep_copy, keys, unreachable } from "smc-util/misc2";
 
 import { site_settings_conf } from "smc-util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
@@ -33,6 +41,10 @@ const smc_version = require("smc-util/smc-version");
 
 type State = "view" | "load" | "edit" | "save" | "error";
 
+interface SiteSettingsProps {
+  email_address: string;
+}
+
 interface SiteSettingsState {
   state: State; // view --> load --> edit --> save --> view
   error?: string;
@@ -40,12 +52,23 @@ interface SiteSettingsState {
   data?: any;
 }
 
-export class SiteSettings extends Component<{}, SiteSettingsState> {
+class SiteSettingsComponent extends Component<
+  SiteSettingsProps,
+  SiteSettingsState
+> {
   constructor(props, state) {
     super(props, state);
     this.on_json_entry_change = this.on_json_entry_change.bind(this);
     this.on_change_entry = this.on_change_entry.bind(this);
     this.state = { state: "view" };
+  }
+
+  public static reduxProps(): object {
+    return {
+      account: {
+        email_address: rtypes.string
+      }
+    };
   }
 
   render_error(): Rendered {
@@ -405,16 +428,47 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
-  private async send_pw_reset(): Promise<void> {
-    // simulates a password reset
+  private async send_test_email(
+    type: "password_reset" | "invite_email" | "mention" | "verification"
+  ): Promise<void> {
+    const email = ReactDOM.findDOMNode(this.refs.test_email).value;
+    console.log(`sending test email "${type}" to ${email}`);
+    switch (type) {
+      case "password_reset":
+        redux.getActions("account").forgot_password(email);
+        break;
+      case "invite_email":
+        break;
+      case "mention":
+        break;
+      case "verification":
+        break;
+      default:
+        unreachable(type);
+    }
   }
 
   private render_tests(): Rendered {
     return (
-      <div>
-        Tests:
+      <div style={{ marginBottom: "1rem" }}>
+        <strong>Tests:</strong>
         <Space />
-        <Button onClick={() => this.send_pw_reset()}>Password Reset</Button>
+        Email:
+        <Space />
+        <Input
+          style={{ width: "auto" }}
+          defaultValue={this.props.email_address}
+          ref={"test_email"}
+        />
+        <Button onClick={() => this.send_test_email("password_reset")}>
+          Forgot Password
+        </Button>
+        <Button onClick={() => this.send_test_email("invite_email")}>
+          Invite
+        </Button>
+        <Button onClick={() => this.send_test_email("mention")}>
+          @mention
+        </Button>
       </div>
     );
   }
@@ -466,3 +520,5 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 }
+
+export const SiteSettings = rclass(SiteSettingsComponent);

@@ -106,18 +106,20 @@ async function init_sendgrid(opts: Opts, dbg): Promise<void> {
   if (sendgrid_server != null) {
     return;
   }
-
   dbg("sendgrid not configured, starting...");
 
   // settings.sendgrid_key takes precedence over a local config file
   let api_key: string = "";
-  if (opts.settings.sendgrid_key.trim().length > 0) {
-    api_key = opts.settings.sendgrid_key.trim();
+  const ssgk = opts.settings.sendgrid_key;
+  if (typeof ssgk == "string" && ssgk.trim().length > 0) {
+    dbg("... using site settings/sendgrid_key");
+    api_key = ssgk.trim();
   } else {
     const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
     try {
       api_key = await fs_readFile_prom(filename, "utf8");
       api_key = api_key.toString().trim();
+      dbg(`... using sendgrid_key stored in ${filename}`);
     } catch (err) {
       throw new Error(
         `unable to read the file '${filename}', which is needed to send emails -- ${err}`
