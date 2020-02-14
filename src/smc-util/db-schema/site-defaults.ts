@@ -112,7 +112,7 @@ export const site_settings_conf: SiteSettings = {
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS
-  }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+  },
   ssh_gateway: {
     name: "SSH Gateway",
     desc: "Show corresponding UI elements",

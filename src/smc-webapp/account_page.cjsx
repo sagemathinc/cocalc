@@ -34,6 +34,7 @@ immutable = require('immutable')
 {set_url}                                = require('./history')
 {site_settings_conf}                     = require('smc-util/db-schema/site-defaults')
 {SignOut}                                = require('./account/sign-out')
+{ KUCALC_COCALC_COM }                    = require("smc-util/db-schema/site-defaults")
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     account_id              : rtypes.string
@@ -83,6 +84,7 @@ exports.AccountPage = rclass
             kucalc                  : rtypes.string
             email_enabled           : rtypes.bool
             verify_emails           : rtypes.bool
+            ssh_gateway             : rtypes.bool
         account : ACCOUNT_SPEC
 
     propTypes :
@@ -163,27 +165,28 @@ exports.AccountPage = rclass
             has_account             = {misc.local_storage_length() > 0}
         />
 
-    render_commercial_tabs: ->
-        if not require('./customize').commercial
-            # obviously don't render these if not commercial
-            return null
+    render_special_tabs: ->
+        # adds a few conditional tabs
         if @props.is_anonymous
-            # Also, none of these make any sense for a temporary anonymous account.
+            # None of these make any sense for a temporary anonymous account.
             return null
+        commercial = require('./customize').commercial
         v = []
-        v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions and Course Packages'}</span>}>
-            {<BillingPage is_simplified={false} /> if @props.active_page == 'billing'}
-        </Tab>
-        v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
-            {@render_upgrades() if @props.active_page == 'upgrades'}
-        </Tab>
-        if @props.kucalc is 'yes'
+        if commercial
+            v.push <Tab key='billing' eventKey="billing" title={<span><Icon name='money'/> {'Subscriptions and Course Packages'}</span>}>
+                {<BillingPage is_simplified={false} /> if @props.active_page == 'billing'}
+            </Tab>
+            v.push <Tab key='upgrades' eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
+                {@render_upgrades() if @props.active_page == 'upgrades'}
+            </Tab>
+        if @props.ssh_gateway or @props.kucalc is KUCALC_COCALC_COM
             v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH keys</span>}>
                 {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
             </Tab>
-        v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
-            {<SupportPage/> if @props.active_page == 'support'}
-        </Tab>
+        if commercial
+            v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>
+                {<SupportPage/> if @props.active_page == 'support'}
+            </Tab>
         return v
 
     render_loading_view: ->
@@ -205,7 +208,7 @@ exports.AccountPage = rclass
                     <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Preferences</span>}>
                         {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                     </Tab>
-                    {@render_commercial_tabs()}
+                    {@render_special_tabs()}
                 </Tabs>
             </Col>
         </Row>
