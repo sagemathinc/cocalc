@@ -914,8 +914,12 @@ class ProjectsStore extends Store
         last_edited = @getIn(['project_map', project_id, 'last_edited'])
         # mintime = time in seconds project can stay unused
         mintime = @getIn(['project_map', project_id, 'settings', 'mintime'])
+        # contribution from users
         @getIn(['project_map', project_id, 'users'])?.map (info, account_id) =>
             mintime += info?.getIn(['upgrades', 'mintime']) ? 0
+        # contribution from site license
+        site_license = @get_total_site_license_upgrades_to_project(project_id)
+        mintime += site_license.mintime
         return new Date((last_edited - 0) + 1000*mintime)
 
     # Returns the TOTAL of the quotas contributed by all
