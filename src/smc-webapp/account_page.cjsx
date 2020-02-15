@@ -69,6 +69,7 @@ ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     stripe_customer         : rtypes.immutable.Map
     ssh_keys                : rtypes.immutable.Map
     is_anonymous            : rtypes.bool
+    created                 : rtypes.object
 
 ACCOUNT_FIELDS = misc.keys(ACCOUNT_SPEC)
 
@@ -136,7 +137,8 @@ exports.AccountPage = rclass
             stripe_customer        = {@props.stripe_customer}
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
-            groups                 = {@props.groups} />
+            groups                 = {@props.groups}
+            created                = {@props.created} />
 
     render_landing_page: ->
         <LandingPage

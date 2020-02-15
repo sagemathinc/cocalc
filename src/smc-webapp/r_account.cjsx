@@ -23,7 +23,7 @@
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
-{A, ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
+{A, ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space, TimeAgo} = require('./r_misc')
 
 {SiteName, TermsOfService} = require('./customize')
 
@@ -456,6 +456,7 @@ AccountSettings = rclass
         delete_account_error   : rtypes.string
         other_settings         : rtypes.object
         is_anonymous           : rtypes.bool
+        created                : rtypes.object
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -686,10 +687,23 @@ AccountSettings = rclass
         else
             return <h2> <Icon name='user' /> Account</h2>
 
+    render_created: ->
+        if not @props.created
+            return
+        <Row style={marginBottom:'15px'}>
+            <Col md={4}>
+                Created
+            </Col>
+            <Col md={8}>
+                <TimeAgo date={@props.created} />
+            </Col>
+        </Row>
+
     render: ->
         <Panel header={@render_header()}>
             {@render_anonymous_warning()}
             {@render_terms_of_service()}
+            {@render_created()}
             <TextSetting
                 label     = 'First name'
                 value     = {@props.first_name}
@@ -1506,6 +1520,7 @@ exports.AccountSettingsTop = rclass
         groups                 : rtypes.immutable.List
         stripe_customer        : rtypes.immutable.Map
         is_anonymous           : rtypes.bool
+        created                : rtypes.object
 
     render_account_settings: ->
         <AccountSettings
@@ -1519,6 +1534,7 @@ exports.AccountSettingsTop = rclass
             everywhere             = {@props.everywhere}
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
+            created                = {@props.created}
             redux                  = {@props.redux} />
 
 
