@@ -233,8 +233,14 @@ class MultipleAddSearch extends Component<
 
   private render_create_new_assignment(): Rendered {
     if (!this.search) return;
-    const target = this.search.trim();
+    let target = this.search.trim();
+    while (target[target.length - 1] == "/") {
+      // strip trailing /'s; people's fingers may want to type them
+      // if they think of assignments as directories (which they should).
+      target = target.slice(0, target.length - 1);
+    }
     if (!target) return;
+
     return (
       <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
         Create '{target}'?
