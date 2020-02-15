@@ -688,7 +688,7 @@ AccountSettings = rclass
             return <h2> <Icon name='user' /> Account</h2>
 
     render_created: ->
-        if not @props.created
+        if @props.is_anonymous or not @props.created
             return
         <Row style={marginBottom:'15px'}>
             <Col md={4}>
