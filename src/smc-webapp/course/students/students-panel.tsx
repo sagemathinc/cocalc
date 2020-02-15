@@ -347,12 +347,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         }
       }
       this.get_actions().students.add_students(students);
-      return this.setState({
-        err: undefined,
-        add_select: undefined,
-        selected_option_nodes: undefined,
-        add_search: ""
-      });
+      this.clear();
     };
 
     add_all_students = () => {
@@ -369,13 +364,17 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         }
       }
       this.get_actions().students.add_students(students);
+      this.clear();
+    };
+
+    private clear(): void {
       return this.setState({
         err: undefined,
         add_select: undefined,
         selected_option_nodes: undefined,
         add_search: ""
       });
-    };
+    }
 
     get_add_selector_options() {
       const v: any[] = [];
@@ -416,6 +415,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             {options}
           </FormControl>
           <div style={{ marginTop: "15px" }}>
+            {this.render_cancel()}
+            <Space />
             {this.render_add_selector_button(options)}
             <Space />
             {this.render_add_all_students_button(options)}
@@ -493,6 +494,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
+    private render_cancel(): Rendered {
+      return <Button onClick={() => this.clear()}>Cancel</Button>;
+    }
+
     render_error() {
       let ed: any;
       if (this.state.err) {
@@ -532,7 +537,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
       if (ed != null) {
         return (
-          <div style={{ marginTop: "1em", marginBottom: "-10px" }}>
+          <div style={{ marginTop: "1em", marginBottom: "15px" }}>
             <Row>
               <Col md={10} offset={14}>
                 {ed}
@@ -595,7 +600,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                 style={{ marginLeft: "15px" }}
               >
                 <Col md={18}>
-                  <FormGroup style={{marginRight:'15px'}}>
+                  <FormGroup style={{ marginRight: "15px" }}>
                     <FormControl
                       ref="student_add_input"
                       componentClass="textarea"
