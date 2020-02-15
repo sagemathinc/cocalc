@@ -147,8 +147,10 @@ export class ChatLog extends Component<ChatLogProps> {
     if (not_showing <= 0) return;
     return (
       <Alert bsStyle="warning" key="not_showing">
-        Hiding {not_showing} chats that do not match search for '
-        {this.props.search}'.
+        <b>
+          WARNING: Hiding {not_showing} chats that do not match search for '
+          {this.props.search}'.
+        </b>
       </Alert>
     );
   }

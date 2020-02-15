@@ -86,7 +86,9 @@ class ChatActions extends Actions
             event     : "chat"
             history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
             date      : time_stamp
-        @setState(last_sent: mesg)
+        @setState({last_sent: mesg, search:""})
+        # NOTE: we clear search, since it's very confusing to send a message and not even see it (if it doesn't match search).
+        # NOTE: further that annoyingly the search box isn't controlled so the input isn't cleared, which is also confusing. todo -- fix.
         @save()
         @set_input('')
         user_tracking("send_chat", {project_id:@syncdb.project_id, path:@syncdb.path})
