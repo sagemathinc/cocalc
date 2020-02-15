@@ -174,7 +174,8 @@ class SiteLicenses extends Component<Props> {
       return (
         <b style={{ marginLeft: "10px" }}>
           Showing {this.props.matches_search.size} of{" "}
-          {this.props.site_licenses.size} licenses
+          {this.props.site_licenses.size} licenses matching the search{" "}
+          <a onClick={() => actions.set_search("")}>(clear)</a>.
         </b>
       );
     }
