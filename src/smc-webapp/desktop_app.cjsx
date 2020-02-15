@@ -140,8 +140,13 @@ Page = rclass
             a = 'cog'
 
         if @props.is_anonymous
-            label = <Button bsStyle="success" style={fontWeight:'bold', width:'400px'}>Sign Up NOW to avoid losing all of your work!!</Button>
+            label = <Button id="anonymous-sign-up" bsStyle="success" style={fontWeight:'bold', width:'400px', opacity:0}>Sign Up NOW to avoid losing all of your work!</Button>
             style = {marginTop:'-10px'}  # compensate for using a button
+            show_button = () => $("#anonymous-sign-up").css('opacity', 1)
+
+            # We only actually show the button if it is still there a few seconds later.  This avoids flickering it
+            # for a moment during normal sign in.  This feels like a hack, but was super quick to implement.
+            setTimeout(show_button, 3000)
         else
             label = "Account"
             style = undefined
