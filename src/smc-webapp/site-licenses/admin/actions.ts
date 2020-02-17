@@ -76,6 +76,11 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public start_editing(license_id: string): void {
     const editing = store.get("editing", Set()).add(license_id);
     this.setState({ editing });
+    // avoid confusion by restricting to only showing the
+    // license being edited until user clears or changes search.
+    // This makes UI technically less powerful but also less
+    // confusing.
+    this.set_search(license_id);
   }
 
   public cancel_editing(license_id: string): void {

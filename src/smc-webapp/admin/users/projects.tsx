@@ -230,10 +230,15 @@ export class Projects extends Component<Props, State> {
   }
 
   render(): Rendered {
-    const title = (
-      <span style={{ fontWeight: "bold", color: "#666" }}>
+    const content = this.state.status ? (
+      this.state.status
+    ) : (
+      <span>
         {this.props.title} {this.render_number_of_projects()}
       </span>
+    );
+    const title = (
+      <span style={{ fontWeight: "bold", color: "#666" }}>{content}</span>
     );
     return <Panel header={title}>{this.render_projects()}</Panel>;
   }
