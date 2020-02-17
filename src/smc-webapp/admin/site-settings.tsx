@@ -1,5 +1,9 @@
 import { FormGroup, FormControl, Well } from "react-bootstrap";
 import { Button } from "../antd-bootstrap";
+import { callback2 } from "smc-util/async-utils";
+import { alert_message } from "../alerts";
+import { user_search } from "../frame-editors/generic/client";
+const { webapp_client } = require("../webapp_client");
 import * as humanizeList from "humanize-list";
 import {
   React,
@@ -449,10 +453,28 @@ class SiteSettingsComponent extends Component<
         redux.getActions("account").forgot_password(email);
         break;
       case "invite_email":
+        alert_message({
+          type: "error",
+          message: "Simulated invite emails are NYI"
+        });
         break;
       case "mention":
+        alert_message({
+          type: "error",
+          message: "Simulated mention emails are NYI"
+        });
         break;
       case "verification":
+        const users = await user_search({
+          query: email,
+          admin: true,
+          limit: 1
+        });
+        if (users.length == 1) {
+          await callback2(webapp_client.send_verification_email, {
+            account_id: users[0].account_id
+          });
+        }
         break;
       default:
         unreachable(type);
@@ -482,7 +504,7 @@ class SiteSettingsComponent extends Component<
         <Button
           disabled={this.state.disable_tests}
           bsSize={"small"}
-          onClick={() => this.send_test_email("mention")}
+          onClick={() => this.send_test_email("verification")}
         >
           Verify
         </Button>

@@ -18,13 +18,13 @@ export interface Config {
 }
 
 export const is_email_enabled = conf =>
-  conf.email_enabled === "true" && conf.email_backend !== "none";
+  to_bool(conf.email_enabled) && conf.email_backend !== "none";
 export const only_for_smtp = conf =>
   is_email_enabled(conf) && conf.email_backend === "smtp";
 export const only_for_sendgrid = conf =>
   is_email_enabled(conf) && conf.email_backend === "sendgrid";
 export const only_for_password_reset_smtp = conf =>
-  conf.email_enabled === "true" && conf.password_reset_override === "smtp";
+  to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const to_bool = val => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
@@ -164,7 +164,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Email sending enabled",
     desc:
       "Controls visibility of UI elements and if any emails are sent. This is independent of any particular email configuration!",
-    default: "false",
+    default: "no",
     valid: only_booleans,
     to_val: to_bool
   },
@@ -172,7 +172,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Verify email addresses",
     desc:
       "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
-    default: "false",
+    default: "no",
     show: is_email_enabled,
     valid: only_booleans,
     to_val: to_bool

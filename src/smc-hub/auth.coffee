@@ -767,7 +767,7 @@ exports.verify_email_send_token = (opts) ->
                     if err
                         cb(err)
                     else
-                        cb(token, email_address, settings)
+                        cb(null, token, email_address, settings)
         (token, email_address, settings, cb) =>
             email = require('./email')
             email.welcome_email
