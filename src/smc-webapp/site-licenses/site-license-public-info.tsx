@@ -43,10 +43,12 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     if (!this.state.info.expires) {
       return <span> (no expiration date set)</span>;
     }
+    let word: string =
+      new Date() >= this.state.info.expires ? "expired" : "will expire";
     return (
       <span>
         {" "}
-        (expires <TimeAgo date={this.state.info.expires} />)
+        ({word} <TimeAgo date={this.state.info.expires} />)
       </span>
     );
   }
@@ -122,6 +124,12 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     );
   }
 
+  private restart_project(): void {
+    if (!this.props.project_id) return;
+    const actions = redux.getActions("projects");
+    actions.restart_project(this.props.project_id);
+  }
+
   private render_upgrades(): Rendered {
     if (!this.props.project_id) {
       // component not being used in the context of a specific project.
@@ -135,9 +143,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
       if (!this.state.info) return;
       return (
         <div>
-          Currently providing no upgrades - you probably need to restart your
-          project (it's also possible that the license limit has been reached).
-          {" "}{run_limit}
+          Currently providing no upgrades - you probably need to{" "}
+          <a onClick={() => this.restart_project()}>restart your project</a>{" "}
+          (it's also possible that the license limit has been reached).{" "}
+          {run_limit}
         </div>
       );
     }
@@ -154,8 +163,8 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
             backgroundColor: "white",
             margin: "5px 15px"
           }}
-        />
-        {" "}{run_limit}
+        />{" "}
+        {run_limit}
       </div>
     );
   }
