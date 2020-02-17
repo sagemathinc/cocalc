@@ -47,6 +47,7 @@
     float: left;
 }
 #smc-startup-banner .banner-error .message {
+    width: auto;
     background-color: #bf1919;
 }
 #smc-startup-banner .banner-blink {
