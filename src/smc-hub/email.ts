@@ -356,15 +356,15 @@ async function init_pw_reset_smtp_server(opts): Promise<void> {
 }
 
 const smtp_footer = `
-<p style="margin-top:40px; border-top: 1px solid gray; color: gray; font-size:80%; text-align:center">
-This email was sent by <%= settings.site_name %> by ${COMPANY_NAME}.
-Contact <a href="mailto:<%= settings.help_email %>"><%= settings.help_email =></a> in case of any problems.
+<p style="margin-top:150px; border-top: 1px solid gray; color: gray; font-size:85%; text-align:center">
+This email was sent by <a href="${DOMAIN_NAME}"><%= settings.site_name %></a> by ${COMPANY_NAME}.
+Contact <a href="mailto:<%= settings.help_email %>"><%= settings.help_email %></a> if you have any questions.
 </p>`;
 
 // construct the actual HTML body of a password reset email sent via SMTP
 // in particular, all emails must have a body explaining who sent it!
 const pw_reset_body_tmpl = template(`
-<h1>Password Reset Request</h1>
+<h2><%= subject %></h2>
 
 <%= body %>
 

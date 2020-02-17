@@ -115,7 +115,16 @@ exports.forgot_password = (opts) ->
 
         (cb) ->
             # send an email to opts.mesg.email_address that has a password reset link
-            {DOMAIN_NAME, HELP_EMAIL, SITE_NAME} = require('smc-util/theme')
+            theme = require('smc-util/theme')
+
+            DOMAIN_NAME = theme.DOMAIN_NAME # actually a https url
+            HELP_EMAIL  = locals.settings.help_email ? theme.HELP_EMAIL
+            SITE_NAME   = locals.settings.site_name  ? theme.SITE_NAME
+
+            base_url      = require('./base-url').base_url()
+            path          = require('path').join('/', base_url, '/app')
+            RESET_URL     = "#{DOMAIN_NAME}#{path}?forgot=#{id}"
+
             body = """
                 <div>Hello,</div>
                 <div>&nbsp;</div>
@@ -123,17 +132,14 @@ exports.forgot_password = (opts) ->
                 Somebody just requested to change the password of your #{SITE_NAME} account.
                 If you requested this password change, please click this link:</div>
                 <div>&nbsp;</div>
-                <div style="text-align: center;">
-                <span style="font-size:12px;"><b>
-                  <a href="#{DOMAIN_NAME}/app?forgot=#{id}">#{DOMAIN_NAME}/app?forgot=#{id}</a>
-                </b></span>
+                <div style="text-align: center; font-size: 120%;">
+                  <b><a href="#{RESET_URL}">#{RESET_URL}</a></b>
                 </div>
                 <div>&nbsp;</div>
                 <div>If you don't want to change your password, ignore this message.</div>
                 <div>&nbsp;</div>
                 <div>In case of problems, email
-                <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a> immediately
-                (or just reply to this email).
+                <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a> immediately!
                 <div>&nbsp;</div>
                 """
 
