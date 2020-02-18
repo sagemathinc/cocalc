@@ -122,7 +122,9 @@ EmailVerification = rclass
                 if not err and resp.error?
                     err = resp.error
                 if err
-                    console.log("TODO: error sending email verification: #{err}")
+                    err_msg = "Problem sending email verification: #{err}"
+                    console.log(err_msg)
+                    alert_message(type:"error", message:err_msg)
 
     test : ->
         if not @props.email_address?
@@ -164,6 +166,7 @@ EmailAddressSetting = rclass
         redux         : rtypes.object
         disabled      : rtypes.bool
         is_anonymous  : rtypes.bool
+        verify_emails : rtypes.bool
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -212,18 +215,19 @@ EmailAddressSetting = rclass
                         cb(err)
 
             (cb) =>
-                # send a welcome email to an anonymous user, possibly including an email verification link
-                if not @props.is_anonymous
+                # if email verification is enabled, send out a token
+                # in any case, send a welcome email to an anonymous user, possibly including an email verification link
+                if not (@props.verify_emails or @props.is_anonymous)
                     cb()
+                    return
                 webapp_client.send_verification_email
                     account_id         : @props.account_id
-                    only_verify        : false   # hence the "welcome" email will be sent
+                    only_verify        : not @props.is_anonymous   # anonymouse users will get the "welcome" email
                     cb                 : (err, resp) =>
-                        @setState(disabled_button: true)
                         if not err and resp.error?
                             err = resp.error
                         if err
-                            err_msg = "Error sending welcome email: #{err}"
+                            err_msg = "Problem sending welcome email: #{err}"
                             console.log(err_msg)
                             alert_message(type:"error", message:err_msg)
                         cb(err)
@@ -737,7 +741,7 @@ AccountSettings = rclass
                 onBlur    = {(e)=>@save_change(e, 'first_name')}
                 maxLength = {254}
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-                />
+            />
             <TextSetting
                 label    = 'Last name'
                 value    = {@props.last_name}
@@ -746,16 +750,17 @@ AccountSettings = rclass
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
                 maxLength = {254}
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-                />
+            />
             <EmailAddressSetting
                 account_id    = {@props.account_id}
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = {254}
-                is_anonymous = {@props.is_anonymous}
-                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-                />
+                is_anonymous  = {@props.is_anonymous}
+                disabled      = {@props.is_anonymous and not @state.terms_checkbox}
+                verify_emails = {@props.verify_emails}
+            />
             <div style={marginBottom:'15px'}></div>
             {<EmailVerification
                 account_id             = {@props.account_id}

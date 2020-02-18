@@ -737,8 +737,8 @@ export function welcome_email(opts): void {
   const verify_emails = opts.settings.verify_emails ?? true;
 
   if (opts.only_verify) {
-    // in case we only want to send the verification email,
-    // we ignore settings.verify_emails
+    // only send the verification email, if settings.verify_emails is true
+    if (!verify_emails) return;
     subject = `Verify your email address on ${SITE_NAME} (${DNS})`;
     body = verify_email_html(token_url);
     category = "verify";
