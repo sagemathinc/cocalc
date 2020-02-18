@@ -735,7 +735,7 @@ AccountSettings = rclass
                 email_address          = {@props.email_address}
                 email_address_verified = {@props.email_address_verified}
                 ref                    = {'email_address_verified'}
-              /> if @props.email_enabled and @props.verify_emails}
+              /> if @props.email_enabled and @props.verify_emails and not @props.is_anonymous}
             {@render_newsletter()}
             {@render_password()}
             {if not @props.is_anonymous then <APIKeySetting />}
