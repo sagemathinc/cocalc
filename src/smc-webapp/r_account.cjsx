@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+async = require('async')
+
 {React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
@@ -39,6 +41,7 @@
 
 {log} = require("./user-tracking")
 
+{alert_message} = require('./alerts')
 
 md5 = require('md5')
 
@@ -156,6 +159,7 @@ EmailAddressSetting = rclass
     displayName : 'Account-EmailAddressSetting'
 
     propTypes :
+        account_id    : rtypes.string
         email_address : rtypes.string
         redux         : rtypes.object
         disabled      : rtypes.bool
@@ -186,23 +190,45 @@ EmailAddressSetting = rclass
             return
         @setState
             state : 'saving'
-        webapp_client.change_email
-            new_email_address : @state.email_address
-            password          : @state.password
-            cb                : (err, resp) =>
-                if not err and resp.error?
-                    err = resp.error
-                if err
-                    @setState
-                        state    : 'edit'
-                        error    : "Error -- #{err}"
-                else
-                    if @props.is_anonymous
-                        log("email_sign_up", {source: "anonymous_account"});
-                    @setState
-                        state    : 'view'
-                        error    : ''
-                        password : ''
+        async.series([
+            (cb) =>
+                webapp_client.change_email
+                    new_email_address : @state.email_address
+                    password          : @state.password
+                    cb                : (err, resp) =>
+                        if not err and resp.error?
+                            err = resp.error
+                        if err
+                            @setState
+                                state    : 'edit'
+                                error    : "Error -- #{err}"
+                        else
+                            if @props.is_anonymous
+                                log("email_sign_up", {source: "anonymous_account"});
+                            @setState
+                                state    : 'view'
+                                error    : ''
+                                password : ''
+                        cb(err)
+
+            (cb) =>
+                # send a welcome email to an anonymous user, possibly including an email verification link
+                if not @props.is_anonymous
+                    cb()
+                webapp_client.send_verification_email
+                    account_id         : @props.account_id
+                    only_verify        : false   # hence the "welcome" email will be sent
+                    cb                 : (err, resp) =>
+                        @setState(disabled_button: true)
+                        if not err and resp.error?
+                            err = resp.error
+                        if err
+                            err_msg = "Error sending welcome email: #{err}"
+                            console.log(err_msg)
+                            alert_message(type:"error", message:err_msg)
+                        cb(err)
+        ])
+
 
     is_submittable: ->
         return @state.password != '' and @state.email_address != @props.email_address
@@ -722,6 +748,7 @@ AccountSettings = rclass
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <EmailAddressSetting
+                account_id    = {@props.account_id}
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
@@ -1602,7 +1629,7 @@ f()
 ugly_error = (err) ->
     if typeof(err) != 'string'
         err = misc.to_json(err)
-    require('./alerts').alert_message(type:"error", message:"Settings error -- #{err}")
+    alert_message(type:"error", message:"Settings error -- #{err}")
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load
