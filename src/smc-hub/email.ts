@@ -612,13 +612,12 @@ ${token_url}
 }
 
 // beware, this needs to be HTML which is compatible with email-clients!
-function welcome_email_html(token_url) {
+function welcome_email_html(token_url, verify_emails) {
   return `\
 <h1>Welcome to ${SITE_NAME}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
-<a href="${DOMAIN_NAME}">${SITE_NAME}</a> helps you do collaborative
-calculations in your web browser.
+<a href="${DOMAIN_NAME}">${SITE_NAME}</a> helps you to work with open-source scientific software in your web browser.
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
@@ -627,7 +626,7 @@ This was either initiated by you, a friend or colleague invited you, or you're
 a student as part of a course.
 </p>
 
-${verify_email_html(token_url)}
+${verify_emails ? verify_email_html(token_url) : ""}
 
 <hr size="1"/>
 
@@ -641,6 +640,44 @@ ${SITE_NAME} supports online editing of
     <a href="https://www.sagemath.org/">Sage Worksheets</a>,
     <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
 </p>
+
+<p style="margin-top:0;margin-bottom:10px;">
+<strong>How to get from 0 to 100:</strong>
+</p>
+
+<ul>
+<li style="margin-top:0;margin-bottom:10px;">
+    <strong><a href="https://doc.cocalc.com/">CoCalc Manual:</a></strong> learn more about CoCalc's features.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://doc.cocalc.com/jupyter.html">Working with Jupyter Notebooks</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://doc.cocalc.com/sagews.html">Working with SageMath Worksheets</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://doc.cocalc.com/teaching-instructors.html">Teaching a course on CoCalc</a>.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://doc.cocalc.com/howto/connectivity-issues.html">Troubleshooting connectivity issues</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors">Common mathematical syntax errors:</a> look into this if you are new to working with a programming language!
+</li>
+</ul>
+
+
+<p style="margin-top:0;margin-bottom:20px;">
+<strong>Collaboration:</strong>
+You can invite collaborators to work with you inside a project.
+Like you, they can edit the files in that project.
+Edits are visible in <strong>real time</strong> for everyone online.
+You can share your thoughts in a <strong>side chat</strong> next to each document.
+</p>
+
 
 <p><strong>Software:</strong>
 <ul>
@@ -666,36 +703,6 @@ ${SITE_NAME} supports online editing of
 Visit our <a href="https://cocalc.com/static/doc/software.html">Software overview page</a> for more details!
 </p>
 
-<p style="margin-top:0;margin-bottom:20px;">
-<strong>Collaboration:</strong>
-You can invite collaborators to work with you inside a project.
-Like you, they can edit the files in that project.
-Edits are visible in <strong>real time</strong> for everyone online.
-You can share your thoughts in a <strong>side chat</strong> next to each document.
-</p>
-
-<p style="margin-top:0;margin-bottom:10px;"><strong>More information:</strong> how to get from 0 to 100%!</p>
-
-<ul>
-<li style="margin-top:0;margin-bottom:10px;">
-    <strong><a href="https://doc.cocalc.com/">${SITE_NAME} Manual:</a></strong> learn more about ${SITE_NAME}'s features.
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://doc.cocalc.com/sagews.html">Working with SageMath Worksheets</a>
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://doc.cocalc.com/teaching-instructors.html">Sophisticated tools for teaching a class</a>.
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://doc.cocalc.com/howto/connectivity-issues.html">Troubleshooting connectivity issues</a>
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors">Common mathematical syntax errors:</a> look into this if you are new to working with a programming language!
-</li>
-</ul>
 
 <p style="margin-top:20px;margin-bottom:10px;">
 <strong>Questions?</strong>
@@ -717,7 +724,7 @@ export function welcome_email(opts): void {
     to: required,
     token: required, // the email verification token
     only_verify: false, // TODO only send the verification token, for now this is good enough
-    settings: {},
+    settings: required,
     cb: undefined
   });
 
@@ -727,14 +734,17 @@ export function welcome_email(opts): void {
   );
   const endpoint = os_path.join("/", base_url, "auth", "verify");
   const token_url = `${DOMAIN_NAME}${endpoint}?${token_query}`;
+  const verify_emails = opts.settings.verify_emails ?? true;
 
   if (opts.only_verify) {
+    // in case we only want to send the verification email,
+    // we ignore settings.verify_emails
     subject = `Verify your email address on ${SITE_NAME} (${DNS})`;
     body = verify_email_html(token_url);
     category = "verify";
   } else {
     subject = `Welcome to ${SITE_NAME} - ${DNS}`;
-    body = welcome_email_html(token_url);
+    body = welcome_email_html(token_url, verify_emails);
     category = "welcome";
   }
 
