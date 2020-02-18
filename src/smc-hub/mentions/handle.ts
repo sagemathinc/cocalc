@@ -176,8 +176,10 @@ async function send_email_notification(
 
   const category = "notification";
 
+  const settings = await callback2(db.get_server_settings_cached, {});
+
   // Send email notification.
-  await callback2(send_email, { subject, body, from, to, category });
+  await callback2(send_email, { subject, body, from, to, category, settings });
 }
 
 async function set_action(

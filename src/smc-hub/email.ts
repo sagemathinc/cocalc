@@ -418,7 +418,7 @@ const opts_default: Opts = {
   cb: undefined,
   category: undefined,
   asm_group: undefined,
-  settings: {}
+  settings: required
 };
 
 // here's how I test this function:
