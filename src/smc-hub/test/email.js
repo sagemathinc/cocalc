@@ -31,14 +31,23 @@ async function main() {
   });
   console.log(`send_email done: ${send_res}`);
 
-  // email verification token
+  // welcome email
   const welcome_res = await callback2(welcome_email, {
     to: "harald@schil.ly",
     token: "asdf-asdf-asdf",
-    only_verify: true, // or false
+    only_verify: false, // if verification shows up depends on the settings
     settings: settings
   });
   console.log(`welcome_email done: ${welcome_res}`);
+
+  // email verification token
+  const verify_res = await callback2(welcome_email, {
+    to: "harald@schil.ly",
+    token: "asdf-asdf-asdf",
+    only_verify: true,
+    settings: settings
+  });
+  console.log(`verify_email done: ${verify_res}`);
 
   // password reset
 
@@ -47,7 +56,7 @@ async function main() {
 
   const forgot_pw = await callback2(forgot_password, {
     mesg: message.forgot_password({ email_address: "harald@schil.ly" }),
-    ip: "1.2.3.4",
+    ip_address: "1.2.3.4",
     database: db
   });
   console.log(`forgot_password done: ${forgot_pw}`);

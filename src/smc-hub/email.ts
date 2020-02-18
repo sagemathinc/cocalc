@@ -595,11 +595,14 @@ export function mass_email(opts): void {
 
 function verify_email_html(token_url) {
   return `
-<p style="margin-top:0;margin-bottom:10px;">
+<p style="margin-top:0;margin-bottom:20px;">
 <strong>
 Please <a href="${token_url}">click here</a> to verify your email address!
-If this link does not work, please copy/paste this URL into a new browser tab and open the link:
 </strong>
+</p>
+
+<p style="margin-top:0;margin-bottom:20px;">
+If this link does not work, please copy/paste this URL into a new browser tab and open the link:
 </p>
 
 <pre style="margin-top:10px;margin-bottom:10px;font-size:11px;">
