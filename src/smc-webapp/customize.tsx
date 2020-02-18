@@ -53,7 +53,6 @@ for (const k in site_settings_conf) {
 }
 const defaults = misc.dict(result);
 defaults.is_commercial = defaults.commercial;
-defaults.have_ssh_gateway = defaults.ssh_gateway;
 defaults._is_configured = false; // will be true after set via call to server
 
 // TODO type the store. it's an extension of what's in SiteSettings

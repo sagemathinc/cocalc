@@ -72,7 +72,7 @@ export const Body = rclass<ReactProps>(
         },
         customize: {
           kucalc: rtypes.string,
-          ssh_gateway: rtypes.boolean
+          ssh_gateway: rtypes.bool
         },
         projects: {
           get_course_info: rtypes.func,
