@@ -508,20 +508,22 @@ class SiteSettingsComponent extends Component<
         >
           Verify
         </Button>
-        <Button
-          disabled={this.state.disable_tests}
-          bsSize={"small"}
-          onClick={() => this.send_test_email("invite_email")}
-        >
-          Invite
-        </Button>
-        <Button
-          disabled={this.state.disable_tests}
-          bsSize={"small"}
-          onClick={() => this.send_test_email("mention")}
-        >
-          @mention
-        </Button>
+        {
+          // <Button
+          //   disabled={this.state.disable_tests}
+          //   bsSize={"small"}
+          //   onClick={() => this.send_test_email("invite_email")}
+          // >
+          //   Invite
+          // </Button>
+          // <Button
+          //   disabled={this.state.disable_tests}
+          //   bsSize={"small"}
+          //   onClick={() => this.send_test_email("mention")}
+          // >
+          //   @mention
+          // </Button>
+        }
       </div>
     );
   }
