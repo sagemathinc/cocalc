@@ -73,7 +73,7 @@ export const site_licenses = create({
     run_limit: {
       type: "integer",
       desc:
-        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopp."
+        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped."
     },
     apply_limit: {
       type: "integer",
@@ -272,35 +272,49 @@ export const projects_using_site_license = create({
 //
 export const site_license_public_info = create({
   fields: {
-    id: site_licenses.fields.id,
+    id: site_licenses.fields.id, // must be specified or it is an error
     title: site_licenses.fields.title,
     expires: site_licenses.fields.expires,
     activates: site_licenses.fields.activates,
     upgrades: site_licenses.fields.upgrades,
-    run_limit: site_licenses.fields.run_limit
+    run_limit: site_licenses.fields.run_limit,
+    running: {
+      type: "integer",
+      desc:
+        "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it."
+    }
   },
   rules: {
     desc: "Publicly available information about site licenses",
     anonymous: false, // do need to be signed in.
     primary_key: ["id"],
-    virtual: "site_licenses",
+    virtual: true, // no actual table.
     user_query: {
       get: {
         admin: false,
-        check_hook: (_db, obj, _account_id, _project_id, cb) => {
-          if (typeof obj.id == "string" && is_valid_uuid_string(obj.id)) {
-            cb(); // good
-          } else {
-            cb("id must be a uuid");
-          }
-        },
         fields: {
           id: null,
           title: null,
           expires: null,
           activates: null,
           upgrades: null,
-          run_limit: null
+          run_limit: null,
+          running: null
+        },
+        // Actual query is implemented using this code below rather than an
+        // actual query directly.  TODO: Also, we're lazy and return all fields we
+        // know, even if user doesn't request them all.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          const id = opts.query.id;
+          if (typeof id != "string" || !is_valid_uuid_string(id)) {
+            cb("must be a single object query with id specified");
+          } else {
+            try {
+              cb(undefined, await database.site_license_public_info(id));
+            } catch (err) {
+              cb(err);
+            }
+          }
         }
       }
     }
