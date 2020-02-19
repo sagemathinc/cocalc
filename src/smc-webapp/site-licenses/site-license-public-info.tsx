@@ -183,9 +183,18 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
       // component not being used in the context of a specific project.
       return this.render_what_license_provides_overall();
     }
+
     let provides: Rendered;
-    if (!this.provides_upgrades()) {
-      if (!this.state.info) return;
+    let show_run: boolean = true;
+    if (this.state.info == null) return; // wait until done loading.
+    if (this.state.info.expires && new Date() >= this.state.info.expires) {
+      // expired?
+      // it is expired, so no point in explaining what upgrades it would
+      // provide or telling you to restart your project.
+      provides = <li>This license is expired.</li>;
+      show_run = false; // no point in showing these
+    } else if (!this.provides_upgrades()) {
+      // not providing any upgrades -- why?
       if (
         !this.state.info.run_limit ||
         this.state.info.running < this.state.info.run_limit
@@ -216,6 +225,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         );
       }
     } else {
+      // not expired and is providing upgrades.
       if (this.props.upgrades == null) throw Error("make typescript happy");
       provides = (
         <li>
@@ -236,8 +246,8 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     return (
       <ul>
         {provides}
-        {this.render_run_limit()}
-        {this.render_running()}
+        {show_run ? this.render_run_limit() : undefined}
+        {show_run ? this.render_running() : undefined}
       </ul>
     );
   }
