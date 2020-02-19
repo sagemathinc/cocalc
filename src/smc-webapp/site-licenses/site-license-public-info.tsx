@@ -17,11 +17,11 @@ interface Props {
 interface State {
   info?: Info;
   err?: string;
-  loading: boolean;
+  loading?: boolean;
 }
 
 export class SiteLicensePublicInfo extends Component<Props, State> {
-  private mounted: boolean = true;
+  private mounted: boolean = false;
 
   constructor(props, state) {
     super(props, state);
@@ -33,9 +33,16 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     this.mounted = false;
   }
 
-  private async fetch_info(): Promise<void> {
+  componentWillMount() {
+    this.mounted = true;
+  }
+
+  private async fetch_info(force: boolean = false): Promise<void> {
+    if (this.mounted) {
+      this.setState({ loading: true });
+    }
     try {
-      let info = await site_license_public_info(this.props.license_id);
+      let info = await site_license_public_info(this.props.license_id, force);
       if (!this.mounted) return;
       this.setState({ info, loading: false });
     } catch (err) {
@@ -187,7 +194,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
           <>
             <li>Currently providing no upgrades to this project. </li>
             <li>
-              <Icon name="warning"/>{" "}
+              <Icon name="warning" />{" "}
               <a onClick={() => this.restart_project()}>Restart this project</a>{" "}
               to use the upgrades provided by this license.
             </li>
@@ -198,10 +205,9 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
           <>
             <li>Currently providing no upgrades to this project.</li>
             <li>
-              <Icon name="warning"/>{" "}
-              This license is already being used to upgrade{" "}
-              {this.state.info.running} other running projects, which is the
-              limit. If possible, stop one of those projects, then{" "}
+              <Icon name="warning" /> This license is already being used to
+              upgrade {this.state.info.running} other running projects, which is
+              the limit. If possible, stop one of those projects, then{" "}
               <a onClick={() => this.restart_project()}>
                 restart this project.
               </a>
@@ -262,6 +268,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     }
   }
 
+  private render_refresh_button(): Rendered {
+    return <Button onClick={() => this.fetch_info(true)}>Refresh</Button>;
+  }
+
   private render_remove_button(): Rendered {
     if (!this.props.project_id) return;
     const extra = this.provides_upgrades() ? (
@@ -285,7 +295,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         okText={"Yes"}
         cancelText={"Cancel"}
       >
-        <Button style={{ float: "right" }}>Remove License...</Button>
+        <Button>Remove License...</Button>
       </Popconfirm>
     );
   }
@@ -304,7 +314,10 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
   public render(): Rendered {
     const message = (
       <div>
-        {this.render_remove_button()}
+        <Button.Group style={{ float: "right" }}>
+          {this.render_refresh_button()}
+          {this.render_remove_button()}
+        </Button.Group>
         <Icon name="key" /> {this.render_body()}
         <br />
         {this.render_id()}
