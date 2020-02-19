@@ -31,8 +31,10 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
 {set_account_info_if_possible} = require('./postgres/account-queries')
+
 {site_license_usage_stats, projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
+{site_license_public_info} = require('./postgres/site-license/public')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -3063,6 +3065,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     projects_using_site_license: (opts) =>
         return await projects_using_site_license(@, opts)
+
+    # async function
+    site_license_public_info: (license_id) =>
+        return await site_license_public_info(@, license_id)
 
     # async function
     update_site_license_usage_log: =>
