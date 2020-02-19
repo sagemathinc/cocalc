@@ -39,7 +39,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
   private async fetch_info(force: boolean = false): Promise<void> {
     if (this.mounted) {
-      this.setState({ loading: true });
+      this.setState({ loading: true, err: "" });
     }
     try {
       let info = await site_license_public_info(this.props.license_id, force);
@@ -96,7 +96,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
 
   private render_license(): Rendered {
     if (!this.state.info) {
-      return <span>Invalid license key</span>;
+      return;
     }
     return (
       <span>
