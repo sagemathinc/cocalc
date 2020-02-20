@@ -48,7 +48,13 @@ interface TableSchema<F extends Fields> {
       options?: any; // [{ limit: 1 }]
       instead_of_query?: (
         database,
-        obj,
+        opts: {
+          account_id?: string;
+          project_id?: string;
+          query: any;
+          multi: boolean;
+          options: any[];
+        },
         cb: (err?: string | Error, result?: any) => void
       ) => void;
       check_hook?: (

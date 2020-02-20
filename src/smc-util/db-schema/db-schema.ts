@@ -174,8 +174,9 @@ schema.blobs = {
   },
   user_query: {
     get: {
-      async instead_of_query(database, obj, cb): Promise<void> {
-        if (obj.id == null) {
+      async instead_of_query(database, opts, cb): Promise<void> {
+        const obj: any = Object.assign({}, opts.query);
+        if (obj == null || obj.id == null) {
           cb("id must be specified");
           return;
         }
