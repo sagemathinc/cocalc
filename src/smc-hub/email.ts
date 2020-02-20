@@ -525,6 +525,11 @@ exports.welcome_email = function(opts): void {
     cb: undefined
   });
 
+  if (opts.to == null) {
+    // users can sign up without an email address. ignore this.
+    typeof opts.cb === "function" ? opts.cb(undefined) : undefined;
+  }
+
   const base_url = require("./base-url").base_url();
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`
