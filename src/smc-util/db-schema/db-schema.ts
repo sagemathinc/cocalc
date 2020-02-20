@@ -174,7 +174,7 @@ schema.blobs = {
   },
   user_query: {
     get: {
-      instead_of_query(database, obj, _account_id, cb) {
+      async instead_of_query(database, obj, cb): Promise<void> {
         if (obj.id == null) {
           cb("id must be specified");
           return;
@@ -207,7 +207,13 @@ schema.blobs = {
         blob: true,
         project_id: true
       },
-      instead_of_change(database, _old_value, new_val, _account_id, cb) {
+      async instead_of_change(
+        database,
+        _old_value,
+        new_val,
+        _account_id,
+        cb
+      ): Promise<void> {
         database.save_blob({
           uuid: new_val.id,
           blob: new_val.blob,
@@ -885,7 +891,7 @@ schema.projects = {
     "USING GIN (users)", // so get_collaborator_ids is fast
     "USING GIN (host jsonb_path_ops)", // so get_projects_on_compute_server is fast
     "lti_id",
-    "USING GIN (state)",  // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
+    "USING GIN (state)" // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
   ],
 
   user_query: {
