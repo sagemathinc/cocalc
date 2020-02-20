@@ -5,6 +5,7 @@ LEAN server
 const lean_files = {};
 
 import { lean_server, Lean } from "./lean";
+import { init_global_packages } from "./global-packages";
 import { isEqual } from "underscore";
 
 let the_lean_server: Lean | undefined = undefined;
@@ -47,6 +48,7 @@ export async function lean_channel(
   path: string
 ): Promise<string> {
   if (the_lean_server === undefined) {
+    await init_global_packages();
     init_lean_server(client, logger);
     if (the_lean_server === undefined) {
       // just to satisfy typescript.
