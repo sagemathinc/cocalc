@@ -528,6 +528,7 @@ exports.welcome_email = function(opts): void {
   if (opts.to == null) {
     // users can sign up without an email address. ignore this.
     typeof opts.cb === "function" ? opts.cb(undefined) : undefined;
+    return;
   }
 
   const base_url = require("./base-url").base_url();
