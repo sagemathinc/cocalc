@@ -2627,13 +2627,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       auto: true,
       print: false,
       timeout: 45
-    });
+    } as { path: string; log: boolean | string[]; auto: boolean; print: boolean; timeout: number });
 
+    // log could also be an array of strings to record all the files that were downloaded in a zip file
     if (opts.log) {
+      const files = Array.isArray(opts.log) ? opts.log : [opts.path];
       this.log({
         event: "file_action",
         action: "downloaded",
-        files: opts.path
+        files
       });
     }
 
