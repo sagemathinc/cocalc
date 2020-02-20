@@ -160,7 +160,7 @@ export class Actions extends BaseActions<LeanEditorState> {
     if (this.channel !== undefined) {
       try {
         this.channel.end();
-      } catch(err) {
+      } catch (err) {
         // pass
       }
       delete this.channel;
@@ -241,7 +241,14 @@ export class Actions extends BaseActions<LeanEditorState> {
             type: "lean-messages"
           },
           second: {
-            type: "lean-info"
+            direction: "row",
+            type: "node",
+            first: {
+              type: "lean-info"
+            },
+            second: {
+              type: "lean-help"
+            }
           }
         }
       };
