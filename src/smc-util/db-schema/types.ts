@@ -139,3 +139,11 @@ interface TableSchema<F extends Fields> {
 
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
 type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields">;
+
+import { SiteSettings } from "./site-defaults";
+import { SettingsExtras } from "./site-settings-extras";
+
+// what will come out of the database and (if available) sending it through `to_val`
+export type AllSiteSettings = {
+  [key in keyof SiteSettings | keyof SettingsExtras]?: any;
+};

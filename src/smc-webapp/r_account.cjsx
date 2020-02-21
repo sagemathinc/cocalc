@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+async = require('async')
+
 {React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
@@ -39,6 +41,7 @@
 
 {log} = require("./user-tracking")
 
+{alert_message} = require('./alerts')
 
 md5 = require('md5')
 
@@ -119,7 +122,9 @@ EmailVerification = rclass
                 if not err and resp.error?
                     err = resp.error
                 if err
-                    console.log("TODO: error sending email verification: #{err}")
+                    err_msg = "Problem sending email verification: #{err}"
+                    console.log(err_msg)
+                    alert_message(type:"error", message:err_msg)
 
     test : ->
         if not @props.email_address?
@@ -156,10 +161,12 @@ EmailAddressSetting = rclass
     displayName : 'Account-EmailAddressSetting'
 
     propTypes :
+        account_id    : rtypes.string
         email_address : rtypes.string
         redux         : rtypes.object
         disabled      : rtypes.bool
         is_anonymous  : rtypes.bool
+        verify_emails : rtypes.bool
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -186,23 +193,46 @@ EmailAddressSetting = rclass
             return
         @setState
             state : 'saving'
-        webapp_client.change_email
-            new_email_address : @state.email_address
-            password          : @state.password
-            cb                : (err, resp) =>
-                if not err and resp.error?
-                    err = resp.error
-                if err
-                    @setState
-                        state    : 'edit'
-                        error    : "Error -- #{err}"
-                else
-                    if @props.is_anonymous
-                        log("email_sign_up", {source: "anonymous_account"});
-                    @setState
-                        state    : 'view'
-                        error    : ''
-                        password : ''
+        async.series([
+            (cb) =>
+                webapp_client.change_email
+                    new_email_address : @state.email_address
+                    password          : @state.password
+                    cb                : (err, resp) =>
+                        if not err and resp.error?
+                            err = resp.error
+                        if err
+                            @setState
+                                state    : 'edit'
+                                error    : "Error -- #{err}"
+                        else
+                            if @props.is_anonymous
+                                log("email_sign_up", {source: "anonymous_account"});
+                            @setState
+                                state    : 'view'
+                                error    : ''
+                                password : ''
+                        cb(err)
+
+            (cb) =>
+                # if email verification is enabled, send out a token
+                # in any case, send a welcome email to an anonymous user, possibly including an email verification link
+                if not (@props.verify_emails or @props.is_anonymous)
+                    cb()
+                    return
+                webapp_client.send_verification_email
+                    account_id         : @props.account_id
+                    only_verify        : not @props.is_anonymous   # anonymouse users will get the "welcome" email
+                    cb                 : (err, resp) =>
+                        if not err and resp.error?
+                            err = resp.error
+                        if err
+                            err_msg = "Problem sending welcome email: #{err}"
+                            console.log(err_msg)
+                            alert_message(type:"error", message:err_msg)
+                        cb(err)
+        ])
+
 
     is_submittable: ->
         return @state.password != '' and @state.email_address != @props.email_address
@@ -711,7 +741,7 @@ AccountSettings = rclass
                 onBlur    = {(e)=>@save_change(e, 'first_name')}
                 maxLength = {254}
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-                />
+            />
             <TextSetting
                 label    = 'Last name'
                 value    = {@props.last_name}
@@ -720,22 +750,24 @@ AccountSettings = rclass
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
                 maxLength = {254}
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-                />
+            />
             <EmailAddressSetting
+                account_id    = {@props.account_id}
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = {254}
-                is_anonymous = {@props.is_anonymous}
-                disabled  = {@props.is_anonymous and not @state.terms_checkbox}
-                />
+                is_anonymous  = {@props.is_anonymous}
+                disabled      = {@props.is_anonymous and not @state.terms_checkbox}
+                verify_emails = {@props.verify_emails}
+            />
             <div style={marginBottom:'15px'}></div>
             {<EmailVerification
                 account_id             = {@props.account_id}
                 email_address          = {@props.email_address}
                 email_address_verified = {@props.email_address_verified}
                 ref                    = {'email_address_verified'}
-              /> if @props.email_enabled and @props.verify_emails}
+              /> if @props.email_enabled and @props.verify_emails and not @props.is_anonymous}
             {@render_newsletter()}
             {@render_password()}
             {if not @props.is_anonymous then <APIKeySetting />}
@@ -1602,7 +1634,7 @@ f()
 ugly_error = (err) ->
     if typeof(err) != 'string'
         err = misc.to_json(err)
-    require('./alerts').alert_message(type:"error", message:"Settings error -- #{err}")
+    alert_message(type:"error", message:"Settings error -- #{err}")
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load

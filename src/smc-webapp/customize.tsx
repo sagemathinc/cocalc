@@ -19,10 +19,12 @@ import { Loading } from "./r_misc";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2 } from "smc-util/async-utils";
-const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");
-const theme = require("smc-util/theme");
-import { split_iframe_comm_hosts } from "smc-util/db-schema/site-defaults";
+import * as theme from "smc-util/theme";
+import {
+  split_iframe_comm_hosts,
+  site_settings_conf
+} from "smc-util/db-schema/site-defaults";
 
 import {
   KUCALC_DISABLED,
@@ -30,14 +32,10 @@ import {
   KUCALC_ON_PREMISES
 } from "smc-util/db-schema/site-defaults";
 
-// make it true if starts with y
-function convert_to_boolean(c): boolean {
-  return (c[0] != null ? c[0].toLowerCase() : undefined) === "y";
-}
-
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
-function validate_kucalc(k): string {
+function validate_kucalc(k?): string {
+  if (k == null) return KUCALC_DISABLED;
   const val = k.trim().toLowerCase();
   if ([KUCALC_DISABLED, KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(val)) {
     return val;
@@ -47,16 +45,14 @@ function validate_kucalc(k): string {
 }
 
 const result: any[] = [];
-for (const k in schema.site_settings_conf) {
-  const v = schema.site_settings_conf[k];
+for (const k in site_settings_conf) {
+  const v = site_settings_conf[k];
   const value: any =
     typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
   result.push([k, value]);
 }
 const defaults = misc.dict(result);
-defaults.is_commercial = convert_to_boolean(defaults.commercial);
-// commercial setups do have the SSH gateway
-defaults.have_ssh_gateway = convert_to_boolean(defaults.commercial);
+defaults.is_commercial = defaults.commercial;
 defaults._is_configured = false; // will be true after set via call to server
 
 // TODO type the store. it's an extension of what's in SiteSettings
@@ -82,29 +78,29 @@ class CustomizeStore extends Store<any> {
 
 redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize");
-actions.setState({ is_commercial: true }); // really simple way to have a default value -- gets changed below once the $?.get returns.
+// really simple way to have a default value -- gets changed below once the $?.get returns.
+actions.setState({ is_commercial: true, ssh_gateway: true });
 
 // If we are running in the browser, then we customize the schema.  This also gets run on the backend
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
+
 if (typeof $ !== "undefined" && $ != undefined) {
   $.get((window as any).app_base_url + "/customize", function(obj, status) {
     if (status === "success") {
-      obj.commercial =
-        obj.commercial != undefined ? obj.commercial : defaults.commercial;
-      obj.is_commercial = commercial = convert_to_boolean(obj.commercial);
-      obj.have_ssh_gateway =
-        obj.ssh_gateway != undefined
-          ? convert_to_boolean(obj.ssh_gateway)
-          : defaults.have_ssh_gateway;
+      // TODO make this a to_val function in site_settings_conf.kucalc
       obj.kucalc = validate_kucalc(obj.kucalc);
 
-      for (const k in schema.site_settings_conf) {
-        const v = schema.site_settings_conf[k];
-        if (typeof v.to_val === "function" && obj[k] != null) {
+      for (const k in site_settings_conf) {
+        const v = site_settings_conf[k];
+        obj[k] = obj[k] ?? v.default;
+        if (typeof v.to_val === "function") {
           obj[k] = v.to_val(obj[k]);
         }
       }
+
+      // set some special cases, backwards compatibility
+      commercial = obj.is_commercial = obj.commercial;
 
       obj._is_configured = true;
       actions.setState(obj);

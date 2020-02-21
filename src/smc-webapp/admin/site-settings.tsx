@@ -1,9 +1,22 @@
-import { Button, FormGroup, FormControl, Well } from "react-bootstrap";
+import { FormGroup, FormControl, Well } from "react-bootstrap";
+import { Button } from "../antd-bootstrap";
+//import { callback2 } from "smc-util/async-utils";
+import { alert_message } from "../alerts";
+//import { user_search } from "../frame-editors/generic/client";
+//const { webapp_client } = require("../webapp_client");
 import * as humanizeList from "humanize-list";
-import { React, Component, Rendered, ReactDOM } from "../app-framework";
+import {
+  React,
+  Component,
+  Rendered,
+  ReactDOM,
+  rtypes,
+  rclass,
+  redux
+} from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
-import { copy, deep_copy, keys } from "smc-util/misc2";
+import { copy, deep_copy, keys, unreachable } from "smc-util/misc2";
 
 import { site_settings_conf } from "smc-util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
@@ -31,19 +44,37 @@ import {
 
 const smc_version = require("smc-util/smc-version");
 
+type State = "view" | "load" | "edit" | "save" | "error";
+
+interface SiteSettingsProps {
+  email_address: string;
+}
+
 interface SiteSettingsState {
-  state: "view" | "load" | "edit" | "save" | "error"; // view --> load --> edit --> save --> view
+  state: State; // view --> load --> edit --> save --> view
   error?: string;
   edited?: any;
   data?: any;
+  disable_tests: boolean;
 }
 
-export class SiteSettings extends Component<{}, SiteSettingsState> {
+class SiteSettingsComponent extends Component<
+  SiteSettingsProps,
+  SiteSettingsState
+> {
   constructor(props, state) {
     super(props, state);
     this.on_json_entry_change = this.on_json_entry_change.bind(this);
     this.on_change_entry = this.on_change_entry.bind(this);
-    this.state = { state: "view" };
+    this.state = { state: "view", disable_tests: false };
+  }
+
+  public static reduxProps(): object {
+    return {
+      account: {
+        email_address: rtypes.string
+      }
+    };
   }
 
   render_error(): Rendered {
@@ -58,7 +89,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
   }
 
   async load(): Promise<void> {
-    this.setState({ state: "load" });
+    this.setState({ state: "load" as State });
     let result: any;
     try {
       result = await query({
@@ -75,10 +106,11 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
       data[x.name] = x.value;
     }
     this.setState({
-      state: "edit",
+      state: "edit" as State,
       error: undefined,
       data,
-      edited: deep_copy(data)
+      edited: deep_copy(data),
+      disable_tests: false
     });
   }
 
@@ -91,8 +123,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     }
   }
 
-  async save(): Promise<void> {
-    this.setState({ state: "save" });
+  private async store(): Promise<void> {
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (!isEqual(value, this.state.data[name])) {
@@ -103,16 +134,21 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
             }
           });
         } catch (err) {
-          this.setState({ state: "error", error: err });
+          this.setState({ state: "error" as State, error: err });
           return;
         }
       }
     }
-    this.setState({ state: "view" });
   }
 
-  cancel(): void {
-    this.setState({ state: "view" });
+  private async save(): Promise<void> {
+    this.setState({ state: "save" as State });
+    await this.store();
+    this.setState({ state: "view" as State });
+  }
+
+  private cancel(): void {
+    this.setState({ state: "view" as State });
   }
 
   render_save_button(): Rendered {
@@ -276,7 +312,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
-            onChange={val => this.on_change_entry(name, val)}
+            onChange={e => this.on_change_entry(name, e.target.value)}
           />
         );
       } else {
@@ -403,6 +439,99 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 
+  private async send_test_email(
+    type: "password_reset" | "invite_email" | "mention" | "verification"
+  ): Promise<void> {
+    const email = ReactDOM.findDOMNode(this.refs.test_email).value;
+    console.log(`sending test email "${type}" to ${email}`);
+    // saving info
+    await this.store();
+    this.setState({ disable_tests: true });
+    // wait 3 secs
+    await new Promise(done => setTimeout(done, 3000));
+    switch (type) {
+      case "password_reset":
+        redux.getActions("account").forgot_password(email);
+        break;
+      case "invite_email":
+        alert_message({
+          type: "error",
+          message: "Simulated invite emails are NYI"
+        });
+        break;
+      case "mention":
+        alert_message({
+          type: "error",
+          message: "Simulated mention emails are NYI"
+        });
+        break;
+      case "verification":
+        // The code below "looks good" but it doesn't work.
+        // const users = await user_search({
+        //   query: email,
+        //   admin: true,
+        //   limit: 1
+        // });
+        // if (users.length == 1) {
+        //   await callback2(webapp_client.send_verification_email, {
+        //     account_id: users[0].account_id
+        //   });
+        // }
+        break;
+      default:
+        unreachable(type);
+    }
+    this.setState({ disable_tests: false });
+  }
+
+  private render_tests(): Rendered {
+    return (
+      <div style={{ marginBottom: "1rem" }}>
+        <strong>Tests:</strong>
+        <Space />
+        Email:
+        <Space />
+        <Input
+          style={{ width: "auto" }}
+          defaultValue={this.props.email_address}
+          ref={"test_email"}
+        />
+        <Button
+          bsSize={"small"}
+          disabled={this.state.disable_tests}
+          onClick={() => this.send_test_email("password_reset")}
+        >
+          Forgot Password
+        </Button>
+        {
+          // <Button
+          //   disabled={this.state.disable_tests}
+          //   bsSize={"small"}
+          //   onClick={() => this.send_test_email("verification")}
+          // >
+          //   Verify
+          // </Button>
+        }
+        {
+          // <Button
+          //   disabled={this.state.disable_tests}
+          //   bsSize={"small"}
+          //   onClick={() => this.send_test_email("invite_email")}
+          // >
+          //   Invite
+          // </Button>
+          // <Button
+          //   disabled={this.state.disable_tests}
+          //   bsSize={"small"}
+          //   onClick={() => this.send_test_email("mention")}
+          // >
+          //   @mention
+          // </Button>
+        }
+      </div>
+    );
+  }
+
   private render_main(): Rendered | undefined {
     switch (this.state.state) {
       case "edit":
@@ -415,6 +544,7 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
           >
             {this.render_buttons()}
             {this.render_editor()}
+            {this.render_tests()}
             {this.render_buttons()}
           </Well>
         );
@@ -449,3 +579,5 @@ export class SiteSettings extends Component<{}, SiteSettingsState> {
     );
   }
 }
+
+export const SiteSettings = rclass(SiteSettingsComponent);

@@ -13,8 +13,26 @@ import {
 
 const { is_valid_email_address } = require("smc-util/misc");
 
+export interface SettingsExtras {
+  email_backend: Config;
+  sendgrid_key: Config;
+  email_smtp_server: Config;
+  email_smtp_from: Config;
+  email_smtp_login: Config;
+  email_smtp_password: Config;
+  email_smtp_port: Config;
+  email_smtp_secure: Config;
+  password_reset_override: Config;
+  password_reset_smtp_server: Config;
+  password_reset_smtp_from: Config;
+  password_reset_smtp_login: Config;
+  password_reset_smtp_password: Config;
+  password_reset_smtp_port: Config;
+  password_reset_smtp_secure: Config;
+}
+
 // not public, but admins can edit them
-export const EXTRAS: { [key: string]: Config } = {
+export const EXTRAS: SettingsExtras = {
   email_backend: {
     name: "Email backend type",
     desc:
@@ -25,6 +43,7 @@ export const EXTRAS: { [key: string]: Config } = {
   sendgrid_key: {
     name: "Sendgrid API key",
     desc: "You need a Sendgrid account and then enter a valid API key here",
+    password: true,
     default: "",
     show: only_for_sendgrid
   },
@@ -77,33 +96,33 @@ export const EXTRAS: { [key: string]: Config } = {
     default: "default",
     valid: ["default", "smtp"]
   },
-  password_reset_smpt_server: {
+  password_reset_smtp_server: {
     name: "PW reset SMTP server",
     desc: "hostname sending password reset emails",
     default: "",
     show: only_for_password_reset_smtp
   },
-  password_reset_smpt_from: {
+  password_reset_smtp_from: {
     name: "PW reset FROM",
     desc: "This sets the FROM and REPLYTO email address",
     default: "",
     valid: is_valid_email_address,
     show: only_for_password_reset_smtp
   },
-  password_reset_smpt_login: {
+  password_reset_smtp_login: {
     name: "PW reset SMTP username",
     desc: "username, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp
   },
-  password_reset_smpt_password: {
+  password_reset_smtp_password: {
     name: "PW reset SMTP password",
     desc: "password, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp,
     password: true
   },
-  password_reset_smpt_port: {
+  password_reset_smtp_port: {
     name: "PW reset SMTP port",
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
@@ -111,7 +130,7 @@ export const EXTRAS: { [key: string]: Config } = {
     valid: only_nonneg_int,
     show: only_for_password_reset_smtp
   },
-  password_reset_smpt_secure: {
+  password_reset_smtp_secure: {
     name: "PW reset SMTP secure",
     desc: "Usually 'true'",
     default: "true",

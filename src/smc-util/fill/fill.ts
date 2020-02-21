@@ -5,7 +5,7 @@ import { Restrict, Optionals } from "./types";
  * Given an object: T with some optional parameters
  * and defaults: a subset of optional parameters from T.
  *
- * Explicitly setting a default to `undefined`is not recommended
+ * Explicitly setting a default to `undefined` is not recommended
  *
  * @return T except provided defaults are guaranteed
  *

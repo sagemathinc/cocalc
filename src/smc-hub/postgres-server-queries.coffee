@@ -36,6 +36,9 @@ collab = require('./postgres/collab')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
 
+SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
+SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
@@ -195,6 +198,25 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where :
                 "name = $::TEXT" : opts.name
             cb    : one_result('value', opts.cb)
+
+    get_server_settings_cached: (opts) =>
+        opts = defaults opts,
+            cb: required
+        @_query
+            query : 'SELECT name, value FROM server_settings'
+            cache : true
+            cb    : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    x = {}
+                    for k in result.rows
+                        val = k.value
+                        config = SITE_SETTINGS_CONF[k.name] ? SERVER_SETTINGS_EXTRAS[k.name]
+                        if config?.to_val?
+                            val = config.to_val(val)
+                        x[k.name] = val
+                    opts.cb(undefined, x)
 
     get_site_settings: (opts) =>
         opts = defaults opts,

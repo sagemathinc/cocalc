@@ -18,16 +18,16 @@ export interface Config {
 }
 
 export const is_email_enabled = conf =>
-  conf.email_enabled === "true" && conf.email_backend !== "none";
+  to_bool(conf.email_enabled) && conf.email_backend !== "none";
 export const only_for_smtp = conf =>
   is_email_enabled(conf) && conf.email_backend === "smtp";
 export const only_for_sendgrid = conf =>
   is_email_enabled(conf) && conf.email_backend === "sendgrid";
 export const only_for_password_reset_smtp = conf =>
-  is_email_enabled(conf) && conf.password_reset_override === "smtp";
+  to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const to_bool = val => val === "true" || val === "yes";
-export const only_booleans = ["true", "yes", "false", "no"];
+export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = val => parseInt(val);
 export const only_ints = val =>
   (v => !isNaN(v) && Number.isFinite(v) && Number.isInteger(val))(to_int(val));
@@ -112,7 +112,7 @@ export const site_settings_conf: SiteSettings = {
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS
-  }, // TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+  },
   ssh_gateway: {
     name: "SSH Gateway",
     desc: "Show corresponding UI elements",
@@ -163,8 +163,8 @@ export const site_settings_conf: SiteSettings = {
   email_enabled: {
     name: "Email sending enabled",
     desc:
-      "Controls visibility of UI elements to send emails. This is independent of the particular email configuration!",
-    default: "false",
+      "Controls visibility of UI elements and if any emails are sent. This is independent of any particular email configuration!",
+    default: "no",
     valid: only_booleans,
     to_val: to_bool
   },
@@ -172,7 +172,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Verify email addresses",
     desc:
       "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
-    default: "false",
+    default: "no",
     show: is_email_enabled,
     valid: only_booleans,
     to_val: to_bool

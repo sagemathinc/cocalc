@@ -1200,6 +1200,7 @@ class exports.Client extends EventEmitter
             locals =
                 email_address : undefined
                 done          : false
+                settings      : undefined
 
             # SECURITY NOTE: mesg.project_id is valid and the client has write access, since otherwise,
             # the @get_project function above wouldn't have returned without err...
@@ -1247,6 +1248,15 @@ class exports.Client extends EventEmitter
                                 locals.done = true
                                 cb()
                             else
+                                cb()
+
+                (cb) =>
+                    @database.get_server_settings_cached
+                        cb : (err, settings) =>
+                            if err
+                                cb(err)
+                            else
+                                locals.settings = settings
                                 cb()
 
                 (cb) =>
@@ -1302,6 +1312,7 @@ class exports.Client extends EventEmitter
                         category     : "invite"
                         asm_group    : SENDGRID_ASM_INVITES
                         body         : email_body
+                        settings     : locals.settings
                         cb           : (err) =>
                             if err
                                 dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
@@ -1359,8 +1370,12 @@ class exports.Client extends EventEmitter
                     # at least we can limit its size.
                     cb("email address must be at most 128 characters: '#{email_address}'")
                     return
-                done  = false
-                account_id = undefined
+
+                locals =
+                    done       : false
+                    account_id : undefined
+                    settings   : undefined
+
                 async.series([
                     # already have an account?
                     (cb) =>
@@ -1368,16 +1383,16 @@ class exports.Client extends EventEmitter
                             email_address : email_address
                             cb            : (err, _account_id) =>
                                 dbg("account_exists: #{err}, #{_account_id}")
-                                account_id = _account_id
+                                locals.account_id = _account_id
                                 cb(err)
                     (cb) =>
-                        if account_id
+                        if locals.account_id
                             dbg("user #{email_address} already has an account -- add directly")
                             # user has an account already
-                            done = true
+                            locals.done = true
                             @database.add_user_to_project
                                 project_id : mesg.project_id
-                                account_id : account_id
+                                account_id : locals.account_id
                                 group      : 'collaborator'
                                 cb         : cb
                         else
@@ -1390,7 +1405,7 @@ class exports.Client extends EventEmitter
                                 ttl           : 60*60*24*14  # valid for 14 days
                                 cb            : cb
                     (cb) =>
-                        if done
+                        if locals.done
                             cb()
                         else
                             @database.when_sent_project_invite
@@ -1400,12 +1415,22 @@ class exports.Client extends EventEmitter
                                     if err
                                         cb(err)
                                     else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
-                                        done = true
+                                        locals.done = true
                                         cb()
                                     else
                                         cb()
+
                     (cb) =>
-                        if done
+                        @database.get_server_settings_cached
+                            cb: (err, settings) =>
+                                if err
+                                    cb(err)
+                                else
+                                    locals.settings = settings
+                                    cb()
+
+                    (cb) =>
+                        if locals.done
                             dbg("NOT send_email invite to #{email_address}")
                             cb()
                             return
@@ -1437,6 +1462,7 @@ class exports.Client extends EventEmitter
                             category     : "invite"
                             asm_group    : SENDGRID_ASM_INVITES
                             body         : email_body
+                            settings     : locals.settings
                             cb           : (err) =>
                                 if err
                                     dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")

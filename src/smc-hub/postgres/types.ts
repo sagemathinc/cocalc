@@ -21,6 +21,8 @@ export interface QueryOptions {
 
 export type QueryResult = { [key: string]: any };
 
+type CB = (err: string | Error, result: any) => any;
+
 export interface ChangefeedOptions {
   table: string; // Name of the table
   select: { [field: string]: any }; // Map from field names to postgres data types. These must
@@ -51,6 +53,7 @@ export interface PostgreSQL extends EventEmitter {
     columns?: string[];
     cb: Function;
   }): void;
+
   get_account(opts: {
     account_id: string;
     columns?: string[];
@@ -71,6 +74,10 @@ export interface PostgreSQL extends EventEmitter {
     cache?: boolean;
     cb: Function;
   }): void;
+
+  get_user_column(column: string, account_id: string, cb: Function);
+
+  _get_project_column(column: string, project_id: string, cb: Function);
 
   do_account_creation_actions(opts: {
     email_address: string;
@@ -99,6 +106,7 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   get_server_setting(opts: { name: string; cb: Function }): void;
+  get_server_settings_cached(opts: { cb: CB }): void;
 
   create_account(opts: {
     first_name: string;
