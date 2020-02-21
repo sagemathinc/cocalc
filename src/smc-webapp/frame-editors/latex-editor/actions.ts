@@ -505,7 +505,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.parsed_output_log = output.parse = knitr_errors(output).toJS();
     this.set_build_logs({ knitr: output });
     this.update_gutters();
-    this.setState({ knitr_error: output.parse.errors.length > 0 });
+    this.setState({ knitr_error: output.parse?.errors?.length > 0 });
   }
 
   async run_patch_synctex(time: number, force: boolean): Promise<void> {
