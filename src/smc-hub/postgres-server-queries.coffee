@@ -46,13 +46,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             event : required    # string
             value : required    # object
             cb    : undefined
+
+        expire = null
+        if opts.event == 'uncaught_exception'
+            expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
+
         @_query
             query  : 'INSERT INTO central_log'
             values :
-                'id::UUID'        : misc.uuid()
-                'event::TEXT'     : opts.event
-                'value::JSONB'    : opts.value
-                'time::TIMESTAMP' : 'NOW()'
+                'id::UUID'          : misc.uuid()
+                'event::TEXT'       : opts.event
+                'value::JSONB'      : opts.value
+                'time::TIMESTAMP'   : 'NOW()'
+                'expire::TIMESTAMP' : expire
             cb     : (err) => opts.cb?(err)
 
     uncaught_exception: (err) =>
@@ -108,6 +114,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             error      : 'error'
             account_id : undefined
             cb         : undefined
+        # get rid of the entry in 30 days
+        expire = misc.expire_time(30 * 24 * 60 * 60)
         @_query
             query  : 'INSERT INTO client_error_log'
             values :
@@ -116,6 +124,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'error      :: TEXT'      : opts.error
                 'account_id :: UUID'      : opts.account_id
                 'time       :: TIMESTAMP' : 'NOW()'
+                'expire     :: TIMESTAMP' : expire
             cb     : opts.cb
 
     webapp_error: (opts) =>
@@ -141,6 +150,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             start_time   : undefined
             id           : undefined  # ignored
             cb           : undefined
+        # get rid of the entry in 30 days
+        expire = misc.expire_time(30 * 24 * 60 * 60)
         @_query
             query       : 'INSERT INTO webapp_errors'
             values      :
@@ -165,6 +176,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'uptime        :: TEXT'      : opts.uptime
                 'start_time    :: TIMESTAMP' : opts.start_time
                 'time          :: TIMESTAMP' : 'NOW()'
+                'expire        :: TIMESTAMP' : expire
             cb          : opts.cb
 
     get_client_error_log: (opts) =>

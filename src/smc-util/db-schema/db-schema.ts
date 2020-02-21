@@ -233,21 +233,12 @@ schema.client_error_log = {
   primary_key: "id",
   durability: "soft", // loss of some log data not serious, since used only for analytics
   fields: {
-    id: {
-      type: "uuid"
-    },
-    event: {
-      type: "string"
-    },
-    error: {
-      type: "string"
-    },
-    account_id: {
-      type: "uuid"
-    },
-    time: {
-      type: "timestamp"
-    }
+    id: { type: "uuid" },
+    event: { type: "string" },
+    error: { type: "string" },
+    account_id: { type: "uuid" },
+    time: { type: "timestamp" },
+    expire: { type: "timestamp" }
   },
   pg_indexes: ["time", "event"]
 };
@@ -276,7 +267,8 @@ schema.webapp_errors = {
     smc_git_rev: { type: "string" },
     uptime: { type: "string" },
     start_time: { type: "timestamp" },
-    time: { type: "timestamp" }
+    time: { type: "timestamp" },
+    expire: { type: "timestamp" }
   },
   pg_indexes: [
     "time",
