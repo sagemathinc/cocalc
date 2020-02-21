@@ -1,7 +1,7 @@
 import * as fs from "fs";
 const winston = require("./winston-metrics").get_logger("utils");
 import { PostgreSQL } from "./postgres/types";
-import { AllSiteSettings } from "smc-util/db-schema/types";
+import { AllSiteSettings } from "../smc-util/db-schema/types";
 
 export function read_db_password_from_disk(): string | null {
   const filename =
