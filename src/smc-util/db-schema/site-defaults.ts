@@ -100,7 +100,7 @@ export const site_settings_conf: SiteSettings = {
     valid: is_valid_email_address
   },
   commercial: {
-    name: "Commercial ('yes' or 'no')",
+    name: "Commercial",
     desc:
       "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements.",
     default: "no",
@@ -123,13 +123,13 @@ export const site_settings_conf: SiteSettings = {
   version_min_project: {
     name: "Required project version",
     desc:
-      "Minimal version *required* by projects (if project older, will be force restarted).",
+      "Minimal version required by projects (if project older, will be force restarted).",
     default: "0"
   },
   version_min_browser: {
     name: "Required browser version",
     desc:
-      "Minimal version *retuired* for browser clients (if older, forced disconnect).",
+      "Minimal version required for browser clients (if older, forced disconnect).",
     default: "0",
     valid: only_nonneg_int
   },

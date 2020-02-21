@@ -782,7 +782,7 @@ export function email_verified_successfully(url): string {
 <body>
 <h1>Email verification successful!</h1>
 <div>
-Click <a href="${url}">here</a> if you aren't automatically redirected to <a href="${url}">${SITE_NAME}</a>.
+Click <a href="${url}">here</a> if you aren't automatically redirected to <a href="${url}">${SITE_NAME}</a> within 30 seconds.
 </div>
 </body>
 </html>
