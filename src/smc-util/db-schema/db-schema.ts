@@ -97,6 +97,7 @@ const { DEFAULT_QUOTAS } = require("../upgrade-spec");
 
 import { DEFAULT_COMPUTE_IMAGE } from "./defaults";
 import { site_settings_conf } from "./site-defaults";
+import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 
 export const schema: any = {};
 
@@ -1387,7 +1388,9 @@ schema.server_settings = {
   }
 };
 
-const site_settings_fields = misc.keys(site_settings_conf);
+const site_settings_fields = misc
+  .keys(site_settings_conf)
+  .concat(misc.keys(site_settings_extras));
 
 schema.site_settings = {
   virtual: "server_settings",

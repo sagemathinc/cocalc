@@ -22,6 +22,7 @@ import { callback2 } from "smc-util/async-utils";
 const schema = require("smc-util/schema");
 const misc = require("smc-util/misc");
 const theme = require("smc-util/theme");
+import { split_iframe_comm_hosts } from "smc-util/db-schema/site-defaults";
 
 import {
   KUCALC_DISABLED,
@@ -48,7 +49,9 @@ function validate_kucalc(k): string {
 const result: any[] = [];
 for (const k in schema.site_settings_conf) {
   const v = schema.site_settings_conf[k];
-  result.push([k, v.default]);
+  const value: any =
+    typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
+  result.push([k, value]);
 }
 const defaults = misc.dict(result);
 defaults.is_commercial = convert_to_boolean(defaults.commercial);
@@ -73,7 +76,7 @@ class CustomizeStore extends Store<any> {
     const hosts = this.get("iframe_comm_hosts");
     if (hosts == null) return [];
     // ATTN: if you change this regex, also change smc-util/db-schema/site-defaults.ts
-    return hosts.match(/[a-zA-Z0-9.-]+/g) || [];
+    return split_iframe_comm_hosts(hosts);
   }
 }
 
@@ -95,6 +98,14 @@ if (typeof $ !== "undefined" && $ != undefined) {
           ? convert_to_boolean(obj.ssh_gateway)
           : defaults.have_ssh_gateway;
       obj.kucalc = validate_kucalc(obj.kucalc);
+
+      for (const k in schema.site_settings_conf) {
+        const v = schema.site_settings_conf[k];
+        if (typeof v.to_val === "function" && obj[k] != null) {
+          obj[k] = v.to_val(obj[k]);
+        }
+      }
+
       obj._is_configured = true;
       actions.setState(obj);
     }

@@ -128,7 +128,7 @@ EmailVerification = rclass
             if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
             else
-                [
+                <React.Fragment>
                     <span key={1} style={color: 'red', paddingRight: '3em'}>Not Verified</span>
                     <Button
                         key        = {2}
@@ -143,12 +143,9 @@ EmailVerification = rclass
                                 'Send Verification Email'
                         }
                     </Button>
-                ]
+                </React.Fragment>
 
     render : ->
-        # disabled since it is very confusing and not used at all yet:
-        #   see https://github.com/sagemathinc/cocalc/issues/3147 and https://github.com/sagemathinc/cocalc/issues/3148
-        return <span></span>
         <LabeledRow label='Email verification' style={marginBottom: '15px'}>
             <div>
                 Status: {@test()}
@@ -456,6 +453,8 @@ AccountSettings = rclass
         delete_account_error   : rtypes.string
         other_settings         : rtypes.object
         is_anonymous           : rtypes.bool
+        email_enabled          : rtypes.bool
+        verify_emails          : rtypes.bool
         created                : rtypes.object
 
     getInitialState: ->
@@ -731,12 +730,12 @@ AccountSettings = rclass
                 disabled  = {@props.is_anonymous and not @state.terms_checkbox}
                 />
             <div style={marginBottom:'15px'}></div>
-            <EmailVerification
+            {<EmailVerification
                 account_id             = {@props.account_id}
                 email_address          = {@props.email_address}
                 email_address_verified = {@props.email_address_verified}
-                ref                    = 'email_address_verified'
-                />
+                ref                    = {'email_address_verified'}
+              /> if @props.email_enabled and @props.verify_emails}
             {@render_newsletter()}
             {@render_password()}
             {if not @props.is_anonymous then <APIKeySetting />}
@@ -1520,6 +1519,8 @@ exports.AccountSettingsTop = rclass
         groups                 : rtypes.immutable.List
         stripe_customer        : rtypes.immutable.Map
         is_anonymous           : rtypes.bool
+        email_enabled          : rtypes.bool
+        verify_emails          : rtypes.bool
         created                : rtypes.object
 
     render_account_settings: ->
@@ -1534,8 +1535,11 @@ exports.AccountSettingsTop = rclass
             everywhere             = {@props.everywhere}
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
+            email_enabled          = {@props.email_enabled}
+            verify_emails          = {@props.verify_emails}
             created                = {@props.created}
-            redux                  = {@props.redux} />
+            redux                  = {@props.redux}
+        />
 
 
     render: ->

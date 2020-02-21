@@ -32,6 +32,7 @@ immutable = require('immutable')
 {SSHKeysPage}                            = require('./account_ssh_keys')
 {Icon, Loading}                          = require('./r_misc')
 {set_url}                                = require('./history')
+{site_settings_conf}                     = require('smc-util/db-schema/site-defaults')
 {SignOut}                                = require('./account/sign-out')
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
@@ -81,6 +82,8 @@ exports.AccountPage = rclass
             project_map             : rtypes.immutable.Map
         customize :
             kucalc                  : rtypes.string
+            email_enabled           : rtypes.bool
+            verify_emails           : rtypes.bool
         account : ACCOUNT_SPEC
 
     propTypes :
@@ -88,7 +91,7 @@ exports.AccountPage = rclass
         redux   : rtypes.object.isRequired
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project_map', 'kucalc']) or \
+        return misc.is_different(@props, props, ['project_map', 'kucalc', 'email_enabled', 'verify_emails']) or \
                misc.is_different(@props, props, ACCOUNT_FIELDS)
 
     getDefaultProps: ->
@@ -138,7 +141,10 @@ exports.AccountPage = rclass
             other_settings         = {@props.other_settings}
             is_anonymous           = {@props.is_anonymous}
             groups                 = {@props.groups}
-            created                = {@props.created} />
+            email_enabled          = {@props.email_enabled}
+            verify_emails          = {@props.verify_emails}
+            created                = {@props.created}
+        />
 
     render_landing_page: ->
         <LandingPage
