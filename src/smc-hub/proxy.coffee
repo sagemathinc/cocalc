@@ -164,7 +164,13 @@ exports.init_http_proxy_server = (opts) ->
             (cb) ->
                 dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
-                hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+                try
+                    hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+                catch err
+                    msg = "unable to generate hash from remember_me cookie = '#{opts.remember_me}' -- #{err}"
+                    dbg(msg)
+                    cb(msg)
+                    return
                 database.get_remember_me
                     hash : hash
                     cb   : (err, signed_in_mesg) =>

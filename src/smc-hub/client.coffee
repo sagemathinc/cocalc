@@ -269,7 +269,13 @@ class exports.Client extends EventEmitter
         if x.length != 4
             @remember_me_failed("invalid remember_me cookie")
             return
-        hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+        try
+            hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+        catch err
+            dbg("unable to generate hash from '#{value}' -- #{err}")
+            @remember_me_failed("invalid remember_me cookie")
+            return
+
         dbg("checking for remember_me cookie with hash='#{hash.slice(0,15)}...'") # don't put all in log -- could be dangerous
         @database.get_remember_me
             hash : hash

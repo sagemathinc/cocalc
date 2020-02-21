@@ -100,6 +100,9 @@ HASH_SALT_LENGTH = 32
 # library.  To avoid having to fork/modify that library, we've just
 # copied it here.  We need it for remember_me cookies.
 exports.generate_hash = generate_hash = (algorithm, salt, iterations, password) ->
+    # there are cases where createHmac throws an error, because "salt" is undefined
+    if not algorithm? or not salt?
+        throw new Error("undefined arguments: algorithm='#{algorithm}' salt='#{salt}'")
     iterations = iterations || 1
     hash = password
     for i in [1..iterations]
@@ -185,7 +188,12 @@ passport_login = (opts) ->
                 dbg("badly formatted remember_me cookie")
                 cb()
                 return
-            hash = generate_hash(x[0], x[1], x[2], x[3])
+            try
+                hash = generate_hash(x[0], x[1], x[2], x[3])
+            catch err
+                dbg("unable to generate hash from remember_me cookie = '#{locals.remember_me_cookie}' -- #{err}")
+                cb()
+                return
             opts.database.get_remember_me
                 hash : hash
                 cb   : (err, signed_in_mesg) ->

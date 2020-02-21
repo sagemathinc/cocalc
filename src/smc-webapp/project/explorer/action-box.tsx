@@ -735,8 +735,9 @@ export const ActionBox = rclass<ReactProps>(
         this.refs.download_archive
       ) as any).value;
       const dest = misc.path_to_file(this.props.current_path, destination);
+      const files = this.props.checked_files.toArray();
       this.props.actions.zip_files({
-        src: this.props.checked_files.toArray(),
+        src: files,
         dest,
         cb: err => {
           if (err) {
@@ -745,7 +746,7 @@ export const ActionBox = rclass<ReactProps>(
           }
           this.props.actions.download_file({
             path: dest,
-            log: true
+            log: files
           });
           this.props.actions.fetch_directory_listing();
         }
