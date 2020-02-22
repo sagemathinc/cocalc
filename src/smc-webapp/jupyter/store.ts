@@ -231,7 +231,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   }
 
-  get_cm_mode = () => {
+  public get_cm_mode() {
     let metadata_immutable = this.get("backend_kernel_info");
     if (metadata_immutable == null) {
       metadata_immutable = this.get("metadata");
@@ -262,15 +262,44 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
     }
     if (mode == null) {
-      mode = this.get("kernel"); // may be better than nothing...; e.g., octave kernel has no mode.
+      // As a fallback in case none of the metadata has been filled in yet by the backend,
+      // we can guess a mode from the kernel in many cases.   Any mode is vastly better
+      // than nothing!
+      let kernel = this.get("kernel"); // may be better than nothing...; e.g., octave kernel has no mode.
+      if (kernel != null) {
+        kernel = kernel.toLowerCase();
+        // The kernel is just a string that names the kernel, so we use heuristics.
+        if (kernel.indexOf("python") != -1 || kernel.indexOf("sage") != -1) {
+          if (kernel.indexOf("python3") != -1) {
+            mode = { name: "python", version: 3 };
+          } else {
+            mode = { name: "python", version: 2 };
+          }
+        } else if (kernel.indexOf("octave") != -1) {
+          mode = "octave";
+        } else if (kernel.indexOf("bash") != -1) {
+          mode = "shell";
+        } else if (kernel.indexOf("julia") != -1) {
+          mode = "text/x-julia";
+        } else if (kernel.indexOf("haskell") != -1) {
+          mode = "text/x-haskell";
+        } else if (kernel.indexOf("javascript") != -1) {
+          mode = "javascript";
+        } else if (kernel.indexOf("ir") != -1) {
+          mode = "r";
+        } else {
+          // C is probably a good fallback.
+          mode = "text/x-c";
+        }
+      }
     }
     if (typeof mode === "string") {
       mode = { name: mode }; // some kernels send a string back for the mode; others an object
     }
     return mode;
-  };
+  }
 
-  get_more_output = (id: any) => {
+  get_more_output = (id: string) => {
     if (this._is_project) {
       // This is ONLY used by the backend project for storing extra output.
       if (this._more_output == null) {
@@ -396,9 +425,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
         .map(v => v.get("name"));
       return v;
     });
-    const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy(
-      (_v, k) => k.toLowerCase()
-    );
+    const by_lang = OrderedMap<string, List<string>>(
+      data_lang
+    ).sortBy((_v, k) => k.toLowerCase());
     return [by_name, by_lang];
   };
 
