@@ -270,6 +270,8 @@ export const projects_using_site_license = create({
 // Get publicly available information about a site license.
 // User just has to know the license id to get this info.
 //
+if (site_licenses.fields == null) throw Error("bug"); // for typescript
+
 export const site_license_public_info = create({
   fields: {
     id: site_licenses.fields.id, // must be specified or it is an error

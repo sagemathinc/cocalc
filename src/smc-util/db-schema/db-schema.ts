@@ -101,26 +101,6 @@ import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 
 export const schema: any = {};
 
-schema.account_profiles = {
-  desc:
-    "(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.",
-  virtual: "accounts",
-  anonymous: false,
-  user_query: {
-    get: {
-      pg_where: [],
-      options: [{ limit: 1 }], // in case user queries for [{account_id:null, profile:null}] they should not get the whole database.
-      fields: {
-        account_id: null,
-        profile: {
-          image: undefined,
-          color: undefined
-        }
-      }
-    }
-  }
-};
-
 schema.blobs = {
   desc:
     "Table that stores blobs mainly generated as output of Sage worksheets.",

@@ -2,9 +2,18 @@ export function create<F extends Fields>({
   rules,
   fields
 }: {
-  fields: F;
+  fields?: F;
   rules: PartialSchema<F>;
 }): TableSchema<F> {
+  if (!rules.virtual) {
+    // runtime check that fields and primary_key are set.
+    // If there is a way to do this at compile time with typescript, that would be better.
+    if (fields == null || rules.primary_key == null) {
+      throw Error(
+        "db-schema error; fields and primary_key must be set for non-virtual tables"
+      );
+    }
+  }
   return { ...rules, fields };
 }
 
@@ -129,8 +138,8 @@ interface UserOrProjectQuery<F extends Fields> {
 
 interface TableSchema<F extends Fields> {
   desc: string;
-  primary_key: keyof F | (keyof F)[]; // One of the fields or array of fields
-  fields: F;
+  primary_key?: keyof F | (keyof F)[]; // One of the fields or array of fields; NOTE: should be required if virtual is not set.
+  fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
   durability?: "soft" | "hard"; // Default is hard
   anonymous?: boolean;

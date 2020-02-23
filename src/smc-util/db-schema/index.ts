@@ -1,5 +1,6 @@
 import { schema } from "./db-schema";
 import { account_creation_actions } from "./account-creation-actions";
+import { account_profiles } from "./account-profiles";
 import { accounts } from "./accounts";
 import { lti } from "./lti";
 import {
@@ -16,17 +17,18 @@ const misc = require("../misc");
 
 export const SCHEMA = {
   ...schema,
-  account_creation_actions,
   accounts,
+  account_creation_actions,
+  account_profiles,
+  central_log,
+  file_use_times,
+  listings,
   lti,
+  projects_using_site_license,
   site_licenses,
   site_license_usage_stats,
-  projects_using_site_license,
   site_license_public_info,
-  site_license_usage_log,
-  file_use_times,
-  central_log,
-  listings
+  site_license_usage_log
 };
 
 export {
