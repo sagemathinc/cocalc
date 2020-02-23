@@ -564,10 +564,14 @@ export class NotebookFrameActions {
     this.call_input_editor_method(id, "set_cursor", pos);
   }
 
-  // Call this to save the state of the current Codemirror editor
-  // before it is used for evaluation or other purposes.
-  public save_input_editor(): void {
-    const id = this.store.get("cur_id");
+  // Call this to save the state of the current (or specified)
+  // Codemirror editor before it is used for evaluation or
+  // other purposes.
+  public save_input_editor(id?: string): void {
+    if (id == null) {
+      id = this.store.get("cur_id");
+      if (id == null) return;
+    }
     if (this.input_editors[id] == null) return;
     this.call_input_editor_method(id, "save");
   }

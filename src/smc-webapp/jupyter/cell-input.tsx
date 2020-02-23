@@ -213,8 +213,8 @@ export class CellInput extends Component<CellInputProps> {
   }
 
   private render_markdown(): Rendered {
-    let value = this.props.cell.get("input")
-    if (typeof value != 'string') {
+    let value = this.props.cell.get("input");
+    if (typeof value != "string") {
       // E.g., if it is null.  This shouldn't happen, but typescript doesn't
       // guarantee it. I might have hit this in production...
       value = "";
