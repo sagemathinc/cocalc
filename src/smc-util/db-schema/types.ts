@@ -32,7 +32,8 @@ interface Fields {
           | "boolean"
           | "map"
           | "array"
-          | "integer";
+          | "integer"
+          | "Buffer";
         desc: string;
         pg_type?: string;
         unique?: boolean;
@@ -67,6 +68,7 @@ interface UserOrProjectQuery<F extends Fields> {
   };
   set?: {
     fields: { [key in keyof Partial<F>]: any };
+    required_fields?: { [key in keyof Partial<F>]: any };
     admin?: boolean;
     // HOOKS which allow for running arbitrary code in response to
     // user set queries.  In each case below, query is QUERY, only the part

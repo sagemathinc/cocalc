@@ -2,6 +2,7 @@ import { schema } from "./db-schema";
 import { account_creation_actions } from "./account-creation-actions";
 import { account_profiles } from "./account-profiles";
 import { accounts } from "./accounts";
+import { blobs } from "./blobs";
 import { lti } from "./lti";
 import {
   site_licenses,
@@ -20,6 +21,7 @@ export const SCHEMA = {
   accounts,
   account_creation_actions,
   account_profiles,
+  blobs,
   central_log,
   file_use_times,
   listings,
