@@ -3,6 +3,7 @@ import { account_creation_actions } from "./account-creation-actions";
 import { account_profiles } from "./account-profiles";
 import { accounts } from "./accounts";
 import { blobs } from "./blobs";
+import { client_error_log } from "./client-error-log";
 import { lti } from "./lti";
 import {
   site_licenses,
@@ -23,6 +24,7 @@ export const SCHEMA = {
   account_profiles,
   blobs,
   central_log,
+  client_error_log,
   file_use_times,
   listings,
   lti,
