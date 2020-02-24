@@ -22,6 +22,7 @@ node_modules
 .vs/
 err
 log
+out
 
 src/cocalc-testcafe/package-lock.json
 

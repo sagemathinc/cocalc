@@ -14,9 +14,14 @@ import "./compute-servers";
 import "./file-access-log";
 import "./file-use";
 import "./file-use-times";
+import "./hub-servers";
+import "./instances";  // probably deprecated
 import "./listings";
 import "./lti";
+import "./password-reset";
+import "./server-settings";
 import "./site-licenses";
+import "./site-settings";
 import "./webapp-errors";
 
 export {
