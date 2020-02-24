@@ -19,6 +19,9 @@ import "./instances";  // probably deprecated
 import "./listings";
 import "./lti";
 import "./password-reset";
+import "./project-log";
+import "./projects";
+import "./public-paths";
 import "./server-settings";
 import "./site-licenses";
 import "./site-settings";
