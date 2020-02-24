@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const webapp_errors = create({
+Table({
+  name: "webapp_errors",
   fields: {
     id: { type: "uuid" },
     account_id: { type: "uuid" },

@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const file_access_log = create({
+Table({
+  name: "file_access_log",
   rules: {
     primary_key: "id",
     durability: "soft", // loss of some log data not serious, since used only for analytics

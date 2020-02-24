@@ -1,10 +1,14 @@
-export function create<F extends Fields>({
+import { SCHEMA } from "./index";
+
+export function Table<F extends Fields>({
+  name,
   rules,
   fields
 }: {
+  name: string;
   fields?: F;
   rules: PartialSchema<F>;
-}): TableSchema<F> {
+}): void {
   if (!rules.virtual) {
     // runtime check that fields and primary_key are set.
     // If there is a way to do this at compile time with typescript, that would be better.
@@ -14,7 +18,8 @@ export function create<F extends Fields>({
       );
     }
   }
-  return { ...rules, fields };
+  const T: TableSchema<F> = { ...rules, fields };
+  SCHEMA[name] = T;
 }
 
 export interface DBSchema {
@@ -146,7 +151,7 @@ interface TableSchema<F extends Fields> {
   fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
   durability?: "soft" | "hard"; // Default is hard
-  unique_writes?: boolean;  // If true, assume no reason for a user to write the same record twice.
+  unique_writes?: boolean; // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;
   virtual?: string | true; // Must be another table name or true
   pg_indexes?: any[];

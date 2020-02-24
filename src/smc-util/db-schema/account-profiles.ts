@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const account_profiles = create({
+Table({
+  name: "account_profiles",
   rules: {
     desc:
       "(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.",

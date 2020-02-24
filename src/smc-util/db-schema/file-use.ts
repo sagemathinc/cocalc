@@ -1,12 +1,15 @@
-import { create } from "./types";
+import { Table } from "./types";
 
 import { minutes_ago } from "../misc";
 
-// TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
-// the id field, use project_id, path as a compound primary key, and maybe put users in
-// another table with a relation.  There is also expert discussion about this table in the
-// Hacker News discussion of my PostgreSQL vs ... blog post.
-export const file_use = create({
+/* TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
+the id field, use project_id, path as a compound primary key, and maybe put users in
+another table with a relation.  There is also expert discussion about this table in the
+Hacker News discussion of my PostgreSQL vs ... blog post.
+*/
+
+Table({
+  name: "file_use",
   fields: {
     id: {
       type: "string",

@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const lti = create({
+Table({
+  name: "lti",
   fields: {
     iss: {
       type: "string",

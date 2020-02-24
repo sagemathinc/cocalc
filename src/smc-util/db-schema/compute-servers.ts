@@ -6,9 +6,10 @@
    the docker image.  So don't get rid of it!
  */
 
-import { create } from "./types";
+import { Table } from "./types";
 
-export const compute_servers = create({
+Table({
+  name: "compute_servers",
   rules: {
     primary_key: "host"
   },

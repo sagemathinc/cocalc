@@ -1,12 +1,11 @@
 /*
 Table of directory listings.
-
-
 */
 
-import { create } from "./types";
+import { Table } from "./types";
 
-export const listings = create({
+Table({
+  name: "listings",
   fields: {
     project_id: {
       type: "uuid",

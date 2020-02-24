@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const collaborators = create({
+Table({
+  name: "collaborators",
   fields: {
     account_id: true,
     first_name: true,
@@ -35,7 +36,8 @@ export const collaborators = create({
 });
 
 // This table does NOT support changefeeds.
-export const collaborators_one_project = create({
+Table({
+  name: "collaborators_one_project",
   fields: {
     account_id: true,
     project_id: true,

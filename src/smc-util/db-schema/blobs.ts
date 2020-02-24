@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const blobs = create({
+Table({
+  name: "blobs",
   fields: {
     id: {
       type: "uuid",
