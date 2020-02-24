@@ -1,5 +1,5 @@
 /*
-Top-level react component for editing markdown documents
+Top-level react component for editing LEAN documents
 */
 
 import { set } from "smc-util/misc2";
@@ -7,6 +7,7 @@ import { createEditor } from "../frame-tree/editor";
 import { LeanCodemirrorEditor } from "./lean-codemirror";
 import { LeanMessages } from "./lean-messages";
 import { LeanInfo } from "./lean-info";
+import { LeanHelp } from "./lean-help";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
@@ -47,6 +48,13 @@ const EDITOR_SPEC = {
     name: "All Messages" /* less focused -- usually used in "term mode" */,
     icon: "eye",
     component: LeanMessages,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  },
+  "lean-help": {
+    short: "Help",
+    name: "Help at Cursor",
+    icon: "question-circle",
+    component: LeanHelp,
     buttons: set(["decrease_font_size", "increase_font_size"])
   },
   terminal,

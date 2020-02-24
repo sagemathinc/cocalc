@@ -1,5 +1,10 @@
 /*
 Create a singleton websocket connection directly to a particular project.
+
+This is something that is annoyingly NOT supported by Primus.
+Many projects (perhaps dozens) can be open for a given client
+wat once, and hence we make many Primus websocket connections
+simultaneously to the same domain.  It does work, but not without an ugly hack.
 */
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -54,7 +59,12 @@ async function connection_to_project0(project_id: string): Promise<any> {
   if (connections[project_id] !== undefined) {
     return connections[project_id];
   }
-  //console.log(`project websocket: connecting to ${project_id}...`);
+
+  function log(..._args): void {
+    // Uncomment for very verbose logging/debugging...
+    // console.log(`project websocket("${project_id}")`, ..._args);
+  }
+  log("connecting...");
   const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
   const url: string = `${window0.app_base_url}/${project_id}/raw/.smc/primus.js`;
 
@@ -63,6 +73,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
 
   // So that the store reflects that we are not connected but are trying.
   set_project_websocket_state(project_id, "offline");
+
+  let timeout: number = 750;
+  const MAX_AJAX_TIMEOUT_MS : number = 3500;
 
   await retry_until_success({
     // log: console.log,
@@ -77,16 +90,30 @@ async function connection_to_project0(project_id: string): Promise<any> {
         await once(webapp_client, "signed_in");
       }
 
+      log("start_project...");
       await start_project(project_id);
+      log("start_project: done");
 
       // Now project is thought to be running, so maybe this will work:
       try {
         READING_PRIMUS_JS = true;
 
+        /*
+        We use a timeout in the ajax call before, since while the project is
+        starting up the call ends up taking a LONG time to "Stall out" due to settings
+        in a proxy server somewhere along the way.  This makes the project start time
+        (i.e., how long until websocket is working) seem really slow for no good reason.
+        Instead, we keep retrying the primus.js GET request pretty aggressively until
+        success.
+        NOTE: there is the real potential of very slow 3G clients not being able to complete the
+        GET, which is why we increase it each time up to MAX_AJAX_TIMEOUT_MS.
+        */
+
         const load_primus = cb => {
           ajax({
+            timeout,
             type: "GET",
-            url: url,
+            url,
             // text, in contrast to "script", doesn't eval it -- we do that!
             dataType: "text",
             error: () => {
@@ -103,24 +130,29 @@ async function connection_to_project0(project_id: string): Promise<any> {
             }
           });
         };
+        log(`load_primus: attempt to get primus.js with timeout=${timeout}ms`);
         await callback(load_primus);
+        log("load_primus: done");
 
         Primus = window0.Primus;
         window0.Primus = Primus0; // restore global primus
       } finally {
         READING_PRIMUS_JS = false;
+        timeout = Math.min(timeout * 1.2, MAX_AJAX_TIMEOUT_MS);
         //console.log("success!");
       }
     },
     start_delay: 250,
-    max_delay: 5000, // do not make too aggressive or it DDOS proxy server;
+    max_delay: 2000, // do not make too aggressive or it DDOS proxy server;
     // but also not too slow since project startup will feel slow to user.
-    factor: 1.3,
-    desc: "connecting to project"
-    //log: (...x) => {
-    //  console.log("retry primus:", ...x);
-    //}
+    factor: 1.2,
+    desc: "connecting to project",
+    log: (...x) => {
+      log("retry primus:", ...x);
+    }
   });
+
+  log("got primus.js successfully");
 
   // This dance is because evaling primus_js sets window.Primus.
   // However, we don't want to overwrite the usual global window.Primus.
@@ -157,6 +189,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   update_state("offline"); // starts offline
 
   conn.on("open", () => {
+    log("online!");
     update_state("online");
   });
 

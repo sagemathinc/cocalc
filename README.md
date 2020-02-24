@@ -118,8 +118,9 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 
 ## Installation
 
-The following instruction **don't** install SMC. They're for development purposes only!
+The following instruction **don't** install CoCalc. They're for development purposes only!
 
+   * Install node.js version 10.x (we don't support 12.x as of Feb 2020).
    * `git clone --recurse-submodules https://github.com/sagemathinc/cocalc` -- copy repo
    * `cd cocalc/src`
    * `npm run install-all` -- build

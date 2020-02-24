@@ -1003,6 +1003,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!open_files.has(opts.path)) {
       // Make the visible tab appear ASAP, even though
       // some stuff that may await below needs to happen...
+      if (!this.open_files) return; // closed
       this.open_files.set(opts.path, "component", {});
     }
 
@@ -2627,13 +2628,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       auto: true,
       print: false,
       timeout: 45
-    });
+    } as { path: string; log: boolean | string[]; auto: boolean; print: boolean; timeout: number });
 
+    // log could also be an array of strings to record all the files that were downloaded in a zip file
     if (opts.log) {
+      const files = Array.isArray(opts.log) ? opts.log : [opts.path];
       this.log({
         event: "file_action",
         action: "downloaded",
-        files: opts.path
+        files
       });
     }
 

@@ -9,6 +9,7 @@ import {
   projects_using_site_license,
   site_license_usage_log
 } from "./site-licenses";
+import { listings } from "./listings";
 import { file_use_times } from "./file-use-times";
 import { central_log } from "./central-log";
 const misc = require("../misc");
@@ -24,7 +25,8 @@ export const SCHEMA = {
   site_license_public_info,
   site_license_usage_log,
   file_use_times,
-  central_log
+  central_log,
+  listings
 };
 
 export {

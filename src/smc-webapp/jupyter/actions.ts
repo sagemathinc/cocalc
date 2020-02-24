@@ -1626,7 +1626,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     save: boolean = true
   ): void {
     const remote = this.store.getIn(["cells", id, "input"]);
-    // console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
     if (remote == null || base == null || input == null) {
       return;
     }
@@ -2191,7 +2190,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     let input = this.store.getIn(["cells", id, "input"], "");
-    console.log("insert_input_at_cursor", id, input);
     const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
     if ((cursor != null ? cursor.id : undefined) === id) {
       const v = input.split("\n");
@@ -2201,7 +2199,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       input += s;
     }
-    console.log("insert_input_at_cursor - new input:", id, input);
     return this._set({ type: "cell", id, input }, save);
   };
 
@@ -2254,7 +2251,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     this.set_cell_attachment(id, name, null, false);
-    return this.set_cell_input(
+    this.set_cell_input(
       id,
       misc.replace_all(
         this._get_cell_input(id),
@@ -2293,7 +2290,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   toggle_tag(id: string, tag: string, save: boolean = true): void {
-    console.log("toggle_tag", id, tag);
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       throw Error(`no cell with id ${id}`);

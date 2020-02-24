@@ -36,6 +36,9 @@ collab = require('./postgres/collab')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
 
+SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
+SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
@@ -43,13 +46,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             event : required    # string
             value : required    # object
             cb    : undefined
+
+        expire = null
+        if opts.event == 'uncaught_exception'
+            expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
+
         @_query
             query  : 'INSERT INTO central_log'
             values :
-                'id::UUID'        : misc.uuid()
-                'event::TEXT'     : opts.event
-                'value::JSONB'    : opts.value
-                'time::TIMESTAMP' : 'NOW()'
+                'id::UUID'          : misc.uuid()
+                'event::TEXT'       : opts.event
+                'value::JSONB'      : opts.value
+                'time::TIMESTAMP'   : 'NOW()'
+                'expire::TIMESTAMP' : expire
             cb     : (err) => opts.cb?(err)
 
     uncaught_exception: (err) =>
@@ -105,6 +114,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             error      : 'error'
             account_id : undefined
             cb         : undefined
+        # get rid of the entry in 30 days
+        expire = misc.expire_time(30 * 24 * 60 * 60)
         @_query
             query  : 'INSERT INTO client_error_log'
             values :
@@ -113,6 +124,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'error      :: TEXT'      : opts.error
                 'account_id :: UUID'      : opts.account_id
                 'time       :: TIMESTAMP' : 'NOW()'
+                'expire     :: TIMESTAMP' : expire
             cb     : opts.cb
 
     webapp_error: (opts) =>
@@ -138,6 +150,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             start_time   : undefined
             id           : undefined  # ignored
             cb           : undefined
+        # get rid of the entry in 30 days
+        expire = misc.expire_time(30 * 24 * 60 * 60)
         @_query
             query       : 'INSERT INTO webapp_errors'
             values      :
@@ -162,6 +176,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'uptime        :: TEXT'      : opts.uptime
                 'start_time    :: TIMESTAMP' : opts.start_time
                 'time          :: TIMESTAMP' : 'NOW()'
+                'expire        :: TIMESTAMP' : expire
             cb          : opts.cb
 
     get_client_error_log: (opts) =>
@@ -195,6 +210,25 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where :
                 "name = $::TEXT" : opts.name
             cb    : one_result('value', opts.cb)
+
+    get_server_settings_cached: (opts) =>
+        opts = defaults opts,
+            cb: required
+        @_query
+            query : 'SELECT name, value FROM server_settings'
+            cache : true
+            cb    : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    x = {}
+                    for k in result.rows
+                        val = k.value
+                        config = SITE_SETTINGS_CONF[k.name] ? SERVER_SETTINGS_EXTRAS[k.name]
+                        if config?.to_val?
+                            val = config.to_val(val)
+                        x[k.name] = val
+                    opts.cb(undefined, x)
 
     get_site_settings: (opts) =>
         opts = defaults opts,

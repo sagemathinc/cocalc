@@ -115,7 +115,7 @@ class SiteLicenses extends Component<Props> {
           style={{ width: "20px" }}
           name={this.props.view ? "caret-down" : "caret-right"}
         />{" "}
-        Site Licenses
+        Licenses
       </h4>
     );
   }

@@ -16,6 +16,7 @@ global.misc = require('smc-util/misc')
 global.done = misc.done
 global.done1 = misc.done1
 global.done2 = misc.done2
+global.password_hash = require('./smc-hub/auth').password_hash
 
 db = undefined
 get_db = (cb) ->

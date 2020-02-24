@@ -1,5 +1,8 @@
 import { Map } from "immutable";
+
 import { is_different } from "smc-util/misc2";
+
+import { Markdown } from "smc-webapp/r_misc";
 
 import {
   React,
@@ -17,24 +20,8 @@ interface Props {
   syncstring_hash: number;
 }
 
-function render_text(text: string, zoom: number = 100): Rendered {
-  return (
-    <div
-      style={{
-        display: "block",
-        fontFamily: "monospace",
-        whiteSpace: "pre-wrap",
-        marginTop: "1ex",
-        fontSize: `${zoom}%`
-      }}
-    >
-      {text}
-    </div>
-  );
-}
-
-class LeanInfo extends Component<Props, {}> {
-  static displayName = "LeanInfo";
+class LeanHelp extends Component<Props, {}> {
+  static displayName = "LeanHelp";
 
   shouldComponentUpdate(next_props): boolean {
     return is_different(this.props, next_props, [
@@ -65,15 +52,16 @@ class LeanInfo extends Component<Props, {}> {
     );
   }
 
-  render_state(): Rendered {
-    const state = this.props.info.get("state");
-    if (!state) {
+  render_doc(): Rendered {
+    const doc = this.props.info.get("doc");
+    const params = this.props.info.get("tactic_params");
+    if (!doc && !params) {
       return;
     }
     return (
       <div>
-        {this.render_heading("Tactic State")}
-        {render_text(state, 105)}
+        {this.render_heading(params)}
+        <Markdown value={doc} safeHTML={false} highlight_code={true} />
       </div>
     );
   }
@@ -90,11 +78,11 @@ class LeanInfo extends Component<Props, {}> {
           fontSize: this.props.font_size
         }}
       >
-        {this.render_state()}
+        {this.render_doc()}
       </div>
     );
   }
 }
 
-const LeanInfo0 = rclass(LeanInfo);
-export { LeanInfo0 as LeanInfo };
+const LeanHelp0 = rclass(LeanHelp);
+export { LeanHelp0 as LeanHelp };
