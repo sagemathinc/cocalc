@@ -101,35 +101,6 @@ import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 
 export const schema: any = {};
 
-schema.compute_servers = {
-  primary_key: "host",
-  fields: {
-    host: {
-      type: "string",
-      pg_type: "VARCHAR(63)"
-    },
-    dc: {
-      type: "string"
-    },
-    port: {
-      type: "integer"
-    },
-    secret: {
-      type: "string"
-    },
-    experimental: {
-      type: "boolean"
-    },
-    member_host: {
-      type: "boolean"
-    },
-    status: {
-      type: "map",
-      desc: "something like {stuff:?,...,timestamp:?}",
-      date: ["timestamp"]
-    }
-  }
-};
 
 schema.file_access_log = {
   primary_key: "id",

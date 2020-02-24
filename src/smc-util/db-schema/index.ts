@@ -5,6 +5,7 @@ import { accounts } from "./accounts";
 import { blobs } from "./blobs";
 import { client_error_log } from "./client-error-log";
 import { collaborators, collaborators_one_project } from "./collaborators";
+import { compute_servers } from "./compute-servers";
 import { webapp_errors } from "./webapp-errors";
 import { lti } from "./lti";
 import {
@@ -29,6 +30,7 @@ export const SCHEMA = {
   client_error_log,
   collaborators,
   collaborators_one_project,
+  compute_servers,
   file_use_times,
   listings,
   lti,
