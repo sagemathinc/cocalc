@@ -102,29 +102,6 @@ import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 export const schema: any = {};
 
 
-schema.file_access_log = {
-  primary_key: "id",
-  durability: "soft", // loss of some log data not serious, since used only for analytics
-  fields: {
-    id: {
-      type: "uuid"
-    },
-    project_id: {
-      type: "uuid"
-    },
-    account_id: {
-      type: "uuid"
-    },
-    filename: {
-      type: "string"
-    },
-    time: {
-      type: "timestamp"
-    }
-  },
-  pg_indexes: ["project_id", "account_id", "filename", "time"]
-};
-
 // This table is derived from file_access_log.  It's the image of the set file_access_log under
 // the non-injective function
 //
