@@ -4,6 +4,7 @@ import { account_profiles } from "./account-profiles";
 import { accounts } from "./accounts";
 import { blobs } from "./blobs";
 import { client_error_log } from "./client-error-log";
+import { collaborators } from "./collaborators";
 import { webapp_errors } from "./webapp-errors";
 import { lti } from "./lti";
 import {
@@ -26,6 +27,7 @@ export const SCHEMA = {
   blobs,
   central_log,
   client_error_log,
+  collaborators,
   file_use_times,
   listings,
   lti,

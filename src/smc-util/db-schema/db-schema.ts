@@ -101,37 +101,6 @@ import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 
 export const schema: any = {};
 
-schema.collaborators = {
-  primary_key: "account_id",
-  db_standby: "unsafe",
-  anonymous: false,
-  virtual: "accounts",
-  fields: {
-    account_id: true,
-    first_name: true,
-    last_name: true,
-    last_active: true,
-    profile: true
-  },
-  user_query: {
-    get: {
-      pg_where: [
-        {
-          "account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE users ? $::TEXT)":
-            "account_id"
-        }
-      ],
-      pg_changefeed: "collaborators",
-      fields: {
-        account_id: null,
-        first_name: "",
-        last_name: "",
-        last_active: null,
-        profile: null
-      }
-    }
-  }
-};
 
 // This table does NOT support changefeeds.
 schema.collaborators_one_project = {

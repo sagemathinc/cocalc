@@ -45,6 +45,7 @@ interface UserOrProjectQuery<F extends Fields> {
     fields: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
     pg_where?: string[] | { [key: string]: string }[];
+    pg_changefeed?: string;
     admin?: boolean;
     options?: any; // [{ limit: 1 }]
     instead_of_query?: (
