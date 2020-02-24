@@ -73,10 +73,14 @@ block content
       .left,
       #statstable td.left
         text-align     : left
-      #explore
-        background-color : $COL_BLUE_LLL
+      #explore,
+      #bottom
         div > h3
           white-space    : nowrap
+      #explore
+        background-color : $COL_BLUE_LLL
+      #bottom
+        background-color : $COL_GRAY_LL
       #included > div
         padding          : 0
       .ff-only
@@ -298,6 +302,39 @@ block content
           br/
           div
             img(data-src="https://storage.googleapis.com/cocalc-extra/smc-mdhtml-20170516.png").fit
+
+  a.anchor#a-bottom
+  div.space#bottom
+    div.container
+      div.row
+        a.anchor#a-included
+        div.col-md-6#included
+          h2 #[i.fa.fa-battery-three-quarters] Batteries included
+          p.
+            Out of the box hundreds of open-source tools are available for you.
+            Here is a short list of a selected few:
+          include _static_third_party_software.html
+          if htmlWebpackPlugin.options.COMP_ENV
+            a.btn.btn-default(href="doc/software.html" role="button") Software environment details &raquo
+        a.anchor#a-stats
+        div.col-md-6#stats
+          h2 #[i.fa.fa-chart-line] Statistics
+          div.
+            There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
+          div(style="margin-top: 3rem")
+            table.table.bordered.condensed.hover.cc-help-stats-table#statstable
+              thead
+                tr
+                  th past
+                  th hour
+                  th day
+                  th week
+                  th month
+              tbody
+                tr
+                  td.left(colspan="4") Loading ...
+                tr
+                tr
 
   div
     +start_free_banner
