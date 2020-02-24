@@ -272,6 +272,12 @@ Table({
 
 // Same query above, but without the last_edited time constraint.
 schema.projects_all = deep_copy(schema.projects);
+if (
+  schema.projects_all.user_query?.get == null ||
+  schema.projects.user_query?.get == null
+) {
+  throw Error("make typescript happy");
+}
 schema.projects_all.user_query.get.options = [];
 schema.projects_all.virtual = "projects";
 schema.projects_all.user_query.get.pg_where = ["projects"];

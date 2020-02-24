@@ -30,11 +30,11 @@ Table({
       desc: "When the blob was last pulled from the database."
     },
     count: {
-      type: "integer",
+      type: "number",
       desc: "How many times the blob has been pulled from the database."
     },
     size: {
-      type: "integer",
+      type: "number",
       desc: "The size in bytes of the blob."
     },
     gcloud: {

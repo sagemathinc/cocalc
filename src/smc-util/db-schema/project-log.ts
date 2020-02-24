@@ -71,6 +71,9 @@ schema.project_log_all = deep_copy(schema.project_log);
 schema.project_log_all.db_standby = "unsafe";
 schema.project_log_all.virtual = "project_log";
 // no time constraint:
+if (schema.project_log_all.user_query?.get == null) {
+  throw Error("make typescript happy");
+}
 schema.project_log_all.user_query.get.pg_where = ["projects"];
 schema.project_log_all.user_query.get.options = [
   { order_by: "-time" },

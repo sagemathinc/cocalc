@@ -1273,7 +1273,7 @@ exports.pg_type = pg_type = (info) ->
             return 'JSONB'
         when 'integer'
             return 'INTEGER'
-        when 'number', 'double', 'float'
+        when 'number'
             return 'DOUBLE PRECISION'
         when 'array'
             throw Error("pg_type: you must specify the array type explicitly (info=#{misc.to_json(info)})")

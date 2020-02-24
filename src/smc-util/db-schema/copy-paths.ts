@@ -59,7 +59,7 @@ Table({
         "optional limit on the bandwidth dedicated to this copy (passed to rsync)"
     },
     timeout: {
-      type: "integer",
+      type: "number",
       desc:
         "fail if the transfer itself takes longer than this number of seconds (passed to rsync)"
     },

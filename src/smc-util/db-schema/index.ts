@@ -1,6 +1,5 @@
-import { schema } from "./db-schema";
-// The schema is got by combining the tables:
-export const SCHEMA = schema;
+export { SCHEMA } from "./types";
+
 
 // The tables
 import "./account-creation-actions";
@@ -18,7 +17,7 @@ import "./file-access-log";
 import "./file-use";
 import "./file-use-times";
 import "./hub-servers";
-import "./instances";  // probably deprecated
+import "./instances"; // probably deprecated
 import "./listings";
 import "./lti";
 import "./mentions";
@@ -32,6 +31,7 @@ import "./site-settings";
 import "./stats";
 import "./storage-servers";
 import "./system-notifications";
+import "./tracking";
 import "./webapp-errors";
 
 export {

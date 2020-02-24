@@ -64,7 +64,7 @@ Table({
         "when this path was last saved (or deleted if disabled) by manage-storage"
     },
     counter: {
-      type: "integer",
+      type: "number",
       desc: "the number of times this public path has been accessed"
     },
     vhost: {

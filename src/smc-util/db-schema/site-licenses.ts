@@ -192,12 +192,12 @@ Table({
       desc:
         "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine."
     },
-    project_id: SCHEMA.projects.project_id, // id of project
-    title: SCHEMA.projects.title, // first 80 characters of title of project
-    description: SCHEMA.projects.description, // first 80 characters of description of project
-    users: SCHEMA.projects.users, // users of the project
-    last_active: SCHEMA.projects.last_active, // who last active used project
-    last_edited: SCHEMA.projects.last_edited // when project was last edited
+    project_id: SCHEMA.projects.fields.project_id, // id of project
+    title: SCHEMA.projects.fields.title, // first 80 characters of title of project
+    description: SCHEMA.projects.fields.description, // first 80 characters of description of project
+    users: SCHEMA.projects.fields.users, // users of the project
+    last_active: SCHEMA.projects.fields.last_active, // who last active used project
+    last_edited: SCHEMA.projects.fields.last_edited // when project was last edited
   },
   rules: {
     virtual: true, // don't make an actual table

@@ -28,7 +28,7 @@ Table({
         "Extra text to describe the mention. eg. could be the containing message"
     },
     priority: {
-      type: "integer",
+      type: "number",
       desc:
         "optional integer priority.  0 = default, but could be 1 = higher priority, etc."
     },
