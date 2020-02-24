@@ -4,6 +4,7 @@ import { account_profiles } from "./account-profiles";
 import { accounts } from "./accounts";
 import { blobs } from "./blobs";
 import { client_error_log } from "./client-error-log";
+import { webapp_errors } from "./webapp-errors";
 import { lti } from "./lti";
 import {
   site_licenses,
@@ -32,7 +33,8 @@ export const SCHEMA = {
   site_licenses,
   site_license_usage_stats,
   site_license_public_info,
-  site_license_usage_log
+  site_license_usage_log,
+  webapp_errors
 };
 
 export {

@@ -34,7 +34,7 @@ interface Fields {
           | "array"
           | "integer"
           | "Buffer";
-        desc: string;
+        desc?: string;
         pg_type?: string;
         unique?: boolean;
       };
@@ -139,7 +139,7 @@ interface UserOrProjectQuery<F extends Fields> {
 }
 
 interface TableSchema<F extends Fields> {
-  desc: string;
+  desc?: string;
   primary_key?: keyof F | (keyof F)[]; // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
