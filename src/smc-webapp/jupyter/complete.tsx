@@ -19,7 +19,14 @@ export class Complete extends Component<CompleteProps> {
   private node: HTMLElement;
 
   private select(item: string): void {
+    // Save contents of editor to the store so that completion properly *places* the
+    // completion in the correct place: see https://github.com/sagemathinc/cocalc/issues/3978
+    this.props.frame_actions.save_input_editor(this.props.id);
+
+    // Actually insert the completion:
     this.props.actions.select_complete(this.props.id, item);
+
+    // Start working on the cell:
     this.props.frame_actions.set_mode("edit");
   }
 

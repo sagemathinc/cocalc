@@ -1003,6 +1003,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!open_files.has(opts.path)) {
       // Make the visible tab appear ASAP, even though
       // some stuff that may await below needs to happen...
+      if (!this.open_files) return; // closed
       this.open_files.set(opts.path, "component", {});
     }
 
