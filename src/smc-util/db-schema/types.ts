@@ -46,6 +46,7 @@ interface UserOrProjectQuery<F extends Fields> {
     throttle_changes?: number;
     pg_where?: string[] | { [key: string]: string }[];
     pg_changefeed?: string;
+    remove_from_query?: string[];
     admin?: boolean;
     options?: any; // [{ limit: 1 }]
     instead_of_query?: (
