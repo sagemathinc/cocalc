@@ -1,4 +1,6 @@
 import { schema } from "./db-schema";
+
+// The tables
 import { account_creation_actions } from "./account-creation-actions";
 import { account_profiles } from "./account-profiles";
 import { accounts } from "./accounts";
@@ -8,6 +10,9 @@ import { central_log } from "./central-log";
 import { collaborators, collaborators_one_project } from "./collaborators";
 import { compute_servers } from "./compute-servers";
 import { file_access_log } from "./file-access-log";
+import { file_use } from "./file-use";
+import { file_use_times } from "./file-use-times";
+import { listings } from "./listings";
 import { lti } from "./lti";
 import {
   site_licenses,
@@ -16,10 +21,9 @@ import {
   projects_using_site_license,
   site_license_usage_log
 } from "./site-licenses";
-import { listings } from "./listings";
-import { file_use_times } from "./file-use-times";
 import { webapp_errors } from "./webapp-errors";
 
+// The schema is got by combining the tables:
 export const SCHEMA = {
   ...schema,
   accounts,
@@ -32,6 +36,7 @@ export const SCHEMA = {
   collaborators_one_project,
   compute_servers,
   file_access_log,
+  file_use,
   file_use_times,
   listings,
   lti,

@@ -146,6 +146,7 @@ interface TableSchema<F extends Fields> {
   fields?: F; // the fields -- required if virtual is not set.
   db_standby?: "unsafe" | "safer";
   durability?: "soft" | "hard"; // Default is hard
+  unique_writes?: boolean;  // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;
   virtual?: string | true; // Must be another table name or true
   pg_indexes?: any[];
