@@ -101,20 +101,6 @@ import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 
 export const schema: any = {};
 
-schema.client_error_log = {
-  primary_key: "id",
-  durability: "soft", // loss of some log data not serious, since used only for analytics
-  fields: {
-    id: { type: "uuid" },
-    event: { type: "string" },
-    error: { type: "string" },
-    account_id: { type: "uuid" },
-    time: { type: "timestamp" },
-    expire: { type: "timestamp" }
-  },
-  pg_indexes: ["time", "event"]
-};
-
 schema.webapp_errors = {
   primary_key: "id",
   durability: "soft", // loss of some log data not serious, since used only for analytics
