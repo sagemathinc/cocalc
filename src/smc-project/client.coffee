@@ -27,9 +27,6 @@ fs     = require('fs')
 {callback2, once} = require("smc-util/async-utils");
 
 async   = require('async')
-winston = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 require('coffeescript/register')
 
@@ -58,19 +55,18 @@ blobs = require('./blobs')
 {defaults, required} = misc
 
 DEBUG = false
-#DEBUG = true
-
 # Easy way to enable debugging in any project anywhere.
 DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
 if fs.existsSync(DEBUG_FILE)
-    winston.debug("'#{DEBUG_FILE}' exists, so enabling very verbose logging")
     DEBUG = true
-else
-    winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
+else if kucalc.IN_KUCALC
+    # always make verbose in kucalc, since logs are taken care of by the k8s
+    # logging infrastructure...
+    DEBUG = true
 
 ALREADY_CREATED = false
 class exports.Client extends EventEmitter
-    constructor: (project_id) ->
+    constructor: (project_id, logger) ->
         super()
         if ALREADY_CREATED
             throw Error("BUG: Client already created!")
@@ -83,6 +79,7 @@ class exports.Client extends EventEmitter
         @_hub_client_sockets = {}
         @_changefeed_sockets = {}
         @_connected = false
+        @_logger = logger
 
         # Start listening for syncstrings that have been recently modified, so that we
         # can open them and provide filesystem and computational support.
@@ -91,14 +88,11 @@ class exports.Client extends EventEmitter
 
         if kucalc.IN_KUCALC
             kucalc.init(@)
-            # always make verbose in kucalc, since logs are taken care of by the k8s
-            # logging infrastructure...
-            DEBUG = true
 
     # use to define a logging function that is cleanly used internally
     dbg: (f, trunc=1000) =>
-        if DEBUG
-            return (m...) ->
+        if DEBUG and @_logger
+            return (m...) =>
                 switch m.length
                     when 0
                         s = ''
@@ -106,7 +100,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                winston.debug("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
+                @_logger("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
         else
             return (m) ->
 

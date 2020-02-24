@@ -293,7 +293,6 @@ exports.TimeAgoElement = rclass
         popover   : true
         minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
         placement : 'top'
-        # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
         time_ago_absolute : false
 

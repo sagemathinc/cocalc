@@ -58,8 +58,8 @@ export async function run_prettier(
     await once(syncstring, "ready");
   }
   const doc = syncstring.get_doc();
-  let pretty, math;
-  let input = doc.to_str();
+  let pretty, math, input0;
+  let input = input0 = doc.to_str();
   if (options.parser === "markdown") {
     [input, math] = remove_math(math_escape(input));
   }
@@ -75,7 +75,7 @@ export async function run_prettier(
   // NOTE: the code used to make the change here on the backend.
   // See https://github.com/sagemathinc/cocalc/issues/4335 for why
   // that leads to confusion.
-  const patch = make_patch(input, pretty);
+  const patch = make_patch(input0, pretty);
   return { status: "ok", patch };
 }
 

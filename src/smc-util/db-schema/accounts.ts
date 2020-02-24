@@ -249,7 +249,8 @@ export const accounts = create({
             image: undefined,
             color: undefined
           },
-          ssh_keys: {}
+          ssh_keys: {},
+          created: null
         }
       },
       set: {

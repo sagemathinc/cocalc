@@ -63,7 +63,7 @@ export const site_licenses = create({
     restricted: {
       type: "boolean",
       desc:
-        "If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects."
+        "NOTE IMPLEMENTED YET: If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects."
     },
     upgrades: {
       type: "map",
@@ -73,7 +73,7 @@ export const site_licenses = create({
     run_limit: {
       type: "integer",
       desc:
-        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopp."
+        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped."
     },
     apply_limit: {
       type: "integer",
@@ -177,14 +177,24 @@ export const projects_using_site_license = create({
   fields: {
     license_id: {
       type: "string",
-      desc: "the id of the license"
+      desc: "the id of the license -- must be specified"
     },
-    project_id: schema.projects.project_id,
-    title: schema.projects.title,
-    description: schema.projects.description,
-    users: schema.projects.users,
-    last_active: schema.projects.last_active,
-    last_edited: schema.projects.last_edited
+    cutoff: {
+      type: "timestamp",
+      desc:
+        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW()."
+    },
+    limit: {
+      type: "integer",
+      desc:
+        "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine."
+    },
+    project_id: schema.projects.project_id, // id of project
+    title: schema.projects.title, // first 80 characters of title of project
+    description: schema.projects.description, // first 80 characters of description of project
+    users: schema.projects.users, // users of the project
+    last_active: schema.projects.last_active, // who last active used project
+    last_edited: schema.projects.last_edited // when project was last edited
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -197,6 +207,8 @@ export const projects_using_site_license = create({
         admin: true, // for now admins only; TODO: later *managers* of the site license will also get access...
         fields: {
           license_id: null,
+          cutoff: null,
+          limit: null,
           project_id: null,
           title: null,
           description: null,
@@ -215,6 +227,9 @@ export const projects_using_site_license = create({
             cb("query must be of the form [{license_id:uuid, ...}]");
             return;
           }
+          if (!obj.limit) {
+            obj.limit = 1000;
+          }
           const fields: string[] = [];
           for (const field of [
             // this approach ensures requests for bad fields don't cause SQL injection...
@@ -231,10 +246,13 @@ export const projects_using_site_license = create({
             }
           }
           try {
-            const projects = await database.projects_using_site_license(
-              obj.license_id,
-              fields
-            );
+            const projects = await database.projects_using_site_license({
+              license_id: obj.license_id,
+              fields: fields,
+              cutoff: obj.cutoff,
+              limit: obj.limit,
+              truncate: 80
+            });
             for (const project of projects) {
               // for consistency with how queries work, we fill this in.
               project.license_id = obj.license_id;
@@ -254,31 +272,49 @@ export const projects_using_site_license = create({
 //
 export const site_license_public_info = create({
   fields: {
-    id: site_licenses.fields.id,
+    id: site_licenses.fields.id, // must be specified or it is an error
     title: site_licenses.fields.title,
     expires: site_licenses.fields.expires,
-    activates: site_licenses.fields.activates
+    activates: site_licenses.fields.activates,
+    upgrades: site_licenses.fields.upgrades,
+    run_limit: site_licenses.fields.run_limit,
+    running: {
+      type: "integer",
+      desc:
+        "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it."
+    }
   },
   rules: {
     desc: "Publicly available information about site licenses",
     anonymous: false, // do need to be signed in.
     primary_key: ["id"],
-    virtual: "site_licenses",
+    virtual: true, // no actual table.
     user_query: {
       get: {
         admin: false,
-        check_hook: (_db, obj, _account_id, _project_id, cb) => {
-          if (typeof obj.id == "string" && is_valid_uuid_string(obj.id)) {
-            cb(); // good
-          } else {
-            cb("id must be a uuid");
-          }
-        },
         fields: {
           id: null,
           title: null,
           expires: null,
-          activates: null
+          activates: null,
+          upgrades: null,
+          run_limit: null,
+          running: null
+        },
+        // Actual query is implemented using this code below rather than an
+        // actual query directly.  TODO: Also, we're lazy and return all fields we
+        // know, even if user doesn't request them all.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          const id = opts.query.id;
+          if (typeof id != "string" || !is_valid_uuid_string(id)) {
+            cb("must be a single object query with id specified");
+          } else {
+            try {
+              cb(undefined, await database.site_license_public_info(id));
+            } catch (err) {
+              cb(err);
+            }
+          }
         }
       }
     }

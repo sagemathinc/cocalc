@@ -40,11 +40,15 @@ interface ReactProps {
 }
 
 interface ReduxProps {
+  // from account
   get_total_upgrades: Function;
   groups: string[];
 
+  // from customize
   kucalc: string;
+  ssh_gateway: boolean;
 
+  // from projects
   get_course_info: Function;
   get_total_upgrades_you_have_applied: Function;
   get_upgrades_you_applied_to_project: Function;
@@ -53,6 +57,7 @@ interface ReduxProps {
   compute_images: Map<string, any>;
   all_projects_have_been_loaded: boolean;
 
+  // context specific
   configuration: Map<string, any>;
   available_features: object;
 }
@@ -66,7 +71,8 @@ export const Body = rclass<ReactProps>(
           groups: rtypes.array
         },
         customize: {
-          kucalc: rtypes.string
+          kucalc: rtypes.string,
+          ssh_gateway: rtypes.bool
         },
         projects: {
           get_course_info: rtypes.func,
@@ -199,7 +205,8 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 actions={redux.getActions("projects")}
               />
-              {this.props.kucalc === KUCALC_COCALC_COM ? (
+              {this.props.ssh_gateway ||
+              this.props.kucalc === KUCALC_COCALC_COM ? (
                 <SSHPanel
                   key="ssh-keys"
                   project={this.props.project}
@@ -229,10 +236,7 @@ export const Body = rclass<ReactProps>(
                 }
                 allow_urls={allow_urls}
               />
-              <ProjectControl
-                key="control"
-                project={this.props.project}
-              />
+              <ProjectControl key="control" project={this.props.project} />
               <SagewsControl key="worksheet" project={this.props.project} />
               {have_jupyter_notebook ? (
                 <JupyterServerPanel

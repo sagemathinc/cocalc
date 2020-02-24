@@ -92,7 +92,7 @@ export type ProjectControlEvent = {
 
 export type FileActionEvent = (
   | { action: "deleted" }
-  | { action: "downloaded"; path?: string }
+  | { action: "downloaded"; files?: string[] }
   | { action: "moved" }
   | { action: "copied" }
   | { action: "shared" }

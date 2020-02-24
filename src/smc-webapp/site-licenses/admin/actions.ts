@@ -76,6 +76,11 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public start_editing(license_id: string): void {
     const editing = store.get("editing", Set()).add(license_id);
     this.setState({ editing });
+    // avoid confusion by restricting to only showing the
+    // license being edited until user clears or changes search.
+    // This makes UI technically less powerful but also less
+    // confusing.
+    this.set_search(license_id);
   }
 
   public cancel_editing(license_id: string): void {
@@ -156,13 +161,15 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
     this.setState({ edits });
   }
 
-  public toggle_show_projects(license_id: string): void {
-    let show_projects = store.get("show_projects", Set());
-    if (show_projects.has(license_id)) {
-      show_projects = show_projects.delete(license_id);
-    } else {
-      show_projects = show_projects.add(license_id);
-    }
+  public show_projects(license_id: string, cutoff: Date | "now"): void {
+    let show_projects = store.get("show_projects", Map<string, Date | "now">());
+    show_projects = show_projects.set(license_id, cutoff);
+    this.setState({ show_projects });
+  }
+
+  public hide_projects(license_id: string): void {
+    let show_projects = store.get("show_projects", Map<string, Date | "now">());
+    show_projects = show_projects.delete(license_id);
     this.setState({ show_projects });
   }
 

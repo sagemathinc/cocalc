@@ -97,8 +97,8 @@ export class LogEntry extends React.Component<Props> {
           style={this.props.cursor ? selected_item : undefined}
           trunc={TRUNC}
           project_id={this.props.project_id}
-        />
-        {" "}<TookTime ms={event.time} />
+        />{" "}
+        <TookTime ms={event.time} />
       </span>
     );
   }
@@ -172,9 +172,16 @@ export class LogEntry extends React.Component<Props> {
     );
   }
 
-  multi_file_links(event: { files: string[] }, link?: boolean): Rendered[] {
+  multi_file_links(
+    event: { files: string | string[] },
+    link?: boolean
+  ): Rendered[] {
     if (link == null) {
       link = true;
+    }
+    // due to a bug, "files" could just be a string
+    if (typeof event.files === "string") {
+      event.files = [event.files];
     }
     const links: Rendered[] = [];
     for (let i = 0; i < event.files.length; i++) {
@@ -206,8 +213,7 @@ export class LogEntry extends React.Component<Props> {
       case "downloaded":
         return (
           <span>
-            downloaded{" "}
-            {this.file_link(e.path != null ? e.path : e.files[0], true, 0)}{" "}
+            downloaded {this.multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );

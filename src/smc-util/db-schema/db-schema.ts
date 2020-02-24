@@ -97,6 +97,7 @@ const { DEFAULT_QUOTAS } = require("../upgrade-spec");
 
 import { DEFAULT_COMPUTE_IMAGE } from "./defaults";
 import { site_settings_conf } from "./site-defaults";
+import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 
 export const schema: any = {};
 
@@ -174,8 +175,9 @@ schema.blobs = {
   },
   user_query: {
     get: {
-      instead_of_query(database, obj, _account_id, cb) {
-        if (obj.id == null) {
+      async instead_of_query(database, opts, cb): Promise<void> {
+        const obj: any = Object.assign({}, opts.query);
+        if (obj == null || obj.id == null) {
           cb("id must be specified");
           return;
         }
@@ -207,7 +209,13 @@ schema.blobs = {
         blob: true,
         project_id: true
       },
-      instead_of_change(database, _old_value, new_val, _account_id, cb) {
+      async instead_of_change(
+        database,
+        _old_value,
+        new_val,
+        _account_id,
+        cb
+      ): Promise<void> {
         database.save_blob({
           uuid: new_val.id,
           blob: new_val.blob,
@@ -225,21 +233,12 @@ schema.client_error_log = {
   primary_key: "id",
   durability: "soft", // loss of some log data not serious, since used only for analytics
   fields: {
-    id: {
-      type: "uuid"
-    },
-    event: {
-      type: "string"
-    },
-    error: {
-      type: "string"
-    },
-    account_id: {
-      type: "uuid"
-    },
-    time: {
-      type: "timestamp"
-    }
+    id: { type: "uuid" },
+    event: { type: "string" },
+    error: { type: "string" },
+    account_id: { type: "uuid" },
+    time: { type: "timestamp" },
+    expire: { type: "timestamp" }
   },
   pg_indexes: ["time", "event"]
 };
@@ -268,7 +267,8 @@ schema.webapp_errors = {
     smc_git_rev: { type: "string" },
     uptime: { type: "string" },
     start_time: { type: "timestamp" },
-    time: { type: "timestamp" }
+    time: { type: "timestamp" },
+    expire: { type: "timestamp" }
   },
   pg_indexes: [
     "time",
@@ -884,7 +884,8 @@ schema.projects = {
     "last_edited",
     "USING GIN (users)", // so get_collaborator_ids is fast
     "USING GIN (host jsonb_path_ops)", // so get_projects_on_compute_server is fast
-    "lti_id"
+    "lti_id",
+    "USING GIN (state)" // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
   ],
 
   user_query: {
@@ -1379,7 +1380,9 @@ schema.server_settings = {
   }
 };
 
-const site_settings_fields = misc.keys(site_settings_conf);
+const site_settings_fields = misc
+  .keys(site_settings_conf)
+  .concat(misc.keys(site_settings_extras));
 
 schema.site_settings = {
   virtual: "server_settings",

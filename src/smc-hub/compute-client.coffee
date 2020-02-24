@@ -68,7 +68,7 @@ misc_node   = require('smc-util-node/misc_node')
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
-{site_license_hook} = require('./postgres/site-license-hook')
+{site_license_hook} = require('./postgres/site-license/hook')
 
 # Set the log level
 try

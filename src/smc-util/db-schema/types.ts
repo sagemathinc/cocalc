@@ -48,16 +48,21 @@ interface TableSchema<F extends Fields> {
       options?: any; // [{ limit: 1 }]
       instead_of_query?: (
         database,
-        obj,
-        instead_of_query,
-        cb: Function
+        opts: {
+          account_id?: string;
+          project_id?: string;
+          query: any;
+          multi: boolean;
+          options: any[];
+        },
+        cb: (err?: string | Error, result?: any) => void
       ) => void;
       check_hook?: (
         database,
         query,
         account_id: string,
         project_id: string,
-        cb: Function
+        cb: (err?: string | Error) => void
       ) => void;
     };
     set?: {
@@ -81,7 +86,7 @@ interface TableSchema<F extends Fields> {
         query,
         account_id: string,
         project_id: string,
-        cb: Function
+        cb: (err?: string | Error) => void
       ) => void;
 
       /**
@@ -94,7 +99,7 @@ interface TableSchema<F extends Fields> {
         old_val,
         query,
         account_id: string,
-        cb: Function
+        cb: (err?: string | Error) => void
       ) => void;
 
       // hook to note that project is being used (CRITICAL: do not pass path
@@ -113,7 +118,7 @@ interface TableSchema<F extends Fields> {
         old_val,
         query,
         account_id: string,
-        cb: Function
+        cb: (err?: string | Error, result?: any) => void
       ) => void;
 
       /**
@@ -126,7 +131,7 @@ interface TableSchema<F extends Fields> {
         old_val,
         query,
         account_id: string,
-        cb: Function
+        cb: (err?: string | Error) => void
       ) => void;
     };
   };
@@ -134,3 +139,11 @@ interface TableSchema<F extends Fields> {
 
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
 type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields">;
+
+import { SiteSettings } from "./site-defaults";
+import { SettingsExtras } from "./site-settings-extras";
+
+// what will come out of the database and (if available) sending it through `to_val`
+export type AllSiteSettings = {
+  [key in keyof SiteSettings | keyof SettingsExtras]?: any;
+};

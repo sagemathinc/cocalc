@@ -104,11 +104,15 @@ export class Actions extends BaseActions<LatexEditorState> {
   // is a ramdisk), or by whatever tmp cleaner should probably
   // be installed (say for docker...).  At least the size
   // should be relatively small.
-  public output_directory: string;
+  public output_directory: string | undefined;
 
   private relative_paths: { [path: string]: string } = {};
   private canonical_paths: { [path: string]: string } = {};
   private parsed_output_log?: IProcessedLatexLog;
+
+  private output_directory_path(): string {
+    return `/tmp/${sha1(this.path)}`;
+  }
 
   _init2(): void {
     this.set_gutter = this.set_gutter.bind(this);
@@ -121,7 +125,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_spellcheck();
       this.init_config();
       if (!this.knitr) {
-        this.output_directory = `/tmp/${sha1(this.path)}`;
+        this.output_directory = this.output_directory_path();
       }
     }
   }
@@ -289,18 +293,61 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  private output_directory_cmd_flag(output_dir?: string): string {
+    // maybe at some point we want to wrap this in ''
+    const dir = output_dir != null ? output_dir : this.output_directory;
+    return `-output-directory=${dir}`;
+  }
+
   private ensure_output_directory(cmd: List<string>): List<string> {
     const has_output_dir = cmd.some(x => x.indexOf("-output-directory=") != -1);
     if (!has_output_dir && this.output_directory != null) {
       // no output directory option.
-      return cmd.splice(
-        cmd.size - 2,
-        0,
-        `-output-directory=${this.output_directory}`
-      );
+      return cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
     } else {
       return cmd;
     }
+  }
+
+  // disable the output directory for pythontex and sagetex.
+  // the main reason is that it is likely to process files, load py modules or generated images.
+  // compiling tex in a tmp dir breaks all the paths. -- https://github.com/sagemathinc/cocalc/issues/4394
+  // returns true, if it really made a change.
+  private ensure_output_directory_disabled(): boolean {
+    this.output_directory = undefined;
+
+    // at this point we know that this.init_config already ran and set a build command
+    if (this._syncdb == null) throw Error("syncdb must be defined");
+    const x = this._syncdb.get_one({ key: "build_command" });
+
+    const old_cmd: List<string> | string = x.get("value");
+    let new_cmd: string[] | string =
+      typeof old_cmd === "string" ? old_cmd : old_cmd.toJS();
+
+    // fortunately, we know exactly what we have to remove
+    const outdirflag = this.output_directory_cmd_flag(
+      this.output_directory_path()
+    );
+
+    let change = false;
+    if (typeof old_cmd === "string") {
+      const i = old_cmd.indexOf(outdirflag);
+      if (i >= 0) {
+        change = true;
+        const before = old_cmd.slice(0, i);
+        const after = old_cmd.slice(i + outdirflag.length);
+        new_cmd = `${before}${after}`;
+      }
+    } else {
+      const tmp = old_cmd.filter(x => x != outdirflag);
+      change = !tmp.equals(old_cmd);
+      new_cmd = tmp.toJS();
+    }
+
+    //console.log("ensure_output_directory_disabled new_cmd", new_cmd, change);
+    // don't wrap this in if-change, weird corner cases
+    this.set_build_command(new_cmd);
+    return change;
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -402,8 +449,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     const account: any = this.redux.getStore("account");
     if (
       account == null ||
-      (!account.getIn(["editor_settings", "build_on_save"]) ||
-        !this.is_likely_master())
+      !account.getIn(["editor_settings", "build_on_save"]) ||
+      !this.is_likely_master()
     ) {
       await this.save_all(true);
       return false;
@@ -463,13 +510,22 @@ export class Actions extends BaseActions<LatexEditorState> {
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
     let update_pdf = true;
     if (typeof s == "string") {
-      if (s.indexOf("sagetex.sty") != -1) {
+      const is_sagetex = s.indexOf("sagetex.sty") != -1;
+      const is_pythontex =
+        s.indexOf("pythontex.sty") != -1 || s.indexOf("PythonTeX") != -1;
+      if (is_sagetex || is_pythontex) {
+        if (this.ensure_output_directory_disabled()) {
+          // rebuild if build command changed
+          await this.run_latex(time, true, false);
+        }
         update_pdf = false;
-        await this.run_sagetex(time, force);
-      }
-      if (s.indexOf("pythontex.sty") != -1 || s.indexOf("PythonTeX") != -1) {
-        update_pdf = false;
-        await this.run_pythontex(time, force);
+        if (is_sagetex) {
+          await this.run_sagetex(time, force);
+        }
+        // don't make this an else-if: audacious latexer might want to run both o_O
+        if (is_pythontex) {
+          await this.run_pythontex(time, force);
+        }
       }
     }
 
@@ -505,7 +561,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.parsed_output_log = output.parse = knitr_errors(output).toJS();
     this.set_build_logs({ knitr: output });
     this.update_gutters();
-    this.setState({ knitr_error: output.parse.all.length > 0 });
+    this.setState({ knitr_error: output.parse?.errors?.length > 0 });
   }
 
   async run_patch_synctex(time: number, force: boolean): Promise<void> {

@@ -152,7 +152,7 @@ init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.j
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    exports.client = hub_client = new Client(INFO.project_id)
+    exports.client = hub_client = new Client(INFO.project_id, winston.debug)
     fs.writeFile filename, misc.to_json(INFO), (err) ->
         if err
             winston.debug("Writing 'info.json' -- #{err}")
