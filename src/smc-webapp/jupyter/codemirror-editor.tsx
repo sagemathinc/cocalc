@@ -390,6 +390,9 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const top = pos.bottom;
     const { left } = pos;
     const gutter = $(this.cm.getGutterElement()).width();
+    // ensure that store has same version of cell as we're completing
+    this._cm_save();
+    // do the actual completion:
     try {
       const show_dialog: boolean = await this.props.actions.complete(
         this.cm.getValue(),
