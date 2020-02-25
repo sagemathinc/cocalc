@@ -45,6 +45,7 @@ interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   remember_me_key: Function;
+  synctable_project: Function;
 }
 
 export let webapp_client: WebappClient;
