@@ -1,4 +1,4 @@
-import { create } from "./types";
+import { Table } from "./types";
 
 /*
 This is a virtual table to make it simple from clients to
@@ -13,7 +13,8 @@ they didn't edit it.
 
 const LIMIT = 1000;
 
-export const file_use_times = create({
+Table({
+  name: "file_use_times",
   fields: {
     project_id: {
       type: "uuid",
@@ -43,7 +44,7 @@ export const file_use_times = create({
     primary_key: ["project_id", "path"],
     user_query: {
       get: {
-        options: [{ limit: LIMIT }],    // todo -- add an option to trim the number of results by lowering resolution?
+        options: [{ limit: LIMIT }], // todo -- add an option to trim the number of results by lowering resolution?
         fields: {
           project_id: null,
           account_id: null,

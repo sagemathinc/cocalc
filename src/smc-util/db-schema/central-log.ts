@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const central_log = create({
+Table({
+  name: "central_log",
   fields: {
     id: {
       type: "uuid",

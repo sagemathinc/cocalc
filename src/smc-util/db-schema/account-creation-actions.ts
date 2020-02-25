@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const account_creation_actions = create({
+Table({
+  name: "account_creation_actions",
   fields: {
     id: {
       type: "uuid",

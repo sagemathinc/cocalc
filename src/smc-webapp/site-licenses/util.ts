@@ -19,6 +19,9 @@ export const site_license_public_info = reuseInFlight(async function(
       | undefined;
     return info;
   }
+  if (SCHEMA.site_license_public_info.user_query?.get?.fields == null) {
+    throw Error("make typescript happy")
+  }
   const site_license_public_info = copy(
     SCHEMA.site_license_public_info.user_query.get.fields
   );

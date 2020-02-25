@@ -12,10 +12,12 @@ licenses for different purposes (e.g., one license for faculty and one license
 for students).
 */
 
-import { create } from "./types";
 import { is_valid_uuid_string } from "../misc2";
+import { Table } from "./types";
+import { SCHEMA } from "./index";
 
-export const site_licenses = create({
+Table({
+  name: "site_licenses",
   fields: {
     id: {
       type: "uuid",
@@ -132,7 +134,8 @@ export const site_licenses = create({
 // A virtual table that can be queried only by admins and gets global information
 // about how site licenses are currently being used by active projects.
 
-export const site_license_usage_stats = create({
+Table({
+  name: "site_license_usage_stats",
   fields: {
     running: {
       type: "map",
@@ -172,8 +175,8 @@ export const site_license_usage_stats = create({
   }
 });
 
-import { schema } from "./db-schema";
-export const projects_using_site_license = create({
+Table({
+  name: "projects_using_site_license",
   fields: {
     license_id: {
       type: "string",
@@ -189,12 +192,12 @@ export const projects_using_site_license = create({
       desc:
         "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine."
     },
-    project_id: schema.projects.project_id, // id of project
-    title: schema.projects.title, // first 80 characters of title of project
-    description: schema.projects.description, // first 80 characters of description of project
-    users: schema.projects.users, // users of the project
-    last_active: schema.projects.last_active, // who last active used project
-    last_edited: schema.projects.last_edited // when project was last edited
+    project_id: SCHEMA.projects.fields.project_id, // id of project
+    title: SCHEMA.projects.fields.title, // first 80 characters of title of project
+    description: SCHEMA.projects.fields.description, // first 80 characters of description of project
+    users: SCHEMA.projects.fields.users, // users of the project
+    last_active: SCHEMA.projects.fields.last_active, // who last active used project
+    last_edited: SCHEMA.projects.fields.last_edited // when project was last edited
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -270,14 +273,17 @@ export const projects_using_site_license = create({
 // Get publicly available information about a site license.
 // User just has to know the license id to get this info.
 //
-export const site_license_public_info = create({
+if (SCHEMA?.site_licenses?.fields == null) throw Error("bug"); // for typescript
+
+Table({
+  name: "site_license_public_info",
   fields: {
-    id: site_licenses.fields.id, // must be specified or it is an error
-    title: site_licenses.fields.title,
-    expires: site_licenses.fields.expires,
-    activates: site_licenses.fields.activates,
-    upgrades: site_licenses.fields.upgrades,
-    run_limit: site_licenses.fields.run_limit,
+    id: SCHEMA.site_licenses.fields.id, // must be specified or it is an error
+    title: SCHEMA.site_licenses.fields.title,
+    expires: SCHEMA.site_licenses.fields.expires,
+    activates: SCHEMA.site_licenses.fields.activates,
+    upgrades: SCHEMA.site_licenses.fields.upgrades,
+    run_limit: SCHEMA.site_licenses.fields.run_limit,
     running: {
       type: "integer",
       desc:
@@ -321,7 +327,8 @@ export const site_license_public_info = create({
   }
 });
 
-export const site_license_usage_log = create({
+Table({
+  name: "site_license_usage_log",
   fields: {
     license_id: {
       type: "uuid",
