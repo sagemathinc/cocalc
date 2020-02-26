@@ -1,5 +1,8 @@
 import * as React from "react";
 import { analytics_event } from "../../tracker";
+import { Menu } from "antd";
+import { Component, OnInit } from "angular/core";
+
 const misc = require("smc-util/misc");
 import {
   Icon,
@@ -37,6 +40,7 @@ interface ReactProps {
   email_address?: string;
   project_map?: ProjectMap; // if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
   name: string;
+  anItem?: string;
 }
 
 interface ReduxProps {
@@ -58,7 +62,10 @@ interface ReduxProps {
 }
 
 export const Body = rclass<ReactProps>(
-  class Body extends React.Component<ReactProps & ReduxProps> {
+  class Body extends React.Component<
+    ReactProps & ReduxProps,
+    { anItem: string }
+  > {
     public static reduxProps({ name }) {
       return {
         account: {
@@ -82,6 +89,11 @@ export const Body = rclass<ReactProps>(
           available_features: rtypes.object
         }
       };
+    }
+
+    constructor(props) {
+      super(props);
+      this.state = { anItem: "" };
     }
 
     shouldComponentUpdate(props) {
@@ -130,6 +142,60 @@ export const Body = rclass<ReactProps>(
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;
+      let anotherItem: string = "";
+
+      const componentSwitch = key => {
+        switch (key) {
+          case "TitleDescriptionBox": {
+            return (
+              <TitleDescriptionBox
+                project_id={id}
+                project_title={this.props.project.get("title") || ""}
+                description={this.props.project.get("description") || ""}
+                actions={redux.getActions("projects")}
+              />
+            );
+            break;
+          }
+          case "UpgradeUsage": {
+            return (
+              <UpgradeUsage
+                project_id={id}
+                project={this.props.project}
+                actions={redux.getActions("projects")}
+                user_map={this.props.user_map}
+                account_groups={this.props.groups}
+                upgrades_you_can_use={upgrades_you_can_use}
+                upgrades_you_applied_to_all_projects={
+                  upgrades_you_applied_to_all_projects
+                }
+                upgrades_you_applied_to_this_project={
+                  upgrades_you_applied_to_this_project
+                }
+                total_project_quotas={total_project_quotas}
+                all_upgrades_to_this_project={all_upgrades_to_this_project}
+                all_projects_have_been_loaded={
+                  this.props.all_projects_have_been_loaded
+                }
+                site_license_upgrades={site_license_upgrades}
+                site_license_ids={site_license_ids}
+              />
+            );
+            break;
+          }
+          case "HideDeleteBox": {
+            return (
+              <HideDeleteBox
+                key="hidedelete"
+                project={this.props.project}
+                actions={redux.getActions("projects")}
+              />
+            );
+            break;
+          }
+        }
+      };
+
       return (
         <div>
           {commercial &&
@@ -165,92 +231,24 @@ export const Body = rclass<ReactProps>(
             <Icon name="wrench" /> Project Settings
           </h1>
           <Row>
-            <Col sm={6}>
-              <TitleDescriptionBox
-                project_id={id}
-                project_title={this.props.project.get("title") || ""}
-                description={this.props.project.get("description") || ""}
-                actions={redux.getActions("projects")}
-              />
-              <UpgradeUsage
-                project_id={id}
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-                user_map={this.props.user_map}
-                account_groups={this.props.groups}
-                upgrades_you_can_use={upgrades_you_can_use}
-                upgrades_you_applied_to_all_projects={
-                  upgrades_you_applied_to_all_projects
-                }
-                upgrades_you_applied_to_this_project={
-                  upgrades_you_applied_to_this_project
-                }
-                total_project_quotas={total_project_quotas}
-                all_upgrades_to_this_project={all_upgrades_to_this_project}
-                all_projects_have_been_loaded={
-                  this.props.all_projects_have_been_loaded
-                }
-                site_license_upgrades={site_license_upgrades}
-                site_license_ids={site_license_ids}
-              />
-
-              <HideDeleteBox
-                key="hidedelete"
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-              />
-              {this.props.kucalc === KUCALC_COCALC_COM ? (
-                <SSHPanel
-                  key="ssh-keys"
-                  project={this.props.project}
-                  user_map={this.props.user_map}
-                  account_id={this.props.account_id}
-                />
-              ) : (
-                undefined
-              )}
-              <ProjectCapabilities
-                name={this.props.name}
-                key={"capabilities"}
-                project={this.props.project}
-              />
+            <Col sm={2}>
+              <Menu
+                defaultSelectedKeys={["TitleDescriptionBox"]}
+                mode="inline"
+                onClick={e => {
+                  this.setState({ anItem: e.key });
+                  //console.log(e.key);
+                  //console.log(this.state.anItem);
+                }}
+                theme="dark"
+              >
+                <Menu.Item key="TitleDescriptionBox">
+                  Title and Description
+                </Menu.Item>
+                <Menu.Item key="UpgradeUsage">UpgradeUsage</Menu.Item>
+              </Menu>
             </Col>
-            <Col sm={6}>
-              <CurrentCollaboratorsPanel
-                key="current-collabs"
-                project={this.props.project}
-                user_map={this.props.user_map}
-              />
-              <AddCollaboratorsPanel
-                key="new-collabs"
-                project={this.props.project}
-                on_invite={() =>
-                  analytics_event("project_settings", "add collaborator")
-                }
-                allow_urls={allow_urls}
-              />
-              <ProjectControl
-                key="control"
-                project={this.props.project}
-              />
-              <SagewsControl key="worksheet" project={this.props.project} />
-              {have_jupyter_notebook ? (
-                <JupyterServerPanel
-                  key="jupyter"
-                  project_id={this.props.project_id}
-                />
-              ) : (
-                undefined
-              )}
-              {have_jupyter_lab ? (
-                <JupyterLabServerPanel
-                  key="jupyterlab"
-                  project_id={this.props.project_id}
-                />
-              ) : (
-                undefined
-              )}
-            </Col>
+            <Col sm={8}>{componentSwitch(this.state.anItem)}</Col>
           </Row>
         </div>
       );
