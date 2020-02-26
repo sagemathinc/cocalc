@@ -35,21 +35,15 @@ block content
             div.col-sm-12
               div.headline #{subtitle}
               div.subheadline.
-                Learn Linux without worrying about messing up your own computer.
+                Learn Linux and Bash Scripting without worrying about messing up your own computer.
         div.col-md-6.center
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit.shadow.rounded
       div.row
         div.col-md-12.center
           +start_button_2("terminal")
 
-  div.container
-    div.row.spacing2
-      div.col-sm-6
-        h3.firstline.
-          No software install required #[small 100% online]
-
-
-  +start_free_banner
+  div.container.spacing2.center
+    h1 Features
 
   +terminal-real-time
 
@@ -57,7 +51,7 @@ block content
   div.container.space#shell-script
     div.row
       div.col-md-12.center
-        h2 Run Bash scripts
+        h2.firstline Run Bash scripts
       div.col-sm-6
         div
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit
@@ -81,7 +75,7 @@ block content
   div.container.space#jupyter
     div.row
       div.col-md-12.center
-        h2 Jupyter Bash kernel
+        h2.firstline Jupyter Bash kernel
       div.col-sm-6
         div
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-bash.png").fit
@@ -103,7 +97,7 @@ block content
   div.container.space#database
     div.row
       div.col-md-12.center
-        h2 Databases (PostgreSQL, MySQL, SQLite, ...)
+        h2.firstline Databases (PostgreSQL, MySQL, SQLite, ...)
       div.col-sm-6
         div
           img(data-src="https://storage.googleapis.com/cocalc-extra/terminal-jupyter-postgresql.png").fit
@@ -129,4 +123,4 @@ block content
           the #[a(href="http://initd.org/psycopg/docs/") psycopg2] library and issues a query to the database!
 
 
-  +start_free_banner
+  +start_free_banner("terminal")
