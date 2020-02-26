@@ -1541,7 +1541,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (this._complete_request > req) return false;
       this.setState({ complete: { error: err } });
       // no op for now...
-      throw Error("ignore");
+      throw Error(`ignore -- ${err}`);
       //return false;
     }
 
@@ -1583,12 +1583,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
     // and breaks an assumption in our react code too.
     complete.matches = Array.from(new Set(complete.matches)).sort();
-    this.setState({ complete: immutable.fromJS(complete) });
+    const i_complete = immutable.fromJS(complete);
     if (complete.matches && complete.matches.length === 1 && id != null) {
-      // special case -- a unique completion and we know id of cell in which completing is given
-      this.select_complete(id, complete.matches[0]);
+      // special case -- a unique completion and we know id of cell in which completing is given.
+      this.select_complete(id, complete.matches[0], i_complete);
       return false;
     } else {
+      this.setState({ complete: i_complete });
       return true;
     }
   }
@@ -1599,8 +1600,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ complete: undefined });
   };
 
-  public select_complete(id: string, item: string): void {
-    const complete = this.store.get("complete");
+  public select_complete(
+    id: string,
+    item: string,
+    complete?: immutable.Map<string, any>
+  ): void {
+    if (complete == null) {
+      complete = this.store.get("complete");
+    }
     this.clear_complete();
     if (complete == null) {
       return;

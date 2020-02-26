@@ -373,6 +373,26 @@ export class JupyterActions extends JupyterActions0 {
     this.file_action("reopen_file", this.store.get("path"));
   }
 
+  public async confirm_close_and_halt(): Promise<void> {
+    if (
+      (await this.confirm_dialog({
+        title: "Close this file and halt the kernel",
+        body:
+          "Are you sure you want to close this file and halt the kernel?  All variable state will be lost.",
+        choices: [
+          { title: "Cancel" },
+          {
+            title: "Close and halt",
+            style: "danger",
+            default: true
+          }
+        ]
+      })) === "Close and halt"
+    ) {
+      await this.close_and_halt();
+    }
+  }
+
   public async close_and_halt(): Promise<void> {
     // Display the main file listing page
     this.file_open();
