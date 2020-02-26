@@ -340,7 +340,7 @@ CHARS = CHARS0 + '.'
 
 
 def guess_last_expression(
-        obj):  # TODO: bad guess -- need to use a parser to go any further.
+    obj):  # TODO: bad guess -- need to use a parser to go any further.
     i = len(obj) - 1
     while i >= 0 and obj[i] in CHARS:
         i -= 1
@@ -405,8 +405,8 @@ def introspect(code, namespace, preparse=True):
     try:
         # Strip all strings from the code, replacing them by template
         # symbols; this makes parsing much easier.
-        code0, literals, state = strip_string_literals(code.strip(
-        ))  # we strip, since trailing space could cause confusion below
+        # we strip, since trailing space could cause confusion below
+        code0, literals, state = strip_string_literals(code.strip())
 
         # Move i so that it points to the start of the last expression in the code.
         # (TODO: this should probably be replaced by using ast on preparsed version.  Not easy.)
@@ -431,21 +431,22 @@ def introspect(code, namespace, preparse=True):
         else:
             # Now for all of the other harder cases.
             i = max([expr.rfind(s) for s in '?('])
-            if i >= 1 and i == len(expr) - 1 and expr[
-                    i - 1] == '?':  # expr ends in two ?? -- source code
+            # expr ends in two ?? -- source code
+            if i >= 1 and i == len(expr) - 1 and expr[i - 1] == '?':
                 get_source = True
                 get_completions = False
                 get_help = False
                 target = ""
                 obj = expr[:i - 1]
-            elif i == len(
-                    expr) - 1:  # ends in ( or ? (but not ??) -- docstring
+            # ends in ( or ? (but not ??) -- docstring
+            elif i == len(expr) - 1:
                 get_help = True
                 get_completions = False
                 get_source = False
                 target = ""
                 obj = expr[:i]
-            else:  # completions (not docstrings or source)
+            # completions (not docstrings or source)
+            else:
                 get_help = False
                 get_completions = True
                 get_source = False
@@ -553,10 +554,11 @@ def introspect(code, namespace, preparse=True):
             def get_file():
                 try:
                     import sage.misc.sageinspect
-                    return "   File: " + eval('getdoc(O)', {
+                    eval_getdoc = eval('getdoc(O)', {
                         'getdoc': sage.misc.sageinspect.sage_getfile,
                         'O': O
-                    }) + "\n"
+                    })
+                    return "   File: " + eval_getdoc + "\n"
                 except Exception as err:
                     return "Unable to read source filename (%s)" % err
 
@@ -584,9 +586,15 @@ def introspect(code, namespace, preparse=True):
                         except:
                             t = ""
                         try:
-                            t += "   Docstring :\n%s" % sage.misc.sageinspect.sage_getdoc(
-                                s).decode('utf-8').strip()
+                            ds_raw = sage.misc.sageinspect.sage_getdoc(s)
+                            if (six.PY3 and type(s) == bytes) or six.PY2:
+                                ds = ds_raw.decode('utf-8')
+                            else:
+                                ds = ds_raw
+                            ds = ds.strip()
+                            t += "   Docstring :\n%s" % ds
                         except Exception as ex:
+                            t += "   Problem retrieving Docstring :\n%s" % ex
                             # print ex  # issue 1780: 'ascii' codec can't decode byte 0xc3 in position 3719: ordinal not in range(128)
                             pass
                         return t
@@ -594,9 +602,8 @@ def introspect(code, namespace, preparse=True):
                     result += eval('getdoc(O)', {'getdoc': our_getdoc, 'O': O})
                 except Exception as err:
                     result += "Unable to read docstring (%s)" % err
-                result = result.lstrip().replace(
-                    '\n   ',
-                    '\n')  # Get rid of the 3 spaces in front of everything.
+                # Get rid of the 3 spaces in front of everything.
+                result = result.lstrip().replace('\n   ', '\n')
 
             elif get_source:
                 import sage.misc.sageinspect
@@ -620,8 +627,8 @@ def introspect(code, namespace, preparse=True):
                     # this case excludes abc = ...;for a in ab[tab]
                     if '*' in expr and '* ' not in expr:
                         try:
-                            pattern = target.replace("*",
-                                                     ".*").replace("?", ".")
+                            pattern = target.replace("*", ".*")
+                            pattern = pattern.replace("?", ".")
                             reg = re.compile(pattern + "$")
                             v = list(filter(reg.match, v))
                         except:
