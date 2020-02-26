@@ -235,9 +235,6 @@ html.no-js(lang="en")
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
 
-            li(class=navbar_highlight('share'))
-              a(href=PREFIX + "share/") Shared Files
-
             li(class=navbar_highlight('features'))
               a(href=PREFIX + "doc/index.html") Features
 
@@ -250,6 +247,9 @@ html.no-js(lang="en")
 
             li(class=navbar_highlight("policies"))
               a(href=PREFIX + "policies/index.html") Policies
+
+            li(class=navbar_highlight('share'))
+              a.sharedfiles(href=PREFIX + "share/") Shared Files
 
             li
               a.documentation(href="https://doc.cocalc.com/") Doc

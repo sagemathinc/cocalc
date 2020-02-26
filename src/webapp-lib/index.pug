@@ -23,7 +23,6 @@ block header
   script(type="text/javascript")
     include:coffee-script index.coffee
   meta(name="description" content=htmlWebpackPlugin.options.description)
-  link(href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet")
 
 block content
 
@@ -36,15 +35,6 @@ block content
         margin-top       : 5rem
       p
         font-size        : 13pt
-      div#top
-        padding          : 7rem 0 3rem 0
-        .descr
-          color          : $COL_GRAY
-          font-size      : 2rem
-        @media (max-width: $width-md)
-          padding        : 3rem 0 0 0
-        > div
-          margin-bottom  : 2rem
       #statstable td,
       #statstable th
         text-align       : right
@@ -89,25 +79,6 @@ block content
         .ff-only
           display: block
 
-      #top
-        background-color  : #c7d9f5
-
-
-      .headline
-        font-family: 'Roboto Slab', serif
-        font-size: 250%
-        line-height: 175%
-        @media (max-width: $width-md)
-          font-size: 150%
-          line-height: 125%
-          text-align: center
-          width: 75%
-          margin: 0 auto 2rem auto
-
-      .subheadline
-        font-size: 125%
-        width: 100%
-        text-align: left
 
 
   //- a.anchor#a-top
@@ -122,14 +93,13 @@ block content
   //-       +start_button_2
 
 
-  a.anchor#a-top
   div.space#top
     div.container
       div.row.intro
         div.col-md-6.center
           p.headline.
             It's time to ditch Maple, Mathematica and Matlab!
-          div.container.subheadline.
+          div.subheadline.
             Save weeks of class time troubleshooting software and make your TA's more effective.
           div.center.spacing.hide-md-screen
             +start_button_2
