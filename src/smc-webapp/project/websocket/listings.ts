@@ -50,6 +50,7 @@ export class Listings {
 
   private set(obj: Listing): void {
     this.get_table().set(merge({ project_id: this.project_id }, obj));
+    this.get_table().save();
   }
 
   public get(path: string): ImmutableListing | undefined {

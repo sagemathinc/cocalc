@@ -26,7 +26,8 @@ Table({
         "When a browser last said 'I care about contents of this directory'."
     },
     listing: {
-      type: "map",
+      type: "array",
+      pg_type: "JSONB[]",
       desc: "The directory listing itself."
     },
     truncated: {
