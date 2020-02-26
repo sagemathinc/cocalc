@@ -542,6 +542,10 @@ exports.HTML = HTML = rclass
         highlight        : rtypes.immutable.Set
         content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
         reload_images    : rtypes.bool     # if true, after any update to component, force reloading of all images.
+        smc_image_scaling : rtypes.bool    # if true, after rendering run the smc_image_scaling pluging to handle smc-image-scaling= attributes, which
+                                           # are used in smc_sagews to rescale certain png images produced by other kernels (e.g., the R kernel).
+                                           # See https://github.com/sagemathinc/cocalc/issues/4421.  This functionality is NOT actually used at all right now,
+                                           # since it doesn't work on the share server anyways...
         highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
         mathjax_selector : rtypes.string   # if given, only run mathjax on result of jquery select with this selector and never use katex.
@@ -552,7 +556,7 @@ exports.HTML = HTML = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', \
-                 'reload_images', 'highlight_code']) or \
+                 'reload_images', 'smc_image_scaling', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     _update_mathjax: ->
@@ -582,8 +586,11 @@ exports.HTML = HTML = rclass
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
     _update_images: ->
-        if @_is_mounted and @props.reload_images
-            $(ReactDOM.findDOMNode(@)).reload_images()
+        if @_is_mounted
+            if @props.reload_images
+                $(ReactDOM.findDOMNode(@)).reload_images()
+            if @props.smc_image_scaling
+                $(ReactDOM.findDOMNode(@)).smc_image_scaling()
 
     _update_code: ->
         if @_is_mounted and @props.highlight_code
@@ -682,6 +689,7 @@ exports.Markdown = rclass
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
         id               : rtypes.string
         reload_images    : rtypes.bool
+        smc_image_scaling: rtypes.bool
         highlight_code   : rtypes.bool
 
     getDefaultProps: ->
@@ -689,7 +697,7 @@ exports.Markdown = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'highlight', 'safeHTML',  \
-                    'checkboxes', 'reload_images', 'highlight_code']) or \
+                    'checkboxes', 'reload_images', 'smc_image_scaling', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
@@ -711,6 +719,7 @@ exports.Markdown = rclass
             highlight        = {@props.highlight}
             safeHTML         = {@props.safeHTML}
             reload_images    = {@props.reload_images}
+            smc_image_scaling= {@props.smc_image_scaling}
             highlight_code   = {@props.highlight_code}
             content_editable = {@props.content_editable} />
 
