@@ -10,7 +10,7 @@ interface Listing {
   listing?: object[];
   time?: Date;
   interest?: Date;
-  truncated?: boolean;
+  missing?: number;
 }
 export type ImmutableListing = TypedMap<Listing>;
 
@@ -33,7 +33,7 @@ export class Listings {
             listing: null,
             time: null,
             interest: null,
-            truncated: null
+            missing: null
           }
         ]
       },

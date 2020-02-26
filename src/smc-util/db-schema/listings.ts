@@ -30,9 +30,10 @@ Table({
       pg_type: "JSONB[]",
       desc: "The directory listing itself."
     },
-    truncated: {
-      type: "boolean",
-      desc: "If the listing is truncated due to being too large."
+    missing: {
+      type: "number",
+      desc:
+        "If the listing is truncated due to being too large this is the number of missing entries.  The oldest entries are missing."
     }
   },
   rules: {
@@ -46,7 +47,7 @@ Table({
           path: null,
           time: null,
           listing: null,
-          truncated: null,
+          missing: null,
           interest: null
         }
       },
@@ -68,7 +69,7 @@ Table({
           path: null,
           time: null,
           listing: null,
-          truncated: null,
+          missing: null,
           interest: null
         }
       },
@@ -77,7 +78,7 @@ Table({
           project_id: "project_id",
           path: true,
           listing: true,
-          truncated: true,
+          missing: true,
           time: true,
           interest: true
         }
