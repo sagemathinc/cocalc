@@ -30,23 +30,23 @@ block content
       div.row.intro
         div.col-md-6.center
           div.row
-            div.col-sm-3.col-sm-offset-5.center
+            div.col-sm-4.col-sm-offset-4.center
               img(src=require("webapp-lib/assets/jupyter-logo.svg")).fit
             div.col-sm-12
               div.headline #{subtitle}
               div.subheadline.
                 #{NAME}'s own collaborative, fully synchronized and supercharged notebooks.
-            div.col-sm-12.center.spacing.hide-md-screen
-              +start_button_2
         div.col-md-6.center
           img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit.shadow.rounded
-      div.row.show-md-screen
-        div.col-md-12.center.show-md-screen
-          +start_button_2
+      div.row
+        div.col-md-12.center
+          +start_button_2("jupyter")
 
   div.container
-    div.row
+    div.row.spacing2
       div.col-sm-6
+        h3.firstline.
+          No software setup #[small 100% online]
         p.
           #{NAME} is an online web service where you can
           #[strong run #[a(href="http://jupyter.org/") Jupyter notebooks] right inside your browser].
@@ -55,8 +55,10 @@ block content
         p.
           You no longer have to worry about setting up your Python environment, installing/updating/maintaining your libraries, or backing up files.
           #{NAME} manages everything for you!
-        p.
-          Beyond that, #{NAME} is #[strong made for teaching]!
+
+      div.col-sm-6
+        h3.firstline.
+          Notebooks made for teaching!
         ul
           li.
             A sophisticated #[strong #[a(href="./teaching.html") course management system]] keeps track of all notebooks of all students.
@@ -66,10 +68,14 @@ block content
             The teacher's notebook contains exercise cells for students and test cells, some of which students can also run to get immediate feedback.
             Once collected, you tell #{NAME} to automatically run the full test suite across all student notebooks and tabulate the results.
             Learn more about #[a(href="https://doc.cocalc.com/teaching-nbgrader.html") NBGrader-like grading].
+
+      div.col-sm-6.space
         p.
           To get started,
           #[a(href="https://doc.cocalc.com/getting-started.html") sign up and create a project].
           Then #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
+
+      div.col-sm-6
         p.
           #{NAME} supports many kernels right out of the box:
           several Python environments, #[a(href="http://www.sagemath.org/") SageMath],

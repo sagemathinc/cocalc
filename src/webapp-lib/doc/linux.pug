@@ -24,24 +24,32 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
-  a.anchor#a-top
+
+  div.space#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center
+              img(src=require("webapp-lib/assets/linux-logo.svg")).fit
+            div.col-sm-12
+              div.headline #{subtitle}
+              div.subheadline.
+                Learn Linux without worrying about messing up your own computer.
+        div.col-md-6.center
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit.shadow.rounded
+      div.row
+        div.col-md-12.center
+          +start_button_2("terminal")
+
   div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        img(src=require("webapp-lib/assets/linux-logo.svg")).fit
-      div.col-sm-12.center
-        h1 #{subtitle}
-    +linux-software
+    div.row.spacing2
+      div.col-sm-6
+        h3.firstline.
+          No software install required #[small 100% online]
 
 
   +start_free_banner
-
-  a.anchor#a-linux-terminal
-  div.container.space#linux-terminal
-    div.row
-      div.col-md-12.center
-        h2 Online Linux Terminal
-      +linux-terminal-main
 
   +terminal-real-time
 
