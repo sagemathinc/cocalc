@@ -240,7 +240,13 @@ def _jkmagic(kernel_name, **kwargs):
                         salvus.file(fname)
                     else:
                         img_src = salvus.file(fname, show=False)
-                        htms = '<img src="{0}" smc-image-scaling="{1}" />'.format(
+                        # The max-width is because this smc-image-scaling is very difficult
+                        # to deal with when using React to render this on the share server,
+                        # and not scaling down is really ugly.  When the width gets set
+                        # as normal in a notebook, this won't impact anything, but when
+                        # it is displayed on share server (where width is not set) at least
+                        # it won't look like total crap.  See https://github.com/sagemathinc/cocalc/issues/4421
+                        htms = '<img src="{0}" smc-image-scaling="{1}" style="max-width:840px"/>'.format(
                             img_src, run_code.smc_image_scaling)
                         salvus.html(htms)
                     os.unlink(fname)

@@ -132,6 +132,32 @@ $.fn.reload_images = (opts) ->
                 continue
             $(img).attr('src', src + '?' + Math.random())
 
+# Pluging to support smc-image-scale attribute, which is used to implement certain
+# Jupyter kernels for Sage worksheets.
+# See https://github.com/sagemathinc/cocalc/issues/1192 and
+#     https://github.com/sagemathinc/cocalc/issues/4421
+$.fn.smc_image_scaling = (opts) ->
+    @each ->
+        for x in $(this).find("img")
+            y = $(x)
+            # see https://github.com/sagemathinc/cocalc/issues/1192
+            img_scaling = y.attr('smc-image-scaling')
+            if not img_scaling?
+                continue
+            img = y.get(0)
+            scale_img = ->
+                width  = img.naturalWidth
+                factor = parseFloat(img_scaling)
+                if not isNaN(factor)
+                    new_width = width * factor
+                    y.css('width', "#{new_width}px")
+                else
+                    # fallback that is better than nothing!
+                    y.css('max-width', '800px')
+            scale_img()
+            img.onload = scale_img
+
+
 # Highlight all code blocks that have CSS class language-r, language-python.
 # TODO: I just put in r and python for now, since this is mainly
 # motivated by rmd files.
