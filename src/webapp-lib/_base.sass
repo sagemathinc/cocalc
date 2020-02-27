@@ -96,7 +96,8 @@ nav.navbar.navbar-default
   .get-started
     color        : $COL_BS_GREEN_DD
     font-weight  : bold
-  .documentation
+  .documentation,
+  .sharedfiles
     color        : $COL_BLUE_DOC
     font-weight  : bold
   .navbar-header
@@ -157,6 +158,8 @@ body
 
 #top
   background-color  : #c7d9f5
+  &.nobg
+    background-color: transparent
   padding          : 7rem 0 3rem 0
   .descr
     color          : $COL_GRAY
@@ -180,7 +183,6 @@ body
   .subheadline
     font-size: 125%
     width: 100%
-    text-align: left
 
 /* adds offset for a.anchor#a-name links, better visibility */
 a.anchor

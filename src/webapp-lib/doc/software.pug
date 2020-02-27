@@ -15,9 +15,9 @@ block content
   style
     :sass
       @import "smc-webapp/_colors.sass"
-      div.row#top
-        min-height: 50vh
+      div.intro
         ul
+          margin-top: 1rem
           li
             margin-top    : 10px
             margin-bottom : 10px
@@ -26,11 +26,12 @@ block content
           span
             padding-left  : 10px
 
-  a.anchor#a-top
-  div.container
-    div.row#top
-      h1 Available Software
-      div= "These pages contain information about available software on " + NAME + "."
+  div.nobg.intro#top
+    div.container
+      div.row.intro
+        h1.headline Available Software
+      div.
+        These pages contain information about available software on #{NAME}.
       ul
         li
           a(href='software-executables.html') Executables:

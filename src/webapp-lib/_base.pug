@@ -29,6 +29,9 @@ mixin start_button_3(startup='jupyter')
   p.cc-create-account-btn
     a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
 
+mixin jupyter-icon(width='30px')
+  img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="margin-right:5px;width:" + width)
+
 //- mixin start_free
 //-   -
 //-     var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS

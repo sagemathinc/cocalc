@@ -191,7 +191,9 @@ block content
         div.col-md-12.center
           h1 #[i.fa.fa-exclamation-circle] Unique Features
         div.col-md-6
-          h2 #[img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="width:30px")] Native Jupyter Notebooks
+          h2
+            +jupyter-icon
+            | Native Jupyter Notebooks
           div.
             This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
             It is tightly integrated into #{NAME} and adds real-time collaboration,
