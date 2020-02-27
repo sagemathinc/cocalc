@@ -6,16 +6,21 @@ import { query } from "../frame-editors/generic/client";
 import { SCHEMA } from "smc-util/db-schema";
 import { copy } from "smc-util/misc2";
 
-// To avoid overfetching, we cache this for a bit...
-const site_license_public_info_cache = new LRU({ maxAge: 1000 * 3 * 60 });
+// To avoid overfetching, we cache results for *a few seconds*.
+const site_license_public_info_cache = new LRU({ maxAge: 1000 * 15 });
+
 export const site_license_public_info = reuseInFlight(async function(
-  license_id: string
+  license_id: string,
+  force: boolean = false
 ): Promise<SiteLicensePublicInfo | undefined> {
-  if (site_license_public_info_cache.has(license_id)) {
+  if (!force && site_license_public_info_cache.has(license_id)) {
     const info = site_license_public_info_cache.get(license_id) as
       | SiteLicensePublicInfo
       | undefined;
     return info;
+  }
+  if (SCHEMA.site_license_public_info.user_query?.get?.fields == null) {
+    throw Error("make typescript happy")
   }
   const site_license_public_info = copy(
     SCHEMA.site_license_public_info.user_query.get.fields

@@ -131,17 +131,23 @@ export class CellOutput extends Component<Props> {
     );
   }
 
-  render_raw_input(val: { prompt: string; value: string }, key): Rendered {
+  render_raw_input(
+    val: { prompt: string; value: string | undefined },
+    key
+  ): Rendered {
     const { prompt, value } = val;
+    // sanitizing value, b/c we know the share server throws right here:
+    // TypeError: Cannot read property 'length' of undefined
+    const value_sani = value ?? "";
     return (
       <div key={key}>
         <b>{prompt}</b>
         <input
           style={{ padding: "0em 0.25em", margin: "0em 0.25em" }}
           type="text"
-          size={Math.max(47, value.length + 10)}
+          size={Math.max(47, value_sani.length + 10)}
           readOnly={true}
-          value={value}
+          value={value_sani}
         />
       </div>
     );

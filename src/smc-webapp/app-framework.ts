@@ -491,6 +491,14 @@ const connect_component = spec => {
         var val;
         const type = info[prop];
 
+        if (type == null) {
+          throw Error(
+            `ERROR invalid redux spec: no type info set for prop '${prop}' in store '${store_name}', ` +
+              `where full spec has keys '${Object.keys(spec)}' ` +
+              `-- e.g. rtypes.bool vs. rtypes.boolean`
+          );
+        }
+
         if (store == undefined) {
           val = undefined;
         } else {

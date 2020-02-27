@@ -1,8 +1,5 @@
 import { Map } from "immutable";
-
 import { is_different } from "smc-util/misc2";
-
-import { Markdown } from "smc-webapp/r_misc";
 
 import {
   React,
@@ -81,34 +78,10 @@ class LeanInfo extends Component<Props, {}> {
     );
   }
 
-  render_doc(): Rendered {
-    const doc = this.props.info.get("doc");
-    const params = this.props.info.get("tactic_params");
-    if (!doc && !params) {
-      return;
-    }
-    return (
-      <div>
-        {this.render_heading(params)}
-        <Markdown value={doc} safeHTML={false} highlight_code={true} />
-      </div>
-    );
-  }
-
-  render_info(): Rendered {
-    if (this.props.info == null) {
-      return;
-    }
-    return (
-      <div>
-        {this.render_state()}
-        <hr />
-        {this.render_doc()}
-      </div>
-    );
-  }
-
   render(): Rendered {
+    if (this.props.info == null) {
+      return <span />;
+    }
     return (
       <div
         style={{
@@ -117,7 +90,7 @@ class LeanInfo extends Component<Props, {}> {
           fontSize: this.props.font_size
         }}
       >
-        {this.render_info()}
+        {this.render_state()}
       </div>
     );
   }

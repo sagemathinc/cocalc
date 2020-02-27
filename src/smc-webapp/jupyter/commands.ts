@@ -147,7 +147,7 @@ export function commands(
     "close and halt": {
       i: "hand-stop-o",
       m: "Close and halt",
-      f: () => jupyter_actions.close_and_halt()
+      f: () => jupyter_actions.confirm_close_and_halt()
     },
 
     "close pager": {

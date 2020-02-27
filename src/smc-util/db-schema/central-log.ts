@@ -1,6 +1,7 @@
-import { create } from "./types";
+import { Table } from "./types";
 
-export const central_log = create({
+Table({
+  name: "central_log",
   fields: {
     id: {
       type: "uuid",
@@ -8,7 +9,8 @@ export const central_log = create({
     },
     event: {
       type: "string",
-      desc: "Event name which must start with 'webapp-' to not conflict with other names that might be used already (e.g., by the backend)."
+      desc:
+        "Event name which must start with 'webapp-' to not conflict with other names that might be used already (e.g., by the backend)."
     },
     value: {
       type: "map",
@@ -17,6 +19,10 @@ export const central_log = create({
     time: {
       type: "timestamp",
       desc: "When the event took place"
+    },
+    expire: {
+      type: "timestamp",
+      desc: "future date, when the entry will be deleted"
     }
   },
   rules: {

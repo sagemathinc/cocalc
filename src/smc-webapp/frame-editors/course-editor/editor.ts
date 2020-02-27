@@ -20,9 +20,9 @@ const buttons = set([
   "decrease_font_size",
   "increase_font_size",
   "save",
-  "time_travel",
+  "time_travel" /*,
   "undo",
-  "redo"
+  "redo"*/
 ]);
 
 export const EDITOR_SPEC = {

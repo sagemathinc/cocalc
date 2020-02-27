@@ -204,7 +204,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     return value;
   };
 
-  _cm_merge_remote = (remote: any): void => {
+  _cm_merge_remote = (remote: string): void => {
     if (this.cm == null) {
       return;
     }
@@ -390,6 +390,9 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const top = pos.bottom;
     const { left } = pos;
     const gutter = $(this.cm.getGutterElement()).width();
+    // ensure that store has same version of cell as we're completing
+    this._cm_save();
+    // do the actual completion:
     try {
       const show_dialog: boolean = await this.props.actions.complete(
         this.cm.getValue(),
@@ -550,7 +553,17 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     ) {
       this._cm_refresh();
     }
-    if (nextProps.value !== this.props.value) {
+    // In some cases (e.g., tab completion when selecting via keyboard)
+    // nextProps.value and this.props.value are the same, but they
+    // do not equal this.cm.getValue().  The complete prop changes
+    // so the component updates, but without checking cm.getValue(),
+    // we would fail to update the cm editor, which would is
+    // a disaster.  May be root cause of
+    //    https://github.com/sagemathinc/cocalc/issues/3978
+    if (
+      nextProps.value !== this.props.value ||
+      (this.cm != null && nextProps.value != this.cm.getValue())
+    ) {
       this._cm_merge_remote(nextProps.value);
     }
     if (nextProps.is_focused && !this.props.is_focused) {

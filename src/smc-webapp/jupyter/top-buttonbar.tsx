@@ -223,27 +223,32 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const title = TopButtonbar0.cell_type_title(cell_type);
 
     return (
-      <DropdownMenu
-        cocalc-test={"jupyter-cell-type-dropdown"}
-        button={true}
-        key={"cell-type"}
-        title={title}
-        disabled={this.props.read_only}
-        onClick={key => this.cell_select_type(key)}
-      >
-        <MenuItem cocalc-test={"code"} key={"code"}>
-          {TopButtonbar0.cell_type_title("code")}
-        </MenuItem>
-        <MenuItem cocalc-test={"markdown"} key={"markdown"}>
-          {TopButtonbar0.cell_type_title("markdown")}
-        </MenuItem>
-        <MenuItem cocalc-test={"raw"} key={"raw"}>
-          {TopButtonbar0.cell_type_title("raw")}
-        </MenuItem>
-        <MenuItem cocalc-test={"multi"} key={"multi"} disabled>
-          {TopButtonbar0.cell_type_title("multi")}
-        </MenuItem>
-      </DropdownMenu>
+      /* The ButtonGroup is for consistent spacing relative to
+         all of the other ButtonGroups. */
+      <ButtonGroup>
+        <DropdownMenu
+          style={{ height: "34px" }}
+          cocalc-test={"jupyter-cell-type-dropdown"}
+          button={true}
+          key={"cell-type"}
+          title={title}
+          disabled={this.props.read_only}
+          onClick={key => this.cell_select_type(key)}
+        >
+          <MenuItem cocalc-test={"code"} key={"code"}>
+            {TopButtonbar0.cell_type_title("code")}
+          </MenuItem>
+          <MenuItem cocalc-test={"markdown"} key={"markdown"}>
+            {TopButtonbar0.cell_type_title("markdown")}
+          </MenuItem>
+          <MenuItem cocalc-test={"raw"} key={"raw"}>
+            {TopButtonbar0.cell_type_title("raw")}
+          </MenuItem>
+          <MenuItem cocalc-test={"multi"} key={"multi"} disabled>
+            {TopButtonbar0.cell_type_title("multi")}
+          </MenuItem>
+        </DropdownMenu>
+      </ButtonGroup>
     );
   }
 
@@ -318,22 +323,20 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   public render(): Rendered {
     return (
-      <div style={{ margin: "1px 1px 0px 1px", backgroundColor: "#fff" }}>
-        <Form inline style={{ whiteSpace: "nowrap" }}>
-          {this.render_add_cell()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_group_move()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_group_run()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_select_cell_type()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_keyboard()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_group_assistant_halt()}
-          {this.render_nbgrader()}
-        </Form>
-      </div>
+      <Form inline style={{ whiteSpace: "nowrap" }}>
+        {this.render_add_cell()}
+        <span style={{ marginLeft: "5px" }} />
+        {this.render_group_move()}
+        <span style={{ marginLeft: "5px" }} />
+        {this.render_group_run()}
+        <span style={{ marginLeft: "5px" }} />
+        {this.render_select_cell_type()}
+        <span style={{ marginLeft: "5px" }} />
+        {this.render_keyboard()}
+        <span style={{ marginLeft: "5px" }} />
+        {this.render_group_assistant_halt()}
+        {this.render_nbgrader()}
+      </Form>
     );
   }
 }

@@ -1,3 +1,7 @@
+# Email Testing – this is for checking its various misc functions
+# pro tipp: to just run this file, cd to smc-hub and run
+#           SMC_DB_RESET=true SMC_TEST=true npx mocha test/misc/email.coffee
+
 require('ts-node').register()
 
 expect  = require('expect')

@@ -20,6 +20,12 @@ export async function handle_request(
   // Now endpoints that do depend on a specific kernel.
   const kernel = get_existing_kernel(path);
   if (kernel == null) {
+    if (endpoint == "signal") {
+      // It's not a serious problem to try to send a signal to a non-existent kernel.  A no-op
+      // is completely reasonable, since you only send signals to kill or interrupt, and a non-existent
+      // kernel is already killed or interrupted.  See https://github.com/sagemathinc/cocalc/issues/4420
+      return {};
+    }
     throw Error(`api endpoint ${endpoint}: no kernel with path '${path}'`);
   }
   switch (endpoint) {

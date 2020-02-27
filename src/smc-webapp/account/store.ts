@@ -1,8 +1,8 @@
+import * as lodash from "lodash";
 import { Store } from "../app-framework/Store";
 import { AccountState } from "./types";
 import { get_total_upgrades } from "smc-util/upgrades";
 import * as misc from "smc-util/misc2";
-import * as lodash from "lodash";
 import { Map, List } from "immutable";
 
 // Define account store

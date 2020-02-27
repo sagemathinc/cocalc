@@ -1,4 +1,4 @@
-import { create } from "./types";
+import { Table } from "./types";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -6,7 +6,8 @@ import {
   DEFAULT_NEW_FILENAMES
 } from "./defaults";
 
-export const accounts = create({
+Table({
+  name: "accounts",
   fields: {
     account_id: {
       type: "uuid",
@@ -248,7 +249,8 @@ export const accounts = create({
             image: undefined,
             color: undefined
           },
-          ssh_keys: {}
+          ssh_keys: {},
+          created: null
         }
       },
       set: {

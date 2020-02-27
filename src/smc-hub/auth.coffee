@@ -69,6 +69,8 @@ express_session = require('express-session')
 
 { HELP_EMAIL } = require("smc-util/theme")
 
+{email_verified_successfully, email_verification_problem} = require('./email')
+
 {defaults, required} = misc
 
 api_key_cookie_name = (base_url) ->
@@ -98,6 +100,9 @@ HASH_SALT_LENGTH = 32
 # library.  To avoid having to fork/modify that library, we've just
 # copied it here.  We need it for remember_me cookies.
 exports.generate_hash = generate_hash = (algorithm, salt, iterations, password) ->
+    # there are cases where createHmac throws an error, because "salt" is undefined
+    if not algorithm? or not salt?
+        throw new Error("undefined arguments: algorithm='#{algorithm}' salt='#{salt}'")
     iterations = iterations || 1
     hash = password
     for i in [1..iterations]
@@ -183,7 +188,12 @@ passport_login = (opts) ->
                 dbg("badly formatted remember_me cookie")
                 cb()
                 return
-            hash = generate_hash(x[0], x[1], x[2], x[3])
+            try
+                hash = generate_hash(x[0], x[1], x[2], x[3])
+            catch err
+                dbg("unable to generate hash from remember_me cookie = '#{locals.remember_me_cookie}' -- #{err}")
+                cb()
+                return
             opts.database.get_remember_me
                 hash : hash
                 cb   : (err, signed_in_mesg) ->
@@ -454,7 +464,11 @@ exports.init_passport = (opts) ->
         res.json(strategies)
 
     router.get '/auth/verify', (req, res) ->
-        res.header("Content-Type", "text/plain")
+        {DOMAIN_NAME} = require('smc-util/theme')
+        base_url      = require('./base-url').base_url()
+        path          = require('path').join('/', base_url, '/app')
+        url           = "#{DOMAIN_NAME}#{path}"
+        res.header("Content-Type", "text/html")
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         if not (req.query.token and req.query.email)
             res.send("ERROR: I need email and corresponding token data")
@@ -466,15 +480,10 @@ exports.init_passport = (opts) ->
             email_address : email
             token         : token
             cb            : (err) ->
-                if err and err.indexOf('This email address is already verified') == -1
-                    res.send("Problem verifying your email address: #{err}")
+                if err
+                    res.send(email_verification_problem(url, err))
                 else
-                    #res.send("Email verified!")
-                    {DOMAIN_NAME} = require('smc-util/theme')
-                    base_url      = require('./base-url').base_url()
-                    path          = require('path').join('/', base_url, '/app')
-                    url           = "#{DOMAIN_NAME}#{path}"
-                    res.redirect(301, url)
+                    res.send(email_verified_successfully(url))
 
     # Set the site conf like this:
     #
@@ -761,10 +770,18 @@ exports.verify_email_send_token = (opts) ->
                 account_id : opts.account_id
                 cb         : cb
         (token, email_address, cb) =>
+             opts.database.get_server_settings_cached
+                cb: (err, settings) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(null, token, email_address, settings)
+        (token, email_address, settings, cb) =>
             email = require('./email')
             email.welcome_email
                 to          : email_address
                 token       : token
                 only_verify : opts.only_verify
+                settings    : settings
                 cb          : cb
     ], opts.cb)

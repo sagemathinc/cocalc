@@ -99,6 +99,7 @@ PAGE_REDUX_PROPS =
         groups                 : rtypes.immutable.List
         is_anonymous           : rtypes.bool
         doing_anonymous_setup  : rtypes.bool
+        created                : rtypes.object
     support :
         show                   : rtypes.bool
 
@@ -140,8 +141,19 @@ Page = rclass
             a = 'cog'
 
         if @props.is_anonymous
-            label = <Button bsStyle="success" style={fontWeight:'bold'}>Sign Up!</Button>
+            style={fontWeight:'bold', opacity:0}
+            if @props.created and new Date().valueOf() - @props.created.valueOf() >= 1000*60*60*24*3
+                mesg = "Sign Up NOW to avoid losing all of your work!"
+                style.width = "400px";
+            else
+                mesg = "Sign Up"
+            label = <Button id="anonymous-sign-up" bsStyle="success" style={style}>{mesg}</Button>
             style = {marginTop:'-10px'}  # compensate for using a button
+            show_button = () => $("#anonymous-sign-up").css('opacity', 1)
+
+            # We only actually show the button if it is still there a few seconds later.  This avoids flickering it
+            # for a moment during normal sign in.  This feels like a hack, but was super quick to implement.
+            setTimeout(show_button, 3000)
         else
             label = "Account"
             style = undefined
