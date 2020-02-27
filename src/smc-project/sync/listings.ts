@@ -22,6 +22,12 @@ const WATCH_DEBOUNCE_MS = 1000;
 // Watch directories for which some client has shown interest recently:
 const INTEREST_THRESH_SECONDS = 60;
 
+// Maximum number of paths to keep in listings tables for this project.
+// Periodically, info about older paths beyond this number will be purged
+// from the database.   NOTE that synctable.delete is "barely" implemented,
+// so there may be some issues with this working.
+import { MAX_PATHS } from "../smc-util/db-schema/listings";
+
 interface Listing {
   path: string;
   project_id?: string;
@@ -29,6 +35,7 @@ interface Listing {
   time?: Date;
   interest?: Date;
   missing?: number;
+  error?: string;
 }
 export type ImmutableListing = TypedMap<Listing>;
 
@@ -66,7 +73,6 @@ class ListingsTable {
     });
     this.table.on("change", this.handle_change_event.bind(this));
 
-    await delay(1000 * INTEREST_THRESH_SECONDS/2);
     this.remove_stale_watchers();
   }
 
@@ -84,6 +90,15 @@ class ListingsTable {
           this.stop_watching(path);
         }
       });
+    }
+
+    // Now get rid of any old paths that are no longer relevant
+    // to reduce wasted database space, memory, and bandwidth for
+    // client browsers that are using this project.
+    try {
+      await this.trim_old_paths();
+    } catch (err) {
+      this.log("WARNING, error trimming old paths -- ", err);
     }
 
     if (this.table.get_state() == "connected") {
@@ -171,7 +186,14 @@ class ListingsTable {
 
   private async compute_listing(path: string): Promise<void> {
     const time = new Date();
-    let listing = await get_listing(path, true);
+    let listing;
+    try {
+      listing = await get_listing(path, true);
+    } catch (err) {
+      // missing = -1 indicates unable to get a listing, e.g. no such directory.
+      this.set({ path, time, error: `${err}` });
+      throw err;
+    }
     let missing: number | undefined = undefined;
     if (listing.length > MAX_LENGTH) {
       listing.sort(field_cmp("mtime"));
@@ -179,7 +201,7 @@ class ListingsTable {
       missing = listing.length - MAX_LENGTH;
       listing = listing.slice(0, MAX_LENGTH);
     }
-    this.set({ path, listing, time, missing });
+    this.set({ path, listing, time, missing, error: undefined });
   }
 
   private start_watching(path: string): void {
@@ -198,7 +220,6 @@ class ListingsTable {
         try {
           await this.compute_listing(path);
         } catch (err) {
-          // TODO: no such directory should be encoded in the listing object or database.
           this.log(`updating "${path}" due to change failed`, err);
         }
       }, WATCH_DEBOUNCE_MS)
@@ -210,6 +231,47 @@ class ListingsTable {
     if (w == null) return;
     delete this.watchers[path];
     w.close();
+  }
+
+  private async trim_old_paths(): Promise<void> {
+    this.log("trim_old_paths");
+    const table = this.get_table();
+    let num_to_remove = table.size() - MAX_PATHS;
+    this.log("trim_old_paths", num_to_remove);
+    if (num_to_remove <= 0) {
+      // definitely nothing to do
+      return;
+    }
+
+    // Check to see if we can trim some paths.  We sort the paths
+    // by "interest" timestamp, and eliminate the oldest ones that are
+    // not *currently* being watched.
+    const paths: { path: string; interest: Date }[] = [];
+    table.get().forEach(val => {
+      const path = val.get("path");
+      if (this.watchers[path] != null) {
+        num_to_remove -= 1;
+        // paths we are watching are not eligible to be removed.
+        return;
+      }
+      const interest = val.get("interest", new Date(0));
+      paths.push({ path, interest });
+    });
+    this.log("trim_old_paths", JSON.stringify(paths));
+    this.log("trim_old_paths", num_to_remove);
+
+    if (num_to_remove <= 0) return;
+    paths.sort(field_cmp("interest"));
+    // Now remove the first num_to_remove paths.
+    for (let i = 0; i < num_to_remove; i++) {
+      this.log("trim_old_paths -- removing", paths[i].path);
+      await this.remove_path(paths[i].path);
+    }
+  }
+
+  private async remove_path(path: string): Promise<void> {
+    this.log("remove_path", path);
+    await this.get_table().delete({ project_id: this.project_id, path });
   }
 }
 

@@ -151,6 +151,9 @@ interface UserOrProjectQuery<F extends Fields> {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
     admin?: boolean;
+    // if true, it is possible to delete records from
+    // this table (use options=[{delete:true}] in the query)
+    delete?: boolean;
     // HOOKS which allow for running arbitrary code in response to
     // user set queries.  In each case below, query is QUERY, only the part
     // of the object that the user requested to change.
