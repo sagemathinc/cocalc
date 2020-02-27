@@ -9,7 +9,7 @@ import { Table } from "./types";
 // when initializing things. We might have more in the database until
 // synctable.delete gets fully and properly initialized.  The main goal
 // is to not waste bandwidth and memory in browsers.
-export const MAX_PATHS = 3;
+export const MAX_PATHS = 15;
 
 Table({
   name: "listings",
