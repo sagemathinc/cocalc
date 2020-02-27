@@ -2,9 +2,10 @@ import { callback2, once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
+import { separate_file_extension } from "smc-util/misc2";
 
 /*
-true if anonymous query param set at all (doesn't matter to what) during
+If the anonymous query param is set at all (doesn't matter to what) during
 initial page load.
 
 Also do NOT make true of has_remember_me is set, since then probably
@@ -61,10 +62,7 @@ export async function do_anonymous_setup(client: any): Promise<void> {
       return;
     }
 
-    // This does not seem like a good idea -- nobody uses it. Better
-    // it turns out to maybe show the files page.  We will see.
-    // No need to await on this, of course.
-    open_default_jupyter_notebook(project_id);
+    open_welcome_file(project_id);
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
     log("err", err);
@@ -85,12 +83,50 @@ export async function do_anonymous_setup(client: any): Promise<void> {
   }
 }
 
-async function open_default_jupyter_notebook(project_id: string): Promise<void> {
-  // Open a new Jupyter notebook:
-  // log("open jupyter notebook");
+async function open_welcome_file(project_id: string): Promise<void> {
+  const qparam = QueryParams.get("anonymous");
+  if (qparam == null) return;
+  const param: string = Array.isArray(qparam) ? qparam[0] : qparam;
+
+  const path = (function(): string | undefined {
+    switch (param.toLowerCase()) {
+      case "ipynb":
+      case "jupyter":
+      case "python":
+      case "true":
+        // TODO expand this first notebook to be a bit more exciting…
+        return "Welcome to CoCalc.ipynb";
+      case "r":
+      case "jupyter-r":
+        // TODO: pre-select the R kernel
+        return "Welcome to CoCalc.ipynb";
+      case "linux":
+      case "terminal":
+        return "Welcome to CoCalc.term";
+      case "sagews":
+      case "sage":
+        return "Welcome to CoCalc.sagews";
+      case "latex":
+        return "Welcome-to-CoCalc.tex";
+      case "x11":
+        return "Welcome to CoCalc.x11";
+      default:
+        console.warn(`Got unknown param=${param}`);
+        return undefined;
+    }
+  })();
+
+  if (path == null) return;
+  await open_file(path, project_id);
+}
+
+async function open_file(path: string, project_id: string): Promise<void> {
   const project_actions = redux.getProjectActions(project_id);
-  project_actions.open_file({
-    path: "Welcome to CoCalc.ipynb",
-    foreground: true
+  const { name, ext } = separate_file_extension(path);
+  project_actions.create_file({
+    name,
+    ext,
+    current_path: "",
+    switch_over: true
   });
 }
