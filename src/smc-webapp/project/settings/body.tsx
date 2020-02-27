@@ -1,7 +1,6 @@
 import * as React from "react";
 import { analytics_event } from "../../tracker";
 import { Menu } from "antd";
-import { Component, OnInit } from "angular/core";
 
 const misc = require("smc-util/misc");
 import {
@@ -48,6 +47,7 @@ interface ReduxProps {
   groups: string[];
 
   kucalc: string;
+  ssh_gateway: boolean;
 
   get_course_info: Function;
   get_total_upgrades_you_have_applied: Function;
@@ -142,7 +142,6 @@ export const Body = rclass<ReactProps>(
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;
-      let anotherItem: string = "";
 
       const componentSwitch = key => {
         switch (key) {
@@ -249,6 +248,60 @@ export const Body = rclass<ReactProps>(
               </Menu>
             </Col>
             <Col sm={8}>{componentSwitch(this.state.anItem)}</Col>
+          </Row>
+          <Row margin="200px">
+            <HideDeleteBox
+              key="hidedelete"
+              project={this.props.project}
+              actions={redux.getActions("projects")}
+            />
+            {this.props.ssh_gateway ||
+            this.props.kucalc === KUCALC_COCALC_COM ? (
+              <SSHPanel
+                key="ssh-keys"
+                project={this.props.project}
+                user_map={this.props.user_map}
+                account_id={this.props.account_id}
+              />
+            ) : (
+              undefined
+            )}
+            <ProjectCapabilities
+              name={this.props.name}
+              key={"capabilities"}
+              project={this.props.project}
+            />
+            <CurrentCollaboratorsPanel
+              key="current-collabs"
+              project={this.props.project}
+              user_map={this.props.user_map}
+            />
+            <AddCollaboratorsPanel
+              key="new-collabs"
+              project={this.props.project}
+              on_invite={() => {
+                return analytics_event("project_settings", "add collaborator");
+              }}
+              allow_urls={allow_urls}
+            />
+            <ProjectControl key="control" project={this.props.project} />
+            <SagewsControl key="worksheet" project={this.props.project} />
+            {have_jupyter_notebook ? (
+              <JupyterServerPanel
+                key="jupyter"
+                project_id={this.props.project_id}
+              />
+            ) : (
+              undefined
+            )}
+            {have_jupyter_lab ? (
+              <JupyterLabServerPanel
+                key="jupyterlab"
+                project_id={this.props.project_id}
+              />
+            ) : (
+              undefined
+            )}
           </Row>
         </div>
       );
