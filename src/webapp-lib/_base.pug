@@ -5,9 +5,19 @@ mixin start_button(startup='jupyter')
     a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
   p #[a(href=PREFIX + "app") sign in or create an account]
 
-mixin start_button_2(startup='jupyter')
+mixin start_button_2(startup)
+  -
+    var startup_txt;
+    if (startup == 'latex') {
+      startup_txt = "LaTeX";
+    } else if (startup != null) {
+      startup_txt = startup.charAt(0).toUpperCase() + startup.slice(1);
+    } else {
+      startup_txt = NAME;
+    }
+    var startup = (startup != null) ? startup : "true"
   p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{startup_txt} Now
     a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
 
 mixin start_button_2sm(startup='jupyter')
@@ -38,7 +48,7 @@ mixin start_free
       p.
         Start free / Upgrade later
 
-mixin start_free_banner(startup="jupyter")
+mixin start_free_banner(startup)
   div(style="margin-top: 6rem").darkbg
     div.container
       div.col-sm-12.center

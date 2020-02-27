@@ -35,7 +35,7 @@ block content
             div.col-sm-12.spacing
               div.headline #{subtitle}
               div.subheadline.
-                Focus on the content and #{NAME} takes care of everything else
+                Focus on writing your content and #{NAME} takes care of everything else.
         div.col-md-6.center
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit.shadow.rounded
       div.row
@@ -49,7 +49,7 @@ block content
           No software install required #[small 100% online]
         p.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] supports
-        ul
+        ul.list
           li #[strong #[a(href="#a-realtimesync") collaborative editing]] without a limit,
           li #[strong side-by-side preview] with #[strong forward/inverse search],
           li compiles upon saving on the fly and marks errors in the source file,
@@ -60,19 +60,18 @@ block content
       div.col-sm-6
         h3.firstline.
           Working with LaTeX made easy
-        ul
-          li
-            strong Scared of breaking a document?
-            | #[strong Revert recent changes via #[a(href="#a-timetravel") time-travel] edit history].
-          li
-            strong Worried about maintaining your LaTeX environment?
-            | #{NAME} has your back.
-          li
-            strong Want to work from anywhere?
-            | You only need a web-browser and internet access.
-          li
-            strong Is my content safe?
-            | Periodic #[a(href="#a-backups") backups] keep all your files safe and secure.
+        dl
+          dt Scared of breaking a document?
+          dd Revert recent changes via #[a(href="#a-timetravel") time-travel] edit history.
+
+          dt Worried about maintaining your LaTeX environment?
+          dd #{NAME} takes care of everything.
+
+          dt Want to work from anywhere?
+          dd You only need a web-browser and internet access.
+
+          dt Is my content safe?
+          dd Periodic #[a(href="#a-backups") backups] keep all your files safe and secure.
       div.col-sm-8.col-sm-offset-2.center.spacing
         p.
           #[strong Ready out of the box]:
@@ -81,13 +80,8 @@ block content
 
   +start_free_banner("latex")
 
-  a.anchor#a-overview
-  div.space(style="margin-top: 2rem")#overview
-    div.container
-      div.row
-        div.col-md-8.col-md-offset-2.center
-          h1 Overview
 
+  div
     a.anchor#a-environments
     div.container.space#environments
       div.row
@@ -313,5 +307,5 @@ block content
             You can configure if your published files should be listed publicly, or rather only be available via a confidential URL.
 
 
-  +start_free_banner
+  +start_free_banner("latex")
 

@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'teaching';
-    subtitle = 'Online Teaching Environment';
+    subtitle = 'Teaching scientific software online';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -19,89 +19,87 @@ block content
     :sass
       @import "webapp-lib/doc/_style.sass"
 
-  a.anchor#a-top
-  div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        img(src="https://storage.googleapis.com/cocalc-extra/fa-graduation-cap.svg").fit
-      div.col-sm-12.center
-        h1 #{subtitle}
-      div.col-sm-12.center
-        h3 A virtual online computer lab
-      div.col-sm-6
-        img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-course-assignments-2019.png").fit
-      div.col-sm-6
-        p.
-          #[strong #{NAME} moves an entire computer lab into the cloud].
-          Every student works online inside their own, isolated workspace.
-        p.
-          #[strong Organizing files made easy]:
-          #{NAME}'s course management interface gives you full control over
-          distributing, collecting, grading and returning everyone's assignments.
-        p.
-          #[strong Follow the progress of each student in real-time]:
-          If a student needs help, open the student's file and see exactly what the student sees.
-          This helps enormously with giving quick and precise help.
-        p.
-          #[strong Common underlying software environment]:
-          There is no complicated software setup necessary!
-          Everyone works with the very same software,
-          which eliminates slight inconsistencies between your and the students' environments.
-        p.
-          Learn more in the #[strong #[a(href="https://doc.cocalc.com/teaching-instructors.html") Instructor Guide]].
 
-
-  a.anchor#a-teaching
-  div.space#teaching
+  div.space#top
     div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center
+              img(src="https://storage.googleapis.com/cocalc-extra/fa-graduation-cap.svg").fit
+            div.col-sm-12.space
+              div.headline #{subtitle}
+              div.subheadline.
+                #{NAME} is a virtual online computer lab – it takes away the pain of teaching software!
+        div.col-md-6.center
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-course-assignments-2019.png").fit.shadow.rounded
       div.row
         div.col-md-12.center
-          h1 Teaching a course online
-        div.col-sm-6
-          div
-            img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-teaching.svg.png").fit
-        div.col-sm-6
-          p.
-            Have you experienced the pain of setting up the software environments for your students?
-            With #{NAME} #[strong no software needs to be setup] and you
-            can finally #[strong focus on your students]!
-          p.
-            Combined with #{NAME}'s other unique features you can manage your class more effectively:
-          ul
-            li.
-              At any time you can #[strong jump into a file of a student], right where they are working.
-            li.
-              Use #[strong #[a(href="https://doc.cocalc.com/time-travel.html") TimeTravel]]
-              to see each step a student took to get to the solution.
-            li.
-              Consistent and immutable #[strong #[a(href="https://doc.cocalc.com/project-files.html#snapshot-backups") Backups]]
-              make losing files impossible.
-            li.
-              #[strong #[a(href="https://doc.cocalc.com/chat.html") Integrated chat rooms]] allows you to guide students directly
-              where they work or discuss collected files with your teaching assistants.
-            li.
-              The project's #[strong #[a(href="https://doc.cocalc.com/project-log.html") Activity Log]]
-              records exactly when and by whom a file was accessed.
-          p.
-            Follow the #[strong #[a(href="https://doc.cocalc.com/teaching-instructors.html") Instructor Guide]]
-            to create a course file, add your students, distribute assignments and handouts,
-            and later collect and grade their homework.
-          div.row
-            div.col-md-6
-              ul
-                li #[a(href="https://doc.cocalc.com/") CoCalc Manual]
-                li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching") Courses using #{htmlWebpackPlugin.options.title}]
-            div.col-md-6
-              a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Request a live demo
+          +start_button_2
 
 
-  +available-tools
+  div.container
+    div.row.spacing2
+      div.col-sm-6
+        h3.firstline.
+          An entire computer lab in the cloud
+        ul.list
+          li Every student works 100% online – inside their own, isolated workspace.
+          li.
+            Follow the progress of each student in real-time
+          li.
+            At any time you can #[strong jump into a file of a student], right where they are working.
+          li.
+            Use #[strong #[a(href="https://doc.cocalc.com/time-travel.html") TimeTravel]]
+            to see each step a student took to get to the solution.
+          li.
+            #[strong #[a(href="https://doc.cocalc.com/chat.html") Integrated chat rooms]] allows you to guide students directly
+            where they work or discuss collected files with your teaching assistants.
+          li.
+            The project's #[strong #[a(href="https://doc.cocalc.com/project-log.html") Activity Log]]
+            records exactly when and by whom a file was accessed.
+
+      div.col-sm-6
+        h3.firstline.
+          No software setup #[small 100% online]
+        p.
+          #[strong Common underlying software environment]:
+        ul.list
+          li Forget any complicated software setup – everyone is able to start working in seconds!
+          li.
+            Since everyone works with exactly the same software stack,
+            any inconsistencies between your and your students' environments are eliminated.
+        p.
+          More about #{NAME}'s #[a(href=PREFIX + "doc/software.html") Software Environment]
+
+    div.row
+      div.col-sm-6
+        h3.firstline Manage all files
+        p.
+          The course management interface gives you full control over
+          distributing, collecting, grading and returning everyone's assignments.
+        div
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-teaching.svg.png").fit
+
+      div.col-sm-6
+        h3.firstline Learn more
+        ul.list
+          li #[strong #[a(href="https://doc.cocalc.com/teaching-instructors.html") Instructor Guide]].
+          li #[a(href="https://doc.cocalc.com/") CoCalc Manual]
+          li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching") Courses using #{htmlWebpackPlugin.options.title}]
+        p.spacing2
+          a.btn.btn-primary.cc-btn(href="mailto:help@cocalc.com") Contact us
+          a.btn.btn-default.cc-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Request a live demo
+
+  +start_free_banner
 
 
   a.anchor#a-overview
   div.space#overview
 
     +nbgrader-support
+
+  +available-tools
 
   a.anchor#a-testimonials
   div#testimonials
