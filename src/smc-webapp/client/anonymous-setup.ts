@@ -1,4 +1,5 @@
 import { callback2, once } from "smc-util/async-utils";
+import { delay } from "awaiting";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
@@ -86,10 +87,13 @@ export async function do_anonymous_setup(client: any): Promise<void> {
 async function open_welcome_file(project_id: string): Promise<void> {
   const qparam = QueryParams.get("anonymous");
   if (qparam == null) return;
-  const param: string = Array.isArray(qparam) ? qparam[0] : qparam;
+  const param: string = (Array.isArray(qparam)
+    ? qparam[0]
+    : qparam
+  ).toLowerCase();
 
   const path = (function(): string | undefined {
-    switch (param.toLowerCase()) {
+    switch (param) {
       case "ipynb":
       case "jupyter":
       case "python":
@@ -118,12 +122,53 @@ async function open_welcome_file(project_id: string): Promise<void> {
 
   if (path == null) return;
   await open_file(path, project_id);
+
+  // optional, some additional jupyter notebook setup
+  const switch_kernel = async name => {
+    let editor_actions: any;
+    // inspired by nbgrader actions
+    while (true) {
+      editor_actions = redux.getEditorActions(project_id, path);
+      if (editor_actions != null) break;
+      await delay(200);
+    }
+
+    const jactions = editor_actions.jupyter_actions as any;
+    if (jactions.syncdb.get_state() == "init") {
+      await once(jactions.syncdb, "ready");
+    }
+    jactions.set_kernel(name);
+    await jactions.save(); // TODO how to make sure get_cell_list() has at least one cell?
+    let cell_id = jactions.store.get_cell_list().first();
+    jactions.set_cell_input(
+      cell_id,
+      "# Welcome to R\n\nEvaluate cells via Shift+Return!"
+    );
+    jactions.set_cell_type(cell_id, "markdown");
+    cell_id = jactions.insert_cell_adjacent(cell_id, +1);
+    jactions.set_cell_input(cell_id, "data <- rnorm(100)\nsummary(data)");
+    jactions.run_code_cell(cell_id);
+    cell_id = jactions.insert_cell_adjacent(cell_id, +1);
+    jactions.set_cell_input(cell_id, "hist(data)");
+    jactions.run_code_cell(cell_id);
+  };
+
+  switch (param) {
+    case "ipynb":
+    case "python":
+      await switch_kernel("python3");
+      break;
+    case "jupyter-r":
+    case "r":
+      await switch_kernel("ir");
+      break;
+  }
 }
 
 async function open_file(path: string, project_id: string): Promise<void> {
   const project_actions = redux.getProjectActions(project_id);
   const { name, ext } = separate_file_extension(path);
-  project_actions.create_file({
+  await project_actions.create_file({
     name,
     ext,
     current_path: "",

@@ -2715,7 +2715,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  create_file(opts) {
+  async create_file(opts) {
     let p;
     opts = defaults(opts, {
       name: undefined,
@@ -2771,7 +2771,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
-    webapp_client.exec({
+    await webapp_client.exec({
       project_id: this.project_id,
       command: "smc-new-file",
       timeout: 10,
