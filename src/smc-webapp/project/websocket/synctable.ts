@@ -29,8 +29,8 @@ interface Client {
 
 interface Options {
   project_id: string;
-  query: any;
-  options: any;
+  query: object;
+  options: any[];
   client: Client;
   throttle_changes?: undefined | number;
   id: string;
@@ -55,6 +55,12 @@ class SyncTableChannel extends EventEmitter {
   constructor(opts: Options) {
     super();
     const { project_id, query, options, client, throttle_changes } = opts;
+    if (query == null) {
+      throw Error("query must be defined");
+    }
+    if (options == null) {
+      throw Error("options must be defined");
+    }
     this.key = key(opts);
     this.synctable = synctable_no_database(
       query,
@@ -81,7 +87,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private log(..._args): void {
-    //console.log("SyncChannel", this.query, ..._args);
+    // console.log("SyncChannel", this.query, ..._args);
   }
 
   private async connect(): Promise<void> {

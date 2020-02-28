@@ -49,8 +49,6 @@ import { IPynbImporter } from "./import-from-ipynb";
 
 import { JupyterKernelInterface } from "./project-interface";
 
-import { connection_to_project } from "../project/websocket/connect";
-
 import { parse_headings } from "./contents";
 
 import {
@@ -205,6 +203,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   init_project_conn = reuseInFlight(
     async (): Promise<any> => {
+      // this cannot (and does not need to be) be imported from within the project.
+      // TODO: move to browser-actions.ts
+      const { connection_to_project } = require("../project/websocket/connect");
       return (this.project_conn = await connection_to_project(
         this.store.get("project_id")
       ));

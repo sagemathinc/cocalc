@@ -39,9 +39,12 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print("Usage: %s [start/stop/status] normal Jupyter notebook options..." % sys.argv[
-            0])
-        print("If start or stop is given, then runs as a daemon; otherwise, runs in the foreground.")
+        print(
+            "Usage: %s [start/stop/status] normal Jupyter notebook options..."
+            % sys.argv[0])
+        print(
+            "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
+        )
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -79,12 +82,6 @@ def command():
     else:
         base = ''
 
-    # 2nd argument after "start" ("start" is already eaten, see above)
-    if len(sys.argv) >= 2:
-        mathjax_url = sys.argv.pop(1)
-    else:
-        mathjax_url = "/static/mathjax/MathJax.js"  # fallback
-
     # --NotebookApp.iopub_data_rate_limit=<Float>
     #     Default: 0
     #     (bytes/sec) Maximum rate at which messages can be sent on iopub before they
@@ -93,9 +90,8 @@ def command():
     #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
     #     are limited.
 
-    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
-        mathjax_url, base, ip, port)
-    cmd += " " + ' '.join(sys.argv[1:])
+    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=/static/mathjax/MathJax.js %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
+        base, ip, port)
     return cmd, base, port
 
 
@@ -172,9 +168,8 @@ def action(mode):
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
-                print(json.dumps({
-                    "error": "Failed to find pid of subprocess."
-                }))
+                print(
+                    json.dumps({"error": "Failed to find pid of subprocess."}))
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-notebook'"

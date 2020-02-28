@@ -69,7 +69,6 @@ exports.init_express_http_server = (opts) ->
         compute_server : required
         cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)
     winston.debug("initializing express http server")
-    winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
     if opts.database.is_standby
         server_settings = undefined

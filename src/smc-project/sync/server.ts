@@ -42,6 +42,8 @@ import { delay } from "awaiting";
 
 const { deep_copy, len } = require("../smc-util/misc2");
 
+import { register_listings_table } from "./listings";
+
 type Query = { [key: string]: any };
 
 interface Spark {
@@ -400,6 +402,10 @@ class SyncTableChannel {
     await this.synctable.close();
     delete this.synctable;
   }
+
+  public get_synctable(): SyncTable {
+    return this.synctable;
+  }
 }
 
 const synctable_channels: { [name: string]: SyncTableChannel } = {};
@@ -454,6 +460,13 @@ async function synctable_channel0(
       logger
     });
     await synctable_channels[name].init();
+    if (query?.listings != null) {
+      register_listings_table(
+        synctable_channels[name].get_synctable(),
+        logger,
+        client.client_id()
+      );
+    }
   }
   return name;
 }

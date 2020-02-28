@@ -1596,4 +1596,25 @@ export class SyncTable extends EventEmitter {
       );
     }
   }
+
+  // **WARNING:** Right now this *barely* works at all... due to
+  // barely being implemented since I mostly haven't needed it.
+  // It will delete the object from the database, but if some
+  // client still has the object, they can end up just writing
+  // it back.
+  public async delete(obj): Promise<void> {
+    // Table spec must have set.delete = true.
+    // This function does a direct database query to delete
+    // the entry with primary key described by obj from
+    // the database.  That will have the side effect slightly
+    // later of removing the object from this table.  This
+    // thus works differently than making changes or
+    // creating new entries, at least right now (since
+    // implementing this properly is a lot of work but
+    // not used much).
+
+    const query = { [this.table]: obj };
+    const options = [{ delete: true }];
+    await callback2(this.client.query, { query, options });
+  }
 }
