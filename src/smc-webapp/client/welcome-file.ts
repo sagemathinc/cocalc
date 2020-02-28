@@ -76,7 +76,6 @@ export class WelcomeFile {
 
   private async extra_setup(): Promise<void> {
     switch (this.param) {
-      case "ipynb":
       case "python":
         await this.setup_notebook("python3");
         break;
