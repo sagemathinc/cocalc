@@ -24,7 +24,7 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
-  div.space#top
+  div#top
     div.container
       div.row.intro
         div.col-md-6.center
@@ -48,7 +48,7 @@ block content
     div.row.spacing2
       div.col-sm-6
         h3.firstline.
-          #{NAME} offers a lot for working with Python:
+          #{NAME} covers all the bases
         ul.list
           li.
             #[strong Data Science and Machine Learning]:
@@ -86,15 +86,14 @@ block content
           #[i.fa.fa-lightbulb-o] Zero setup
         ul.list
           li.
+            Immediately start working by creating or
+            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading],
+            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks] or Python scripts.
+          li.
             No need to download and install #[a(href="https://www.python.org") Python],
             #[a(href="https://www.anaconda.com/distribution/") Anaconda], or other Python environments.
           li #{NAME} already #[a(href=PREFIX + "/doc/software-python.html") provides many packages] for you.
           li The #[a(href=PREFIX + "/doc/latex-editor.html") LaTeX editor] is already integrated with PythonTeX or SageTeX
-          li No longer update/maintain everything on your own
-          li.
-            Immediately start working by creating or
-            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading],
-            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks] or Python scripts.
 
   +start_free_banner("python")
 
@@ -153,6 +152,8 @@ block content
           div.
             Despite that, there is also support for running the
             #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") "Classical Jupyter notebook"].
+          div
+            +start_button_anon_2('jupyter')
 
 
     a.anchor#a-latex

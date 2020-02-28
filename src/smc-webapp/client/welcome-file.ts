@@ -1,3 +1,11 @@
+/**
+ * Anonymous User Welcome File
+ *
+ * The goal is to present an anonymous user with a file/editor matching a specific intention.
+ * What exactly is open for experientation, but it is clear that if you want to run "latex",
+ * you're not interested in working with a "juypter notebook".
+ */
+
 import { delay } from "awaiting";
 import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
@@ -5,7 +13,7 @@ import { QueryParams } from "../misc/query-params";
 import { separate_file_extension } from "smc-util/misc2";
 import { JupyterActions } from "smc-webapp/jupyter/actions";
 
-type Kernel = "ir" | "python3";
+type Kernel = "ir" | "python3" | "bash";
 type Cell = { type?: "markdown" | "code"; content: string };
 
 const ir_welcome = `# Welcome to R in CoCalc!
@@ -13,6 +21,10 @@ const ir_welcome = `# Welcome to R in CoCalc!
 Run a cell via \`Shift + Return\`. Learn more about [CoCalc Jupyter Notebooks](https://doc.cocalc.com/jupyter.html).`;
 
 const python3_welcome = `# Welcome to Python in CoCalc!
+
+Run a cell via \`Shift + Return\`. Learn more about [CoCalc Jupyter Notebooks](https://doc.cocalc.com/jupyter.html).`;
+
+const bash_welcome = `# Welcome to Bash in CoCalc!
 
 Run a cell via \`Shift + Return\`. Learn more about [CoCalc Jupyter Notebooks](https://doc.cocalc.com/jupyter.html).`;
 
@@ -32,6 +44,12 @@ yy = np.sin(xx) * np.exp(-xx / 10)
 plt.grid()
 plt.plot(xx, yy)`
     }
+  ],
+  bash: [
+    { type: "markdown", content: bash_welcome },
+    { content: 'foo="World"\necho "Hello $foo!"' },
+    { content: "date" },
+    { content: "echo '2*20 + 2' | bc -l" }
   ]
 };
 
@@ -66,10 +84,13 @@ export class WelcomeFile {
       case "r":
         await this.setup_notebook("ir");
         break;
+      case "jupyter-bash":
+        await this.setup_notebook("bash");
+        break;
     }
   }
 
-  // optional, some additional jupyter notebook setup
+  // For some jupyter notebook kernels, initialize them.
   private async setup_notebook(kernel: Kernel) {
     if (this.path == null)
       throw new Error("WelcomeFile::setup_notebook path is not defined");
@@ -100,6 +121,8 @@ export class WelcomeFile {
     });
   }
 
+  // Calling the "create file" action will properly initialize certain files,
+  // in particular .tex
   private async create_file(): Promise<void> {
     if (this.path == null)
       throw new Error("WelcomeFile::create_file – path is not defined");
@@ -113,6 +136,7 @@ export class WelcomeFile {
     });
   }
 
+  // Derive a file from the parameter value, which implies what to show.
   private make_path(): string | undefined {
     switch (this.param) {
       case "ipynb":
@@ -123,6 +147,7 @@ export class WelcomeFile {
         return "Welcome to CoCalc.ipynb";
       case "r":
       case "jupyter-r":
+      case "jupyter-bash":
         // TODO: pre-select the R kernel
         return "Welcome to CoCalc.ipynb";
       case "linux":

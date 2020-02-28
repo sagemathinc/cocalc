@@ -25,7 +25,7 @@ block content
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
 
-  div.space#top
+  div#top
     div.container
       div.row.intro
         div.col-md-6.center
@@ -35,12 +35,12 @@ block content
             div.col-sm-12
               div.headline #{subtitle}
               div.subheadline.
-                Learn Linux and Bash Scripting without worrying about messing up your own computer.
+                Learn Linux and Bash Scripting without messing up your own computer.
         div.col-md-6.center
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit.shadow.rounded
       div.row
         div.col-md-12.center
-          +start_button_2("terminal")
+          +start_button_2("linux")
 
   div.container.spacing2 &nbsp;
 
@@ -49,7 +49,7 @@ block content
   a.anchor#a-shell-script
   div.container.space#shell-script
     div.row
-      div.col-md-12.center
+      div.col-md-12
         h2.firstline Run Bash scripts
       div.col-sm-6
         div
@@ -73,7 +73,7 @@ block content
   a.anchor#a-jupyter
   div.container.space#jupyter
     div.row
-      div.col-md-12.center
+      div.col-md-12
         h2.firstline Jupyter Bash kernel
       div.col-sm-6
         div
@@ -89,13 +89,16 @@ block content
           That helps you with learning Linux commands, because it makes it easier to edit the code input or
           compare different outcomes of similar code.
           Besides that, you can also take notes between code cells.
+      div.col-sm-6
+        p
+          +start_button_anon_2('jupyter-bash')
 
   +linux-snapshot-backups
 
   a.anchor#a-database
   div.container.space#database
     div.row
-      div.col-md-12.center
+      div.col-md-12
         h2.firstline Databases (PostgreSQL, MySQL, SQLite, ...)
       div.col-sm-6
         div
@@ -122,4 +125,4 @@ block content
           the #[a(href="http://initd.org/psycopg/docs/") psycopg2] library and issues a query to the database!
 
 
-  +start_free_banner("terminal")
+  +start_free_banner("linux")

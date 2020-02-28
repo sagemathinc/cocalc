@@ -18,7 +18,7 @@ block content
       @import "webapp-lib/doc/_style.sass"
 
 
-  div.space#top
+  div#top
     div.container
       div.row.intro
         div.col-md-6.center
@@ -38,13 +38,20 @@ block content
   div.container
     div.row.spacing2
       div.col-sm-6
-        h2.firstline Full Linux Terminal
+        h3.firstline Full Linux Terminal
         p
           strong.
             #{NAME} offers a full, collaborative, real-time synchronized
             #[a(href="https://en.wikipedia.org/wiki/Linux") Linux] Terminal in your browser.
         p.
-          Features and benefits
+          Take a look at our
+          #[strong #[a(href="https://doc.cocalc.com/terminal.html") terminal documentation]]
+          to learn more about it!
+        p.
+          List of #[strong #[a(href=PREFIX+"doc/software-executables.html") installed software]]
+
+      div.col-sm-6
+        h3.firstline Benefits of working online
         ul
           li.
             You no longer have to #[strong install and maintain] any software.
@@ -57,11 +64,8 @@ block content
             #[strong Automatic backup] keeps your files safe!
           li.
             You can #[strong copy/paste] between your local desktop and the online terminal.
-        p.
-          Take a look at our
-          #[strong #[a(href="https://doc.cocalc.com/terminal.html") terminal documentation]]
-          to learn more about it!
 
+  +start_free_banner('terminal')
 
   +terminal-real-time
 

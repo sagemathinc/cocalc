@@ -21,7 +21,7 @@ block content
       @import "webapp-lib/doc/_style.sass"
 
 
-  div.space#top
+  div#top
     div.container
       div.row.intro
         div.col-md-6.center
@@ -97,6 +97,25 @@ block content
           div.
             Despite that, there is also support for running the
             #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") "Classical Jupyter notebook"].
+
+    a.anchor#a-collaboration
+    div.container.space#collaboration
+      div.row
+        div.col-md-12
+          h2.firstline #[i.fa.fa-users] Collaborative editing
+        div.col-md-6
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
+        div.col-md-6
+          div.
+            You can share your files on #{NAME} with project collaborators.
+            Modifications are #[strong synchronized in real time].
+            Watch the cursors of others while they edit the document.
+            You are also notified about the presence of watching collaborators.
+          div.
+            Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
+            because it is fully hosted on #{NAME}.
+          div.
+            Together, everyone involved experiences the document in exactly the same way.
 
     a.anchor#a-latex
     div.container.space#latex
@@ -190,25 +209,6 @@ block content
           div.
             R code formatting works with #[strong pure #[code .r] files] and #[strong Jupyter Notebooks running an R kernel].
 
-
-    a.anchor#a-collaboration
-    div.container.space#collaboration
-      div.row
-        div.col-md-12
-          h2.firstline #[i.fa.fa-users] Collaborative editing
-        div.col-md-6
-          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
-        div.col-md-6
-          div.
-            You can share your files on #{NAME} with project collaborators.
-            Modifications are #[strong synchronized in real time].
-            Watch the cursors of others while they edit the document.
-            You are also notified about the presence of watching collaborators.
-          div.
-            Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
-            because it is fully hosted on #{NAME}.
-          div.
-            Together, everyone involved experiences the document in exactly the same way.
 
     a.anchor#a-commandline
     div.container.space#commandline

@@ -25,7 +25,7 @@ block content
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
 
-  div.space#top
+  div#top
     div.container
       div.row.intro
         div.col-md-6.center
@@ -50,17 +50,20 @@ block content
         p.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] supports
         ul.list
-          li #[strong #[a(href="#a-realtimesync") collaborative editing]] without a limit,
           li #[strong side-by-side preview] with #[strong forward/inverse search],
           li compiles upon saving on the fly and marks errors in the source file,
+          li periodically #[a(href="#a-backups") backups] all your files,
           li #[strong #[a(href="#a-calculations") run embedded calculations]] right inside the document,
-          li #[strong multi-file support] discovers included files automatically,
-          li and all #[strong #[a(href="#a-timetravel") changes are tracked]] while you type.
+          li #[strong #[a(href="https://doc.cocalc.com/latex-features.html#latex-multi-file-support") multi-file support]] discovers included files automatically,
+          li and all #[strong #[a(href="#a-timetravel") changes are recorded]] while you type.
 
       div.col-sm-6
         h3.firstline.
           Working with LaTeX made easy
         dl
+          dt Tired of sending changes back and forth with your colleagues?
+          dd #[strong #[a(href="#a-realtimesync") Collaborate online]] without any limits!
+
           dt Scared of breaking a document?
           dd Revert recent changes via #[a(href="#a-timetravel") time-travel] edit history.
 
@@ -69,9 +72,6 @@ block content
 
           dt Want to work from anywhere?
           dd You only need a web-browser and internet access.
-
-          dt Is my content safe?
-          dd Periodic #[a(href="#a-backups") backups] keep all your files safe and secure.
       div.col-sm-8.col-sm-offset-2.center.spacing
         p.
           #[strong Ready out of the box]:

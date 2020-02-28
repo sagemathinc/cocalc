@@ -5,7 +5,8 @@ mixin start_button(startup='jupyter')
     a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
   p #[a(href=PREFIX + "app") sign in or create an account]
 
-mixin start_button_2(startup)
+
+mixin _start_button_anon_2(startup)
   -
     var startup_txt;
     if (startup == 'latex') {
@@ -16,9 +17,16 @@ mixin start_button_2(startup)
       startup_txt = NAME;
     }
     var startup = (startup != null) ? startup : "true"
+  a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{startup_txt} Now
+
+mixin start_button_2(startup)
   p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{startup_txt} Now
+    +_start_button_anon_2(startup)
     a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
+
+mixin start_button_anon_2(startup)
+  p.cc-create-account-btn
+    +_start_button_anon_2(startup)
 
 mixin start_button_2sm(startup='jupyter')
   p.cc-create-account-btn
