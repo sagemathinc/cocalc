@@ -86,7 +86,7 @@ class Project
             cb : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port(mathjax_url : misc_node.MATHJAX_URL)
+            mesg    : message.jupyter_port()
             timeout : 30
             cb      : (err, resp) =>
                 if err

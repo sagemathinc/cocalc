@@ -27,10 +27,10 @@ jupyter_status = (cb) ->
                 catch e
                     cb(undefined, {"status": "stopped"})
 
-jupyter_start = (mathjax, cb) ->
+jupyter_start = (cb) ->
     misc_node.execute_code
         command     : "smc-jupyter"
-        args        : ['start', mathjax]
+        args        : ['start']
         err_on_exit : true
         bash        : false
         timeout     : 60
@@ -52,7 +52,6 @@ exports.jupyter_port = (socket, mesg) ->
     dbg()
     jupyter_port_queue.push({socket:socket, mesg:mesg})
     # fallback during upgrade (TODO remove this)
-    mathjax = mesg.mathjax_url ? "/static/mathjax/MathJax.js"
     if jupyter_port_queue.length > 1
         dbg("already #{jupyter_port_queue.length} requests -- return immediately")
         return
@@ -70,7 +69,7 @@ exports.jupyter_port = (socket, mesg) ->
                 cb()
                 return
             dbg("not running, so start it running")
-            jupyter_start mathjax, (err, _status) ->
+            jupyter_start (err, _status) ->
                 status = _status
                 dbg("after starting, got status=#{misc.to_json(status)}")
                 cb(err)
