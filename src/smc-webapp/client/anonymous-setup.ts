@@ -1,9 +1,8 @@
 import { callback2, once } from "smc-util/async-utils";
-import { delay } from "awaiting";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
-import { separate_file_extension } from "smc-util/misc2";
+import { WelcomeFile } from "./welcome-file";
 
 /*
 If the anonymous query param is set at all (doesn't matter to what) during
@@ -63,7 +62,7 @@ export async function do_anonymous_setup(client: any): Promise<void> {
       return;
     }
 
-    open_welcome_file(project_id);
+    await new WelcomeFile(project_id).open();
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
     log("err", err);
@@ -82,96 +81,4 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     // they refresh their browser it won't cause confusion.
     QueryParams.remove("anonymous");
   }
-}
-
-async function open_welcome_file(project_id: string): Promise<void> {
-  const qparam = QueryParams.get("anonymous");
-  if (qparam == null) return;
-  const param: string = (Array.isArray(qparam)
-    ? qparam[0]
-    : qparam
-  ).toLowerCase();
-
-  const path = (function(): string | undefined {
-    switch (param) {
-      case "ipynb":
-      case "jupyter":
-      case "python":
-      case "true":
-        // TODO expand this first notebook to be a bit more exciting…
-        return "Welcome to CoCalc.ipynb";
-      case "r":
-      case "jupyter-r":
-        // TODO: pre-select the R kernel
-        return "Welcome to CoCalc.ipynb";
-      case "linux":
-      case "terminal":
-        return "Welcome to CoCalc.term";
-      case "sagews":
-      case "sage":
-        return "Welcome to CoCalc.sagews";
-      case "latex":
-        return "Welcome-to-CoCalc.tex";
-      case "x11":
-        return "Welcome to CoCalc.x11";
-      default:
-        console.warn(`Got unknown param=${param}`);
-        return undefined;
-    }
-  })();
-
-  if (path == null) return;
-  await open_file(path, project_id);
-
-  // optional, some additional jupyter notebook setup
-  const switch_kernel = async name => {
-    let editor_actions: any;
-    // inspired by nbgrader actions
-    while (true) {
-      editor_actions = redux.getEditorActions(project_id, path);
-      if (editor_actions != null) break;
-      await delay(200);
-    }
-
-    const jactions = editor_actions.jupyter_actions as any;
-    if (jactions.syncdb.get_state() == "init") {
-      await once(jactions.syncdb, "ready");
-    }
-    jactions.set_kernel(name);
-    await jactions.save(); // TODO how to make sure get_cell_list() has at least one cell?
-    let cell_id = jactions.store.get_cell_list().first();
-    jactions.set_cell_input(
-      cell_id,
-      "# Welcome to R\n\nEvaluate cells via Shift+Return!"
-    );
-    jactions.set_cell_type(cell_id, "markdown");
-    cell_id = jactions.insert_cell_adjacent(cell_id, +1);
-    jactions.set_cell_input(cell_id, "data <- rnorm(100)\nsummary(data)");
-    jactions.run_code_cell(cell_id);
-    cell_id = jactions.insert_cell_adjacent(cell_id, +1);
-    jactions.set_cell_input(cell_id, "hist(data)");
-    jactions.run_code_cell(cell_id);
-  };
-
-  switch (param) {
-    case "ipynb":
-    case "python":
-      await switch_kernel("python3");
-      break;
-    case "jupyter-r":
-    case "r":
-      await switch_kernel("ir");
-      break;
-  }
-}
-
-async function open_file(path: string, project_id: string): Promise<void> {
-  const project_actions = redux.getProjectActions(project_id);
-  const { name, ext } = separate_file_extension(path);
-  await project_actions.create_file({
-    name,
-    ext,
-    current_path: "",
-    switch_over: true
-  });
 }
