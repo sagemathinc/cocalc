@@ -35,6 +35,7 @@ collab = require('./postgres/collab')
 {site_license_usage_stats, projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
+{permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -3085,3 +3086,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     update_site_license_usage_log: =>
         return await update_site_license_usage_log(@)
+
+    # async function
+    permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>
+        return await permanently_unlink_all_deleted_projects_of_user(@, account_id_or_email_address)
