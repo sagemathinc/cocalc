@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'latex';
-    subtitle = 'Edit LaTeX Documents Online';
+    subtitle = 'Online LaTeX Editor';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -24,52 +24,64 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
-  a.anchor#a-top
+
+  div#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center.spacing
+              img(src=require("webapp-lib/assets/latex-logo.svg")).fit
+            div.col-sm-12.spacing
+              div.headline #{subtitle}
+              div.subheadline.
+                Focus on writing your content and #{NAME} takes care of everything else.
+        div.col-md-6.center
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit.shadow.rounded
+      div.row
+        div.col-md-12.center
+          +start_button_2("latex")
+
   div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        img(src=require("webapp-lib/assets/latex-logo.svg")).fit
-      div.col-sm-12.center
-        h1 Online LaTeX Editor
-        p
-          em Focus on the content and #{NAME} takes care of everything else
-      div.space
+    div.row.spacing2
       div.col-sm-6
-        img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
-      div.col-sm-6
-        p.
-          #[strong Edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser] – no software install required!
+        h3.firstline.
+          No software install required #[small 100% online]
         p.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] supports
-        ul
-          li #[strong #[a(href="#a-realtimesync") collaborative editing]] without a limit,
+        ul.list
           li #[strong side-by-side preview] with #[strong forward/inverse search],
           li compiles upon saving on the fly and marks errors in the source file,
+          li periodically #[a(href="#a-backups") backups] all your files,
           li #[strong #[a(href="#a-calculations") run embedded calculations]] right inside the document,
-          li #[strong multi-file support] discovers included files automatically,
-          li and all #[strong #[a(href="#a-timetravel") changes are tracked]] while you type.
-        p.
-          #{NAME} makes working with LaTeX easy:
-        ul
-          li Scared of breaking a document? #[strong Revert recent changes via #[a(href="#a-timetravel") time-travel] edit history].
-          li You do not have to worry about installing and maintaining your LaTeX environment.
-          li You can work from anywhere; you only need a web-browser and internet access.
-          li Periodic #[a(href="#a-backups") backups] keep all your files safe and secure.
-      div.col-sm-8.col-sm-offset-2.center
+          li #[strong #[a(href="https://doc.cocalc.com/latex-features.html#latex-multi-file-support") multi-file support]] discovers included files automatically,
+          li and all #[strong #[a(href="#a-timetravel") changes are recorded]] while you type.
+
+      div.col-sm-6
+        h3.firstline.
+          Working with LaTeX made easy
+        dl
+          dt Tired of sending changes back and forth with your colleagues?
+          dd #[strong #[a(href="#a-realtimesync") Collaborate online]] without any limits!
+
+          dt Scared of breaking a document?
+          dd Revert recent changes via #[a(href="#a-timetravel") time-travel] edit history.
+
+          dt Worried about maintaining your LaTeX environment?
+          dd #{NAME} takes care of everything.
+
+          dt Want to work from anywhere?
+          dd You only need a web-browser and internet access.
+      div.col-sm-8.col-sm-offset-2.center.spacing
         p.
           #[strong Ready out of the box]:
           #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
           and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file and you're ready to tex.
 
-  +start_free_banner
+  +start_free_banner("latex")
 
-  a.anchor#a-overview
-  div.space(style="margin-top: 2rem")#overview
-    div.container
-      div.row
-        div.col-md-8.col-md-offset-2.center
-          h1 Overview
 
+  div
     a.anchor#a-environments
     div.container.space#environments
       div.row
@@ -295,5 +307,5 @@ block content
             You can configure if your published files should be listed publicly, or rather only be available via a confidential URL.
 
 
-  +start_free_banner
+  +start_free_banner("latex")
 

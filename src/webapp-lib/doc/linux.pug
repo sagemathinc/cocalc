@@ -24,32 +24,33 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
-  a.anchor#a-top
-  div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        img(src=require("webapp-lib/assets/linux-logo.svg")).fit
-      div.col-sm-12.center
-        h1 #{subtitle}
-    +linux-software
 
+  div#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center
+              img(src=require("webapp-lib/assets/linux-logo.svg")).fit
+            div.col-sm-12
+              div.headline #{subtitle}
+              div.subheadline.
+                Learn Linux and Bash Scripting without messing up your own computer.
+        div.col-md-6.center
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit.shadow.rounded
+      div.row
+        div.col-md-12.center
+          +start_button_2("linux")
 
-  +start_free_banner
-
-  a.anchor#a-linux-terminal
-  div.container.space#linux-terminal
-    div.row
-      div.col-md-12.center
-        h2 Online Linux Terminal
-      +linux-terminal-main
+  div.container.spacing2 &nbsp;
 
   +terminal-real-time
 
   a.anchor#a-shell-script
   div.container.space#shell-script
     div.row
-      div.col-md-12.center
-        h2 Run Bash scripts
+      div.col-md-12
+        h2.firstline Run Bash scripts
       div.col-sm-6
         div
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit
@@ -72,8 +73,8 @@ block content
   a.anchor#a-jupyter
   div.container.space#jupyter
     div.row
-      div.col-md-12.center
-        h2 Jupyter Bash kernel
+      div.col-md-12
+        h2.firstline Jupyter Bash kernel
       div.col-sm-6
         div
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-bash.png").fit
@@ -88,14 +89,17 @@ block content
           That helps you with learning Linux commands, because it makes it easier to edit the code input or
           compare different outcomes of similar code.
           Besides that, you can also take notes between code cells.
+      div.col-sm-6
+        p
+          +start_button_anon_2('jupyter-bash')
 
   +linux-snapshot-backups
 
   a.anchor#a-database
   div.container.space#database
     div.row
-      div.col-md-12.center
-        h2 Databases (PostgreSQL, MySQL, SQLite, ...)
+      div.col-md-12
+        h2.firstline Databases (PostgreSQL, MySQL, SQLite, ...)
       div.col-sm-6
         div
           img(data-src="https://storage.googleapis.com/cocalc-extra/terminal-jupyter-postgresql.png").fit
@@ -121,4 +125,4 @@ block content
           the #[a(href="http://initd.org/psycopg/docs/") psycopg2] library and issues a query to the database!
 
 
-  +start_free_banner
+  +start_free_banner("linux")

@@ -24,27 +24,32 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
-  a.anchor#a-top
-  div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        img(src=require("webapp-lib/assets/python-logo.svg")).fit
-      div.col-sm-12
-        h1.center #{subtitle}
-        h3.center Full Remote Python Environment
+  div#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center
+              img(src=require("webapp-lib/assets/python-logo.svg")).fit
+            div.col-sm-12
+              div.headline #{subtitle}
+              div.subheadline.
+                Run Python scripts,
+                #[a(href="./jupyter-notebook.html") Jupyter notebooks],
+                or even a #[a(href="./x11.html") graphical application] in a full, remote Python environment.
+        div.col-md-6.center
+          img(src="https://storage.googleapis.com/cocalc-extra/frame-editor-python.png").fit.shadow.rounded
+      div.row
+        div.col-md-12.center
+          +start_button_2("python")
 
 
   div.container
-    div.row
+    div.row.spacing2
       div.col-sm-6
-        div
-          img(data-src="https://storage.googleapis.com/cocalc-extra/frame-editor-python.png").fit
-        div.center.
-          Edit and Run Python Code Online
-      div.col-sm-6
-        p.
-          #{NAME} offers a lot for working with Python:
-        ul
+        h3.firstline.
+          #{NAME} covers all the bases
+        ul.list
           li.
             #[strong Data Science and Machine Learning]:
             #[a(href="https://doc.cocalc.com/howto/upload.html") Upload] your datafiles and analyze them using
@@ -76,36 +81,27 @@ block content
           Find more details in the #[a(href="./software-python.html") list of installed Python libraries].
 
 
-  a.anchor#a-nosetup
-  div
-    div.container
-      div.row
-        div.col-md-12.center
-          h2 #[i.fa.fa-lightbulb-o] Zero setup
-      div.col-sm-5.col-sm-offset-1
-        ul
+      div.col-sm-6
+        h3.firstline.
+          #[i.fa.fa-lightbulb-o] Zero setup
+        ul.list
+          li.
+            Immediately start working by creating or
+            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading],
+            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks] or Python scripts.
           li.
             No need to download and install #[a(href="https://www.python.org") Python],
             #[a(href="https://www.anaconda.com/distribution/") Anaconda], or other Python environments.
           li #{NAME} already #[a(href=PREFIX + "/doc/software-python.html") provides many packages] for you.
           li The #[a(href=PREFIX + "/doc/latex-editor.html") LaTeX editor] is already integrated with PythonTeX or SageTeX
-          li No longer update/maintain everything on your own
-      div.col-sm-5
-        p.
-          To get started,
-        ol
-          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project]
-          li.
-            Start working by creating or
-            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading],
-            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks] or Python scripts.
 
+  +start_free_banner("python")
 
   a.anchor#a-collaboration
-  div.container.space#collaboration
+  div.container.spacing2#collaboration
     div.row
-      div.col-md-12.center
-        h2 Collaborative Workspace
+      div.col-md-12
+        h2.firstline #[i.fa.fa-users] Collaborative Workspace
       div.col-sm-6
         div
           img(data-src=require("webapp-lib/assets/cocalc-real-time-jupyter.png")).fit
@@ -128,15 +124,15 @@ block content
           #[a(href="https://doc.cocalc.com/chat.html") "@name" mention] a collaborator.
 
 
-  +start_free_banner
-
 
   div.space
     a.anchor#a-jupyternotebook
     div.container.space#jupyternotebook
       div.row
         div.col-md-12
-          h2 Python in Jupyter Notebooks
+          h2.firstline
+            +jupyter-icon
+            | Python in Jupyter Notebooks
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-python-jupyter.png").fit
         div.col-md-6
@@ -156,13 +152,15 @@ block content
           div.
             Despite that, there is also support for running the
             #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") "Classical Jupyter notebook"].
+          div
+            +start_button_anon_2('jupyter')
 
 
     a.anchor#a-latex
     div.container.space#latex
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-pen-fancy] LaTeX support for PythonTeX/SageTeX
+          h2.firstline #[i.fa.fa-pen-fancy] LaTeX support for PythonTeX/SageTeX
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-pythontex.png").fit
         div.col-md-6
@@ -207,7 +205,7 @@ block content
     div.container.space#codeformatting
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-sitemap]   Code formatting
+          h2.firstline #[i.fa.fa-sitemap]   Code formatting
         div.col-md-6
           div
             img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-format-python.gif")
@@ -229,7 +227,7 @@ block content
     div.container.space#commandline
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-terminal] Command-line support
+          h2.firstline #[i.fa.fa-terminal] Command-line support
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-frame-editor-python.png.png").fit
         div.col-md-6
@@ -257,7 +255,7 @@ block content
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comment] Chatroom for files
+          h2.firstline #[i.fa.fa-comment] Chatroom for files
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-python-sidechat.png").fit
         div.col-md-6
@@ -276,7 +274,7 @@ block content
     div.container.space#publishing
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-bullhorn] Publishing
+          h2.firstline #[i.fa.fa-bullhorn] Publishing
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-python-jupyter-share.png").fit
         div.col-md-6
@@ -297,7 +295,7 @@ block content
     div.container.space#backups
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-camera-retro] Backups
+          h2.firstline #[i.fa.fa-camera-retro] Backups
         div.col-md-6
           img(data-src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
         div.col-md-6
@@ -308,4 +306,4 @@ block content
             in case they got corrupted or accidentally deleted.
 
 
-  +start_free_banner
+  +start_free_banner("python")

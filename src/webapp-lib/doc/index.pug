@@ -15,7 +15,7 @@ block content
   style
     :sass
       @import "smc-webapp/_colors.sass"
-      div.row#top
+      div.box
         min-height: 75vh
         ul
           li
@@ -25,12 +25,13 @@ block content
               font-weight   : bold
               padding-right : 10px
 
-  a.anchor#a-top
-  div.container
-    div.row#top
-      h1 #{NAME} Features
-      div= "These pages feature in-depth explanations about what " + NAME + " is able to do."
-      ul
+  div.space.nobg.box#top
+    div.container
+      div.row.intro
+        h1.headline Features
+      div.
+        These pages feature in-depth explanations about what #{NAME} is able to do.
+      ul.list
         li
           a(href='jupyter-notebook.html') Jupyter Notebooks:
           span.

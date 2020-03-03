@@ -23,7 +23,6 @@ block header
   script(type="text/javascript")
     include:coffee-script index.coffee
   meta(name="description" content=htmlWebpackPlugin.options.description)
-  link(href="https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap" rel="stylesheet")
 
 block content
 
@@ -36,15 +35,6 @@ block content
         margin-top       : 5rem
       p
         font-size        : 13pt
-      div#top
-        padding          : 7rem 0 3rem 0
-        .descr
-          color          : $COL_GRAY
-          font-size      : 2rem
-        @media (max-width: $width-md)
-          padding        : 3rem 0 0 0
-        > div
-          margin-bottom  : 2rem
       #statstable td,
       #statstable th
         text-align       : right
@@ -73,10 +63,14 @@ block content
       .left,
       #statstable td.left
         text-align     : left
-      #explore
-        background-color : $COL_BLUE_LLL
+      #explore,
+      #bottom
         div > h3
           white-space    : nowrap
+      #explore
+        background-color : $COL_BLUE_LLL
+      #bottom
+        background-color : $COL_GRAY_LL
       #included > div
         padding          : 0
       .ff-only
@@ -85,25 +79,6 @@ block content
         .ff-only
           display: block
 
-      #top
-        background-color  : #c7d9f5
-
-
-      .headline
-        font-family: 'Roboto Slab', serif
-        font-size: 250%
-        line-height: 175%
-        @media (max-width: $width-md)
-          font-size: 150%
-          line-height: 125%
-          text-align: center
-          width: 75%
-          margin: 0 auto 2rem auto
-
-      .subheadline
-        font-size: 125%
-        width: 100%
-        text-align: left
 
 
   //- a.anchor#a-top
@@ -118,14 +93,13 @@ block content
   //-       +start_button_2
 
 
-  a.anchor#a-top
   div.space#top
     div.container
       div.row.intro
         div.col-md-6.center
           p.headline.
             It's time to ditch Maple, Mathematica and Matlab!
-          div.container.subheadline.
+          div.subheadline.
             Save weeks of class time troubleshooting software and make your TA's more effective.
           div.center.spacing.hide-md-screen
             +start_button_2
@@ -168,12 +142,13 @@ block content
           img(src="https://storage.googleapis.com/cocalc-extra/classroom-computer.jpg").shrink-small
       div.col-md-8
         h2.firstline
-          strong #[a(href="./doc/teaching.html") Teach a course]
+          strong Teach a course #[small 100% online]
         p.
           Take away the pain of teaching with technology.
-        p.
-          Let us show you how.
-        a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Request a live demo
+        p
+          a.btn.btn-primary.cc-btn(href="./doc/teaching.html") Learn more…
+          a.btn.btn-default.cc-btn(href="mailto:help@cocalc.com") Contact us
+          a.btn.btn-default.cc-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Live Demo
       div.col-md-12.center.spacing
         +start_button_2
 
@@ -216,7 +191,9 @@ block content
         div.col-md-12.center
           h1 #[i.fa.fa-exclamation-circle] Unique Features
         div.col-md-6
-          h2 #[img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="width:30px")] Native Jupyter Notebooks
+          h2
+            +jupyter-icon
+            | Native Jupyter Notebooks
           div.
             This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
             It is tightly integrated into #{NAME} and adds real-time collaboration,
@@ -297,6 +274,39 @@ block content
           br/
           div
             img(data-src="https://storage.googleapis.com/cocalc-extra/smc-mdhtml-20170516.png").fit
+
+  a.anchor#a-bottom
+  div.space#bottom
+    div.container
+      div.row
+        a.anchor#a-included
+        div.col-md-6#included
+          h2 #[i.fa.fa-battery-three-quarters] Batteries included
+          p.
+            Out of the box hundreds of open-source tools are available for you.
+            Here is a short list of a selected few:
+          include _static_third_party_software.html
+          if htmlWebpackPlugin.options.COMP_ENV
+            a.btn.btn-default(href="doc/software.html" role="button") Software environment details &raquo
+        a.anchor#a-stats
+        div.col-md-6#stats
+          h2 #[i.fa.fa-chart-line] Statistics
+          div.
+            There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
+          div(style="margin-top: 3rem")
+            table.table.bordered.condensed.hover.cc-help-stats-table#statstable
+              thead
+                tr
+                  th past
+                  th hour
+                  th day
+                  th week
+                  th month
+              tbody
+                tr
+                  td.left(colspan="4") Loading ...
+                tr
+                tr
 
   div
     +start_free_banner

@@ -24,31 +24,46 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
-  a.anchor#a-top
+
+
+  div#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center
+              img(src=require("webapp-lib/assets/x11-logo.svg")).fit
+            div.col-sm-12.spacing2
+              div.headline #{subtitle}
+              //- div.subheadline.
+              //-  A remote graphical Linux desktop
+        div.col-md-6.center
+          div.row
+            div.col-sm-12.center
+              img(src=require("webapp-lib/assets/x11-01.png")).fit.shadow.rounded
+            div.col-sm-12.center.
+              #[strong #[a(href="http://maxima.sourceforge.net/") Maxima]'s graphical user interface]
+      div.row
+        div.col-md-12.center
+          +start_button_2("x11")
+
+
   div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        img(src=require("webapp-lib/assets/x11-logo.svg")).fit
-      div.col-sm-12.center
-        h1 #{subtitle}
-        h3 A remote graphical Linux desktop
+    div.row.spacing2
       div.col-sm-6
-        div
-          img(src=require("webapp-lib/assets/x11-01.png")).fit
-        div.center.
-          #[strong #[a(href="http://maxima.sourceforge.net/") Maxima]'s graphical user interface]
-      div.col-sm-6
+        h3.firstline Run graphical software in your browser
         p.
           #{NAME} is able to
           #[strong run #[a(href="https://en.wikipedia.org/wiki/X_Window_System") graphical software using X11] via your browser].
         p.
           The application with a graphical user interface runs remotely on #{NAME} using a virtual display provided by #[a(href="https://xpra.org/") XPRA].
-        p.
-          Features and benefits
+
+      div.col-sm-6
+        h3.firstline Features
         ul
           li.
             You no longer have to #[strong install and maintain] the applications.
-            In particular when you're teaching a class, students just have to sign in to CoCalc to get started!
+            In particular when you're teaching a class, students just have to sign in to #{NAME} to get started!
           li.
             These virtual desktops are #[strong persistent] during an ongoing project session.
           li.
@@ -60,7 +75,7 @@ block content
 
     div.row
       div.col-sm-6
-        h2 Popular Applications
+        h3.firstline Popular Applications
         p.
           #[strong Popular applications] are
           #[a(href="http://maxima.sourceforge.net/") Maxima],
@@ -74,10 +89,10 @@ block content
           for additional details.
 
       div.col-sm-6
-        h2 Documentation/Technical Background
+        h3.firstline Documentation/Technical Background
         p.
           The #[strong #[a(href="https://doc.cocalc.com/x11.html") X11 Documentation]] explains how to use such a virtual desktop on #{NAME}.
         p.
           Read our #[a(href="http://blog.sagemath.com/cocalc/2018/11/05/x11.html") blog post] to learn about this features!
 
-  +start_free_banner
+  +start_free_banner("x11")

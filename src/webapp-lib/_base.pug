@@ -1,24 +1,44 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
-mixin start_button
+mixin start_button(startup='jupyter')
   p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
   p #[a(href=PREFIX + "app") sign in or create an account]
 
-mixin start_button_2
+
+mixin _start_button_anon_2(startup)
+  -
+    var startup_txt;
+    if (startup == 'latex') {
+      startup_txt = "LaTeX";
+    } else if (startup != null) {
+      startup_txt = startup.charAt(0).toUpperCase() + startup.slice(1);
+    } else {
+      startup_txt = NAME;
+    }
+    var startup = (startup != null) ? startup : "true"
+  a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{startup_txt} Now
+
+mixin start_button_2(startup)
   p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
+    +_start_button_anon_2(startup)
     a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
 
-
-mixin start_button_2sm
+mixin start_button_anon_2(startup)
   p.cc-create-account-btn
-    a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=true") Run CoCalc!
+    +_start_button_anon_2(startup)
+
+mixin start_button_2sm(startup='jupyter')
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=" + startup) Run CoCalc!
     a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In
 
-mixin start_button_3
+mixin start_button_3(startup='jupyter')
   p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=true") Run CoCalc Now
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
+
+mixin jupyter-icon(width='30px')
+  img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="margin-right:5px;width:" + width)
 
 //- mixin start_free
 //-   -
@@ -37,13 +57,13 @@ mixin start_free
   div.col-sm-12.center
     div.col-sm-6.col-sm-offset-3.center
       p.
-        start free, upgrade later
+        Start free / Upgrade later
 
-mixin start_free_banner
+mixin start_free_banner(startup)
   div(style="margin-top: 6rem").darkbg
     div.container
       div.col-sm-12.center
-        +start_button_2
+        +start_button_2(startup)
       +start_free
 
 
@@ -235,9 +255,6 @@ html.no-js(lang="en")
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
 
-            li(class=navbar_highlight('share'))
-              a(href=PREFIX + "share/") Shared Files
-
             li(class=navbar_highlight('features'))
               a(href=PREFIX + "doc/index.html") Features
 
@@ -250,6 +267,9 @@ html.no-js(lang="en")
 
             li(class=navbar_highlight("policies"))
               a(href=PREFIX + "policies/index.html") Policies
+
+            li(class=navbar_highlight('share'))
+              a.sharedfiles(href=PREFIX + "share/") Shared Files
 
             li
               a.documentation(href="https://doc.cocalc.com/") Doc

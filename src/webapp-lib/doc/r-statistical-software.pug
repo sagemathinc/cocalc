@@ -21,54 +21,56 @@ block content
       @import "webapp-lib/doc/_style.sass"
 
 
-  a.anchor#a-top
+  div#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4.center
+              img(src=require("webapp-lib/assets/r-logo.svg")).fit
+            div.col-sm-12
+              div.headline #{subtitle}
+              div.subheadline.
+                Run #[a(href="https://www.r-project.org/") R code],
+                #[a(href="#a-jupyternotebook") R in Jupyter notebooks],
+                RMarkdown, or even #[a(href="#a-latex") Knitr/Rnw] in a full, remote R environment.
+        div.col-md-6.center
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter.png").fit.shadow.rounded
+      div.row
+        div.col-md-12.center
+          +start_button_2("r")
+
+
+
   div.container
-    div.row.intro#top
-      div.col-sm-2.col-sm-offset-5.center
-        a(href="https://www.r-project.org/")
-          img(src=require("webapp-lib/assets/r-logo.svg")).fit
-      div.col-sm-8.col-sm-offset-2.center
-        h1 #{subtitle}
-      div.col-sm-8.col-sm-offset-2
-        p.
-          #{NAME} is an online web service where you can
-          #[strong run #[a(href="https://www.r-project.org/") R code] online via your browser].
-        p.
-          It handles all the tedious details for you,
-          regardless of whether you want to work on the command line,
-          run #[a(href="./jupyter-notebook.html") Jupyter Notebooks],
+    div.row.spacing2
+      div.col-sm-6
+        h3.firstline.
+          #{NAME} makes working with R easy
+        div.
+          #{NAME} handles all the tedious details for you,
+          regardless of whether you want to work on the #[a(href=PREFIX + "/doc/terminal.html") command line],
+          run #[a(href="#a-jupyternotebook") Jupyter Notebooks],
           create RMarkdown files, or use
-          #[a(href="./latex-editor.html#a-knitr") Knitr in LaTeX documents].
+          #[a(href="#a-latex") Knitr in LaTeX documents].
         p.
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
-
-
-  a.anchor#a-nosetup
-  div
-    div.container
-      div.row
-        div.col-md-12.center
-          h2 #[i.fa.fa-lightbulb-o] Zero setup
-      div.col-sm-5.col-sm-offset-1
-        ul
+      div.col-sm-6
+        h3.firstline #[i.fa.fa-lightbulb-o] Zero setup
+        ul.list
           li No need to download and install #[a(href="https://www.r-project.org/") R]
           li #{NAME} already #[a(href=PREFIX + "/doc/software-r.html") provides many packages] for you
           li The #[a(href=PREFIX + "/doc/latex-editor.html") LaTeX editor] is already integrated with R
           li No longer maintain everything on your own
-      div.col-sm-5
-        p.
-          To get started,
-        ol
-          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project]
-          li.
-            Start working by creating or
-            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading R files],
-            RMarkdown, or
-            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks].
+        div.
+          Start working by creating or
+          #[a(href="https://doc.cocalc.com/howto/upload.html") uploading R files],
+          RMarkdown, or
+          #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks].
 
 
-  +start_free_banner
+  +start_free_banner('r')
 
 
   div.space
@@ -76,7 +78,9 @@ block content
     div.container.space#jupyternotebook
       div.row
         div.col-md-12
-          h2 R in Jupyter Notebooks
+          h2.firstline
+            +jupyter-icon
+            | R in Jupyter Notebooks
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter.png").fit
         div.col-md-6
@@ -94,11 +98,30 @@ block content
             Despite that, there is also support for running the
             #[a(href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc") "Classical Jupyter notebook"].
 
+    a.anchor#a-collaboration
+    div.container.space#collaboration
+      div.row
+        div.col-md-12
+          h2.firstline #[i.fa.fa-users] Collaborative editing
+        div.col-md-6
+          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
+        div.col-md-6
+          div.
+            You can share your files on #{NAME} with project collaborators.
+            Modifications are #[strong synchronized in real time].
+            Watch the cursors of others while they edit the document.
+            You are also notified about the presence of watching collaborators.
+          div.
+            Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
+            because it is fully hosted on #{NAME}.
+          div.
+            Together, everyone involved experiences the document in exactly the same way.
+
     a.anchor#a-latex
     div.container.space#latex
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-pen-fancy]  Extensive LaTeX support for R
+          h2.firstline #[i.fa.fa-pen-fancy]  Extensive LaTeX support for R
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-latex.png").fit
         div.col-md-6
@@ -143,7 +166,7 @@ block content
     div.container.space#rmarkdown
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-pen-fancy]  RMarkdown support
+          h2.firstline #[i.fa.fa-pen-fancy]  RMarkdown support
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-rmd-demo-R-python3-plotting.png").fit
         div.col-md-6
@@ -167,7 +190,7 @@ block content
     div.container.space#codeformatting
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-sitemap]  Code formatting
+          h2.firstline #[i.fa.fa-sitemap]  Code formatting
         div.col-md-6
           div
             +video-player
@@ -187,30 +210,11 @@ block content
             R code formatting works with #[strong pure #[code .r] files] and #[strong Jupyter Notebooks running an R kernel].
 
 
-    a.anchor#a-collaboration
-    div.container.space#collaboration
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-users] Collaborative editing
-        div.col-md-6
-          img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
-        div.col-md-6
-          div.
-            You can share your files on #{NAME} with project collaborators.
-            Modifications are #[strong synchronized in real time].
-            Watch the cursors of others while they edit the document.
-            You are also notified about the presence of watching collaborators.
-          div.
-            Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
-            because it is fully hosted on #{NAME}.
-          div.
-            Together, everyone involved experiences the document in exactly the same way.
-
     a.anchor#a-commandline
     div.container.space#commandline
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-terminal]  Command-line support
+          h2.firstline #[i.fa.fa-terminal]  Command-line support
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-rcode.png").fit
         div.col-md-6
@@ -236,7 +240,7 @@ block content
     div.container.space#chat
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-comment] Chatrooms and Side-chat
+          h2.firstline #[i.fa.fa-comment] Chatrooms and Side-chat
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-side-chat.png").fit
         div.col-md-6
@@ -254,7 +258,7 @@ block content
     div.container.space#environment
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-heartbeat] Managed R Environment
+          h2.firstline #[i.fa.fa-heartbeat] Managed R Environment
         div.col-md-6
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-environment.png").fit
         div.col-md-6
@@ -269,7 +273,7 @@ block content
     div.container.space#timetravel
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-history] Time-Travel
+          h2.firstline #[i.fa.fa-history] Time-Travel
         div.col-md-6
           div
             +video-player
@@ -294,7 +298,7 @@ block content
     div.container.space#backups
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-camera-retro] Backups
+          h2.firstline #[i.fa.fa-camera-retro] Backups
         div.col-md-6
           img(data-src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
         div.col-md-6
@@ -308,7 +312,7 @@ block content
     div.container.space#publishing
       div.row
         div.col-md-12
-          h2 #[i.fa.fa-bullhorn] Publishing
+          h2.firstline #[i.fa.fa-bullhorn] Publishing
         div.col-md-6
           img(data-src="https://storage.googleapis.com/cocalc-extra/cocalc-r-share-notebook.png").fit
         div.col-md-6
@@ -324,4 +328,4 @@ block content
           div.
             Example: #[a(href="https://share.cocalc.com/share/20e4a191-73ea-4921-80e9-0a5d792fc511/ir-display.ipynb?viewer=share") Published R notebook].
 
-  +start_free_banner
+  +start_free_banner("r")

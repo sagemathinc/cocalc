@@ -12,18 +12,19 @@ block header
   meta(name="description" content=NAME + " R Environments")
 
 block content
-  a.anchor#a-top
-  div.container
-    div.row#top
-      h1 R Statistical Software Environments
-      div.
-        This table lists available R libraries with their respective version numbers.
-        The header at the top lists the available environments
-        and the left column describes the name and summary of the library.
-        Besides all the listed libraries you can install additional ones in your project.
-      br/
-      div.alert.alert-info.space.
-        Learn more: #[strong #[a(href="./r-statistical-software.html") R related functionality on #{NAME}]].
+
+  div.space.nobg#top
+    div.container
+      div.row.intro
+        h1.headline R Statistical Software Environments
+        div.
+          This table lists available R libraries with their respective version numbers.
+          The header at the top lists the available environments
+          and the left column describes the name and summary of the library.
+          Besides all the listed libraries you can install additional ones in your project.
+        br/
+        div.alert.alert-info.space.
+          Learn more: #[strong #[a(href="./r-statistical-software.html") R related functionality on #{NAME}]].
 
   +software-environment-table('R')
 

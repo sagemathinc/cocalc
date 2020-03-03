@@ -2,9 +2,10 @@ import { callback2, once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 const { APP_BASE_URL, get_cookie } = require("../misc_page");
+import { WelcomeFile } from "./welcome-file";
 
 /*
-true if anonymous query param set at all (doesn't matter to what) during
+If the anonymous query param is set at all (doesn't matter to what) during
 initial page load.
 
 Also do NOT make true of has_remember_me is set, since then probably
@@ -61,10 +62,7 @@ export async function do_anonymous_setup(client: any): Promise<void> {
       return;
     }
 
-    // This does not seem like a good idea -- nobody uses it. Better
-    // it turns out to maybe show the files page.  We will see.
-    // No need to await on this, of course.
-    open_default_jupyter_notebook(project_id);
+    await new WelcomeFile(project_id).open();
   } catch (err) {
     console.warn("ERROR doing anonymous sign up -- ", err);
     log("err", err);
@@ -83,14 +81,4 @@ export async function do_anonymous_setup(client: any): Promise<void> {
     // they refresh their browser it won't cause confusion.
     QueryParams.remove("anonymous");
   }
-}
-
-async function open_default_jupyter_notebook(project_id: string): Promise<void> {
-  // Open a new Jupyter notebook:
-  // log("open jupyter notebook");
-  const project_actions = redux.getProjectActions(project_id);
-  project_actions.open_file({
-    path: "Welcome to CoCalc.ipynb",
-    foreground: true
-  });
 }
