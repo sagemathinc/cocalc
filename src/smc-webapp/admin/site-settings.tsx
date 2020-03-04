@@ -28,7 +28,7 @@ const FIELD_DEFAULTS = {
 } as const;
 
 import { EXTRAS } from "smc-util/db-schema/site-settings-extras";
-import { ConfigValid, Config } from "smc-util/db-schema/site-defaults";
+import { ConfigValid, Config, RowType } from "smc-util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
@@ -126,6 +126,9 @@ class SiteSettingsComponent extends Component<
   private async store(): Promise<void> {
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
+      if (EXTRAS[name] != null) {
+        if (EXTRAS[name].type == ("header" as RowType)) continue;
+      }
       if (!isEqual(value, this.state.data[name])) {
         try {
           await query({
@@ -334,24 +337,29 @@ class SiteSettingsComponent extends Component<
     password: boolean,
     parsed_val?: string,
     valid?: ConfigValid,
-    hint?: Rendered
+    hint?: Rendered,
+    row_type: RowType
   ) {
-    switch (name) {
-      case "default_quotas":
-      case "max_upgrades":
-        return this.render_json_entry(name, value);
-      default:
-        return (
-          <FormGroup>
-            {this.render_row_entry_inner(name, value, valid, password)}
-            <div style={{ fontSize: "90%", display: "inlineBlock" }}>
-              {this.render_row_version_hint(name, value)}
-              {hint}
-              {this.render_row_entry_parsed(parsed_val)}
-              {this.render_row_entry_valid(valid)}
-            </div>
-          </FormGroup>
-        );
+    if (row_type == ("header" as RowType)) {
+      return <div />;
+    } else {
+      switch (name) {
+        case "default_quotas":
+        case "max_upgrades":
+          return this.render_json_entry(name, value);
+        default:
+          return (
+            <FormGroup>
+              {this.render_row_entry_inner(name, value, valid, password)}
+              <div style={{ fontSize: "90%", display: "inlineBlock" }}>
+                {this.render_row_version_hint(name, value)}
+                {hint}
+                {this.render_row_entry_parsed(parsed_val)}
+                {this.render_row_entry_valid(valid)}
+              </div>
+            </FormGroup>
+          );
+      }
     }
   }
 
@@ -371,6 +379,7 @@ class SiteSettingsComponent extends Component<
       return undefined;
     }
     const raw_value = this.state.edited[name] ?? conf.default;
+    const row_type: RowType = conf.type ?? ("setting" as RowType);
 
     const parsed_value: string | undefined =
       typeof conf.to_val == "function"
@@ -389,7 +398,7 @@ class SiteSettingsComponent extends Component<
 
     const style: React.CSSProperties = { marginTop: "2rem" };
     // indent optional fields
-    if (typeof conf.show == "function") {
+    if (typeof conf.show == "function" && row_type == ("setting" as RowType)) {
       Object.assign(style, {
         borderLeft: `2px solid ${COLORS.GRAY}`,
         marginLeft: "0px",
@@ -405,7 +414,8 @@ class SiteSettingsComponent extends Component<
           conf.password ?? false,
           parsed_value,
           conf.valid,
-          hint
+          hint,
+          row_type
         )}
       </LabeledRow>
     );

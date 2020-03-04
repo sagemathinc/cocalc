@@ -4,6 +4,8 @@ const { is_valid_email_address } = require("smc-util/misc");
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
+export type RowType = "header" | "setting";
+
 type SiteSettingsKeys =
   | "site_name"
   | "site_description"
@@ -33,6 +35,7 @@ export interface Config {
   // this optional function derives the actual value of this setting from current value.
   readonly to_val?: (val: string) => boolean | string | number;
   readonly hint?: (val: string) => string; // markdown
+  readonly type?: RowType;
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;

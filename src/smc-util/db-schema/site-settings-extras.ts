@@ -17,6 +17,7 @@ import {
 const { is_valid_email_address } = require("smc-util/misc");
 
 export type SiteSettingsExtrasKeys =
+  | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
   | "email_backend"
@@ -39,17 +40,26 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  stripe_heading: { // this is consmetic, otherwise it looks weird.
+    name: "Stripe Keys",
+    desc: "",
+    default: "",
+    show: only_commercial,
+    type: "header"
+  },
   stripe_publishable_key: {
     name: "Stripe Publishable",
     desc: "Stripe calls this key 'publishable'",
     default: "",
+    password: true,
     show: only_commercial
   },
   stripe_secret_key: {
     name: "Stripe Secret",
     desc: "Stripe calls this key 'secret'",
     default: "",
-    show: only_commercial
+    show: only_commercial,
+    password: true
   },
   email_backend: {
     name: "Email backend type",
