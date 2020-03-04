@@ -12,8 +12,8 @@ def cmd(s):
 
 
 def hub(command, server_id):
-    cmd("hub {command} {args} ".format(
-        command=command, args=hub_args(server_id)))
+    cmd("hub {command} {args} ".format(command=command,
+                                       args=hub_args(server_id)))
 
 
 def hub_args(server_id):
@@ -57,6 +57,9 @@ def hub_args(server_id):
 
     if args.lti:
         s += ' --lti '
+
+    if args.landing:
+        s += ' --landing'
 
     if args.dev:
         s += ' --dev '
@@ -143,85 +146,92 @@ if __name__ == "__main__":
         default="",
         type=str)
 
-    parser.add_argument(
-        '--base_url', help="base url", dest='base_url', default='')
+    parser.add_argument('--base_url',
+                        help="base url",
+                        dest='base_url',
+                        default='')
 
-    parser.add_argument(
-        '--database_nodes', help="", dest='database_nodes', default='')
+    parser.add_argument('--database_nodes',
+                        help="",
+                        dest='database_nodes',
+                        default='')
 
-    parser.add_argument(
-        '--foreground',
-        help="foreground",
-        dest='foreground',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--foreground',
+                        help="foreground",
+                        dest='foreground',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--dev',
-        help="dev",
-        dest='dev',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--dev',
+                        help="dev",
+                        dest='dev',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--kucalc',
-        help="kucalc",
-        dest='kucalc',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--kucalc',
+                        help="kucalc",
+                        dest='kucalc',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--lti',
-        help="lti",
-        dest='lti',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--lti',
+                        help="lti",
+                        dest='lti',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--single',
-        help="single",
-        dest='single',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--landing',
+                        help="landing",
+                        dest='landing',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--update',
-        help="update",
-        dest='update',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--single',
+                        help="single",
+                        dest='single',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--test',
-        help="test",
-        dest='test',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--update',
+                        help="update",
+                        dest='update',
+                        action="store_const",
+                        const=True,
+                        default=False)
+
+    parser.add_argument('--test',
+                        help="test",
+                        dest='test',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
     parser.add_argument('--port', dest='port', type=int, default=-1)
 
-    parser.add_argument(
-        '--proxy_port', dest='proxy_port', type=int, default=-1)
+    parser.add_argument('--proxy_port',
+                        dest='proxy_port',
+                        type=int,
+                        default=-1)
 
     parser.add_argument('--share_port', dest='share_port', type=int, default=0)
 
-    parser.add_argument(
-        '--mentions',
-        help="mentions",
-        dest='mentions',
-        action="store_const",
-        const=True,
-        default=False)
+    parser.add_argument('--mentions',
+                        help="mentions",
+                        dest='mentions',
+                        action="store_const",
+                        const=True,
+                        default=False)
 
-    parser.add_argument(
-        '--share_path', dest='share_path', type=str, default='')
+    parser.add_argument('--share_path',
+                        dest='share_path',
+                        type=str,
+                        default='')
 
     parser.add_argument(
         "--hostname",

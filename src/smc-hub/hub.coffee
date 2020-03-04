@@ -411,6 +411,17 @@ start_lti_service = (cb) ->
             await lti_service.start()
     ])
 
+start_landing_service = (cb) ->
+    BASE_URL = base_url.init(program.base_url)
+    {LandingServer} = require('./landing/landing.ts')
+    async.series([
+        (cb) ->
+            connect_to_database(error:99999, pool:5, cb:cb)
+        (cb) ->
+            landing_server = new LandingServer(port:program.port, db:database, base_url:BASE_URL)
+            await landing_server.start()
+    ])
+
 update_stats = (cb) ->
     # This calculates and updates the statistics for the /stats endpoint.
     # It's important that we call this periodically, because otherwise the /stats data is outdated.
@@ -757,6 +768,7 @@ command_line = () ->
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .option('--lti', 'just start the LTI service')
+        .option('--landing', 'serve landing pages')
         .parse(process.argv)
 
         # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -813,6 +825,9 @@ command_line = () ->
         else if program.lti
             console.log("LTI MODE")
             start_lti_service()
+        else if program.landing
+            console.log("LANDING PAGE MODE")
+            start_landing_service()
         else
             console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
