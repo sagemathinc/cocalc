@@ -541,6 +541,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
   public get_listings(): Listings {
     if (this.listings == null) {
       this.listings = listings(this.project_id);
+      this.listings.on("change", async paths => {
+        let directory_listings = this.get("directory_listings");
+        for (const path of paths) {
+          if (this.listings == null) return; // won't happen
+          directory_listings = directory_listings.set(
+            path,
+            await this.listings.get_immutable(path)
+          );
+        }
+        const actions = redux.getProjectActions(this.project_id);
+        actions.setState({ directory_listings });
+      });
     }
     if (this.listings == null) {
       throw Error("bug");

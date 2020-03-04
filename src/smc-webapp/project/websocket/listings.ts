@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-
+import { List, fromJS } from "immutable";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { TypedMap } from "../../app-framework";
@@ -13,6 +13,8 @@ interface PathEntry {
   size: number;
   isdir?: boolean;
 }
+
+type ImmutablePathEntry = TypedMap<PathEntry>;
 
 type State = "init" | "ready" | "closed";
 
@@ -60,6 +62,17 @@ export class Listings extends EventEmitter {
       ?.toJS();
   }
 
+  public async get_immutable(
+    path: string
+  ): Promise<List<ImmutablePathEntry> | undefined> {
+    if (this.state != "ready") {
+      const x = await this.get_using_database(path);
+      if (x == null) return x;
+      return fromJS(x);
+    }
+    return this.get_record(path)?.get("listing");
+  }
+
   public async get_using_database(
     path: string
   ): Promise<PathEntry[] | undefined> {
@@ -91,6 +104,9 @@ export class Listings extends EventEmitter {
     if (this.state != "init") {
       throw Error("must be in init state");
     }
+    // Make sure there is a working websocket to the project
+    await webapp_client.project_websocket(this.project_id);
+    // Now create the table.
     this.table = await webapp_client.synctable_project(
       this.project_id,
       {
