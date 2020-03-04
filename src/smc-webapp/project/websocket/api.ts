@@ -17,7 +17,6 @@ import {
   NBGraderAPIOptions,
   RunNotebookOptions
 } from "../../jupyter/nbgrader/api";
-import { listings, Listings } from "./listings";
 
 export class API {
   private conn: any;
@@ -256,11 +255,6 @@ export class API {
       30000
     );
     return this.conn.channel(channel_name);
-  }
-
-  // Get SyncTable for directory listings for this project.
-  async listings(): Promise<Listings> {
-    return await listings(this.project_id);
   }
 }
 

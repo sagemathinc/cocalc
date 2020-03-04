@@ -1,13 +1,25 @@
-import { reuseInFlight } from "async-await-utils/hof";
+import { EventEmitter } from "events";
+
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { TypedMap } from "../../app-framework";
 import { merge } from "smc-util/misc2";
+import { once } from "smc-util/async-utils";
+import { query } from "../../frame-editors/generic/client";
+
+interface PathEntry {
+  name: string;
+  mtime: number;
+  size: number;
+  isdir?: boolean;
+}
+
+type State = "init" | "ready" | "closed";
 
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: object[];
+  listing?: PathEntry[];
   time?: Date;
   interest?: Date;
   missing?: number;
@@ -15,15 +27,70 @@ interface Listing {
 }
 export type ImmutableListing = TypedMap<Listing>;
 
-export class Listings {
+export class Listings extends EventEmitter {
   private table?: SyncTable;
   private project_id: string;
+  private last_version: { [path: string]: any } = {}; // last version emitted via change event.
+  private state: State = "init";
 
   constructor(project_id: string): void {
+    super();
     this.project_id = project_id;
+    this.init();
   }
 
-  public async init(): Promise<void> {
+  // Watch directory for changes.
+  // IMPORTANT: This must be called frequently, e.g., at least
+  // once every 45 seconds.  The point is to convey to the backend
+  // that at least one client is interested in this path.
+  public async watch(path: string): Promise<void> {
+    if (await this.wait_until_ready(false)) return;
+    this.set({
+      path,
+      interest: webapp_client.server_time()
+    });
+  }
+
+  public async get(path: string): Promise<PathEntry[] | undefined> {
+    if (this.state != "ready") {
+      return await this.get_using_database(path);
+    }
+    return this.get_record(path)
+      ?.get("listing")
+      ?.toJS();
+  }
+
+  public async get_using_database(
+    path: string
+  ): Promise<PathEntry[] | undefined> {
+    const q = await query({
+      query: {
+        listings: {
+          project_id: this.project_id,
+          path,
+          listing: null,
+          missing: null
+        }
+      }
+    });
+    return q.query.listings?.listing;
+  }
+
+  public close(): void {
+    this.set_state("closed");
+    if (this.table != null) {
+      this.table.close();
+      delete this.table;
+    }
+    this.removeAllListeners();
+    delete this.last_version;
+    delete this.project_id;
+  }
+
+  private async init(): Promise<void> {
+    if (this.state != "init") {
+      throw Error("must be in init state");
+    }
     this.table = await webapp_client.synctable_project(
       this.project_id,
       {
@@ -35,16 +102,41 @@ export class Listings {
             time: null,
             interest: null,
             missing: null,
-            error:null
+            error: null
           }
         ]
       },
       []
     );
+    this.table.on("change", (keys: string[]) => {
+      const paths: string[] = [];
+      for (const key of keys) {
+        const path = JSON.parse(key)[1];
+        // Be careful to only emit a change event if the actual listing itself changes.
+        // Table emits more frequently, e.g., due to updating watch, time of listing changing, etc.
+        const this_version = this.get_record(path)?.get("listing");
+        if (
+          (this_version == null && this_version != this.last_version[path]) ||
+          (this_version != null &&
+            !this_version.equals(this.last_version[path]))
+        ) {
+          this.last_version[path] = this_version;
+          paths.push(path);
+        }
+      }
+      if (paths.length > 0) {
+        this.emit("change", paths);
+      }
+    });
+    this.set_state("ready");
   }
 
   private get_table(): SyncTable {
-    if (this.table == null || this.table.get_state() != "connected") {
+    if (
+      this.state != "ready" ||
+      this.table == null ||
+      this.table.get_state() != "connected"
+    ) {
       throw Error("table not initialized ");
     }
     return this.table;
@@ -55,25 +147,46 @@ export class Listings {
     this.get_table().save();
   }
 
-  public get(path: string): ImmutableListing | undefined {
+  private get_record(path: string): ImmutableListing | undefined {
     return this.get_table().get(JSON.stringify([this.project_id, path]));
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in smc-util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 
-  public set_interest(path: string): void {
-    this.set({
-      path,
-      interest: webapp_client.server_time()
-    });
+  private set_state(state: State): void {
+    if (this.state == state) return;
+    if (this.state == "closed") {
+      throw Error("cannot switch away from closed");
+    }
+    if (this.state == "ready" && state != "closed") {
+      throw Error("can only transition from ready to closed");
+    }
+    this.state = state;
+    this.emit("state", state);
+  }
+
+  // Returns true if never will be ready
+  private async wait_until_ready(exception: boolean = true): Promise<boolean> {
+    try {
+      if (this.state == "closed") {
+        throw Error("Listings object must not be closed");
+      }
+      if (this.state == "init") {
+        await once(this, "state");
+        if ((this.state as State) != "ready") {
+          throw Error("never will be ready");
+        }
+        return false;
+      }
+      return false;
+    } catch (err) {
+      if (exception) throw err;
+      return true;
+    }
   }
 }
 
-export const listings = reuseInFlight(async function(
-  project_id: string
-): Promise<Listings> {
-  const x = new Listings(project_id);
-  await x.init();
-  return x;
-});
+export function listings(project_id: string): Listings {
+  return new Listings(project_id);
+}

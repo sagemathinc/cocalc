@@ -1,5 +1,5 @@
 import { server_time } from "smc-util/misc";
-import { callback2, retry_until_success } from "smc-util/async-utils";
+import { callback2, once, retry_until_success } from "smc-util/async-utils";
 const { webapp_client } = require("../webapp_client");
 import { redux } from "../app-framework";
 
@@ -129,3 +129,19 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
     }
   }
 }
+
+import { Listings } from "./websocket/listings";
+
+export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
+  const store = redux.getProjectStore(opts.project_id);
+  const listings: Listings = await store.get_listings();
+  listings.watch(opts.path);
+  while (true) {
+    const files = await listings.get(opts.path);
+    if (files != null) {
+      return { files };
+    }
+    await once(listings, "change");
+  }
+}
+

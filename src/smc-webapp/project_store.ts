@@ -1,8 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -54,6 +49,8 @@ import {
 
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
+
+import { Listings, listings } from "./project/websocket/listings";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -151,6 +148,7 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
+  private listings: Listings | undefined;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -188,6 +186,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
+    }
+    if (this.listings != null) {
+      this.listings.close();
     }
   };
 
@@ -535,6 +536,16 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (!isMainConfiguration(conf)) return true;
     const disabled_ext = conf.disabled_ext;
     return !disabled_ext.includes(ext);
+  }
+
+  public get_listings(): Listings {
+    if (this.listings == null) {
+      this.listings = listings(this.project_id);
+    }
+    if (this.listings == null) {
+      throw Error("bug");
+    }
+    return this.listings;
   }
 }
 

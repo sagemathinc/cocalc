@@ -55,7 +55,7 @@ const { webapp_client } = require("./webapp_client");
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
-import { get_directory_listing } from "./project/directory-listing";
+import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
 
 import { Actions, project_redux_name, redux } from "./app-framework";
 
@@ -1524,9 +1524,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Update the directory listing cache for the given path
   // Uses current path if path not provided
-  fetch_directory_listing(
-    opts_args?: FetchDirectoryListingOpts
-  ): void {
+  fetch_directory_listing(opts_args?: FetchDirectoryListingOpts): void {
     let status;
     let store = this.get_store();
     if (store == undefined) {
