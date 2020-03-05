@@ -225,8 +225,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // for modern browsers!), we use our own strategy.
   conn.on("end", async function() {
     log(`project websocket: reconnecting to '${project_id}'...`);
+    if (conn.api == null) return; // done with this connection
     update_state("offline");
     await get_primus(false);
+    if (conn.api == null) return; // done with this connection
     conn.open();
   });
 
