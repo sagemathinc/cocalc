@@ -62,15 +62,24 @@ export class Listings extends EventEmitter {
       ?.toJS();
   }
 
-  public async get_immutable(
+  // Returns:
+  //  - List<ImmutablePathEntry> in case of a proper directory listinmg
+  //  - string in case of an error
+  //  - undefined if directory listing not known (and error not known either).
+  public async get_for_store(
     path: string
-  ): Promise<List<ImmutablePathEntry> | undefined> {
+  ): Promise<List<ImmutablePathEntry> | undefined | string> {
     if (this.state != "ready") {
       const x = await this.get_using_database(path);
       if (x == null) return x;
       return fromJS(x);
     }
-    return this.get_record(path)?.get("listing");
+    const x = this.get_record(path);
+    if (x == null) return x;
+    if (x.get("error")) {
+      return x.get("error");
+    }
+    return x.get("listing");
   }
 
   public async get_using_database(
@@ -86,6 +95,9 @@ export class Listings extends EventEmitter {
         }
       }
     });
+    if (q.query.listings?.error) {
+      throw Error(q.query.listings?.error);
+    }
     return q.query.listings?.listing;
   }
 
@@ -124,18 +136,14 @@ export class Listings extends EventEmitter {
       },
       []
     );
-    this.table.on("change", (keys: string[]) => {
+    this.table.on("change", async (keys: string[]) => {
       const paths: string[] = [];
       for (const key of keys) {
         const path = JSON.parse(key)[1];
         // Be careful to only emit a change event if the actual listing itself changes.
         // Table emits more frequently, e.g., due to updating watch, time of listing changing, etc.
-        const this_version = this.get_record(path)?.get("listing");
-        if (
-          (this_version == null && this_version != this.last_version[path]) ||
-          (this_version != null &&
-            !this_version.equals(this.last_version[path]))
-        ) {
+        const this_version = await this.get_for_store(path);
+        if (this_version != this.last_version[path]) {
           this.last_version[path] = this_version;
           paths.push(path);
         }

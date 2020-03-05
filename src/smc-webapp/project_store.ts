@@ -547,10 +547,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
           if (this.listings == null) return; // won't happen
           directory_listings = directory_listings.set(
             path,
-            await this.listings.get_immutable(path)
+            await this.listings.get_for_store(path)
           );
         }
         const actions = redux.getProjectActions(this.project_id);
+        // TODO: also set error state if missing directory, etc.
         actions.setState({ directory_listings });
       });
     }
