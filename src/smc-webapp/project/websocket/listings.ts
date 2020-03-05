@@ -4,10 +4,12 @@ import { throttle } from "lodash";
 
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
-import { TypedMap } from "../../app-framework";
+import { redux, TypedMap } from "../../app-framework";
 import { merge } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
 import { query } from "../../frame-editors/generic/client";
+
+import { get_directory_listing } from "../directory-listing";
 
 import { WATCH_TIMEOUT_MS } from "smc-util/db-schema/listings";
 export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
@@ -78,8 +80,27 @@ export class Listings extends EventEmitter {
 
   public async get(path: string): Promise<PathEntry[] | undefined> {
     if (this.state != "ready") {
-      return await this.get_using_database(path);
+      try {
+        const listing = await this.get_using_database(path);
+        if (listing != null) {
+          return listing;
+        }
+      } catch (err) {
+        // ignore -- e.g., maybe user doesn't have access or db not available.  Fine either way.
+      }
     }
+    if (this.state != "ready") {
+      // State still not ready and nothing in the database.
+      // If project is running, try directly getting listing (this is meant
+      // for old projects that haven't been restarted since we released the new
+      // sync code, but could possibly be a useful fallback in case of other
+      // problems).
+      const listing = await this.get_listing_directly(path);
+      if (listing != null) {
+        return listing;
+      }
+    }
+
     return this.get_record(path)
       ?.get("listing")
       ?.toJS();
@@ -122,6 +143,28 @@ export class Listings extends EventEmitter {
       throw Error(q.query.listings?.error);
     }
     return q.query.listings?.listing;
+  }
+
+  public async get_listing_directly(path: string): Promise<PathEntry[]> {
+    const store = redux.getStore("projects");
+    // make sure that our relationship to this project is known.
+    if (store == null) throw Error("bug");
+    const group = await store.async_wait({
+      until: s => (s as any).get_my_group(this.project_id),
+      timeout: 60
+    });
+    const x = await get_directory_listing({
+      project_id: this.project_id,
+      path,
+      hidden: true,
+      max_time_s: 15 * 60,
+      group
+    });
+    if (x.error != null) {
+      throw Error(x.error);
+    } else {
+      return x.files;
+    }
   }
 
   public close(): void {

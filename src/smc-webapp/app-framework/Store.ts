@@ -1,20 +1,21 @@
 import { EventEmitter } from "events";
+
+import { throttle } from "lodash";
 import * as async from "async";
-import { createSelector } from "reselect";
 import { fromJS } from "immutable";
+
+import { createSelector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
-import * as misc from "../../smc-util/misc";
+import { callback2 } from "../../smc-util/async-utils";
+import { defaults, required, top_sort } from "../../smc-util/misc";
 // Relative import is temporary, until I figure this out -- needed for *project*
 // import { fill } from "../../smc-util/fill";
 // fill does not even compile for the backend project (using the fill from the fill
 // module breaks starting projects).
 // NOTE: a basic requirement of "redux app framework" is that it can fully run
 // on the backend (e.g., in a project) under node.js.
-const { defaults, required } = misc;
-
-import { throttle } from "lodash";
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
@@ -82,7 +83,7 @@ export class Store<State> extends EventEmitter {
       }
       // check if there are cycles
       try {
-        misc.top_sort(dependency_graph);
+        top_sort(dependency_graph);
       } catch {
         throw new Error(
           `redux store "${this.name}" has cycle in its selector dependencies`
@@ -212,5 +213,13 @@ export class Store<State> extends EventEmitter {
       timeout_ref = setTimeout(timeout_error, timeout * 1000);
     }
     return this.on("change", listener);
+  }
+
+  public async async_wait<T>(opts: {
+    until: (store: any) => T; // waits until "until(store)" evaluates to something truthy
+    throttle_ms?: number; // in ms -- throttles the call to until(store)
+    timeout?: number; // in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+  }): Promise<any> {
+    return await callback2(this.wait.bind(this), opts);
   }
 }
