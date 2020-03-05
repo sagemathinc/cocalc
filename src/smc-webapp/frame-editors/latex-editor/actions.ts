@@ -565,7 +565,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_patch_synctex(time: number, force: boolean): Promise<void> {
-    const status = s => this.set_status(`Running Knitr/Synctex... ${s}`);
+    // quotes around ${s} are just so codemirror doesn't syntax highlight the rest of this file:
+    const status = s => this.set_status(`Running Knitr/Synctex... "${s}"`);
     status("");
     try {
       await patch_synctex(
@@ -813,6 +814,12 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory()
       );
+      if (output.stderr.indexOf("sagetex.VersionError") != -1) {
+        // See https://github.com/sagemathinc/cocalc/issues/4432
+        throw Error(
+          "SageTex in CoCalc currently only works with the default verison of Sage.  Delete ~/bin/sage and try again."
+        );
+      }
       // Now Run LaTeX, since we had to run sagetex, which changes
       // the sage output. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
