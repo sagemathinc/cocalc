@@ -246,3 +246,4 @@ import { SettingsExtras } from "./site-settings-extras";
 export type AllSiteSettings = {
   [key in keyof SiteSettings | keyof SettingsExtras]?: any;
 };
+
