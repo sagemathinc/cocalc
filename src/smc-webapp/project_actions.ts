@@ -2346,16 +2346,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
-    const deal_with_leading_dash = function(src_path: string) {
-      if (src_path[0] === "-") {
-        return `./${src_path}`;
-      } else {
-        return src_path;
-      }
+    // Just prefix all of them, due to https://github.com/sagemathinc/cocalc/issues/4428 brining up yet another issue
+    const add_leading_dash = function(src_path: string) {
+      return `./${src_path}`;
     };
 
     // Ensure that src files are not interpreted as an option to rsync
-    opts.src = opts.src.map(deal_with_leading_dash);
+    opts.src = opts.src.map(add_leading_dash);
 
     const id = opts.id != null ? opts.id : misc.uuid();
     this.set_activity({
@@ -2379,7 +2376,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     args = args.concat(opts.src);
-    args = args.concat([opts.dest]);
+    args = args.concat([add_leading_dash(opts.dest)]);
 
     webapp_client.exec({
       project_id: this.project_id,

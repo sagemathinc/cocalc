@@ -335,7 +335,7 @@ class SiteSettingsComponent extends Component<
     name: string,
     value: string,
     password: boolean,
-    parsed_val?: string,
+    displayed_val?: string,
     valid?: ConfigValid,
     hint?: Rendered,
     row_type: RowType
@@ -354,7 +354,7 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
-                {this.render_row_entry_parsed(parsed_val)}
+                {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>
             </FormGroup>
@@ -381,8 +381,11 @@ class SiteSettingsComponent extends Component<
     const raw_value = this.state.edited[name] ?? conf.default;
     const row_type: RowType = conf.type ?? ("setting" as RowType);
 
+    // fallbacks: to_display? → to_val? → undefined
     const parsed_value: string | undefined =
-      typeof conf.to_val == "function"
+      typeof conf.to_display == "function"
+        ? `${conf.to_display(raw_value)}`
+        : typeof conf.to_val == "function"
         ? `${conf.to_val(raw_value)}`
         : undefined;
 
