@@ -1,3 +1,6 @@
+// These site-settings are visible to any user (read-only)
+// They contain information like the site's name, contact email addresses, etc.
+
 import { site_settings_conf } from "./site-defaults";
 import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 import { keys } from "../misc";
