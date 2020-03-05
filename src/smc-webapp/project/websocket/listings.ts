@@ -1,11 +1,16 @@
 import { EventEmitter } from "events";
 import { List, fromJS } from "immutable";
+import { throttle } from "lodash";
+
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { TypedMap } from "../../app-framework";
 import { merge } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
 import { query } from "../../frame-editors/generic/client";
+
+import { WATCH_TIMEOUT_MS } from "smc-util/db-schema/listings";
+export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
 
 interface PathEntry {
   name: string;
@@ -34,6 +39,7 @@ export class Listings extends EventEmitter {
   private project_id: string;
   private last_version: { [path: string]: any } = {}; // last version emitted via change event.
   private state: State = "init";
+  private throttled_watch: { [path: string]: Function } = {};
 
   constructor(project_id: string): void {
     super();
@@ -42,10 +48,27 @@ export class Listings extends EventEmitter {
   }
 
   // Watch directory for changes.
-  // IMPORTANT: This must be called frequently, e.g., at least
+  // IMPORTANT: This may and must be called frequently, e.g., at least
   // once every 45 seconds.  The point is to convey to the backend
   // that at least one client is interested in this path.
+  // Don't worry about calling this function **too much**, since
+  // it throttles calls.
   public async watch(path: string): Promise<void> {
+    if (this.throttled_watch[path] == null) {
+      this.throttled_watch[path] = throttle(
+        () => this._watch(path),
+        WATCH_THROTTLE_MS,
+        {
+          leading: true,
+          trailing: true
+        }
+      );
+    }
+    if (this.throttled_watch[path] == null) throw Error("bug");
+    this.throttled_watch[path]();
+  }
+
+  private async _watch(path: string): Promise<void> {
     if (await this.wait_until_ready(false)) return;
     this.set({
       path,
@@ -110,6 +133,7 @@ export class Listings extends EventEmitter {
     this.removeAllListeners();
     delete this.last_version;
     delete this.project_id;
+    delete this.throttled_watch;
   }
 
   private async init(): Promise<void> {

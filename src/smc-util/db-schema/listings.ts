@@ -4,6 +4,8 @@ Table of directory listings.
 
 import { Table } from "./types";
 
+export const WATCH_TIMEOUT_MS = 60000;
+
 // Maximum number of paths to keep in listings tables for this project.
 // NOTE: for now we're just using a limit query to only load this many
 // when initializing things. We might have more in the database until

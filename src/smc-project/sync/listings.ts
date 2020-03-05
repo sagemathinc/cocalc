@@ -10,6 +10,7 @@ import { TypedMap } from "../smc-webapp/app-framework";
 import { merge } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
 import { get_listing } from "../directory-listing";
+import { WATCH_TIMEOUT_MS } from "../smc-util/db-schema/listings";
 
 // Maximum number of entries in a directory listing.  If this is exceeded
 // we sort by last modification time, take only the first MAX_LENGTH
@@ -17,10 +18,12 @@ import { get_listing } from "../directory-listing";
 const MAX_LENGTH = 100;
 
 // Update directory listing only when file changes stop for at least this long.
+// This is important since we don't want to fire off dozens of changes per second,
+// e.g., if a logfile is being updated.
 const WATCH_DEBOUNCE_MS = 1000;
 
 // Watch directories for which some client has shown interest recently:
-const INTEREST_THRESH_SECONDS = 60;
+const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS * 1000;
 
 // Maximum number of paths to keep in listings tables for this project.
 // Periodically, info about older paths beyond this number will be purged
