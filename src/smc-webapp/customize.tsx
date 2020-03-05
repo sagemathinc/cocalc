@@ -21,10 +21,7 @@ import { Loading } from "./r_misc";
 import { callback2 } from "smc-util/async-utils";
 const misc = require("smc-util/misc");
 import * as theme from "smc-util/theme";
-import {
-  split_iframe_comm_hosts,
-  site_settings_conf
-} from "smc-util/db-schema/site-defaults";
+import { site_settings_conf } from "smc-util/db-schema/site-defaults";
 
 import {
   KUCALC_DISABLED,
@@ -71,8 +68,7 @@ class CustomizeStore extends Store<any> {
   get_iframe_comm_hosts(): string[] {
     const hosts = this.get("iframe_comm_hosts");
     if (hosts == null) return [];
-    // ATTN: if you change this regex, also change smc-util/db-schema/site-defaults.ts
-    return split_iframe_comm_hosts(hosts);
+    return hosts.toJS();
   }
 }
 

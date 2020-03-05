@@ -14,6 +14,8 @@ export interface Config {
   readonly show?: (conf: any) => boolean;
   // this optional function derives the actual value of this setting from current value.
   readonly to_val?: (val: string) => boolean | string | number;
+  // this optional function derives the visual representation for the admin (fallback: to_val)
+  readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
 }
 
@@ -37,7 +39,7 @@ export const only_nonneg_int = val =>
 export const split_iframe_comm_hosts = hosts =>
   hosts.match(/[a-zA-Z0-9.-]+/g) || [];
 
-function dns_hosts(val) {
+function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
 }
 
@@ -144,7 +146,8 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
     default: "",
-    to_val: dns_hosts
+    to_val: split_iframe_comm_hosts,
+    to_display: num_dns_hosts
   },
   default_quotas: {
     name: "Default Quotas",
