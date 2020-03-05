@@ -40,18 +40,6 @@ export class MiscSideButtons extends React.Component<Props> {
     this.props.actions.open_directory(".snapshots");
   };
 
-  render_refresh(): JSX.Element {
-    return (
-      <Button
-        bsSize="small"
-        cocalc-test="files-refresh"
-        onClick={this.handle_refresh}
-      >
-        <Icon name="refresh" />
-      </Button>
-    );
-  }
-
   render_hidden_toggle(): JSX.Element {
     const icon = this.props.show_hidden ? "eye" : "eye-slash";
     return (
@@ -141,7 +129,6 @@ export class MiscSideButtons extends React.Component<Props> {
           {this.render_upload_button()}
         </ButtonGroup>
         <ButtonGroup bsSize="small" className="pull-right">
-          {this.render_refresh()}
           {this.render_hidden_toggle()}
           {this.render_masked_toggle()}
           {this.render_backup()}
