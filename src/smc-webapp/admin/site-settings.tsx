@@ -123,12 +123,18 @@ class SiteSettingsComponent extends Component<
     }
   }
 
+  // return true, if the given settings key is a header
+  private is_header(name): boolean {
+    return (
+      EXTRAS[name]?.type == ("header" as RowType) ||
+      site_settings_conf[name]?.type == ("header" as RowType)
+    );
+  }
+
   private async store(): Promise<void> {
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
-      if (EXTRAS[name] != null) {
-        if (EXTRAS[name].type == ("header" as RowType)) continue;
-      }
+      if (this.is_header[name]) continue;
       if (!isEqual(value, this.state.data[name])) {
         try {
           await query({

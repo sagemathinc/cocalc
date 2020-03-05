@@ -19,6 +19,7 @@ type SiteSettingsKeys =
   | "version_min_browser"
   | "version_recommended_browser"
   | "iframe_comm_hosts"
+  | "onprem_quota_heading"
   | "default_quotas"
   | "max_upgrades"
   | "email_enabled"
@@ -154,6 +155,13 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts
+  },
+  onprem_quota_heading: {
+    name: "On-prem Quotas",
+    desc: "",
+    default: "",
+    show: only_onprem,
+    type: "header"
   },
   default_quotas: {
     name: "Default Quotas",
