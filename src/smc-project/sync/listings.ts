@@ -10,12 +10,10 @@ import { TypedMap } from "../smc-webapp/app-framework";
 import { merge } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
 import { get_listing } from "../directory-listing";
-import { WATCH_TIMEOUT_MS } from "../smc-util/db-schema/listings";
-
-// Maximum number of entries in a directory listing.  If this is exceeded
-// we sort by last modification time, take only the first MAX_LENGTH
-// most recent entries, and set missing to the number that are missing.
-const MAX_LENGTH = 100;
+import {
+  WATCH_TIMEOUT_MS,
+  MAX_FILES_PER_PATH
+} from "../smc-util/db-schema/listings";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -198,11 +196,11 @@ class ListingsTable {
       throw err;
     }
     let missing: number | undefined = undefined;
-    if (listing.length > MAX_LENGTH) {
+    if (listing.length > MAX_FILES_PER_PATH) {
       listing.sort(field_cmp("mtime"));
       listing.reverse();
-      missing = listing.length - MAX_LENGTH;
-      listing = listing.slice(0, MAX_LENGTH);
+      missing = listing.length - MAX_FILES_PER_PATH;
+      listing = listing.slice(0, MAX_FILES_PER_PATH);
     }
     this.set({ path, listing, time, missing, error: undefined });
   }

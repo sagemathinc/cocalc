@@ -1653,6 +1653,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
   }
 
+  public async fetch_directory_listing_directly(path: string): Promise<void> {
+    const store = this.get_store();
+    if (store == null) return;
+    const listings = store.get_listings();
+    try {
+      const files = await listings.get_listing_directly(path);
+      const directory_listings = store
+        .get("directory_listings")
+        .set(path, immutable.fromJS(files));
+      this.setState({ directory_listings });
+    } catch (err) {
+      console.warn(`Unable to fetch all files -- "${err}"`);
+    }
+  }
+
   // Sets the active file_sort to next_column_name
   set_sorted_file_column(column_name): void {
     let is_descending;

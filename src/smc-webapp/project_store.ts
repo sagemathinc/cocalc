@@ -542,6 +542,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (this.listings == null) {
       this.listings = listings(this.project_id);
       this.listings.on("change", async paths => {
+        const missing_paths: string[] = [];
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {
           if (this.listings == null) return; // won't happen
@@ -549,10 +550,24 @@ export class ProjectStore extends Store<ProjectStoreState> {
             path,
             await this.listings.get_for_store(path)
           );
+          const missing = this.listings.get_missing(path);
+          if (missing) {
+            missing_paths.push(path);
+          }
         }
         const actions = redux.getProjectActions(this.project_id);
         // TODO: also set error state if missing directory, etc.
         actions.setState({ directory_listings });
+
+        if (missing_paths.length > 0) {
+          // this has to happen after the setState above, else it gets undone.
+          const actions = this.redux.getProjectActions(this.project_id);
+          if (actions != null) {
+            for (const path of missing_paths) {
+              actions.fetch_directory_listing_directly(path);
+            }
+          }
+        }
       });
     }
     if (this.listings == null) {

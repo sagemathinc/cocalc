@@ -101,9 +101,9 @@ export class Listings extends EventEmitter {
       }
     }
 
-    return this.get_record(path)
-      ?.get("listing")
-      ?.toJS();
+    const x = this.get_record(path);
+    if (x == null || x.get("error")) return;
+    return x.get("listing")?.toJS();
   }
 
   // Returns:
@@ -143,6 +143,13 @@ export class Listings extends EventEmitter {
       throw Error(q.query.listings?.error);
     }
     return q.query.listings?.listing;
+  }
+
+  public get_missing(path: string): number | undefined {
+    if (this.state != "ready") return;
+    return this.get_table()
+      .get(JSON.stringify([this.project_id, path]))
+      ?.get("missing");
   }
 
   public async get_listing_directly(path: string): Promise<PathEntry[]> {
