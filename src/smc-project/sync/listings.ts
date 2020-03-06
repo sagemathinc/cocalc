@@ -1,7 +1,3 @@
-import { watch, FSWatcher } from "fs";
-import { join } from "path";
-
-import { debounce } from "lodash";
 import { delay } from "awaiting";
 
 import { once } from "../smc-util/async-utils";
@@ -14,6 +10,7 @@ import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH
 } from "../smc-util/db-schema/listings";
+import { Watcher } from "./path-watcher";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -21,7 +18,7 @@ import {
 const WATCH_DEBOUNCE_MS = 1000;
 
 // Watch directories for which some client has shown interest recently:
-const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS * 1000;
+const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
 
 // Maximum number of paths to keep in listings tables for this project.
 // Periodically, info about older paths beyond this number will be purged
@@ -44,7 +41,7 @@ class ListingsTable {
   private table: SyncTable;
   private logger: undefined | { debug: Function };
   private project_id: string;
-  private watchers: { [path: string]: FSWatcher } = {};
+  private watchers: { [path: string]: Watcher } = {};
 
   constructor(table: SyncTable, logger: any, project_id: string) {
     this.project_id = project_id;
@@ -54,9 +51,21 @@ class ListingsTable {
     this.setup_watchers();
   }
 
+  public close(): void {
+    this.log("close");
+    delete this.table;
+    delete this.logger;
+    delete this.project_id;
+    for (const path in this.watchers) {
+      this.stop_watching(path);
+    }
+    delete this.watchers;
+  }
+
   // Start watching any paths that have recent interest (so this is not
   // in response to a *change* after starting).
   private async setup_watchers(): Promise<void> {
+    if (this.table == null) return; // closed
     if (this.table.get_state() == "init") {
       await once(this.table, "state");
     }
@@ -78,6 +87,7 @@ class ListingsTable {
   }
 
   private async remove_stale_watchers(): Promise<void> {
+    if (this.table == null) return; // closed
     if (this.table.get_state() == "connected") {
       this.table.get().forEach(val => {
         const path = val.get("path");
@@ -102,8 +112,10 @@ class ListingsTable {
       this.log("WARNING, error trimming old paths -- ", err);
     }
 
+    if (this.table == null) return; // closed
     if (this.table.get_state() == "connected") {
       await delay(1000 * INTEREST_THRESH_SECONDS);
+      if (this.table == null) return; // closed
       if (this.table.get_state() != "connected") return;
       this.remove_stale_watchers();
     }
@@ -115,7 +127,8 @@ class ListingsTable {
   }
 
   private get_table(): SyncTable {
-    if (this.table == null || this.table.get_state() != "connected") {
+    if (this.table == null) return; // closed
+    if (this.table.get_state() != "connected") {
       throw Error("table not initialized ");
     }
     return this.table;
@@ -191,7 +204,6 @@ class ListingsTable {
     try {
       listing = await get_listing(path, true);
     } catch (err) {
-      // missing = -1 indicates unable to get a listing, e.g. no such directory.
       this.set({ path, time, error: `${err}` });
       throw err;
     }
@@ -210,21 +222,14 @@ class ListingsTable {
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
     }
-    const abs_path = join(process.env.HOME, path);
-    this.watchers[path] = watch(
-      abs_path,
-      debounce(async (_type, _filename) => {
-        /* We could maintain the directory listing and just try to update info about the filename,
-         taking into account the type.  That's probably really hard to get right, and just
-         debouncing and computing the whole listing is going to be vastly easier and good
-         enough at least for first round of this. */
-        try {
-          await this.compute_listing(path);
-        } catch (err) {
-          this.log(`updating "${path}" due to change failed`, err);
-        }
-      }, WATCH_DEBOUNCE_MS)
-    );
+    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS);
+    this.watchers[path].on("change", async () => {
+      try {
+        await this.compute_listing(path);
+      } catch (err) {
+        this.log(`compute_listing("${path}") error: "${err}"`);
+      }
+    });
   }
 
   private stop_watching(path: string): void {
@@ -276,11 +281,18 @@ class ListingsTable {
   }
 }
 
+let listings_table: ListingsTable | undefined = undefined;
 export function register_listings_table(
   table: SyncTable,
   logger: any,
   project_id: string
 ): void {
   logger.debug("register_listings_table");
-  new ListingsTable(table, logger, project_id);
+  if (listings_table != null) {
+    // There was one sitting around wasting space so clean it up
+    // before making a new one.
+    listings_table.close();
+  }
+  listings_table = new ListingsTable(table, logger, project_id);
+  return;
 }
