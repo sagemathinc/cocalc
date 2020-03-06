@@ -715,11 +715,15 @@ function _sort_on_string_field(field) {
 }
 
 function _sort_on_numerical_field(field, factor = 1) {
-  return (a, b) =>
-    misc.cmp(
+  return (a, b) => {
+    const c = misc.cmp(
       (a[field] != null ? a[field] : -1) * factor,
       (b[field] != null ? b[field] : -1) * factor
     );
+    if (c) return c;
+    // break ties using the name, so well defined.
+    return misc.cmp(a.name, b.name) * factor;
+  };
 }
 
 export function init(project_id: string, redux: AppRedux): ProjectStore {
