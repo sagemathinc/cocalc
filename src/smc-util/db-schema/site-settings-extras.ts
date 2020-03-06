@@ -51,7 +51,7 @@ export const EXTRAS: SettingsExtras = {
     name: "Stripe Publishable",
     desc: "Stripe calls this key 'publishable'",
     default: "",
-    password: true,
+    password: false,
     show: only_commercial
   },
   stripe_secret_key: {
