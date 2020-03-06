@@ -137,14 +137,26 @@ export async function get_directory_listing2(opts: ListingOpts): Promise<any> {
   const listings: Listings = await store.get_listings();
   listings.watch(opts.path);
   while (true) {
-    const files = await listings.get(opts.path);
-    if (files != null) {
-      if (listings.get_missing(opts.path)) {
+    if (listings.get_missing(opts.path)) {
+      if (store.getIn(["directory_listings", opts.path]) != null) {
+        // just update an already loading listing:
+        try {
+          return { files: await listings.get_listing_directly(opts.path) };
+        } catch (err) {
+          console.warn(
+            `WARNING: problem getting directory listing ${err}; falling back`
+          );
+        }
+      } else {
         // ensure all listing entries get loaded soon.
         redux
           .getProjectActions(opts.project_id)
           ?.fetch_directory_listing_directly(opts.path);
       }
+    }
+    // return what we have now:
+    const files = await listings.get(opts.path);
+    if (files != null) {
       return { files };
     }
     await once(listings, "change");

@@ -542,32 +542,28 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (this.listings == null) {
       this.listings = listings(this.project_id);
       this.listings.on("change", async paths => {
-        const missing_paths: string[] = [];
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {
           if (this.listings == null) return; // won't happen
-          directory_listings = directory_listings.set(
-            path,
-            await this.listings.get_for_store(path)
-          );
-          const missing = this.listings.get_missing(path);
-          if (missing) {
-            missing_paths.push(path);
+          let files;
+          if (this.listings.get_missing(path)) {
+            try {
+              files = immutable.fromJS(
+                await this.listings.get_listing_directly(path)
+              );
+            } catch (err) {
+              console.warn(
+                `WARNING: problem getting directory listing ${err}; falling back`
+              );
+              files = await this.listings.get_for_store(path);
+            }
+          } else {
+            files = await this.listings.get_for_store(path);
           }
+          directory_listings = directory_listings.set(path, files);
         }
         const actions = redux.getProjectActions(this.project_id);
-        // TODO: also set error state if missing directory, etc.
         actions.setState({ directory_listings });
-
-        if (missing_paths.length > 0) {
-          // this has to happen after the setState above, else it gets undone.
-          const actions = this.redux.getProjectActions(this.project_id);
-          if (actions != null) {
-            for (const path of missing_paths) {
-              actions.fetch_directory_listing_directly(path);
-            }
-          }
-        }
       });
     }
     if (this.listings == null) {
