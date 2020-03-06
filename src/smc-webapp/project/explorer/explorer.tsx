@@ -508,18 +508,8 @@ export const Explorer = rclass<ReactProps>(
       listing: ListingItem[] | undefined,
       file_map,
       fetch_directory_error: any,
-      project_state: ProjectStatus | undefined,
       public_view: boolean
     ) {
-      if (project_state != null) {
-        // NOTE: for public view of a projet, we do NOT know the state!
-        const state = project_state.get("state");
-        if (state != "running" && state != "saving") {
-          // Explain to user what is going on...
-          return this.render_project_state(project_state);
-        }
-      }
-
       if (fetch_directory_error) {
         // TODO: the refresh button text is inconsistant
         return (
@@ -606,24 +596,32 @@ export const Explorer = rclass<ReactProps>(
       const needle = (project_state && project_state.get("state")) || "";
       const enabled = ["opened", "closed", "archived"].includes(needle);
       return (
-        <Button
-          disabled={!enabled}
-          bsStyle="primary"
-          bsSize="large"
-          onClick={this.on_click_start_project}
-        >
-          <Icon name="flash" /> Start Project
-        </Button>
+        <span style={{ marginLeft: "30px" }}>
+          <Button
+            disabled={!enabled}
+            bsStyle="primary"
+            bsSize="large"
+            onClick={this.on_click_start_project}
+          >
+            <Icon name="flash" /> Start Project
+          </Button>
+        </span>
       );
     }
 
     render_project_state(project_state?: ProjectStatus) {
+      const state = project_state?.get("state");
+      if (state == "running" || state == "saving") return;
       return (
         <div
-          style={{ fontSize: "40px", textAlign: "center", color: "#666666" }}
+          style={{
+            fontSize: "40px",
+            textAlign: "center",
+            color: "#666666",
+            marginBottom: "15px"
+          }}
         >
           <ProjectState state={project_state} show_desc={true} />
-          <br />
           {this.render_start_project_button(project_state)}
         </div>
       );
@@ -911,11 +909,11 @@ export const Explorer = rclass<ReactProps>(
             {public_view && !directory_error
               ? this.render_access_error(public_view)
               : undefined}
+            {this.render_project_state(project_state)}
             {this.render_file_listing(
               visible_listing,
               file_map,
               directory_error,
-              project_state,
               public_view
             )}
             {listing != undefined

@@ -4,12 +4,19 @@ Table of directory listings.
 
 import { Table } from "./types";
 
+export const WATCH_TIMEOUT_MS = 60000;
+
 // Maximum number of paths to keep in listings tables for this project.
 // NOTE: for now we're just using a limit query to only load this many
 // when initializing things. We might have more in the database until
 // synctable.delete gets fully and properly initialized.  The main goal
 // is to not waste bandwidth and memory in browsers.
-export const MAX_PATHS = 15;
+export const MAX_PATHS = 20;
+
+// Maximum number of entries in a directory listing.  If this is exceeded
+// we sort by last modification time, take only the first MAX_FILES_PER_PATH
+// most recent entries, and set missing to the number that are missing.
+export const MAX_FILES_PER_PATH = 100;
 
 Table({
   name: "listings",

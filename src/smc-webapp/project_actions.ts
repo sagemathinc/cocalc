@@ -31,7 +31,7 @@ import { transform_get_url } from "./project/transform-get-url";
 
 import { OpenFiles } from "./project/open-files";
 
-let project_file, prom_get_dir_listing_h, wrapped_editors;
+let project_file, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   project_file = require("./project_file");
@@ -54,6 +54,8 @@ import { alert_message } from "./alerts";
 const { webapp_client } = require("./webapp_client");
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
+
+import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
 
 import { Actions, project_redux_name, redux } from "./app-framework";
 
@@ -1597,7 +1599,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
           });
         },
-        cb => {
+        async cb => {
           store = this.get_store();
           if (store == null) {
             cb("store no longer defined");
@@ -1606,17 +1608,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           if (path == null) {
             path = store.get("current_path");
           }
-          get_directory_listing({
-            project_id: this.project_id,
-            path,
-            hidden: true,
-            max_time_s: 15 * 60, // keep trying for up to 15 minutes
-            group: my_group,
-            cb: (err, listing) => {
-              the_listing = listing;
-              cb(err);
-            }
-          });
+          try {
+            the_listing = await get_directory_listing({
+              project_id: this.project_id,
+              path,
+              hidden: true,
+              max_time_s: 15 * 60, // keep trying for up to 15 minutes
+              group: my_group
+            });
+            cb();
+          } catch (err) {
+            cb(err.message);
+          }
         }
       ],
       err => {
@@ -1648,6 +1651,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     );
+  }
+
+  public async fetch_directory_listing_directly(path: string): Promise<void> {
+    const store = this.get_store();
+    if (store == null) return;
+    const listings = store.get_listings();
+    try {
+      const files = await listings.get_listing_directly(path);
+      const directory_listings = store
+        .get("directory_listings")
+        .set(path, immutable.fromJS(files));
+      this.setState({ directory_listings });
+    } catch (err) {
+      console.warn(`Unable to fetch all files -- "${err}"`);
+    }
   }
 
   // Sets the active file_sort to next_column_name
@@ -2346,16 +2364,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
-    const deal_with_leading_dash = function(src_path: string) {
-      if (src_path[0] === "-") {
-        return `./${src_path}`;
-      } else {
-        return src_path;
-      }
+    // Just prefix all of them, due to https://github.com/sagemathinc/cocalc/issues/4428 brining up yet another issue
+    const add_leading_dash = function(src_path: string) {
+      return `./${src_path}`;
     };
 
     // Ensure that src files are not interpreted as an option to rsync
-    opts.src = opts.src.map(deal_with_leading_dash);
+    opts.src = opts.src.map(add_leading_dash);
 
     const id = opts.id != null ? opts.id : misc.uuid();
     this.set_activity({
@@ -2379,7 +2394,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     args = args.concat(opts.src);
-    args = args.concat([opts.dest]);
+    args = args.concat([add_leading_dash(opts.dest)]);
 
     webapp_client.exec({
       project_id: this.project_id,
@@ -3197,131 +3212,4 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!startswith(a, "editor-")) return;
     this.hide_file(misc.tab_to_path(a));
   }
-}
-
-const prom_client = require("./prom-client");
-if (prom_client.enabled) {
-  prom_get_dir_listing_h = prom_client.new_histogram(
-    "get_dir_listing_seconds",
-    "get_directory_listing time",
-    {
-      buckets: [1, 2, 5, 7, 10, 15, 20, 30, 50],
-      labels: ["public", "state", "err"]
-    }
-  );
-}
-
-function get_directory_listing(opts) {
-  let method, prom_dir_listing_start, prom_labels, state, time0, timeout;
-  opts = defaults(opts, {
-    project_id: required,
-    path: required,
-    hidden: required,
-    max_time_s: required,
-    group: required,
-    cb: required
-  });
-
-  if (prom_client.enabled) {
-    prom_dir_listing_start = misc.server_time();
-    prom_labels = { public: false };
-  }
-
-  if (["owner", "collaborator", "admin"].indexOf(opts.group) != -1) {
-    method = webapp_client.project_directory_listing;
-    // Also, make sure project starts running, in case it isn't.
-    state = (redux.getStore("projects") as any).getIn([
-      "project_map",
-      opts.project_id,
-      "state",
-      "state"
-    ]);
-    if (prom_client.enabled) {
-      prom_labels.state = state;
-    }
-    if (state !== "running") {
-      timeout = 0.5;
-      time0 = misc.server_time();
-      (redux.getActions("projects") as any).start_project(opts.project_id);
-    } else {
-      timeout = 1;
-    }
-  } else {
-    state = time0 = undefined;
-    method = webapp_client.public_project_directory_listing;
-    timeout = 15;
-    if (prom_client.enabled) {
-      prom_labels.public = true;
-    }
-  }
-
-  let listing: any;
-  let listing_err: any;
-  const f = cb => {
-    // console.log("get_directory_listing.f ", opts.path);
-    method({
-      project_id: opts.project_id,
-      path: opts.path,
-      hidden: opts.hidden,
-      timeout,
-      cb(err, x) {
-        if (err) {
-          if (err.message != null) {
-            if (err.message.indexOf("ENOENT") != -1) {
-              listing_err = "no_dir";
-            } else if (err.message.indexOf("ENOTDIR") != -1) {
-              listing_err = "not_a_dir";
-            } else {
-              listing_err = err.message;
-            }
-            cb();
-          } else {
-            // I don't think this happens anymore...
-            if (timeout < 5) {
-              timeout *= 1.3;
-            }
-            cb(err);
-          }
-        } else {
-          listing = x;
-          cb();
-        }
-      }
-    });
-  };
-
-  return misc.retry_until_success({
-    f,
-    max_time: opts.max_time_s * 1000,
-    start_delay: 100,
-    max_delay: 1000,
-    //log         : console.log
-    cb(err) {
-      //console.log opts.path, 'get_directory_listing.success or timeout', err
-      if (prom_client.enabled && prom_dir_listing_start != null) {
-        prom_labels.err = !!err;
-        const tm = (misc.server_time() - prom_dir_listing_start) / 1000;
-        if (!isNaN(tm)) {
-          if (prom_get_dir_listing_h != null) {
-            prom_get_dir_listing_h.observe(prom_labels, tm);
-          }
-        }
-      }
-
-      err = err != null ? err : listing_err;
-      // no `err` error, but `listing` has no value, too
-      // https://github.com/sagemathinc/cocalc/issues/3223
-      if (!err && listing == null) {
-        err = "no_dir";
-      }
-      opts.cb(err, listing);
-      if (time0 && state !== "running" && !err) {
-        // successfully opened, started, and got directory listing
-        return redux.getProjectActions(opts.project_id).log({
-          event: "start_project",
-          time: misc.server_time() - time0
-        });
-      }
-    }
-  });
 }

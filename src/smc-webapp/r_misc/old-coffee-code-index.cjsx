@@ -1041,13 +1041,12 @@ exports.ProjectState = rclass
         show_desc : false
 
     render_spinner:  ->
-        <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
+        <span style={{marginRight:'15px'}}>... <Icon name='cc-icon-cocalc-ring' spin /></span>
 
     render_desc: (desc) ->
         if not @props.show_desc
             return
         <span>
-            <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
                 {@render_time()}
@@ -1065,7 +1064,9 @@ exports.ProjectState = rclass
             return <Loading />
         {display, desc, icon, stable} = s
         <span>
-            <Icon name={icon} /> {display} {@render_spinner() if not stable}
+            <Icon name={icon} /> {display}
+            <Space />
+            {@render_spinner() if not stable}
             {@render_desc(desc)}
         </span>
 

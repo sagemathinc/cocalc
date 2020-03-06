@@ -1,8 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -54,6 +49,8 @@ import {
 
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
+
+import { Listings, listings } from "./project/websocket/listings";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -151,6 +148,7 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
+  private listings: Listings | undefined;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -188,6 +186,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
+    }
+    if (this.listings != null) {
+      this.listings.close();
     }
   };
 
@@ -536,6 +537,44 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const disabled_ext = conf.disabled_ext;
     return !disabled_ext.includes(ext);
   }
+
+  public get_listings(): Listings {
+    if (this.listings == null) {
+      this.listings = listings(this.project_id);
+      this.listings.on("change", async paths => {
+        const missing_paths: string[] = [];
+        let directory_listings = this.get("directory_listings");
+        for (const path of paths) {
+          if (this.listings == null) return; // won't happen
+          directory_listings = directory_listings.set(
+            path,
+            await this.listings.get_for_store(path)
+          );
+          const missing = this.listings.get_missing(path);
+          if (missing) {
+            missing_paths.push(path);
+          }
+        }
+        const actions = redux.getProjectActions(this.project_id);
+        // TODO: also set error state if missing directory, etc.
+        actions.setState({ directory_listings });
+
+        if (missing_paths.length > 0) {
+          // this has to happen after the setState above, else it gets undone.
+          const actions = this.redux.getProjectActions(this.project_id);
+          if (actions != null) {
+            for (const path of missing_paths) {
+              actions.fetch_directory_listing_directly(path);
+            }
+          }
+        }
+      });
+    }
+    if (this.listings == null) {
+      throw Error("bug");
+    }
+    return this.listings;
+  }
 }
 
 function _match(words, s, is_dir) {
@@ -676,11 +715,15 @@ function _sort_on_string_field(field) {
 }
 
 function _sort_on_numerical_field(field, factor = 1) {
-  return (a, b) =>
-    misc.cmp(
+  return (a, b) => {
+    const c = misc.cmp(
       (a[field] != null ? a[field] : -1) * factor,
       (b[field] != null ? b[field] : -1) * factor
     );
+    if (c) return c;
+    // break ties using the name, so well defined.
+    return misc.cmp(a.name, b.name) * factor;
+  };
 }
 
 export function init(project_id: string, redux: AppRedux): ProjectStore {

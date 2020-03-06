@@ -4,6 +4,27 @@ const { is_valid_email_address } = require("smc-util/misc");
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
+export type RowType = "header" | "setting";
+
+type SiteSettingsKeys =
+  | "site_name"
+  | "site_description"
+  | "terms_of_service"
+  | "account_creation_email_instructions"
+  | "help_email"
+  | "commercial"
+  | "kucalc"
+  | "ssh_gateway"
+  | "version_min_project"
+  | "version_min_browser"
+  | "version_recommended_browser"
+  | "iframe_comm_hosts"
+  | "onprem_quota_heading"
+  | "default_quotas"
+  | "max_upgrades"
+  | "email_enabled"
+  | "verify_emails";
+
 export interface Config {
   readonly name: string;
   readonly desc: string;
@@ -14,9 +35,15 @@ export interface Config {
   readonly show?: (conf: any) => boolean;
   // this optional function derives the actual value of this setting from current value.
   readonly to_val?: (val: string) => boolean | string | number;
+  // this optional function derives the visual representation for the admin (fallback: to_val)
+  readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
+  readonly type?: RowType;
 }
 
+export type SiteSettings = Record<SiteSettingsKeys, Config>;
+
+// little helper fuctions, used in the site settings & site settings extras
 export const is_email_enabled = conf =>
   to_bool(conf.email_enabled) && conf.email_backend !== "none";
 export const only_for_smtp = conf =>
@@ -26,6 +53,7 @@ export const only_for_sendgrid = conf =>
 export const only_for_password_reset_smtp = conf =>
   to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
+export const only_commercial = conf => to_bool(conf.commercial);
 export const to_bool = val => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = val => parseInt(val);
@@ -37,27 +65,8 @@ export const only_nonneg_int = val =>
 export const split_iframe_comm_hosts = hosts =>
   hosts.match(/[a-zA-Z0-9.-]+/g) || [];
 
-function dns_hosts(val) {
+function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
-}
-
-export interface SiteSettings {
-  site_name: Config;
-  site_description: Config;
-  terms_of_service: Config;
-  account_creation_email_instructions: Config;
-  help_email: Config;
-  commercial: Config;
-  kucalc: Config;
-  ssh_gateway: Config;
-  version_min_project: Config;
-  version_min_browser: Config;
-  version_recommended_browser: Config;
-  iframe_comm_hosts: Config;
-  default_quotas: Config;
-  max_upgrades: Config;
-  email_enabled: Config;
-  verify_emails: Config;
 }
 
 export const KUCALC_DISABLED = "no";
@@ -144,7 +153,15 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
     default: "",
-    to_val: dns_hosts
+    to_val: split_iframe_comm_hosts,
+    to_display: num_dns_hosts
+  },
+  onprem_quota_heading: {
+    name: "On-prem Quotas",
+    desc: "",
+    default: "",
+    show: only_onprem,
+    type: "header"
   },
   default_quotas: {
     name: "Default Quotas",

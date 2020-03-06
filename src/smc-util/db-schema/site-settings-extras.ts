@@ -1,4 +1,6 @@
-// config for server settings, which are only visible and editable for admins. in particular, this includes the email backend config.
+// Site Settings Config for the servers (hubs)
+// They are only visible and editable for admins and services.
+// in particular, this includes the email backend config, Stripe, etc.
 
 import {
   Config,
@@ -8,31 +10,57 @@ import {
   to_bool,
   only_booleans,
   to_int,
-  only_nonneg_int
+  only_nonneg_int,
+  only_commercial
 } from "./site-defaults";
 
 const { is_valid_email_address } = require("smc-util/misc");
 
-export interface SettingsExtras {
-  email_backend: Config;
-  sendgrid_key: Config;
-  email_smtp_server: Config;
-  email_smtp_from: Config;
-  email_smtp_login: Config;
-  email_smtp_password: Config;
-  email_smtp_port: Config;
-  email_smtp_secure: Config;
-  password_reset_override: Config;
-  password_reset_smtp_server: Config;
-  password_reset_smtp_from: Config;
-  password_reset_smtp_login: Config;
-  password_reset_smtp_password: Config;
-  password_reset_smtp_port: Config;
-  password_reset_smtp_secure: Config;
-}
+export type SiteSettingsExtrasKeys =
+  | "stripe_heading"
+  | "stripe_publishable_key"
+  | "stripe_secret_key"
+  | "email_backend"
+  | "sendgrid_key"
+  | "email_smtp_server"
+  | "email_smtp_from"
+  | "email_smtp_login"
+  | "email_smtp_password"
+  | "email_smtp_port"
+  | "email_smtp_secure"
+  | "password_reset_override"
+  | "password_reset_smtp_server"
+  | "password_reset_smtp_from"
+  | "password_reset_smtp_login"
+  | "password_reset_smtp_password"
+  | "password_reset_smtp_port"
+  | "password_reset_smtp_secure";
+
+export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  stripe_heading: { // this is consmetic, otherwise it looks weird.
+    name: "Stripe Keys",
+    desc: "",
+    default: "",
+    show: only_commercial,
+    type: "header"
+  },
+  stripe_publishable_key: {
+    name: "Stripe Publishable",
+    desc: "Stripe calls this key 'publishable'",
+    default: "",
+    password: true,
+    show: only_commercial
+  },
+  stripe_secret_key: {
+    name: "Stripe Secret",
+    desc: "Stripe calls this key 'secret'",
+    default: "",
+    show: only_commercial,
+    password: true
+  },
   email_backend: {
     name: "Email backend type",
     desc:

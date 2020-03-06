@@ -152,8 +152,7 @@ export class ActionBar extends React.Component<Props, State> {
           <span>{`${total} ${misc.plural(total, "item")}`}</span>
           <div style={{ display: "inline" }}>
             {" "}
-            &mdash; Click on the checkbox to the left of a file to copy, move,
-            delete, download, etc.
+            &mdash; Click checkbox to the left of a file to copy, download, etc.
           </div>
         </div>
       );
