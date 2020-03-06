@@ -222,7 +222,7 @@ class ListingsTable {
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
     }
-    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS);
+    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS, this.log.bind(this));
     this.watchers[path].on("change", async () => {
       try {
         await this.compute_listing(path);
