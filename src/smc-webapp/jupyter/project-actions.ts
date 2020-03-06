@@ -474,7 +474,7 @@ export class JupyterActions extends JupyterActions0 {
       this.jupyter_kernel == null ||
       this.jupyter_kernel.get_state() == "closed"
     ) {
-      throw Error("jupyter kernel must exist and not be closed;");
+      throw Error("jupyter kernel must exist and not be closed");
     }
     this.reset_more_output(cell.id);
 

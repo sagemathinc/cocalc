@@ -721,7 +721,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       // Opening an existing notebook
       const default_kernel = this.store.get_default_kernel();
-      if (default_kernel == null) {
+      if (default_kernel == null && this.store.get("kernel")) {
         // But user has no default kernel, since they never before explicitly set one.
         // So we set it.  This is so that a user's default
         // kernel is that of the first ipynb they
@@ -2095,7 +2095,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.jupyter_kernel != null
           ? this.jupyter_kernel.process_attachment
           : undefined,
-      output_handler: this._output_handler // undefined in client; defined in project
+      output_handler:
+        this.jupyter_kernel != null ? this._output_handler : undefined // undefined in client; defined in project
     });
 
     if (data_only) {
