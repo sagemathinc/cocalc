@@ -2,6 +2,7 @@ import * as React from "react";
 import { analytics_event } from "../../tracker";
 import { Menu } from "antd";
 
+
 const misc = require("smc-util/misc");
 import {
   Icon,
@@ -9,8 +10,7 @@ import {
   NoNetworkProjectWarning
 } from "../../r_misc";
 import { redux, rtypes, rclass } from "../../app-framework";
-import { JupyterServerPanel } from "../plain-jupyter-server";
-import { JupyterLabServerPanel } from "../jupyterlab-server";
+
 import {
   AddCollaboratorsPanel,
   CurrentCollaboratorsPanel
@@ -144,139 +144,6 @@ export const Body = rclass<ReactProps>(
 
       const { commercial } = require("../../customize");
 
-      const { is_available } = require("../../project_configuration");
-      const available = is_available(this.props.configuration);
-      const have_jupyter_lab = available.jupyter_lab;
-      const have_jupyter_notebook = available.jupyter_notebook;
-
-      const componentSwitch = key => {
-        switch (key) {
-          case "TitleDescriptionBox": {
-            return (
-              <TitleDescriptionBox
-                project_id={id}
-                project_title={this.props.project.get("title") || ""}
-                description={this.props.project.get("description") || ""}
-                actions={redux.getActions("projects")}
-              />
-            );
-            break;
-          }
-          case "UpgradeUsage": {
-            return (
-              <UpgradeUsage
-                project_id={id}
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-                user_map={this.props.user_map}
-                account_groups={this.props.groups}
-                upgrades_you_can_use={upgrades_you_can_use}
-                upgrades_you_applied_to_all_projects={
-                  upgrades_you_applied_to_all_projects
-                }
-                upgrades_you_applied_to_this_project={
-                  upgrades_you_applied_to_this_project
-                }
-                total_project_quotas={total_project_quotas}
-                all_upgrades_to_this_project={all_upgrades_to_this_project}
-                all_projects_have_been_loaded={
-                  this.props.all_projects_have_been_loaded
-                }
-                site_license_upgrades={site_license_upgrades}
-                site_license_ids={site_license_ids}
-              />
-            );
-            break;
-          }
-          case "HideDeleteBox": {
-            return (
-              <HideDeleteBox
-                key="hidedelete"
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-              />
-            );
-            break;
-          }
-          case "SSHPanel": {
-            return (
-              <SSHPanel
-                key="ssh-keys"
-                project={this.props.project}
-                user_map={this.props.user_map}
-                account_id={this.props.account_id}
-              />
-            );
-            break;
-          }
-          case "ProjectCapabilities": {
-            return (
-              <ProjectCapabilities
-                name={this.props.name}
-                key={"capabilities"}
-                project={this.props.project}
-              />
-            );
-            break;
-          }
-          case "CurrentCollaboratorsPanel": {
-            return (
-              <CurrentCollaboratorsPanel
-                key="current-collabs"
-                project={this.props.project}
-                user_map={this.props.user_map}
-              />
-            );
-            break;
-          }
-          case "AddCollaboratorsPanel": {
-            return (
-              <AddCollaboratorsPanel
-                key="new-collabs"
-                project={this.props.project}
-                on_invite={() => {
-                  return analytics_event(
-                    "project_settings",
-                    "add collaborator"
-                  );
-                }}
-                allow_urls={allow_urls}
-              />
-            );
-            break;
-          }
-          case "ProjectControl": {
-            return (
-              <ProjectControl key="control" project={this.props.project} />
-            );
-            break;
-          }
-          case "SagewsControl": {
-            return (
-              <SagewsControl key="worksheet" project={this.props.project} />
-            );
-            break;
-          }
-          case "JupyterServerPanel": {
-            return (
-              <JupyterServerPanel
-                key="jupyter"
-                project_id={this.props.project_id}
-              />
-            );
-            break;
-          }
-          case "SagewsControl": {
-            return (
-              <JupyterLabServerPanel
-                key="jupyterlab"
-                project_id={this.props.project_id}
-              />
-            );
-            break;
-          }
-        }
-      };
 
       return (
         <div>
@@ -317,52 +184,121 @@ export const Body = rclass<ReactProps>(
               <Menu
                 defaultSelectedKeys={["TitleDescriptionBox"]}
                 mode="inline"
-                onClick={e => {
-                  this.setState({ anItem: e.key });
-                  //console.log(e.key);
-                  //console.log(this.state.anItem);
-                }}
+                //onClick={e => {
+                //this.setState({ anItem: e.key });
+                //console.log(e.key);
+                //console.log(this.state.anItem);
+                //}}
               >
                 <Menu.Item key="TitleDescriptionBox">
-                  Title and Description
+                  <a href="#abc1">Title and Description</a>
                 </Menu.Item>
-                <Menu.Item key="UpgradeUsage">Upgrades</Menu.Item>
-                <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
+                <Menu.Item key="UpgradeUsage">
+                  <a href="#abc2">Upgrades</a>
+                </Menu.Item>
+                <Menu.Item key="HideDeleteBox">
+                  <a href="#abc3">Hide or Delete</a>
+                </Menu.Item>
                 {this.props.ssh_gateway ||
                 this.props.kucalc === KUCALC_COCALC_COM ? (
-                  <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
+                  <Menu.Item key="ProjectCapabilities">
+                    <a href="#abc4">SSH panel</a>
+                  </Menu.Item>
                 ) : (
                   undefined
                 )}
                 <Menu.Item key="ProjectCapabilities">
-                  Project Capabilities
+                  <a href="#abc5">Project Capabilities</a>
                 </Menu.Item>
                 <Menu.Item key="CurrentCollaboratorsPanel">
-                  Current Collaborators
+                  <a href="#abc6">Current Collaborators</a>
                 </Menu.Item>
                 <Menu.Item key="AddCollaboratorsPanel">
-                  Add Collaborators
+                  <a href="#abc7">Add Collaborators</a>
                 </Menu.Item>
-                <Menu.Item key="ProjectControl">Project Control</Menu.Item>
-                <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
-                {have_jupyter_notebook ? (
-                  <Menu.Item key="JupyterServerPanel">
-                    JupyterServerPanel
-                  </Menu.Item>
-                ) : (
-                  undefined
-                )}
-                {have_jupyter_lab ? (
-                  <Menu.Item key="JupyterLabServerPanel">
-                    JupyterLabServerPanel
-                  </Menu.Item>
-                ) : (
-                  undefined
-                )}
-                {undefined}
+                <Menu.Item key="ProjectControl">
+                  <a href="#abc8">Project Control</a>
+                </Menu.Item>
+                <Menu.Item key="SagewsControl">
+                  Sage worksheet
+                  <a href="#abc9">Sage worksheet</a>
+                </Menu.Item>
               </Menu>
             </Col>
-            <Col sm={8}>{componentSwitch(this.state.anItem)}</Col>
+            <Col sm={8}>
+              <div id="abc1"></div>
+              <TitleDescriptionBox
+                project_id={id}
+                project_title={this.props.project.get("title") || ""}
+                description={this.props.project.get("description") || ""}
+                actions={redux.getActions("projects")}
+              />
+              <div id="abc2"></div>
+              <UpgradeUsage
+                project_id={id}
+                project={this.props.project}
+                actions={redux.getActions("projects")}
+                user_map={this.props.user_map}
+                account_groups={this.props.groups}
+                upgrades_you_can_use={upgrades_you_can_use}
+                upgrades_you_applied_to_all_projects={
+                  upgrades_you_applied_to_all_projects
+                }
+                upgrades_you_applied_to_this_project={
+                  upgrades_you_applied_to_this_project
+                }
+                total_project_quotas={total_project_quotas}
+                all_upgrades_to_this_project={all_upgrades_to_this_project}
+                all_projects_have_been_loaded={
+                  this.props.all_projects_have_been_loaded
+                }
+                site_license_upgrades={site_license_upgrades}
+                site_license_ids={site_license_ids}
+              />
+              <div id="abc3"></div>
+              <HideDeleteBox
+                key="hidedelete"
+                project={this.props.project}
+                actions={redux.getActions("projects")}
+              />
+              <div id="abc4"></div>
+              {this.props.ssh_gateway ||
+              this.props.kucalc === KUCALC_COCALC_COM ? (
+                <SSHPanel
+                  key="ssh-keys"
+                  project={this.props.project}
+                  user_map={this.props.user_map}
+                  account_id={this.props.account_id}
+                />
+              ) : (
+                undefined
+              )}
+              <div id="abc5"></div>
+              <ProjectCapabilities
+                name={this.props.name}
+                key={"capabilities"}
+                project={this.props.project}
+              />
+              <div id="abc6"></div>
+              <CurrentCollaboratorsPanel
+                key="current-collabs"
+                project={this.props.project}
+                user_map={this.props.user_map}
+              />
+              <div id="abc7"></div>
+              <AddCollaboratorsPanel
+                key="new-collabs"
+                project={this.props.project}
+                on_invite={() =>
+                  analytics_event("project_settings", "add collaborator")
+                }
+                allow_urls={allow_urls}
+              />
+              <div id="abc8"></div>
+              <ProjectControl key="control" project={this.props.project} />
+              <div id="abc9"></div>
+              <SagewsControl key="worksheet" project={this.props.project} />
+            </Col>
           </Row>
         </div>
       );
