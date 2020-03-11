@@ -2,7 +2,6 @@ import * as React from "react";
 import { analytics_event } from "../../tracker";
 import { Menu } from "antd";
 
-
 const misc = require("smc-util/misc");
 import {
   Icon,
@@ -144,88 +143,96 @@ export const Body = rclass<ReactProps>(
 
       const { commercial } = require("../../customize");
 
-
       return (
         <div>
-          {commercial &&
-          total_project_quotas != undefined &&
-          !total_project_quotas.member_host ? (
-            <NonMemberProjectWarning
-              upgrade_type="member_host"
-              upgrades_you_can_use={upgrades_you_can_use}
-              upgrades_you_applied_to_all_projects={
-                upgrades_you_applied_to_all_projects
-              }
-              course_info={course_info}
-              account_id={webapp_client.account_id}
-              email_address={this.props.email_address}
-            />
-          ) : (
-            undefined
-          )}
-          {commercial &&
-          total_project_quotas != undefined &&
-          !total_project_quotas.network ? (
-            <NoNetworkProjectWarning
-              upgrade_type="network"
-              upgrades_you_can_use={upgrades_you_can_use}
-              upgrades_you_applied_to_all_projects={
-                upgrades_you_applied_to_all_projects
-              }
-            />
-          ) : (
-            undefined
-          )}
-          <h1 style={{ marginTop: "0px", fontSize: "1" }}>
-            <Icon name="wrench" /> Project Settings
-          </h1>
           <Row>
             <Col sm={2}>
-              <Menu
-                defaultSelectedKeys={["TitleDescriptionBox"]}
-                mode="inline"
-                //onClick={e => {
-                //this.setState({ anItem: e.key });
-                //console.log(e.key);
-                //console.log(this.state.anItem);
-                //}}
-              >
-                <Menu.Item key="TitleDescriptionBox">
-                  <a href="#abc1">Title and Description</a>
-                </Menu.Item>
-                <Menu.Item key="UpgradeUsage">
-                  <a href="#abc2">Upgrades</a>
-                </Menu.Item>
-                <Menu.Item key="HideDeleteBox">
-                  <a href="#abc3">Hide or Delete</a>
-                </Menu.Item>
-                {this.props.ssh_gateway ||
-                this.props.kucalc === KUCALC_COCALC_COM ? (
-                  <Menu.Item key="ProjectCapabilities">
-                    <a href="#abc4">SSH panel</a>
+              <div style={{ position: "fixed", width: "300px" }}>
+                <h1
+                  style={{
+                    marginTop: "0px",
+                    fontSize: "20px",
+                    position: "static"
+                  }}
+                >
+                  <Icon name="wrench" /> Project Settings
+                </h1>
+                <Menu
+                  defaultSelectedKeys={["TitleDescriptionBox"]}
+                  mode="inline"
+                  //onClick={e => {
+                  //this.setState({ anItem: e.key });
+                  //console.log(e.key);
+                  //console.log(this.state.anItem);
+                  //}}
+                >
+                  <Menu.Item key="TitleDescriptionBox">
+                    <a href="#abc1">Title and Description</a>
                   </Menu.Item>
-                ) : (
-                  undefined
-                )}
-                <Menu.Item key="ProjectCapabilities">
-                  <a href="#abc5">Project Capabilities</a>
-                </Menu.Item>
-                <Menu.Item key="CurrentCollaboratorsPanel">
-                  <a href="#abc6">Current Collaborators</a>
-                </Menu.Item>
-                <Menu.Item key="AddCollaboratorsPanel">
-                  <a href="#abc7">Add Collaborators</a>
-                </Menu.Item>
-                <Menu.Item key="ProjectControl">
-                  <a href="#abc8">Project Control</a>
-                </Menu.Item>
-                <Menu.Item key="SagewsControl">
-                  Sage worksheet
-                  <a href="#abc9">Sage worksheet</a>
-                </Menu.Item>
-              </Menu>
+                  <Menu.Item key="UpgradeUsage">
+                    <a href="#abc2">Upgrades</a>
+                  </Menu.Item>
+                  <Menu.Item key="HideDeleteBox">
+                    <a href="#abc3">Hide or Delete</a>
+                  </Menu.Item>
+                  {this.props.ssh_gateway ||
+                  this.props.kucalc === KUCALC_COCALC_COM ? (
+                    <Menu.Item key="ProjectCapabilities">
+                      <a href="#abc4">SSH panel</a>
+                    </Menu.Item>
+                  ) : (
+                    undefined
+                  )}
+                  <Menu.Item key="ProjectCapabilities">
+                    <a href="#abc5">Project Capabilities</a>
+                  </Menu.Item>
+                  <Menu.Item key="CurrentCollaboratorsPanel">
+                    <a href="#abc6">Current Collaborators</a>
+                  </Menu.Item>
+                  <Menu.Item key="AddCollaboratorsPanel">
+                    <a href="#abc7">Add Collaborators</a>
+                  </Menu.Item>
+                  <Menu.Item key="ProjectControl">
+                    <a href="#abc8">Project Control</a>
+                  </Menu.Item>
+                  <Menu.Item key="SagewsControl">
+                    Sage worksheet
+                    <a href="#abc9">Sage worksheet</a>
+                  </Menu.Item>
+                </Menu>
+              </div>
             </Col>
+
             <Col sm={8}>
+              {commercial &&
+              total_project_quotas != undefined &&
+              !total_project_quotas.member_host ? (
+                <NonMemberProjectWarning
+                  upgrade_type="member_host"
+                  upgrades_you_can_use={upgrades_you_can_use}
+                  upgrades_you_applied_to_all_projects={
+                    upgrades_you_applied_to_all_projects
+                  }
+                  course_info={course_info}
+                  account_id={webapp_client.account_id}
+                  email_address={this.props.email_address}
+                />
+              ) : (
+                undefined
+              )}
+              {commercial &&
+              total_project_quotas != undefined &&
+              !total_project_quotas.network ? (
+                <NoNetworkProjectWarning
+                  upgrade_type="network"
+                  upgrades_you_can_use={upgrades_you_can_use}
+                  upgrades_you_applied_to_all_projects={
+                    upgrades_you_applied_to_all_projects
+                  }
+                />
+              ) : (
+                undefined
+              )}
               <div id="abc1"></div>
               <TitleDescriptionBox
                 project_id={id}
