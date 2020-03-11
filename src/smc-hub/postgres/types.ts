@@ -130,4 +130,10 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   sha1(...args): string;
+
+  get_project_ids_with_user(opts: {
+    account_id: string;
+    is_owner?: boolean;
+    cb: Function;
+  }): void;
 }

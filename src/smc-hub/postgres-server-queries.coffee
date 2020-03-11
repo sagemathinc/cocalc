@@ -36,6 +36,7 @@ collab = require('./postgres/collab')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
+{unlist_all_public_paths} = require('./postgres/public-paths')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
@@ -2100,11 +2101,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
+            is_owner   : undefined     # if set to true, only return projects with this owner.
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
+
+        if opts.is_owner
+            where = {"users#>>'{#{opts.account_id},group}' = $::TEXT" : 'owner'}
+        else
+            where = {'users ? $::TEXT' : opts.account_id}
         @_query
             query : 'SELECT project_id FROM projects'
-            where : 'users ? $::TEXT' : opts.account_id
+            where : where
             cb    : all_results('project_id', opts.cb)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
@@ -3090,3 +3097,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>
         return await permanently_unlink_all_deleted_projects_of_user(@, account_id_or_email_address)
+
+    # async function
+    unlist_all_public_paths: (account_id, is_owner) =>
+        return await unlist_all_public_paths(@, account_id, is_owner)
