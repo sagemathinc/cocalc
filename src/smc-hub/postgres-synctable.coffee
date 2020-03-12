@@ -260,8 +260,8 @@ class SyncTable extends EventEmitter
         @removeAllListeners()
         @_db.removeListener(@_tgname, @_notification)
         @_db.removeListener('connect', @_reconnect)
-        delete @_value
         @_state = 'closed'
+        delete @_value
         @_db._stop_listening(@_table, @_listen_columns, @_watch_columns, cb)
 
     connect: (opts) =>
@@ -358,7 +358,10 @@ class SyncTable extends EventEmitter
             cb?()
 
     _process_results: (rows) =>
-        if @_state == 'closed'
+        if @_state == 'closed' or not @_value?
+            # See https://github.com/sagemathinc/cocalc/issues/4440
+            # for why the @_value check.  Remove this when this is
+            # rewritten in typescript and we can guarantee stuff.
             return
         for x in rows
             k = x[@_primary_key]
