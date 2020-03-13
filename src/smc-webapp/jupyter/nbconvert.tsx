@@ -25,7 +25,8 @@ const NAMES = {
     nolink: true
   },
   pdf: { ext: "pdf", display: "PDF" },
-  script: { ext: "txt", display: "Executable Script", internal: true }
+  script: { ext: "txt", display: "Executable Script", internal: true },
+  "chromium-pdf": { ext: "pdf", display: "PDF", no_run_button: true }
 };
 
 interface ErrorProps {
@@ -225,6 +226,11 @@ export class NBConvert extends Component<NBConvertProps> {
     const { tail = undefined } = misc.path_split(this.props.path) || {};
     if (
       this.props.nbconvert_dialog != null &&
+      this.props.nbconvert_dialog.get("to") === "chromium-pdf"
+    ) {
+      cmd = shell_escape(["cc-ipynb-to-pdf", tail]);
+    } else if (
+      this.props.nbconvert_dialog != null &&
       this.props.nbconvert_dialog.get("to") === "sagews"
     ) {
       cmd = shell_escape(["smc-ipynb2sagews", tail]);
@@ -295,6 +301,9 @@ export class NBConvert extends Component<NBConvertProps> {
     if (this.props.nbconvert_dialog == null) {
       return;
     }
+    const to = this.props.nbconvert_dialog.get("to");
+    const info = NAMES[to];
+    if (info.no_run_button) return;
     const state =
       this.props.nbconvert != null
         ? this.props.nbconvert.get("state")

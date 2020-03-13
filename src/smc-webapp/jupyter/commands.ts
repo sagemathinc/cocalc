@@ -472,7 +472,12 @@ export function commands(
       f: () => jupyter_actions.show_nbconvert_dialog("latex")
     },
 
-    "nbconvert pdf": {
+    "nbconvert chromium pdf": {
+      m: "PDF (.pdf)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("chromium-pdf")
+    },
+
+    "nbconvert latex pdf": {
       m: "PDF via LaTeX (.pdf)...",
       f: () => jupyter_actions.show_nbconvert_dialog("pdf")
     },

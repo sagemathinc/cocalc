@@ -4,7 +4,7 @@ web browser frontend.
 */
 import { Map, Set } from "immutable";
 import { debounce, isEqual } from "underscore";
-import { merge_copy, uuid } from "smc-util/misc";
+import { merge_copy, uuid, server_time } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
@@ -15,6 +15,7 @@ import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
+import { exec } from "../frame-editors/generic/client";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -425,6 +426,10 @@ export class JupyterActions extends JupyterActions0 {
 
   public show_nbconvert_dialog(to: string): void {
     this.setState({ nbconvert_dialog: { to } });
+    if (to == "chromium-pdf") {
+      this.chromium_pdf();
+      return;
+    }
     if (!this.nbconvert_has_started()) {
       this.nbconvert(["--to", to]); // start it
     }
@@ -442,6 +447,41 @@ export class JupyterActions extends JupyterActions0 {
       error: null
     });
     this.syncdb.commit();
+  }
+
+  public async chromium_pdf(): Promise<void> {
+    let error: string | undefined = undefined;
+    // used indirectly by the nbconvert dialog only...
+    const args = ["--to", "chromium-pdf"];
+    const start = server_time().valueOf();
+    try {
+      await this.save();
+      this.syncdb.set({
+        type: "nbconvert",
+        state: "run",
+        args,
+        start,
+        error
+      });
+      await this.syncdb.commit();
+      await exec({
+        command: "cc-ipynb-to-pdf",
+        args: [this.path],
+        project_id: this.project_id
+      });
+    } catch (err) {
+      error = `${err}`;
+    } finally {
+      this.syncdb.set({
+        type: "nbconvert",
+        state: "done",
+        args,
+        start,
+        time: server_time().valueOf(),
+        error
+      });
+      await this.syncdb.commit();
+    }
   }
 
   public async nbconvert_get_error(): Promise<void> {
