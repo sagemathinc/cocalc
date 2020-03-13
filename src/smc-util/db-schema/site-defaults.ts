@@ -13,6 +13,7 @@ type SiteSettingsKeys =
   | "account_creation_email_instructions"
   | "help_email"
   | "commercial"
+  | "google_analytics"
   | "kucalc"
   | "ssh_gateway"
   | "version_min_project"
@@ -53,6 +54,7 @@ export const only_for_sendgrid = conf =>
 export const only_for_password_reset_smtp = conf =>
   to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
+export const only_cocalc_com = conf => conf.kucalc === KUCALC_COCALC_COM;
 export const only_commercial = conf => to_bool(conf.commercial);
 export const to_bool = val => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
@@ -121,6 +123,12 @@ export const site_settings_conf: SiteSettings = {
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS
+  },
+  google_analytics: {
+    name: "Google Analytics",
+    desc: `The GA tag, only for the cocalc.com production site`,
+    default: "",
+    show: only_cocalc_com
   },
   ssh_gateway: {
     name: "SSH Gateway",
