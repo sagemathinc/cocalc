@@ -608,6 +608,34 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
+  private render_export_assignment(): Rendered {
+    return (
+      <Row key="file-use-times">
+        <Col xs={4}>
+          <Tip
+            title="Export collected student files"
+            tip="Export all student work to files in a single directory that are easy to grade or archive outside of CoCalc.  Any Jupyter notebooks or Sage worksheets are first converted to PDF, and all files are renamed with the student as a filename prefix."
+          >
+            Export collected student files
+            <br />
+            <span style={{ color: "#666" }} />
+          </Tip>
+        </Col>
+        <Col xs={20}>
+          <Button
+            onClick={() =>
+              this.get_actions().assignments.export_collected(
+                this.props.assignment.get("assignment_id")
+              )
+            }
+          >
+            Export collected student files converting ipynb and sagews to pdf
+          </Button>
+        </Col>
+      </Row>
+    );
+  }
+
   render_more_header() {
     let width;
     const status:
@@ -738,10 +766,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               nbgrader_run_info={this.props.nbgrader_run_info}
             />
             {this.render_note()}
-            <br/>
-            <hr/>
-            <br/>
+            <br />
+            <hr />
+            <br />
             {this.render_export_file_use_times()}
+            <br />
+            {this.render_export_assignment()}
           </Card>
         </Col>
       </Row>

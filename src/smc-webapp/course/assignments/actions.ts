@@ -25,7 +25,8 @@ import {
   uuid,
   peer_grading,
   mswalltime,
-  defaults
+  defaults,
+  split
 } from "smc-util/misc";
 import { map } from "awaiting";
 
@@ -45,6 +46,8 @@ import {
 } from "../types";
 
 import { export_student_file_use_times } from "../export/file-use-times";
+
+import { export_assignment } from "../export/export-assignment";
 
 export class AssignmentsActions {
   private course_actions: CourseActions;
@@ -1746,5 +1749,58 @@ ${details}
       json_filename,
       store.get_student_name.bind(store)
     );
+  }
+
+  public async export_collected(assignment_id: string): Promise<void> {
+    const set_activity = this.course_actions.set_activity.bind(
+      this.course_actions
+    );
+    const id = set_activity({
+      desc: "Exporting collected files..."
+    });
+    try {
+      const { assignment, store } = this.course_actions.resolve({
+        assignment_id
+      });
+      if (assignment == null) return;
+      const students = store.get("students");
+      const src_path = this.assignment_src_path(assignment);
+      const collect_path = assignment.get("collect_path");
+      const i = store.get("course_filename").lastIndexOf(".");
+      const base_export_path =
+        store.get("course_filename").slice(0, i) + "-export";
+      const export_path = base_export_path + "/" + src_path;
+
+      function student_name(student_id: string): string {
+        const v = split(store.get_student_name(student_id));
+        return v.join("_");
+      }
+
+      function activity(s: string): void {
+        set_activity({
+          id,
+          desc: "Exporting collected files... " + s
+        });
+      }
+
+      const project_id = store.get("course_project_id");
+
+      await export_assignment(
+        project_id,
+        collect_path,
+        export_path,
+        students,
+        student_name,
+        activity
+      );
+
+      redux.getProjectActions(project_id).open_directory(base_export_path);
+    } catch (err) {
+      this.course_actions.set_error(
+        `Error exporting collected student files -- ${err}`
+      );
+    } finally {
+      set_activity({ id });
+    }
   }
 }
