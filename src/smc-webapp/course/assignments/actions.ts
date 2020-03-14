@@ -1771,17 +1771,17 @@ ${details}
         store.get("course_filename").slice(0, i) + "-export";
       const export_path = base_export_path + "/" + src_path;
 
-      function student_name(student_id: string): string {
+      const student_name = function(student_id: string): string {
         const v = split(store.get_student_name(student_id));
         return v.join("_");
-      }
+      };
 
-      function activity(s: string): void {
+      const activity = function(s: string): void {
         set_activity({
           id,
           desc: "Exporting collected files... " + s
         });
-      }
+      };
 
       const project_id = store.get("course_project_id");
 
