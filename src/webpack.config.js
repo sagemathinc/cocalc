@@ -396,7 +396,7 @@ if (cleanWebpackPlugin != null) {
   plugins.push(cleanWebpackPlugin);
 }
 
-plugins = plugins.concat([setNODE_ENV, banner, loaderOptions]);
+plugins.push(...[setNODE_ENV, banner, loaderOptions]);
 
 // ATTN don't alter or add names here, without changing the sorting function above!
 entries = {
@@ -412,7 +412,7 @@ entries = {
   ],
   "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
 };
-plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
+plugins.push(...[pug2app, mathjaxVersionedSymlink]);
 
 if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
   console.log("Enabling ForkTsCheckerWebpackPlugin...");
@@ -455,7 +455,7 @@ if (DEVMODE) {
   console.log("     npm run webpack-static");
   console.log("******************************************************");
 } else {
-  plugins = plugins.concat(staticPages);
+  plugins.push(...staticPages);
 }
 
 if (PRODMODE) {
@@ -463,7 +463,7 @@ if (PRODMODE) {
   plugins.push(new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 }));
 }
 
-plugins = plugins.concat([assetsPlugin, statsWriterPlugin]);
+plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const minimizer = new UglifyJsPlugin({
@@ -501,7 +501,7 @@ if (MEASURE) {
   const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
     analyzerMode: "static"
   });
-  plugins = plugins.concat([bundleAnalyzerPlugin]);
+  plugins.push(...[bundleAnalyzerPlugin]);
 }
 
 module.exports = {
