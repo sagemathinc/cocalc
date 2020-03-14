@@ -344,7 +344,7 @@ class SiteSettingsComponent extends Component<
     displayed_val?: string,
     valid?: ConfigValid,
     hint?: Rendered,
-    row_type: RowType
+    row_type?: RowType
   ) {
     if (row_type == ("header" as RowType)) {
       return <div />;
