@@ -317,35 +317,6 @@ const pug2app = new HtmlWebpackPlugin({
   GOOGLE_ANALYTICS
 });
 
-// static html pages
-// they only depend on the css chunk
-const staticPages = [];
-for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      date: BUILD_DATE,
-      title: TITLE,
-      description: DESCRIPTION,
-      BASE_URL: base_url_html,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      git_rev: GIT_REV,
-      mathjax: MATHJAX_URL,
-      filename: fn_out,
-      chunks: ["css"],
-      inject: "head",
-      hash: PRODMODE,
-      template: path.join(INPUT, fn_in),
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema-static"),
-      PREFIX: fn_in === "index.pug" ? "" : "../"
-    })
-  );
-}
-
 // global css loader configuration
 const cssConfig = JSON.stringify({
   sourceMap: false
