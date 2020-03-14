@@ -12,7 +12,7 @@ import { Upgrades } from "./types";
 import { capitalize } from "smc-util/misc2";
 
 interface Product {
-  upgrades: Upgrades;
+  upgrades: Partial<Upgrades>;
   desc?: string;
 }
 
@@ -95,7 +95,7 @@ function compute_presets() {
 }
 
 function scaled_product(sub: any, num_people: number, desc: string): Product {
-  const upgrades: Upgrades = {};
+  const upgrades: Partial<Upgrades> = {};
   for (const field in sub.benefits) {
     if (field.indexOf("disk") != -1) {
       upgrades[field] = 0;

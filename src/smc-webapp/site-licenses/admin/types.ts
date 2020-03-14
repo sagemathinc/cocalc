@@ -61,10 +61,10 @@ export type license_field_names =
   | "created"
   | "last_used"
   | "managers"
-  | "restricted"
+  // | "restricted" // hide for now since not implemented at all
   | "upgrades"
-  | "run_limit"
-  | "apply_limit";
+  | "run_limit";
+// | "apply_limit" // hide for now since not implemented at all
 
 export const license_fields: {
   [field in license_field_names]: license_field_type;
@@ -81,7 +81,7 @@ export const license_fields: {
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   run_limit: "number"
-  //apply_limit: "number"
+  //apply_limit: "number" // hide for now since not implemented at all
 };
 
 // export const source_fields = ["expires", "activates", "created", "last_used"];
