@@ -26,12 +26,12 @@ interface Props {
   time?: Date;
   accounts?: number;
   projects?: number;
-  accounts_created?: { [key: RecentTimes]: number };
-  projects_created?: { [key: RecentTimes]: number };
-  projects_edited?: { [key: RecentTimes]: number };
+  accounts_created?: { [key in RecentTimes]: number };
+  projects_created?: { [key in RecentTimes]: number };
+  projects_edited?: { [key in RecentTimes]: number };
   files_opened?: {
-    total: { [key: RecentTimes]: { [ext: string]: number } };
-    distinct: { [key: RecentTimes]: { [ext: string]: number } };
+    total: { [key in RecentTimes]: { [ext: string]: number } };
+    distinct: { [key in RecentTimes]: { [ext: string]: number } };
   };
 }
 

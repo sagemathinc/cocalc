@@ -22,7 +22,7 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "cpu_shares"
 ];
 
-export type Upgrades = { [field: upgrade_fields_type]: number };
+export type Upgrades = { [field in upgrade_fields_type]: number };
 
 export interface SiteLicense {
   id: string;
@@ -67,7 +67,7 @@ export type license_field_names =
   | "apply_limit";
 
 export const license_fields: {
-  [field: license_field_names]: license_field_type;
+  [field in license_field_names]: license_field_type;
 } = {
   id: "readonly",
   title: "string",
