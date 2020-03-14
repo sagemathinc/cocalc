@@ -397,7 +397,7 @@ export class License extends Component<Props> {
           license.
         </span>
         <br />
-        Show projects using license:{" "}
+        Projects using license:{" "}
         <a
           onClick={() =>
             actions.show_projects(this.props.license.get("id"), "now")

@@ -32,7 +32,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 collab = require('./postgres/collab')
 {set_account_info_if_possible} = require('./postgres/account-queries')
 
-{site_license_usage_stats, projects_using_site_license} = require('./postgres/site-license/analytics')
+{site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
 {permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
@@ -3085,6 +3085,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     projects_using_site_license: (opts) =>
         return await projects_using_site_license(@, opts)
+
+    # async function
+    number_of_projects_using_site_license: (opts) =>
+        return await number_of_projects_using_site_license(@, opts)
 
     # async function
     site_license_public_info: (license_id) =>
