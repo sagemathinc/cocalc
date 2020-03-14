@@ -288,6 +288,7 @@ exports.TimeAgoElement = rclass
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
         date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+        style             : rtypes.object
 
     getDefaultProps: ->
         popover   : true

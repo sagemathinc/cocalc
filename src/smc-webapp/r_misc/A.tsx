@@ -9,15 +9,19 @@ import * as React from "react";
 interface AProps {
   href: string;
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
-export function A({ href, children }: AProps) {
+export function A({ href, children, style }: AProps) {
   return (
     <a
       href={href}
       target={"_blank"}
       rel={"noopener"}
-      style={{ background: "red", color: "white", padding: "0 5px" }}
+      style={Object.assign(
+        { background: "red", color: "white", padding: "0 5px" },
+        style
+      )}
     >
       {children}
     </a>

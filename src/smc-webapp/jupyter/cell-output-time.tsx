@@ -18,13 +18,16 @@ export class CellTiming extends Component<CellTimingProps> {
       return `${(this.props.end - this.props.start) / 1000} seconds`;
     } else if (this.props.state === undefined || this.props.state === "done") {
       tip = (
-        <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+        <A
+          href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html"
+          style={{ display: "inline-block" }}
+        >
           <Icon name="skull" /> Kernel killed...
         </A>
       );
     }
     return (
-      <div>
+      <div style={{ float: "right" }}>
         <TimeAgo date={new Date(this.props.start)} />
         <br />
         {tip}

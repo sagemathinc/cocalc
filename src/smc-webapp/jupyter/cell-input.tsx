@@ -316,8 +316,8 @@ export class CellInput extends Component<CellInputProps> {
             textAlign: "right"
           }}
         >
+          <span style={{float:'right'}}>{this.render_cell_number()}</span>
           {this.render_cell_timing()}
-          {this.render_cell_number()}
         </div>
       </div>
     );
@@ -339,7 +339,7 @@ export class CellInput extends Component<CellInputProps> {
       <span
         style={{
           marginLeft: "3px",
-          paddingLeft: "3px",
+          padding: "0 3px",
           borderLeft: "1px solid #ccc",
           borderBottom: "1px solid #ccc"
         }}
