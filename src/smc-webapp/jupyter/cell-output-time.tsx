@@ -1,6 +1,6 @@
 import { React, Component } from "../app-framework";
 
-import { TimeAgo } from "../r_misc";
+import { TimeAgo, A, Icon } from "../r_misc";
 
 interface CellTimingProps {
   start?: number;
@@ -10,14 +10,18 @@ interface CellTimingProps {
 
 export class CellTiming extends Component<CellTimingProps> {
   render() {
-    let tip = "";
+    let tip;
     if (this.props.start === undefined) {
       return <span />; // TODO: should this return undefined?
     }
     if (this.props.end !== undefined) {
       return `${(this.props.end - this.props.start) / 1000} seconds`;
     } else if (this.props.state === undefined || this.props.state === "done") {
-      tip = "(killed)";
+      tip = (
+        <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+          <Icon name="skull" /> Kernel killed...
+        </A>
+      );
     }
     return (
       <div>

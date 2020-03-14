@@ -13,7 +13,12 @@ interface AProps {
 
 export function A({ href, children }: AProps) {
   return (
-    <a href={href} target={"_blank"} rel={"noopener"}>
+    <a
+      href={href}
+      target={"_blank"}
+      rel={"noopener"}
+      style={{ background: "red", color: "white", padding: "0 5px" }}
+    >
       {children}
     </a>
   );

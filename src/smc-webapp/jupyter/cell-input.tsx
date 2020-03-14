@@ -307,7 +307,7 @@ export class CellInput extends Component<CellInputProps> {
       >
         <div
           style={{
-            color: "#999",
+            color: "#666",
             fontSize: "8pt",
             position: "absolute",
             right: "5px",
