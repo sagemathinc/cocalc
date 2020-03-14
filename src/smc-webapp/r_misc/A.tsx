@@ -14,15 +14,7 @@ interface AProps {
 
 export function A({ href, children, style }: AProps) {
   return (
-    <a
-      href={href}
-      target={"_blank"}
-      rel={"noopener"}
-      style={Object.assign(
-        { background: "red", color: "white", padding: "0 5px" },
-        style
-      )}
-    >
+    <a href={href} target={"_blank"} rel={"noopener"} style={style}>
       {children}
     </a>
   );

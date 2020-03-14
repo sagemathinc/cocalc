@@ -20,7 +20,7 @@ export class CellTiming extends Component<CellTimingProps> {
       tip = (
         <A
           href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html"
-          style={{ display: "inline-block" }}
+          style={{ display: "inline-block", background: "red", color: "white", padding: "0 5px" }}
         >
           <Icon name="skull" /> Kernel killed...
         </A>
