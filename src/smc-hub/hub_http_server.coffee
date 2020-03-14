@@ -133,10 +133,7 @@ exports.init_express_http_server = (opts) ->
         res.write('''
                   User-agent: *
                   Allow: /share
-                  Disallow: /projects/*
-                  Disallow: /*/raw/
-                  Disallow: /*/port/
-                  Disallow: /haproxy
+                  Disallow: /*
                   ''')
         res.end()
 
@@ -146,11 +143,6 @@ exports.init_express_http_server = (opts) ->
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
-
-    router.use '/policies',
-        express.static(path_module.join(STATIC_PATH, 'policies'), {maxAge: 0})
-    router.use '/doc',
-        express.static(path_module.join(STATIC_PATH, 'doc'), {maxAge: 0})
 
     handle_root = (req, res) ->
         # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
