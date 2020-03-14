@@ -28,7 +28,8 @@ def ipynb_to_pdf(path):
     pdf = base + 'pdf'
     html = base + 'tmp.html'
     cmd("time jupyter nbconvert %s --to html --output=%s" % (path, html))
-    cmd('time chromium-browser --headless --disable-gpu --print-to-pdf="%s" --run-all-compositor-stages-before-draw   --virtual-time-budget=10000 %s'
+    # --no-sandbox so it works in cocalc-docker (see https://stackoverflow.com/questions/43665276/how-to-run-google-chrome-headless-in-docker); should be OK, given our security model...
+    cmd('time chromium-browser --headless --disable-gpu --no-sandbox --print-to-pdf="%s" --run-all-compositor-stages-before-draw   --virtual-time-budget=10000 %s'
         % (pdf, html))
     os.unlink(html)
     print("Converted %s to %s in %s seconds" % (path, pdf, time.time() - t))
