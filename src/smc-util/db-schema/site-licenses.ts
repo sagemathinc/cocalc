@@ -222,7 +222,9 @@ Table({
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
           if (!opts.multi) {
-            cb("query must be an array (getting multiple values back)");
+            cb(
+              "query must be an array (you must request to get multiple values back)"
+            );
             return;
           }
           const obj = opts.query;
@@ -261,6 +263,72 @@ Table({
               project.license_id = obj.license_id;
             }
             cb(undefined, projects);
+          } catch (err) {
+            cb(err);
+          }
+        }
+      }
+    }
+  }
+});
+
+Table({
+  name: "number_of_projects_using_site_license",
+  fields: {
+    license_id: {
+      type: "string",
+      desc: "the id of the license -- must be specified"
+    },
+    cutoff: {
+      type: "timestamp",
+      desc:
+        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW()."
+    },
+    number: {
+      type: "integer",
+      desc:
+        "how many projects using the site license at some point since cutoff"
+    }
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc:
+      "Virtual table for determining the number of projects that recently used a given site license",
+    anonymous: false,
+    primary_key: ["license_id", "cutoff"],
+    user_query: {
+      get: {
+        admin: true, // for now admins only; TODO: later *managers* of the site license will also get access...
+        fields: {
+          license_id: null,
+          cutoff: null,
+          number: null
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          if (opts.multi) {
+            cb(
+              "query must NOT be an array (do not request multiple values back)"
+            );
+            return;
+          }
+          const obj = opts.query;
+          if (
+            typeof obj != "object" ||
+            !is_valid_uuid_string(obj.license_id) ||
+            obj.number != null
+          ) {
+            cb(
+              "query must be of the form {license_id:uuid, cutoff?:<date>, count:null...}]"
+            );
+            return;
+          }
+          try {
+            obj.number = await database.number_of_projects_using_site_license({
+              license_id: obj.license_id,
+              cutoff: obj.cutoff
+            });
+            cb(undefined, obj);
           } catch (err) {
             cb(err);
           }

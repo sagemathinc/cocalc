@@ -52,6 +52,29 @@ export async function site_license_usage_stats(
   return usage;
 }
 
+function query_projects_using_site_license(
+  license_id: string,
+  cutoff?: Date
+): { query: string; params: any[] } {
+  const params: any[] = [];
+  let query: string;
+  if (cutoff) {
+    query = `FROM projects, site_license_usage_log WHERE  `;
+    query += "projects.project_id = site_license_usage_log.project_id AND ";
+    query += "site_license_usage_log.license_id = $1 AND";
+    query += "(site_license_usage_log.start >= $2 OR ";
+    query += " site_license_usage_log.stop >= $2 OR ";
+    query += " site_license_usage_log.stop IS NULL)";
+    params.push(license_id);
+    params.push(cutoff);
+  } else {
+    // easier -- just directly query the projects table.
+    query = `FROM projects`;
+    query += ` WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
+  }
+  return { query, params };
+}
+
 export async function projects_using_site_license(
   db: PostgreSQL,
   opts: {
@@ -62,32 +85,21 @@ export async function projects_using_site_license(
     truncate?: number;
   }
 ): Promise<{ [field: string]: any }[]> {
-  let { license_id, fields, limit, truncate, cutoff } = opts;
-  const query_fields = process_fields(fields, truncate);
+  const query_fields = process_fields(opts.fields, opts.truncate);
 
-  let query;
-  const params: any[] = [];
-  if (cutoff) {
-    query = `SELECT ${query_fields.join(
-      ","
-    )} FROM projects, site_license_usage_log WHERE  `;
-    query += "projects.project_id = site_license_usage_log.project_id AND ";
-    query += "site_license_usage_log.license_id = $1 AND";
-    query += "(site_license_usage_log.start >= $2 OR ";
-    query += " site_license_usage_log.stop >= $2 OR ";
-    query += " site_license_usage_log.stop IS NULL)";
-    params.push(license_id);
-    params.push(cutoff);
-  } else {
-    // easier -- just directly query the projects table.
-    query = `SELECT ${query_fields.join(",")} FROM projects`;
-    query += ` WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
-  }
-
-  const x = await callback2(db._query.bind(db), { query, limit, params });
+  const { query, params } = query_projects_using_site_license(
+    opts.license_id,
+    opts.cutoff
+  );
+  const select = `SELECT ${query_fields.join(",")} `;
+  const x = await callback2(db._query.bind(db), {
+    query: select + " " + query,
+    limit: opts.limit,
+    params
+  });
   const v: { [field: string]: any }[] = [];
   for (const row of x.rows) {
-    v.push(copy_with(row, fields));
+    v.push(copy_with(row, opts.fields));
   }
   return v;
 }
@@ -108,4 +120,23 @@ function process_fields(
     v.push(field);
   }
   return v;
+}
+
+export async function number_of_projects_using_site_license(
+  db: PostgreSQL,
+  opts: {
+    license_id: string;
+    cutoff?: Date;
+  }
+): Promise<number> {
+  const { query, params } = query_projects_using_site_license(
+    opts.license_id,
+    opts.cutoff
+  );
+
+  const x = await callback2(db._query.bind(db), {
+    query: "SELECT COUNT(DISTINCT(projects.project_id)) " + query,
+    params
+  });
+  return parseInt(x.rows[0].count);
 }
