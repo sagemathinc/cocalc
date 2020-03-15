@@ -65,46 +65,84 @@ async function export_one_directory(
   log: Function
 ): Promise<void> {
   const api = await project_api(project_id);
-  const listing = await api.listing(source);
+  let listing;
+  try {
+    listing = await api.listing(source);
+  } catch (err) {
+    if (err.toString().indexOf("ENOENT") != -1) {
+      // ignore completely missing directories -- no problem.
+      return;
+    }
+  }
   let x: any;
+  const timeout = 30; // 30 seconds
   for (x of listing) {
     if (x.isdir) continue; // we ignore subdirectories...
     const { name } = x;
     if (startswith(name, "STUDENT")) continue;
+    if (startswith(name, ".")) continue;
     log(name);
     if (endswith(name, ".ipynb")) {
       // convert, then move pdf
       const pdf = name.slice(0, name.length - "ipynb".length) + "pdf";
-      await exec({
-        command: "cc-ipynb-to-pdf",
-        args: [source + "/" + name],
-        project_id
-      });
-      await exec({
-        command: "mv",
-        args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
-        project_id
-      });
+      const html = name.slice(0, name.length - "ipynb".length) + "html";
+      try {
+        await exec({
+          command: "cc-ipynb-to-pdf",
+          args: [source + "/" + name],
+          project_id,
+          timeout
+        });
+        await exec({
+          command: "mv",
+          args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
+          project_id
+        });
+      } catch (err) {
+        try {
+          log(
+            "Conversion using the cc-ipynb-to-pdf script failed, so try converting to html"
+          );
+          await exec({
+            command: "jupyter",
+            args: ["nbconvert", source + "/" + name, "--to", "html"],
+            project_id,
+            timeout
+          });
+          await exec({
+            command: "mv",
+            args: [source + "/" + html, target + "/" + prefix + "-" + html],
+            project_id
+          });
+        } catch (err) {
+          log("convert to html failed too");
+        }
+      }
     } else if (endswith(name, ".sagews")) {
-      // convert then move pdf
-      const pdf = name.slice(0, name.length - "sagews".length) + "pdf";
-      await exec({
-        command: "cc-sagews2pdf",
-        args: [source + "/" + name],
-        project_id
-      });
-      await exec({
-        command: "mv",
-        args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
-        project_id
-      });
-    } else {
-      // just copy it.
-      await exec({
-        command: "cp",
-        args: [source + "/" + name, target + "/" + prefix + "-" + name],
-        project_id
-      });
+      try {
+        // convert, then move pdf
+        const pdf = name.slice(0, name.length - "sagews".length) + "pdf";
+        await exec({
+          command: "cc-sagews2pdf",
+          args: [source + "/" + name],
+          project_id,
+          timeout
+        });
+        await exec({
+          command: "mv",
+          args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
+          project_id
+        });
+      } catch (err) {
+        // Failed to convert sagews to pdf, so do nothing.
+        log(`WARNING -- problem copying ${name} -- ${err}`);
+      }
     }
+    // Always copy original file over
+    await exec({
+      command: "cp",
+      args: [source + "/" + name, target + "/" + prefix + "-" + name],
+      project_id
+    });
   }
 }
