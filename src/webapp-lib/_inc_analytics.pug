@@ -1,9 +1,5 @@
 //- if we have a GA token, insert the google analytics async script
-- var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
-- var DNS = htmlWebpackPlugin.options.theme.DNS
-- var BASE_URL = htmlWebpackPlugin.options.BASE_URL
-
-if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
+if typeof GOOGLE_ANALYTICS == "string" && GOOGLE_ANALYTICS.length > 0
     //--- Google Analytics ---
     script.
         //- Instructs analytics.js to use the name `google_analytics`.

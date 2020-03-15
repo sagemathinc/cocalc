@@ -43,7 +43,7 @@ winston      = require('./winston-metrics').get_logger('hub_http_server')
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 {DNS}        = require('smc-util/theme')
-
+{callback2}  = require("smc-util/async-utils")
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
 auth         = require('./auth')
@@ -59,6 +59,25 @@ MetricsRecorder  = require('./metrics-recorder')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+WEBAPP_PATH = path_module.join(SMC_ROOT, 'webapp-lib')
+
+get_data = (opts) ->
+    opts = defaults opts,
+        base_url       : required
+        database       : required
+    settings = await callback2(opts.database.get_server_settings_cached, {});
+    NAME = settings.site_name ? "Open CoCalc";
+    data =
+        PREFIX: ''
+        NAME : NAME
+        BASE_URL: opts.base_url ? ''
+        DESCRIPTION: "Collaborative Calculation Online"
+        COMPANY_NAME: ''
+        COMPANY_EMAIL: ''
+        POLICIES_URL : '/policies'
+        CONTACT_EMAIL: 'contact@email'
+        GOOGLE_ANALYTICS: ''
+    return data
 
 
 exports.init_express_http_server = (opts) ->
@@ -144,7 +163,14 @@ exports.init_express_http_server = (opts) ->
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
-    handle_root = (req, res) ->
+    app.set('views', '../webapp-lib')
+    app.set('view engine', 'pug')
+
+    # static content for the main page
+    router.use '/webapp',
+        express.static(WEBAPP_PATH, setHeaders: cacheLongTerm)
+
+    handle_index = (req, res) ->
         # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
         # that's not a security issue b/c the hub will do the heavy lifting
         # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
@@ -157,10 +183,12 @@ exports.init_express_http_server = (opts) ->
             res.redirect(opts.base_url + '/app')
         else
             #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
-            res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+            #res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
+            data = await get_data(base_url:opts.base_url, database:opts.database)
+            res.render("index.pug", data)
 
-    router.get '/', handle_root
-    router.get '/index.html', handle_root
+    router.get '/', handle_index
+    router.get '/index.html', handle_index
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })

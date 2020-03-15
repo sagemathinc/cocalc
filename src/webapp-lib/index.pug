@@ -1,0 +1,86 @@
+//- main landing page
+
+//- important detail: those anchor links aren't generated automatically. they need to adhere to a given pattern:
+//- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
+//- the corresponding anchor link is then a.anchor#a-name
+
+extends _base.pug
+
+block vars
+  - var subtitle = DESCRIPTION;
+  - var navbar_active = 'index';
+
+block header
+  script(type="text/javascript")
+    include:coffee-script index.coffee
+  meta(name="description" content=DESCRIPTION)
+
+block content
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "../smc-webapp/_colors.sass"
+      @import "../webapp-lib/_vars.sass"
+      body > div.space
+        margin-top       : 5rem
+      p
+        font-size        : 13pt
+      #statstable td,
+      #statstable th
+        text-align       : right
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #statstable td.left
+        text-align     : left
+      #explore,
+      #bottom
+        div > h3
+          white-space    : nowrap
+      #explore
+        background-color : $COL_BLUE_LLL
+      #bottom
+        background-color : $COL_GRAY_LL
+      #included > div
+        padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block
+
+  div.space#top
+    div.container
+      div.row.intro
+        div.col-md-6.center
+          p.headline.
+            It's time to ditch Maple, Mathematica and Matlab!
+          div.subheadline.
+            Save weeks of class time troubleshooting software and make your TA's more effective.
+        div.col-md-6.center
+          a(href="app?anonymous=true")
+            img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png").shadow.shrink-small-75.rounded
+
+  div
+    +start_free_banner

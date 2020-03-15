@@ -1,0 +1,131 @@
+//- the main html template for the static pages (shares some _inc_* files with app.pug)
+
+mixin start_button(startup='jupyter')
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
+  p #[a(href=PREFIX + "app") sign in or create an account]
+
+
+mixin _start_button_anon_2(startup)
+  -
+    var startup_txt;
+    if (startup == 'latex') {
+      startup_txt = "LaTeX";
+    } else if (startup != null) {
+      startup_txt = startup.charAt(0).toUpperCase() + startup.slice(1);
+    } else {
+      startup_txt = NAME;
+    }
+    var startup = (startup != null) ? startup : "true"
+  a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{startup_txt} Now
+
+mixin start_button_2(startup)
+  p.cc-create-account-btn
+    +_start_button_anon_2(startup)
+    a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
+
+mixin start_button_anon_2(startup)
+  p.cc-create-account-btn
+    +_start_button_anon_2(startup)
+
+mixin start_button_2sm(startup='jupyter')
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=" + startup) Run CoCalc!
+    a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In
+
+mixin start_button_3(startup='jupyter')
+  p.cc-create-account-btn
+    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
+
+
+mixin start_free_banner(startup)
+  div(style="margin-top: 6rem").darkbg
+    div.container
+      div.col-sm-12.center
+        +start_button_2(startup)
+
+mixin video-player
+  div.video-player.fit
+    div.video-overlay.
+      #[span(style="font-size:300%") &#9654;]
+      #[br/]
+      click to play
+    video(loop).fit
+      block
+
+mixin open-cocalc
+  span(style="color:black;")
+    img(src=PREFIX + "webapp/cocalc-font-dark.svg" style="height: 3rem; width: auto;")
+
+doctype html
+
+block vars
+
+-
+  var fulltitle = NAME;
+  if (subtitle) {fulltitle += " - " + subtitle};
+
+html.no-js(lang="en")
+  head
+    include _inc_head.pug
+    title= fulltitle
+    block header
+    style
+      :sass
+        html.no-js
+          display : none
+
+  body
+    style
+      :sass
+        @import "../smc-webapp/_colors.sass"
+        @import "../webapp-lib/_base.sass"
+
+
+    script.
+      function toggle_menu(menu) {
+        menu.classList.toggle("open");
+        let nav_bars = document.querySelectorAll('div.collapse.navbar-collapse');
+        Array.from(nav_bars).forEach(function(nav){
+          nav.classList.toggle("show-menu");
+        });
+      }
+
+    nav#nav-main.navbar.navbar-default.navbar-fixed-top
+      div.container
+        div.navbar-header
+          a(href=PREFIX + "index.html")
+            img.icon(alt=NAME src=PREFIX + "webapp/cocalc-icon.svg")
+            +open-cocalc
+          div.navbar-menu(onclick="toggle_menu(this)")
+            div.bar1
+            div.bar2
+            div.bar3
+
+        div.collapse.navbar-collapse
+          ul.nav.navbar-nav.navbar-right
+            li
+              a.sharedfiles(href=PREFIX + "share/") Shared Files
+            li
+              a.documentation(href="https://doc.cocalc.com/") Doc
+            li
+              a.get-started(href=PREFIX + "app") Sign In
+
+        //- that line is below the logo, on the left
+        div.navbar-descr.hide-md-screen.
+          #{DESCRIPTION}
+
+    div#content
+      block content
+
+      include _footer.pug
+
+    script
+      :coffee-script
+        html = document.documentElement
+        window.onload = ->
+          html.className = html.className.replace(/\bno-js\b/, 'js')
+
+    noscript
+      style.
+        html.no-js { display: block; }

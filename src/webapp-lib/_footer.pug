@@ -1,9 +1,16 @@
 //- footer at bottom of static pages
--
-  var PREFIX        = htmlWebpackPlugin.options.PREFIX;
 
-include _static_footer.html
+footer(style='fontSize:"small", color:"gray", padding: "20px 0"')
+  hr/
+  p.center
+    | #{NAME} –
+    |
+    a(target="_blank" rel='noopener' href=POLICIES_URL) Policies and  Terms of Service
+    |
+    | –
+    |
+    a(href="mailto:"+CONTACT_EMAIL) Contact
 
 div.center(style="margin-bottom: 6rem;")
   a(href=PREFIX + "app")
-    img(src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg') style="height: 3rem; width: auto;")
+    +open-cocalc
