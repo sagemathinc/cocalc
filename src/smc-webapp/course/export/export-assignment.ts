@@ -30,6 +30,7 @@ export async function export_assignment(
   for (const [student_id, student] of students) {
     const name = student_name(student_id);
     const desc = "Exporting " + name + ` (student ${n} of ${students.size}): `;
+    n += 1;
     log(desc);
     if (student.get("deleted")) continue;
     try {
