@@ -7,11 +7,15 @@ export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 export type RowType = "header" | "setting";
 
 type SiteSettingsKeys =
+  | "theming"
   | "site_name"
   | "site_description"
   | "terms_of_service"
   | "account_creation_email_instructions"
   | "help_email"
+  | "help_email"
+  | "logo_square"
+  | "logo_rectangular"
   | "commercial"
   | "google_analytics"
   | "kucalc"
@@ -29,7 +33,7 @@ type SiteSettingsKeys =
 export interface Config {
   readonly name: string;
   readonly desc: string;
-  readonly default: string;
+  readonly default: string | null;
   // list of allowed strings or a validator function
   readonly valid?: ConfigValid;
   readonly password?: boolean;
@@ -56,6 +60,7 @@ export const only_for_password_reset_smtp = conf =>
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const only_cocalc_com = conf => conf.kucalc === KUCALC_COCALC_COM;
 export const only_commercial = conf => to_bool(conf.commercial);
+export const only_theming = conf => to_bool(conf.theming);
 export const to_bool = val => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = val => parseInt(val);
@@ -81,35 +86,61 @@ const KUCALC_VALID_VALS = [
 ];
 
 export const site_settings_conf: SiteSettings = {
+  // ========= THEMING ===============
+  theming: {
+    name: "Theming",
+    desc: "Customize aspects of the index page and UI",
+    default: "yes",
+    valid: only_booleans,
+    to_val: to_bool
+  },
   site_name: {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
-    default: "CoCalc"
+    default: "CoCalc",
+    show: only_theming
   },
   site_description: {
     name: "Site description",
     desc: "The description of your CoCalc site.",
-    default: ""
+    default: "",
+    show: only_theming
   },
   terms_of_service: {
     name: "Terms of service",
     desc:
       "The text displayed for the terms of service link (make empty to not require).",
     default:
-      'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
+      'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.',
+    show: only_theming
   },
   account_creation_email_instructions: {
     name: "Account creation",
     desc:
       "Instructions displayed next to the box where a user creates their account using their name and email address.",
-    default: "Create an Account"
+    default: "Create an Account",
+    show: only_theming
   },
   help_email: {
     name: "Help email",
     desc: "Email address that user is directed to use for support requests",
     default: "help@cocalc.com",
-    valid: is_valid_email_address
+    valid: is_valid_email_address,
+    show: only_theming
   },
+  logo_square: {
+    name: "Logo (square)",
+    desc: "Link to a square PNG or SVG image to display as a logo",
+    default: null,
+    show: only_theming
+  },
+  logo_rectangular: {
+    name: "Logo (rectangular)",
+    desc: "Link to a rectangular logo (e.g. 450x75 px)",
+    default: null,
+    show: only_theming
+  },
+  // ============== END THEMING ============
   commercial: {
     name: "Commercial",
     desc:

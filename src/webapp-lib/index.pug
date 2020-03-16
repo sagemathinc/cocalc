@@ -63,7 +63,7 @@ block content
         div.col-md-6.center
           div.row
             div.col-md-4.col-md-offset-4
-              img(src=ICON_URL).fit
+              img(src=LOGO_SQUARE_URL).fit
             div.col-md-12
               p.headline
                 | #{NAME}
@@ -72,8 +72,7 @@ block content
               div.subheadline.
                 An open-source instance of #[a(href="https://cocalc.com") CoCalc], hosted by #{ORGANIZATION_NAME}.
         div.col-md-6.center
-          a(href="app?anonymous=true")
-            img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png").shadow.shrink-small-75.rounded
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png").shadow.shrink-small-75.rounded
 
   div
-    +start_free_banner
+    +sign_in_banner

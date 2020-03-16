@@ -38,7 +38,7 @@ mixin start_button_3(startup='jupyter')
     a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
 
 
-mixin start_free_banner(startup)
+mixin sign_in_banner(startup)
   div(style="margin-top: 6rem").darkbg
     div.container
       div.col-sm-12.center
@@ -53,9 +53,9 @@ mixin video-player
     video(loop).fit
       block
 
-mixin open-cocalc
+mixin cocalc-rectangular
   span(style="color:black;")
-    img(src=PREFIX + "webapp/open-cocalc-font-dark.svg" style="height: 3rem; width: auto;")
+    img(src=LOGO_RECTANGULAR_URL style="height: 3rem; width: auto;")
 
 doctype html
 
@@ -81,7 +81,6 @@ html.no-js(lang="en")
         @import "../smc-webapp/_colors.sass"
         @import "../webapp-lib/_base.sass"
 
-
     script.
       function toggle_menu(menu) {
         menu.classList.toggle("open");
@@ -95,8 +94,8 @@ html.no-js(lang="en")
       div.container
         div.navbar-header
           a(href=PREFIX + "index.html")
-            img.icon(alt=NAME src=PREFIX + "webapp/cocalc-icon.svg")
-            +open-cocalc
+            img.icon(alt=NAME src=LOGO_SQUARE_URL)
+            +cocalc-rectangular
           div.navbar-menu(onclick="toggle_menu(this)")
             div.bar1
             div.bar2

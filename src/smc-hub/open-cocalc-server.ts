@@ -22,13 +22,18 @@ async function get_params(opts: GetData) {
   const { db, base_url } = opts;
   const settings = await callback2(db.get_server_settings_cached, {});
   const NAME = settings.site_name ?? "Open CoCalc";
-  const PREFIX = "";
+  const PREFIX = ""; // this is unrelated of base_url. TODO remove it.
+  const LOGO_SQUARE_URL =
+    settings.logo_square ?? PREFIX + "webapp/cocalc-icon.svg";
+  const LOGO_RECTANGULAR_URL =
+    settings.logo_rectangular ?? PREFIX + "webapp/open-cocalc-font-dark.svg";
 
   const data = {
     PREFIX: PREFIX,
     NAME: NAME,
     BASE_URL: base_url ?? "",
-    ICON_URL: PREFIX + "webapp/cocalc-icon.svg",
+    LOGO_SQUARE_URL,
+    LOGO_RECTANGULAR_URL,
     DESCRIPTION: "Collaborative Calculation Online",
     ORGANIZATION_NAME: "Organization",
     ORGANIZATION_EMAIL: "",
