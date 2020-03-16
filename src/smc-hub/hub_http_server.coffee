@@ -43,7 +43,6 @@ winston      = require('./winston-metrics').get_logger('hub_http_server')
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 {DNS}        = require('smc-util/theme')
-{callback2}  = require("smc-util/async-utils")
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
 auth         = require('./auth')
@@ -54,30 +53,13 @@ MetricsRecorder  = require('./metrics-recorder')
 {http_message_api_v1} = require('./api/handler')
 {setup_analytics_js} = require('./analytics')
 
+open_cocalc = require('./open-cocalc-server')
+
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
-WEBAPP_PATH = path_module.join(SMC_ROOT, 'webapp-lib')
-
-get_data = (opts) ->
-    opts = defaults opts,
-        base_url       : required
-        database       : required
-    settings = await callback2(opts.database.get_server_settings_cached, {});
-    NAME = settings.site_name ? "Open CoCalc";
-    data =
-        PREFIX: ''
-        NAME : NAME
-        BASE_URL: opts.base_url ? ''
-        DESCRIPTION: "Collaborative Calculation Online"
-        COMPANY_NAME: ''
-        COMPANY_EMAIL: ''
-        POLICIES_URL : '/policies'
-        CONTACT_EMAIL: 'contact@email'
-        GOOGLE_ANALYTICS: ''
-    return data
 
 
 exports.init_express_http_server = (opts) ->
@@ -159,36 +141,11 @@ exports.init_express_http_server = (opts) ->
     # setup the /analytics.js endpoint
     setup_analytics_js(router, opts.database, winston, opts.base_url)
 
+    open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url)
+
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
-
-    app.set('views', '../webapp-lib')
-    app.set('view engine', 'pug')
-
-    # static content for the main page
-    router.use '/webapp',
-        express.static(WEBAPP_PATH, setHeaders: cacheLongTerm)
-
-    handle_index = (req, res) ->
-        # for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
-        # that's not a security issue b/c the hub will do the heavy lifting
-        # TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
-        # looks for the has_remember_me value (set by the client in accounts).
-        # This could be done in different ways, it's not clear what works best.
-        #remember_me = req.cookies[opts.base_url + 'remember_me']
-        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url, false)] \
-                        or req.cookies[auth.remember_me_cookie_name(opts.base_url, true)]
-        if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
-            res.redirect(opts.base_url + '/app')
-        else
-            #res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
-            #res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
-            data = await get_data(base_url:opts.base_url, database:opts.database)
-            res.render("index.pug", data)
-
-    router.get '/', handle_index
-    router.get '/index.html', handle_index
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })

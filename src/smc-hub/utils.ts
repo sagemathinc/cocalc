@@ -3,10 +3,12 @@ const winston = require("./winston-metrics").get_logger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
 
+export function get_smc_root(): string {
+  return process.env.SMC_ROOT ?? ".";
+}
+
 export function read_db_password_from_disk(): string | null {
-  const filename =
-    (process.env.SMC_ROOT ? process.env.SMC_ROOT : ".") +
-    "/data/secrets/postgres";
+  const filename = get_smc_root() + "/data/secrets/postgres";
   try {
     return fs
       .readFileSync(filename)
