@@ -40,6 +40,7 @@ collab = require('./postgres/collab')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
+SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -195,13 +196,27 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             name  : required
             value : required
             cb    : required
-        @_query
-            query  : 'INSERT INTO server_settings'
-            values :
-                'name::TEXT'  : opts.name
-                'value::TEXT' : opts.value
-            conflict : 'name'
-            cb     : opts.cb
+        async.series([
+            (cb) ->
+                @_query
+                    query  : 'INSERT INTO server_settings'
+                    values :
+                        'name::TEXT'  : opts.name
+                        'value::TEXT' : opts.value
+                    conflict : 'name'
+                    cb     : cb
+            # also set a timestamp
+            (cb) ->
+                @_query
+                    query  : 'INSERT INTO server_settings'
+                    values :
+                        'name::TEXT'  : '_last_update'
+                        'value::TEXT' : (new Date()).toISOString()
+                    conflict : 'name'
+                    cb     : cb
+        ], (err) ->
+            opts.cb(err)
+        )
 
     get_server_setting: (opts) =>
         opts = defaults opts,
@@ -216,6 +231,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_server_settings_cached: (opts) =>
         opts = defaults opts,
             cb: required
+        settings = SERVER_SETTINGS_CACHE.get('server_settings')
+        if settings != null
+            return settings
+        dbg = @_dbg('get_server_settings_cached')
         @_query
             query : 'SELECT name, value FROM server_settings'
             cache : true
@@ -224,12 +243,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(err)
                 else
                     x = {}
+                    # process values, possibly post-process values
                     for k in result.rows
                         val = k.value
                         config = SITE_SETTINGS_CONF[k.name] ? SERVER_SETTINGS_EXTRAS[k.name]
                         if config?.to_val?
                             val = config.to_val(val)
                         x[k.name] = val
+                    # set default values for missing keys
+                    for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
+                        for ckey in Object.keys(config)
+                            if x[ckey] == undefined
+                                x[ckey] = config[ckey].default
+                    SERVER_SETTINGS_CACHE.set('server_settings', x)
+                    #dbg("server_settings = #{JSON.stringify(x, null, 2)}")
                     opts.cb(undefined, x)
 
     get_site_settings: (opts) =>

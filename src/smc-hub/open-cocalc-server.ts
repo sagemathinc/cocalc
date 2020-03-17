@@ -10,6 +10,7 @@ import * as express from "express";
 import * as path_module from "path";
 const auth = require("./auth");
 import { get_smc_root } from "./utils";
+//import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
 
 const WEBAPP_PATH = path_module.join(get_smc_root(), "webapp-lib");
 
@@ -18,28 +19,53 @@ interface GetData {
   db: PostgreSQL;
 }
 
+function fallback(val: string | undefined, fallback: string): string {
+  if (typeof val === "string" && val.length > 0) {
+    return val;
+  } else {
+    return fallback;
+  }
+}
+
 async function get_params(opts: GetData) {
   const { db, base_url } = opts;
   const settings = await callback2(db.get_server_settings_cached, {});
-  const NAME = settings.site_name ?? "Open CoCalc";
-  const PREFIX = ""; // this is unrelated of base_url. TODO remove it.
-  const LOGO_SQUARE_URL =
-    settings.logo_square ?? PREFIX + "webapp/cocalc-icon.svg";
-  const LOGO_RECTANGULAR_URL =
-    settings.logo_rectangular ?? PREFIX + "webapp/open-cocalc-font-dark.svg";
+  const NAME = settings.site_name;
+  const DESCRIPTION = settings.site_description;
+  const PREFIX = ""; // this is unrelated of base_url, used for subdirectories
+  const LOGO_SQUARE_URL = fallback(
+    settings.logo_square,
+    PREFIX + "webapp/cocalc-icon.svg"
+  );
+  const LOGO_RECTANGULAR_URL = fallback(
+    settings.logo_rectangular,
+    PREFIX + "webapp/open-cocalc-font-dark.svg"
+  );
+
+  const SPLASH_IMG = fallback(
+    settings.splash_image,
+    "https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png"
+  );
+
+  const ORGANIZATION_EMAIL = fallback(
+    settings.organization_email,
+    settings.help_email
+  );
+
+  const ORGANIZATION_NAME = fallback(settings.organization_name, NAME);
 
   const data = {
-    PREFIX: PREFIX,
-    NAME: NAME,
+    PREFIX,
+    NAME,
+    DESCRIPTION,
     BASE_URL: base_url ?? "",
     LOGO_SQUARE_URL,
     LOGO_RECTANGULAR_URL,
-    DESCRIPTION: "Collaborative Calculation Online",
-    ORGANIZATION_NAME: "Organization",
-    ORGANIZATION_EMAIL: "",
-    POLICIES_URL: "/policies",
-    CONTACT_EMAIL: "contact@email",
-    GOOGLE_ANALYTICS: ""
+    SPLASH_IMG,
+    INDEX_INFO: settings.index_info_html,
+    ORGANIZATION_NAME,
+    CONTACT_EMAIL: ORGANIZATION_EMAIL,
+    TOS_URL: settings.terms_of_service_url
   };
   return data;
 }

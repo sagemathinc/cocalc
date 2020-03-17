@@ -6,7 +6,7 @@ export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
 export type RowType = "header" | "setting";
 
-type SiteSettingsKeys =
+export type SiteSettingsKeys =
   | "theming"
   | "site_name"
   | "site_description"
@@ -16,6 +16,11 @@ type SiteSettingsKeys =
   | "help_email"
   | "logo_square"
   | "logo_rectangular"
+  | "splash_image"
+  | "index_info_html"
+  | "terms_of_service_url"
+  | "organization_name"
+  | "organization_email"
   | "commercial"
   | "google_analytics"
   | "kucalc"
@@ -33,7 +38,8 @@ type SiteSettingsKeys =
 export interface Config {
   readonly name: string;
   readonly desc: string;
-  readonly default: string | null;
+  // there must be a default value, even if it is just ''
+  readonly default: string;
   // list of allowed strings or a validator function
   readonly valid?: ConfigValid;
   readonly password?: boolean;
@@ -97,21 +103,27 @@ export const site_settings_conf: SiteSettings = {
   site_name: {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
-    default: "CoCalc",
+    default: "Open CoCalc",
     show: only_theming
   },
   site_description: {
     name: "Site description",
-    desc: "The description of your CoCalc site.",
+    desc: "A tagline describing your site.",
+    default: "Collaborative Calculation Online",
+    show: only_theming
+  },
+  terms_of_service_url: {
+    name: "Terms of Service",
+    desc: "URL to a page describing ToS, Policies, etc.",
     default: "",
     show: only_theming
   },
   terms_of_service: {
-    name: "Terms of service",
+    name: "ToS information",
     desc:
       "The text displayed for the terms of service link (make empty to not require).",
     default:
-      'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.',
+      "By creating an account you agree to the <em>Terms of Service</em>.",
     show: only_theming
   },
   account_creation_email_instructions: {
@@ -124,20 +136,45 @@ export const site_settings_conf: SiteSettings = {
   help_email: {
     name: "Help email",
     desc: "Email address that user is directed to use for support requests",
-    default: "help@cocalc.com",
+    default: "",
     valid: is_valid_email_address,
+    show: only_theming
+  },
+  organization_name: {
+    name: "Organization Name",
+    desc:
+      "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry' (defaults to 'Site name')",
+    default: "",
+    show: only_theming
+  },
+  organization_email: {
+    name: "Contact email address",
+    desc: "How to contact your organization (defaults to 'Help email')",
+    default: "",
     show: only_theming
   },
   logo_square: {
     name: "Logo (square)",
-    desc: "Link to a square PNG or SVG image to display as a logo",
-    default: null,
+    desc: "URL of a square PNG or SVG image to display as a logo",
+    default: "",
     show: only_theming
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
-    desc: "Link to a rectangular logo (e.g. 450x75 px)",
-    default: null,
+    desc: "URL of a rectangular logo (about 450x75 px)",
+    default: "",
+    show: only_theming
+  },
+  splash_image: {
+    name: "Index page picture",
+    desc: "URL of an image displayed on the index page (about 1200x800 px)",
+    default: "",
+    show: only_theming
+  },
+  index_info_html: {
+    name: "Index page info",
+    desc: "An HTML string displayed on the index page.",
+    default: "",
     show: only_theming
   },
   // ============== END THEMING ============
