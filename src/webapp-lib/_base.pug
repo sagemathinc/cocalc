@@ -1,57 +1,21 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
-mixin start_button(startup='jupyter')
-  p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
-  p #[a(href=PREFIX + "app") sign in or create an account]
-
-
-mixin _start_button_anon_2(startup)
-  -
-    var startup_txt;
-    if (startup == 'latex') {
-      startup_txt = "LaTeX";
-    } else if (startup != null) {
-      startup_txt = startup.charAt(0).toUpperCase() + startup.slice(1);
-    } else {
-      startup_txt = NAME;
-    }
-    var startup = (startup != null) ? startup : "true"
-  a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{startup_txt} Now
+mixin _start_button_anon_2
+  a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run #{NAME} Now
 
 mixin start_button_2(startup)
   p.cc-create-account-btn
-    +_start_button_anon_2(startup)
-    a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
+    if ANONYMOUS_SIGNUP
+      +_start_button_anon_2
+      a.btn.btn-default.btn-lg(href=PREFIX + "app") Sign In
+    else
+      a.btn.btn-success.btn-lg(href=PREFIX + "app") Sign in to #{NAME}
 
-mixin start_button_anon_2(startup)
-  p.cc-create-account-btn
-    +_start_button_anon_2(startup)
-
-mixin start_button_2sm(startup='jupyter')
-  p.cc-create-account-btn
-    a.btn.btn-success.btn-sm(href=PREFIX + "app?anonymous=" + startup) Run CoCalc!
-    a.btn.btn-default.btn-sm(href=PREFIX + "app") Sign In
-
-mixin start_button_3(startup='jupyter')
-  p.cc-create-account-btn
-    a.btn.btn-success.btn-lg(href=PREFIX + "app?anonymous=" + startup) Run CoCalc Now
-
-
-mixin sign_in_banner(startup)
-  div(style="margin-top: 6rem").darkbg
+mixin sign_in_buttons(startup)
+  div(style="margin-top: 6rem")
     div.container
       div.col-sm-12.center
         +start_button_2(startup)
-
-mixin video-player
-  div.video-player.fit
-    div.video-overlay.
-      #[span(style="font-size:300%") &#9654;]
-      #[br/]
-      click to play
-    video(loop).fit
-      block
 
 mixin cocalc-rectangular
   span(style="color:black;")
@@ -103,12 +67,15 @@ html.no-js(lang="en")
 
         div.collapse.navbar-collapse
           ul.nav.navbar-nav.navbar-right
-            li
-              a.sharedfiles(href=PREFIX + "share/") Shared Files
-            li
-              a.documentation(href="https://doc.cocalc.com/") Doc
-            li
-              a.get-started(href=PREFIX + "app") Sign In
+            if TOS_URL != ''
+              li: a(target="_blank" rel='noopener' href=TOS_URL) Terms of Service
+
+            if CONTACT_EMAIL != ''
+              li: a(href="mailto:"+CONTACT_EMAIL) Contact
+
+            li: a.sharedfiles(href=PREFIX + "share/") Shared Files
+            li: a.documentation(href="https://doc.cocalc.com/") Doc
+            li: a.get-started(href=PREFIX + "app") Sign In
 
         //- that line is below the logo, on the left
         div.navbar-descr.hide-md-screen.

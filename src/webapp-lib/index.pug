@@ -69,10 +69,13 @@ block content
                 | #{NAME}
                 br/
                 | #{DESCRIPTION}
-              div.subheadline.
-                An open-source instance of #[a(href="https://cocalc.com") CoCalc], hosted by #{ORGANIZATION_NAME}.
+              div.subheadline
+                | An open-source instance of #[a(href="https://cocalc.com") CoCalc]
+                if ORGANIZATION_NAME != ''
+                  | , hosted by #{ORGANIZATION_NAME}
+                |.
         div.col-md-6.center
           img(src=SPLASH_IMG).shadow.shrink-small-75.rounded
 
   div
-    +sign_in_banner
+    +sign_in_buttons

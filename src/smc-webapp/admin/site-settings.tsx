@@ -299,13 +299,20 @@ class SiteSettingsComponent extends Component<
     return this.setState({ edited: e });
   }
 
-  private render_row_entry_inner(name, value, valid, password): Rendered {
+  private render_row_entry_inner(
+    name,
+    value,
+    valid,
+    password,
+    clearable
+  ): Rendered {
     if (Array.isArray(valid)) {
       return (
         <Select
           defaultValue={value}
           onChange={val => this.on_change_entry(name, val)}
           style={{ width: "100%" }}
+          allowClear={clearable}
         >
           {valid.map(e => (
             <Select.Option value={e} key={e}>
@@ -344,7 +351,8 @@ class SiteSettingsComponent extends Component<
     displayed_val?: string,
     valid?: ConfigValid,
     hint?: Rendered,
-    row_type?: RowType
+    row_type?: RowType,
+    clearable?: boolean
   ) {
     if (row_type == ("header" as RowType)) {
       return <div />;
@@ -356,7 +364,13 @@ class SiteSettingsComponent extends Component<
         default:
           return (
             <FormGroup>
-              {this.render_row_entry_inner(name, value, valid, password)}
+              {this.render_row_entry_inner(
+                name,
+                value,
+                valid,
+                password,
+                clearable
+              )}
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
@@ -395,6 +409,8 @@ class SiteSettingsComponent extends Component<
         ? `${conf.to_val(raw_value)}`
         : undefined;
 
+    const clearable = conf.clearable ?? false;
+
     const label = (
       <>
         <strong>{conf.name}</strong>
@@ -424,7 +440,8 @@ class SiteSettingsComponent extends Component<
           parsed_value,
           conf.valid,
           hint,
-          row_type
+          row_type,
+          clearable
         )}
       </LabeledRow>
     );

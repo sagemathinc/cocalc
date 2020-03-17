@@ -50,9 +50,14 @@ export interface Config {
   readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
+  readonly clearable?: boolean; // default false
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
+
+function fallback(conf, name: SiteSettingsKeys) {
+  conf[name] ?? site_settings_conf[name].default;
+}
 
 // little helper fuctions, used in the site settings & site settings extras
 export const is_email_enabled = conf =>
@@ -65,8 +70,8 @@ export const only_for_password_reset_smtp = conf =>
   to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
 export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
 export const only_cocalc_com = conf => conf.kucalc === KUCALC_COCALC_COM;
-export const only_commercial = conf => to_bool(conf.commercial);
-export const only_theming = conf => to_bool(conf.theming);
+export const only_commercial = conf => to_bool(fallback(conf, "commercial"));
+export const only_theming = conf => to_bool(fallback(conf, "theming"));
 export const to_bool = val => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = val => parseInt(val);
@@ -104,19 +109,22 @@ export const site_settings_conf: SiteSettings = {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
     default: "Open CoCalc",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   site_description: {
     name: "Site description",
     desc: "A tagline describing your site.",
     default: "Collaborative Calculation Online",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   terms_of_service_url: {
     name: "Terms of Service",
     desc: "URL to a page describing ToS, Policies, etc.",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   terms_of_service: {
     name: "ToS information",
@@ -124,58 +132,67 @@ export const site_settings_conf: SiteSettings = {
       "The text displayed for the terms of service link (make empty to not require).",
     default:
       "By creating an account you agree to the <em>Terms of Service</em>.",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   account_creation_email_instructions: {
     name: "Account creation",
     desc:
       "Instructions displayed next to the box where a user creates their account using their name and email address.",
     default: "Create an Account",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   help_email: {
     name: "Help email",
     desc: "Email address that user is directed to use for support requests",
     default: "",
     valid: is_valid_email_address,
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   organization_name: {
     name: "Organization Name",
     desc:
-      "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry' (defaults to 'Site name')",
+      "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   organization_email: {
     name: "Contact email address",
-    desc: "How to contact your organization (defaults to 'Help email')",
+    desc: "How to contact your organization.",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   logo_square: {
     name: "Logo (square)",
     desc: "URL of a square PNG or SVG image to display as a logo",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
     desc: "URL of a rectangular logo (about 450x75 px)",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   splash_image: {
     name: "Index page picture",
     desc: "URL of an image displayed on the index page (about 1200x800 px)",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   index_info_html: {
     name: "Index page info",
     desc: "An HTML string displayed on the index page.",
     default: "",
-    show: only_theming
+    show: only_theming,
+    clearable: true
   },
   // ============== END THEMING ============
   commercial: {

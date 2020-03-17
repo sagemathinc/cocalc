@@ -231,9 +231,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_server_settings_cached: (opts) =>
         opts = defaults opts,
             cb: required
+
         settings = SERVER_SETTINGS_CACHE.get('server_settings')
         if settings != null
-            return settings
+            opts.cb(undefined, settings)
+            return
+
         dbg = @_dbg('get_server_settings_cached')
         @_query
             query : 'SELECT name, value FROM server_settings'

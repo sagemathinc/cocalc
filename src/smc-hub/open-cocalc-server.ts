@@ -11,6 +11,7 @@ import * as path_module from "path";
 const auth = require("./auth");
 import { get_smc_root } from "./utils";
 //import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
+import * as winston from "winston";
 
 const WEBAPP_PATH = path_module.join(get_smc_root(), "webapp-lib");
 
@@ -47,12 +48,8 @@ async function get_params(opts: GetData) {
     "https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png"
   );
 
-  const ORGANIZATION_EMAIL = fallback(
-    settings.organization_email,
-    settings.help_email
-  );
-
-  const ORGANIZATION_NAME = fallback(settings.organization_name, NAME);
+  const ORGANIZATION_EMAIL = settings.organization_email;
+  const ORGANIZATION_NAME = settings.organization_name;
 
   const data = {
     PREFIX,
@@ -90,6 +87,7 @@ export function setup_open_cocalc(opts: Setup) {
   );
 
   const handle_index = async (req, res) => {
+    winston.debug("open cocalc/handle_index", req.path);
     // for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
     // that's not a security issue b/c the hub will do the heavy lifting
     // TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
