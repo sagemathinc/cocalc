@@ -16,15 +16,16 @@ const STYLE: React.CSSProperties = {
   fontWeight: "bold",
   marginLeft: "5px",
   marginRight: "-5px",
-  borderRadius: "3px"
+  borderRadius: "3px",
+  whiteSpace: "nowrap"
 };
 
 /**
-* Shows `NOT saved!` if `has_uncommitted_changes` is true for ~delay_ms time.
-* Shows nothing if `has_uncommitted_changes` is false
-*
-* Does not work with changes to `delay_ms`
-*/
+ * Shows `NOT saved!` if `has_uncommitted_changes` is true for ~delay_ms time.
+ * Shows nothing if `has_uncommitted_changes` is false
+ *
+ * Does not work with changes to `delay_ms`
+ */
 export function UncommittedChanges({
   has_uncommitted_changes,
   delay_ms = 5000
