@@ -40,7 +40,7 @@ collab = require('./postgres/collab')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
-SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
+SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 10 * 1000 })
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table

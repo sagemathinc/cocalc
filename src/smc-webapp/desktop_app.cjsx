@@ -31,7 +31,6 @@ misc_page = require('./misc_page')
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{InfoPage}     = require('./info/info')
 {ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..

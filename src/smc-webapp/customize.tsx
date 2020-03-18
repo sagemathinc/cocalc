@@ -86,6 +86,7 @@ if (typeof $ !== "undefined" && $ != undefined) {
     if (status === "success") {
       // TODO make this a to_val function in site_settings_conf.kucalc
       obj.kucalc = validate_kucalc(obj.kucalc);
+      obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
 
       for (const k in site_settings_conf) {
         const v = site_settings_conf[k];

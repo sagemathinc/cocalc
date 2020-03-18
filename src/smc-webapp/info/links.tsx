@@ -50,6 +50,7 @@ export const SUPPORT_LINKS: Links = {
     )
   },
   teaching: {
+    commercial: true,
     icon: "graduation-cap",
     href: "https://doc.cocalc.com/teaching-instructors.html",
     link: (
@@ -59,6 +60,7 @@ export const SUPPORT_LINKS: Links = {
     )
   },
   live_demo: {
+    commercial: true,
     icon: "comments-o",
     link: (
       <span>
@@ -85,6 +87,7 @@ export const SUPPORT_LINKS: Links = {
     )
   },
   docker_image: {
+    commercial: true,
     icon: "window-maximize",
     href: "https://github.com/sagemathinc/cocalc-docker",
     link: (
@@ -94,6 +97,7 @@ export const SUPPORT_LINKS: Links = {
     )
   },
   kubernetes_image: {
+    commercial: true,
     icon: "window-maximize",
     href: "https://github.com/sagemathinc/cocalc-kubernetes",
     link: (
@@ -107,6 +111,7 @@ export const SUPPORT_LINKS: Links = {
 
 export const CONNECT_LINKS = {
   discord: {
+    commercial: true,
     bold: true,
     icon: "fab fa-discord",
     href: DISCORD_INVITE,
