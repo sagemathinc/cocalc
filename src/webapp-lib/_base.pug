@@ -12,7 +12,7 @@ mixin start_button_2(startup)
       a.btn.btn-success.btn-lg(href=PREFIX + "app") Sign in to #{NAME}
 
 mixin sign_in_buttons(startup)
-  div(style="margin-top: 6rem")
+  div(style="margin-top: 1rem")
     div.container
       div.col-sm-12.center
         +start_button_2(startup)
@@ -80,8 +80,8 @@ html.no-js(lang="en")
             if TOS_URL != ''
               li: a(target="_blank" rel='noopener' href=TOS_URL) Terms of Service
 
-            if CONTACT_EMAIL != ''
-              li: a(href="mailto:"+CONTACT_EMAIL) Contact
+            if HELP_EMAIL != ''
+              li: a(href="mailto:"+HELP_EMAIL) Help
 
             li: a.sharedfiles(href=PREFIX + "share/") Shared Files
             li: a.documentation(href="https://doc.cocalc.com/") Doc

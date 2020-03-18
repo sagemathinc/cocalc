@@ -52,30 +52,33 @@ export interface Config {
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
   readonly clearable?: boolean; // default false
+  readonly multiline?: number;
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
 
-function fallback(conf, name: SiteSettingsKeys) {
+const fallback = (conf, name: SiteSettingsKeys): string =>
   conf[name] ?? site_settings_conf[name].default;
-}
 
 // little helper fuctions, used in the site settings & site settings extras
-export const is_email_enabled = conf =>
+export const is_email_enabled = (conf): boolean =>
   to_bool(conf.email_enabled) && conf.email_backend !== "none";
-export const only_for_smtp = conf =>
+export const only_for_smtp = (conf): boolean =>
   is_email_enabled(conf) && conf.email_backend === "smtp";
-export const only_for_sendgrid = conf =>
+export const only_for_sendgrid = (conf): boolean =>
   is_email_enabled(conf) && conf.email_backend === "sendgrid";
-export const only_for_password_reset_smtp = conf =>
+export const only_for_password_reset_smtp = (conf): boolean =>
   to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
-export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
-export const only_cocalc_com = conf => conf.kucalc === KUCALC_COCALC_COM;
-export const only_commercial = conf => to_bool(fallback(conf, "commercial"));
-export const only_theming = conf => to_bool(fallback(conf, "theming"));
-export const to_bool = val => val === "true" || val === "yes";
+export const only_onprem = (conf): boolean =>
+  conf.kucalc === KUCALC_ON_PREMISES;
+export const only_cocalc_com = (conf): boolean =>
+  conf.kucalc === KUCALC_COCALC_COM;
+export const not_cocalc_com = (conf): boolean => !only_cocalc_com(conf);
+export const only_commercial = (conf): boolean =>
+  to_bool(fallback(conf, "commercial"));
+export const to_bool = (val): boolean => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
-export const to_int = val => parseInt(val);
+export const to_int = (val): number => parseInt(val);
 export const only_ints = val =>
   (v => !isNaN(v) && Number.isFinite(v) && Number.isInteger(val))(to_int(val));
 export const only_nonneg_int = val =>
@@ -104,31 +107,31 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   theming: {
     name: "Theming",
-    desc: "Customize aspects of the index page and UI",
-    default: "yes",
-    valid: only_booleans,
-    to_val: to_bool
+    desc: "Customize aspects of the application",
+    default: "",
+    type: "header",
+    show: not_cocalc_com
   },
   site_name: {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
     default: "Open CoCalc",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   site_description: {
     name: "Site description",
     desc: "A tagline describing your site.",
     default: "Collaborative Calculation Online",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   terms_of_service_url: {
     name: "Terms of Service",
     desc: "URL to a page describing ToS, Policies, etc.",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   terms_of_service: {
     name: "ToS information",
@@ -136,74 +139,76 @@ export const site_settings_conf: SiteSettings = {
       "The text displayed for the terms of service link (make empty to not require).",
     default:
       "By creating an account you agree to the <em>Terms of Service</em>.",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   account_creation_email_instructions: {
     name: "Account creation",
     desc:
       "Instructions displayed next to the box where a user creates their account using their name and email address.",
     default: "Create an Account",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   help_email: {
     name: help_email_name,
     desc: "Email address that user is directed to use for support requests",
     default: "",
     valid: is_valid_email_address,
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   organization_name: {
     name: "Organization name",
     desc:
       "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   organization_email: {
     name: "Contact email address",
     desc: organization_email_desc,
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    valid: is_valid_email_address,
+    show: not_cocalc_com
   },
   organization_url: {
     name: "Organization website",
     desc: "URL link to your organization",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   logo_square: {
     name: "Logo (square)",
     desc: "URL of a square logo (SVG or PNG, about 200x200 px)",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
     desc: "URL of a rectangular logo (about 450x75 px, SVG or PNG)",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   splash_image: {
     name: "Index page picture",
     desc: "URL of an image displayed on the index page (about 1200x800 px)",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com
   },
   index_info_html: {
     name: "Index page info",
     desc: "An HTML string displayed on the index page.",
     default: "",
-    show: only_theming,
-    clearable: true
+    clearable: true,
+    show: not_cocalc_com,
+    multiline: 5
   },
   // ============== END THEMING ============
   commercial: {

@@ -256,7 +256,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     # set default values for missing keys
                     for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
                         for ckey in Object.keys(config)
-                            if x[ckey] == undefined
+                            if (not x[ckey]?) or x[ckey] == ''
                                 x[ckey] = config[ckey].default
                     SERVER_SETTINGS_CACHE.set('server_settings', x)
                     #dbg("server_settings = #{JSON.stringify(x, null, 2)}")

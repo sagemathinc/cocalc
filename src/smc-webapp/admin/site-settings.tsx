@@ -304,7 +304,8 @@ class SiteSettingsComponent extends Component<
     value,
     valid,
     password,
-    clearable
+    clearable,
+    multiline
   ): Rendered {
     if (Array.isArray(valid)) {
       return (
@@ -312,7 +313,6 @@ class SiteSettingsComponent extends Component<
           defaultValue={value}
           onChange={val => this.on_change_entry(name, val)}
           style={{ width: "100%" }}
-          allowClear={clearable}
         >
           {valid.map(e => (
             <Select.Option value={e} key={e}>
@@ -332,14 +332,32 @@ class SiteSettingsComponent extends Component<
           />
         );
       } else {
-        return (
-          <Input
-            ref={name}
-            style={this.row_entry_style(value, valid)}
-            value={value}
-            onChange={() => this.on_change_entry(name)}
-          />
-        );
+        if (multiline != null) {
+          const style = Object.assign(this.row_entry_style(value, valid), {
+            fontFamily: "monospace",
+            fontSize: "80%"
+          } as React.CSSProperties);
+          return (
+            <Input.TextArea
+              rows={4}
+              ref={name}
+              style={style}
+              value={value}
+              onChange={() => this.on_change_entry(name)}
+            />
+          );
+        } else {
+          return (
+            <Input
+              ref={name}
+              style={this.row_entry_style(value, valid)}
+              value={value}
+              onChange={() => this.on_change_entry(name)}
+              // clearable disabled, otherwise it's not possible to edit the value
+              allowClear={clearable && false}
+            />
+          );
+        }
       }
     }
   }
@@ -352,7 +370,8 @@ class SiteSettingsComponent extends Component<
     valid?: ConfigValid,
     hint?: Rendered,
     row_type?: RowType,
-    clearable?: boolean
+    clearable?: boolean,
+    multiline?: number
   ) {
     if (row_type == ("header" as RowType)) {
       return <div />;
@@ -369,7 +388,8 @@ class SiteSettingsComponent extends Component<
                 value,
                 valid,
                 password,
-                clearable
+                clearable,
+                multiline
               )}
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
@@ -441,7 +461,8 @@ class SiteSettingsComponent extends Component<
           conf.valid,
           hint,
           row_type,
-          clearable
+          clearable,
+          conf.multiline
         )}
       </LabeledRow>
     );

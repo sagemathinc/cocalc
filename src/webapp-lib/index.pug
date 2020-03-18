@@ -60,14 +60,14 @@ block content
   div.space#top
     div.container
       div.row.intro
-        div.col-md-6.center
+        div.col-sm-6.center
           div.row
             div.col-sm-4.col-sm-offset-4
               img(src=LOGO_SQUARE_URL).fit
-            div.col-md-12
+            div.col-sm-12
               p.headline
                 | #{NAME}
-                br/
+              p.headline.headline2
                 | #{DESCRIPTION}
               div.subheadline
                 | An open-source instance of #[a(href="https://cocalc.com") CoCalc]
@@ -76,9 +76,13 @@ block content
                   |
                   +organization
                 |.
-        div.col-md-6.center
+        div.col-sm-6.center
           img(src=SPLASH_IMG).shadow.shrink-small-75.rounded
         div.col-md-12.center
           +sign_in_buttons
 
-  div
+  if INDEX_INFO != ''
+    div.space
+      div.container
+        div.row
+          div.col-md-6.col-md-offset-3 !{INDEX_INFO}
