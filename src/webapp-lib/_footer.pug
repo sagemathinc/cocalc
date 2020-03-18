@@ -4,9 +4,15 @@ footer(style='fontSize:"small", color:"gray", padding: "20px 0"')
   hr/
   p.center
     | #{NAME}
-    |
+
+    if !!ORGANIZATION_NAME
+      |
+      | –
+      |
+      +organization
 
     if TOS_URL != ''
+      |
       | –
       |
       a(target="_blank" rel='noopener' href=TOS_URL) Terms of Service

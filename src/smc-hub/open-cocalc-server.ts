@@ -50,6 +50,8 @@ async function get_params(opts: GetData) {
 
   const ORGANIZATION_EMAIL = settings.organization_email;
   const ORGANIZATION_NAME = settings.organization_name;
+  const ORGANIZATION_URL = settings.organization_url;
+  const HELP_EMAIL = settings.help_email;
 
   const data = {
     PREFIX,
@@ -59,9 +61,12 @@ async function get_params(opts: GetData) {
     LOGO_SQUARE_URL,
     LOGO_RECTANGULAR_URL,
     SPLASH_IMG,
+    ANONYMOUS_SIGNUP: false, // TODO show anon signup button under certain conditions
     INDEX_INFO: settings.index_info_html,
     ORGANIZATION_NAME,
-    CONTACT_EMAIL: ORGANIZATION_EMAIL,
+    ORGANIZATION_URL,
+    HELP_EMAIL,
+    CONTACT_EMAIL: fallback(ORGANIZATION_EMAIL, HELP_EMAIL),
     TOS_URL: settings.terms_of_service_url
   };
   return data;

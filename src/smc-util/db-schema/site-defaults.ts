@@ -21,6 +21,7 @@ export type SiteSettingsKeys =
   | "terms_of_service_url"
   | "organization_name"
   | "organization_email"
+  | "organization_url"
   | "commercial"
   | "google_analytics"
   | "kucalc"
@@ -96,6 +97,9 @@ const KUCALC_VALID_VALS = [
   KUCALC_DISABLED
 ];
 
+const help_email_name = "Help email";
+const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;
+
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   theming: {
@@ -144,7 +148,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true
   },
   help_email: {
-    name: "Help email",
+    name: help_email_name,
     desc: "Email address that user is directed to use for support requests",
     default: "",
     valid: is_valid_email_address,
@@ -152,7 +156,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true
   },
   organization_name: {
-    name: "Organization Name",
+    name: "Organization name",
     desc:
       "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
     default: "",
@@ -161,21 +165,28 @@ export const site_settings_conf: SiteSettings = {
   },
   organization_email: {
     name: "Contact email address",
-    desc: "How to contact your organization.",
+    desc: organization_email_desc,
+    default: "",
+    show: only_theming,
+    clearable: true
+  },
+  organization_url: {
+    name: "Organization website",
+    desc: "URL link to your organization",
     default: "",
     show: only_theming,
     clearable: true
   },
   logo_square: {
     name: "Logo (square)",
-    desc: "URL of a square PNG or SVG image to display as a logo",
+    desc: "URL of a square logo (SVG or PNG, about 200x200 px)",
     default: "",
     show: only_theming,
     clearable: true
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
-    desc: "URL of a rectangular logo (about 450x75 px)",
+    desc: "URL of a rectangular logo (about 450x75 px, SVG or PNG)",
     default: "",
     show: only_theming,
     clearable: true

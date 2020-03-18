@@ -71,11 +71,14 @@ block content
                 | #{DESCRIPTION}
               div.subheadline
                 | An open-source instance of #[a(href="https://cocalc.com") CoCalc]
-                if ORGANIZATION_NAME != ''
-                  | , hosted by #{ORGANIZATION_NAME}
+                if !!ORGANIZATION_NAME
+                  | , hosted by
+                  |
+                  +organization
                 |.
         div.col-md-6.center
           img(src=SPLASH_IMG).shadow.shrink-small-75.rounded
+        div.col-md-12.center
+          +sign_in_buttons
 
   div
-    +sign_in_buttons

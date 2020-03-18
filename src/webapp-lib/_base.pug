@@ -21,6 +21,16 @@ mixin cocalc-rectangular
   span(style="color:black;")
     img(src=LOGO_RECTANGULAR_URL style="height: 3rem; width: auto;")
 
+mixin organization
+  if !!ORGANIZATION_NAME
+    if !!ORGANIZATION_URL
+      a(href=ORGANIZATION_URL) #{ORGANIZATION_NAME}
+    else if !!CONTACT_EMAIL
+      a(href='mailto:'+CONTACT_EMAIL) #{ORGANIZATION_NAME}
+    else
+      span #{ORGANIZATION_NAME}
+
+
 doctype html
 
 block vars
