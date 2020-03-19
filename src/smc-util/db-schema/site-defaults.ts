@@ -73,7 +73,8 @@ export const only_onprem = (conf): boolean =>
   conf.kucalc === KUCALC_ON_PREMISES;
 export const only_cocalc_com = (conf): boolean =>
   conf.kucalc === KUCALC_COCALC_COM;
-export const not_cocalc_com = (conf): boolean => !only_cocalc_com(conf);
+export const show_theming_vars = (conf): boolean =>
+  to_bool(fallback(conf, "theming"));
 export const only_commercial = (conf): boolean =>
   to_bool(fallback(conf, "commercial"));
 export const to_bool = (val): boolean => val === "true" || val === "yes";
@@ -106,32 +107,32 @@ const organization_email_desc = `How to contact your organization (fallback: '${
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   theming: {
-    name: "Theming",
-    desc: "Customize aspects of the application",
-    default: "",
-    type: "header",
-    show: not_cocalc_com
+    name: "Show Theming",
+    desc: "If 'No', the fields below are hidden, not disabled!",
+    default: "yes",
+    valid: only_booleans,
+    to_val: to_bool
   },
   site_name: {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
     default: "Open CoCalc",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   site_description: {
     name: "Site description",
     desc: "A tagline describing your site.",
     default: "Collaborative Calculation Online",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   terms_of_service_url: {
     name: "Terms of Service",
     desc: "URL to a page describing ToS, Policies, etc.",
     default: "",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   terms_of_service: {
     name: "ToS information",
@@ -140,7 +141,7 @@ export const site_settings_conf: SiteSettings = {
     default:
       "By creating an account you agree to the <em>Terms of Service</em>.",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   account_creation_email_instructions: {
     name: "Account creation",
@@ -148,7 +149,7 @@ export const site_settings_conf: SiteSettings = {
       "Instructions displayed next to the box where a user creates their account using their name and email address.",
     default: "Create an Account",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   help_email: {
     name: help_email_name,
@@ -156,7 +157,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     valid: is_valid_email_address,
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   organization_name: {
     name: "Organization name",
@@ -164,7 +165,7 @@ export const site_settings_conf: SiteSettings = {
       "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
     default: "",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   organization_email: {
     name: "Contact email address",
@@ -172,42 +173,42 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     valid: is_valid_email_address,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   organization_url: {
     name: "Organization website",
     desc: "URL link to your organization",
     default: "",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   logo_square: {
     name: "Logo (square)",
     desc: "URL of a square logo (SVG or PNG, about 200x200 px)",
     default: "",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
     desc: "URL of a rectangular logo (about 450x75 px, SVG or PNG)",
     default: "",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   splash_image: {
     name: "Index page picture",
     desc: "URL of an image displayed on the index page (about 1200x800 px)",
     default: "",
     clearable: true,
-    show: not_cocalc_com
+    show: show_theming_vars
   },
   index_info_html: {
     name: "Index page info",
     desc: "An HTML string displayed on the index page.",
     default: "",
     clearable: true,
-    show: not_cocalc_com,
+    show: show_theming_vars,
     multiline: 5
   },
   // ============== END THEMING ============
