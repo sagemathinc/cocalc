@@ -13,7 +13,6 @@ export type SiteSettingsKeys =
   | "terms_of_service"
   | "account_creation_email_instructions"
   | "help_email"
-  | "help_email"
   | "logo_square"
   | "logo_rectangular"
   | "splash_image"
@@ -25,6 +24,7 @@ export type SiteSettingsKeys =
   | "commercial"
   | "google_analytics"
   | "kucalc"
+  | "dns"
   | "ssh_gateway"
   | "version_min_project"
   | "version_min_browser"
@@ -73,6 +73,7 @@ export const only_onprem = (conf): boolean =>
   conf.kucalc === KUCALC_ON_PREMISES;
 export const only_cocalc_com = (conf): boolean =>
   conf.kucalc === KUCALC_COCALC_COM;
+export const not_cocalc_com = (conf): boolean => !only_cocalc_com(conf);
 export const show_theming_vars = (conf): boolean =>
   to_bool(fallback(conf, "theming"));
 export const only_commercial = (conf): boolean =>
@@ -225,6 +226,12 @@ export const site_settings_conf: SiteSettings = {
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS
+  },
+  dns: {
+    name: "Domain name",
+    desc: "DNS for your server, e.g. cocalc.universe.edu",
+    default: "",
+    show: not_cocalc_com
   },
   google_analytics: {
     name: "Google Analytics",
