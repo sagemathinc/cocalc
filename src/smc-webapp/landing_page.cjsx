@@ -315,6 +315,8 @@ exports.LandingPage = rclass
         </React.Fragment>
 
     render_support: ->
+        return if not @props.is_commercial
+
         <div>
             Questions? Create a <ShowSupportLink />.
         </div>

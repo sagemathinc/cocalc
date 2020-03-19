@@ -101,7 +101,8 @@ function process_customize(obj) {
   actions.setState(obj);
 }
 
-if (typeof $ !== "undefined" && $ != undefined) {
+// BACKEND injected by jsdom-support.ts
+if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] != true) {
   retry_until_success({
     f: async () => {
       try {
@@ -244,6 +245,71 @@ export function SiteDescription({ style }: { style?: React.CSSProperties }) {
   );
 }
 
+// This generalizes the above in order to pick any selected string value
+interface CustomizeStringProps {
+  name: string;
+}
+interface CustomizeStringReduxProps {
+  site_name: string;
+  site_description: string;
+  terms_of_service: string;
+  account_creation_email_instructions: string;
+  help_email: string;
+  logo_square: string;
+  logo_rectangular: string;
+  splash_image: string;
+  index_info_html: string;
+  terms_of_service_url: string;
+  organization_name: string;
+  organization_email: string;
+  organization_url: string;
+  google_analytics: string;
+}
+
+const CustomizeStringElement = rclass<CustomizeStringProps>(
+  class CustomizeStringComponent extends React.Component<
+    CustomizeStringReduxProps & CustomizeStringProps
+  > {
+    public static reduxProps = () => {
+      return {
+        customize: {
+          site_name: rtypes.string,
+          site_description: rtypes.string,
+          terms_of_service: rtypes.string,
+          account_creation_email_instructions: rtypes.string,
+          help_email: rtypes.string,
+          logo_square: rtypes.string,
+          logo_rectangular: rtypes.string,
+          splash_image: rtypes.string,
+          index_info_html: rtypes.string,
+          terms_of_service_url: rtypes.string,
+          organization_name: rtypes.string,
+          organization_email: rtypes.string,
+          organization_url: rtypes.string,
+          google_analytics: rtypes.string
+        }
+      };
+    };
+
+    shouldComponentUpdate(next) {
+      if (this.props[this.props.name] == null) return true;
+      return this.props[this.props.name] != next[this.props.name];
+    }
+
+    render() {
+      return <span>{this.props[this.props.name]}</span>;
+    }
+  }
+);
+
+export function CustomizeString({ name }: CustomizeStringProps) {
+  return (
+    <Redux>
+      <CustomizeStringElement name={name} />
+    </Redux>
+  );
+}
+
 // TODO also make this configurable? Needed in the <Footer/> and maybe elsewhere …
 export const CompanyName = function CompanyName() {
   return <span>{theme.COMPANY_NAME}</span>;
@@ -268,15 +334,16 @@ const TermsOfService0 = rclass<ReactProps>(
     };
 
     render() {
-      if (this.props.terms_of_service == undefined) {
+      if (this.props.terms_of_service?.length > 0) {
+        return (
+          <div
+            style={this.props.style}
+            dangerouslySetInnerHTML={{ __html: this.props.terms_of_service }}
+          ></div>
+        );
+      } else {
         return <div></div>;
       }
-      return (
-        <div
-          style={this.props.style}
-          dangerouslySetInnerHTML={{ __html: this.props.terms_of_service }}
-        ></div>
-      );
     }
   }
 );
