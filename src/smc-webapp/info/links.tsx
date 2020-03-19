@@ -79,10 +79,10 @@ export const SUPPORT_LINKS: Links = {
   },
   cocalc_api: {
     icon: "gears",
-    href: `${BASE_URL}/doc/api.html`,
+    href: "https://doc.cocalc.com/api/",
     link: (
       <span>
-        Embed and control <SiteName /> using our powerful API
+        Embed and control <SiteName /> using a powerful API
       </span>
     )
   },

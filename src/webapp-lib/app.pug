@@ -1,5 +1,7 @@
 //- the main application -- webpack adds the css, lib and smc assets during compilation
 
+- var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+
 doctype html
 
 html(lang="en")
@@ -31,7 +33,6 @@ html(lang="en")
       include:typescript preflight-checks.ts
 
     //- this sets the global window.app_base_url: either statically via the BASE_URL template variable, or dynamically via hub
-    - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
     if typeof BASE_URL !== "undefined" && BASE_URL !== null
         script(type="text/javascript").
             window.app_base_url='#{BASE_URL}';

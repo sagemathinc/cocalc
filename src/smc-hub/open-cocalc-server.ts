@@ -48,16 +48,24 @@ async function get_params(opts: GetData) {
     "https://storage.googleapis.com/cocalc-extra/cocalc-screenshot-20200128-nq8.png"
   );
 
+  const BASE_URL = base_url ?? "";
   const ORGANIZATION_EMAIL = settings.organization_email;
   const ORGANIZATION_NAME = settings.organization_name;
   const ORGANIZATION_URL = settings.organization_url;
   const HELP_EMAIL = settings.help_email;
 
   const data = {
+    // to be compatible with webpack
+    htmlWebpackPlugin: {
+      options: {
+        BASE_URL,
+        PREFIX
+      }
+    },
     PREFIX,
     NAME,
     DESCRIPTION,
-    BASE_URL: base_url ?? "",
+    BASE_URL,
     LOGO_SQUARE_URL,
     LOGO_RECTANGULAR_URL,
     SPLASH_IMG,
