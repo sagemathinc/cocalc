@@ -18,7 +18,7 @@ import * as React from "react";
 import { Loading } from "./r_misc";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
-import { callback2 } from "smc-util/async-utils";
+import { callback2, retry_until_success } from "smc-util/async-utils";
 const misc = require("smc-util/misc");
 import * as theme from "smc-util/theme";
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
@@ -81,27 +81,40 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-if (typeof $ !== "undefined" && $ != undefined) {
-  $.get((window as any).app_base_url + "/customize", function(obj, status) {
-    if (status === "success") {
-      // TODO make this a to_val function in site_settings_conf.kucalc
-      obj.kucalc = validate_kucalc(obj.kucalc);
-      obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
+function process_customize(obj) {
+  // TODO make this a to_val function in site_settings_conf.kucalc
+  obj.kucalc = validate_kucalc(obj.kucalc);
+  obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
 
-      for (const k in site_settings_conf) {
-        const v = site_settings_conf[k];
-        obj[k] = obj[k] ?? v.default;
-        if (typeof v.to_val === "function") {
-          obj[k] = v.to_val(obj[k]);
-        }
-      }
-
-      // set some special cases, backwards compatibility
-      commercial = obj.is_commercial = obj.commercial;
-
-      obj._is_configured = true;
-      actions.setState(obj);
+  for (const k in site_settings_conf) {
+    const v = site_settings_conf[k];
+    obj[k] = obj[k] ?? v.default;
+    if (typeof v.to_val === "function") {
+      obj[k] = v.to_val(obj[k]);
     }
+  }
+
+  // set some special cases, backwards compatibility
+  commercial = obj.is_commercial = obj.commercial;
+
+  obj._is_configured = true;
+  actions.setState(obj);
+}
+
+if (typeof $ !== "undefined" && $ != undefined) {
+  retry_until_success({
+    f: async () => {
+      try {
+        const obj = await $.get((window as any).app_base_url + "/customize");
+        process_customize(obj);
+      } catch (err) {
+        const msg = `$.get /customize failed -- retrying`;
+        console.warn(msg);
+        throw new Error(msg);
+      }
+    },
+    start_delay: 2000,
+    max_delay: 15000
   });
 }
 
