@@ -2139,8 +2139,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             to         : required  # an email address
             cb         : required
         if not @_validate_opts(opts) then return
+        # in particular, emails like bla'foo@bar.com → bla''foo@bar.com
+        sani_to = @sanitize("{\"#{opts.to}\"}")
+        query_select = "SELECT invite#>#{sani_to} AS to FROM projects"
         @_query
-            query : "SELECT invite#>'{\"#{opts.to}\"}' AS to FROM projects"
+            query : query_select
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result 'to', (err, y) =>
                 opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
