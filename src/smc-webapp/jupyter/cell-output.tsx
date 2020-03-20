@@ -63,6 +63,11 @@ export class CellOutput extends Component<CellOutputProps> {
     const output = this.props.cell.get("output");
     if (output != null) {
       output.forEach(x => {
+        // there were mysterious crashes "Cannot read property 'has' of null"
+        // this is a purely defensive check
+        if (x == null || x.has == null) {
+          return true;
+        }
         if (x.has("exec_count")) {
           exec_count = x.get("exec_count");
           return false;
