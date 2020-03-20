@@ -69,6 +69,7 @@
     "serve-index": "^1.9.1",
     "sharp": "^0.20.8",
     "snappy": "^6.0.1",
+    "sql-string-escape": "^1.1.6",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^6.19.0",
     "temp": "^0.9.1",
