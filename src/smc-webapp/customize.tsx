@@ -15,7 +15,7 @@ Site Customize -- dynamically customize the look of CoCalc for the client.
 
 import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
-import { Loading } from "./r_misc";
+import { Loading, A } from "./r_misc";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2, retry_until_success } from "smc-util/async-utils";
@@ -321,6 +321,7 @@ interface ReactProps {
 
 interface ReduxProps {
   terms_of_service: string;
+  terms_of_service_url: string;
 }
 
 const TermsOfService0 = rclass<ReactProps>(
@@ -328,7 +329,8 @@ const TermsOfService0 = rclass<ReactProps>(
     public static reduxProps = () => {
       return {
         customize: {
-          terms_of_service: rtypes.string
+          terms_of_service: rtypes.string,
+          terms_of_service_url: rtypes.string
         }
       };
     };
@@ -340,6 +342,14 @@ const TermsOfService0 = rclass<ReactProps>(
             style={this.props.style}
             dangerouslySetInnerHTML={{ __html: this.props.terms_of_service }}
           ></div>
+        );
+      } else if (this.props.terms_of_service_url?.length > 0) {
+        // only used in the context of signing up, hence that phrase...
+        return (
+          <div style={this.props.style}>
+            I agree to the{" "}
+            <A href={this.props.terms_of_service_url}>Terms of Service</A>.
+          </div>
         );
       } else {
         return <div></div>;
