@@ -40,6 +40,7 @@ EventEmitter = require('events')
 
 fs      = require('fs')
 async   = require('async')
+escapeString = require('sql-string-escape')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -1242,6 +1243,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_query
             query : "SELECT COUNT(*) FROM #{opts.table}"
             cb    : count_result(opts.cb)
+
+    # sanitize strings before inserting them into a query string
+    sanitize: (s) =>
+        escapeString(s)
 
 ###
 Other misc functions
