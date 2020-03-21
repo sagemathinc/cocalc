@@ -266,7 +266,10 @@ exports.LandingPage = rclass
         page:
             get_api_key   : rtypes.string
         customize:
-            is_commercial : rtypes.bool
+            is_commercial    : rtypes.bool
+            _is_configured   : rtypes.bool
+            logo_square      : rtypes.string
+            logo_rectangular : rtypes.string
         account:
             sign_in_email_address : rtypes.string
         "#{LA_NAME}":
@@ -333,12 +336,16 @@ exports.LandingPage = rclass
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             return <Connecting />
 
+        img_icon = if @props.logo_square?.length > 0 then @props.logo_square else APP_ICON_WHITE
+        img_name = if @props.logo_rectangular?.length > 0 then @props.logo_rectangular else APP_LOGO_NAME_WHITE
+        customized = @props.logo_square?.length > 0 and @props.logo_rectangular?.length > 0
+
         topbar =
-            img_icon    : APP_ICON_WHITE
-            img_name    : APP_LOGO_NAME_WHITE
+            img_icon    : img_icon
+            img_name    : img_name
             img_opacity : 1.0
-            color       : 'white'
-            bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+            color       : if customized then COLORS.GRAY_D else 'white'
+            bg_color    : if customized then 'white' else COLORS.LANDING.LOGIN_BAR_BG
             border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
 
         main_row_style =
@@ -392,14 +399,14 @@ exports.LandingPage = rclass
                           color         = {topbar.color} />
                   </div>
                   {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}
-                  <div style={ display          : 'inline-block', \
-                               backgroundImage  : "url('#{topbar.img_icon}')", \
-                               backgroundSize   : 'contain', \
-                               height           : 75, width: 75, \
-                               margin           : 5,\
-                               verticalAlign    : 'center',\
-                               backgroundRepeat : 'no-repeat'}>
-                  </div>
+                  {<div style={ display          : 'inline-block', \
+                                backgroundImage  : "url('#{topbar.img_icon}')", \
+                                backgroundSize   : 'contain', \
+                                height           : 75, width: 75, \
+                                margin           : 5,\
+                                verticalAlign    : 'center',\
+                                backgroundRepeat : 'no-repeat'}>
+                  </div> if @props._is_configured}
                   <div className="hidden-sm"
                       style={ display          : 'inline-block',\
                               fontFamily       : DESC_FONT,\
