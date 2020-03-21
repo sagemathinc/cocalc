@@ -24,9 +24,7 @@ const $ = (global["$"] = global["window"].$ = function() {});
 $.get = function() {};
 
 console.log("render react static pages: loading cocalc frontend library...");
-const static_react_pages = [
-  [require("./r_misc").render_static_footer(), "_static_footer.html"],
-];
+const static_react_pages = [];
 
 // Code for static server-side rendering of the subscription options.
 // note, that we use renderToStaticMarkup, not renderToString

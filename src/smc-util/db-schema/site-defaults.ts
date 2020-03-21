@@ -133,7 +133,7 @@ export const site_settings_conf: SiteSettings = {
     desc: "URL to a page describing ToS, Policies, etc.",
     default: "",
     clearable: true,
-    show: show_theming_vars
+    show: conf => show_theming_vars(conf) && conf.terms_of_service == ""
   },
   terms_of_service: {
     name: "ToS information",

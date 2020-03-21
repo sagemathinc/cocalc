@@ -24,8 +24,8 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
-{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
+{HelpEmailLink, SiteName, SiteDescription, Footer} = require('./customize')
 {get_browser} = require('./feature')
 {Passports} = require('./passports')
 {SignUp} = require('./landing-page/sign-up')

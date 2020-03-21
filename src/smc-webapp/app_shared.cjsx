@@ -475,7 +475,7 @@ exports.FullscreenButton = rclass
 exports.AppLogo = rclass
     displayName : 'AppLogo'
 
-    shouldComponentUpdate: ->
+    shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['logo_square'])
 
     reduxProps:

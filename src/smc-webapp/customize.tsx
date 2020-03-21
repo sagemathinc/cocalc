@@ -12,10 +12,17 @@ Copyright (C) 2016, Sagemath Inc.
 
 Site Customize -- dynamically customize the look of CoCalc for the client.
 */
-
 import { redux, Redux, rclass, rtypes, Store } from "./app-framework";
 import * as React from "react";
-import { Loading, A } from "./r_misc";
+import {
+  Loading,
+  A,
+  Space,
+  smc_version,
+  build_date,
+  smc_git_rev,
+  UNIT
+} from "./r_misc";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2, retry_until_success } from "smc-util/async-utils";
@@ -81,28 +88,8 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-function process_customize(obj) {
-  // TODO make this a to_val function in site_settings_conf.kucalc
-  obj.kucalc = validate_kucalc(obj.kucalc);
-  obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
-
-  for (const k in site_settings_conf) {
-    const v = site_settings_conf[k];
-    obj[k] = obj[k] ?? v.default;
-    if (typeof v.to_val === "function") {
-      obj[k] = v.to_val(obj[k]);
-    }
-  }
-
-  // set some special cases, backwards compatibility
-  commercial = obj.is_commercial = obj.commercial;
-
-  obj._is_configured = true;
-  actions.setState(obj);
-}
-
 // BACKEND injected by jsdom-support.ts
-if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] != true) {
+if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
   retry_until_success({
     f: async () => {
       try {
@@ -117,6 +104,33 @@ if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] != true) {
     start_delay: 2000,
     max_delay: 15000
   });
+}
+
+function process_customize(obj) {
+  // TODO make this a to_val function in site_settings_conf.kucalc
+  obj.kucalc = validate_kucalc(obj.kucalc);
+  obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
+
+  for (const k in site_settings_conf) {
+    const v = site_settings_conf[k];
+    obj[k] = obj[k] ?? v.default;
+    if (typeof v.to_val === "function") {
+      obj[k] = v.to_val(obj[k]);
+    }
+  }
+  set_customize(obj);
+}
+
+// "obj" are the already processed values from the database
+// this function is also used by hub-landing!
+export function set_customize(obj) {
+  // console.log('set_customize obj=\n', JSON.stringify(obj, null, 2));
+
+  // set some special cases, backwards compatibility
+  commercial = obj.is_commercial = obj.commercial;
+
+  obj._is_configured = true;
+  actions.setState(obj);
 }
 
 interface Props0 {
@@ -396,6 +410,61 @@ export function AccountCreationEmailInstructions() {
   return (
     <Redux>
       <AccountCreationEmailInstructions0 />
+    </Redux>
+  );
+}
+
+interface FooterRedux {
+  site_name: string;
+  organization_name: string;
+  terms_of_service_url: string;
+}
+
+const FooterElement = rclass<{}>(
+  class FooterComponent extends React.Component<FooterRedux> {
+    public static reduxProps = () => {
+      return {
+        customize: {
+          site_name: rtypes.string,
+          organization_name: rtypes.string,
+          terms_of_service_url: rtypes.string
+        }
+      };
+    };
+    render() {
+      const on = this.props.organization_name;
+      const orga = on.length > 0 ? on : theme.COMPANY_NAME;
+      const tos = this.props.terms_of_service_url;
+      const TOSurl = tos.length > 0 ? tos : PolicyTOSPageUrl;
+      const yt =
+        `Version ${smc_version} @ ${build_date}` +
+        ` | ${smc_git_rev.slice(0, 8)}`;
+      const style: React.CSSProperties = {
+        fontSize: "small",
+        color: "gray",
+        textAlign: "center",
+        padding: `${2 * UNIT}px 0`
+      };
+      return (
+        <footer style={style}>
+          <hr />
+          <Space />
+          <SiteName /> by {orga} &middot;{" "}
+          <a target="_blank" rel="noopener" href={TOSurl}>
+            Terms of Service
+          </a>{" "}
+          &middot; <HelpEmailLink /> &middot;{" "}
+          <span title={yt}>&copy; {misc.YEAR}</span>
+        </footer>
+      );
+    }
+  }
+);
+
+export function Footer() {
+  return (
+    <Redux>
+      <FooterElement />
     </Redux>
   );
 }

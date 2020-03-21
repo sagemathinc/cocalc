@@ -25,8 +25,8 @@
 
 import { React, Redux, rclass, rtypes } from "../app-framework";
 import { Col, Row } from "../antd-bootstrap";
-import { Icon, Space, Footer } from "../r_misc";
-import { SiteDescription } from "../customize";
+import { Icon, Space } from "../r_misc";
+import { SiteDescription, Footer } from "../customize";
 
 const { ComputeEnvironment } = require("../compute_environment");
 
