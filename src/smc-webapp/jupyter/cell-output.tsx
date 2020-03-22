@@ -63,7 +63,7 @@ export class CellOutput extends Component<CellOutputProps> {
     const output = this.props.cell.get("output");
     if (output != null) {
       output.forEach(x => {
-        if (x.has("exec_count")) {
+        if (x?.has("exec_count")) {   // NOTE: The ? -- I hit a case where x was undefined **in production**, so it can happen.
           exec_count = x.get("exec_count");
           return false;
         }
