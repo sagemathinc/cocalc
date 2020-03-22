@@ -193,7 +193,7 @@ export class Listings extends EventEmitter {
     }
     // Make sure there is a working websocket to the project
     await webapp_client.project_websocket(this.project_id);
-    if (this.state == "closed") return;
+    if ((this.state as State) == "closed") return;
 
     // Now create the table.
     this.table = await webapp_client.synctable_project(
@@ -213,7 +213,7 @@ export class Listings extends EventEmitter {
       },
       []
     );
-    if (this.state == "closed") return;
+    if ((this.state as State) == "closed") return;
 
     this.table.on("change", async (keys: string[]) => {
       const paths: string[] = [];
