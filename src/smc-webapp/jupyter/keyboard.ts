@@ -90,6 +90,11 @@ export function create_key_handler(
   }
 
   return (evt: any) => {
+    if (jupyter_actions.store == null || frame_actions.store == null) {
+      // Could happen after everything has been closed, but key handler isn't
+      // quite removed.  https://github.com/sagemathinc/cocalc/issues/4462
+      return;
+    }
     if (jupyter_actions.store.get("complete") != null) {
       return;
     }
