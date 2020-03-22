@@ -72,6 +72,7 @@ export class Listings extends EventEmitter {
 
   private async _watch(path: string): Promise<void> {
     if (await this.wait_until_ready(false)) return;
+    if (this.state == "closed") return;
     this.set({
       path,
       interest: webapp_client.server_time()
@@ -192,6 +193,8 @@ export class Listings extends EventEmitter {
     }
     // Make sure there is a working websocket to the project
     await webapp_client.project_websocket(this.project_id);
+    if (this.state == "closed") return;
+
     // Now create the table.
     this.table = await webapp_client.synctable_project(
       this.project_id,
@@ -210,6 +213,8 @@ export class Listings extends EventEmitter {
       },
       []
     );
+    if (this.state == "closed") return;
+
     this.table.on("change", async (keys: string[]) => {
       const paths: string[] = [];
       for (const key of keys) {
