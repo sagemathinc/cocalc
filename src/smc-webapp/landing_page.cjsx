@@ -51,6 +51,7 @@ ResetPassword = rclass
     propTypes: ->
         reset_key            : rtypes.string.isRequired
         reset_password_error : rtypes.string
+        help_email           : rtypes.string
 
     mixins: [ImmutablePureRenderMixin]
 
@@ -80,7 +81,7 @@ ResetPassword = rclass
                     </FormGroup>
                     {@display_error()}
                     <hr />
-                    Not working? Email us at <HelpEmailLink />
+                    {Not working? Email us at <HelpEmailLink /> if @props.help_email?.length > 0}
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
                             <Button
@@ -270,6 +271,8 @@ exports.LandingPage = rclass
             _is_configured   : rtypes.bool
             logo_square      : rtypes.string
             logo_rectangular : rtypes.string
+            help_email       : rtypes.string
+            terms_of_service : rtypes.string
         account:
             sign_in_email_address : rtypes.string
         "#{LA_NAME}":
@@ -283,6 +286,7 @@ exports.LandingPage = rclass
         <ResetPassword
             reset_key            = {reset_key}
             reset_password_error = {@props.reset_password_error}
+            help_email           = {@props.help_email}
         />
 
     render_forgot_password: ->
@@ -458,7 +462,9 @@ exports.LandingPage = rclass
                         has_remember_me = {@props.has_remember_me}
                         signing_up      = {@props.signing_up}
                         has_account     = {@props.has_account}
-                        />
+                        help_email      = {@props.help_email}
+                        terms_of_service= {@props.terms_of_service}
+                    />
                 </Col>
                 <Col sm={6}>
                     <div style={color:"#666", fontSize:'16pt', marginTop:'5px'}>

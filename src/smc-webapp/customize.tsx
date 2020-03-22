@@ -140,6 +140,7 @@ interface Props0 {
 
 interface ReduxProps {
   help_email: string;
+  _is_configured: boolean;
 }
 
 const HelpEmailLink0 = rclass<Props0>(
@@ -147,7 +148,8 @@ const HelpEmailLink0 = rclass<Props0>(
     public static reduxProps() {
       return {
         customize: {
-          help_email: rtypes.string
+          help_email: rtypes.string,
+          _is_configured: rtypes.bool
         }
       };
     }
@@ -158,20 +160,30 @@ const HelpEmailLink0 = rclass<Props0>(
         style.color = this.props.color;
       }
 
-      if (this.props.help_email) {
-        return (
-          <a
-            href={`mailto:${this.props.help_email}`}
-            target="_blank"
-            style={style}
-          >
-            {this.props.text != undefined
-              ? this.props.text
-              : this.props.help_email}
-          </a>
-        );
+      if (this.props._is_configured) {
+        if (this.props.help_email?.length > 0) {
+          return (
+            <a
+              href={`mailto:${this.props.help_email}`}
+              target="_blank"
+              style={style}
+            >
+              {this.props.text != undefined
+                ? this.props.text
+                : this.props.help_email}
+            </a>
+          );
+        } else {
+          return (
+            <span>
+              <em>
+                {"["}not configured{"]"}
+              </em>
+            </span>
+          );
+        }
       } else {
-        return <Loading />;
+        return <Loading style={{ display: "inline" }} />;
       }
     }
   }
@@ -208,7 +220,7 @@ const SiteName0 = rclass<{}>(
       if (this.props.site_name) {
         return <span>{this.props.site_name}</span>;
       } else {
-        return <Loading />;
+        return <Loading style={{ display: "inline" }} />;
       }
     }
   }
@@ -245,7 +257,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
       if (this.props.site_description != undefined) {
         return <span style={style}>{this.props.site_description}</span>;
       } else {
-        return <Loading />;
+        return <Loading style={{ display: "inline" }} />;
       }
     }
   }
