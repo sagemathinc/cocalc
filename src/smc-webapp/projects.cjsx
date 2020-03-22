@@ -992,7 +992,7 @@ class ProjectsStore extends Store
         return v
 
     has_internet_access: (project_id) =>
-        return has_internet_access(@getIn(['project_map', project_id]))
+        return has_internet_access(project_id)
 
 # WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =

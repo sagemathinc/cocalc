@@ -1,19 +1,10 @@
 /* Given an immutable.js project object (from the project_map),
    these functions allow you to query some things about it. */
 
-import { Project } from "smc-webapp/project/settings/types";
+import { redux } from "../app-framework";
 
-export function has_internet_access(project?: Project): boolean {
-  if (project == null) return false;
-  if (project.getIn(["settings", "network"])) return true;
-  const users = project.get("users");
-  if (users == null) return false;
-  let result = false;
-  users.forEach(user => {
-    if (user.getIn(["upgrades", "network"])) {
-      result = true;
-      return false; // stop iteration
-    }
-  });
-  return result;
+export function has_internet_access(project_id?: string): boolean {
+  if (project_id == null) return false;
+  const store = redux.getStore("projects");
+  return !!store.get_total_project_quotas(project_id)?.network;
 }
