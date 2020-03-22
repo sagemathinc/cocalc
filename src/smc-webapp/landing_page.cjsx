@@ -343,9 +343,10 @@ exports.LandingPage = rclass
         topbar =
             img_icon    : img_icon
             img_name    : img_name
+            customized  : customized
             img_opacity : 1.0
-            color       : if customized then COLORS.GRAY_D else 'white'
-            bg_color    : if customized then 'white' else COLORS.LANDING.LOGIN_BAR_BG
+            color       : if customized then COLORS.GRAY_D   else 'white'
+            bg_color    : if customized then COLORS.BLUE_LLL else COLORS.LANDING.LOGIN_BAR_BG
             border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
 
         main_row_style =
@@ -407,7 +408,8 @@ exports.LandingPage = rclass
                                 verticalAlign    : 'center',\
                                 backgroundRepeat : 'no-repeat'}>
                   </div> if @props._is_configured}
-                  <div className="hidden-sm"
+
+                  {<div className="hidden-sm"
                       style={ display          : 'inline-block',\
                               fontFamily       : DESC_FONT,\
                               fontSize         : "28px",\
@@ -421,7 +423,19 @@ exports.LandingPage = rclass
                               backgroundImage  : "url('#{topbar.img_name}')",\
                               backgroundSize   : 'contain',\
                               backgroundRepeat : 'no-repeat'}>
-                  </div>
+                  </div> if not topbar.customized}
+                  {<img className="hidden-sm"
+                      src={topbar.img_name}
+                      style={ display          : 'inline-block',\
+                              top              : UNIT,\
+                              left             : UNIT * 7,\
+                              width            : 'auto',\
+                              height           : 50,\
+                              position         : 'absolute',\
+                              color            : topbar.color,\
+                              opacity          : topbar.img_opacity}
+                  /> if topbar.customized}
+
                   <div className="hidden-sm">
                       <SiteDescription
                           style={ fontWeight   : "700",\
