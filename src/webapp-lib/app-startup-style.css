@@ -55,6 +55,18 @@
     opacity: 1;
     animation: banner-red 60s forwards;
 }
+#cc-banner2 {
+    background-color: 'white';
+}
+#cc-banner2 img.logo-square {
+    height: 200px;
+    width: auto;
+}
+#cc-banner2 img.logo-rectangular {
+    width: 200px;
+    height: auto;
+}
+
 @keyframes banner-red {
     0% {
         background-color: #4474c0;

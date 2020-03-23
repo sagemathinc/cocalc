@@ -315,7 +315,11 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            res.json(server_settings.pub)
+            if req.query.type == 'embed'
+                res.header("Content-Type", "text/javascript")
+                res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(server_settings.pub)})")
+            else
+                res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
