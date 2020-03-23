@@ -133,7 +133,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
 
     render_manual_email_entry() {
       if (!this.props.project) return;
-      if (!has_internet_access(this.props.project)) {
+      if (!has_internet_access(this.props.project?.get("project_id"))) {
         return (
           <>
             If you enable the Internet Access upgrade for this project, then you
