@@ -68,6 +68,10 @@ ResetPassword = rclass
         if @props.reset_password_error
             <span style={color: "red", fontSize: "90%"}>{@props.reset_password_error}</span>
 
+    render_email: ->
+        if @props.help_email?.length > 0
+            <React.Fragment>Not working? Email us at <HelpEmailLink /></React.Fragment>
+
     render: ->
         <Modal show={true} onHide={=>x=0}>
             <Modal.Body>
@@ -81,7 +85,7 @@ ResetPassword = rclass
                     </FormGroup>
                     {@display_error()}
                     <hr />
-                    {Not working? Email us at <HelpEmailLink /> if @props.help_email?.length > 0}
+                    {@render_email()}
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
                             <Button
