@@ -88,8 +88,9 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-// BACKEND injected by jsdom-support.ts
-if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
+// for now, not used (this was the old approach)
+// in the future we might want to reload the configuration, though
+export function reload_configuration() {
   retry_until_success({
     f: async () => {
       try {
@@ -104,6 +105,17 @@ if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
     start_delay: 2000,
     max_delay: 15000
   });
+}
+
+// BACKEND injected by jsdom-support.ts
+if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
+  // the app.html page already loads the configuration, this is just a failsafe
+  const data = global["CUSTOMIZE"];
+  if (data != null) {
+    process_customize(Object.assign({}, data));
+  } else {
+    reload_configuration();
+  }
 }
 
 function process_customize(obj) {
