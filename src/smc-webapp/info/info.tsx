@@ -23,7 +23,7 @@
  * Info Page
  */
 
-import { React, Redux, rclass, rtypes } from "../app-framework";
+import { React, Redux, Rendered, rclass, rtypes } from "../app-framework";
 import { Col, Row } from "../antd-bootstrap";
 import { Icon, Space } from "../r_misc";
 import { SiteDescription, Footer } from "../customize";
@@ -59,7 +59,7 @@ const InfoPageElement = rclass<{}>(
       };
     };
 
-    private render_noncomm_logo() {
+    private render_custom_logo(): Rendered {
       if (this.props.logo_square.length > 0) {
         return (
           <React.Fragment>
@@ -89,8 +89,22 @@ const InfoPageElement = rclass<{}>(
         );
       }
     }
+    private render_logo(): Rendered {
+      // imports stuff that can't be imported in update_react_static.
+      const { APP_LOGO } = require("../art");
+      const custom_logo =
+        this.props.logo_rectangular.length > 0 ||
+        this.props.logo_square.length > 0;
+      if (this.props.is_cocalc_com && !custom_logo) {
+        return (
+          <img src={`${APP_LOGO}`} style={{ width: "33%", height: "auto" }} />
+        );
+      } else {
+        return this.render_custom_logo();
+      }
+    }
 
-    public render() {
+    public render(): Rendered {
       const banner_style: React.CSSProperties = {
         backgroundColor: "white",
         padding: "15px",
@@ -105,20 +119,12 @@ const InfoPageElement = rclass<{}>(
 
       // imports stuff that can't be imported in update_react_static.
       const { ShowSupportLink } = require("../support");
-      const { APP_LOGO } = require("../art");
 
       return (
         <Row style={{ padding: "10px", margin: "0px", overflow: "auto" }}>
           <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
             <h3 style={{ textAlign: "center", marginBottom: "30px" }}>
-              {this.props.is_cocalc_com ? (
-                <img
-                  src={`${APP_LOGO}`}
-                  style={{ width: "33%", height: "auto" }}
-                />
-              ) : (
-                this.render_noncomm_logo()
-              )}
+              {this.render_logo()}
               <br />
               <SiteDescription />
             </h3>
