@@ -38,7 +38,6 @@ interface ReactProps {
   email_address?: string;
   project_map?: ProjectMap; // if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
   name: string;
-  anItem?: string;
 }
 
 interface ReduxProps {
@@ -65,10 +64,7 @@ interface ReduxProps {
 }
 
 export const Body = rclass<ReactProps>(
-  class Body extends React.Component<
-    ReactProps & ReduxProps,
-    { anItem: string }
-  > {
+  class Body extends React.Component<ReactProps & ReduxProps> {
     public static reduxProps({ name }) {
       return {
         account: {
@@ -95,12 +91,7 @@ export const Body = rclass<ReactProps>(
       };
     }
 
-    constructor(props) {
-      super(props);
-      this.state = { anItem: "TitleDescriptionBox" };
-    }
-
-    shouldComponentUpdate(props, nextState) {
+    shouldComponentUpdate(props) {
       return (
         misc.is_different(this.props, props, [
           "project",
@@ -112,8 +103,7 @@ export const Body = rclass<ReactProps>(
           "all_projects_have_been_loaded"
         ]) ||
         (props.customer != undefined &&
-          !props.customer.equals(this.props.customer)) ||
-        this.state.anItem != nextState.anItem
+          !props.customer.equals(this.props.customer))
       );
     }
 
@@ -143,11 +133,23 @@ export const Body = rclass<ReactProps>(
 
       const { commercial } = require("../../customize");
 
+      const scrollToTargetAdjusted = id => {
+        var element: HTMLElement | null = document.getElementById(id);
+        if (!element) {
+          console.log("document.getElementById(id) returned null");
+          return;
+        }
+        element.scrollIntoView(true);
+        document.getElementById(
+          "settingspagecontainer"
+        )!.parentElement!.scrollTop -= 15;
+      };
+      
       return (
         <div>
           <Row>
             <Col sm={2}>
-              <div style={{ position: "fixed", width: "300px" }}>
+              <div style={{ position: "fixed", width: "250px" }}>
                 <h1
                   style={{
                     marginTop: "0px",
@@ -158,52 +160,39 @@ export const Body = rclass<ReactProps>(
                   <Icon name="wrench" /> Project Settings
                 </h1>
                 <Menu
-                  defaultSelectedKeys={["TitleDescriptionBox"]}
                   mode="inline"
-                  //onClick={e => {
-                  //this.setState({ anItem: e.key });
-                  //console.log(e.key);
-                  //console.log(this.state.anItem);
-                  //}}
+                  onClick={e => {
+                    scrollToTargetAdjusted(e.key);
+                    console.log(e.key);
+                  }}
                 >
                   <Menu.Item key="TitleDescriptionBox">
-                    <a href="#abc1">Title and Description</a>
+                    Title and Description
                   </Menu.Item>
-                  <Menu.Item key="UpgradeUsage">
-                    <a href="#abc2">Upgrades</a>
-                  </Menu.Item>
-                  <Menu.Item key="HideDeleteBox">
-                    <a href="#abc3">Hide or Delete</a>
-                  </Menu.Item>
+                  <Menu.Item key="UpgradeUsage">Upgrade Usage</Menu.Item>
+                  <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
                   {this.props.ssh_gateway ||
                   this.props.kucalc === KUCALC_COCALC_COM ? (
-                    <Menu.Item key="ProjectCapabilities">
-                      <a href="#abc4">SSH panel</a>
-                    </Menu.Item>
+                    <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
                   ) : (
                     undefined
                   )}
                   <Menu.Item key="ProjectCapabilities">
-                    <a href="#abc5">Project Capabilities</a>
+                    Project Capabilities
                   </Menu.Item>
                   <Menu.Item key="CurrentCollaboratorsPanel">
-                    <a href="#abc6">Current Collaborators</a>
+                    Current Collaborators
                   </Menu.Item>
                   <Menu.Item key="AddCollaboratorsPanel">
-                    <a href="#abc7">Add Collaborators</a>
+                    Add Collaborators
                   </Menu.Item>
-                  <Menu.Item key="ProjectControl">
-                    <a href="#abc8">Project Control</a>
-                  </Menu.Item>
-                  <Menu.Item key="SagewsControl">
-                    Sage worksheet
-                    <a href="#abc9">Sage worksheet</a>
-                  </Menu.Item>
+                  <Menu.Item key="ProjectControl">Project Control</Menu.Item>
+                  <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
                 </Menu>
               </div>
             </Col>
 
-            <Col sm={8}>
+            <Col sm={8} style={{ position: "absolute", left: "270px" }}>
               {commercial &&
               total_project_quotas != undefined &&
               !total_project_quotas.member_host ? (
@@ -233,14 +222,14 @@ export const Body = rclass<ReactProps>(
               ) : (
                 undefined
               )}
-              <div id="abc1"></div>
+              <div id="TitleDescriptionBox"></div>
               <TitleDescriptionBox
                 project_id={id}
                 project_title={this.props.project.get("title") || ""}
                 description={this.props.project.get("description") || ""}
                 actions={redux.getActions("projects")}
               />
-              <div id="abc2"></div>
+              <div id="UpgradeUsage"></div>
               <UpgradeUsage
                 project_id={id}
                 project={this.props.project}
@@ -262,13 +251,13 @@ export const Body = rclass<ReactProps>(
                 site_license_upgrades={site_license_upgrades}
                 site_license_ids={site_license_ids}
               />
-              <div id="abc3"></div>
+              <div id="HideDeleteBox"></div>
               <HideDeleteBox
                 key="hidedelete"
                 project={this.props.project}
                 actions={redux.getActions("projects")}
               />
-              <div id="abc4"></div>
+              <div id="SSHPanel"></div>
               {this.props.ssh_gateway ||
               this.props.kucalc === KUCALC_COCALC_COM ? (
                 <SSHPanel
@@ -280,19 +269,19 @@ export const Body = rclass<ReactProps>(
               ) : (
                 undefined
               )}
-              <div id="abc5"></div>
+              <div id="ProjectCapabilities"></div>
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}
                 project={this.props.project}
               />
-              <div id="abc6"></div>
+              <div id="CurrentCollaboratorsPanel"></div>
               <CurrentCollaboratorsPanel
                 key="current-collabs"
                 project={this.props.project}
                 user_map={this.props.user_map}
               />
-              <div id="abc7"></div>
+              <div id="AddCollaboratorsPanel"></div>
               <AddCollaboratorsPanel
                 key="new-collabs"
                 project={this.props.project}
@@ -301,10 +290,11 @@ export const Body = rclass<ReactProps>(
                 }
                 allow_urls={allow_urls}
               />
-              <div id="abc8"></div>
+              <div id="ProjectControl"></div>
               <ProjectControl key="control" project={this.props.project} />
-              <div id="abc9"></div>
+              <div id="SagewsControl"></div>
               <SagewsControl key="worksheet" project={this.props.project} />
+              <div style={{ height: "700px" }}></div>
             </Col>
           </Row>
         </div>
