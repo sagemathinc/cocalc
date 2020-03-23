@@ -142,7 +142,7 @@ export const ProjectSettings = rclass<ReactProps>(
         return <Loading />;
       } else {
         return (
-          <div style={{ padding: "15px" }}>
+          <div id = "settingspagecontainer"  style={{ padding: "15px" }}>
             {this.state.admin_project != undefined
               ? this.render_admin_message()
               : undefined}
