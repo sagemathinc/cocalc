@@ -236,7 +236,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     }
   }
 
-  render_group(tool: string, group: string): Rendered {
+  render_group(tool: string, group: string, num: number): Rendered {
     if (tool == "knitr" && !this.props.knitr) {
       return undefined;
     }
@@ -252,7 +252,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       </>
     );
     return (
-      <div key={group}>
+      <div key={`${group}-${num}`}>
         {content.size == 0 ? <h5>{header}</h5> : <h3>{header}</h3>}
         {this.render_group_content(content)}
       </div>
@@ -284,11 +284,11 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         {this.render_hint()}
         {this.render_status()}
         {["errors", "typesetting", "warnings"].map(group =>
-          this.render_group("latex", group)
+          this.render_group("latex", group, 0)
         )}
-        {this.render_group("sagetex", "errors")}
-        {["errors", "warnings"].map(group => this.render_group("knitr", group))}
-        {this.render_group("pythontex", "errors")}
+        {this.render_group("sagetex", "errors", 1)}
+        {["errors", "warnings"].map(group => this.render_group("knitr", group, 2))}
+        {this.render_group("pythontex", "errors", 3)}
       </div>
     );
   }

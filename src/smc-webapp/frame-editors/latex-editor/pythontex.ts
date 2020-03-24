@@ -65,7 +65,7 @@ PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 */
 
 export function pythontex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
@@ -81,7 +81,7 @@ export function pythontex_errors(
       }
       err = {
         line: line_no,
-        file: path,
+        file,
         level: "error",
         message: line,
         content: "",
