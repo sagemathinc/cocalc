@@ -1,9 +1,8 @@
 import { delay } from "awaiting";
-
 import { once } from "../smc-util/async-utils";
 import { SyncTable } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
-import { merge } from "../smc-util/misc2";
+import { merge, path_split } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
 import { get_listing } from "../directory-listing";
 import {
@@ -34,6 +33,7 @@ interface Listing {
   interest?: Date;
   missing?: number;
   error?: string;
+  deleted?: string[];
 }
 export type ImmutableListing = TypedMap<Listing>;
 
@@ -222,7 +222,11 @@ class ListingsTable {
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
     }
-    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS, this.log.bind(this));
+    this.watchers[path] = new Watcher(
+      path,
+      WATCH_DEBOUNCE_MS,
+      this.log.bind(this)
+    );
     this.watchers[path].on("change", async () => {
       try {
         await this.compute_listing(path);
@@ -279,6 +283,24 @@ class ListingsTable {
     this.log("remove_path", path);
     await this.get_table().delete({ project_id: this.project_id, path });
   }
+
+  // Given a "filename", add it to deleted if there is already a record
+  // for the containing path in the database.  (TODO: we may change this
+  // to create the record if it doesn't exist.)
+  public async set_deleted(filename: string): Promise<void> {
+    const { head, tail } = path_split(filename);
+    const x = this.get(head);
+    if (x == null) return; // no such entry
+    let deleted: any = x.get("deleted");
+    if (deleted == null) {
+      deleted = [tail];
+    } else {
+      if (deleted.indexOf(tail) != -1) return;
+      deleted = deleted.toJS();
+      deleted.push(tail);
+    }
+    this.set({ path: head, deleted });
+  }
 }
 
 let listings_table: ListingsTable | undefined = undefined;
@@ -295,4 +317,8 @@ export function register_listings_table(
   }
   listings_table = new ListingsTable(table, logger, project_id);
   return;
+}
+
+export function get_listings_table(): ListingsTable | undefined {
+  return listings_table;
 }

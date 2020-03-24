@@ -1072,13 +1072,18 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         desc += " UNIQUE"
                     if info.pg_check
                         desc += " " + info.pg_check
+                    # Disable the safety_checks since we know these are
+                    # fine and they can be hit, e.g., when adding a column
+                    # named "deleted"...
                     switch task.action
                         when 'alter'
                             @_query
+                                safety_check : false
                                 query : "ALTER TABLE #{quote_field(table)} ALTER COLUMN #{col} TYPE #{desc} USING #{col}::#{type}"
                                 cb    : cb
                         when 'add'
                             @_query
+                                safety_check : false
                                 query : "ALTER TABLE #{quote_field(table)} ADD COLUMN #{col} #{desc}"
                                 cb    : cb
                         else

@@ -5,7 +5,7 @@ import { throttle } from "lodash";
 import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
-import { merge } from "smc-util/misc2";
+import { merge, path_split } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
 import { query } from "../../frame-editors/generic/client";
 
@@ -33,6 +33,7 @@ interface Listing {
   interest?: Date;
   missing?: number;
   error?: string;
+  deleted?: string[];
 }
 export type ImmutableListing = TypedMap<Listing>;
 
@@ -107,8 +108,50 @@ export class Listings extends EventEmitter {
     return x.get("listing")?.toJS();
   }
 
+  public async get_deleted(path: string): Promise<string[] | undefined> {
+    if (this.state == "closed") return;
+    if (this.state != "ready") {
+      const q = await query({
+        query: {
+          listings: {
+            project_id: this.project_id,
+            path,
+            deleted: null
+          }
+        }
+      });
+      if (q.query.listings?.error) {
+        throw Error(q.query.listings?.error);
+      }
+      return q.query.listings?.deleted;
+    }
+    if (this.state == ("closed" as State)) return;
+    if (this.state != ("ready" as State)) {
+      await once(this, "state");
+      if (this.state != ("ready" as State)) return;
+    }
+    return this.get_record(path)
+      ?.get("deleted")
+      ?.toJS();
+  }
+
+  public async undelete(path: string): Promise<void> {
+    if (this.state == ("closed" as State)) return;
+    if (this.state != ("ready" as State)) {
+      await once(this, "state");
+      if (this.state != ("ready" as State)) return;
+    }
+    const { head, tail } = path_split(path);
+    const cur = this.get_record(head);
+    if (cur == null) return;
+    let deleted = cur.get("deleted");
+    if (deleted == null) return; // nothing to do
+    deleted = deleted.filter(x => x != tail);
+    await this.set({ path: head, deleted: deleted.toJS() });
+  }
+
   // Returns:
-  //  - List<ImmutablePathEntry> in case of a proper directory listinmg
+  //  - List<ImmutablePathEntry> in case of a proper directory listing
   //  - string in case of an error
   //  - undefined if directory listing not known (and error not known either).
   public async get_for_store(
@@ -135,8 +178,7 @@ export class Listings extends EventEmitter {
         listings: {
           project_id: this.project_id,
           path,
-          listing: null,
-          missing: null
+          listing: null
         }
       }
     });
@@ -207,7 +249,8 @@ export class Listings extends EventEmitter {
             time: null,
             interest: null,
             missing: null,
-            error: null
+            error: null,
+            deleted: null
           }
         ]
       },
@@ -245,9 +288,12 @@ export class Listings extends EventEmitter {
     return this.table;
   }
 
-  private set(obj: Listing): void {
-    this.get_table().set(merge({ project_id: this.project_id }, obj));
-    this.get_table().save();
+  private async set(obj: Listing): Promise<void> {
+    this.get_table().set(
+      merge({ project_id: this.project_id }, obj),
+      "shallow"
+    );
+    await this.get_table().save();
   }
 
   private get_record(path: string): ImmutableListing | undefined {

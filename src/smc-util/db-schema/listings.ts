@@ -53,6 +53,12 @@ Table({
       type: "string",
       desc:
         "Set if there is an error computing the directory listing, e.g., if there is no directory this may happen.  This will be cleared once the listing is successfully computed."
+    },
+    deleted: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc:
+        "Paths within this directory that have been explicitly deleted by a user"
     }
   },
   rules: {
@@ -69,15 +75,19 @@ Table({
           listing: null,
           missing: null,
           interest: null,
-          error: null
+          error: null,
+          deleted: null
         }
       },
       set: {
-        // users can only set that they are interested in this directory
+        // users can set that they are interested in this directory and also
+        // remove paths from the list of deleted paths (e.g., in case they want
+        // to edit afile that was deleted).
         fields: {
           project_id: "project_id",
           path: true,
-          interest: true
+          interest: true,
+          deleted: true
         }
       }
     },
@@ -93,7 +103,8 @@ Table({
           listing: null,
           missing: null,
           interest: null,
-          error: null
+          error: null,
+          deleted: null
         }
       },
       set: {
@@ -107,7 +118,8 @@ Table({
           missing: true,
           time: true,
           interest: true,
-          error: true
+          error: true,
+          deleted: true
         }
       }
     }
