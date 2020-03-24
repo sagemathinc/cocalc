@@ -55,6 +55,8 @@ const { webapp_client } = require("./webapp_client");
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
+import { delete_files } from "./project/delete-files";
+
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
 
 import { Actions, project_redux_name, redux } from "./app-framework";
@@ -1944,7 +1946,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const { command, args } = transform_get_url(opts.url);
 
-    require("./webapp_client").webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command,
       timeout: opts.timeout,
@@ -2578,14 +2580,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return this._move_files(opts);
   }
 
-  delete_files(opts): void {
+  public async delete_files(opts: { paths: string[] }): Promise<void> {
     let mesg;
     opts = defaults(opts, { paths: required });
     if (opts.paths.length === 0) {
       return;
-    }
-    for (const path of opts.paths) {
-      this.close_tab(path);
     }
     const id = misc.uuid();
     if (underscore.isEqual(opts.paths, [".trash"])) {
@@ -2595,43 +2594,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       mesg = `${opts.paths.length} files`;
     }
-    this.set_activity({ id, status: `Deleting ${mesg}` });
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rm",
-      timeout: 60,
-      args: ["-rf", "--"].concat(opts.paths),
-      cb: (err, result) => {
-        this.fetch_directory_listing();
-        if (err) {
-          this.set_activity({
-            id,
-            error: `Network error while trying to delete ${mesg} -- ${err}`,
-            stop: ""
-          });
-          return;
-        } else if (result.event === "error") {
-          this.set_activity({
-            id,
-            error: `Error deleting ${mesg} -- ${result.error}`,
-            stop: ""
-          });
-          return;
-        } else {
-          this.set_activity({
-            id,
-            status: `Successfully deleted ${mesg}.`,
-            stop: ""
-          });
-          return this.log({
-            event: "file_action",
-            action: "deleted",
-            files: opts.paths.slice(0, 3),
-            count: opts.paths.length > 3 ? opts.paths.length : undefined
-          });
-        }
-      }
-    });
+    this.set_activity({ id, status: `Deleting ${mesg}...` });
+    try {
+      await delete_files(this.project_id, opts.paths);
+      this.set_activity({
+        id,
+        status: `Successfully deleted ${mesg}.`,
+        stop: ""
+      });
+    } catch (err) {
+      this.set_activity({
+        id,
+        error: `Error deleting ${mesg} -- ${err}`,
+        stop: ""
+      });
+    }
   }
 
   download_file(opts): void {

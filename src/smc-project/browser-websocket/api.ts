@@ -23,6 +23,7 @@ import { x11_channel } from "../x11/server";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
 import { get_configuration } from "../configuration";
+import { delete_files } from "./delete-files";
 
 export function init_websocket_api(
   primus: any,
@@ -76,6 +77,8 @@ async function handle_api_call(
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
+    case "delete_files":
+      return await delete_files(data.paths, logger);
     case "canonical_paths":
       return canonical_paths(data.paths);
     case "configuration":
@@ -147,6 +150,6 @@ interface ExecuteOutput {
   stderr: string;
   exit_code: number;
 }
-async function exec(opts: any): Promise<ExecuteOutput> {
+export async function exec(opts: any): Promise<ExecuteOutput> {
   return await callback_opts(execute_code)(opts);
 }

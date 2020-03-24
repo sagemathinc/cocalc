@@ -35,6 +35,10 @@ export class API {
     return resp;
   }
 
+  async delete_files(paths: string[]): Promise<void> {
+    return await this.call({ cmd: "delete_files", paths }, 60000);
+  }
+
   async listing(path: string, hidden?: boolean): Promise<object[]> {
     return await this.call({ cmd: "listing", path, hidden }, 15000);
   }
