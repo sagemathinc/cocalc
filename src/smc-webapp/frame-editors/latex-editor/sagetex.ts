@@ -68,7 +68,7 @@ export async function sagetex(
  */
 
 export function sagetex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
@@ -86,7 +86,7 @@ export function sagetex_errors(
       if (err == null) {
         err = {
           line: null,
-          file: path,
+          file,
           level: "error",
           message: line,
           content: "",

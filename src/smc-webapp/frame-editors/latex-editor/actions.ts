@@ -835,7 +835,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (output != null) {
       // process any errors
       this.parsed_output_log = output.parse = sagetex_errors(
-        this.path,
+        path_split(this.path).tail,
         output
       ).toJS();
       this.set_build_logs({ sagetex: output });
@@ -873,7 +873,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     // this is similar to how knitr errors are processed
     this.parsed_output_log = output.parse = pythontex_errors(
-      this.path,
+      path_split(this.path).tail,
       output
     ).toJS();
     this.set_build_logs({ pythontex: output });
