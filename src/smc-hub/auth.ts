@@ -54,15 +54,16 @@ and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain d
 Then restart the hubs.
 */
 
-import async from "async";
-import uuid from "node-uuid";
-import winston from "winston";
-import passport from "passport";
+import { series, parallel, waterfall } from "async";
+import { map as async_map } from "async";
+import * as uuid from "node-uuid";
+import * as winston from "winston";
+import * as passport from "passport";
 const misc = require("smc-util/misc");
 import message from "smc-util/message"; // message protocol between front-end and back-end
 const { sign_in } = require("./sign-in");
 import Cookies from "cookies";
-import express_session from "express-session";
+import * as express_session from "express-session";
 import { HELP_EMAIL } from "smc-util/theme";
 import {
   email_verified_successfully,
@@ -227,7 +228,7 @@ const passport_login = function(opts) {
 
   opts.id = `${opts.id}`; // convert to string (id is often a number)
 
-  return async.series(
+  return series(
     [
       function(cb) {
         let hash;
@@ -367,7 +368,7 @@ const passport_login = function(opts) {
             });
           }
         };
-        return async.map(opts.emails, f, cb);
+        return async_map(opts.emails, f, cb);
       },
       function(cb) {
         if (locals.account_id) {
@@ -381,7 +382,7 @@ const passport_login = function(opts) {
         if (opts.emails != null) {
           locals.email_address = opts.emails[0];
         }
-        return async.series(
+        return series(
           [
             cb =>
               opts.database.create_account({
@@ -457,7 +458,7 @@ const passport_login = function(opts) {
         } else {
           locals.action = "get";
         }
-        return async.series(
+        return series(
           [
             cb =>
               api_key_action({
@@ -914,7 +915,7 @@ export function init_passport(opts) {
     });
   };
 
-  return async.series(
+  return series(
     [
       cb =>
         get_conf("site_conf", function(err, site_conf) {
@@ -932,7 +933,7 @@ export function init_passport(opts) {
         if (auth_url == null) {
           return cb();
         } else {
-          return async.parallel(
+          return parallel(
             [init_google, init_github, init_facebook, init_twitter],
             cb
           );
@@ -1017,7 +1018,7 @@ export function verify_email_send_token(opts) {
     cb: undefined
   });
 
-  return async.waterfall(
+  return waterfall(
     [
       cb => {
         return opts.database.verify_email_create_token({
