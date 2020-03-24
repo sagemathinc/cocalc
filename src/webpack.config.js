@@ -419,14 +419,11 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
 }
 
 if (DEVMODE) {
-  console.log("******************************************************");
-  console.log("WARNING! You might have to visit");
-  console.log("     https://cocalc.com/[project_id]/port/[...]/app");
-  console.log("in case the / static pages are currently not built via");
-  console.log("     npm run webpack-static");
-  console.log("******************************************************");
-} else {
-  plugins.push(...staticPages);
+  console.log(`\
+******************************************************
+*             You have to visit:                     *
+*   https://cocalc.com/[project_id]/port/[...]/app   *
+******************************************************`);
 }
 
 if (PRODMODE) {
