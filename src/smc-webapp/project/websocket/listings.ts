@@ -153,6 +153,20 @@ export class Listings extends EventEmitter {
     await this.set({ path: head, deleted: deleted.toJS() });
   }
 
+  public is_deleted(filename: string): boolean {
+    const { head, tail } = path_split(filename);
+    if (head != "" && this.is_deleted(head)) {
+      // recursively check if filename is contained in a
+      // directory tree that go deleted.
+      return true;
+    }
+    const x = this.get_record(head);
+    if (x == null) return false;
+    const deleted = x.get("deleted");
+    if (deleted == null) return false;
+    return deleted.indexOf(tail) != -1;
+  }
+
   // Returns:
   //  - List<ImmutablePathEntry> in case of a proper directory listing
   //  - string in case of an error

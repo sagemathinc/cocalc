@@ -11,7 +11,7 @@ export async function delete_files(
   const listings = get_listings_table();
   if (listings != null) {
     for (const path of paths) {
-      listings.set_deleted(path);
+      await listings.set_deleted(path);
     }
   }
   // Actually delete the files and directories

@@ -1934,6 +1934,10 @@ class exports.Connection extends EventEmitter
         open_existing_sync_document(opts)
         return
 
+    # Returns true if the given file in the given project is currently marked as deleted.
+    is_deleted: (filename, project_id) =>
+        return !!@_redux?.getProjectStore(project_id)?.get_listings()?.is_deleted(filename)
+
     # If called on the fronted, will make the given file with the given action.
     # Does nothing on the backend.
     mark_file: (opts) =>

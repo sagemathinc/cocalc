@@ -10,6 +10,7 @@ import {
   MAX_FILES_PER_PATH
 } from "../smc-util/db-schema/listings";
 import { Watcher } from "./path-watcher";
+import { close_all_syncdocs_in_tree } from "./sync-doc";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -134,12 +135,12 @@ class ListingsTable {
     return this.table;
   }
 
-  set(obj: Listing): void {
+  async set(obj: Listing): Promise<void> {
     this.get_table().set(
       merge({ project_id: this.project_id }, obj),
       "shallow"
     );
-    this.get_table().save();
+    await this.get_table().save();
   }
 
   public get(path: string): ImmutableListing | undefined {
@@ -290,7 +291,7 @@ class ListingsTable {
   public async set_deleted(filename: string): Promise<void> {
     const { head, tail } = path_split(filename);
     const x = this.get(head);
-    if (x == null) return; // no such entry
+    if (x == null) return; // no such entry -- TODO: maybe create it?
     let deleted: any = x.get("deleted");
     if (deleted == null) {
       deleted = [tail];
@@ -299,7 +300,29 @@ class ListingsTable {
       deleted = deleted.toJS();
       deleted.push(tail);
     }
-    this.set({ path: head, deleted });
+    await this.set({ path: head, deleted });
+
+    // Also we need to close *all* syncdocs that are going to be deleted,
+    // and wait to closing is done before we return.
+    await close_all_syncdocs_in_tree(filename);
+  }
+
+  public is_deleted(filename: string): boolean {
+    const { head, tail } = path_split(filename);
+    if (head != "" && this.is_deleted(head)) {
+      // recursively check if filename is contained in a
+      // directory tree that go deleted.
+      return true;
+    }
+    const x = this.get(head);
+    if (x == null) {
+      return false;
+    }
+    const deleted = x.get("deleted");
+    if (deleted == null) {
+      return false;
+    }
+    return deleted.indexOf(tail) != -1;
   }
 }
 

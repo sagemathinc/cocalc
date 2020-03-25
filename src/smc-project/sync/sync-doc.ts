@@ -33,7 +33,8 @@ export function init_syncdoc(
   if (synctable.state === "closed") {
     throw Error("synctable must not be closed");
   }
-  // It's the right type of table and not closed.  Now do the real setup work (without blocking).
+  // It's the right type of table and not closed.  Now do
+  // the real setup work (without blocking).
   init_syncdoc_async(client, synctable, logger);
 }
 
@@ -42,6 +43,13 @@ export function init_syncdoc(
 // for getting a reference to a syncdoc, e.g., for prettier.
 export function get_syncdoc(path: string): SyncDoc | undefined {
   return syncdocs[path];
+}
+
+async function close_syncdoc(path: string): Promise<void> {
+  const doc = get_syncdoc(path);
+  if (doc == null) return;
+  delete syncdocs[path];
+  await doc.close();
 }
 
 async function init_syncdoc_async(
@@ -73,12 +81,12 @@ async function init_syncdoc_async(
   }
   synctable.on("closed", function() {
     log("syncstring table closed, so closing syncdoc", opts.path);
-    syncdoc.close();
+    close_syncdoc(opts.path);
   });
 
   syncdoc.on("error", function(err) {
     log(`syncdoc error -- ${err}`);
-    syncdoc.close();
+    close_syncdoc(opts.path);
   });
 
   // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
@@ -180,10 +188,22 @@ export async function syncdoc_call(
   switch (mesg.cmd) {
     case "close":
       logger.debug("syncdoc_call -- now closing: ", path);
-      await doc.close();
+      await close_syncdoc(path);
       logger.debug("syncdoc_call -- closed: ", path);
       return "successfully closed";
     default:
       throw Error(`unknown command ${mesg.cmd}`);
+  }
+}
+
+// This is used when deleting a file/directory
+// filename may be a directory or actual filename
+export async function close_all_syncdocs_in_tree(
+  filename: string
+): Promise<void> {
+  for (const path in syncdocs) {
+    if (path == filename || path.indexOf(filename + "/") != -1) {
+      await close_syncdoc(path);
+    }
   }
 }

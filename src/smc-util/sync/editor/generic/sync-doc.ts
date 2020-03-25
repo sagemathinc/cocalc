@@ -1555,6 +1555,10 @@ export class SyncDoc extends EventEmitter {
   public async save(): Promise<void> {
     const dbg = this.dbg("save");
     dbg();
+    if (this.client.is_deleted(this.path, this.project_id)) {
+      dbg("not saving because deleted");
+      return;
+    }
     // We just keep trying while syncdoc is ready and there
     // are changes that have not been saved (due to this.doc
     // changing during the while loop!).
@@ -2383,6 +2387,10 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     const dbg = this.dbg("save_to_disk");
+    if (this.client.is_deleted(this.path, this.project_id)) {
+      dbg("not saving to disk because deleted");
+      return;
+    }
     dbg("initiating the save");
     /* dbg(`live="${this.to_str()}"`);
     this.show_history({log:dbg});
