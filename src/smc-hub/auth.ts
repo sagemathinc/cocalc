@@ -69,6 +69,7 @@ import { callback2 } from "../smc-util/async-utils";
 import * as uuid from "node-uuid";
 import * as winston from "winston";
 import * as passport from "passport";
+import * as dot from "dot-object";
 const misc = require("smc-util/misc");
 import message from "smc-util/message"; // message protocol between front-end and back-end
 const { sign_in } = require("./sign-in");
@@ -588,8 +589,15 @@ interface StrategyConf {
   auth_opts?: {
     scope?: string | string[];
   };
+  login_select?: {
+    id: string; // id is required!
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    emails?: string;
+  };
   // return type has to partially fit with passport_login
-  login_info: (
+  login_info?: (
     profile: any
   ) => {
     id: string; // id is required!
@@ -685,6 +693,15 @@ const TwitterStrategyConf: StrategyConf = {
   }
 };
 
+//const Oauth2StrategyConf: StrategyConf = {
+//  strategy: "oauth2",
+//  PassportStrategy: require("@passport-next/passport-oauth2").Strategy,
+//  login_select: {
+//      id: "id"
+//    };
+//  }
+//};
+
 export async function init_passport(opts) {
   opts = defaults(opts, {
     router: required,
@@ -694,7 +711,7 @@ export async function init_passport(opts) {
     cb: required
   });
 
-  const pp_initializer = new PassportInitializer(opts);
+  const pp_initializer = new PassportManager(opts);
   try {
     await pp_initializer.init();
     opts.cb();
@@ -703,7 +720,7 @@ export async function init_passport(opts) {
   }
 }
 
-class PassportInitializer {
+class PassportManager {
   readonly router: any;
   readonly database: any;
   readonly base_url: any;
@@ -829,7 +846,8 @@ class PassportInitializer {
       PassportStrategy,
       extra_opts,
       auth_opts,
-      login_info
+      login_info,
+      login_select
     } = strategy_config;
     const dbg = m => winston.debug(`init_strategy ${strategy}: ${m}`);
     dbg("start");
@@ -863,20 +881,26 @@ class PassportInitializer {
       passport.authenticate(strategy),
       function(req, res) {
         const { profile } = req.user;
-        passport_login(
-          Object.assign(
-            {
-              database: this.database,
-              strategy,
-              profile, // will just get saved in database
-              req,
-              res,
-              base_url: this.base_url,
-              host: this.host
-            },
-            login_info(profile)
-          )
-        );
+        const login_opts = {
+          database: this.database,
+          strategy,
+          profile, // will just get saved in database
+          req,
+          res,
+          base_url: this.base_url,
+          host: this.host
+        };
+        if (typeof login_info == "function") {
+          Object.assign(login_opts, login_info(profile));
+        }
+        if (login_select != null) {
+          for (const k in login_select) {
+            Object.assign(login_opts, {
+              [k]: dot.pick(login_select[k], profile)
+            });
+          }
+        }
+        passport_login(login_opts);
       }
     );
   }
