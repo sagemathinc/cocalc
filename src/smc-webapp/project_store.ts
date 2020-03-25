@@ -32,6 +32,8 @@ if (typeof window !== "undefined" && window !== null) {
 import * as immutable from "immutable";
 
 import * as misc from "smc-util/misc";
+import { startswith } from "smc-util/misc2";
+
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
@@ -49,6 +51,8 @@ import {
 
 import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
+
+import { alert_message } from "./alerts";
 
 import { Listings, listings } from "./project/websocket/listings";
 
@@ -538,9 +542,50 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return !disabled_ext.includes(ext);
   }
 
+  private close_deleted_file(path: string): void {
+    const cur = this.get("current_path");
+    if (path == cur || startswith(cur, path + "/")) {
+      // we are deleting the current directory, so let's cd to HOME.
+      const actions = redux.getProjectActions(this.project_id);
+      if (actions != null) {
+        actions.set_current_path("");
+      }
+    }
+    for (const file of this.get("open_files").keys()) {
+      if (file === path || startswith(file, path + "/")) {
+        const actions = redux.getProjectActions(this.project_id);
+        if (actions != null) {
+          actions.close_tab(file);
+          alert_message({
+            type: "info",
+            message: `Closing '${file}' since it was deleted.`
+          });
+        }
+      }
+    }
+  }
+
+  private async close_deleted_files(paths: string[]): Promise<void> {
+    for (const path of paths) {
+      if (this.listings == null) return; // won't happen
+      const deleted = await this.listings.get_deleted(path);
+      if (deleted != null) {
+        for (let filename of deleted) {
+          if (path != "") {
+            filename = path + "/" + filename;
+          }
+          this.close_deleted_file(filename);
+        }
+      }
+    }
+  }
+
   public get_listings(): Listings {
     if (this.listings == null) {
       this.listings = listings(this.project_id);
+
+      this.listings.on("deleted", this.close_deleted_files.bind(this));
+
       this.listings.on("change", async paths => {
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {

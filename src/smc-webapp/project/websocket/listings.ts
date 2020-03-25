@@ -41,6 +41,7 @@ export class Listings extends EventEmitter {
   private table?: SyncTable;
   private project_id: string;
   private last_version: { [path: string]: any } = {}; // last version emitted via change event.
+  private last_deleted: { [path: string]: any } = {};
   private state: State = "init";
   private throttled_watch: { [path: string]: Function } = {};
 
@@ -108,7 +109,7 @@ export class Listings extends EventEmitter {
     return x.get("listing")?.toJS();
   }
 
-  public async get_deleted(path: string): Promise<string[] | undefined> {
+  public async get_deleted(path: string): Promise<List<string> | undefined> {
     if (this.state == "closed") return;
     if (this.state != "ready") {
       const q = await query({
@@ -123,16 +124,18 @@ export class Listings extends EventEmitter {
       if (q.query.listings?.error) {
         throw Error(q.query.listings?.error);
       }
-      return q.query.listings?.deleted;
+      if (q.query.listings?.deleted != null) {
+        return fromJS(q.query.listings.deleted);
+      } else {
+        return;
+      }
     }
     if (this.state == ("closed" as State)) return;
     if (this.state != ("ready" as State)) {
       await once(this, "state");
       if (this.state != ("ready" as State)) return;
     }
-    return this.get_record(path)
-      ?.get("deleted")
-      ?.toJS();
+    return this.get_record(path)?.get("deleted");
   }
 
   public async undelete(path: string): Promise<void> {
@@ -256,22 +259,42 @@ export class Listings extends EventEmitter {
       },
       []
     );
+
     if ((this.state as State) == "closed") return;
 
     this.table.on("change", async (keys: string[]) => {
+      // handle changes to directory listings and deleted files lists
       const paths: string[] = [];
+      const deleted_paths: string[] = [];
       for (const key of keys) {
         const path = JSON.parse(key)[1];
-        // Be careful to only emit a change event if the actual listing itself changes.
-        // Table emits more frequently, e.g., due to updating watch, time of listing changing, etc.
+        // Be careful to only emit a change event if the actual
+        // listing itself changes.  Table emits more frequently,
+        // e.g., due to updating watch, time of listing changing, etc.
         const this_version = await this.get_for_store(path);
         if (this_version != this.last_version[path]) {
           this.last_version[path] = this_version;
           paths.push(path);
         }
+
+        const this_deleted = this.get_record(path)?.get("deleted");
+        if (this_deleted != this.last_deleted[path]) {
+          if (
+            this_deleted != null &&
+            !this_deleted.equals(this.last_deleted[path])
+          ) {
+            deleted_paths.push(path);
+          }
+
+          this.last_deleted[path] = this_deleted;
+        }
       }
       if (paths.length > 0) {
         this.emit("change", paths);
+      }
+
+      if (deleted_paths.length > 0) {
+        this.emit("deleted", deleted_paths);
       }
     });
     this.set_state("ready");
@@ -294,6 +317,10 @@ export class Listings extends EventEmitter {
       "shallow"
     );
     await this.get_table().save();
+  }
+
+  public is_ready(): boolean {
+    return this.state == ("ready" as State);
   }
 
   private get_record(path: string): ImmutableListing | undefined {
