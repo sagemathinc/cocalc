@@ -54,6 +54,15 @@ and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain d
 Then restart the hubs.
 */
 
+// Set the site conf like this:
+//
+//  require 'c'; db()
+//  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/auth'}, cb:done())
+//
+//  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
+//
+//  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
+
 import { series } from "async";
 import { map as async_map } from "async";
 import { callback2 } from "../smc-util/async-utils";
@@ -135,7 +144,7 @@ async function create_account(opts, email_address): Promise<string> {
     first_name: opts.first_name,
     last_name: opts.last_name,
     email_address,
-    passport_strategy: opts.strategy,
+    PassportStrategy: opts.strategy,
     passport_id: opts.id,
     passport_profile: opts.profile
   });
@@ -570,6 +579,112 @@ function passport_login(opts) {
   );
 } // end passport_login
 
+interface StrategyConf {
+  strategy: string;
+  PassportStrategy: any;
+  extra_opts?: {
+    enableProof?: boolean;
+  };
+  auth_opts?: {
+    scope?: string | string[];
+  };
+  // return type has to partially fit with passport_login
+  login_info: (
+    profile: any
+  ) => {
+    id: string; // id is required!
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    emails?: string[];
+  };
+}
+
+// docs for getting these for your app
+// https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
+//
+// You must then put them in the database, via
+//
+// require 'c'; db()
+// db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+
+// Scope:
+// Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
+// then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
+// didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
+// library and put in print statements to see what the *REAL* errors were, since that
+// library hid the errors (**WHY**!!?).
+const GoogleStrategyConf: StrategyConf = {
+  strategy: "google",
+  PassportStrategy: require("@passport-next/passport-google-oauth2").Strategy,
+  auth_opts: { scope: "openid email profile" },
+  login_info: function(profile) {
+    return {
+      id: profile.id,
+      first_name: profile.name.givenName,
+      last_name: profile.name.familyName,
+      emails: profile.emails.map(x => x.value)
+    };
+  }
+};
+
+// Get these here:
+//      https://github.com/settings/applications/new
+// You must then put them in the database, via
+//   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+
+const GithubStrategyConf: StrategyConf = {
+  strategy: "github",
+  PassportStrategy: require("passport-github").Strategy,
+  login_info: function(profile) {
+    return {
+      id: profile.id,
+      full_name: profile.name || profile.displayName || profile.username,
+      emails: (profile.emails ?? []).map(x => x.value)
+    };
+  }
+};
+
+// Get these by going to https://developers.facebook.com/ and creating a new application.
+// For that application, set the url to the site CoCalc will be served from.
+// The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
+// for oauth2, as I discovered by a lucky guess... (sigh).
+//
+// You must then put them in the database, via
+//   db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+
+const FacebookStrategyConf: StrategyConf = {
+  strategy: "facebook",
+  PassportStrategy: require("passport-facebook").Strategy,
+  extra_opts: {
+    enableProof: false
+  },
+  login_info: function(profile) {
+    return {
+      id: profile.id,
+      full_name: profile.displayName
+    };
+  }
+};
+
+// Get these by:
+//    (1) Go to https://apps.twitter.com/ and create a new application.
+//    (2) Click on Keys and Access Tokens
+//
+// You must then put them in the database, via
+//   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+
+const TwitterStrategyConf: StrategyConf = {
+  strategy: "twitter",
+  PassportStrategy: require("passport-twitter").Strategy,
+  login_info: function(profile) {
+    return {
+      id: profile.id,
+      full_name: profile.displayName
+    };
+  }
+};
+
 export async function init_passport(opts) {
   opts = defaults(opts, {
     router: required,
@@ -694,115 +809,44 @@ class PassportInitializer {
     })();
 
     dbg(`auth_url='${this.auth_url}'`);
+
     if (this.auth_url != null) {
       Promise.all([
-        this.init_google(),
-        this.init_github(),
-        this.init_facebook(),
-        this.init_twitter()
+        this.init_strategy(GoogleStrategyConf),
+        this.init_strategy(GithubStrategyConf),
+        this.init_strategy(FacebookStrategyConf),
+        this.init_strategy(TwitterStrategyConf)
       ]);
     }
     this.strategies.sort();
     this.strategies.unshift("email");
   }
 
-  // Set the site conf like this:
-  //
-  //  require 'c'; db()
-  //  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/auth'}, cb:done())
-  //
-  //  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
-  //
-  //  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
-
-  private async init_google(): Promise<void> {
-    const dbg = m => winston.debug(`init_google: ${m}`);
-    dbg("");
-    // Strategy: Google OAuth 2 -- should be https://github.com/jaredhanson/passport-google-oauth2
-    // but is https://github.com/passport-next/passport-google-oauth2
-    // ATTENTION:
-    // We have to use a fork of passport-google-oauth2, since jaredhanson is MIA.
-    // See https://github.com/jaredhanson/passport-google-oauth2/pull/51/files
-    const PassportStrategy = require("@passport-next/passport-google-oauth2")
-      .Strategy;
-    const strategy = "google";
+  // a generalized strategy initizalier
+  private async init_strategy(strategy_config: StrategyConf): Promise<void> {
+    const {
+      strategy,
+      PassportStrategy,
+      extra_opts,
+      auth_opts,
+      login_info
+    } = strategy_config;
+    const dbg = m => winston.debug(`init_strategy ${strategy}: ${m}`);
+    dbg("start");
     const conf = await this.get_conf(strategy);
 
     if (conf == null) {
-      throw Error("init_google: conf is null");
+      throw Error(`init_strategy ${strategy}: conf is null`);
     }
-    // docs for getting these for your app
-    // https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
-    //
-    // You must then put them in the database, via
-    //
-    // require 'c'; db()
-    // db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-    const opts = {
-      clientID: conf.clientID,
-      clientSecret: conf.clientSecret,
-      callbackURL: `${this.auth_url}/${strategy}/return`
-    };
 
-    const verify = (_accessToken, _refreshToken, profile, done) =>
-      done(undefined, { profile });
-    passport.use(new PassportStrategy(opts, verify));
-
-    winston.debug(`opts=${misc.to_json(opts)}`);
-
-    // Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
-    // then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
-    // didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
-    // library and put in print statements to see what the *REAL* errors were, since that
-    // library hid the errors (**WHY**!!?).
-    this.router.get(
-      `/auth/${strategy}`,
-      this.handle_get_api_key,
-      passport.authenticate(strategy, { scope: "openid email profile" })
+    const opts = Object.assign(
+      {
+        clientID: conf.clientID,
+        clientSecret: conf.clientSecret,
+        callbackURL: `${this.auth_url}/${strategy}/return`
+      },
+      extra_opts
     );
-
-    this.router.get(
-      `/auth/${strategy}/return`,
-      passport.authenticate(strategy),
-      function(req, res) {
-        const { profile } = req.user;
-        passport_login({
-          database: this.database,
-          profile, // will just get saved in database
-          id: profile.id,
-          first_name: profile.name.givenName,
-          last_name: profile.name.familyName,
-          emails: profile.emails.map(x => x.value),
-          req,
-          res,
-          base_url: this.base_url,
-          host: this.host
-        });
-      }
-    );
-  }
-
-  private async init_github(): Promise<void> {
-    const dbg = m => winston.debug(`init_github: ${m}`);
-    dbg("");
-    // Strategy: Github OAuth2 -- https://github.com/jaredhanson/passport-github
-    const PassportStrategy = require("passport-github").Strategy;
-    const strategy = "github";
-
-    const conf = await this.get_conf(strategy);
-    if (conf == null) {
-      throw Error("init_github conf is null");
-    }
-    // Get these here:
-    //      https://github.com/settings/applications/new
-    // You must then put them in the database, via
-    //   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-    const opts = {
-      clientID: conf.clientID,
-      clientSecret: conf.clientSecret,
-      callbackURL: `${this.auth_url}/${strategy}/return`
-    };
 
     const verify = (_accessToken, _refreshToken, profile, done) =>
       done(undefined, { profile });
@@ -811,7 +855,7 @@ class PassportInitializer {
     this.router.get(
       `/auth/${strategy}`,
       this.handle_get_api_key,
-      passport.authenticate(strategy)
+      passport.authenticate(strategy, auth_opts)
     );
 
     this.router.get(
@@ -819,127 +863,20 @@ class PassportInitializer {
       passport.authenticate(strategy),
       function(req, res) {
         const { profile } = req.user;
-        passport_login({
-          database: this.database,
-          strategy,
-          profile, // will just get saved in database
-          id: profile.id,
-          full_name: profile.name || profile.displayName || profile.username,
-          emails: (profile.emails ?? []).map(x => x.value),
-          req,
-          res,
-          base_url: this.base_url,
-          host: this.host
-        });
-      }
-    );
-  }
-
-  private async init_facebook(): Promise<void> {
-    const dbg = m => winston.debug(`init_facebook: ${m}`);
-    dbg("init_facebook");
-    // Strategy: Facebook OAuth2 --
-    const PassportStrategy = require("passport-facebook").Strategy;
-    const strategy = "facebook";
-
-    const conf = await this.get_conf(strategy);
-    if (conf == null) {
-      throw Error("init_facebook conf is null");
-    }
-    // Get these by going to https://developers.facebook.com/ and creating a new application.
-    // For that application, set the url to the site CoCalc will be served from.
-    // The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
-    // for oauth2, as I discovered by a lucky guess... (sigh).
-    //
-    // You must then put them in the database, via
-    //   db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-    const opts = {
-      clientID: conf.clientID,
-      clientSecret: conf.clientSecret,
-      callbackURL: `${this.auth_url}/${strategy}/return`,
-      enableProof: false
-    };
-
-    const verify = (_accessToken, _refreshToken, profile, done) =>
-      done(undefined, { profile });
-    passport.use(new PassportStrategy(opts, verify));
-
-    this.router.get(
-      `/auth/${strategy}`,
-      this.handle_get_api_key,
-      passport.authenticate(strategy)
-    );
-
-    this.router.get(
-      `/auth/${strategy}/return`,
-      passport.authenticate(strategy),
-      function(req, res) {
-        const { profile } = req.user;
-        passport_login({
-          database: this.database,
-          strategy,
-          profile, // will just get saved in database
-          id: profile.id,
-          full_name: profile.displayName,
-          req,
-          res,
-          base_url: this.base_url,
-          host: this.host
-        });
-      }
-    );
-  }
-
-  private async init_twitter(): Promise<void> {
-    const dbg = m => winston.debug(`init_twitter: ${m}`);
-    dbg("");
-    const PassportStrategy = require("passport-twitter").Strategy;
-    const strategy = "twitter";
-
-    const conf = await this.get_conf(strategy);
-    if (conf == null) {
-      throw Error("init_twitter is null");
-    }
-    // Get these by:
-    //    (1) Go to https://apps.twitter.com/ and create a new application.
-    //    (2) Click on Keys and Access Tokens
-    //
-    // You must then put them in the database, via
-    //   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-    const opts = {
-      consumerKey: conf.clientID,
-      consumerSecret: conf.clientSecret,
-      callbackURL: `${this.auth_url}/${strategy}/return`
-    };
-
-    const verify = (_accessToken, _refreshToken, profile, done) =>
-      done(undefined, { profile });
-    passport.use(new PassportStrategy(opts, verify));
-
-    this.router.get(
-      `/auth/${strategy}`,
-      this.handle_get_api_key,
-      passport.authenticate(strategy)
-    );
-
-    this.router.get(
-      `/auth/${strategy}/return`,
-      passport.authenticate(strategy),
-      function(req, res) {
-        const { profile } = req.user;
-        passport_login({
-          database: this.database,
-          strategy,
-          profile, // will just get saved in database
-          id: profile.id,
-          full_name: profile.displayName,
-          req,
-          res,
-          base_url: this.base_url,
-          host: this.host
-        });
+        passport_login(
+          Object.assign(
+            {
+              database: this.database,
+              strategy,
+              profile, // will just get saved in database
+              req,
+              res,
+              base_url: this.base_url,
+              host: this.host
+            },
+            login_info(profile)
+          )
+        );
       }
     );
   }
