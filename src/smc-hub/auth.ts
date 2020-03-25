@@ -54,8 +54,9 @@ and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain d
 Then restart the hubs.
 */
 
-import { series, parallel, waterfall } from "async";
+import { series, parallel } from "async";
 import { map as async_map } from "async";
+import { callback2 } from "../smc-util/async-utils";
 import * as uuid from "node-uuid";
 import * as winston from "winston";
 import * as passport from "passport";
@@ -67,7 +68,8 @@ import * as express_session from "express-session";
 import { HELP_EMAIL } from "smc-util/theme";
 import {
   email_verified_successfully,
-  email_verification_problem
+  email_verification_problem,
+  welcome_email
 } from "./email";
 
 const { defaults, required } = misc;
@@ -125,6 +127,17 @@ export function password_hash(password): string {
     algorithm: HASH_ALGORITHM,
     saltLength: HASH_SALT_LENGTH,
     iterations: HASH_ITERATIONS
+  });
+}
+
+async function create_account(opts, email_address): Promise<string> {
+  return await callback2(opts.database.create_account, {
+    first_name: opts.first_name,
+    last_name: opts.last_name,
+    email_address,
+    passport_strategy: opts.strategy,
+    passport_id: opts.id,
+    passport_profile: opts.profile
   });
 }
 
@@ -195,19 +208,16 @@ function passport_login(opts) {
     const name = opts.full_name;
     const i = name.lastIndexOf(" ");
     if (i === -1) {
-      opts.first_name = name;
+      opts.first_name = "";
       opts.last_name = name;
     } else {
       opts.first_name = name.slice(0, i).trim();
       opts.last_name = name.slice(i).trim();
     }
   }
-  if (opts.first_name == null) {
-    opts.first_name = "";
-  }
-  if (opts.last_name == null) {
-    opts.last_name = "";
-  }
+
+  opts.first_name = opts.first_name ?? "";
+  opts.last_name = opts.last_name ?? "";
 
   if (opts.emails != null) {
     opts.emails = (() => {
@@ -369,7 +379,7 @@ function passport_login(opts) {
         };
         async_map(opts.emails, f, cb);
       },
-      function(cb) {
+      async function(cb) {
         if (locals.account_id) {
           // account already made above
           cb();
@@ -381,51 +391,35 @@ function passport_login(opts) {
         if (opts.emails != null) {
           locals.email_address = opts.emails[0];
         }
-        series(
-          [
-            cb =>
-              opts.database.create_account({
-                first_name: opts.first_name,
-                last_name: opts.last_name,
-                email_address: locals.email_address,
-                passport_strategy: opts.strategy,
-                passport_id: opts.id,
-                passport_profile: opts.profile,
-                cb(err, _account_id) {
-                  locals.account_id = _account_id;
-                  locals.new_account_created = true;
-                  cb(err);
-                }
-              }),
-            function(cb) {
-              if (locals.email_address == null) {
-                cb();
-              } else {
-                opts.database.do_account_creation_actions({
-                  email_address: locals.email_address,
-                  account_id: locals.account_id,
-                  cb
-                });
-              }
-            },
-            function(cb) {
-              const data = {
-                account_id: locals.account_id,
-                first_name: opts.first_name,
-                last_name: opts.last_name,
-                email_address:
-                  locals.email_address != null ? locals.email_address : null,
-                created_by: opts.req.ip
-              };
-              opts.database.log({
-                event: "create_account",
-                value: data
-              });
-              cb();
-            } // don't let client wait for *logging* the fact that we created an account; failure wouldn't matter.
-          ],
-          cb
-        );
+
+        try {
+          locals.account_id = await create_account(opts, locals.email_address);
+          locals.new_account_created = true;
+          if (locals.email_address != null) {
+            await callback2(opts.database.do_account_creation_actions, {
+              email_address: locals.email_address,
+              account_id: locals.account_id
+            });
+          }
+          // log this
+          const data = {
+            account_id: locals.account_id,
+            first_name: opts.first_name,
+            last_name: opts.last_name,
+            email_address:
+              locals.email_address != null ? locals.email_address : null,
+            created_by: opts.req.ip
+          };
+          // no await -- don't let client wait for *logging* the fact that we created an account
+          // failure wouldn't matter.
+          opts.database.log({
+            event: "create_account",
+            value: data
+          });
+          cb();
+        } catch (err) {
+          cb(err);
+        }
       },
 
       function(cb) {
@@ -676,7 +670,7 @@ export function init_passport(opts) {
 
   let auth_url = undefined; // gets set below
 
-  const init_google = function(cb): void {
+  function init_google(cb): void {
     dbg("init_google");
     // Strategy: Google OAuth 2 -- should be https://github.com/jaredhanson/passport-google-oauth2
     // but is https://github.com/passport-next/passport-google-oauth2
@@ -744,7 +738,7 @@ export function init_passport(opts) {
 
       cb();
     });
-  };
+  }
 
   function init_github(cb): void {
     dbg("init_github");
@@ -917,7 +911,7 @@ export function init_passport(opts) {
 
   series(
     [
-      cb =>
+      function(cb) {
         get_conf("site_conf", function(err, site_conf) {
           if (err) {
             cb(err);
@@ -928,7 +922,8 @@ export function init_passport(opts) {
             }
             cb();
           }
-        }),
+        });
+      },
       function(cb) {
         if (auth_url == null) {
           cb();
@@ -953,7 +948,7 @@ export function init_passport(opts) {
 // callback (if specified), this function also returns true if the
 // password is correct, and false otherwise; it can do this because
 // there is no async IO when the password_hash is specified.
-export function is_password_correct(opts): void {
+export async function is_password_correct(opts): Promise<void> {
   opts = defaults(opts, {
     database: required,
     password: required,
@@ -970,36 +965,35 @@ export function is_password_correct(opts): void {
     const r = password_hash_library.verify(opts.password, opts.password_hash);
     opts.cb(undefined, r);
   } else if (opts.account_id != null || opts.email_address != null) {
-    opts.database.get_account({
-      account_id: opts.account_id,
-      email_address: opts.email_address,
-      columns: ["password_hash"],
-      cb(error, account) {
-        if (error) {
-          opts.cb(error);
+    try {
+      const account = await callback2(opts.database.get_account, {
+        account_id: opts.account_id,
+        email_address: opts.email_address,
+        columns: ["password_hash"]
+      });
+
+      if (opts.allow_empty_password && !account.password_hash) {
+        if (opts.password && opts.account_id) {
+          // Set opts.password as the password, since we're actually
+          // setting the email address and password at the same time.
+          opts.database.change_password({
+            account_id: opts.account_id,
+            password_hash: password_hash(opts.password),
+            invalidate_remember_me: false,
+            cb: err => opts.cb(err, true)
+          });
         } else {
-          if (opts.allow_empty_password && !account.password_hash) {
-            if (opts.password && opts.account_id) {
-              // Set opts.password as the password, since we're actually
-              // setting the email address and password at the same time.
-              opts.database.change_password({
-                account_id: opts.account_id,
-                password_hash: password_hash(opts.password),
-                invalidate_remember_me: false,
-                cb: err => opts.cb(err, true)
-              });
-            } else {
-              opts.cb(undefined, true);
-            }
-          } else {
-            opts.cb(
-              undefined,
-              password_hash_library.verify(opts.password, account.password_hash)
-            );
-          }
+          opts.cb(undefined, true);
         }
+      } else {
+        opts.cb(
+          undefined,
+          password_hash_library.verify(opts.password, account.password_hash)
+        );
       }
-    });
+    } catch (error) {
+      opts.cb(error);
+    }
   } else {
     opts.cb(
       "One of password_hash, account_id, or email_address must be specified."
@@ -1007,44 +1001,33 @@ export function is_password_correct(opts): void {
   }
 }
 
-export function verify_email_send_token(opts) {
+export async function verify_email_send_token(opts) {
   opts = defaults(opts, {
     database: required,
     account_id: required,
     only_verify: false,
-    cb: undefined
+    cb: required
   });
 
-  waterfall(
-    [
-      cb => {
-        opts.database.verify_email_create_token({
-          account_id: opts.account_id,
-          cb
-        });
-      },
-      (token, email_address, cb) => {
-        opts.database.get_server_settings_cached({
-          cb: (err, settings) => {
-            if (err) {
-              cb(err);
-            } else {
-              cb(null, token, email_address, settings);
-            }
-          }
-        });
-      },
-      (token, email_address, settings, cb) => {
-        const email = require("./email");
-        email.welcome_email({
-          to: email_address,
-          token,
-          only_verify: opts.only_verify,
-          settings,
-          cb
-        });
+  try {
+    const { token, email_address } = await callback2(
+      opts.database.verify_email_create_token,
+      {
+        account_id: opts.account_id
       }
-    ],
-    opts.cb
-  );
+    );
+    const settings = await callback2(
+      opts.database.get_server_settings_cached,
+      {}
+    );
+    await callback2(welcome_email, {
+      to: email_address,
+      token,
+      only_verify: opts.only_verify,
+      settings
+    });
+    opts.cb();
+  } catch (err) {
+    opts.cb(err);
+  }
 }

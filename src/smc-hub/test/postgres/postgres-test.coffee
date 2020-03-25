@@ -37,7 +37,8 @@ describe 'email verification: ', ->
             (account_id, cb) ->
                 locals.account_id = account_id
                 db.verify_email_create_token(account_id: account_id, cb:cb)
-        ], (err, token) ->
+        ], (err, verify_info) ->
+            {token} = verify_info
             expect(token.length > 5).toBe(true)
             # only lowercase, because upper/lower case in links in emails can get mangled
             for char in token
@@ -83,7 +84,8 @@ describe 'email verification: ', ->
         async.waterfall([
             (cb) -> db.create_account(first_name:"C", last_name:"D", created_by:"1.2.3.4", email_address:locals.email_address2, password_hash:"test", cb: cb)
             (account_id, cb) -> db.verify_email_create_token(account_id: account_id, cb:cb)
-            (token, email_address, cb) ->
+            (verify_info, cb) ->
+                {token, email_address} = verify_info
                 expect(email_address).toBe(locals.email_address2)
                 db.verify_email_check_token
                     email_address    : locals.email_address2

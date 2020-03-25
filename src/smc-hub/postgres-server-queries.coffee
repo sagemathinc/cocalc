@@ -682,7 +682,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         "account_id = $::UUID"       : opts.account_id
                     cb     : cb
         ], (err) ->
-            opts.cb?(err, locals.token, locals.email_address)
+            opts.cb?(err, locals)
         )
 
 
