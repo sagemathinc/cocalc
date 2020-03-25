@@ -3,7 +3,7 @@
 Probably more need to be rewritten and moved here...
 */
 
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "../../smc-util/async-utils";
 import { PostgreSQL } from "./types";
 import { query } from "./query";
 
