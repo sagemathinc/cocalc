@@ -41,6 +41,8 @@ PAGE_REDUX_PROPS =
         is_logged_in      : rtypes.bool
     support :
         show : rtypes.bool
+    customize:
+        site_name         : rtypes.string
 
 PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
 
@@ -111,7 +113,7 @@ Page = rclass
                 <NavTab
                     on_click       = {@close_menu}
                     name           = {'about'}
-                    label          = {'CoCalc'}
+                    label          = {@props.site_name}
                     icon           = {'info-circle'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
