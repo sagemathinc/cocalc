@@ -988,11 +988,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    let store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-
     if (opts.new_browser_window) {
       // options other than path are ignored in this case.
       // TODO: do not ignore anchor option.
@@ -1000,8 +995,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    store = this.get_store();
-    if (store == undefined) return;
+    let store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
 
     let open_files = store.get("open_files");
     if (!open_files.has(opts.path)) {

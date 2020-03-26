@@ -7,7 +7,7 @@ import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
 import { merge, path_split } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
-import { query } from "../../frame-editors/generic/client";
+import { exec, query } from "../../frame-editors/generic/client";
 
 import { get_directory_listing } from "../directory-listing";
 
@@ -139,28 +139,60 @@ export class Listings extends EventEmitter {
   }
 
   public async undelete(path: string): Promise<void> {
+    if (path == "") return;
     if (this.state == ("closed" as State)) return;
     if (this.state != ("ready" as State)) {
       await once(this, "state");
       if (this.state != ("ready" as State)) return;
     }
+
+    // Check is_deleted, so we can assume that path definitely
+    // is deleted according to our rules.
+    if (!this.is_deleted(path)) {
+      return;
+    }
+
     const { head, tail } = path_split(path);
+    if (head != "") {
+      // make sure the containing directory exists.
+      await exec({
+        project_id: this.project_id,
+        command: "mkdir",
+        args: ["-p", head]
+      });
+    }
     const cur = this.get_record(head);
-    if (cur == null) return;
+    if (cur == null) {
+      // undeleting a file that was maybe deleted as part of a directory tree.
+      // NOTE: If you undelete *one* file from directory tree, then
+      // creating any other file in that tree will just work.  This is
+      // **by design** to keep things from getting too complicated!
+      await this.undelete(head);
+      return;
+    }
     let deleted = cur.get("deleted");
-    if (deleted == null) return; // nothing to do
+    if (deleted == null || deleted.indexOf(tail) == -1) {
+      await this.undelete(head);
+      return;
+    }
     deleted = deleted.filter(x => x != tail);
     await this.set({ path: head, deleted: deleted.toJS() });
   }
 
-  public is_deleted(filename: string): boolean {
+  // true or false if known deleted or not; undefined if don't know yet.
+  public is_deleted(filename: string): boolean | undefined {
     const { head, tail } = path_split(filename);
     if (head != "" && this.is_deleted(head)) {
       // recursively check if filename is contained in a
       // directory tree that go deleted.
       return true;
     }
-    const x = this.get_record(head);
+    let x;
+    try {
+      x = this.get_record(head);
+    } catch (err) {
+      return undefined;
+    }
     if (x == null) return false;
     const deleted = x.get("deleted");
     if (deleted == null) return false;
