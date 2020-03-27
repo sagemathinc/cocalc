@@ -4,41 +4,41 @@ Table({
   name: "stats",
   fields: {
     id: {
-      type: "uuid"
+      type: "uuid",
     },
     time: {
       type: "timestamp",
-      pg_check: "NOT NULL"
+      pg_check: "NOT NULL",
     },
     accounts: {
       type: "integer",
-      pg_check: "NOT NULL CHECK (accounts >= 0)"
+      pg_check: "NOT NULL CHECK (accounts >= 0)",
     },
     accounts_created: {
-      type: "map"
+      type: "map",
     },
     files_opened: {
-      type: "map"
+      type: "map",
     },
     projects: {
       type: "integer",
-      pg_check: "NOT NULL CHECK (projects >= 0)"
+      pg_check: "NOT NULL CHECK (projects >= 0)",
     },
     projects_created: {
-      type: "map"
+      type: "map",
     },
     projects_edited: {
-      type: "map"
+      type: "map",
     },
     hub_servers: {
       type: "array",
-      pg_type: "JSONB[]"
-    }
+      pg_type: "JSONB[]",
+    },
   },
   rules: {
     primary_key: "id",
     durability: "soft", // ephemeral stats whose slight loss wouldn't matter much
     anonymous: false, // if true, this would allow user read access, even if not signed in -- we used to do this but decided to use polling instead, since update interval is predictable.
-    pg_indexes: ["time"]
-  }
+    pg_indexes: ["time"],
+  },
 });

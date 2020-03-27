@@ -26,7 +26,7 @@ export class PaymentMethods extends Component<Props, State> {
     super(props, state);
     this.state = {
       state: "view", //  'delete' <--> 'view' <--> 'add_new'
-      error: ""
+      error: "",
     };
   }
 
@@ -94,7 +94,7 @@ export class PaymentMethods extends Component<Props, State> {
     // Always sort sources in the same order.  This way when you select
     // a default source, they don't get reordered, which is really confusing.
     this.props.sources.data.sort((a, b) => cmp(a.id, b.id));
-    return this.props.sources.data.map(source =>
+    return this.props.sources.data.map((source) =>
       this.render_payment_method(source)
     );
   }

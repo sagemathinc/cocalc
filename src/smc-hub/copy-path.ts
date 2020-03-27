@@ -93,7 +93,7 @@ function row_to_copy_op(copy_op): CopyOp {
     started: copy_op.started,
     finished: copy_op.finished,
     scheduled: copy_op.scheduled,
-    error: copy_op.error
+    error: copy_op.error,
   };
 }
 
@@ -118,11 +118,11 @@ export class CopyPath {
 
   private _init_errors(): void {
     // client.dbg returns a function
-    this.dbg = function(method: string): (msg: string) => void {
+    this.dbg = function (method: string): (msg: string) => void {
       return this.client.dbg(`CopyPath::${method}`);
     };
-    this.err = function(method: string): (msg: string) => void {
-      return msg => {
+    this.err = function (method: string): (msg: string) => void {
+      return (msg) => {
         throw new Error(`CopyPath::${method}: ${msg}`);
       };
     };
@@ -153,7 +153,7 @@ export class CopyPath {
 
       // get the "project" for issuing commands
       const project = await callback2(this.client.compute_server.project, {
-        project_id: mesg.src_project_id
+        project_id: mesg.src_project_id,
       });
 
       // do the copy
@@ -167,7 +167,7 @@ export class CopyPath {
         timeout: mesg.timeout,
         exclude_history: mesg.exclude_history,
         wait_until_done: mesg.wait_until_done,
-        scheduled: mesg.scheduled
+        scheduled: mesg.scheduled,
       });
 
       // if we're still here, the copy was ok!
@@ -175,7 +175,7 @@ export class CopyPath {
         // we only expect a copy_id in kucalc mode
         const resp = message.copy_path_between_projects_response({
           id: mesg.id,
-          copy_path_id: copy_id
+          copy_path_id: copy_id,
         });
         this.client.push_to_client(resp);
       } else {
@@ -196,7 +196,7 @@ export class CopyPath {
       this.client.error_to_client({
         id: mesg.id,
         error:
-          "'copy_path_id' (UUID) of a copy operation or 'src_project_id/target_project_id' must be defined"
+          "'copy_path_id' (UUID) of a copy operation or 'src_project_id/target_project_id' must be defined",
       });
       return;
     }
@@ -261,7 +261,7 @@ export class CopyPath {
         where,
         offset,
         limit,
-        order_by: "time DESC" // most recent first
+        order_by: "time DESC", // most recent first
       });
 
       if (status_data == null) {
@@ -278,7 +278,7 @@ export class CopyPath {
       this.client.push_to_client(
         message.copy_path_status_response({
           id: mesg.id,
-          data: copy_ops
+          data: copy_ops,
         })
       );
     } catch (err) {
@@ -303,7 +303,7 @@ export class CopyPath {
     // get the status info
     const statuses = await callback2(this.client.database._query, {
       query: "SELECT * FROM copy_paths",
-      where
+      where,
     });
 
     const copy_op: CopyOp = (() => {
@@ -364,18 +364,18 @@ export class CopyPath {
       if (copy_op == null) {
         this.client.error_to_client({
           id: mesg.id,
-          error: `opy op '${mesg.copy_path_id}' cannot be deleted.`
+          error: `opy op '${mesg.copy_path_id}' cannot be deleted.`,
         });
       } else {
         await callback2(this.client.database._query, {
           query: "DELETE FROM copy_paths",
-          where: { "id = $::UUID": mesg.copy_path_id }
+          where: { "id = $::UUID": mesg.copy_path_id },
         });
         // no error
         this.client.push_to_client(
           message.copy_path_status_response({
             id: mesg.id,
-            data: `copy_path_id = '${mesg.copy_path_id}' deleted`
+            data: `copy_path_id = '${mesg.copy_path_id}' deleted`,
           })
         );
       }
@@ -394,7 +394,7 @@ export class CopyPath {
       project_id: src_project_id,
       account_id: this.client.account_id,
       account_groups: this.client.groups,
-      database: this.client.database
+      database: this.client.database,
     });
     // this.dbg("_read_access")(read_ok);
     if (!read_ok) {
@@ -415,7 +415,7 @@ export class CopyPath {
       database: this.client.database,
       project_id: target_project_id,
       account_id: this.client.account_id,
-      account_groups: this.client.groups
+      account_groups: this.client.groups,
     });
     // this.dbg("_write_access")(write_ok);
     if (!write_ok) {

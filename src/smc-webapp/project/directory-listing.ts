@@ -11,7 +11,7 @@ if (prom_client.enabled) {
     "get_directory_listing time",
     {
       buckets: [1, 2, 5, 7, 10, 15, 20, 30, 50],
-      labels: ["public", "state", "err"]
+      labels: ["public", "state", "err"],
     }
   );
 }
@@ -39,7 +39,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
       "project_map",
       opts.project_id,
       "state",
-      "state"
+      "state",
     ]);
     if (prom_client.enabled) {
       prom_labels.state = state;
@@ -67,7 +67,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
         project_id: opts.project_id,
         path: opts.path,
         hidden: opts.hidden,
-        timeout
+        timeout,
       });
     } catch (err) {
       if (err.message != null) {
@@ -94,7 +94,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
       f,
       max_time: opts.max_time_s * 1000,
       start_delay: 100,
-      max_delay: 1000
+      max_delay: 1000,
     });
   } catch (err) {
     listing_err = err;
@@ -118,7 +118,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
       // successfully opened, started, and got directory listing
       redux.getProjectActions(opts.project_id).log({
         event: "start_project",
-        time: server_time() - time0
+        time: server_time() - time0,
       });
     }
 

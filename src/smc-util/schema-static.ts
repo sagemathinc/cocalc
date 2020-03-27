@@ -7,7 +7,7 @@ export const RECENT_TIMES = Object.freeze({
   last_hour: 60,
   last_day: 60 * 24,
   last_week: 60 * 24 * 7,
-  last_month: 60 * 24 * 30
+  last_month: 60 * 24 * 30,
 });
 
 // this translates the semantic meanings to the keys used in the DB, also prevents typos!
@@ -16,7 +16,7 @@ export const RECENT_TIMES_KEY = Object.freeze({
   last_hour: "1h",
   last_day: "1d",
   last_week: "7d",
-  last_month: "30d"
+  last_month: "30d",
 });
 
 export { DEFAULT_QUOTAS } from "./upgrade-spec";

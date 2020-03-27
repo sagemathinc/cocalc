@@ -23,7 +23,7 @@ export class PaymentMethod extends Component<Props, State> {
     super(props, state);
     this.state = {
       confirm_default: false,
-      confirm_delete: false
+      confirm_delete: false,
     };
   }
 
@@ -141,17 +141,13 @@ export class PaymentMethod extends Component<Props, State> {
             >
               Default{!this.props.default ? <span>... </span> : undefined}
             </Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
 
           {this.props.delete_method != null ? (
             <Button onClick={() => this.setState({ confirm_delete: true })}>
               <Icon name="trash" /> Delete
             </Button>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </ButtonToolbar>
       </Col>
     );
@@ -163,7 +159,7 @@ export class PaymentMethod extends Component<Props, State> {
         style={{
           borderBottom: "1px solid #999",
           paddingTop: "5px",
-          paddingBottom: "5px"
+          paddingBottom: "5px",
         }}
       >
         {this.render_card()}

@@ -75,7 +75,7 @@ class LogText {
 
 const state = {
   NORMAL: 0,
-  ERROR: 1
+  ERROR: 1,
 };
 
 /* Type of an error or warning */
@@ -148,7 +148,7 @@ export class LatexParser {
             level: "error",
             message: this.currentLine.slice(2),
             content: "",
-            raw: this.currentLine + "\n"
+            raw: this.currentLine + "\n",
           };
         } else if (this.currentLineIsRunawayArgument()) {
           this.parseRunawayArgumentError();
@@ -206,7 +206,7 @@ export class LatexParser {
       level: "error",
       message: this.currentLine,
       content: "",
-      raw: this.currentLine + "\n"
+      raw: this.currentLine + "\n",
     };
     this.currentError.content += this.log
       .linesUpToNextWhitespaceLine()
@@ -236,7 +236,7 @@ export class LatexParser {
       file: this.currentFilePath,
       level: "warning",
       message: warning,
-      raw: warning
+      raw: warning,
     });
   }
 
@@ -267,7 +267,7 @@ export class LatexParser {
       file: this.currentFilePath,
       level: "warning",
       message: raw_message,
-      raw: raw_message
+      raw: raw_message,
     });
   }
 
@@ -279,7 +279,7 @@ export class LatexParser {
       file: this.currentFilePath,
       level: "typesetting",
       message: this.currentLine,
-      raw: this.currentLine
+      raw: this.currentLine,
     });
   }
 
@@ -295,7 +295,7 @@ export class LatexParser {
           this.currentFilePath = filePath;
           const newFile: File = {
             path: filePath,
-            files: []
+            files: [],
           };
           this.fileStack.push(newFile);
           this.files.add(filePath);
@@ -356,7 +356,7 @@ export class LatexParser {
       pll.files.push(path);
     }
     const hashes: string[] = [];
-    const hashEntry: Function = entry => entry.raw;
+    const hashEntry: Function = (entry) => entry.raw;
 
     let i: number = 0;
     while (i < data.length) {

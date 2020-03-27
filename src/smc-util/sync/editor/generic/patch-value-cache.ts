@@ -61,12 +61,12 @@ export class PatchValueCache {
       time,
       value,
       start,
-      last_used: new Date()
+      last_used: new Date(),
     };
   }
 
   private keys(): number[] {
-    return keys(this.cache).map(x => parseInt(x));
+    return keys(this.cache).map((x) => parseInt(x));
   }
 
   /* Return the newest value x with x.time <= time in the cache as an object

@@ -25,7 +25,7 @@ export async function permanently_unlink_all_deleted_projects_of_user(
   await callback2(db._query, {
     query: "UPDATE projects",
     set: { users: null },
-    where: ["deleted  = true", `users#>'{${account_id}}' IS NOT NULL`]
+    where: ["deleted  = true", `users#>'{${account_id}}' IS NOT NULL`],
   });
 }
 
@@ -41,7 +41,7 @@ async function get_account_id(
   return (
     await callback2(db.get_account, {
       email_address: account_id_or_email_address,
-      columns: ["account_id"]
+      columns: ["account_id"],
     })
   ).account_id;
 }

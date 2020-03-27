@@ -10,10 +10,7 @@ import { expect } from "chai";
 
 const LONG_TIMEOUT = 70000; // msec
 
-export const get_api_key = async function(
-  creds: Creds,
-  opts: Opts
-): Promise<TestGetString> {
+export const get_api_key = async function (creds: Creds, opts: Opts): Promise<TestGetString> {
   let browser;
   const ags: TestGetString = new TestGetString();
   if (opts.skip && opts.skip.test(this_file)) {
@@ -60,8 +57,8 @@ export const get_api_key = async function(
     await time_log2("login for api key", tm_login, creds, opts);
 
     // intercepted url looks like https://authenticated/?api_key=sk_hJKSJax....
-    const api_key: string = await new Promise<string>(function(resolve) {
-      page.on("request", async function(request: any) {
+    const api_key: string = await new Promise<string>(function (resolve) {
+      page.on("request", async function (request: any) {
         const regex: RegExp = /.*=/;
         const u: string = await request.url();
         if (/authenticated/.test(u)) {

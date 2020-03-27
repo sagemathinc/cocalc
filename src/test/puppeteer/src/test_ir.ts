@@ -13,7 +13,7 @@ import { expect } from "chai";
 //  return new Promise(resolve => setTimeout(resolve, ms));
 //}
 
-export const test_ir = async function(creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
+export const test_ir = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -58,19 +58,15 @@ export const test_ir = async function(creds: Creds, opts: Opts, page: Page): Pro
     await page.click(sel);
     debuglog("clicked Kernel button");
 
-    let linkHandlers = await page.$x(
-      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
-    );
+    let linkHandlers = await page.$x("//span[contains(., 'Restart and run all (do not stop on errors)...')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
 
-    linkHandlers = await page.$x(
-      "//button[contains(., 'Restart and run all')]"
-    );
+    linkHandlers = await page.$x("//button[contains(., 'Restart and run all')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all");
 
-    const session_info = await page.$eval('div[cocalc-test="cell-output"]', function(e) {
+    const session_info = await page.$eval('div[cocalc-test="cell-output"]', function (e) {
       return (<HTMLElement>e).innerText;
     });
     debuglog("R sessionInfo:\n" + chalk.cyan(session_info));

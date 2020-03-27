@@ -6,23 +6,23 @@ import {
   before,
   after,
   it,
-  expect
+  expect,
 } from "../../generic/test/util";
 
-describe("CodeEditor - testing actions...", function() {
+describe("CodeEditor - testing actions...", function () {
   this.timeout(10000);
   let editor;
 
-  before(async function() {
+  before(async function () {
     editor = new TestEditor("txt");
     await editor.wait_until_loaded();
   });
 
-  after(function() {
+  after(function () {
     editor.delete();
   });
 
-  it("tests set_reload", async function() {
+  it("tests set_reload", async function () {
     // initially an empty Map
     expect(editor.store.get("reload").size).to.equal(0);
     editor.actions.set_reload("foo");
@@ -36,14 +36,14 @@ describe("CodeEditor - testing actions...", function() {
     expect(editor.store.getIn(["reload", "foo"])).to.equal(1406598848);
   });
 
-  it("tests set_resize", function() {
+  it("tests set_resize", function () {
     // set_resize increments a counter that starts at 0.
     expect(editor.store.get("resize")).to.equal(0);
     editor.actions.set_resize();
     expect(editor.store.get("resize")).to.equal(1);
   });
 
-  it("tests reset_local_view_state and set_local_view_state", function() {
+  it("tests reset_local_view_state and set_local_view_state", function () {
     // reset_local_view_state() just rests to the default the localStorage
     // information about viewing this file.  We test this by setting a
     // random property, resetting, and observing it is gone.
@@ -58,7 +58,7 @@ describe("CodeEditor - testing actions...", function() {
     expect(local.equals(editor.store.get("local_view_state"))).to.equal(false);
   });
 
-  it("tests delete_trailing_whitespace", function() {
+  it("tests delete_trailing_whitespace", function () {
     editor.actions.set_cm_value("foo \nbar   \nnone");
     editor.actions.delete_trailing_whitespace();
     // does NOT delete the whitespace in line foo, since the cursor

@@ -70,5 +70,5 @@ export const {
   ErrorBoundary,
   smc_version,
   build_date,
-  smc_git_rev
+  smc_git_rev,
 } = require("./old-coffee-code-index");

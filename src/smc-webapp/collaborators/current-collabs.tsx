@@ -28,11 +28,11 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
     static reduxProps() {
       return {
         account: {
-          get_account_id: rtypes.func
+          get_account_id: rtypes.func,
         },
         projects: {
-          sort_by_activity: rtypes.func
-        }
+          sort_by_activity: rtypes.func,
+        },
       };
     }
     constructor(props) {
@@ -153,7 +153,7 @@ export const CurrentCollaboratorsPanel = rclass<ReactProps>(
             maxHeight: "20em",
             overflowY: "auto",
             overflowX: "hidden",
-            marginBottom: "0"
+            marginBottom: "0",
           }}
         >
           {this.render_users()}

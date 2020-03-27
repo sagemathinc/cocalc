@@ -9,7 +9,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 import { Icon } from "../../r_misc";
 import { DebounceInput } from "react-debounce-input";
@@ -35,8 +35,8 @@ class UserSearch extends Component<ReduxProps> {
         state: rtypes.string,
         status: rtypes.string,
         query: rtypes.string,
-        result: rtypes.immutable.List
-      }
+        result: rtypes.immutable.List,
+      },
     };
   }
 
@@ -49,12 +49,12 @@ class UserSearch extends Component<ReduxProps> {
               border: "1px solid lightgrey",
               borderRadius: "3px",
               padding: "5px",
-              width: "90%"
+              width: "90%",
             }}
             value={this.props.query}
             placeholder="Part of first name, last name, or email address..."
-            onChange={e => actions.set_query(e.target.value)}
-            onKeyDown={e => {
+            onChange={(e) => actions.set_query(e.target.value)}
+            onKeyDown={(e) => {
               if (e.keyCode === 13) {
                 actions.search();
               }
@@ -110,7 +110,7 @@ class UserSearch extends Component<ReduxProps> {
       return <div>No results</div>;
     }
     const v: Rendered[] = [this.render_user_header()];
-    this.props.result.forEach(user => {
+    this.props.result.forEach((user) => {
       v.push(this.render_user(user.toJS()));
     });
     return v;

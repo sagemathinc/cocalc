@@ -65,7 +65,7 @@ async function leanHint(
   return {
     list,
     from: CodeMirror.Pos(cur.line, token.start),
-    to: CodeMirror.Pos(cur.line, token.end)
+    to: CodeMirror.Pos(cur.line, token.end),
   };
 }
 

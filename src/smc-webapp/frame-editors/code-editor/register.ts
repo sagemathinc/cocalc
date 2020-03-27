@@ -20,5 +20,5 @@ for (const ext in file_associations) {
 register_file_editor({
   ext: extensions,
   component: Editor,
-  Actions
+  Actions,
 });

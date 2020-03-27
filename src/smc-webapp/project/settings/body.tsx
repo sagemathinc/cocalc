@@ -4,14 +4,14 @@ const misc = require("smc-util/misc");
 import {
   Icon,
   NonMemberProjectWarning,
-  NoNetworkProjectWarning
+  NoNetworkProjectWarning,
 } from "../../r_misc";
 import { redux, rtypes, rclass } from "../../app-framework";
 import { JupyterServerPanel } from "../plain-jupyter-server";
 import { JupyterLabServerPanel } from "../jupyterlab-server";
 import {
   AddCollaboratorsPanel,
-  CurrentCollaboratorsPanel
+  CurrentCollaboratorsPanel,
 } from "../../collaborators";
 
 import { TitleDescriptionBox } from "./title-description-box";
@@ -68,11 +68,11 @@ export const Body = rclass<ReactProps>(
       return {
         account: {
           get_total_upgrades: rtypes.func,
-          groups: rtypes.array
+          groups: rtypes.array,
         },
         customize: {
           kucalc: rtypes.string,
-          ssh_gateway: rtypes.bool
+          ssh_gateway: rtypes.bool,
         },
         projects: {
           get_course_info: rtypes.func,
@@ -81,12 +81,12 @@ export const Body = rclass<ReactProps>(
           get_total_project_quotas: rtypes.func,
           get_upgrades_to_project: rtypes.func,
           compute_images: rtypes.immutable.Map,
-          all_projects_have_been_loaded: rtypes.bool
+          all_projects_have_been_loaded: rtypes.bool,
         },
         [name]: {
           configuration: rtypes.immutable,
-          available_features: rtypes.object
-        }
+          available_features: rtypes.object,
+        },
       };
     }
 
@@ -99,7 +99,7 @@ export const Body = rclass<ReactProps>(
           "compute_images",
           "configuration",
           "available_features",
-          "all_projects_have_been_loaded"
+          "all_projects_have_been_loaded",
         ]) ||
         (props.customer != undefined &&
           !props.customer.equals(this.props.customer))
@@ -151,9 +151,7 @@ export const Body = rclass<ReactProps>(
               account_id={webapp_client.account_id}
               email_address={this.props.email_address}
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           {commercial &&
           total_project_quotas != undefined &&
           !total_project_quotas.network ? (
@@ -164,9 +162,7 @@ export const Body = rclass<ReactProps>(
                 upgrades_you_applied_to_all_projects
               }
             />
-          ) : (
-            undefined
-          )}
+          ) : undefined}
           <h1 style={{ marginTop: "0px" }}>
             <Icon name="wrench" /> Project Settings
           </h1>
@@ -213,9 +209,7 @@ export const Body = rclass<ReactProps>(
                   user_map={this.props.user_map}
                   account_id={this.props.account_id}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}
@@ -243,17 +237,13 @@ export const Body = rclass<ReactProps>(
                   key="jupyter"
                   project_id={this.props.project_id}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
               {have_jupyter_lab ? (
                 <JupyterLabServerPanel
                   key="jupyterlab"
                   project_id={this.props.project_id}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
             </Col>
           </Row>
         </div>

@@ -29,7 +29,7 @@ interface Patch {
   start2: number;
   length1: number;
   length2: number;
-  diffs: ([-1 | 0 | 1, string])[];
+  diffs: [-1 | 0 | 1, string][];
 }
 
 function process_line_diff(

@@ -61,7 +61,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
   const result = await callback2(db._query, {
     select: ["time", "project_id", "path", "source", "target", "priority"],
     table: "mentions",
-    where: "action is null" // no action taken yet.
+    where: "action is null", // no action taken yet.
   });
   if (result == null || result.rows == null) {
     throw Error("invalid result"); // can't happen
@@ -102,7 +102,7 @@ async function determine_action(
   }
   const result = await callback2(db._query, {
     query: `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${MIN_EMAIL_INTERVAL}'`,
-    params: [project_id, path, target]
+    params: [project_id, path, target],
   });
   const count: number = parseInt(result.rows[0].count);
   if (count > 0) {
@@ -152,7 +152,7 @@ async function send_email_notification(
 ): Promise<void> {
   // Gather relevant information to use to construct notification.
   const user_names = await callback2(db.account_ids_to_usernames, {
-    account_ids: [source]
+    account_ids: [source],
   });
   const source_name = `${user_names[source].first_name} ${user_names[source].last_name}`;
   const project_title = await callback(
@@ -190,7 +190,7 @@ async function set_action(
   await callback2(db._query, {
     query: "UPDATE mentions SET action=$1",
     params: [action],
-    where: key
+    where: key,
   });
 }
 
@@ -203,6 +203,6 @@ export async function record_error(
   await callback2(db._query, {
     query: "UPDATE mentions SET action=$1,error=$2",
     where: key,
-    params: [action, error]
+    params: [action, error],
   });
 }

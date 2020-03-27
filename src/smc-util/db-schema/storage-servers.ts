@@ -11,13 +11,13 @@ import { Table } from "./types";
 Table({
   name: "storage_servers",
   rules: {
-    primary_key: "host"
+    primary_key: "host",
   },
   fields: {
     host: {
       type: "string",
       desc: "hostname of the storage server",
-      pg_type: "VARCHAR(63)"
-    }
-  }
+      pg_type: "VARCHAR(63)",
+    },
+  },
 });

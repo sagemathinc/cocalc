@@ -39,7 +39,7 @@ async function create_init_file(
     project_id: project_id,
     command,
     bash: true,
-    err_on_exit: false
+    err_on_exit: false,
   });
 }
 

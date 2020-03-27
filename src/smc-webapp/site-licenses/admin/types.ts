@@ -19,7 +19,7 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "memory",
   "memory_request",
   "cores",
-  "cpu_shares"
+  "cpu_shares",
 ];
 
 export type Upgrades = { [field in upgrade_fields_type]: number };
@@ -80,7 +80,7 @@ export const license_fields: {
   managers: "account_id[]",
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
-  run_limit: "number"
+  run_limit: "number",
   //apply_limit: "number" // hide for now since not implemented at all
 };
 

@@ -17,7 +17,7 @@ export class Version extends Component<Props> {
           fontWeight: "bold",
           fontSize: "12pt",
           color: "#666",
-          whiteSpace: "nowrap"
+          whiteSpace: "nowrap",
         }}
       >
         <TimeAgo date={this.props.date} />

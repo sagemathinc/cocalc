@@ -36,7 +36,7 @@ const STYLE = {
   marginbottom: "1ex",
   minheight: "2em",
   border: "0px",
-  background: "#fff"
+  background: "#fff",
 };
 
 interface Props {
@@ -97,7 +97,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         "gutter_markers",
         "is_subframe",
         "is_current",
-        "path"
+        "path",
       ])
     );
   }
@@ -190,7 +190,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     const locs = this.cm
       .getDoc()
       .listSelections()
-      .map(c => ({ x: c.anchor.ch, y: c.anchor.line }));
+      .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
     // side_effect is whether or not the cursor move is being caused by an
     // external setValueNoJump, so just a side effect of something another user did.
     const side_effect = (this.cm as any)._setValueNoJump;
@@ -410,7 +410,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       "leanSymbols",
       "lineWrapping",
       "indentWithTabs",
-      "theme"
+      "theme",
     ]) {
       if (!isEqual(cm.options[key], options[key])) {
         cm.setOption(key, options[key]);
@@ -501,7 +501,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       color: "#337ab7",
       cursor: "pointer",
       width: "100%",
-      fontSize: "10pt"
+      fontSize: "10pt",
     };
     if (this.props.is_current) {
       style.background = "#337ab7";

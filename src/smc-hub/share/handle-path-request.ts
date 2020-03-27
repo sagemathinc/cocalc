@@ -1,12 +1,12 @@
 import {
   filename_extension,
   is_valid_uuid_string,
-  path_split
+  path_split,
 } from "smc-util/misc2";
 
 import {
   default_to_raw,
-  has_special_viewer
+  has_special_viewer,
 } from "smc-webapp/share/file-contents";
 
 import { render_public_path } from "./render-public-path";
@@ -124,7 +124,7 @@ export async function handle_path_request(opts: {
         req,
         res,
         dir,
-        path
+        path,
       });
       break;
 
@@ -162,7 +162,7 @@ export async function handle_path_request(opts: {
         sort: req.query.sort != null ? req.query.sort : "name",
         authors,
         base_url,
-        views
+        views,
       });
   }
 }

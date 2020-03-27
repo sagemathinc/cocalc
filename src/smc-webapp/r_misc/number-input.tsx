@@ -61,13 +61,13 @@ export class NumberInput extends React.Component<Props, State> {
                     ? this.state.number
                     : this.props.number
                 }
-                onChange={e =>
+                onChange={(e) =>
                   this.setState({
-                    number: e.target.value
+                    number: e.target.value,
                   })
                 }
                 onBlur={this.saveChange}
-                onKeyDown={e => {
+                onKeyDown={(e) => {
                   if (e.keyCode === 27) {
                     // async setState, since it depends on props.
                     this.setState((_, props) => {

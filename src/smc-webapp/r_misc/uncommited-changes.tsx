@@ -17,7 +17,7 @@ const STYLE: React.CSSProperties = {
   marginLeft: "5px",
   marginRight: "-5px",
   borderRadius: "3px",
-  whiteSpace: "nowrap"
+  whiteSpace: "nowrap",
 };
 
 /**
@@ -28,7 +28,7 @@ const STYLE: React.CSSProperties = {
  */
 export function UncommittedChanges({
   has_uncommitted_changes,
-  delay_ms = 5000
+  delay_ms = 5000,
 }: Props) {
   const [show_error, set_error] = React.useState(false);
 

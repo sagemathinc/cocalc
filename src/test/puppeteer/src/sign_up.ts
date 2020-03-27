@@ -10,10 +10,7 @@ import { Page } from "puppeteer";
 
 const LONG_TIMEOUT = 70000; // msec
 
-export const sign_up = async function(
-  creds: Creds,
-  opts: Opts
-): Promise<PassFail> {
+export const sign_up = async function (creds: Creds, opts: Opts): Promise<PassFail> {
   let browser;
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {

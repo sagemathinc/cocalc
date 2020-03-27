@@ -22,7 +22,7 @@ export function transform_get_url(
     "http://nbviewer.jupyter.org/urls/": "https://",
     "https://nbviewer.jupyter.org/url/": "http://", // download from original source
     "https://nbviewer.jupyter.org/urls/": "https://",
-    [COCALC_SHARE_SERVER]: COCALC_SHARE_SERVER + "raw/" // always download as raw
+    [COCALC_SHARE_SERVER]: COCALC_SHARE_SERVER + "raw/", // always download as raw
   };
   if (startswith(url, "https://github.com/")) {
     if (url.indexOf("/blob/") !== -1) {

@@ -34,7 +34,7 @@ export class ChatInput extends React.PureComponent<Props> {
   static defaultProps = {
     enable_mentions: true,
     font_size: 14,
-    height: "100%"
+    height: "100%",
   };
 
   private mentions_input_ref = React.createRef<MentionsInput>();
@@ -62,7 +62,7 @@ export class ChatInput extends React.PureComponent<Props> {
         // see https://github.com/sagemathinc/cocalc/issues/3849 and
         // https://stackoverflow.com/questions/51693111/current-is-always-null-when-using-react-createref
         this.mentions_input_ref.current.wrappedInstance.handleChange({
-          target
+          target,
         });
       }
     }
@@ -74,13 +74,13 @@ export class ChatInput extends React.PureComponent<Props> {
 
       "&multiLine": {
         highlighter: {
-          padding: 5
+          padding: 5,
         },
 
         control: {
           height: "100%",
           backgroundColor: "white",
-          leftMargin: "2px"
+          leftMargin: "2px",
         },
 
         input: {
@@ -90,8 +90,8 @@ export class ChatInput extends React.PureComponent<Props> {
           borderRadius: "4px",
           boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
           overflow: "auto",
-          padding: "5px 10px"
-        }
+          padding: "5px 10px",
+        },
       },
 
       suggestions: {
@@ -106,7 +106,7 @@ export class ChatInput extends React.PureComponent<Props> {
           maxHeight: "145px",
           width: "max-content",
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
         },
 
         item: {
@@ -114,10 +114,10 @@ export class ChatInput extends React.PureComponent<Props> {
           borderBottom: "1px solid rgba(0,0,0,0.15)",
 
           "&focused": {
-            backgroundColor: "rgb(66, 139, 202, 0.4)"
-          }
-        }
-      }
+            backgroundColor: "rgb(66, 139, 202, 0.4)",
+          },
+        },
+      },
     };
   });
 
@@ -125,14 +125,14 @@ export class ChatInput extends React.PureComponent<Props> {
     (project_users: immutable.Map<string, any>) => {
       const user_array = project_users
         .keySeq()
-        .filter(account_id => {
+        .filter((account_id) => {
           return account_id !== this.props.account_id;
         })
-        .map(account_id => {
+        .map((account_id) => {
           return {
             id: account_id,
             display: this.props.user_store.get_name(account_id),
-            last_active: this.props.user_store.get_last_active(account_id)
+            last_active: this.props.user_store.get_last_active(account_id),
           };
         })
         .toJS();

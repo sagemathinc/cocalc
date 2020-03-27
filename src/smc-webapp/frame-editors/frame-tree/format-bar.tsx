@@ -14,7 +14,7 @@ const {
   ButtonGroup,
   Button,
   DropdownButton,
-  MenuItem
+  MenuItem,
 } = require("react-bootstrap");
 
 const buttonbar = require("smc-webapp/buttonbar");
@@ -180,7 +180,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={family}
           eventKey={family}
-          onSelect={family =>
+          onSelect={(family) =>
             this.props.actions.format_action("font_family", family)
           }
         >
@@ -209,7 +209,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={size}
           eventKey={size}
-          onSelect={size =>
+          onSelect={(size) =>
             this.props.actions.format_action("font_size_new", size)
           }
         >
@@ -262,7 +262,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={heading}
           eventKey={heading}
-          onSelect={heading =>
+          onSelect={(heading) =>
             this.props.actions.format_action(`format_heading_${heading}`)
           }
         >
@@ -303,7 +303,7 @@ export class FormatBar extends Component<Props, {}> {
         <MenuItem
           key={color}
           eventKey={code}
-          onSelect={code => this.props.actions.format_action("color", code)}
+          onSelect={(code) => this.props.actions.format_action("color", code)}
         >
           <span style={{ background: code }}>
             <Space />

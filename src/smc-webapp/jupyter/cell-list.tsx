@@ -233,7 +233,7 @@ export class CellList extends Component<CellListProps> {
           fontSize: "32pt",
           color: "#888",
           textAlign: "center",
-          marginTop: "15px"
+          marginTop: "15px",
         }}
       >
         <Loading />
@@ -241,7 +241,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  private on_click = e => {
+  private on_click = (e) => {
     if (this.props.actions) this.props.actions.clear_complete();
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
@@ -316,7 +316,7 @@ export class CellList extends Component<CellListProps> {
     key,
     isVisible,
     isScrolling,
-    index
+    index,
   }): Rendered {
     const is_last: boolean = key === this.props.cell_list.get(-1);
     return (
@@ -339,7 +339,7 @@ export class CellList extends Component<CellListProps> {
         ref={this.windowed_list_ref}
         overscan_row_count={10}
         estimated_row_size={DEFAULT_ROW_SIZE}
-        row_key={index => this.props.cell_list.get(index)}
+        row_key={(index) => this.props.cell_list.get(index)}
         row_count={this.props.cell_list.size}
         row_renderer={this.windowed_list_row_renderer.bind(this)}
         cache_id={cache_id}
@@ -374,7 +374,7 @@ export class CellList extends Component<CellListProps> {
   private render_list_of_cells(): Rendered | Rendered[] {
     const style: React.CSSProperties = {
       backgroundColor: "#fff",
-      paddingLeft: "5px"
+      paddingLeft: "5px",
     };
 
     if (this.use_windowed_list) {
@@ -398,7 +398,7 @@ export class CellList extends Component<CellListProps> {
       paddingLeft: "5px",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden"
+      overflowX: "hidden",
     };
 
     return (

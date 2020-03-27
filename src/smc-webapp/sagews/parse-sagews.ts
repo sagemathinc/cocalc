@@ -76,7 +76,7 @@ export function parse_sagews(sagews: string): Cell[] {
     const cell: Cell = {
       type: "cell",
       pos,
-      id
+      id,
     };
     if (flags) {
       cell.flags = flags;
@@ -98,7 +98,7 @@ export function parse_sagews(sagews: string): Cell[] {
       type: "cell",
       pos: 0,
       id: "",
-      input: sagews
+      input: sagews,
     });
   }
 

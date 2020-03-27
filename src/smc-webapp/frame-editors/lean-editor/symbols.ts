@@ -2298,5 +2298,5 @@ const TRANSLATIONS = {
   Join: "⋈",
   Vdash: "⊩",
   Vert: "‖",
-  Vvdash: "⊪"
+  Vvdash: "⊪",
 };

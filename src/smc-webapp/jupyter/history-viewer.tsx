@@ -43,7 +43,7 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
 
     const options = fromJS({
       markdown: undefined,
-      options: cm_options()
+      options: cm_options(),
     });
 
     let font_size = this.props.font_size;
@@ -75,7 +75,7 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          overflowY: "hidden"
+          overflowY: "hidden",
         }}
       >
         {this.render_cells()}
@@ -116,6 +116,6 @@ export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
     to_str(version) {
       const ipynb = to_ipynb(syncdb, version);
       return json_stable(ipynb, { space: 1 });
-    }
+    },
   };
 }

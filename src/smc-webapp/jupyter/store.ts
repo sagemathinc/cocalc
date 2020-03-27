@@ -79,7 +79,7 @@ export const initial_jupyter_store_state: {
   show_kernel_selector: false,
   widget_model_ids: Set(),
   cell_list: List(),
-  cells: Map()
+  cells: Map(),
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {
@@ -101,7 +101,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     if (cur_id != null) {
       selected[cur_id] = true;
     }
-    this.get("sel_ids").map(function(x) {
+    this.get("sel_ids").map(function (x) {
       selected[x] = true;
     });
     return selected;
@@ -220,7 +220,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output
+      more_output,
     });
   };
 
@@ -371,8 +371,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_kernel_selection = (kernels: Kernels): Map<string, string> => {
     const data: any = {};
     kernels
-      .filter(entry => entry.get("language") != null)
-      .groupBy(entry => entry.get("language"))
+      .filter((entry) => entry.get("language") != null)
+      .groupBy((entry) => entry.get("language"))
       .forEach((kernels, lang) => {
         const top: any = kernels
           .sort((a, b) => {
@@ -402,7 +402,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       if (data_lang[lang] == null) data_lang[lang] = [];
       data_lang[lang].push(entry);
     };
-    kernels.map(entry => {
+    kernels.map((entry) => {
       const name = entry.get("name");
       const lang = entry.get("language");
       if (name != null) data_name[name] = entry;
@@ -421,8 +421,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
     // data_lang, we're only interested in the kernel names, not the entry itself
     data_lang = fromJS(data_lang).map((v, k) => {
       v = v
-        .sortBy(v => v.get("display_name", v.get("name", k)).toLowerCase())
-        .map(v => v.get("name"));
+        .sortBy((v) => v.get("display_name", v.get("name", k)).toLowerCase())
+        .map((v) => v.get("name"));
       return v;
     });
     const by_lang = OrderedMap<string, List<string>>(

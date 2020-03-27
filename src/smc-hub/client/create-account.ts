@@ -13,7 +13,7 @@ import {
   walltime,
   lower_email_address,
   required,
-  defaults
+  defaults,
 } from "smc-util/misc";
 import { len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
@@ -60,7 +60,7 @@ export async function create_account(
     logger: undefined,
     host: undefined,
     port: undefined,
-    sign_in: false // if true, the newly created user will also be signed in; only makes sense for browser clients!
+    sign_in: false, // if true, the newly created user will also be signed in; only makes sense for browser clients!
   });
   const id: string = opts.mesg.id;
   let mesg1: { [key: string]: any };
@@ -101,7 +101,7 @@ export async function create_account(
     dbg("make sure not too many accounts were created from the given ip");
     const n = await callback2(opts.database.count_accounts_created_by, {
       ip_address: opts.client.ip_address,
-      age_s: 60 * 30
+      age_s: 60 * 30,
     });
     if (n >= MAX_ACCOUNTS_PER_30MIN) {
       let m = MAX_ACCOUNTS_PER_30MIN;
@@ -111,7 +111,7 @@ export async function create_account(
         opts.client.account_id != null &&
         (await callback2(opts.database.user_is_in_group, {
           account_id: opts.client.account_id,
-          group: "gold"
+          group: "gold",
         }))
       ) {
         m = MAX_ACCOUNTS_PER_30MIN_GOLD;
@@ -128,7 +128,7 @@ export async function create_account(
       dbg("query database to determine whether the email address is available");
 
       const not_available = await callback2(opts.database.account_exists, {
-        email_address: opts.mesg.email_address
+        email_address: opts.mesg.email_address,
       });
       if (not_available) {
         reason = { email_address: "This e-mail address is already taken." };
@@ -137,7 +137,7 @@ export async function create_account(
 
       dbg("check that account is not banned");
       const is_banned = await callback2(opts.database.is_banned_user, {
-        email_address: opts.mesg.email_address
+        email_address: opts.mesg.email_address,
       });
       if (is_banned) {
         reason = { email_address: "This e-mail address is banned." };
@@ -147,7 +147,7 @@ export async function create_account(
 
     dbg("check if a registration token is required");
     const token = await callback2(opts.database.get_server_setting, {
-      name: "account_creation_token"
+      name: "account_creation_token",
     });
     if (token && token !== opts.mesg.token) {
       reason = { token: "Incorrect registration token." };
@@ -163,7 +163,7 @@ export async function create_account(
         ? auth.password_hash(opts.mesg.password)
         : undefined,
       created_by: opts.client.ip_address,
-      usage_intent: opts.mesg.usage_intent
+      usage_intent: opts.mesg.usage_intent,
     });
 
     // log to database
@@ -172,12 +172,12 @@ export async function create_account(
       first_name: opts.mesg.first_name,
       last_name: opts.mesg.last_name,
       email_address: opts.mesg.email_address,
-      created_by: opts.client.ip_address
+      created_by: opts.client.ip_address,
     };
 
     await callback2(opts.database.log, {
       event: "create_account",
-      value: data
+      value: data,
     });
 
     if (opts.mesg.email_address) {
@@ -185,7 +185,7 @@ export async function create_account(
       // do not block
       await callback2(opts.database.do_account_creation_actions, {
         email_address: opts.mesg.email_address,
-        account_id
+        account_id,
       });
     }
 
@@ -194,7 +194,7 @@ export async function create_account(
       // so that proxy server will allow user to connect and
       // download images, etc., the very first time right after they make a new account.
       await callback2(opts.client.remember_me, {
-        account_id
+        account_id,
       });
       dbg(
         `send message back to user that they are logged in as the new user (in ${walltime(
@@ -209,7 +209,7 @@ export async function create_account(
         first_name: opts.mesg.first_name,
         last_name: opts.mesg.last_name,
         remember_me: false,
-        hub: opts.host + ":" + opts.port
+        hub: opts.host + ":" + opts.port,
       });
       opts.client.signed_in(mesg1); // records this creation in database...
     } else {
@@ -221,7 +221,7 @@ export async function create_account(
         dbg("send email verification request");
         await callback2(auth.verify_email_send_token, {
           account_id,
-          database: opts.database
+          database: opts.database,
         });
       } catch (err) {
         // We make this nonfatal since email might just be misconfigured,
@@ -236,7 +236,7 @@ export async function create_account(
         database: opts.database,
         account_id,
         password: opts.mesg.password,
-        action: "regenerate"
+        action: "regenerate",
       });
     }
 
@@ -253,7 +253,7 @@ export async function create_account(
       if (reason == null) {
         // generic reason
         reason = {
-          other: `Unable to create account. Error: "${err}"`
+          other: `Unable to create account. Error: "${err}"`,
         };
       }
       opts.client.push_to_client(
@@ -279,7 +279,7 @@ export async function delete_account(
     client: undefined,
     mesg: required,
     database: required,
-    logger: undefined
+    logger: undefined,
   });
 
   if (typeof opts.logger === "function") {
@@ -289,7 +289,7 @@ export async function delete_account(
   let error: any = undefined;
   try {
     await callback2(opts.database.mark_account_deleted, {
-      account_id: opts.mesg.account_id
+      account_id: opts.mesg.account_id,
     });
   } catch (err) {
     error = err;

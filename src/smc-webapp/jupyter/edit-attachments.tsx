@@ -12,7 +12,7 @@ const ROW_STYLE: React.CSSProperties = {
   display: "flex",
   border: "1px solid #ddd",
   padding: "7px",
-  borderRadius: "3px"
+  borderRadius: "3px",
 };
 
 interface EditAttachmentsProps {

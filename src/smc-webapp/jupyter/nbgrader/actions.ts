@@ -89,7 +89,7 @@ export class NBGraderActions {
       id,
       metadata: { nbgrader },
       merge: true,
-      save
+      save,
     });
   }
 
@@ -109,8 +109,8 @@ export class NBGraderActions {
         "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
       choices: [
         { title: "Cancel" },
-        { title: "Validate", style: "danger", default: true }
-      ]
+        { title: "Validate", style: "danger", default: true },
+      ],
     });
     if (choice === "Validate") {
       await this.jupyter_actions.restart();
@@ -135,9 +135,9 @@ export class NBGraderActions {
         {
           title: "Create or update student version",
           style: "success",
-          default: true
-        }
-      ]
+          default: true,
+        },
+      ],
     });
     if (choice === "Cancel") return;
     await this.assign(target);
@@ -205,7 +205,7 @@ export class NBGraderActions {
 
   private assign_clear_solutions(): void {
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = clear_solution(cell, kernel_language);
       if (cell !== cell2) {
@@ -220,7 +220,7 @@ export class NBGraderActions {
   }
 
   private assign_clear_hidden_tests(): void {
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       // only care about test cells, which have: grade=true and solution=false.
       if (!cell.getIn(["metadata", "nbgrader", "grade"])) return;
       if (cell.getIn(["metadata", "nbgrader", "solution"])) return;
@@ -237,7 +237,7 @@ export class NBGraderActions {
   }
 
   private assign_clear_mark_regions(): void {
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "task"])) return;
       const cell2 = clear_mark_regions(cell);
       if (cell !== cell2) {
@@ -252,7 +252,7 @@ export class NBGraderActions {
   }
 
   private assign_save_checksums(): void {
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       const cell2 = set_checksum(cell);
       if (cell !== cell2) {
@@ -261,7 +261,7 @@ export class NBGraderActions {
           id: cell.get("id"),
           metadata: { nbgrader: cell2.get("nbgrader") },
           merge: true,
-          save: false
+          save: false,
         });
       }
     });
@@ -272,7 +272,7 @@ export class NBGraderActions {
     // the editable and deletable metadata to false.
     // "metadata":{"nbgrader":{"locked":true,...
     //console.log("assign_lock_readonly_cells");
-    this.jupyter_actions.store.get("cells").forEach(cell => {
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
         return;
       for (const key of ["editable", "deletable"]) {
@@ -280,7 +280,7 @@ export class NBGraderActions {
           id: cell.get("id"),
           metadata: { [key]: false },
           merge: true,
-          save: false
+          save: false,
         });
       }
     });

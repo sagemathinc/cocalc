@@ -32,7 +32,7 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Answer ${nbgrader_counter}`,
-          icon: "graduation-cap"
+          icon: "graduation-cap",
         });
       } else if (nbgrader.get("grade")) {
         // solution is false but grade is true, so it's a test cell
@@ -40,7 +40,7 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Tests for answer ${nbgrader_counter}`,
-          icon: "equals"
+          icon: "equals",
         });
       } else if (nbgrader.get("task")) {
         nbgrader_counter += 1;
@@ -48,7 +48,7 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Task ${nbgrader_counter}`,
-          icon: "tasks"
+          icon: "tasks",
         });
       }
     }
@@ -78,7 +78,7 @@ export function parse_headings(
         level,
         value,
         icon: "minus",
-        number: section_counter.slice(0, level)
+        number: section_counter.slice(0, level),
       });
     }
   });

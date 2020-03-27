@@ -10,7 +10,7 @@ interface CourseEditorState extends CodeEditorState {}
 import {
   CourseActions,
   init_course_actions_and_store,
-  close_course_actions_and_store
+  close_course_actions_and_store,
 } from "./course-actions";
 
 export class CourseEditorActions extends Actions<CourseEditorState> {
@@ -36,10 +36,10 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
   // Jupyter frame editor.
   private init_changes_state(): void {
     const syncdb = this.course_actions.syncdb;
-    syncdb.on("has-uncommitted-changes", has_uncommitted_changes =>
+    syncdb.on("has-uncommitted-changes", (has_uncommitted_changes) =>
       this.setState({ has_uncommitted_changes })
     );
-    syncdb.on("has-unsaved-changes", has_unsaved_changes => {
+    syncdb.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
     });
   }
@@ -50,7 +50,7 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
     this.course_actions = init_course_actions_and_store({
       redux: this.redux,
       path: this.path,
-      project_id: this.project_id
+      project_id: this.project_id,
     });
   }
 
@@ -58,7 +58,7 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
     close_course_actions_and_store({
       redux: this.redux,
       path: this.path,
-      project_id: this.project_id
+      project_id: this.project_id,
     });
   }
 

@@ -71,7 +71,7 @@ export function init_redux(
     expanded_skip_gradings: Set(),
     active_student_sort: { column_name: "last_name", is_descending: false },
     active_assignment_sort: { column_name: "due_date", is_descending: false },
-    action_all_projects_state: "any"
+    action_all_projects_state: "any",
   };
 
   const store: CourseStore = redux.createStore(

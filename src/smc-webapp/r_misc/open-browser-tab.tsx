@@ -32,7 +32,7 @@ export function open_new_tab(
     resizable: "yes",
     scrollbars: "yes",
     width: "800",
-    height: "640"
+    height: "640",
   });
 
   if (popup) {
@@ -69,7 +69,7 @@ export function open_new_tab(
       title: "Popups blocked.",
       message,
       type: "info",
-      timeout: 15
+      timeout: 15,
     });
     return null;
   }

@@ -17,7 +17,7 @@ export async function is_paying_customer(
   try {
     x = await callback2(db.get_account, {
       account_id,
-      columns: ["stripe_customer"]
+      columns: ["stripe_customer"],
     });
   } catch (err) {
     // error probably means there is no such project or project_id is badly formatted.
@@ -56,7 +56,7 @@ export async function set_account_info_if_possible(opts: {
     // Note -- this functionality will go away completely and be replaced by "add codes"...
     await callback2(opts.db.do_account_creation_actions.bind(opts.db), {
       email_address: opts.email_address,
-      account_id: opts.account_id
+      account_id: opts.account_id,
     });
   }
 }
@@ -69,7 +69,7 @@ export async function set_account(
   await callback2(db._query.bind(db), {
     query: "UPDATE accounts",
     where: { "account_id = $::UUID": account_id },
-    set
+    set,
   });
 }
 
@@ -80,6 +80,6 @@ export async function get_account(
 ): Promise<void> {
   return await callback2(db.get_account.bind(db), {
     account_id,
-    columns
+    columns,
   });
 }

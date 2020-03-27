@@ -42,10 +42,10 @@ function open_file(project_id: string, path: string): FileTestData {
   const data: FileTestData = {
     redux: {
       project: {} as ReduxData,
-      editor: {} as ReduxData
+      editor: {} as ReduxData,
     },
     project_id: project_id,
-    path: path
+    path: path,
   };
   const projects = redux.getActions("projects");
   if (!projects) {
@@ -120,24 +120,24 @@ export class TestEditor implements Editor {
   }
   async wait_until_loaded(): Promise<void> {
     await callback_opts(this.data.redux.editor.store.wait)({
-      until: s => s.get("is_loaded")
+      until: (s) => s.get("is_loaded"),
     });
   }
   async wait_until_store(until: Function): Promise<void> {
     await callback_opts(this.store.wait)({
-      until: until
+      until: until,
     });
   }
   async read_file_from_disk(): Promise<string> {
     return await read_text_file_from_project({
       project_id: this.data.project_id,
-      path: this.data.path
+      path: this.data.path,
     });
   }
 }
 
 // Make accessible for interactive work...
-(window as any).test_editor = function(extension: string) {
+(window as any).test_editor = function (extension: string) {
   return new TestEditor(extension);
 };
 

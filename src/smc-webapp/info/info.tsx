@@ -54,8 +54,8 @@ const InfoPageElement = rclass<{}>(
           is_cocalc_com: rtypes.bool,
           site_name: rtypes.string,
           logo_square: rtypes.string,
-          logo_rectangular: rtypes.string
-        }
+          logo_rectangular: rtypes.string,
+        },
       };
     };
 
@@ -76,9 +76,7 @@ const InfoPageElement = rclass<{}>(
                   style={{ width: "20%", height: "auto" }}
                 />
               </div>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </React.Fragment>
         );
       } else {
@@ -114,7 +112,7 @@ const InfoPageElement = rclass<{}>(
         width: "100%",
         fontSize: "115%",
         textAlign: "center",
-        marginBottom: "30px"
+        marginBottom: "30px",
       };
 
       // imports stuff that can't be imported in update_react_static.
@@ -172,9 +170,7 @@ const InfoPageElement = rclass<{}>(
                   links={ABOUT_LINKS}
                   width={12}
                 />
-              ) : (
-                undefined
-              )}
+              ) : undefined}
             </Row>
             <Row>
               <ComputeEnvironment />
@@ -221,5 +217,5 @@ export const _test = {
     <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
   ),
   SUPPORT_LINKS,
-  CONNECT_LINKS
+  CONNECT_LINKS,
 };

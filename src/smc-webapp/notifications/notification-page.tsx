@@ -20,15 +20,15 @@ export const NotificationPage = rclass(
     public static reduxProps() {
       return {
         account: {
-          account_id: rtypes.string
+          account_id: rtypes.string,
         },
         mentions: {
           mentions: rtypes.immutable.Map,
-          filter: rtypes.string
+          filter: rtypes.string,
         },
         users: {
-          user_map: rtypes.immutable.Map
-        }
+          user_map: rtypes.immutable.Map,
+        },
       };
     }
 
@@ -74,18 +74,18 @@ export const NotificationPage = rclass(
 );
 
 const outer_container_style: React.CSSProperties = {
-  overflow: "scroll"
+  overflow: "scroll",
 };
 
 const inner_container_style: React.CSSProperties = {
-  display: "flex"
+  display: "flex",
 };
 
 const nav_style: React.CSSProperties = {
-  margin: "15px 15px 15px 0px"
+  margin: "15px 15px 15px 0px",
 };
 
 const list_style: React.CSSProperties = {
   flex: "1",
-  margin: "15px 0px 15px 15px"
+  margin: "15px 0px 15px 15px",
 };

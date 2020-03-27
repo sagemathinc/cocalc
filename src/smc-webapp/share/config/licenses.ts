@@ -4,5 +4,5 @@ export const LICENSES = {
   gpl3: "GNU General Public License v3.0",
   mit: "MIT License",
   agpl3: "GNU Affero General Public License v3.0",
-  other: "Other -- explicitly state in your code"
+  other: "Other -- explicitly state in your code",
 };

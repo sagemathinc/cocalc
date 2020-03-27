@@ -60,7 +60,7 @@ function component(
         padding: 0,
         opacity: 0.9,
         border: `2px solid ${spec.color}`,
-        borderRadius: "3px"
+        borderRadius: "3px",
       }}
       delayShow={0}
       allow_touch={true}

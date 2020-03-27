@@ -9,7 +9,7 @@ import {
   React,
   rclass,
   rtypes,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 import { TypedMap } from "../../app-framework/TypedMap";
 
@@ -42,34 +42,34 @@ export interface SpecDesc {
 export const SPEC: SpecDesc = {
   error: {
     icon: "bug",
-    color: "#a00"
+    color: "#a00",
   },
   typesetting: {
     icon: "exclamation-circle",
-    color: "rgb(66, 139, 202)"
+    color: "rgb(66, 139, 202)",
   },
   warning: {
     icon: "exclamation-triangle",
-    color: "#fdb600"
-  }
+    color: "#fdb600",
+  },
 };
 
 const ITEM_STYLES = {
   warning: {
     borderLeft: `2px solid ${SPEC.warning.color}`,
     padding: "15px",
-    margin: "5px 0"
+    margin: "5px 0",
   },
   error: {
     borderLeft: `2px solid ${SPEC.error.color}`,
     padding: "15px",
-    margin: "5px 0"
+    margin: "5px 0",
   },
   typesetting: {
     borderLeft: `2px solid ${SPEC.typesetting.color}`,
     padding: "15px",
-    margin: "5px 0"
-  }
+    margin: "5px 0",
+  },
 };
 
 interface item {
@@ -115,7 +115,7 @@ class Item extends Component<ItemProps, {}> {
       return (
         <div>
           <a
-            onClick={e => this.edit_source(e)}
+            onClick={(e) => this.edit_source(e)}
             style={{ cursor: "pointer", float: "right" }}
           >
             Line {this.props.item.get("line")} of {file}
@@ -178,8 +178,8 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       [name]: {
         build_logs: rtypes.immutable.Map,
         status: rtypes.string,
-        knitr: rtypes.bool
-      }
+        knitr: rtypes.bool,
+      },
     };
   }
 
@@ -205,14 +205,14 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
             margin: "5px",
             right: 0,
             background: "white",
-            paddingLeft: "5px"
+            paddingLeft: "5px",
           }}
         >
           <Loading
             text={this.props.status}
             style={{
               fontSize: "10pt",
-              color: "#666"
+              color: "#666",
             }}
           />
         </div>
@@ -229,7 +229,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       return <div>None</div>;
     } else {
       const w: Rendered[] = [];
-      content.forEach(item => {
+      content.forEach((item) => {
         w.push(this.render_item(item, w.length));
       });
       return <div>{w}</div>;
@@ -278,16 +278,18 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "10pt"
+          fontSize: "10pt",
         }}
       >
         {this.render_hint()}
         {this.render_status()}
-        {["errors", "typesetting", "warnings"].map(group =>
+        {["errors", "typesetting", "warnings"].map((group) =>
           this.render_group("latex", group, 0)
         )}
         {this.render_group("sagetex", "errors", 1)}
-        {["errors", "warnings"].map(group => this.render_group("knitr", group, 2))}
+        {["errors", "warnings"].map((group) =>
+          this.render_group("knitr", group, 2)
+        )}
         {this.render_group("pythontex", "errors", 3)}
       </div>
     );

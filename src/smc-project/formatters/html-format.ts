@@ -44,7 +44,7 @@ async function tidy(input_path) {
     "no",
     "--drop-empty-paras",
     "no",
-    input_path
+    input_path,
   ];
 
   return await callback_opts(execute_code)({
@@ -52,7 +52,7 @@ async function tidy(input_path) {
     args: args,
     err_on_exit: false,
     bash: false,
-    timeout: 15
+    timeout: 15,
   });
 }
 

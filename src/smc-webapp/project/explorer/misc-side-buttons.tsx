@@ -24,14 +24,14 @@ export class MiscSideButtons extends React.Component<Props> {
   handle_hidden_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     return this.props.actions.setState({
-      show_hidden: !this.props.show_hidden
+      show_hidden: !this.props.show_hidden,
     });
   };
 
   handle_masked_toggle = (e: React.MouseEvent): void => {
     e.preventDefault();
     this.props.actions.setState({
-      show_masked: !this.props.show_masked
+      show_masked: !this.props.show_masked,
     });
   };
 
@@ -121,9 +121,11 @@ export class MiscSideButtons extends React.Component<Props> {
         className="pull-right"
       >
         <ButtonGroup bsSize="small">
-          {(this.props.available_features != null
-          ? this.props.available_features.library
-          : undefined)
+          {(
+            this.props.available_features != null
+              ? this.props.available_features.library
+              : undefined
+          )
             ? this.render_library_button()
             : undefined}
           {this.render_upload_button()}

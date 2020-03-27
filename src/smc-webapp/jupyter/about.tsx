@@ -76,7 +76,7 @@ export class About extends Component<AboutProps> {
           padding: "10px",
           paddingLeft: "30px",
           backgroundColor: "#fafafa",
-          fontSize: "11pt"
+          fontSize: "11pt",
         }}
       >
         <li>

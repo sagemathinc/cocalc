@@ -64,7 +64,7 @@ export async function virtual_hosts(opts: {
       res,
       path,
       auth: info.get("auth"),
-      logger: opts.logger
+      logger: opts.logger,
     });
 
     if (!is_auth) {

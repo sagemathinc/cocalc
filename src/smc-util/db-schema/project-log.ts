@@ -24,8 +24,8 @@ Table({
           project_id: null,
           time: null,
           account_id: null,
-          event: null
-        }
+          event: null,
+        },
       },
       set: {
         fields: {
@@ -35,33 +35,33 @@ Table({
           project_id: "project_write",
           account_id: "account_id",
           time: true,
-          event: true
-        }
-      }
-    }
+          event: true,
+        },
+      },
+    },
   },
   fields: {
     id: {
       type: "uuid",
-      desc: "which"
+      desc: "which",
     },
     project_id: {
       type: "uuid",
-      desc: "where"
+      desc: "where",
     },
     time: {
       type: "timestamp",
-      desc: "when"
+      desc: "when",
     },
     account_id: {
       type: "uuid",
-      desc: "who"
+      desc: "who",
     },
     event: {
       type: "map",
-      desc: "what"
-    }
-  }
+      desc: "what",
+    },
+  },
 });
 
 // project_log_all -- exactly like project_log, but loads up
@@ -77,5 +77,5 @@ if (schema.project_log_all.user_query?.get == null) {
 schema.project_log_all.user_query.get.pg_where = ["projects"];
 schema.project_log_all.user_query.get.options = [
   { order_by: "-time" },
-  { limit: 7500 }
+  { limit: 7500 },
 ];

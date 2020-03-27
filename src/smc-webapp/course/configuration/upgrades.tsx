@@ -34,7 +34,7 @@ import {
   redux,
   rclass,
   Rendered,
-  TypedMap
+  TypedMap,
 } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
@@ -48,7 +48,7 @@ import {
   Loading,
   NoUpgrades,
   Tip,
-  UPGRADE_ERROR_STYLE
+  UPGRADE_ERROR_STYLE,
 } from "../../r_misc";
 
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
@@ -60,7 +60,7 @@ import {
   FormGroup,
   FormControl,
   Row,
-  Col
+  Col,
 } from "../../antd-bootstrap";
 
 import { Alert, Card } from "antd";
@@ -72,7 +72,7 @@ export const LICENSE_STYLE = {
   borderRadius: "5px",
   fontFamily: "monospace",
   fontSize: "14pt",
-  color: "darkblue"
+  color: "darkblue",
 };
 
 interface StudentProjectUpgradesProps {
@@ -109,7 +109,7 @@ class StudentProjectUpgrades extends Component<
       upgrade_quotas: false, // true if display the quota upgrade panel
       upgrades: {},
       upgrade_plan: undefined,
-      site_license_id: ""
+      site_license_id: "",
     };
   }
 
@@ -247,7 +247,7 @@ class StudentProjectUpgrades extends Component<
       return (
         <Checkbox
           checked={val > 0}
-          onChange={e => {
+          onChange={(e) => {
             const u = this.state.upgrades;
             u[quota] = (e.target as any).checked ? 1 : 0;
             this.setState({ upgrades: u });
@@ -279,7 +279,7 @@ class StudentProjectUpgrades extends Component<
       desc,
       display_factor,
       display_unit,
-      input_type
+      input_type,
     } = schema.PROJECT_UPGRADES.params[quota];
 
     yours *= display_factor;
@@ -461,7 +461,7 @@ class StudentProjectUpgrades extends Component<
     );
   }
 
-  save_admin_upgrade = e => {
+  save_admin_upgrade = (e) => {
     e.preventDefault();
     const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
     const quotas = JSON.parse(s);
@@ -553,7 +553,7 @@ class StudentProjectUpgrades extends Component<
     this.setState({
       upgrade_quotas: true,
       upgrades,
-      upgrade_plan
+      upgrade_plan,
     });
   };
 
@@ -618,7 +618,7 @@ class StudentProjectUpgrades extends Component<
           style={LICENSE_STYLE}
           type="text"
           value={this.state.site_license_id}
-          onChange={e => this.setState({ site_license_id: e.target.value })}
+          onChange={(e) => this.setState({ site_license_id: e.target.value })}
         />
         <ButtonGroup>
           {" "}
@@ -666,7 +666,7 @@ class StudentProjectUpgrades extends Component<
           onClick={() => {
             this.setState({
               show_site_license: true,
-              site_license_id: this.props.site_license_id ?? ""
+              site_license_id: this.props.site_license_id ?? "",
             });
           }}
           disabled={this.state.show_site_license}
@@ -681,7 +681,7 @@ class StudentProjectUpgrades extends Component<
     );
   }
 
-  handle_institute_pay_checkbox = e => {
+  handle_institute_pay_checkbox = (e) => {
     return this.get_actions().configuration.set_pay_choice(
       "institute",
       e.target.checked

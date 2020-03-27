@@ -13,7 +13,7 @@ export function AdminPage(): Rendered {
       style={{
         overflowY: "scroll",
         overflowX: "hidden",
-        padding: "30px 45px"
+        padding: "30px 45px",
       }}
     >
       <h3>Administration</h3>

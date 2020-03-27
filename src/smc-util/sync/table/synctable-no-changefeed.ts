@@ -44,7 +44,7 @@ class ClientNoChangefeed extends EventEmitter {
       "dbg",
       "query_cancel",
       "emit_connected",
-      "emit_signed_in"
+      "emit_signed_in",
     ]);
     this.client = client;
 

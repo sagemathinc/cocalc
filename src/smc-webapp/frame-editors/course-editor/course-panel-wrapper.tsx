@@ -13,7 +13,7 @@ import {
   rclass,
   redux,
   rtypes,
-  AppRedux
+  AppRedux,
 } from "../../app-framework";
 import { Loading, ActivityDisplay, ErrorDisplay } from "../../r_misc";
 
@@ -21,7 +21,7 @@ import {
   AssignmentsMap,
   CourseSettingsRecord,
   StudentsMap,
-  HandoutsMap
+  HandoutsMap,
 } from "../../course/store";
 import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
@@ -83,14 +83,14 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
         settings: rtypes.immutable.Map,
         configuring_projects: rtypes.bool,
         error: rtypes.string,
-        activity: rtypes.immutable.Map
+        activity: rtypes.immutable.Map,
       },
       users: {
-        user_map: rtypes.immutable
+        user_map: rtypes.immutable,
       },
       projects: {
-        project_map: rtypes.immutable
-      }
+        project_map: rtypes.immutable,
+      },
     };
   };
 
@@ -121,7 +121,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       configuring_projects: this.props.configuring_projects,
       settings: this.props.settings,
       redux,
-      actions: redux.getActions(name)
+      actions: redux.getActions(name),
     };
 
     return (
@@ -148,7 +148,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     return {
       students: store.num_students(),
       assignments: store.num_assignments(),
-      handouts: store.num_handouts()
+      handouts: store.num_handouts(),
     };
   }
 
@@ -219,7 +219,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
 const ReduxCoursePanelWrapper = rclass(CoursePanelWrapper);
 
 export function wrap(Panel) {
-  const course_panel = props => React.createElement(Panel, props);
+  const course_panel = (props) => React.createElement(Panel, props);
 
   class Wrapped extends Component<FrameProps> {
     public render(): Rendered {

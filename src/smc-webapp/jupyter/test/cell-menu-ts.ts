@@ -7,7 +7,7 @@ import {
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../actions";
@@ -109,13 +109,13 @@ describe("test clearing output of cells -- ", () => {
     actions.insert_cell(1);
     actions.insert_cell(1);
     list = store.get("cell_list").toJS();
-    [0, 1, 2].map(i => actions.set_cell_output(list[i], [i]));
+    [0, 1, 2].map((i) => actions.set_cell_output(list[i], [i]));
     // TODO: check cell outputs
   });
   it("clear last cell output (it is selected)", () => {
     actions.clear_selected_outputs();
-    const v = list.map(id =>
-      __guard__(store.getIn(["cells", id, "output"]), x => x.toJS())
+    const v = list.map((id) =>
+      __guard__(store.getIn(["cells", id, "output"]), (x) => x.toJS())
     );
     expect(v).to.deep.equal([[0], [1], undefined]);
   });
@@ -136,8 +136,8 @@ describe("test clearing output of cells -- ", () => {
       actions.set_cell_output(list[i], [i]);
     }
     actions.clear_all_outputs();
-    const v = list.map(id =>
-      __guard__(store.getIn(["cells", id, "output"]), x => x.toJS())
+    const v = list.map((id) =>
+      __guard__(store.getIn(["cells", id, "output"]), (x) => x.toJS())
     );
     return expect(v).to.deep.equal([undefined, undefined, undefined]);
   });

@@ -148,7 +148,7 @@ export const DICTS: string[] = [
   "uk",
   "uz",
   "xh",
-  "zu"
+  "zu",
 ];
 
 // Slightly more human readable discription of dict.

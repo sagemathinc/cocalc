@@ -10,7 +10,7 @@ import {
   ButtonToolbar,
   FormControl,
   FormGroup,
-  Alert
+  Alert,
 } from "react-bootstrap";
 
 import { ErrorDisplay, Icon, Tip, SettingBox } from "../../r_misc";
@@ -62,20 +62,20 @@ export const ProjectNewForm = rclass<ReactProps>(
           default_filename: rtypes.string,
           file_creation_error: rtypes.string,
           available_features: rtypes.immutable,
-          downloading_file: rtypes.bool
+          downloading_file: rtypes.bool,
         },
         projects: {
           project_map: rtypes.immutable,
-          get_total_project_quotas: rtypes.func
-        }
+          get_total_project_quotas: rtypes.func,
+        },
       };
-    }
+    };
 
     constructor(props) {
       super(props);
       this.state = {
         filename: this.props.default_filename ?? this.default_filename(),
-        extension_warning: false
+        extension_warning: false,
       };
     }
 
@@ -98,7 +98,7 @@ export const ProjectNewForm = rclass<ReactProps>(
       this.props.actions.create_file({
         name: this.state.filename,
         ext,
-        current_path: this.props.current_path
+        current_path: this.props.current_path,
       });
       this.props.on_create_file?.();
     };
@@ -175,7 +175,7 @@ export const ProjectNewForm = rclass<ReactProps>(
       this.props.actions.create_folder({
         name: this.state.filename,
         current_path: this.props.current_path,
-        switch_over: true
+        switch_over: true,
       });
       this.props.on_create_folder?.();
     };
@@ -259,7 +259,7 @@ export const ProjectNewForm = rclass<ReactProps>(
                 dropzone_handler={{
                   complete: (): void => {
                     this.props.actions.fetch_directory_listing();
-                  }
+                  },
                 }}
                 project_id={this.props.project_id}
                 current_path={this.props.current_path}
@@ -312,7 +312,7 @@ export const ProjectNewForm = rclass<ReactProps>(
           this.setState({ extension_warning: false });
         } else {
           this.setState({
-            filename: e.target.value
+            filename: e.target.value,
           });
         }
       };
@@ -379,14 +379,14 @@ export const ProjectNewForm = rclass<ReactProps>(
                   display: "flex",
                   flexFlow: "row wrap",
                   justifyContent: "space-between",
-                  alignItems: "stretch"
+                  alignItems: "stretch",
                 }}
               >
                 <div
                   style={{
                     flex: "1 0 auto",
                     marginRight: "10px",
-                    minWidth: "20em"
+                    minWidth: "20em",
                   }}
                 >
                   {this.render_filename_form()}

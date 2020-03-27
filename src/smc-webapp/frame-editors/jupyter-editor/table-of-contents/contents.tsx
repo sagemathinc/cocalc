@@ -9,7 +9,7 @@ import {
   React,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../../app-framework";
 
 import { redux_name } from "../jupyter-actions";
@@ -37,8 +37,8 @@ class TableOfContents extends Component<Props> {
     const name_of_jupyter_store = redux_name(name);
     return {
       [name_of_jupyter_store]: {
-        contents: rtypes.immutable.List
-      }
+        contents: rtypes.immutable.List,
+      },
     };
   }
 
@@ -97,7 +97,7 @@ class TableOfContents extends Component<Props> {
         style={{
           overflowY: "auto",
           margin: "15px",
-          fontSize: `${this.props.font_size - 4}px`
+          fontSize: `${this.props.font_size - 4}px`,
         }}
       >
         {v}

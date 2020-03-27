@@ -28,13 +28,13 @@ const row_style: React.CSSProperties = {
   textAlign: "left",
   color: "#888",
   marginTop: "20px",
-  wordWrap: "break-word"
+  wordWrap: "break-word",
 };
 
 const create_button_style = {
   fontSize: "40px",
   color: "#888",
-  maxWidth: "100%"
+  maxWidth: "100%",
 };
 
 export class NoFiles extends React.PureComponent<Props> {

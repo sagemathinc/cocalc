@@ -9,5 +9,5 @@ import { register_file_editor } from "../frame-tree/register";
 register_file_editor({
   ext: "html",
   component: Editor,
-  Actions
+  Actions,
 });

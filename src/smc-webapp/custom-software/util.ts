@@ -23,14 +23,14 @@ export const title_style: React.CSSProperties = Object.freeze({
   overflow: "hidden",
   paddingLeft: "10px",
   margin: "5px 10px",
-  color: COLORS.GRAY
+  color: COLORS.GRAY,
 });
 
 export function props2img() {
   if (this.props.project_map == null) return null;
   const ci = this.props.project_map.getIn([
     this.props.project_id,
-    "compute_image"
+    "compute_image",
   ]);
   if (ci == null) return null;
   if (!ci.startsWith(CUSTOM_IMG_PREFIX)) return null;

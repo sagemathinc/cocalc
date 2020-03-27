@@ -45,7 +45,7 @@ const KERNEL_STYLE: React.CSSProperties = {
   overflow: "hidden",
   borderLeft: "1px solid rgb(231,231,231)",
   borderBottom: "1px solid rgb(231,231,231)",
-  whiteSpace: "nowrap"
+  whiteSpace: "nowrap",
 };
 
 import { JupyterActions } from "./browser-actions";
@@ -162,10 +162,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernels_by_name: rtypes.immutable.Map,
         kernels_by_language: rtypes.immutable.Map,
         default_kernel: rtypes.string,
-        closestKernel: rtypes.immutable.Map
+        closestKernel: rtypes.immutable.Map,
       },
       customize: { site_name: rtypes.string },
-      account: { editor_settings: rtypes.immutable.Map }
+      account: { editor_settings: rtypes.immutable.Map },
     };
   }
 
@@ -175,7 +175,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         margin: "1ex",
         whiteSpace: "pre" as "pre",
         fontSize: "12px",
-        fontFamily: "monospace" as "monospace"
+        fontFamily: "monospace" as "monospace",
       };
       return (
         <ErrorDisplay
@@ -277,7 +277,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: "#888"
+          color: "#888",
         }}
       />
     );
@@ -321,7 +321,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
             fontSize: "24pt",
             textAlign: "center",
             marginTop: "15px",
-            color: "#888"
+            color: "#888",
           }}
         />
       );
@@ -574,7 +574,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          overflowY: "hidden"
+          overflowY: "hidden",
         }}
       >
         {this.render_error()}
