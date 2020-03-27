@@ -15,7 +15,7 @@ import {
   ProjectConfiguration,
   get_configuration,
   LIBRARY_INDEX_FILE,
-  is_available as feature_is_available
+  is_available as feature_is_available,
 } from "./project_configuration";
 const { SITE_NAME } = require("smc-util/theme");
 import { startswith, to_user_string } from "smc-util/misc2";
@@ -77,8 +77,8 @@ export const QUERIES = {
       project_id: null,
       account_id: null,
       time: null,
-      event: null
-    }
+      event: null,
+    },
   },
 
   project_log_all: {
@@ -87,8 +87,8 @@ export const QUERIES = {
       project_id: null,
       account_id: null,
       time: null,
-      event: null
-    }
+      event: null,
+    },
   },
 
   public_paths: {
@@ -103,9 +103,9 @@ export const QUERIES = {
       license: null,
       last_edited: null,
       last_saved: null,
-      counter: null
-    }
-  }
+      counter: null,
+    },
+  },
 };
 
 interface FetchDirectoryListingOpts {
@@ -118,11 +118,11 @@ interface FetchDirectoryListingOpts {
 const LIBRARY = {
   first_steps: {
     src: "/ext/library/first-steps/src",
-    start: "first-steps.tasks"
-  }
+    start: "first-steps.tasks",
+  },
 };
 
-const must_define = function(redux) {
+const must_define = function (redux) {
   if (redux == null) {
     throw Error(
       "you must explicitly pass a redux object into each function in project_store"
@@ -136,47 +136,47 @@ export const FILE_ACTIONS = {
   compress: {
     name: "Compress",
     icon: "compress",
-    allows_multiple_files: true
+    allows_multiple_files: true,
   },
   delete: {
     name: "Delete",
     icon: "trash-o",
-    allows_multiple_files: true
+    allows_multiple_files: true,
   },
   rename: {
     name: "Rename",
     icon: "pencil",
-    allows_multiple_files: false
+    allows_multiple_files: false,
   },
   duplicate: {
     name: "Duplicate",
     icon: "clone",
-    allows_multiple_files: false
+    allows_multiple_files: false,
   },
   move: {
     name: "Move",
     icon: "arrows",
-    allows_multiple_files: true
+    allows_multiple_files: true,
   },
   copy: {
     name: "Copy",
     icon: "files-o",
-    allows_multiple_files: true
+    allows_multiple_files: true,
   },
   share: {
     name: "Share",
     icon: "share-square-o",
-    allows_multiple_files: false
+    allows_multiple_files: false,
   },
   download: {
     name: "Download",
     icon: "cloud-download",
-    allows_multiple_files: true
+    allows_multiple_files: true,
   },
   upload: {
     name: "Upload",
-    icon: "upload"
-  }
+    icon: "upload",
+  },
 };
 
 export class ProjectActions extends Actions<ProjectStoreState> {
@@ -326,7 +326,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   touch = async (): Promise<void> => {
     try {
       await callback2(webapp_client.touch_project, {
-        project_id: this.project_id
+        project_id: this.project_id,
       });
     } catch (err) {
       // nonfatal.
@@ -339,7 +339,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!s.is_project_open(this.project_id)) {
       (this.redux.getActions("projects") as any).open_project({
         project_id: this.project_id,
-        switch_to: true
+        switch_to: true,
       });
       s.wait_until_project_is_open(this.project_id, 30, cb);
     } else {
@@ -371,7 +371,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       command: "rm",
       args: ["-f", sentinel],
       err_on_exit: false,
-      bash: false
+      bash: false,
     });
     this.toggle_custom_software_reset(false);
     const projects_actions = this.redux.getActions("projects") as any;
@@ -400,7 +400,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
       const dflt = NewFilenames.default_family;
-      const type = (function() {
+      const type = (function () {
         if (acc_store != null) {
           return acc_store.getIn(["other_settings", NEW_FILENAMES]);
         } else {
@@ -409,7 +409,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       })();
       this.new_filename_generator.set_ext(ext);
       this.setState({
-        new_filename: this.new_filename_generator.gen(type, filenames)
+        new_filename: this.new_filename_generator.gen(type, filenames),
       });
     }
     this.setState({ ext_selection: ext });
@@ -506,7 +506,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     key: string,
     opts: { update_file_listing?: boolean; change_history?: boolean } = {
       update_file_listing: true,
-      change_history: true
+      change_history: true,
     }
   ): void {
     const store = this.get_store();
@@ -628,7 +628,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
       stop: undefined, // activity is done  -- can pass a final status message in.
-      error: undefined
+      error: undefined,
     }); // describe an error that happened
     const store = this.get_store();
     if (store == undefined) {
@@ -660,7 +660,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             (store.get("error") != null ? store.get("error") : "") +
             "\n" +
             error
-          ).trim()
+          ).trim(),
         });
       }
     }
@@ -705,7 +705,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const obj: any = {
       event,
-      project_id: this.project_id
+      project_id: this.project_id,
     };
     if (!id) {
       // new log entry
@@ -716,7 +716,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const query = { project_log: obj };
     require("./webapp_client").webapp_client.query({
       query,
-      cb: err => {
+      cb: (err) => {
         if (err) {
           // TODO: what do we want to do if a log doesn't get recorded?
           // (It *should* keep trying and store that in localStorage, and try next time, etc...
@@ -724,7 +724,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           console.warn("error recording a log entry: ", err, event);
         }
         if (cb != null) cb(err);
-      }
+      },
     });
 
     if (window.parent != null) {
@@ -816,7 +816,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     url += "?session=&fullscreen=kiosk";
     require("./misc_page").open_popup_window(url, {
       width: 800,
-      height: 640
+      height: 640,
     });
   }
 
@@ -842,7 +842,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       },
       max_time: 60000,
-      max_delay: 3000
+      max_delay: 3000,
     });
   }
 
@@ -850,7 +850,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
     alert_message({
       type: "info",
-      message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`
+      message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`,
     });
     try {
       const path: string = await callback(
@@ -861,12 +861,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         path,
         foreground: opts.foreground,
         foreground_project: opts.foreground_project,
-        chat: opts.chat
+        chat: opts.chat,
       });
     } catch (err) {
       alert_message({
         type: "error",
-        message: `Error converting Sage Notebook sws file -- ${err}`
+        message: `Error converting Sage Notebook sws file -- ${err}`,
       });
     }
   }
@@ -875,7 +875,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Microsoft Word Document
     alert_message({
       type: "info",
-      message: `Opening converted plain text file instead of '${opts.path}...`
+      message: `Opening converted plain text file instead of '${opts.path}...`,
     });
     try {
       const path: string = await callback(this.convert_docx_file, opts.path);
@@ -883,12 +883,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         path,
         foreground: opts.foreground,
         foreground_project: opts.foreground_project,
-        chat: opts.chat
+        chat: opts.chat,
       });
     } catch (err) {
       alert_message({
         type: "error",
-        message: `Error converting Microsoft docx file -- ${err}`
+        message: `Error converting Microsoft docx file -- ${err}`,
       });
     }
   }
@@ -905,7 +905,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const event = {
       event: "open",
       action: "open",
-      filename: path
+      filename: path,
     } as const;
     const id = this.log(event);
 
@@ -917,7 +917,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (id !== undefined) {
       this._log_open_time[path] = {
         id,
-        start: misc.server_time()
+        start: misc.server_time(),
       };
     }
   }
@@ -970,7 +970,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ignore_kiosk: false,
       new_browser_window: false,
       change_history: true,
-      anchor: undefined
+      anchor: undefined,
     });
     opts.path = normalize(opts.path);
     const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
@@ -983,7 +983,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       alert_message({
         type: "error",
         message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${document.location.origin} directly.`,
-        timeout: 15
+        timeout: 15,
       });
       return;
     }
@@ -1016,7 +1016,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
-        error: `opening file '${opts.path}' (error getting group) -- ${err}`
+        error: `opening file '${opts.path}' (error getting group) -- ${err}`,
       });
       return;
     }
@@ -1037,7 +1037,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         alert_message({
           type: "error",
           message: `This ${SiteName} project cannot open ${ext} files!`,
-          timeout: 20
+          timeout: 20,
         });
         // console.log(
         //   `abort project_actions::open_file due to lack of support for "${ext}" files`
@@ -1052,7 +1052,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } catch (err) {
         this.set_activity({
           id: misc.uuid(),
-          error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`
+          error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`,
         });
         return;
       }
@@ -1085,7 +1085,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const file_info = open_files.getIn([opts.path, "component"], {
-      is_public: false
+      is_public: false,
     });
     if (!open_files.has(opts.path) || file_info.is_public !== is_public) {
       const was_public = file_info.is_public;
@@ -1115,7 +1115,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.foreground_project(opts.change_history);
       const tab = misc.path_to_tab(opts.path);
       this.set_active_tab(tab, {
-        change_history: opts.change_history
+        change_history: opts.change_history,
       });
       if (opts.anchor) {
         // Scroll the *visible* one into view.  NOTE: it's possible
@@ -1181,7 +1181,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   get_scroll_saver_for(path: string) {
     if (path != null) {
-      return scroll_position => {
+      return (scroll_position) => {
         const store = this.get_store();
         if (
           // Ensure prerequisite things exist
@@ -1278,7 +1278,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   set_chat_width(opts): void {
     opts = defaults(opts, {
       path: required,
-      width: required
+      width: required,
     }); // between 0 and 1
     const store = this.get_store();
     if (store == undefined) {
@@ -1322,7 +1322,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   convert_sagenb_worksheet(filename, cb) {
     return async.series(
       [
-        cb => {
+        (cb) => {
           const ext = misc.filename_extension(filename);
           if (ext === "sws") {
             return cb();
@@ -1334,29 +1334,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               project_id: this.project_id,
               command: "cp",
               args: [filename, new_filename],
-              cb: err => {
+              cb: (err) => {
                 if (err) {
                   return cb(err);
                 } else {
                   filename = new_filename;
                   return cb();
                 }
-              }
+              },
             });
           }
         },
-        cb => {
+        (cb) => {
           webapp_client.exec({
             project_id: this.project_id,
             command: "smc-sws2sagews",
             args: [filename],
-            cb: err => {
+            cb: (err) => {
               return cb(err);
-            }
+            },
           });
-        }
+        },
       ],
-      err => {
+      (err) => {
         if (err) {
           return cb(err);
         } else {
@@ -1380,7 +1380,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         } else {
           return cb(false, filename.slice(0, filename.length - 4) + "txt");
         }
-      }
+      },
     });
   }
 
@@ -1423,7 +1423,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Makes this project the active project tab
   foreground_project(change_history = true): void {
-    this._ensure_project_is_open(err => {
+    this._ensure_project_is_open((err) => {
       if (err) {
         // TODO!
         console.warn(
@@ -1442,7 +1442,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   open_directory(path, change_history = true): void {
     path = normalize(path);
-    this._ensure_project_is_open(err => {
+    this._ensure_project_is_open((err) => {
       if (err) {
         // TODO!
         console.log(
@@ -1463,7 +1463,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         this.set_active_tab("files", {
           update_file_listing: false,
-          change_history: change_history
+          change_history: change_history,
         });
         this.set_all_files_unchecked();
       }
@@ -1505,7 +1505,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       current_path: path,
       history_path,
       page_number: 0,
-      most_recent_file_click: undefined
+      most_recent_file_click: undefined,
     });
 
     this.fetch_directory_listing();
@@ -1517,7 +1517,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       page_number: 0,
       file_action: undefined,
       most_recent_file_click: undefined,
-      create_file_alert: false
+      create_file_alert: false,
     });
   }
 
@@ -1531,7 +1531,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const opts: FetchDirectoryListingOpts = defaults(opts_args, {
       path: store.get("current_path"),
-      cb: undefined
+      cb: undefined,
     }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
     // In the vast majority of cases, you just want to look at the data.
     // Very rarely should you need something to execute exactly after this
@@ -1570,19 +1570,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let the_listing: any;
     return async.series(
       [
-        cb => {
+        (cb) => {
           // make sure the user type is known;
           // otherwise, our relationship to project
           // below can't be determined properly.
           this.redux.getStore("account").wait({
-            until: s =>
+            until: (s) =>
               (s.get("is_logged_in") && s.get("account_id")) ||
               !s.get("is_logged_in"),
-            cb: cb
+            cb: cb,
           });
         },
 
-        cb => {
+        (cb) => {
           const projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
           if (projects_store == null) {
@@ -1590,15 +1590,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             return;
           }
           projects_store.wait({
-            until: s => (s as any).get_my_group(this.project_id),
+            until: (s) => (s as any).get_my_group(this.project_id),
             timeout: 30,
             cb: (err, group) => {
               my_group = group;
               cb(err);
-            }
+            },
           });
         },
-        async cb => {
+        async (cb) => {
           store = this.get_store();
           if (store == null) {
             cb("store no longer defined");
@@ -1613,15 +1613,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path,
               hidden: true,
               max_time_s: 15 * 60, // keep trying for up to 15 minutes
-              group: my_group
+              group: my_group,
             });
             cb();
           } catch (err) {
             cb(err.message);
           }
-        }
+        },
       ],
-      err => {
+      (err) => {
         this.set_activity({ id, stop: "" });
         // Update the path component of the immutable directory listings map:
         store = this.get_store();
@@ -1741,7 +1741,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const current_path = store.get("current_path");
       const names = store
         .get("displayed_listing")
-        .listing.map(a => misc.path_to_file(current_path, a.name));
+        .listing.map((a) => misc.path_to_file(current_path, a.name));
       range = misc.get_array_range(names, most_recent, file);
     }
 
@@ -1830,7 +1830,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     this.setState({
       checked_files: store.get("checked_files").clear(),
-      file_action: undefined
+      file_action: undefined,
     });
   }
 
@@ -1858,7 +1858,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return undefined; // simple fallback
     }
     if (listing != null) {
-      listing.map(function(x) {
+      listing.map(function (x) {
         files_in_dir[x.get("name")] = true;
       });
     }
@@ -1907,7 +1907,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           basename = get_basename();
         }
         this.setState({
-          new_name: this._suggest_duplicate_filename(basename)
+          new_name: this._suggest_duplicate_filename(basename),
         });
         break;
       case "rename":
@@ -1923,7 +1923,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   show_file_action_panel(opts): void {
     opts = defaults(opts, {
       path: required,
-      action: required
+      action: required,
     });
     const path_splitted = misc.path_split(opts.path);
     this.open_directory(path_splitted.head);
@@ -1938,7 +1938,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       dest: undefined,
       timeout: 45,
       alert: true,
-      cb: undefined
+      cb: undefined,
     }); // cb(true or false, depending on error)
 
     const { command, args } = transform_get_url(opts.url);
@@ -1957,14 +1957,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             alert_message({
               type: "error",
               message: result.error,
-              timeout: 15
+              timeout: 15,
             });
           }
         }
         typeof opts.cb === "function"
           ? opts.cb(err || result.event === "error")
           : undefined;
-      }
+      },
     });
   }
 
@@ -1996,7 +1996,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       zip_args: undefined,
       path: undefined, // default to root of project
       id: undefined,
-      cb: undefined
+      cb: undefined,
     });
     const args = (opts.zip_args != null ? opts.zip_args : []).concat(
       ["-rq"],
@@ -2010,7 +2010,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         status: `Creating ${opts.dest} from ${opts.src.length} ${misc.plural(
           opts.src.length,
           "file"
-        )}`
+        )}`,
       });
     }
     webapp_client.exec({
@@ -2021,7 +2021,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
-      cb: opts.cb != null ? opts.cb : this._finish_exec(id)
+      cb: opts.cb != null ? opts.cb : this._finish_exec(id),
     });
   }
 
@@ -2077,7 +2077,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private clear_configuration(): void {
     this.setState({
       configuration: undefined,
-      available_features: undefined
+      available_features: undefined,
     });
   }
 
@@ -2137,7 +2137,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       },
       start_delay: 1000,
       max_delay: 5000,
-      desc: "project_actions::init_configuration"
+      desc: "project_actions::init_configuration",
     });
 
     // there was a problem or configuration is not known
@@ -2149,7 +2149,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({
       configuration: next,
       available_features: feature_is_available(next),
-      configuration_loading: false
+      configuration_loading: false,
     });
 
     return next.get(aspect) as Configuration;
@@ -2199,11 +2199,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             this.setState({ library });
           }
           return cb(err);
-        }
+        },
       });
     };
 
-    async.series([cb => async.eachOfSeries(LIBRARY, check, cb)]);
+    async.series([(cb) => async.eachOfSeries(LIBRARY, check, cb)]);
   }
 
   private async init_library_index() {
@@ -2229,10 +2229,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const index_json_url = webapp_client.read_file_from_project({
       project_id: this.project_id,
-      path: LIBRARY_INDEX_FILE
+      path: LIBRARY_INDEX_FILE,
     });
 
-    const fetch = cb => {
+    const fetch = (cb) => {
       const store = this.get_store();
       if (store == undefined) {
         cb("no store");
@@ -2241,7 +2241,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       $.ajax({
         url: index_json_url,
         timeout: 5000,
-        success: data => {
+        success: (data) => {
           //if DEBUG then console.log("init_library/datadata
           data = immutable.fromJS(data);
 
@@ -2254,8 +2254,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.setState({ library });
           _init_library_index_cache[this.project_id] = data;
           cb();
-        }
-      }).fail(err =>
+        },
+      }).fail((err) =>
         //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
         cb(err.statusText != null ? err.statusText : "error")
       );
@@ -2268,7 +2268,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       max_time: 1000 * 60 * 3, // try for at most 3 minutes
       cb: () => {
         _init_library_index_ongoing[this.project_id] = false;
-      }
+      },
     });
   }
 
@@ -2281,7 +2281,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       start: undefined,
       docid: undefined, // for the log
       title: undefined, // for the log
-      cb: undefined
+      cb: undefined,
     });
 
     if (opts.entry != null) {
@@ -2328,11 +2328,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             docid: opts.docid,
             source: opts.src,
             title: opts.title,
-            target
+            target,
           });
         }
         return typeof opts.cb === "function" ? opts.cb(err) : undefined;
-      }
+      },
     });
   }
 
@@ -2345,7 +2345,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       src: required, // Should be an array of source paths
       dest: required,
       id: undefined,
-      only_contents: false
+      only_contents: false,
     }); // true for duplicating files
 
     const with_slashes = opts.src.map(this._convert_to_displayed_path);
@@ -2355,7 +2355,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       action: "copied",
       files: with_slashes.slice(0, 3),
       count: opts.src.length > 3 ? opts.src.length : undefined,
-      dest: opts.dest + (opts.only_contents ? "" : "/")
+      dest: opts.dest + (opts.only_contents ? "" : "/"),
     });
 
     if (opts.only_contents) {
@@ -2364,7 +2364,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
     // Just prefix all of them, due to https://github.com/sagemathinc/cocalc/issues/4428 brining up yet another issue
-    const add_leading_dash = function(src_path: string) {
+    const add_leading_dash = function (src_path: string) {
       return `./${src_path}`;
     };
 
@@ -2377,7 +2377,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       status: `Copying ${opts.src.length} ${misc.plural(
         opts.src.length,
         "file"
-      )} to ${opts.dest}`
+      )} to ${opts.dest}`,
     });
 
     let args = ["-rltgoDxH"];
@@ -2403,7 +2403,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       network_timeout: 120, // how long network call has until it must return something or get total error.
       err_on_exit: true,
       path: ".",
-      cb: this._finish_exec(id)
+      cb: this._finish_exec(id),
     });
   }
 
@@ -2420,7 +2420,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
       exclude_history: false, // if true, exclude all files of the form *.sage-history
       id: undefined,
-      cb: undefined // optional callback when all done.
+      cb: undefined, // optional callback when all done.
     });
     const id = opts.id != null ? opts.id : misc.uuid();
     this.set_activity({
@@ -2428,7 +2428,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       status: `Copying ${opts.src.length} ${misc.plural(
         opts.src.length,
         "path"
-      )} to a project`
+      )} to a project`,
     });
     const { src } = opts;
     delete opts.src;
@@ -2438,7 +2438,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       action: "copied",
       files: with_slashes.slice(0, 3),
       count: src.length > 3 ? src.length : undefined,
-      project: opts.target_project_id
+      project: opts.target_project_id,
     });
     const f = (src_path, cb) => {
       const opts0 = misc.copy(opts);
@@ -2461,7 +2461,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       dest: required,
       path: undefined, // default to root of project
       mv_args: undefined,
-      cb: required
+      cb: required,
     });
     if (!opts.dest && opts.path == null) {
       opts.dest = ".";
@@ -2479,7 +2479,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       network_timeout: 20,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
-      cb: opts.cb
+      cb: opts.cb,
     });
   }
 
@@ -2492,11 +2492,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: undefined, // default to root of project
       mv_args: undefined,
       id: undefined,
-      include_chats: false
+      include_chats: false,
     }); // If we want to copy .filename.sage-chat
 
     // TODO: Put this somewhere else!
-    const get_chat_path = path => misc.meta_file(path, "chat");
+    const get_chat_path = (path) => misc.meta_file(path, "chat");
     //{head, tail} = misc.path_split(path)
     //misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
 
@@ -2517,7 +2517,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.move_files({
           src: [old_chat_path],
           dest: new_chat_path,
-          dest_is_folder: opts.dest_is_folder
+          dest_is_folder: opts.dest_is_folder,
         });
       }
     }
@@ -2534,7 +2534,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return store
         .get("directory_listings")
         .get(path_parts.head != null ? path_parts.head : "")
-        .some(item => item.get("name") === path_parts.tail);
+        .some((item) => item.get("name") === path_parts.tail);
     };
 
     const valid_sources: string[] = [];
@@ -2555,11 +2555,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       status: `Moving ${opts.src.length} ${misc.plural(
         opts.src.length,
         "file"
-      )} to ${opts.dest}`
+      )} to ${opts.dest}`,
     });
     delete opts.id;
 
-    opts.cb = err => {
+    opts.cb = (err) => {
       if (err) {
         this.set_activity({ id, error: err });
       } else {
@@ -2570,7 +2570,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         action: "moved",
         files: opts.src.slice(0, 3),
         count: opts.src.length > 3 ? opts.src.length : undefined,
-        dest: opts.dest
+        dest: opts.dest,
       });
       this.set_activity({ id, stop: "" });
     };
@@ -2594,16 +2594,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
       await delete_files(this.project_id, opts.paths);
+      this.log({ event: "file_action", action: "deleted", files: opts.paths });
       this.set_activity({
         id,
         status: `Successfully deleted ${mesg}.`,
-        stop: ""
+        stop: "",
       });
     } catch (err) {
       this.set_activity({
         id,
         error: `Error deleting ${mesg} -- ${err}`,
-        stop: ""
+        stop: "",
       });
     }
   }
@@ -2616,7 +2617,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       log: false,
       auto: true,
       print: false,
-      timeout: 45
+      timeout: 45,
     } as { path: string; log: boolean | string[]; auto: boolean; print: boolean; timeout: number });
 
     // log could also be an array of strings to record all the files that were downloaded in a zip file
@@ -2625,7 +2626,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.log({
         event: "file_action",
         action: "downloaded",
-        files
+        files,
       });
     }
 
@@ -2675,7 +2676,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts = defaults(opts, {
       name: required,
       current_path: undefined,
-      switch_over: true
+      switch_over: true,
     }); // Whether or not to switch to the new folder
     let { name, current_path, switch_over } = opts;
     this.setState({ file_creation_error: undefined });
@@ -2690,17 +2691,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     return project_tasks(this.project_id).ensure_directory_exists({
       path: p,
-      cb: err => {
+      cb: (err) => {
         if (err) {
           this.setState({
-            file_creation_error: `Error creating directory '${p}' -- ${err}`
+            file_creation_error: `Error creating directory '${p}' -- ${err}`,
           });
         } else if (switch_over) {
           this.open_directory(p);
         } else {
           this.fetch_directory_listing();
         }
-      }
+      },
     });
   }
 
@@ -2710,13 +2711,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       name: undefined,
       ext: undefined,
       current_path: undefined,
-      switch_over: true
+      switch_over: true,
     }); // Whether or not to switch to the new file
     this.setState({ file_creation_error: undefined }); // clear any create file display state
     let { name } = opts;
     if ((name === ".." || name === ".") && opts.ext == null) {
       this.setState({
-        file_creation_error: "Cannot create a file named . or .."
+        file_creation_error: "Cannot create a file named . or ..",
       });
       return;
     }
@@ -2728,7 +2729,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (opts.ext == null) {
         this.create_folder({
           name,
-          current_path: opts.current_path
+          current_path: opts.current_path,
         });
         return;
       } else {
@@ -2745,7 +2746,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const ext = misc.filename_extension(p);
     if (BANNED_FILE_TYPES.indexOf(ext) != -1) {
       this.setState({
-        file_creation_error: `Cannot create a file with the ${ext} extension`
+        file_creation_error: `Cannot create a file with the ${ext} extension`,
       });
       return;
     }
@@ -2754,7 +2755,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       for (const bad_char of BAD_LATEX_FILENAME_CHARACTERS) {
         if (filename.indexOf(bad_char) !== -1) {
           this.setState({
-            file_creation_error: `Cannot use '${bad_char}' in a LaTeX filename '${filename}'`
+            file_creation_error: `Cannot use '${bad_char}' in a LaTeX filename '${filename}'`,
           });
           return;
         }
@@ -2775,16 +2776,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             stderr = output.stderr || "";
           }
           this.setState({
-            file_creation_error: `${stdout} ${stderr} ${err}`
+            file_creation_error: `${stdout} ${stderr} ${err}`,
           });
         } else if (opts.switch_over) {
           this.open_file({
-            path: p
+            path: p,
           });
         } else {
           this.fetch_directory_listing();
         }
-      }
+      },
     });
   }
 
@@ -2797,20 +2798,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ downloading_file: true });
     this.set_activity({
       id,
-      status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
+      status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`,
     });
     this.get_from_web({
       url,
       dest: current_path,
       timeout: FROM_WEB_TIMEOUT_S,
       alert: true,
-      cb: err => {
+      cb: (err) => {
         this.fetch_directory_listing();
         this.set_activity({ id, stop: "" });
         this.setState({ downloading_file: false });
         this.set_active_tab("files", { update_file_listing: false });
         typeof cb === "function" ? cb(err) : undefined;
-      }
+      },
     });
   }
 
@@ -2842,7 +2843,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       obj = immutable.fromJS({
         project_id,
         path,
-        created: now
+        created: now,
       });
     }
     if (obj == null) return; // make typescript happy
@@ -2948,7 +2949,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         search_results.push({
           filename,
           description: context,
-          line_number
+          line_number,
         });
       }
       if (num_results >= max_results) {
@@ -2960,7 +2961,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // only update the state if the results are from the most recent command
       this.setState({
         too_many_results,
-        search_results
+        search_results,
       });
     }
   }
@@ -2972,10 +2973,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const query = store
-      .get("user_input")
-      .trim()
-      .replace(/"/g, '\\"');
+    const query = store.get("user_input").trim().replace(/"/g, '\\"');
     if (query === "") {
       return;
     }
@@ -3026,7 +3024,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       search_error: undefined,
       command: cmd,
       most_recent_search: query,
-      most_recent_path: store.get("current_path")
+      most_recent_path: store.get("current_path"),
     });
 
     webapp_client.exec({
@@ -3040,7 +3038,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: store.get("current_path"),
       cb: (err, output) => {
         this.process_search_results(err, output, max_results, max_output, cmd);
-      }
+      },
     });
   }
 
@@ -3085,7 +3083,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           // Fetch again if error or nothing found
           try {
             await callback2(this.fetch_directory_listing, {
-              path: parent_path
+              path: parent_path,
             });
             const store = this.get_store();
             if (store == undefined) {
@@ -3102,7 +3100,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           } catch (err) {
             alert_message({
               type: "error",
-              message: `Error opening '${target}': ${err}`
+              message: `Error opening '${target}': ${err}`,
             });
             return;
           }
@@ -3116,7 +3114,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             foreground_project: foreground,
             ignore_kiosk,
             change_history,
-            anchor
+            anchor,
           });
         }
         break;
@@ -3153,9 +3151,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       query: {
         projects: {
           project_id: this.project_id,
-          compute_image: new_image
-        }
-      }
+          compute_image: new_image,
+        },
+      },
     });
   }
 

@@ -206,7 +206,7 @@ export class LogEntry extends React.Component<Props> {
       case "deleted":
         return (
           <span>
-            deleted {this.multi_file_links(e, false)}{" "}
+            deleted {this.multi_file_links(e, true)}{" "}
             {e.count != null ? `(${e.count} total)` : ""}
           </span>
         );
