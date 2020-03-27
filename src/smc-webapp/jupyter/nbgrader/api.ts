@@ -47,8 +47,8 @@ export async function nbgrader(
       max_total_output: 3000000,
       max_output_per_cell: 500000,
       max_time_per_cell_ms: opts.cell_timeout_ms,
-      max_total_time_ms: opts.timeout_ms
-    }
+      max_total_time_ms: opts.timeout_ms,
+    },
   });
 
   // console.log("graded_ipynb = ", (window as any).graded_ipynb);

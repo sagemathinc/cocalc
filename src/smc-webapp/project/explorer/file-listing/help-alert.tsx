@@ -4,12 +4,12 @@ const { Alert } = require("react-bootstrap");
 
 const help_alert_error_syle: React.CSSProperties = {
   marginTop: "10px",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };
 
 export function HelpAlert({
   file_search,
-  actual_new_filename
+  actual_new_filename,
 }: {
   file_search: string;
   actual_new_filename: string;
@@ -52,7 +52,7 @@ const emphasis_style: React.CSSProperties = { fontWeight: "bold" };
 function CreationHelpAlert({
   last_folder_index,
   file_search,
-  actual_new_filename
+  actual_new_filename,
 }: {
   last_folder_index: number;
   file_search: string;

@@ -14,7 +14,7 @@ const pdDNS = parseDomain(DNS);
 // compiling analytics-script.ts and minifying it.
 export const analytics_js = UglifyJS.minify(
   TS.transpileModule(fs.readFileSync("./analytics-script.ts").toString(), {
-    compilerOptions: { module: TS.ModuleKind.CommonJS }
+    compilerOptions: { module: TS.ModuleKind.CommonJS },
   }).outputText
 ).code;
 
@@ -77,8 +77,8 @@ function analytics_rec(
       where: [{ "token = $::UUID": token }, "account_id IS NULL"],
       set: {
         "account_id       :: UUID": rec_data.account_id,
-        "account_id_time  :: TIMESTAMP": new Date()
-      }
+        "account_id_time  :: TIMESTAMP": new Date(),
+      },
     });
   } else {
     db._query({
@@ -86,9 +86,9 @@ function analytics_rec(
       values: {
         "token     :: UUID": token,
         "data      :: JSONB": rec_data,
-        "data_time :: TIMESTAMP": new Date()
+        "data_time :: TIMESTAMP": new Date(),
       },
-      conflict: "token"
+      conflict: "token",
     });
   }
 }
@@ -150,10 +150,10 @@ export function setup_analytics_js(
       } else {
         cb("CORS: not allowed", false);
       }
-    }
+    },
   };
 
-  router.get("/analytics.js", cors(analytics_cors), function(req, res) {
+  router.get("/analytics.js", cors(analytics_cors), function (req, res) {
     res.header("Content-Type", "text/javascript");
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
@@ -187,7 +187,7 @@ export function setup_analytics_js(
   });
 
   // tracking image: this is a 100% experimental idea and not used
-  router.get("/analytics.js/track.png", cors(analytics_cors), function(
+  router.get("/analytics.js/track.png", cors(analytics_cors), function (
     req,
     res
   ) {
@@ -200,7 +200,7 @@ export function setup_analytics_js(
     return res.end(PNG_1x1);
   });
 
-  router.post("/analytics.js", cors(analytics_cors), function(req, res): void {
+  router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
     // check if token is in the cookie (see above)
     // if not, ignore it
     const token = req.cookies[analytics_cookie_name];
@@ -229,6 +229,6 @@ function analytics_cookie(res): void {
     path: "/",
     maxAge: ms("7 days"),
     // httpOnly: true,
-    domain: DNS
+    domain: DNS,
   });
 }

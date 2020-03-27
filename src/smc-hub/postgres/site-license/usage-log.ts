@@ -18,7 +18,7 @@ export async function update_site_license_usage_log(
 ): Promise<void> {
   await Promise.all([
     update_site_license_usage_log_running_projects(db),
-    update_site_license_usage_log_not_running_projects(db)
+    update_site_license_usage_log_not_running_projects(db),
   ]);
 }
 

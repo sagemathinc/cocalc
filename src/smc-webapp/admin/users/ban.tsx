@@ -37,7 +37,7 @@ export class Ban extends Component<Props, State> {
     try {
       await callback2(webapp_client.admin_ban_user, {
         account_id: this.props.account_id,
-        ban: !this.state.banned
+        ban: !this.state.banned,
       });
       this.setState({ running: false, banned: !this.state.banned });
     } catch (err) {

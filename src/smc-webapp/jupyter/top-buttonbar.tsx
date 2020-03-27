@@ -10,7 +10,7 @@ import {
   VisibleMDLG,
   VisibleLG,
   DropdownMenu,
-  MenuItem
+  MenuItem,
 } from "../r_misc";
 import { endswith, capitalize } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
@@ -51,11 +51,11 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         has_uncommitted_changes: rtypes.bool,
         read_only: rtypes.bool,
         kernel_state: rtypes.string,
-        kernel_usage: rtypes.immutable.Map
+        kernel_usage: rtypes.immutable.Map,
       },
       page: {
-        fullscreen: rtypes.string
-      }
+        fullscreen: rtypes.string,
+      },
     };
   }
 
@@ -166,7 +166,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         "cut cell",
         "copy cell",
         "paste cell and replace",
-        { name: "format cells" }
+        { name: "format cells" },
       ],
       true
     );
@@ -193,7 +193,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
       "confirm restart kernel and run all cells",
-      { name: "tab key", label: "tab" }
+      { name: "tab key", label: "tab" },
     ]);
   }
 
@@ -233,7 +233,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           key={"cell-type"}
           title={title}
           disabled={this.props.read_only}
-          onClick={key => this.cell_select_type(key)}
+          onClick={(key) => this.cell_select_type(key)}
         >
           <MenuItem cocalc-test={"code"} key={"code"}>
             {TopButtonbar0.cell_type_title("code")}
@@ -259,7 +259,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   render_snippets() {
     return this.render_button("snippets", {
       name: "show code snippets",
-      label: <VisibleMDLG>Snippets</VisibleMDLG>
+      label: <VisibleMDLG>Snippets</VisibleMDLG>,
     });
   }
 
@@ -284,7 +284,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const obj = {
       name: "close and halt",
       disabled: false,
-      label: <VisibleMDLG>Halt</VisibleMDLG>
+      label: <VisibleMDLG>Halt</VisibleMDLG>,
     };
     return this.render_button("close and halt", obj);
   }
@@ -304,12 +304,12 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const validate = {
       name: "nbgrader validate",
       disabled: false,
-      label: "Validate"
+      label: "Validate",
     };
     const assign = {
       name: "nbgrader assign",
       disabled: false,
-      label: "Generate student version"
+      label: "Generate student version",
     };
     return (
       <ButtonGroup style={{ marginLeft: "5px" }}>

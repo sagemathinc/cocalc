@@ -18,7 +18,7 @@ import {
   prettier,
   syncstring,
   syncdb2,
-  syncstring2
+  syncstring2,
 } from "../generic/client";
 
 import { SyncDB } from "smc-util/sync/editor/db";
@@ -31,7 +31,7 @@ import {
   filename_extension,
   history_path,
   len,
-  uuid
+  uuid,
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -40,7 +40,7 @@ import {
   FrameTree,
   ImmutableFrameTree,
   SetMap,
-  ErrorStyles
+  ErrorStyles,
 } from "../frame-tree/types";
 import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
@@ -61,7 +61,7 @@ import { AvailableFeatures } from "../../project_configuration";
 import {
   ext2parser,
   parser2tool,
-  format_parser_for_extension
+  format_parser_for_extension,
 } from "smc-util/code-formatter";
 
 import { apply_patch } from "smc-util/sync/editor/generic/util";
@@ -72,7 +72,7 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 import {
   Parser as FormatterParser,
-  Exts as FormatterExts
+  Exts as FormatterExts,
 } from "smc-util/code-formatter";
 import { SHELLS } from "./editor";
 
@@ -199,7 +199,7 @@ export class Actions<
       gutter_markers: Map(),
       cursors: Map(),
       settings: fromJS(this._default_settings()),
-      complete: Map()
+      complete: Map(),
     });
 
     if ((this as any)._init2) {
@@ -219,7 +219,7 @@ export class Actions<
     try {
       const data: string = await public_get_text_file({
         project_id: this.project_id,
-        path: this.path
+        path: this.path,
       });
       this.setState({ value: data });
     } catch (err) {
@@ -244,7 +244,7 @@ export class Actions<
   // spelling makes sense...
   protected _init_spellcheck(): void {
     this._spellcheck_is_supported = true;
-    this._syncstring.on("save-to-disk", time =>
+    this._syncstring.on("save-to-disk", (time) =>
       this.update_misspelled_words(time)
     );
   }
@@ -258,13 +258,13 @@ export class Actions<
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
-        patch_interval: 500
+        patch_interval: 500,
       });
     } else if (this.doctype == "syncstring") {
       this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true
+        cursors: true,
       });
     } else if (this.doctype == "syncdb") {
       if (
@@ -278,13 +278,13 @@ export class Actions<
         project_id: this.project_id,
         path: this.path,
         primary_keys: this.primary_keys,
-        string_cols: this.string_cols
+        string_cols: this.string_cols,
       });
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
-    this._syncstring.once("ready", err => {
+    this._syncstring.once("ready", (err) => {
       if (err) {
         this.set_error(
           `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
@@ -323,7 +323,7 @@ export class Actions<
       "after-change",
       this.set_codemirror_to_syncstring.bind(this)
     );
-    this._syncstring.once("load-time-estimate", est => {
+    this._syncstring.once("load-time-estimate", (est) => {
       return this.setState({ load_time_estimate: est });
     });
 
@@ -333,7 +333,7 @@ export class Actions<
       this.set_reload("save_to_disk");
     });
 
-    this._syncstring.once("error", err => {
+    this._syncstring.once("error", (err) => {
       this.set_error(
         `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
       );
@@ -343,11 +343,11 @@ export class Actions<
       this.close();
     });
 
-    this._syncstring.on("has-uncommitted-changes", has_uncommitted_changes =>
+    this._syncstring.on("has-uncommitted-changes", (has_uncommitted_changes) =>
       this.setState({ has_uncommitted_changes })
     );
 
-    this._syncstring.on("has-unsaved-changes", has_unsaved_changes => {
+    this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
     });
   }
@@ -369,9 +369,9 @@ export class Actions<
       path: aux,
       primary_keys,
       string_cols,
-      file_use_interval: 0 // disable file use,, since syncdb is an auxiliary file
+      file_use_interval: 0, // disable file use,, since syncdb is an auxiliary file
     });
-    this._syncdb.once("error", err => {
+    this._syncdb.once("error", (err) => {
       this.set_error(
         `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
       );
@@ -422,7 +422,7 @@ export class Actions<
       hash = this._syncstring.hash_of_saved_version();
     }
     this.setState({
-      reload: reload.set(type, hash)
+      reload: reload.set(type, hash),
     });
   }
 
@@ -435,7 +435,7 @@ export class Actions<
   set_resize(): void {
     if (!this.store.get("visible")) return;
     this.setState({
-      resize: this.store.get("resize", 0) + 1
+      resize: this.store.get("resize", 0) + 1,
     });
   }
 
@@ -567,7 +567,7 @@ export class Actions<
       local = local.set(coerced_key, fromJS(value));
     }
     this.setState({
-      local_view_state: local
+      local_view_state: local,
     });
     this._save_local_view_state();
   }
@@ -614,7 +614,7 @@ export class Actions<
     // We delete full_id to de-maximize if in full screen mode,
     // so the active_id frame is visible.
     this.setState({
-      local_view_state: local.set("active_id", active_id).delete("full_id")
+      local_view_state: local.set("active_id", active_id).delete("full_id"),
     });
     this._save_local_view_state();
     this.focus(active_id);
@@ -641,7 +641,7 @@ export class Actions<
   _get_active_id(): string {
     let id: string | undefined = this.store.getIn([
       "local_view_state",
-      "active_id"
+      "active_id",
     ]);
     if (!id) {
       id = tree_ops.get_some_leaf_id(this._get_tree());
@@ -653,7 +653,7 @@ export class Actions<
   _get_tree(): ImmutableFrameTree {
     let tree: ImmutableFrameTree | undefined = this.store.getIn([
       "local_view_state",
-      "frame_tree"
+      "frame_tree",
     ]);
     if (tree == null) {
       // Worrisome rare race condition when frame_tree not yet initialized.
@@ -899,7 +899,7 @@ export class Actions<
         }
         this.store.emit("new-frame", {
           id: new_id,
-          type
+          type,
         });
 
         return new_id;
@@ -951,7 +951,7 @@ export class Actions<
       editor_state = editor_state.set(id, fromJS(new_editor_state));
     }
     this.setState({
-      local_view_state: local.set("editor_state", editor_state)
+      local_view_state: local.set("editor_state", editor_state),
     });
     this._save_local_view_state();
   }
@@ -983,7 +983,7 @@ export class Actions<
     // TOOD: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
-      info.get("locs").forEach(loc => {
+      info.get("locs").forEach((loc) => {
         loc = loc.set("time", info.get("time"));
         const locs = cursors.get(account_id, List()).push(loc);
         cursors = cursors.set(account_id, locs);
@@ -1025,7 +1025,7 @@ export class Actions<
       cursors.map((user, _) => {
         const locs = user.get("locs");
         if (!locs) return;
-        locs.map(loc => {
+        locs.map((loc) => {
           const y = loc.get("y");
           if (y != null) {
             omit_lines[y] = true;
@@ -1074,7 +1074,7 @@ export class Actions<
           string_id: this._syncstring ? this._syncstring._string_id : "",
           path: this.path,
           project_id: this.project_id,
-          error: "Error saving file -- has_unsaved_changes"
+          error: "Error saving file -- has_unsaved_changes",
         });
       }
     } finally {
@@ -1116,13 +1116,13 @@ export class Actions<
     } else {
       this._get_project_actions().open_file({
         path: history_path(opts.path || this.path),
-        foreground: true
+        foreground: true,
       });
     }
   }
 
   help(type: string): void {
-    const url: string = (function() {
+    const url: string = (function () {
       switch (type) {
         case "terminal":
           return "https://doc.cocalc.com/terminal.html";
@@ -1248,20 +1248,20 @@ export class Actions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0, 2) == "cm"
+      (node) => node.get("type").slice(0, 2) == "cm"
     );
   }
 
   _get_most_recent_terminal_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0, 8) == "terminal"
+      (node) => node.get("type").slice(0, 8) == "terminal"
     );
   }
 
   // TODO: might also specify args.
   _get_most_recent_shell_id(command: string | undefined): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node =>
+      (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
         node.get("command") == command
     );
@@ -1346,7 +1346,10 @@ export class Actions<
     }
   }
 
-  set_syncstring_to_codemirror(id?: string, do_not_exit_undo_mode?: boolean): void {
+  set_syncstring_to_codemirror(
+    id?: string,
+    do_not_exit_undo_mode?: boolean
+  ): void {
     const cm = this._get_cm(id);
     if (!cm) {
       return;
@@ -1530,7 +1533,7 @@ export class Actions<
       // to this file (rather than a frame in some other frame tree).
       const full_id: string | undefined = this.store.getIn([
         "local_view_state",
-        "full_id"
+        "full_id",
       ]);
       if (full_id && full_id != cm_id) {
         this.unset_frame_full();
@@ -1695,7 +1698,7 @@ export class Actions<
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: node != null ? node.get("font_size") : undefined
+        font_size: node != null ? node.get("font_size") : undefined,
       });
     } catch (err) {
       this.set_error(err);
@@ -1742,7 +1745,7 @@ export class Actions<
         project_id: this.project_id,
         path: this.get_spellcheck_path(),
         lang,
-        time
+        time,
       });
       const x = Set(words);
       if (!x.equals(this.store.get("misspelled_words"))) {
@@ -1774,9 +1777,9 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts(opts => cm.edit_selection(opts))({
+    await callback_opts((opts) => cm.edit_selection(opts))({
       cmd,
-      args
+      args,
     });
     if (this._state !== "closed") {
       cm.focus();
@@ -1802,7 +1805,7 @@ export class Actions<
     const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
-      component: opts.component
+      component: opts.component,
     });
     this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
@@ -1847,7 +1850,7 @@ export class Actions<
       return;
     }
     this.setState({
-      gutter_markers: gutter_markers.set(id, info.set("handle", handle))
+      gutter_markers: gutter_markers.set(id, info.set("handle", handle)),
     });
   }
 
@@ -1930,7 +1933,7 @@ export class Actions<
     const options: FormatterOptions = {
       parser,
       tabWidth: cm.getOption("tabSize") as number,
-      useTabs: cm.getOption("indentWithTabs") as boolean
+      useTabs: cm.getOption("indentWithTabs") as boolean,
     };
 
     this.set_status("Running code formatter...");
@@ -1993,7 +1996,7 @@ export class Actions<
 
   _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type") == type
+      (node) => node.get("type") == type
     );
   }
 
@@ -2084,7 +2087,7 @@ export class Actions<
       this.update_misspelled_words();
     }
 
-    this._syncstring.on("settings-change", settings => {
+    this._syncstring.on("settings-change", (settings) => {
       this.setState({ settings: settings });
     });
   }
@@ -2168,7 +2171,7 @@ export class Actions<
   // super class!
   public async show(): Promise<void> {
     this.setState({
-      visible: true
+      visible: true,
     });
 
     await delay(0); // wait until next render loop
@@ -2190,7 +2193,7 @@ export class Actions<
     // only that one is visible, or all are visible.
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
-      "full_id"
+      "full_id",
     ]);
     if (full_id != null) {
       this.refresh(full_id);

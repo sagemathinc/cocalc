@@ -101,7 +101,7 @@ class SessionManager {
       await callback2(this.redux.getStore("account").wait, {
         until(store) {
           return store.get("editor_settings") != null;
-        }
+        },
       });
 
       // minimal mode doesn't init any projects
@@ -114,7 +114,7 @@ class SessionManager {
             // wait for some data
             return store.get("project_map") != null;
           }
-        }
+        },
       });
 
       // we're done -- restore session
@@ -188,11 +188,11 @@ class SessionManager {
     delete this._state_closed[project_id];
     if (open_files != null && !this._ignore) {
       const project = this.redux.getProjectActions(project_id);
-      open_files.map(path =>
+      open_files.map((path) =>
         project.open_file({
           path,
           foreground: false,
-          foreground_project: false
+          foreground_project: false,
         })
       );
     }
@@ -250,12 +250,12 @@ function get_session_state(redux: AppRedux): State[] {
   redux
     .getStore("projects")
     .get("open_projects")
-    .forEach(project_id => {
+    .forEach((project_id) => {
       state.push({
         [project_id]: redux
           .getProjectStore(project_id)
           .get("open_files_order")
-          .toJS()
+          .toJS(),
       });
       return true;
     });
@@ -264,7 +264,7 @@ function get_session_state(redux: AppRedux): State[] {
 
 // reset_first is currently not used.  If true, then you get *exactly* the
 // saved session; if not set (the default) the current state and the session are merged.
-const restore_session_state = function(
+const restore_session_state = function (
   redux: AppRedux,
   state: State[],
   reset_first?: boolean
@@ -284,26 +284,26 @@ const restore_session_state = function(
     redux
       .getStore("projects")
       .get("open_projects")
-      .map(project_id => page.close_project_tab(project_id));
+      .map((project_id) => page.close_project_tab(project_id));
   }
 
   const projects = redux.getActions("projects");
-  state.map(x => {
+  state.map((x) => {
     for (project_id in x) {
       const paths = x[project_id];
       // restore_session false, b/c we only want to see the tabs from the session
       projects.open_project({
         project_id,
         switch_to: false,
-        restore_session: false
+        restore_session: false,
       });
       if (paths.length > 0) {
         const project = redux.getProjectActions(project_id);
-        paths.map(path =>
+        paths.map((path) =>
           project.open_file({
             path,
             foreground: false,
-            foreground_project: false
+            foreground_project: false,
           })
         );
       }

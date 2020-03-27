@@ -27,7 +27,7 @@ export class TextInput extends React.Component<Props, State> {
     }
   }
 
-  saveChange = event => {
+  saveChange = (event) => {
     event.preventDefault();
     this.props.on_change(this.state.text);
   };
@@ -57,7 +57,7 @@ export class TextInput extends React.Component<Props, State> {
           value={
             this.state.text != undefined ? this.state.text : this.props.text
           }
-          onChange={e => this.setState({ text: e.target.value })}
+          onChange={(e) => this.setState({ text: e.target.value })}
           autoFocus={this.props.autoFocus}
         />
       </FormGroup>

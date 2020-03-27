@@ -12,7 +12,7 @@ import {
   ReactDOM,
   rtypes,
   rclass,
-  redux
+  redux,
 } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
@@ -24,7 +24,7 @@ const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
-  max_upgrades: MAX_UPGRADES
+  max_upgrades: MAX_UPGRADES,
 } as const;
 
 import { EXTRAS } from "smc-util/db-schema/site-settings-extras";
@@ -39,7 +39,7 @@ import {
   Markdown,
   ErrorDisplay,
   LabeledRow,
-  Space /*, Tip*/
+  Space /*, Tip*/,
 } from "../r_misc";
 
 const smc_version = require("smc-util/smc-version");
@@ -72,8 +72,8 @@ class SiteSettingsComponent extends Component<
   public static reduxProps(): object {
     return {
       account: {
-        email_address: rtypes.string
-      }
+        email_address: rtypes.string,
+      },
     };
   }
 
@@ -94,8 +94,8 @@ class SiteSettingsComponent extends Component<
     try {
       result = await query({
         query: {
-          site_settings: [{ name: null, value: null }]
-        }
+          site_settings: [{ name: null, value: null }],
+        },
       });
     } catch (err) {
       this.setState({ state: "error", error: err });
@@ -110,7 +110,7 @@ class SiteSettingsComponent extends Component<
       error: undefined,
       data,
       edited: deep_copy(data),
-      disable_tests: false
+      disable_tests: false,
     });
   }
 
@@ -139,8 +139,8 @@ class SiteSettingsComponent extends Component<
         try {
           await query({
             query: {
-              site_settings: { name: name, value: value }
-            }
+              site_settings: { name: name, value: value },
+            },
           });
         } catch (err) {
           this.setState({ state: "error" as State, error: err });
@@ -190,7 +190,7 @@ class SiteSettingsComponent extends Component<
             background: "red",
             color: "white",
             margin: "15px",
-            padding: "15px"
+            padding: "15px",
           }}
         >
           INVALID version - it is in the future!!
@@ -311,10 +311,10 @@ class SiteSettingsComponent extends Component<
       return (
         <Select
           defaultValue={value}
-          onChange={val => this.on_change_entry(name, val)}
+          onChange={(val) => this.on_change_entry(name, val)}
           style={{ width: "100%" }}
         >
-          {valid.map(e => (
+          {valid.map((e) => (
             <Select.Option value={e} key={e}>
               {e}
             </Select.Option>
@@ -328,14 +328,14 @@ class SiteSettingsComponent extends Component<
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
-            onChange={e => this.on_change_entry(name, e.target.value)}
+            onChange={(e) => this.on_change_entry(name, e.target.value)}
           />
         );
       } else {
         if (multiline != null) {
           const style = Object.assign(this.row_entry_style(value, valid), {
             fontFamily: "monospace",
-            fontSize: "80%"
+            fontSize: "80%",
           } as React.CSSProperties);
           return (
             <Input.TextArea
@@ -447,7 +447,7 @@ class SiteSettingsComponent extends Component<
       Object.assign(style, {
         borderLeft: `2px solid ${COLORS.GRAY}`,
         marginLeft: "0px",
-        marginTop: "0px"
+        marginTop: "0px",
       } as React.CSSProperties);
     }
 
@@ -469,11 +469,13 @@ class SiteSettingsComponent extends Component<
   }
 
   private render_editor_site_settings(): Rendered[] {
-    return keys(site_settings_conf).map(name => this.render_default_row(name));
+    return keys(site_settings_conf).map((name) =>
+      this.render_default_row(name)
+    );
   }
 
   private render_editor_extras(): Rendered[] {
-    return keys(EXTRAS).map(name => this.render_extras_row(name));
+    return keys(EXTRAS).map((name) => this.render_extras_row(name));
   }
 
   private render_editor(): Rendered {
@@ -505,7 +507,7 @@ class SiteSettingsComponent extends Component<
     await this.store();
     this.setState({ disable_tests: true });
     // wait 3 secs
-    await new Promise(done => setTimeout(done, 3000));
+    await new Promise((done) => setTimeout(done, 3000));
     switch (type) {
       case "password_reset":
         redux.getActions("account").forgot_password(email);
@@ -513,13 +515,13 @@ class SiteSettingsComponent extends Component<
       case "invite_email":
         alert_message({
           type: "error",
-          message: "Simulated invite emails are NYI"
+          message: "Simulated invite emails are NYI",
         });
         break;
       case "mention":
         alert_message({
           type: "error",
-          message: "Simulated mention emails are NYI"
+          message: "Simulated mention emails are NYI",
         });
         break;
       case "verification":
@@ -596,7 +598,7 @@ class SiteSettingsComponent extends Component<
           <Well
             style={{
               margin: "auto",
-              maxWidth: "80%"
+              maxWidth: "80%",
             }}
           >
             {this.render_buttons()}

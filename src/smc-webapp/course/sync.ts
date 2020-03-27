@@ -55,10 +55,10 @@ export function create_sync_db(
     primary_keys: ["table", "handout_id", "student_id", "assignment_id"],
     string_cols: ["note", "description", "title", "email_invite"],
     change_throttle: 500, // helps when doing a lot of assign/collect, etc.
-    save_interval: 3000
+    save_interval: 3000,
   }); // wait at least 3s between saving changes to backend
 
-  syncdb.once("error", err => {
+  syncdb.once("error", (err) => {
     if (!actions.is_closed()) {
       actions.set_error(err);
     }
@@ -71,12 +71,12 @@ export function create_sync_db(
       settings: {
         title: store.get("course_filename").slice(0, i),
         description: "No description",
-        allow_collabs: true
+        allow_collabs: true,
       },
       assignments: {},
       students: {},
       handouts: {},
-      loading: false
+      loading: false,
     };
     for (const x of syncdb.get().toJS()) {
       if (x.table === "settings") {
@@ -96,7 +96,7 @@ export function create_sync_db(
     if (!actions.is_closed()) {
       (actions as any).setState(t); // TODO: as any since t is an object, not immutable.js map...
     }
-    syncdb.on("change", changes => {
+    syncdb.on("change", (changes) => {
       if (!actions.is_closed()) {
         actions.syncdb_change(changes);
       }
@@ -118,7 +118,7 @@ export function create_sync_db(
         until(p_store) {
           return p_store.get_users(project_id) != null;
         },
-        timeout: 60
+        timeout: 60,
       });
     } catch (err) {
       return; // something is very broken (or maybe admin view)...

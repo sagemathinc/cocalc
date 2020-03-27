@@ -51,9 +51,9 @@ export class RmdActions extends Actions {
   _init_rmd_converter(): void {
     const run_debounced = debounce(() => this._run_rmd_converter(), 5 * 1000, {
       leading: true,
-      trailing: true
+      trailing: true,
     });
-    this._syncstring.on("save-to-disk", time => {
+    this._syncstring.on("save-to-disk", (time) => {
       this._last_save_time = time;
       run_debounced();
     });
@@ -85,7 +85,7 @@ export class RmdActions extends Actions {
     for (const ext of ["pdf", "html", "nb.html"]) {
       // full path – basename might change
       const expected_fn = derive_rmd_output_filename(this.path, ext);
-      const fn_exists = listing.some(entry => {
+      const fn_exists = listing.some((entry) => {
         const name = entry.get("name");
         return name === path_split(expected_fn).tail;
       });
@@ -96,7 +96,7 @@ export class RmdActions extends Actions {
 
     // console.log("setting derived_file_types to", existing.toJS());
     this.setState({
-      derived_file_types: existing
+      derived_file_types: existing,
     });
   }
 
@@ -147,11 +147,11 @@ export class RmdActions extends Actions {
         direction: "col",
         type: "node",
         first: {
-          type: "cm"
+          type: "cm",
         },
         second: {
-          type: "iframe"
-        }
+          type: "iframe",
+        },
       };
     }
   }

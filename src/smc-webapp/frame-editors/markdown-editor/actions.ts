@@ -6,7 +6,7 @@ const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
 import * as $ from "jquery";
 import {
   Actions as CodeEditorActions,
-  CodeEditorState
+  CodeEditorState,
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
@@ -31,11 +31,11 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
         direction: "col",
         type: "node",
         first: {
-          type: "cm"
+          type: "cm",
         },
         second: {
-          type: "markdown"
-        }
+          type: "markdown",
+        },
       };
     }
   }
@@ -64,7 +64,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       print_html({
         html: $(`#frame-${id}`).html(),
         project_id: this.project_id,
-        path: this.path
+        path: this.path,
       });
     } catch (err) {
       this.set_error(err);

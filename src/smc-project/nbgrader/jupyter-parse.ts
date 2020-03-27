@@ -2,7 +2,9 @@ import { readFile } from "fs";
 import { callback } from "awaiting";
 
 // Strip output and attachments from all cells.
-export async function jupyter_strip_notebook(ipynb_path: string): Promise<string> {
+export async function jupyter_strip_notebook(
+  ipynb_path: string
+): Promise<string> {
   // Load the file
   const contents = (await callback(readFile, ipynb_path)).toString();
 

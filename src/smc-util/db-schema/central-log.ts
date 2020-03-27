@@ -5,25 +5,25 @@ Table({
   fields: {
     id: {
       type: "uuid",
-      desc: "Random id for this event"
+      desc: "Random id for this event",
     },
     event: {
       type: "string",
       desc:
-        "Event name which must start with 'webapp-' to not conflict with other names that might be used already (e.g., by the backend)."
+        "Event name which must start with 'webapp-' to not conflict with other names that might be used already (e.g., by the backend).",
     },
     value: {
       type: "map",
-      desc: "Any JSON-type data for this event"
+      desc: "Any JSON-type data for this event",
     },
     time: {
       type: "timestamp",
-      desc: "When the event took place"
+      desc: "When the event took place",
     },
     expire: {
       type: "timestamp",
-      desc: "future date, when the entry will be deleted"
-    }
+      desc: "future date, when the entry will be deleted",
+    },
   },
   rules: {
     desc:
@@ -37,7 +37,7 @@ Table({
           id: true,
           event: true,
           value: true,
-          time: true
+          time: true,
         },
         check_hook: (_db, query, _account_id, _project_id, cb): void => {
           if (!query.event.startsWith("webapp-")) {
@@ -45,8 +45,8 @@ Table({
           } else {
             cb();
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

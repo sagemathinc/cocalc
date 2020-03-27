@@ -52,13 +52,13 @@ class BillingActions extends Actions<BillingStoreState> {
       this.setState({
         customer: resp.customer,
         loaded: true,
-        stripe_publishable_key: resp.stripe_publishable_key
+        stripe_publishable_key: resp.stripe_publishable_key,
       });
       if (resp.customer) {
         // only call get_invoices if the customer already exists in the system!
         // FUTURE: -- this {limit:100} will change when we use webhooks and our own database of info...
         const invoices = await callback2(webapp_client.stripe_get_invoices, {
-          limit: 100
+          limit: 100,
         });
         this.setState({ invoices });
       }
@@ -104,7 +104,7 @@ class BillingActions extends Actions<BillingStoreState> {
 
   public async delete_payment_method(card_id: string): Promise<void> {
     await this.stripe_action("delete_source", "Deleting a payment method", {
-      card_id
+      card_id,
     });
   }
 
@@ -126,7 +126,7 @@ class BillingActions extends Actions<BillingStoreState> {
 
   public async cancel_subscription(subscription_id: string): Promise<void> {
     await this.stripe_action("cancel_subscription", "Cancel a subscription", {
-      subscription_id
+      subscription_id,
     });
   }
 
@@ -140,7 +140,7 @@ class BillingActions extends Actions<BillingStoreState> {
       this.setState({
         action: "",
         error:
-          "Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN DOUBLE CHECK YOUR SUBSCRIPTION LIST."
+          "Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN DOUBLE CHECK YOUR SUBSCRIPTION LIST.",
       });
       return;
     }
@@ -153,7 +153,7 @@ class BillingActions extends Actions<BillingStoreState> {
     }
     const opts = {
       plan,
-      coupon_id: coupon != null ? coupon.id : undefined
+      coupon_id: coupon != null ? coupon.id : undefined,
     };
     await this.stripe_action(
       "create_subscription",
@@ -192,7 +192,7 @@ class BillingActions extends Actions<BillingStoreState> {
     this.setState({
       applied_coupons: this.store
         .get("applied_coupons", Map<string, any>())
-        .delete(coupon_id)
+        .delete(coupon_id),
     });
   }
 
@@ -212,7 +212,7 @@ class BillingActions extends Actions<BillingStoreState> {
     const subscriptions = this.store.getIn([
       "customer",
       "subscriptions",
-      "data"
+      "data",
     ]);
     if (subscriptions != null) {
       for (const x of subscriptions.toJS()) {

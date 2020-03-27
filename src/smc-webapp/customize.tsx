@@ -21,7 +21,7 @@ import {
   smc_version,
   build_date,
   smc_git_rev,
-  UNIT
+  UNIT,
 } from "./r_misc";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
@@ -33,7 +33,7 @@ import { site_settings_conf } from "smc-util/db-schema/site-defaults";
 import {
   KUCALC_DISABLED,
   KUCALC_COCALC_COM,
-  KUCALC_ON_PREMISES
+  KUCALC_ON_PREMISES,
 } from "smc-util/db-schema/site-defaults";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -103,7 +103,7 @@ export function reload_configuration() {
       }
     },
     start_delay: 2000,
-    max_delay: 15000
+    max_delay: 15000,
   });
 }
 
@@ -161,8 +161,8 @@ const HelpEmailLink0 = rclass<Props0>(
       return {
         customize: {
           help_email: rtypes.string,
-          _is_configured: rtypes.bool
-        }
+          _is_configured: rtypes.bool,
+        },
       };
     }
 
@@ -223,8 +223,8 @@ const SiteName0 = rclass<{}>(
     public static reduxProps() {
       return {
         customize: {
-          site_name: rtypes.string
-        }
+          site_name: rtypes.string,
+        },
       };
     }
 
@@ -256,8 +256,8 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
     public static reduxProps() {
       return {
         customize: {
-          site_description: rtypes.string
-        }
+          site_description: rtypes.string,
+        },
       };
     }
 
@@ -324,8 +324,8 @@ const CustomizeStringElement = rclass<CustomizeStringProps>(
           organization_name: rtypes.string,
           organization_email: rtypes.string,
           organization_url: rtypes.string,
-          google_analytics: rtypes.string
-        }
+          google_analytics: rtypes.string,
+        },
       };
     };
 
@@ -368,8 +368,8 @@ const TermsOfService0 = rclass<ReactProps>(
       return {
         customize: {
           terms_of_service: rtypes.string,
-          terms_of_service_url: rtypes.string
-        }
+          terms_of_service_url: rtypes.string,
+        },
       };
     };
 
@@ -415,8 +415,8 @@ const AccountCreationEmailInstructions0 = rclass<{}>(
     public static reduxProps = () => {
       return {
         customize: {
-          account_creation_email_instructions: rtypes.string
-        }
+          account_creation_email_instructions: rtypes.string,
+        },
       };
     };
 
@@ -451,8 +451,8 @@ const FooterElement = rclass<{}>(
         customize: {
           site_name: rtypes.string,
           organization_name: rtypes.string,
-          terms_of_service_url: rtypes.string
-        }
+          terms_of_service_url: rtypes.string,
+        },
       };
     };
     render() {
@@ -467,7 +467,7 @@ const FooterElement = rclass<{}>(
         fontSize: "small",
         color: "gray",
         textAlign: "center",
-        padding: `${2 * UNIT}px 0`
+        padding: `${2 * UNIT}px 0`,
       };
       return (
         <footer style={style}>

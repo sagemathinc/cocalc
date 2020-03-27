@@ -9,9 +9,9 @@ export interface MarkdownWidgetStoreState {
 }
 
 export class MarkdownWidgetStore extends Store<MarkdownWidgetStoreState> {
-  getInitialState = function() {
+  getInitialState = function () {
     return {
-      open_inputs: immutable.Map({})
+      open_inputs: immutable.Map({}),
     };
   };
 }

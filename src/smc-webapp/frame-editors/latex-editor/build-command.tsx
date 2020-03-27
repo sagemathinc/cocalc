@@ -22,7 +22,7 @@ const ENGINES: Engine[] = [
   "PDFLaTeX",
   "PDFLaTeX (shell-escape)",
   "XeLaTeX",
-  "LuaTex"
+  "LuaTex",
 ];
 
 interface Props {
@@ -42,7 +42,7 @@ export class BuildCommand extends Component<Props, State> {
     super(props);
     this.state = {
       build_command: this.build_command_string(props.build_command),
-      focus: false
+      focus: false,
     };
   }
 
@@ -53,7 +53,7 @@ export class BuildCommand extends Component<Props, State> {
     if (next.build_command != this.props.build_command) {
       // set by another user or menu selection.
       this.setState({
-        build_command: this.build_command_string(next.build_command)
+        build_command: this.build_command_string(next.build_command),
       });
     }
   }
@@ -68,7 +68,7 @@ export class BuildCommand extends Component<Props, State> {
       s = cmd;
     } else {
       const v: string[] = [];
-      cmd.forEach(function(t: string) {
+      cmd.forEach(function (t: string) {
         if (split(t).length > 1) {
           // some minimal escape for now...
           if (t.indexOf("'") === -1) {
@@ -106,7 +106,7 @@ export class BuildCommand extends Component<Props, State> {
     }
     return (
       <Menu
-        onClick={e => this.select_engine(e.key as Engine)}
+        onClick={(e) => this.select_engine(e.key as Engine)}
         style={{ maxHeight: "100vH", overflow: "scroll" }}
       >
         {v}
@@ -147,13 +147,15 @@ export class BuildCommand extends Component<Props, State> {
         style={{
           fontFamily: "monospace",
           fontSize: "12px",
-          textOverflow: "ellipsis"
+          textOverflow: "ellipsis",
         }}
         type="text"
         value={this.state.build_command}
-        onChange={e => this.handle_command_line_change((e.target as any).value)}
+        onChange={(e) =>
+          this.handle_command_line_change((e.target as any).value)
+        }
         onFocus={() => this.setState({ focus: true })}
-        onKeyDown={evt => {
+        onKeyDown={(evt) => {
           if (
             evt.keyCode == 13 ||
             ((evt.metaKey || evt.ctrlKey) &&

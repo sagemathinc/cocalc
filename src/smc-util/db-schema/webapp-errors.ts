@@ -24,7 +24,7 @@ Table({
     uptime: { type: "string" },
     start_time: { type: "timestamp" },
     time: { type: "timestamp" },
-    expire: { type: "timestamp" }
+    expire: { type: "timestamp" },
   },
   rules: {
     primary_key: "id",
@@ -36,7 +36,7 @@ Table({
       "smc_git_rev",
       "smc_version",
       "start_time",
-      "browser"
-    ]
-  }
+      "browser",
+    ],
+  },
 });

@@ -15,7 +15,7 @@ export function TitleDescriptionBox(props: Props) {
       <LabeledRow label="Title">
         <TextInput
           text={props.project_title}
-          on_change={title =>
+          on_change={(title) =>
             props.actions.set_project_title(props.project_id, title)
           }
         />
@@ -25,7 +25,7 @@ export function TitleDescriptionBox(props: Props) {
           type="textarea"
           rows={2}
           text={props.description}
-          on_change={desc =>
+          on_change={(desc) =>
             props.actions.set_project_description(props.project_id, desc)
           }
         />

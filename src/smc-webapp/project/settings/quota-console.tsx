@@ -16,7 +16,7 @@ const {
   Row,
   Col,
   ButtonToolbar,
-  Button
+  Button,
 } = require("react-bootstrap");
 
 interface Props {
@@ -61,7 +61,7 @@ export class QuotaConsole extends React.Component<Props, State> {
 
     const state = {
       editing: false, // admin is currently editing
-      upgrading: false // user is currently upgrading
+      upgrading: false, // user is currently upgrading
     };
     const settings = this.props.project_settings;
     if (settings != undefined) {
@@ -148,7 +148,9 @@ export class QuotaConsole extends React.Component<Props, State> {
     if (site_license) {
       // amount given by site licenses
       upgrade_list.unshift(
-        <li key="site-license">{text(site_license)} provided by site license (see below)</li>
+        <li key="site-license">
+          {text(site_license)} provided by site license (see below)
+        </li>
       );
     }
 
@@ -191,10 +193,10 @@ export class QuotaConsole extends React.Component<Props, State> {
         } else {
           alert_message({
             type: "success",
-            message: "Project quotas updated."
+            message: "Project quotas updated.",
           });
         }
-      }
+      },
     });
     this.setState({ editing: false });
   }
@@ -290,7 +292,7 @@ export class QuotaConsole extends React.Component<Props, State> {
       return {
         outline: "none",
         borderColor: "red",
-        boxShadow: "0 0 10px red"
+        boxShadow: "0 0 10px red",
       };
     }
   }
@@ -302,7 +304,7 @@ export class QuotaConsole extends React.Component<Props, State> {
           ref={label}
           checked={this.state[label]}
           style={{ marginLeft: 0 }}
-          onChange={e =>
+          onChange={(e) =>
             this.setState({ [label]: e.target.checked ? 1 : 0 } as any)
           }
         >
@@ -318,7 +320,7 @@ export class QuotaConsole extends React.Component<Props, State> {
           ref={label}
           value={this.state[label]}
           style={this.admin_input_validation_styles(this.state[label])}
-          onChange={e => this.setState({ [label]: e.target.value } as any)}
+          onChange={(e) => this.setState({ [label]: e.target.value } as any)}
         />
       );
     }
@@ -401,7 +403,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             <b>{this.render_input("disk_quota")} MB</b> disk space limit{" "}
             <Space /> {this.render_disk_used(disk)}
           </span>
-        )
+        ),
       },
       memory: {
         view: (
@@ -420,7 +422,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             <b>{this.render_input("memory")} MB</b> RAM memory limit{" "}
             {this.render_memory_used(memory)}{" "}
           </span>
-        )
+        ),
       },
       memory_request: {
         view: (
@@ -439,7 +441,7 @@ export class QuotaConsole extends React.Component<Props, State> {
           <span>
             <b>{this.render_input("memory_request")} MB</b> dedicated RAM memory
           </span>
-        )
+        ),
       },
       cores: {
         view: (
@@ -455,7 +457,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             </b>
           </span>
         ),
-        edit: <b>{this.render_input("cores")} cores</b>
+        edit: <b>{this.render_input("cores")} cores</b>,
       },
       cpu_shares: {
         view: (
@@ -476,7 +478,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             {this.render_input("cpu_shares")}{" "}
             {misc.plural(total_quotas["cpu_shares"], "core")}
           </b>
-        )
+        ),
       },
       mintime: {
         // no display factor multiplication, because mintime is in seconds
@@ -491,7 +493,7 @@ export class QuotaConsole extends React.Component<Props, State> {
             <b>{this.render_input("mintime")} hours</b> of non-interactive use
             before project stops
           </span>
-        )
+        ),
       },
       network: {
         view: (
@@ -502,7 +504,7 @@ export class QuotaConsole extends React.Component<Props, State> {
               : "Blocked"}
           </b>
         ),
-        edit: this.render_input("network")
+        edit: this.render_input("network"),
       },
       member_host: {
         view: (
@@ -513,8 +515,8 @@ export class QuotaConsole extends React.Component<Props, State> {
               : "No"}
           </b>
         ),
-        edit: this.render_input("member_host")
-      }
+        edit: this.render_input("member_host"),
+      },
     };
 
     const upgrades = this.props.all_upgrades_to_this_project;
@@ -526,7 +528,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     return (
       <div>
         {this.render_admin_edit_buttons()}
-        {PROJECT_UPGRADES.field_order.map(name => {
+        {PROJECT_UPGRADES.field_order.map((name) => {
           return this.render_quota_row(
             name,
             quotas[name],

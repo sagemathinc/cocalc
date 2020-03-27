@@ -12,15 +12,15 @@ const DEFAULT_IPYNB = {
       execution_count: null,
       metadata: {},
       outputs: [],
-      source: []
-    }
+      source: [],
+    },
   ],
   metadata: {
     kernelspec: undefined,
-    language_info: undefined
+    language_info: undefined,
   },
   nbformat: 4,
-  nbformat_minor: 0
+  nbformat_minor: 0,
 };
 
 export class IPynbImporter {
@@ -40,7 +40,7 @@ export class IPynbImporter {
       // an is_available function; new_id(is_available) = a new id.
       existing_ids: [], // re-use these on loading for efficiency purposes
       output_handler: undefined, // h = output_handler(cell); h.message(...) -- hard to explain
-      process_attachment: undefined
+      process_attachment: undefined,
     }); // process attachments:  attachment(base64, mime) --> sha1
 
     this._ipynb = misc.deep_copy(opts.ipynb);
@@ -213,7 +213,7 @@ export class IPynbImporter {
       if (content.text != null) {
         content = {
           data: { "text/plain": content.text },
-          output_type: "stream"
+          output_type: "stream",
         };
       }
     }
@@ -342,7 +342,10 @@ export class IPynbImporter {
         id
       ),
       cell_type: this._get_cell_type(cell.cell_type),
-      exec_count: this._get_exec_count(cell.execution_count, cell.prompt_number)
+      exec_count: this._get_exec_count(
+        cell.execution_count,
+        cell.prompt_number
+      ),
     };
 
     if (cell.metadata != null) {
@@ -357,7 +360,7 @@ export class IPynbImporter {
       }
 
       if (cell.metadata.tags != null) {
-        obj.tags = misc.dict(cell.metadata.tags.map(tag => [tag, true]));
+        obj.tags = misc.dict(cell.metadata.tags.map((tag) => [tag, true]));
       }
       const other = misc.copy_without(cell.metadata, [
         "collapsed",
@@ -367,7 +370,7 @@ export class IPynbImporter {
         "_root",
         "__ownerID",
         "__hash",
-        "__altered"
+        "__altered",
       ]);
       //  See https://github.com/sagemathinc/cocalc/issues/3191 for
       // why the _'d ones above; this is to fix "corrupted" worksheets.

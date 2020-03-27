@@ -165,7 +165,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
             border: "1px solid #ddd",
             padding: "0 15px",
             backgroundColor: "white",
-            margin: "5px 15px"
+            margin: "5px 15px",
           }}
         />
       </div>
@@ -237,7 +237,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
               border: "1px solid #ddd",
               padding: "0 15px",
               backgroundColor: "white",
-              margin: "5px 15px"
+              margin: "5px 15px",
             }}
           />
         </li>
@@ -272,7 +272,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
     } catch (err) {
       alert_message({
         type: "error",
-        message: `Unable to add license key -- ${err}`
+        message: `Unable to add license key -- ${err}`,
       });
       return;
     }
@@ -290,9 +290,7 @@ export class SiteLicensePublicInfo extends Component<Props, State> {
         The project will no longer get upgraded using this license, and it may
         restart.
       </>
-    ) : (
-      undefined
-    );
+    ) : undefined;
     return (
       <Popconfirm
         title={

@@ -40,10 +40,10 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
               restricted: null,
               upgrades: null,
               run_limit: null,
-              apply_limit: null
-            }
-          ]
-        }
+              apply_limit: null,
+            },
+          ],
+        },
       });
       this.setState({ site_licenses: x.query.site_licenses });
       await this.update_usage_stats();
@@ -61,8 +61,8 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       const now = server_time();
       await query({
         query: {
-          site_licenses: { id, created: now, last_used: now, activates: now }
-        }
+          site_licenses: { id, created: now, last_used: now, activates: now },
+        },
       });
       await this.load(); // so will have the new license
       this.start_editing(id);
@@ -136,8 +136,8 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
       try {
         await query({
           query: {
-            site_licenses
-          }
+            site_licenses,
+          },
         });
       } catch (err) {
         this.set_error(err);
@@ -174,10 +174,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public update_search(): void {
-    const search = store
-      .get("search", "")
-      .trim()
-      .toLowerCase();
+    const search = store.get("search", "").trim().toLowerCase();
     let matches_search: undefined | Set<string> = undefined;
     if (search) {
       // figure out what matches the search
@@ -215,7 +212,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public async update_usage_stats(): Promise<void> {
     try {
       const x = await query({
-        query: { site_license_usage_stats: { running: null } }
+        query: { site_license_usage_stats: { running: null } },
       });
       this.setState({ usage_stats: x.query.site_license_usage_stats.running });
     } catch (err) {

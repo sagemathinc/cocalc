@@ -27,7 +27,7 @@ export async function file_use_times(
     !(await callback2(db.user_is_in_project_group.bind(db), {
       account_id: opts.user_account_id,
       project_id: opts.project_id,
-      cache: true
+      cache: true,
     }))
   ) {
     throw Error("user does not have read access to the given project");
@@ -44,11 +44,11 @@ export async function file_use_times(
       where: {
         project_id: opts.project_id,
         filename: opts.path,
-        account_id: opts.account_id
+        account_id: opts.account_id,
       },
       one: false,
       order_by: "time desc",
-      limit: opts.limit
+      limit: opts.limit,
     });
     resp.access_times = [];
     for (const d of file_access_times) {
@@ -66,7 +66,7 @@ export async function file_use_times(
       where: { string_id },
       one: false,
       order_by: "time desc",
-      limit: opts.limit
+      limit: opts.limit,
     });
     resp.edit_times = [];
     for (const d of edit_times) {

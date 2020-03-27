@@ -41,8 +41,8 @@ class RawEditor0 extends Component<RawEditorProps & ReduxProps> {
         cells: rtypes.immutable.Map,
         cell_list: rtypes.immutable.List,
         metadata: rtypes.immutable.Map,
-        kernel: rtypes.string
-      }
+        kernel: rtypes.string,
+      },
     };
   }
 
@@ -59,7 +59,7 @@ class RawEditor0 extends Component<RawEditorProps & ReduxProps> {
         "cells",
         "cell_list",
         "metadata",
-        "kernel"
+        "kernel",
       ])
     ) {
       this.update_raw_ipynb();
@@ -105,13 +105,13 @@ class RawEditor0 extends Component<RawEditorProps & ReduxProps> {
       backgroundColor: "#eee",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden"
+      overflowX: "hidden",
     };
 
     const viewer_style: React.CSSProperties = {
       backgroundColor: "#fff",
       boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-      height: "100%"
+      height: "100%",
     };
 
     return (

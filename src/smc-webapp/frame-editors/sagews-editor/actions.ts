@@ -29,8 +29,8 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
   _init2(): void {
     this.setState({ cells: {} });
 
-    this._syncstring.on("change", keys => {
-      keys.forEach(value => {
+    this._syncstring.on("change", (keys) => {
+      keys.forEach((value) => {
         const id = value.get("id");
         if (id) {
           let cells = this.store.get("cells");

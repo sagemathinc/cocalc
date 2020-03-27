@@ -59,8 +59,8 @@ async function get_params(opts: GetData) {
     htmlWebpackPlugin: {
       options: {
         BASE_URL,
-        PREFIX
-      }
+        PREFIX,
+      },
     },
     PREFIX,
     NAME,
@@ -75,7 +75,7 @@ async function get_params(opts: GetData) {
     ORGANIZATION_URL,
     HELP_EMAIL,
     CONTACT_EMAIL: fallback(ORGANIZATION_EMAIL, HELP_EMAIL),
-    TOS_URL: settings.terms_of_service_url
+    TOS_URL: settings.terms_of_service_url,
   };
   return data;
 }

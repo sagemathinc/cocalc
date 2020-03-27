@@ -36,7 +36,7 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "course",
   "sage",
   "py",
-  "sage-chat"
+  "sage-chat",
 ]);
 
 export function default_ext(
@@ -72,7 +72,7 @@ export function generate_click_for(
   full_path: string,
   project_actions: ProjectActions
 ) {
-  return e => {
+  return (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (!file_actions[file_action_name].allows_multiple_files) {

@@ -8,7 +8,7 @@ mimetype library)...
 import {
   file_associations,
   VIDEO_EXTS,
-  AUDIO_EXTS
+  AUDIO_EXTS,
 } from "../file-associations";
 
 // see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
@@ -20,7 +20,7 @@ export const image = new Set([
   "jpeg",
   "bmp",
   "apng",
-  "ico"
+  "ico",
 ]);
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video

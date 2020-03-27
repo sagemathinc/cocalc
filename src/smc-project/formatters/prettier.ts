@@ -51,7 +51,7 @@ export async function run_prettier(
     return {
       status: "error",
       error: "document not fully opened",
-      phase: "format"
+      phase: "format",
     };
   }
   if (syncstring.get_state() != "ready") {
@@ -59,7 +59,7 @@ export async function run_prettier(
   }
   const doc = syncstring.get_doc();
   let pretty, math, input0;
-  let input = input0 = doc.to_str();
+  let input = (input0 = doc.to_str());
   if (options.parser === "markdown") {
     [input, math] = remove_math(math_escape(input));
   }

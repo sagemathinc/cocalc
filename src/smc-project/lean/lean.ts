@@ -69,8 +69,8 @@ export class Lean extends EventEmitter {
         []
       )
     );
-    this._server.error.on(err => this.dbg("error:", err));
-    this._server.allMessages.on(allMessages => {
+    this._server.error.on((err) => this.dbg("error:", err));
+    this._server.allMessages.on((allMessages) => {
       this.dbg("messages: ", allMessages);
 
       const new_messages = {};
@@ -107,7 +107,7 @@ export class Lean extends EventEmitter {
       }
     });
 
-    this._server.tasks.on(currentTasks => {
+    this._server.tasks.on((currentTasks) => {
       const { tasks } = currentTasks;
       this.dbg("tasks: ", tasks);
       const running = {};
@@ -201,7 +201,7 @@ export class Lean extends EventEmitter {
     };
     this.paths[path] = {
       syncstring,
-      on_change
+      on_change,
     };
     syncstring.on("change", on_change);
     if (!syncstring._closed) {
@@ -256,7 +256,7 @@ export class Lean extends EventEmitter {
     this.dbg("info", path, line, column);
     if (!this.paths[path]) {
       this.register(path);
-      await callback(cb => this.once(`sync-#{path}`, cb));
+      await callback((cb) => this.once(`sync-#{path}`, cb));
     }
     return await (await this.server()).info(path, line, column);
   }
@@ -270,7 +270,7 @@ export class Lean extends EventEmitter {
     this.dbg("complete", path, line, column);
     if (!this.paths[path]) {
       this.register(path);
-      await callback(cb => this.once(`sync-#{path}`, cb));
+      await callback((cb) => this.once(`sync-#{path}`, cb));
     }
     const resp = await (await this.server()).complete(
       path,

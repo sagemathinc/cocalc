@@ -94,14 +94,14 @@ export class WindowedList extends Component<Props, State> {
   } = {
     scrollDirection: "forward",
     scrollOffset: 0,
-    scrollUpdateWasRequested: false
+    scrollUpdateWasRequested: false,
   };
 
   public render_info: RenderInfo = {
     overscanStartIndex: 0,
     overscanStopIndex: 0,
     visibleStartIndex: 0,
-    visibleStopIndex: 0
+    visibleStopIndex: 0,
   };
   private ensure_visible?: { row: number; align: string };
 
@@ -341,14 +341,14 @@ export class WindowedList extends Component<Props, State> {
     if (!this.is_mounted) return;
     this.setState({
       scroll_to_index: undefined,
-      scroll_top: undefined
+      scroll_top: undefined,
     });
   }
 
   public render(): Rendered {
     let on_scroll: undefined | Function = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {
-      on_scroll = info => {
+      on_scroll = (info) => {
         this.scroll_info = info;
         if (this.props.on_scroll != null) {
           this.props.on_scroll(info);
@@ -356,14 +356,14 @@ export class WindowedList extends Component<Props, State> {
         if (this.props.cache_id != null) {
           scroll_cache[this.props.cache_id as string] = {
             info,
-            row_heights_cache: this.row_heights_cache
+            row_heights_cache: this.row_heights_cache,
           };
         }
       };
     }
 
     const save_render_info = this.props.render_info
-      ? info => {
+      ? (info) => {
           this.render_info = info;
         }
       : undefined;
@@ -428,11 +428,11 @@ function create_row_component(windowed_list: WindowedList) {
         <div
           style={{
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
           }}
           data-key={key}
           data-index={index}
-          ref={node => {
+          ref={(node) => {
             if (node == null) return;
             (windowed_list as any).cell_refs[key] = $(node);
             (windowed_list as any).resize_observer.observe(node);
@@ -442,7 +442,7 @@ function create_row_component(windowed_list: WindowedList) {
             key,
             index,
             isScrolling,
-            isVisible
+            isVisible,
           })}
         </div>
       );

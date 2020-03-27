@@ -21,6 +21,6 @@ export async function bibtex(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
-    aggregate: time
+    aggregate: time,
   });
 }

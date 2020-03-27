@@ -34,7 +34,7 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
   }
   const select: User[] = await callback_opts(webapp_client.user_search)({
     query: search,
-    limit: 25
+    limit: 25,
   });
   const profiles: {
     query: {
@@ -44,12 +44,12 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
       };
     }[];
   } = await callback_opts(webapp_client.query)({
-    query: select.map(u => ({
+    query: select.map((u) => ({
       account_profiles: {
         account_id: u.account_id,
-        profile: null
-      }
-    }))
+        profile: null,
+      },
+    })),
   });
   const users: any = {};
   for (const u of select) {
@@ -61,8 +61,8 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
     }
   }
   const arr = Object.keys(users)
-    .map(k => users[k])
-    .map(u => {
+    .map((k) => users[k])
+    .map((u) => {
       u.profile = u.profile || {};
       return u;
     });
@@ -100,11 +100,11 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
     static reduxProps() {
       return {
         account: {
-          get_fullname: rtypes.func
+          get_fullname: rtypes.func,
         },
         users: {
-          user_map: rtypes.immutable
-        }
+          user_map: rtypes.immutable,
+        },
       };
     }
     constructor(props) {
@@ -112,7 +112,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
       this.state = this.initialState();
       this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
         leading: true,
-        trailing: true
+        trailing: true,
       });
     }
     initialState = () => {
@@ -125,7 +125,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
         email_to: "",
         email_body: this.default_email_body(),
         is_editing_email: false,
-        error_body: undefined
+        error_body: undefined,
       };
     };
 
@@ -168,7 +168,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
               borderRadius: "50%",
               verticalAlign: "top",
               height: `${size}px`,
-              width: `${size}px`
+              width: `${size}px`,
             }}
             src={u.profile.image}
           />
@@ -190,7 +190,7 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
             color:
               ((onecolor(bg).magenta && onecolor(bg).magenta()) || 0) >= 0.4
                 ? "white"
-                : "black"
+                : "black",
           }}
         >
           {u.first_name ? u.first_name.toUpperCase()[0] : "?"}
@@ -198,13 +198,13 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
       );
     }
 
-    query_for_results = search => {
+    query_for_results = (search) => {
       this.setState({ search, loading: true });
       search_for_accounts(search)
-        .then(results => {
+        .then((results) => {
           // filter out users that are already collaborators on this project
           results = results.filter(
-            u => !this.props.project.get("users").has(u.account_id)
+            (u) => !this.props.project.get("users").has(u.account_id)
           );
           // put users who are collaborators on other projects at the top of the list
           const are_collaborators: UserAndProfile[] = [];
@@ -245,20 +245,22 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
           // mark those that are selected
           for (let i = 0; i < results.length; i++) {
             const u = results[i];
-            if (this.state.selection.find(w => w.account_id === u.account_id)) {
+            if (
+              this.state.selection.find((w) => w.account_id === u.account_id)
+            ) {
               u.is_selected = true;
             }
           }
           // update state
           this.setState({
             results,
-            loading: false
+            loading: false,
           });
         })
-        .catch(error => {
+        .catch((error) => {
           this.setState({
             loading: false,
-            error
+            error,
           });
         });
     };
@@ -269,14 +271,14 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
           Search by name or email address for CoCalc users:
           <PickerList
             inputValue={this.state.search}
-            onInputChange={search =>
+            onInputChange={(search) =>
               this.setState({ search, results: undefined })
             }
             onInputEnter={() => this.query_for_results(this.state.search)}
             isLoading={this.state.loading}
             results={
               this.state.results &&
-              this.state.results.map(u => {
+              this.state.results.map((u) => {
                 const last_active =
                   u.last_active != null
                     ? new Date(u.last_active).toLocaleDateString()
@@ -297,13 +299,13 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
                         justifyContent: "space-between",
                         width: "100%",
                         overflow: "auto",
-                        height: "60px"
+                        height: "60px",
                       }}
                     >
                       {this.render_avatar(u)}
                       <span
                         style={{
-                          fontSize: "16px"
+                          fontSize: "16px",
                         }}
                       >
                         {u.first_name} {u.last_name}
@@ -314,56 +316,50 @@ export const AddCollaboratorsPanel = rclass<ReactProps>(
                           fontSize: "14px",
                           textAlign: "right",
                           display: "flex",
-                          flexDirection: "column"
+                          flexDirection: "column",
                         }}
                       >
                         {u.is_collaborator ? (
                           <div>Collaborator</div>
-                        ) : (
-                          undefined
-                        )}
+                        ) : undefined}
                         {last_active != null ? (
                           <div>{`Last active ${last_active}`}</div>
-                        ) : (
-                          undefined
-                        )}
+                        ) : undefined}
                         {created != null ? (
                           <div>{`Created ${created}`}</div>
-                        ) : (
-                          undefined
-                        )}
+                        ) : undefined}
                       </div>
                     </div>
-                  )
+                  ),
                 };
               })
             }
-            onSelect={u => {
+            onSelect={(u) => {
               if (
-                this.state.selection.find(w => w.account_id === u.account_id)
+                this.state.selection.find((w) => w.account_id === u.account_id)
               ) {
                 this.setState({
                   selection: this.state.selection.filter(
-                    w => w.account_id !== u.account_id
+                    (w) => w.account_id !== u.account_id
                   ),
                   results:
                     this.state.results &&
-                    this.state.results.map(w => ({
+                    this.state.results.map((w) => ({
                       ...w,
                       is_selected:
-                        w.account_id === u.account_id ? false : w.is_selected
-                    }))
+                        w.account_id === u.account_id ? false : w.is_selected,
+                    })),
                 });
               } else {
                 this.setState({
                   selection: this.state.selection.concat([u]),
                   results:
                     this.state.results &&
-                    this.state.results.map(w => ({
+                    this.state.results.map((w) => ({
                       ...w,
                       is_selected:
-                        w.account_id === u.account_id ? true : w.is_selected
-                    }))
+                        w.account_id === u.account_id ? true : w.is_selected,
+                    })),
                 });
               }
             }}
@@ -399,7 +395,7 @@ ${name}
     check_email_body(value: string): void {
       if (!this.props.allow_urls && contains_url(value)) {
         this.setState({
-          error_body: "Sending URLs is not allowed. (anti-spam measure)"
+          error_body: "Sending URLs is not allowed. (anti-spam measure)",
         });
       } else {
         this.setState({ error_body: undefined });
@@ -412,10 +408,10 @@ ${name}
           Customize the invitation. It will be sent to
           {render_list_with_oxford_comma(
             this.state.selection
-              .map(u => ` "${u.first_name} ${u.last_name}"`)
+              .map((u) => ` "${u.first_name} ${u.last_name}"`)
               .concat(
                 this.state.email_to
-                  ? this.state.email_to.split(",").map(s => `"${s.trim()}"`)
+                  ? this.state.email_to.split(",").map((s) => `"${s.trim()}"`)
                   : []
               )
           )}
@@ -426,21 +422,21 @@ ${name}
               padding: "10px",
               borderRadius: "5px",
               backgroundColor: "white",
-              margin: "15px"
+              margin: "15px",
             }}
           >
             {this.render_invitation_error()}
             <MarkdownInput
               default_value={this.state.email_body}
               rows={8}
-              on_save={value =>
+              on_save={(value) =>
                 this.setState({ email_body: value, is_editing_email: false })
               }
-              on_cancel={value =>
+              on_cancel={(value) =>
                 this.setState({
                   email_body: value,
                   is_editing_email: false,
-                  error_body: undefined
+                  error_body: undefined,
                 })
               }
               on_change={this.check_email_body}
@@ -479,7 +475,7 @@ ${name}
             replyto_name
           );
       }
-      this.state.selection.forEach(u => {
+      this.state.selection.forEach((u) => {
         redux
           .getActions("projects")
           .invite_collaborator(
@@ -533,9 +529,7 @@ ${name}
               {this.render_invitation_editor()}
               {this.render_buttons()}
             </>
-          ) : (
-            undefined
-          )}
+          ) : undefined}
         </SettingBox>
       );
     }

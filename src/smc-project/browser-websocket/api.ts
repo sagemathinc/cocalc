@@ -31,14 +31,14 @@ export function init_websocket_api(
 ): void {
   primus.plugin("responder", require("primus-responder"));
 
-  primus.on("connection", function(spark) {
+  primus.on("connection", function (spark) {
     // Now handle the connection
     logger.debug(
       "primus-api",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
 
-    spark.on("request", async function(data, done) {
+    spark.on("request", async function (data, done) {
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
       try {
         const resp = await handle_api_call(client, data, primus, logger);
@@ -57,7 +57,7 @@ export function init_websocket_api(
     });*/
   });
 
-  primus.on("disconnection", function(spark) {
+  primus.on("disconnection", function (spark) {
     logger.debug(
       "primus-api",
       `end connection from ${spark.address.ip} -- ${spark.id}`

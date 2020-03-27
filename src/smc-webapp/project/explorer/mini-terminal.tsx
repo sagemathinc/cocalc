@@ -40,7 +40,7 @@ const {
   Button,
   FormControl,
   InputGroup,
-  FormGroup
+  FormGroup,
 } = require("react-bootstrap");
 import { Icon } from "smc-webapp/r_misc";
 
@@ -52,7 +52,7 @@ export const output_style_searchbox: React.CSSProperties = {
   width: "93%",
   boxShadow: "0px 0px 7px #aaa",
   maxHeight: "450px",
-  overflow: "auto"
+  overflow: "auto",
 };
 
 export const output_style_miniterm: React.CSSProperties = {
@@ -63,7 +63,7 @@ export const output_style_miniterm: React.CSSProperties = {
   overflow: "auto",
   right: 0,
   maxWidth: "80%",
-  marginRight: "5px"
+  marginRight: "5px",
 };
 
 const BAD_COMMANDS = {
@@ -78,7 +78,7 @@ const BAD_COMMANDS = {
   emacs:
     "Type emacs in a full terminal instead,\nor just click on the file in the listing.",
   open:
-    "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230"
+    "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230",
 };
 
 const EXEC_TIMEOUT = 10; // in seconds
@@ -106,12 +106,12 @@ export class MiniTerminal extends React.Component<Props, State> {
       input: "",
       stdout: undefined,
       state: "edit", // 'edit' --> 'run' --> 'edit'
-      error: undefined
+      error: undefined,
     };
   }
 
   static defaultProps = {
-    show_close_x: true
+    show_close_x: true,
   };
 
   execute_command = () => {
@@ -124,7 +124,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     if (error) {
       this.setState({
         state: "edit",
-        error
+        error,
       });
       return;
     }
@@ -158,7 +158,7 @@ export class MiniTerminal extends React.Component<Props, State> {
           // we get no other error except it takes a long time and the exit_code isn't 0.
           this.setState({
             state: "edit",
-            error: `Miniterminal commands are limited to ${EXEC_TIMEOUT} seconds.\nFor longer or interactive commands,\nuse a full terminal.`
+            error: `Miniterminal commands are limited to ${EXEC_TIMEOUT} seconds.\nFor longer or interactive commands,\nuse a full terminal.`,
           });
         } else {
           if (output.stdout) {
@@ -189,13 +189,13 @@ export class MiniTerminal extends React.Component<Props, State> {
           this.setState({
             state: "edit",
             error: output.stderr,
-            stdout: output.stdout
+            stdout: output.stdout,
           });
           if (!output.stderr) {
             this.setState({ input: "" });
           }
         }
-      }
+      },
     });
   };
 
@@ -220,7 +220,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     if (!this.props.show_close_x) return;
     return (
       <a
-        onClick={e => {
+        onClick={(e) => {
           e.preventDefault();
           this.setState({ stdout: "", error: "" });
         }}
@@ -230,7 +230,7 @@ export class MiniTerminal extends React.Component<Props, State> {
           top: "0px",
           color: "#666",
           fontSize: "14pt",
-          position: "absolute"
+          position: "absolute",
         }}
       >
         <Icon name="times" />
@@ -266,7 +266,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     );
   }
 
-  keydown = e => {
+  keydown = (e) => {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
     // all null right now -- see
     //     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
@@ -282,7 +282,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     return (
       <>
         <form
-          onSubmit={e => {
+          onSubmit={(e) => {
             e.preventDefault();
             this.execute_command();
           }}
@@ -295,10 +295,10 @@ export class MiniTerminal extends React.Component<Props, State> {
                 value={this.state.input}
                 ref="input"
                 placeholder="Terminal command..."
-                onChange={e => {
+                onChange={(e) => {
                   e.preventDefault();
                   this.setState({
-                    input: (ReactDOM.findDOMNode(this.refs.input) as any).value
+                    input: (ReactDOM.findDOMNode(this.refs.input) as any).value,
                   });
                 }}
                 onKeyDown={this.keydown}
@@ -313,7 +313,7 @@ export class MiniTerminal extends React.Component<Props, State> {
         <div style={output_style_miniterm}>
           {this.render_output(this.state.error, {
             color: "darkred",
-            margin: 0
+            margin: 0,
           })}
           {this.render_output(this.state.stdout, { margin: 0 })}
         </div>

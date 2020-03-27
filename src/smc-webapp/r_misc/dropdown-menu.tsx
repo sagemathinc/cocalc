@@ -39,7 +39,7 @@ export class DropdownMenu extends Component<Props> {
             style={merge(
               {
                 color: "#777",
-                cursor: "not-allowed"
+                cursor: "not-allowed",
               },
               style
             )}
@@ -70,7 +70,7 @@ export class DropdownMenu extends Component<Props> {
         onClick={this.on_click.bind(this)}
         style={{
           maxHeight: this.props.maxHeight ? this.props.maxHeight : "70vH",
-          overflow: "auto"
+          overflow: "auto",
         }}
       >
         {this.props.children}

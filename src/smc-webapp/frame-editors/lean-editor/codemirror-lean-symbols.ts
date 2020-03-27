@@ -9,7 +9,7 @@ declare module "codemirror" {
   function innerMode(mode: any, state: any): any;
 }
 
-CodeMirror.defineOption("leanSymbols", false, function(cm, val, old) {
+CodeMirror.defineOption("leanSymbols", false, function (cm, val, old) {
   if (old) {
     cm.removeKeyMap("leanSymbols");
     cm.off("mousedown", lean_symbols);
@@ -26,7 +26,7 @@ CodeMirror.defineOption("leanSymbols", false, function(cm, val, old) {
     Right: lean_symbols,
     Up: lean_symbols,
     Down: lean_symbols,
-    "\\": lean_symbols
+    "\\": lean_symbols,
   };
   cm.on("mousedown", lean_symbols);
   cm.on("blur", lean_symbols);

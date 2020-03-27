@@ -35,7 +35,7 @@ import * as misc from "smc-util/misc";
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
-  isMainConfiguration
+  isMainConfiguration,
 } from "./project_configuration";
 import { derive_rmd_output_filename } from "./frame-editors/rmd-editor/utils";
 import {
@@ -44,7 +44,7 @@ import {
   redux,
   Store,
   AppRedux,
-  TypedMap
+  TypedMap,
 } from "./app-framework";
 
 import { ProjectConfiguration } from "./project_configuration";
@@ -64,7 +64,7 @@ const MASKED_FILE_EXTENSIONS = {
   rnw: ["tex", "NODOT-concordance.tex"],
   rtex: ["tex", "NODOT-concordance.tex"],
   rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"],
-  sage: ["sage.py"]
+  sage: ["sage.py"],
 };
 
 export interface ProjectStoreState {
@@ -255,7 +255,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         column_name:
           redux
             .getStore("account")
-            ?.getIn(["other_settings", "default_file_sort"]) ?? "time"
+            ?.getIn(["other_settings", "default_file_sort"]) ?? "time",
       }),
 
       // Project New
@@ -270,7 +270,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Settings
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
 
-      other_settings: undefined
+      other_settings: undefined,
     };
   };
 
@@ -278,13 +278,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
     other_settings: {
       fn: () => {
         return (this.redux.getStore("account") as any).get("other_settings");
-      }
+      },
     },
 
     get_public_path_id: {
       fn: () => {
         const project_id = this.project_id;
-        return function(path) {
+        return function (path) {
           // (this exists because rethinkdb doesn't have compound primary keys)
           const { SCHEMA, client_db } = require("smc-util/schema");
           return SCHEMA.public_paths.user_query.set.fields.id(
@@ -292,7 +292,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
             client_db
           );
         };
-      }
+      },
     },
 
     // cached pre-processed file listing, which should always be up to date when
@@ -306,7 +306,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "file_search",
         "other_settings",
         "show_hidden",
-        "show_masked"
+        "show_masked",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
@@ -416,7 +416,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           listing,
           public: {},
           path: this.get("current_path"),
-          file_map: map
+          file_map: map,
         };
 
         _compute_public_files(
@@ -426,7 +426,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         );
 
         return x;
-      }
+      },
     },
 
     stripped_public_paths: {
@@ -446,7 +446,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
             })()
           );
         }
-      }
+      },
     },
 
     library_docs_sorted: {
@@ -458,7 +458,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           const search = misc.search_split(this.get("library_search"));
           // Using JSON of the doc is pretty naive but it's fast enough
           // and I don't want to spend much time on this!
-          docs = docs.filter(doc =>
+          docs = docs.filter((doc) =>
             misc.search_match(JSON.stringify(doc.toJS()).toLowerCase(), search)
           );
         }
@@ -466,7 +466,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         if (docs != null) {
           // sort by a triplet: idea is to have the docs sorted by their category,
           // where some categories have weights (e.g. "introduction" comes first, no matter what)
-          const sortfn = function(doc) {
+          const sortfn = function (doc) {
             return [
               metadata.getIn(["categories", doc.get("category"), "weight"]) ||
                 0,
@@ -474,13 +474,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 .getIn(["categories", doc.get("category"), "name"])
                 .toLowerCase(),
               (doc.get("title") && doc.get("title").toLowerCase()) ||
-                doc.get("id")
+                doc.get("id"),
             ];
           };
           return docs.sortBy(sortfn);
         }
-      }
-    }
+      },
+    },
   };
   // Returns the cursor positions for the given project_id/path, if that
   // file is opened, and supports cursors and is either old (and ...) or
@@ -500,7 +500,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   };
 
-  is_file_open = path => {
+  is_file_open = (path) => {
     return this.getIn(["open_files", path]) != null;
   };
 
@@ -513,12 +513,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return {
       item:
         listing != null
-          ? listing.find(val => val.get("name") === name)
-          : undefined
+          ? listing.find((val) => val.get("name") === name)
+          : undefined,
     };
   };
 
-  get_raw_link = path => {
+  get_raw_link = (path) => {
     let url = document.URL;
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
@@ -541,7 +541,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   public get_listings(): Listings {
     if (this.listings == null) {
       this.listings = listings(this.project_id);
-      this.listings.on("change", async paths => {
+      this.listings.on("change", async (paths) => {
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {
           if (this.listings == null) return; // won't happen
@@ -611,13 +611,13 @@ function _compute_file_masks(listing): void {
   // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
   // the general outcome of this function is to set for some file entry objects
   // in "listing" the attribute <file>.mask=true
-  const filename_map = misc.dict(listing.map(item => [item.name, item])); // map filename to file
+  const filename_map = misc.dict(listing.map((item) => [item.name, item])); // map filename to file
   for (const file of listing) {
     // note: never skip already masked files, because of rnw/rtex->tex
 
     const ext = misc.filename_extension(file.name).toLowerCase();
     // some extensions like Rmd modify the basename during compilation
-    const filename = (function() {
+    const filename = (function () {
       switch (ext) {
         case "rmd":
           // converts .rmd to .rmd, but the basename changes!
@@ -702,7 +702,7 @@ function _compute_public_files(data, public_paths, current_path) {
 }
 
 function _sort_on_string_field(field) {
-  return function(a, b) {
+  return function (a, b) {
     return misc.cmp(
       a[field] !== undefined ? a[field].toLowerCase() : "",
       b[field] !== undefined ? b[field].toLowerCase() : ""
@@ -744,7 +744,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   store._init();
 
   const queries = misc.deep_copy(QUERIES);
-  const create_table = function(table_name, q) {
+  const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
     return class P extends Table {
       constructor(a, b) {

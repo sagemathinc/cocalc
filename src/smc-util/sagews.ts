@@ -32,7 +32,7 @@ Some functions for working with Sage worksheets (sagews files) --
 
 export const MARKERS = {
   cell: "\uFE20",
-  output: "\uFE21"
+  output: "\uFE21",
 };
 
 export const FLAGS = {
@@ -42,14 +42,14 @@ export const FLAGS = {
   interrupt: "c", // request execution of cell be interrupted
   this_session: "s", // if set, cell was executed during the current sage session.
   hide_input: "i", // hide input part of cell
-  hide_output: "o" // hide output part of cell
+  hide_output: "o", // hide output part of cell
 };
 
 export const ACTION_FLAGS = [
   FLAGS.execute,
   FLAGS.running,
   FLAGS.waiting,
-  FLAGS.interrupt
+  FLAGS.interrupt,
 ];
 
 export const ACTION_SESSION_FLAGS = [
@@ -57,7 +57,7 @@ export const ACTION_SESSION_FLAGS = [
   FLAGS.running,
   FLAGS.waiting,
   FLAGS.interrupt,
-  FLAGS.this_session
+  FLAGS.this_session,
 ];
 
 /*

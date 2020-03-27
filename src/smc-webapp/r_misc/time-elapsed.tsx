@@ -14,7 +14,7 @@ export class TimeElapsed extends React.Component<Props> {
   }
 
   static defaultProps = {
-    interval_s: 1
+    interval_s: 1,
   };
 
   clear(): void {

@@ -19,16 +19,18 @@ interface Props {
 
 export class NewButton extends React.Component<Props> {
   static defaultProps = {
-    file_search: ""
+    file_search: "",
   };
 
   new_file_button_types() {
     if (this.props.configuration != undefined) {
       const { disabled_ext } = this.props.configuration.get("main", {
-        disabled_ext: undefined
+        disabled_ext: undefined,
       });
       if (disabled_ext != undefined) {
-        return ALL_FILE_BUTTON_TYPES.filter(ext => !disabled_ext.includes(ext));
+        return ALL_FILE_BUTTON_TYPES.filter(
+          (ext) => !disabled_ext.includes(ext)
+        );
       }
     }
     return ALL_FILE_BUTTON_TYPES;

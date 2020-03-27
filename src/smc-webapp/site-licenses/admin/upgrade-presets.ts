@@ -43,9 +43,9 @@ function compute_presets() {
       memory: 0,
       memory_request: 0,
       cores: 0,
-      cpu_shares: 0
+      cpu_shares: 0,
     },
-    desc: "Basic plan"
+    desc: "Basic plan",
   };
 
   for (const x of upgrades.live_subscriptions) {
@@ -111,6 +111,6 @@ function scaled_product(sub: any, num_people: number, desc: string): Product {
   }
   return {
     upgrades,
-    desc
+    desc,
   };
 }

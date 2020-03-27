@@ -6,7 +6,7 @@ import {
   CUSTOM_SOFTWARE_HELP_URL as help_url,
   title_style,
   props2img,
-  RESET_ICON
+  RESET_ICON,
 } from "./util";
 import { ComputeImages } from "./init";
 const misc = require("smc-util/misc");
@@ -38,7 +38,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     this.props2img = props2img.bind(this);
   }
 
-  render_path = path => {
+  render_path = (path) => {
     if (!this.props.project_is_running) return null;
     if (path.length === 0) return null;
 
@@ -91,9 +91,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
               <Icon name={"cc-icon-ipynb"} /> <HiddenXSSM>Jupyter</HiddenXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {have_jl ? (
           <ButtonRetryUntilSuccess get_href={href_jl}>
             <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
@@ -102,9 +100,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
               <VisibleXSSM>Lab</VisibleXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
 
         <Button onClick={this.reset}>
           <Icon name={RESET_ICON} /> <VisibleMDLG>Reset...</VisibleMDLG>
@@ -117,7 +113,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     );
   };
 
-  img_info = img => {
+  img_info = (img) => {
     const disp = img.get("display", "");
     const id = img.get("id", "");
     return `${disp} (${id})`;

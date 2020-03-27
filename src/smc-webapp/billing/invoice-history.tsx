@@ -21,7 +21,7 @@ export class InvoiceHistory extends Component<Props> {
   }
 
   private render_invoice({
-    index: idx
+    index: idx,
   }: {
     index: number;
   }): Rendered | undefined {
@@ -47,7 +47,7 @@ export class InvoiceHistory extends Component<Props> {
           estimated_row_size={size}
           row_count={size}
           row_renderer={this.render_invoice.bind(this)}
-          row_key={idx => `${idx}`}
+          row_key={(idx) => `${idx}`}
           cache_id={"invoices"}
         />
       </div>

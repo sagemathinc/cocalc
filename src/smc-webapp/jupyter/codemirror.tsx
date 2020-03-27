@@ -42,7 +42,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
     super(props, context);
     this.state = {
       click_coords: undefined, // coordinates if static input was just clicked on
-      last_cursor: undefined
+      last_cursor: undefined,
     }; // last cursor position when editing
   }
 
@@ -85,7 +85,8 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
     // we can remove this use of the slower non-static fallback...
     if (
       (this.has_rendered_nonstatic || !this.props.is_scrolling) &&
-      (this.props.actions != null && this.props.frame_actions != null)
+      this.props.actions != null &&
+      this.props.frame_actions != null
     ) {
       // For some reason the static renderer has some REALLY bad performance, especially for
       // larger documents.  This may be an issue with using react at all (i.e., we should just

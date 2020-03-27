@@ -8,7 +8,7 @@ import {
   ProjectMap,
   UserMap,
   StripeCustomer,
-  Customer
+  Customer,
 } from "smc-webapp/todo-types";
 const { webapp_client } = require("../../webapp_client");
 const { Alert } = require("react-bootstrap");
@@ -47,21 +47,21 @@ export const ProjectSettings = rclass<ReactProps>(
     public static reduxProps() {
       return {
         projects: {
-          project_map: rtypes.immutable
+          project_map: rtypes.immutable,
         }, // SMELL isRequired doesn't seem to work here
         users: {
-          user_map: rtypes.immutable
+          user_map: rtypes.immutable,
         },
         account: {
           // NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
           stripe_customer: rtypes.immutable,
           email_address: rtypes.string,
           user_type: rtypes.string, // needed for projects get_my_group call in render
-          account_id: rtypes.string
+          account_id: rtypes.string,
         },
         billing: {
-          customer: rtypes.immutable
-        } // similar to stripe_customer
+          customer: rtypes.immutable,
+        }, // similar to stripe_customer
       };
     }
 
@@ -88,7 +88,7 @@ export const ProjectSettings = rclass<ReactProps>(
       this._table = webapp_client.sync_table2({ projects_admin: query }, []);
       this._table.on("change", () => {
         this.setState({
-          admin_project: this._table.get(this.props.project_id)
+          admin_project: this._table.get(this.props.project_id),
         });
       });
     }

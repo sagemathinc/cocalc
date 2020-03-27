@@ -8,7 +8,7 @@ import { COLORS, UNIT, Icon, Loading } from "../r_misc";
 const {
   HelpEmailLink,
   TermsOfService,
-  AccountCreationEmailInstructions
+  AccountCreationEmailInstructions,
 } = require("../customize");
 
 const {
@@ -16,7 +16,7 @@ const {
   Checkbox,
   FormControl,
   FormGroup,
-  Well
+  Well,
 } = require("react-bootstrap");
 
 const ERROR_STYLE: React.CSSProperties = {
@@ -26,7 +26,7 @@ const ERROR_STYLE: React.CSSProperties = {
   border: "1px solid lightgray",
   padding: "15px",
   marginTop: "5px",
-  marginBottom: "5px"
+  marginBottom: "5px",
 };
 
 interface Props {
@@ -55,11 +55,11 @@ export class SignUp extends React.Component<Props, State> {
     this.state = {
       show_terms,
       terms_checkbox: !show_terms,
-      user_token: ""
+      user_token: "",
     };
   }
 
-  make_account = e => {
+  make_account = (e) => {
     e.preventDefault();
     return redux
       .getActions("account")
@@ -113,7 +113,7 @@ export class SignUp extends React.Component<Props, State> {
           type={"text"}
           placeholder={"Enter the secret token"}
           cocalc-test={"sign-up-token"}
-          onChange={e => this.setState({ user_token: e.target.value })}
+          onChange={(e) => this.setState({ user_token: e.target.value })}
         />
       </FormGroup>
     );
@@ -125,7 +125,7 @@ export class SignUp extends React.Component<Props, State> {
       <FormGroup style={{ fontSize: "12pt", margin: "20px" }}>
         <Checkbox
           cocalc-test={"sign-up-tos"}
-          onChange={e => this.setState({ terms_checkbox: e.target.checked })}
+          onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
         >
           <TermsOfService />
         </Checkbox>
@@ -281,7 +281,7 @@ export class SignUp extends React.Component<Props, State> {
   render(): Rendered {
     const well_style = {
       marginTop: "10px",
-      borderColor: COLORS.LANDING.LOGIN_BAR_BG
+      borderColor: COLORS.LANDING.LOGIN_BAR_BG,
     };
     return (
       <Well style={well_style}>
@@ -293,9 +293,7 @@ export class SignUp extends React.Component<Props, State> {
           <div style={{ textAlign: "center" }}>
             Email <HelpEmailLink /> if you need help.
           </div>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
       </Well>
     );
   }

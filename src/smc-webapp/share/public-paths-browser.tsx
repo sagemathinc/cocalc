@@ -9,7 +9,7 @@ import { TimeAgoElement, Space } from "../r_misc";
 
 const INDEX_STYLE = {
   margin: "0px 30px 15px 30px",
-  background: "white"
+  background: "white",
 };
 
 interface Props {
@@ -28,7 +28,7 @@ export class PublicPathsBrowser extends Component<Props> {
           color: "#333",
           paddingRight: "10px",
           borderRight: "1px solid black",
-          marginRight: "10px"
+          marginRight: "10px",
         }}
       >
         Page {this.props.page_number} of{" "}
@@ -92,9 +92,7 @@ export class PublicPathsBrowser extends Component<Props> {
       <span key="last" style={{ display: "inline-block", width: "30%" }}>
         {last_edited != null ? (
           <TimeAgoElement date={last_edited} live={false} />
-        ) : (
-          undefined
-        )}
+        ) : undefined}
       </span>
     );
   }
@@ -109,7 +107,7 @@ export class PublicPathsBrowser extends Component<Props> {
           margin: "0px 30px",
           fontSize: "12pt",
           color: "#666",
-          borderBottom: "1px solid lightgrey"
+          borderBottom: "1px solid lightgrey",
         }}
       >
         <span key="path" style={{ display: "inline-block", width: "30%" }}>

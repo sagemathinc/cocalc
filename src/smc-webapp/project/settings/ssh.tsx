@@ -17,16 +17,16 @@ interface Props {
 }
 
 export class SSHPanel extends React.Component<Props> {
-  add_ssh_key = opts => {
+  add_ssh_key = (opts) => {
     opts.project_id = this.props.project.get("project_id");
     redux.getActions("projects").add_ssh_key_to_project(opts);
     analytics_event("project_settings", "add project ssh key");
   };
 
-  delete_ssh_key = fingerprint => {
+  delete_ssh_key = (fingerprint) => {
     redux.getActions("projects").delete_ssh_key_from_project({
       fingerprint,
-      project_id: this.props.project.get("project_id")
+      project_id: this.props.project.get("project_id"),
     });
     analytics_event("project_settings", "remove project ssh key");
   };
@@ -60,7 +60,7 @@ export class SSHPanel extends React.Component<Props> {
           ssh_keys={this.props.project.getIn([
             "users",
             webapp_client.account_id,
-            "ssh_keys"
+            "ssh_keys",
           ])}
           delete_key={this.delete_ssh_key}
         >

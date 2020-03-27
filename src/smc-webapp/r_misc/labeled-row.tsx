@@ -14,7 +14,7 @@ export function LabeledRow({
   style,
   label,
   className,
-  label_cols = 4
+  label_cols = 4,
 }: Props) {
   return (
     <Row style={style} className={className}>

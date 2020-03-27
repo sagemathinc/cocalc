@@ -108,7 +108,8 @@
     "delete-package-lock": "git ls-files '../*/package-lock.json' | xargs rm -f",
     "restore-package-lock": "git ls-files '../*/package-lock.json' | xargs git checkout --",
     "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static; npm cache verify",
-    "audit-fix": "scripts/npm-audit.sh fix"
+    "audit-fix": "scripts/npm-audit.sh fix",
+    "prettier-all": "git ls-files '*.ts' '*.tsx' '**/*.ts' '**/*.tsx' | parallel -j5 --eta prettier --write :::"
   },
   "repository": {
     "type": "git",

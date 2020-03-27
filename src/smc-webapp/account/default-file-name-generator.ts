@@ -7,7 +7,7 @@ import { redux } from "../app-framework";
 
 const new_filenames_generator = new NewFilenames(undefined, true);
 
-export const default_filename = function(
+export const default_filename = function (
   ext?: string,
   project_id?: string
 ): string {

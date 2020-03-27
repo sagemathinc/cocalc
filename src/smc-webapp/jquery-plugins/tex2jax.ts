@@ -36,13 +36,13 @@ export const tex2jax = {
     inlineMath: [
       // The start/stop pairs for in-line math
       ["$", "$"], //  (comment out any you don't want, or add your own, but
-      ["\\(", "\\)"] //  be sure that you don't have an extra comma at the end)
+      ["\\(", "\\)"], //  be sure that you don't have an extra comma at the end)
     ],
 
     displayMath: [
       // The start/stop pairs for display math
       ["$$", "$$"], //  (comment out any you don't want, or add your own, but
-      ["\\[", "\\]"] //  be sure that you don't have an extra comma at the end)
+      ["\\[", "\\]"], //  be sure that you don't have an extra comma at the end)
     ],
 
     skipTags: [
@@ -53,7 +53,7 @@ export const tex2jax = {
       "pre",
       "code",
       "annotation",
-      "annotation-xml"
+      "annotation-xml",
     ],
 
     // The names of the tags whose contents will not be
@@ -77,7 +77,7 @@ export const tex2jax = {
 
     processRefs: true, // set to true to process \ref{...} outside of math mode
 
-    preview: "none" // set to "none" to not insert MathJax_Preview spans
+    preview: "none", // set to "none" to not insert MathJax_Preview spans
     //   or set to an array specifying an HTML snippet
     //   to use the same preview for every equation.
   },
@@ -87,17 +87,17 @@ export const tex2jax = {
   //
   ignoreTags: {
     wbr: "",
-    "#comment": ""
+    "#comment": "",
   },
 
-  PreProcess: function(element) {
+  PreProcess: function (element) {
     this.config.preview = "none";
     if (this.createPatterns()) {
       this.scanElement(element, element.nextSibling);
     }
   },
 
-  createPatterns: function() {
+  createPatterns: function () {
     let starts: string[] = [],
       parts: string[] = [],
       i,
@@ -109,7 +109,7 @@ export const tex2jax = {
       this.match[config.inlineMath[i][0]] = {
         mode: "",
         end: config.inlineMath[i][1],
-        pattern: this.endPattern(config.inlineMath[i][1])
+        pattern: this.endPattern(config.inlineMath[i][1]),
       };
     }
     for (i = 0, m = config.displayMath.length; i < m; i++) {
@@ -117,7 +117,7 @@ export const tex2jax = {
       this.match[config.displayMath[i][0]] = {
         mode: "; mode=display",
         end: config.displayMath[i][1],
-        pattern: this.endPattern(config.displayMath[i][1])
+        pattern: this.endPattern(config.displayMath[i][1]),
       };
     }
     if (starts.length) {
@@ -145,22 +145,22 @@ export const tex2jax = {
     return parts.length > 0;
   },
 
-  patternQuote: function(s) {
+  patternQuote: function (s) {
     return s.replace(/([\^$(){}+*?\-|\[\]\:\\])/g, "\\$1");
   },
 
-  endPattern: function(end) {
+  endPattern: function (end) {
     return new RegExp(this.patternQuote(end) + "|\\\\.|[{}]", "g");
   },
 
-  sortLength: function(a, b) {
+  sortLength: function (a, b) {
     if (a.length !== b.length) {
       return b.length - a.length;
     }
     return a == b ? 0 : a < b ? -1 : 1;
   },
 
-  scanElement: function(element, stop, ignore) {
+  scanElement: function (element, stop, ignore) {
     let cname, tname, ignoreChild, process;
     while (element && element != stop) {
       if (element.nodeName.toLowerCase() === "#text") {
@@ -190,7 +190,7 @@ export const tex2jax = {
     }
   },
 
-  scanText: function(element) {
+  scanText: function (element) {
     if (element.nodeValue.replace(/\s+/, "") == "") {
       return element;
     }
@@ -237,7 +237,7 @@ export const tex2jax = {
     return element;
   },
 
-  startMatch: function(match, element) {
+  startMatch: function (match, element) {
     const delim = this.match[match[0]];
     if (delim != null) {
       // a start delimiter
@@ -247,7 +247,7 @@ export const tex2jax = {
         pcount: 0,
         open: element,
         olen: match[0].length,
-        opos: this.pattern.lastIndex - match[0].length
+        opos: this.pattern.lastIndex - match[0].length,
       };
       this.switchPattern(delim.pattern);
     } else if (match[0].substr(0, 6) === "\\begin") {
@@ -260,7 +260,7 @@ export const tex2jax = {
         olen: 0,
         opos: this.pattern.lastIndex - match[0].length,
         blen: match[1].length + 3,
-        isBeginEnd: true
+        isBeginEnd: true,
       };
       this.switchPattern(this.endPattern(this.search.end));
     } else if (
@@ -273,7 +273,7 @@ export const tex2jax = {
         open: element,
         pcount: 0,
         olen: 0,
-        opos: this.pattern.lastIndex - match[0].length
+        opos: this.pattern.lastIndex - match[0].length,
       };
       return this.endMatch([""], element);
     } else {
@@ -303,7 +303,7 @@ export const tex2jax = {
     return element;
   },
 
-  endMatch: function(match, element) {
+  endMatch: function (match, element) {
     const search = this.search;
     if (match[0] == search.end) {
       if (!search.close || search.pcount === 0) {
@@ -323,20 +323,20 @@ export const tex2jax = {
     }
     return element;
   },
-  prevEndMatch: function() {
+  prevEndMatch: function () {
     this.search.matched = true;
     const element = this.encloseMath();
     this.switchPattern(this.start);
     return element;
   },
 
-  switchPattern: function(pattern) {
+  switchPattern: function (pattern) {
     pattern.lastIndex = this.pattern.lastIndex;
     this.pattern = pattern;
     this.search.start = pattern === this.start;
   },
 
-  encloseMath: function() {
+  encloseMath: function () {
     let search = this.search,
       close = search.close,
       CLOSE,
@@ -384,12 +384,12 @@ export const tex2jax = {
     return math;
   },
 
-  insertNode: function(node) {
+  insertNode: function (node) {
     const search = this.search;
     search.close.parentNode.insertBefore(node, search.close);
   },
 
-  createMathTag: function(mode, tex) {
+  createMathTag: function (mode, tex) {
     const script = $("<script>");
     script.attr("type", "math/tex" + mode);
     script.text(tex);
@@ -397,7 +397,7 @@ export const tex2jax = {
     return script[0];
   },
 
-  filterPreview: function(tex) {
+  filterPreview: function (tex) {
     return tex;
-  }
+  },
 };

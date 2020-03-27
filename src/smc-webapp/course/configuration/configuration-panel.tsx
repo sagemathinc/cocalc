@@ -33,7 +33,7 @@ import {
   rtypes,
   Component,
   AppRedux,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
 
@@ -51,7 +51,7 @@ import {
   TextInput,
   TimeAgo,
   Tip,
-  ErrorDisplay
+  ErrorDisplay,
 } from "../../r_misc";
 
 import { StudentProjectUpgrades } from "./upgrades";
@@ -92,8 +92,8 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     static reduxProps({ name }) {
       return {
         [name]: {
-          action_all_projects_state: rtypes.string
-        }
+          action_all_projects_state: rtypes.string,
+        },
       };
     }
 
@@ -101,7 +101,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
       super(props);
       this.state = {
         confirm_stop_all_projects: false,
-        confirm_start_all_projects: false
+        confirm_start_all_projects: false,
       };
     }
 
@@ -324,12 +324,12 @@ class DisableStudentCollaboratorsPanel extends Component<
           style={{
             border: "1px solid lightgrey",
             padding: "10px",
-            borderRadius: "5px"
+            borderRadius: "5px",
           }}
         >
           <Checkbox
             checked={this.props.checked}
-            onChange={e => this.props.on_change((e.target as any).checked)}
+            onChange={(e) => this.props.on_change((e.target as any).checked)}
           >
             Allow arbitrary collaborators
           </Checkbox>
@@ -375,11 +375,11 @@ export class ConfigurationPanel extends Component<
     super(props);
     this.state = {
       show_students_pay_dialog: false,
-      email_body_error: undefined
+      email_body_error: undefined,
     };
     this.check_email_body = debounce(this.check_email_body.bind(this), 50, {
       leading: true,
-      trailing: true
+      trailing: true,
     });
   }
 
@@ -387,12 +387,12 @@ export class ConfigurationPanel extends Component<
     return (
       misc.is_different(this.state, state, [
         "show_students_pay_dialog",
-        "email_body_error"
+        "email_body_error",
       ]) ||
       misc.is_different(this.props, props, [
         "settings",
         "project_map",
-        "configuring_projects"
+        "configuring_projects",
       ])
     );
   }
@@ -426,7 +426,7 @@ export class ConfigurationPanel extends Component<
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
-            on_change={title =>
+            on_change={(title) =>
               this.get_actions().configuration.set_title(title)
             }
           />
@@ -438,7 +438,7 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.props.settings.get("description")}
-            on_save={desc =>
+            on_save={(desc) =>
               this.get_actions().configuration.set_description(desc)
             }
           />
@@ -515,7 +515,7 @@ export class ConfigurationPanel extends Component<
       .allow_urls_in_emails(this.props.project_id);
     if (!allow_urls && contains_url(value)) {
       this.setState({
-        email_body_error: "Sending URLs is not allowed. (anti-spam measure)"
+        email_body_error: "Sending URLs is not allowed. (anti-spam measure)",
       });
     } else {
       this.setState({ email_body_error: undefined });
@@ -542,7 +542,7 @@ export class ConfigurationPanel extends Component<
           style={{
             border: "1px solid lightgrey",
             padding: "10px",
-            borderRadius: "5px"
+            borderRadius: "5px",
           }}
         >
           {this.render_email_body_error()}
@@ -552,7 +552,7 @@ export class ConfigurationPanel extends Component<
             rows={6}
             type="textarea"
             default_value={this.get_store().get_email_invite()}
-            on_save={body =>
+            on_save={(body) =>
               this.get_actions().configuration.set_email_invite(body)
             }
             save_disabled={this.state.email_body_error != null}
@@ -591,9 +591,7 @@ export class ConfigurationPanel extends Component<
         >
           {this.props.configuring_projects ? (
             <Icon name="cc-icon-cocalc-ring" spin />
-          ) : (
-            undefined
-          )}{" "}
+          ) : undefined}{" "}
           Reconfigure all projects
         </Button>
       </Card>
@@ -618,7 +616,7 @@ export class ConfigurationPanel extends Component<
             this.get_actions().configuration.push_missing_handouts_and_assignments();
           }}
         >
-          <Icon name="share-square" />  Copy missing handouts and assignments
+          <Icon name="share-square" /> Copy missing handouts and assignments
         </Button>
       </Card>
     );
@@ -681,7 +679,7 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  handle_student_pay_choice = e => {
+  handle_student_pay_choice = (e) => {
     return this.get_actions().configuration.set_pay_choice(
       "student",
       e.target.checked
@@ -727,7 +725,7 @@ export class ConfigurationPanel extends Component<
             style={{ width: "20em" }}
             placeholder={"Student Pay Deadline"}
             value={value != null ? value : this.props.settings.get("pay")}
-            onChange={date => {
+            onChange={(date) => {
               this.get_actions().configuration.set_course_info(
                 date != null ? date.toISOString() : undefined
               );
@@ -751,7 +749,7 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  handle_students_pay_checkbox = e => {
+  handle_students_pay_checkbox = (e) => {
     if (e.target.checked) {
       this.get_actions().configuration.set_course_info(
         this.get_student_pay_when()
@@ -886,9 +884,11 @@ export class ConfigurationPanel extends Component<
         }
       >
         {this.render_student_pay_choice_checkbox()}
-        {(this.props.settings != null
-        ? this.props.settings.get("student_pay")
-        : undefined)
+        {(
+          this.props.settings != null
+            ? this.props.settings.get("student_pay")
+            : undefined
+        )
           ? this.render_student_pay_details()
           : undefined}
       </Card>
@@ -964,7 +964,7 @@ export class ConfigurationPanel extends Component<
     return (
       <DisableStudentCollaboratorsPanel
         checked={!!this.props.settings.get("allow_collabs")}
-        on_change={val =>
+        on_change={(val) =>
           this.get_actions().configuration.set_allow_collabs(val)
         }
       />

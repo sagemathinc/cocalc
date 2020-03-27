@@ -30,8 +30,8 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
-    ])
+      "format",
+    ]),
   },
   markdown: {
     short: "View",
@@ -43,18 +43,18 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
       "save",
-      "time_travel"
-    ])
+      "time_travel",
+    ]),
   },
   terminal,
   settings: SETTINGS_SPEC,
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "MarkdownEditor"
+  display_name: "MarkdownEditor",
 });
 
 /*

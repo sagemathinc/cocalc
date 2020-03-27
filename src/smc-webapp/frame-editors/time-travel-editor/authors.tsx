@@ -8,7 +8,7 @@ import {
   React,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../app-framework";
 import { TimeTravelActions } from "./actions";
 
@@ -25,8 +25,8 @@ class Authors extends Component<Props> {
   static reduxProps() {
     return {
       users: {
-        user_map: rtypes.immutable.Map
-      }
+        user_map: rtypes.immutable.Map,
+      },
     };
   }
 

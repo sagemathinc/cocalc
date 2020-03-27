@@ -362,7 +362,7 @@ export class CourseStore extends Store<CourseState> {
     if (users == null) return student_id;
     return [
       users.get_last_name(account_id),
-      users.get_first_name(account_id)
+      users.get_first_name(account_id),
     ].join(" ");
   }
 
@@ -481,7 +481,7 @@ export class CourseStore extends Store<CourseState> {
         v.push(assignment);
       }
     }
-    const f = function(a: AssignmentRecord) {
+    const f = function (a: AssignmentRecord) {
       return [a.get("due_date", 0), a.get("path", "")];
     };
     v.sort((a, b) => misc.cmp_array(f(a), f(b)));
@@ -567,7 +567,7 @@ export class CourseStore extends Store<CourseState> {
         student_id,
         assignment_id,
         peer_assignment: false,
-        peer_collect: false
+        peer_collect: false,
       };
     }
 
@@ -596,7 +596,7 @@ export class CourseStore extends Store<CourseState> {
       student_id,
       assignment_id,
       peer_assignment,
-      peer_collect
+      peer_collect,
     };
   }
 
@@ -614,7 +614,7 @@ export class CourseStore extends Store<CourseState> {
       "assignments",
       assignment_id,
       `last_${step}`,
-      student_id
+      student_id,
     ]);
     if (x == null) {
       return false;
@@ -741,7 +741,7 @@ export class CourseStore extends Store<CourseState> {
     return {
       status: status != null ? status.toJS() : undefined,
       student_id,
-      handout_id
+      handout_id,
     };
   }
 
@@ -792,7 +792,7 @@ export class CourseStore extends Store<CourseState> {
 
     const info = {
       handout: 0,
-      not_handout: 0
+      not_handout: 0,
     };
 
     const status = handout.get("status");
@@ -821,16 +821,16 @@ export class CourseStore extends Store<CourseState> {
       project_map: this.redux.getStore("projects").get("project_map"),
       student_project_ids: set(
         this.get_student_project_ids({
-          include_deleted: true
+          include_deleted: true,
         })
       ),
       deleted_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
-          deleted_only: true
+          deleted_only: true,
         })
       ),
-      upgrade_goal
+      upgrade_goal,
     });
     return plan;
   }

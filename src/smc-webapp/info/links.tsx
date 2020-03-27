@@ -16,7 +16,7 @@ import {
   DOC_URL,
   TWITTER_HANDLE,
   LIVE_DEMO_REQUEST,
-  DISCORD_INVITE
+  DISCORD_INVITE,
 } from "smc-util/theme";
 
 interface LinkInfo {
@@ -37,7 +37,7 @@ export const SUPPORT_LINKS: Links = {
     icon: "envelope",
     href: "mailto:" + HELP_EMAIL,
     link: HELP_EMAIL,
-    text: "Please include the URL link to the relevant project or file!"
+    text: "Please include the URL link to the relevant project or file!",
   },
   doc: {
     icon: "book",
@@ -47,7 +47,7 @@ export const SUPPORT_LINKS: Links = {
       <span>
         <SiteName /> manual
       </span>
-    )
+    ),
   },
   teaching: {
     commercial: true,
@@ -57,7 +57,7 @@ export const SUPPORT_LINKS: Links = {
       <span>
         The Instructor Guide: How to teach a course with <SiteName />
       </span>
-    )
+    ),
   },
   live_demo: {
     commercial: true,
@@ -69,13 +69,13 @@ export const SUPPORT_LINKS: Links = {
         questions.
       </span>
     ),
-    href: LIVE_DEMO_REQUEST
+    href: LIVE_DEMO_REQUEST,
   },
   pricing: {
     icon: "money",
     href: PolicyPricingPageUrl,
     link: "Pricing and subscription options",
-    commercial: true
+    commercial: true,
   },
   cocalc_api: {
     icon: "gears",
@@ -84,7 +84,7 @@ export const SUPPORT_LINKS: Links = {
       <span>
         Embed and control <SiteName /> using a powerful API
       </span>
-    )
+    ),
   },
   docker_image: {
     commercial: true,
@@ -94,7 +94,7 @@ export const SUPPORT_LINKS: Links = {
       <span>
         Run open source CoCalc on your computer ($799 commercial license)
       </span>
-    )
+    ),
   },
   kubernetes_image: {
     commercial: true,
@@ -105,8 +105,8 @@ export const SUPPORT_LINKS: Links = {
         Run open source CoCalc on your Kubernetes cluster ($1499 commercial
         license)
       </span>
-    )
-  }
+    ),
+  },
 };
 
 export const CONNECT_LINKS = {
@@ -119,32 +119,32 @@ export const CONNECT_LINKS = {
       <span>
         Discord - chat about <SiteName />
       </span>
-    )
+    ),
   },
   share: {
     icon: "bullhorn",
     href: `${BASE_URL}/share`,
-    link: "Shared public files"
+    link: "Shared public files",
   },
   support_mailing_list: {
     icon: "list-alt",
     href: "https://groups.google.com/forum/?fromgroups#!forum/cocalc",
-    link: <span>Mailing list</span>
+    link: <span>Mailing list</span>,
   },
   sagemath_blog: {
     icon: "rss",
     href: "http://blog.sagemath.com/",
-    link: "News and updates on our blog"
+    link: "News and updates on our blog",
   },
   twitter: {
     icon: "twitter-square",
     href: `https://twitter.com/${TWITTER_HANDLE}`,
-    link: `Follow @${TWITTER_HANDLE} on twitter`
+    link: `Follow @${TWITTER_HANDLE} on twitter`,
   },
   facebook: {
     icon: "facebook-square",
     href: "https://www.facebook.com/CoCalcOnline/",
-    link: "Like our facebook page"
+    link: "Like our facebook page",
   },
   github: {
     icon: "github-square",
@@ -176,8 +176,8 @@ export const CONNECT_LINKS = {
           issues
         </a>
       </span>
-    )
-  }
+    ),
+  },
 };
 
 export const THIRD_PARTY = {
@@ -185,13 +185,13 @@ export const THIRD_PARTY = {
     icon: "cc-icon-sagemath",
     href: "http://www.sagemath.org/",
     link: "SageMath",
-    text: <span>open-source mathematical software</span>
+    text: <span>open-source mathematical software</span>,
   },
   r: {
     icon: "cc-icon-r",
     href: "https://cran.r-project.org/doc/manuals/r-release/R-intro.html",
     link: "R project",
-    text: "the #1 open-source statistics software"
+    text: "the #1 open-source statistics software",
   },
   python: {
     icon: "cc-icon-python",
@@ -237,45 +237,45 @@ export const THIRD_PARTY = {
         </a>{" "}
         and many more
       </span>
-    )
+    ),
   },
   julia: {
     icon: "cc-icon-julia",
     href: "https://www.julialang.org/",
     link: "Julia",
-    text: "programming language for numerical computing"
+    text: "programming language for numerical computing",
   },
   octave: {
     icon: "cc-icon-octave",
     href: "https://www.gnu.org/software/octave/",
     link: "GNU Octave",
-    text: "scientific programming language, largely compatible with MATLAB"
+    text: "scientific programming language, largely compatible with MATLAB",
   },
   tensorflow: {
     icon: "lightbulb-o",
     href: "https://www.tensorflow.org/get_started/get_started",
     link: "Tensorflow",
-    text: "open-source software library for machine intelligence"
+    text: "open-source software library for machine intelligence",
   },
   latex: {
     icon: "cc-icon-tex-file",
     href: "https://en.wikibooks.org/wiki/LaTeX",
     link: "LaTeX",
-    text: "high-quality typesetting program"
+    text: "high-quality typesetting program",
   },
   linux: {
     icon: "linux",
     href: "http://ryanstutorials.net/linuxtutorial/",
     link: "GNU/Linux",
-    text: "operating system and utility toolbox"
-  }
+    text: "operating system and utility toolbox",
+  },
 };
 
 export const ABOUT_LINKS = {
   legal: {
     icon: "cc-icon-section",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
-    href: `${BASE_URL}/policies/index.html`
+    href: `${BASE_URL}/policies/index.html`,
   },
   developers: {
     icon: "keyboard-o",
@@ -301,11 +301,11 @@ export const ABOUT_LINKS = {
           William Stein
         </a>
       </span>
-    )
+    ),
   },
   incorporated: {
     icon: "gavel",
     text:
-      "SageMath, Inc. is a Delaware C Corporation that was incorporated Feb 2, 2015, founded on sustainable principles. The company has no plans to take Venture Capital funding or be acquired."
-  }
+      "SageMath, Inc. is a Delaware C Corporation that was incorporated Feb 2, 2015, founded on sustainable principles. The company has no plans to take Venture Capital funding or be acquired.",
+  },
 };

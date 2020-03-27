@@ -8,16 +8,11 @@ import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
-export const api_create_project = async function(
-  creds: Creds,
-  opts: Opts,
-  api_key: string
-): Promise<TestGetString> {
+export const api_create_project = async function (creds: Creds, opts: Opts, api_key: string): Promise<TestGetString> {
   const ags: TestGetString = new TestGetString();
   try {
     const tm_start = process.hrtime.bigint();
-    const url: string =
-      creds.url.replace(/\/app.*/, "") + "/api/v1/create_project";
+    const url: string = creds.url.replace(/\/app.*/, "") + "/api/v1/create_project";
     debuglog("url", url);
 
     const desc: string = new Date().toISOString();
