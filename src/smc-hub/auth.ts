@@ -79,12 +79,12 @@ import { HELP_EMAIL } from "smc-util/theme";
 import {
   email_verified_successfully,
   email_verification_problem,
-  welcome_email
+  welcome_email,
 } from "./email";
 
 const { defaults, required } = misc;
 
-const api_key_cookie_name = base_url => base_url + "get_api_key";
+const api_key_cookie_name = (base_url) => base_url + "get_api_key";
 
 // Nov'19: actually two cookies due to same-site changes.
 // See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
@@ -123,10 +123,7 @@ export function generate_hash(algorithm, salt, iterations, password): string {
     asc ? i <= end : i >= end;
     asc ? i++ : i--
   ) {
-    hash = crypto
-      .createHmac(algorithm, salt)
-      .update(hash)
-      .digest("hex");
+    hash = crypto.createHmac(algorithm, salt).update(hash).digest("hex");
   }
   return algorithm + "$" + salt + "$" + iterations + "$" + hash;
 }
@@ -136,7 +133,7 @@ export function password_hash(password): string {
   return password_hash_library.generate(password, {
     algorithm: HASH_ALGORITHM,
     saltLength: HASH_SALT_LENGTH,
-    iterations: HASH_ITERATIONS
+    iterations: HASH_ITERATIONS,
   });
 }
 
@@ -147,7 +144,7 @@ async function create_account(opts, email_address): Promise<string> {
     email_address,
     PassportStrategy: opts.strategy,
     passport_id: opts.id,
-    passport_profile: opts.profile
+    passport_profile: opts.profile,
   });
 }
 
@@ -165,10 +162,10 @@ function passport_login(opts) {
     res: required, // response object
     base_url: "",
     host: required,
-    cb: undefined
+    cb: undefined,
   });
 
-  const dbg = m => winston.debug(`passport_login: ${m}`);
+  const dbg = (m) => winston.debug(`passport_login: ${m}`);
   const BASE_URL = opts.base_url;
 
   dbg(misc.to_json(opts.req.user));
@@ -195,7 +192,7 @@ function passport_login(opts) {
     target: BASE_URL + "/app#login",
     cookies,
     remember_me_cookie: cookies.get(remember_me_cookie_name(BASE_URL)),
-    get_api_key: cookies.get(api_key_cookie_name(BASE_URL))
+    get_api_key: cookies.get(api_key_cookie_name(BASE_URL)),
   };
 
   //# dbg("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
@@ -248,7 +245,7 @@ function passport_login(opts) {
 
   series(
     [
-      function(cb) {
+      function (cb) {
         let hash;
         if (!locals.remember_me_cookie) {
           cb();
@@ -287,10 +284,10 @@ function passport_login(opts) {
               dbg("no valid remember_me token");
               cb();
             }
-          }
+          },
         });
       },
-      function(cb) {
+      function (cb) {
         dbg(
           "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
         );
@@ -314,7 +311,7 @@ function passport_login(opts) {
                     opts.emails != null ? opts.emails[0] : undefined,
                   first_name: opts.first_name,
                   last_name: opts.last_name,
-                  cb
+                  cb,
                 });
               } else {
                 if (
@@ -342,10 +339,10 @@ function passport_login(opts) {
                 }
               }
             }
-          }
+          },
         });
       },
-      function(cb) {
+      function (cb) {
         if (locals.account_id || opts.emails == null) {
           cb();
           return;
@@ -353,7 +350,7 @@ function passport_login(opts) {
         dbg(
           "passport doesn't exist and emails available, so check for existing account with a matching email -- if we find one it's an error"
         );
-        const f = function(email, cb) {
+        const f = function (email, cb) {
           if (locals.account_id) {
             dbg(
               `already found a match with account_id=${locals.account_id} -- done`
@@ -382,13 +379,13 @@ function passport_login(opts) {
                     `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategy} to it in account settings.`
                   );
                 }
-              }
+              },
             });
           }
         };
         async_map(opts.emails, f, cb);
       },
-      async function(cb) {
+      async function (cb) {
         if (locals.account_id) {
           // account already made above
           cb();
@@ -407,7 +404,7 @@ function passport_login(opts) {
           if (locals.email_address != null) {
             await callback2(opts.database.do_account_creation_actions, {
               email_address: locals.email_address,
-              account_id: locals.account_id
+              account_id: locals.account_id,
             });
           }
           // log this
@@ -417,13 +414,13 @@ function passport_login(opts) {
             last_name: opts.last_name,
             email_address:
               locals.email_address != null ? locals.email_address : null,
-            created_by: opts.req.ip
+            created_by: opts.req.ip,
           };
           // no await -- don't let client wait for *logging* the fact that we created an account
           // failure wouldn't matter.
           opts.database.log({
             event: "create_account",
-            value: data
+            value: data,
           });
           cb();
         } catch (err) {
@@ -431,7 +428,7 @@ function passport_login(opts) {
         }
       },
 
-      function(cb) {
+      function (cb) {
         if (locals.new_account_created) {
           cb();
           return;
@@ -443,12 +440,12 @@ function passport_login(opts) {
           remember_me: locals.has_valid_remember_me,
           email_address: locals.email_address,
           account_id: locals.account_id,
-          database: opts.database
+          database: opts.database,
         });
         cb();
       }, // don't make client wait for this -- it's just a log message for us.
 
-      function(cb) {
+      function (cb) {
         if (!locals.get_api_key) {
           cb();
           return;
@@ -462,7 +459,7 @@ function passport_login(opts) {
         }
         series(
           [
-            cb =>
+            (cb) =>
               api_key_action({
                 database: opts.database,
                 account_id: locals.account_id,
@@ -471,9 +468,9 @@ function passport_login(opts) {
                 cb: (err, api_key) => {
                   locals.api_key = api_key;
                   cb(err);
-                }
+                },
               }),
-            function(cb) {
+            function (cb) {
               if (locals.api_key) {
                 // got it above
                 cb();
@@ -490,11 +487,11 @@ function passport_login(opts) {
                 cb: (err, api_key) => {
                   locals.api_key = api_key;
                   cb(err);
-                }
+                },
               });
-            }
+            },
           ],
-          function(err) {
+          function (err) {
             if (err) {
               cb(err);
             } else {
@@ -524,9 +521,9 @@ function passport_login(opts) {
               return;
             }
             cb();
-          }
+          },
         }),
-      function(cb) {
+      function (cb) {
         if (locals.has_valid_remember_me) {
           cb();
           return;
@@ -541,7 +538,7 @@ function passport_login(opts) {
           hub: opts.host,
           account_id: locals.account_id,
           first_name: opts.first_name,
-          last_name: opts.last_name
+          last_name: opts.last_name,
         });
 
         dbg("create remember_me cookie");
@@ -564,11 +561,11 @@ function passport_login(opts) {
           hash: hash_session_id,
           value: signed_in_mesg,
           ttl,
-          cb
+          cb,
         });
-      }
+      },
     ],
-    function(err) {
+    function (err) {
       if (err) {
         opts.res.send(`Error trying to login using ${opts.strategy} -- ${err}`);
       } else {
@@ -580,6 +577,9 @@ function passport_login(opts) {
   );
 } // end passport_login
 
+// maps the full profile object to a string or list of strings (e.g. "first_name")
+type LoginInfoDerivator<T> = (profile: any) => T;
+
 interface StrategyConf {
   strategy: string;
   PassportStrategy: any;
@@ -589,22 +589,13 @@ interface StrategyConf {
   auth_opts?: {
     scope?: string | string[];
   };
-  login_select?: {
-    id: string; // id is required!
-    first_name?: string;
-    last_name?: string;
-    full_name?: string;
-    emails?: string;
-  };
   // return type has to partially fit with passport_login
-  login_info?: (
-    profile: any
-  ) => {
-    id: string; // id is required!
-    first_name?: string;
-    last_name?: string;
-    full_name?: string;
-    emails?: string[];
+  login_info: {
+    id: string | LoginInfoDerivator<string>; // id is required!
+    first_name?: string | LoginInfoDerivator<string>;
+    last_name?: string | LoginInfoDerivator<string>;
+    full_name?: string | LoginInfoDerivator<string>;
+    emails?: string | LoginInfoDerivator<string[]>;
   };
 }
 
@@ -626,14 +617,12 @@ const GoogleStrategyConf: StrategyConf = {
   strategy: "google",
   PassportStrategy: require("@passport-next/passport-google-oauth2").Strategy,
   auth_opts: { scope: "openid email profile" },
-  login_info: function(profile) {
-    return {
-      id: profile.id,
-      first_name: profile.name.givenName,
-      last_name: profile.name.familyName,
-      emails: profile.emails.map(x => x.value)
-    };
-  }
+  login_info: {
+    id: (profile) => profile.id,
+    first_name: (profile) => profile.name.givenName,
+    last_name: (profile) => profile.name.familyName,
+    emails: (profile) => profile.emails.map((x) => x.value as string),
+  },
 };
 
 // Get these here:
@@ -644,13 +633,12 @@ const GoogleStrategyConf: StrategyConf = {
 const GithubStrategyConf: StrategyConf = {
   strategy: "github",
   PassportStrategy: require("passport-github").Strategy,
-  login_info: function(profile) {
-    return {
-      id: profile.id,
-      full_name: profile.name || profile.displayName || profile.username,
-      emails: (profile.emails ?? []).map(x => x.value)
-    };
-  }
+  login_info: {
+    id: (profile) => profile.id,
+    full_name: (profile) =>
+      profile.name || profile.displayName || profile.username,
+    emails: (profile) => (profile.emails ?? []).map((x) => x.value),
+  },
 };
 
 // Get these by going to https://developers.facebook.com/ and creating a new application.
@@ -665,14 +653,12 @@ const FacebookStrategyConf: StrategyConf = {
   strategy: "facebook",
   PassportStrategy: require("passport-facebook").Strategy,
   extra_opts: {
-    enableProof: false
+    enableProof: false,
   },
-  login_info: function(profile) {
-    return {
-      id: profile.id,
-      full_name: profile.displayName
-    };
-  }
+  login_info: {
+    id: (profile) => profile.id,
+    full_name: (profile) => profile.displayName,
+  },
 };
 
 // Get these by:
@@ -685,18 +671,16 @@ const FacebookStrategyConf: StrategyConf = {
 const TwitterStrategyConf: StrategyConf = {
   strategy: "twitter",
   PassportStrategy: require("passport-twitter").Strategy,
-  login_info: function(profile) {
-    return {
-      id: profile.id,
-      full_name: profile.displayName
-    };
-  }
+  login_info: {
+    id: (profile) => profile.id,
+    full_name: (profile) => profile.displayName,
+  },
 };
 
 //const Oauth2StrategyConf: StrategyConf = {
 //  strategy: "oauth2",
 //  PassportStrategy: require("@passport-next/passport-oauth2").Strategy,
-//  login_select: {
+//  login_info: {
 //      id: "id"
 //    };
 //  }
@@ -708,7 +692,7 @@ export async function init_passport(opts) {
     database: required,
     base_url: required,
     host: required,
-    cb: required
+    cb: required,
   });
 
   const pp_initializer = new PassportManager(opts);
@@ -738,10 +722,10 @@ class PassportManager {
   }
 
   private async get_conf(strategy): Promise<any> {
-    const dbg = m => winston.debug(`get_conf: ${m}`);
+    const dbg = (m) => winston.debug(`get_conf: ${m}`);
     try {
       const settings = callback2(this.database.get_passport_settings, {
-        strategy
+        strategy,
       });
 
       if (settings != null) {
@@ -761,13 +745,13 @@ class PassportManager {
 
   // Define handler for api key cookie setting.
   private handle_get_api_key(req, res, next) {
-    const dbg = m => winston.debug(`handle_get_api_key: ${m}`);
+    const dbg = (m) => winston.debug(`handle_get_api_key: ${m}`);
     dbg("");
     if (req.query.get_api_key) {
       const cookies = new Cookies(req, res);
       // maxAge: User gets up to 60 minutes to go through the SSO process...
       cookies.set(api_key_cookie_name(this.base_url), req.query.get_api_key, {
-        maxAge: 30 * 60 * 1000
+        maxAge: 30 * 60 * 1000,
       });
     }
     next();
@@ -775,7 +759,7 @@ class PassportManager {
 
   async init(): Promise<void> {
     // Initialize authentication plugins using Passport
-    const dbg = m => winston.debug(`init_passport: ${m}`);
+    const dbg = (m) => winston.debug(`init_passport: ${m}`);
     dbg("");
 
     // initialize use of middleware
@@ -792,7 +776,7 @@ class PassportManager {
       res.json(this.strategies)
     );
 
-    this.router.get("/auth/verify", function(req, res) {
+    this.router.get("/auth/verify", function (req, res) {
       const { DOMAIN_NAME } = require("smc-util/theme");
       const path = require("path").join("/", this.base_url, "/app");
       const url = `${DOMAIN_NAME}${path}`;
@@ -814,7 +798,7 @@ class PassportManager {
           } else {
             res.send(email_verified_successfully(url));
           }
-        }
+        },
       });
     });
 
@@ -832,7 +816,7 @@ class PassportManager {
         this.init_strategy(GoogleStrategyConf),
         this.init_strategy(GithubStrategyConf),
         this.init_strategy(FacebookStrategyConf),
-        this.init_strategy(TwitterStrategyConf)
+        this.init_strategy(TwitterStrategyConf),
       ]);
     }
     this.strategies.sort();
@@ -847,9 +831,8 @@ class PassportManager {
       extra_opts,
       auth_opts,
       login_info,
-      login_select
     } = strategy_config;
-    const dbg = m => winston.debug(`init_strategy ${strategy}: ${m}`);
+    const dbg = (m) => winston.debug(`init_strategy ${strategy}: ${m}`);
     dbg("start");
     const conf = await this.get_conf(strategy);
 
@@ -861,7 +844,7 @@ class PassportManager {
       {
         clientID: conf.clientID,
         clientSecret: conf.clientSecret,
-        callbackURL: `${this.auth_url}/${strategy}/return`
+        callbackURL: `${this.auth_url}/${strategy}/return`,
       },
       extra_opts
     );
@@ -879,7 +862,7 @@ class PassportManager {
     this.router.get(
       `/auth/${strategy}/return`,
       passport.authenticate(strategy),
-      function(req, res) {
+      function (req, res) {
         const { profile } = req.user;
         const login_opts = {
           database: this.database,
@@ -888,17 +871,17 @@ class PassportManager {
           req,
           res,
           base_url: this.base_url,
-          host: this.host
+          host: this.host,
         };
-        if (typeof login_info == "function") {
-          Object.assign(login_opts, login_info(profile));
-        }
-        if (login_select != null) {
-          for (const k in login_select) {
-            Object.assign(login_opts, {
-              [k]: dot.pick(login_select[k], profile)
-            });
-          }
+        for (const k in login_info) {
+          const v = login_info[k];
+          const param: string | string[] =
+            typeof v == "function"
+              ? // v is a LoginInfoDerivator<T>
+                v(profile)
+              : // v is a string for dot-object
+                dot.pick(v, profile);
+          Object.assign(login_opts, { [k]: param });
         }
         passport_login(login_opts);
       }
@@ -926,7 +909,7 @@ export async function is_password_correct(opts): Promise<void> {
     // in passport-only accounts.
     allow_empty_password: false,
     // cb(err, true or false)
-    cb: required
+    cb: required,
   });
 
   if (opts.password_hash != null) {
@@ -937,7 +920,7 @@ export async function is_password_correct(opts): Promise<void> {
       const account = await callback2(opts.database.get_account, {
         account_id: opts.account_id,
         email_address: opts.email_address,
-        columns: ["password_hash"]
+        columns: ["password_hash"],
       });
 
       if (opts.allow_empty_password && !account.password_hash) {
@@ -948,7 +931,7 @@ export async function is_password_correct(opts): Promise<void> {
             account_id: opts.account_id,
             password_hash: password_hash(opts.password),
             invalidate_remember_me: false,
-            cb: err => opts.cb(err, true)
+            cb: (err) => opts.cb(err, true),
           });
         } else {
           opts.cb(undefined, true);
@@ -974,14 +957,14 @@ export async function verify_email_send_token(opts) {
     database: required,
     account_id: required,
     only_verify: false,
-    cb: required
+    cb: required,
   });
 
   try {
     const { token, email_address } = await callback2(
       opts.database.verify_email_create_token,
       {
-        account_id: opts.account_id
+        account_id: opts.account_id,
       }
     );
     const settings = await callback2(
@@ -992,7 +975,7 @@ export async function verify_email_send_token(opts) {
       to: email_address,
       token,
       only_verify: opts.only_verify,
-      settings
+      settings,
     });
     opts.cb();
   } catch (err) {
