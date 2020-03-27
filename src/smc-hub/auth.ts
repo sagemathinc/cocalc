@@ -63,6 +63,7 @@ Then restart the hubs.
 //
 //  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
 
+import { Router } from "express";
 import { series } from "async";
 import { map as async_map } from "async";
 import { callback2 } from "../smc-util/async-utils";
@@ -81,6 +82,7 @@ import {
   email_verification_problem,
   welcome_email,
 } from "./email";
+import { PostgreSQL } from "./postgres/types";
 
 const { defaults, required } = misc;
 
@@ -148,7 +150,23 @@ async function create_account(opts, email_address): Promise<string> {
   });
 }
 
-function passport_login(opts) {
+interface PassportLogin {
+  database: PostgreSQL;
+  strategy: string;
+  profile: any; // complex object
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  emails?: string[];
+  req: any;
+  res: any;
+  base_url: string;
+  host: any;
+  cb: (err) => void;
+}
+
+function passport_login(opts: PassportLogin) {
   opts = defaults(opts, {
     database: required,
     strategy: required, // name of the auth strategy, e.g., 'google', 'facebook', etc.
@@ -298,7 +316,11 @@ function passport_login(opts) {
             if (err) {
               cb(err);
             } else {
-              if (!_account_id && locals.has_valid_remember_me) {
+              if (
+                !_account_id &&
+                locals.has_valid_remember_me &&
+                locals.account_id != null
+              ) {
                 dbg(
                   "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
                 );
@@ -503,9 +525,8 @@ function passport_login(opts) {
         );
       },
 
-      (
-        cb // check if user is banned:
-      ) =>
+      // check if user is banned:
+      (cb) =>
         opts.database.is_banned_user({
           account_id: locals.account_id,
           cb(err, is_banned) {
@@ -528,6 +549,9 @@ function passport_login(opts) {
           cb();
           return;
         }
+
+        // make TS happy
+        if (locals.account_id == null) throw Error("locals.account_id is null");
 
         dbg("passport created: set remember_me cookie, so user gets logged in");
 
@@ -686,7 +710,15 @@ const TwitterStrategyConf: StrategyConf = {
 //  }
 //};
 
-export async function init_passport(opts) {
+interface InitPassport {
+  router: Router;
+  database: PostgreSQL;
+  base_url: string;
+  host: string;
+  cb: (err?) => void;
+}
+
+export async function init_passport(opts: InitPassport) {
   opts = defaults(opts, {
     router: required,
     database: required,
@@ -704,15 +736,22 @@ export async function init_passport(opts) {
   }
 }
 
+interface PassportManagerOpts {
+  router: Router;
+  database: PostgreSQL;
+  base_url: string;
+  host: string;
+}
+
 class PassportManager {
-  readonly router: any;
-  readonly database: any;
-  readonly base_url: any;
-  readonly host: any;
+  readonly router: Router;
+  readonly database: PostgreSQL;
+  readonly base_url: string;
+  readonly host: string; // e.g. 127.0.0.1
   private strategies: string[] = []; // configured strategies listed here.
   private auth_url: string | undefined = undefined;
 
-  constructor(opts) {
+  constructor(opts: PassportManagerOpts) {
     const { router, database, base_url, host } = opts;
     this.handle_get_api_key.bind(this);
     this.router = router;
@@ -883,10 +922,20 @@ class PassportManager {
                 dot.pick(v, profile);
           Object.assign(login_opts, { [k]: param });
         }
-        passport_login(login_opts);
+        passport_login(login_opts as PassportLogin);
       }
     );
   }
+}
+
+interface IsPasswordCorrect {
+  database: PostgreSQL;
+  password: string;
+  password_hash?: string;
+  account_id?: string;
+  email_address?: string;
+  allow_empty_password?: boolean;
+  cb: (err?, correct?: boolean) => void;
 }
 
 // Password checking.  opts.cb(undefined, true) if the
@@ -897,7 +946,9 @@ class PassportManager {
 // callback (if specified), this function also returns true if the
 // password is correct, and false otherwise; it can do this because
 // there is no async IO when the password_hash is specified.
-export async function is_password_correct(opts): Promise<void> {
+export async function is_password_correct(
+  opts: IsPasswordCorrect
+): Promise<void> {
   opts = defaults(opts, {
     database: required,
     password: required,
