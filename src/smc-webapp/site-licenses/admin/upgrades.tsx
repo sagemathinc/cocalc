@@ -179,7 +179,7 @@ export class EditUpgrades extends Component<EditProps> {
 }
 
 export function normalize_upgrades_for_save(obj: {
-  [field: upgrade_fields_type]: any;
+  [field in upgrade_fields_type]: any;
 }): void {
   for (const field in obj) {
     const { display_factor, input_type } = params(field as upgrade_fields_type);

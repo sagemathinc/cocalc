@@ -22,7 +22,7 @@ export const upgrade_fields: upgrade_fields_type[] = [
   "cpu_shares"
 ];
 
-export type Upgrades = { [field: upgrade_fields_type]: number };
+export type Upgrades = { [field in upgrade_fields_type]: number };
 
 export interface SiteLicense {
   id: string;
@@ -61,13 +61,13 @@ export type license_field_names =
   | "created"
   | "last_used"
   | "managers"
-  | "restricted"
+  // | "restricted" // hide for now since not implemented at all
   | "upgrades"
-  | "run_limit"
-  | "apply_limit";
+  | "run_limit";
+// | "apply_limit" // hide for now since not implemented at all
 
 export const license_fields: {
-  [field: license_field_names]: license_field_type;
+  [field in license_field_names]: license_field_type;
 } = {
   id: "readonly",
   title: "string",
@@ -81,7 +81,7 @@ export const license_fields: {
   // restricted: "boolean",  // hide for now since not implemented at all
   upgrades: "upgrades",
   run_limit: "number"
-  //apply_limit: "number"
+  //apply_limit: "number" // hide for now since not implemented at all
 };
 
 // export const source_fields = ["expires", "activates", "created", "last_used"];

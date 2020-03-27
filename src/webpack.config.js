@@ -87,13 +87,8 @@ require("coffeescript/register");
 // So we can require Typescript code.
 require("ts-node").register();
 
-let cleanWebpackPlugin,
-  entries,
-  hashname,
-  MATHJAX_URL,
-  output_fn,
-  plugins,
-  publicPath;
+let cleanWebpackPlugin, entries, hashname, MATHJAX_URL, output_fn, publicPath;
+const plugins = [];
 const _ = require("lodash");
 const webpack = require("webpack");
 const path = require("path");
@@ -130,7 +125,6 @@ const MINIFY = !!process.env.WP_MINIFY;
 const DEBUG = process.argv.includes("--debug");
 const { MEASURE } = process.env;
 const SOURCE_MAP = !!process.env.SOURCE_MAP;
-const STATICPAGES = !!process.env.CC_STATICPAGES; // special mode where just the landing page is built
 const date = new Date();
 const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
@@ -149,7 +143,6 @@ const TS_TRANSPILE_ONLY = process.env.TS_TRANSPILE_ONLY;
 const DISABLE_TS_LOADER_OPTIMIZATIONS =
   !!process.env.DISABLE_TS_LOADER_OPTIMIZATIONS ||
   PRODMODE ||
-  STATICPAGES ||
   TS_TRANSPILE_ONLY;
 
 // create a file base_url to set a base url
@@ -324,165 +317,6 @@ const pug2app = new HtmlWebpackPlugin({
   GOOGLE_ANALYTICS
 });
 
-// static html pages
-// they only depend on the css chunk
-const staticPages = [];
-// in the root directory (doc/ and policies/ is below)
-for (let [fn_in, fn_out] of [["index.pug", "index.html"]]) {
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      date: BUILD_DATE,
-      title: TITLE,
-      description: DESCRIPTION,
-      BASE_URL: base_url_html,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      git_rev: GIT_REV,
-      mathjax: MATHJAX_URL,
-      filename: fn_out,
-      chunks: ["css"],
-      inject: "head",
-      hash: PRODMODE,
-      template: path.join(INPUT, fn_in),
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema-static"),
-      PREFIX: fn_in === "index.pug" ? "" : "../"
-    })
-  );
-}
-
-// doc pages
-for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
-  if (path.basename(dp)[0] === "_") {
-    continue;
-  }
-  if (path.basename(dp).indexOf("software-") === 0 && COMP_ENV) {
-    continue;
-  }
-  output_fn = `doc/${misc.change_filename_extension(
-    path.basename(dp),
-    "html"
-  )}`;
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      filename: output_fn,
-      date: BUILD_DATE,
-      title: TITLE,
-      description: DESCRIPTION,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      template: dp,
-      chunks: ["css"],
-      inject: "head",
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema-static"),
-      hash: PRODMODE,
-      BASE_URL: base_url_html,
-      PREFIX: "../"
-    })
-  );
-}
-
-// the following renders the policy pages
-for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
-  if (path.basename(pp)[0] === "_") {
-    continue;
-  }
-  output_fn = `policies/${misc.change_filename_extension(
-    path.basename(pp),
-    "html"
-  )}`;
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      filename: output_fn,
-      date: BUILD_DATE,
-      title: TITLE,
-      description: DESCRIPTION,
-      theme,
-      COMP_ENV,
-      components: {}, // no data needed, empty is fine
-      inventory: {}, // no data needed, empty is fine
-      template: pp,
-      chunks: ["css"],
-      inject: "head",
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      SCHEMA: require("smc-util/schema"),
-      hash: PRODMODE,
-      BASE_URL: base_url_html,
-      PREFIX: "../"
-    })
-  );
-}
-
-// build pages for compute environment
-if (COMP_ENV) {
-  const components = JSON.parse(
-    fs.readFileSync("webapp-lib/compute-components.json", "utf8")
-  );
-  //console.log(JSON.stringify(Object.keys(components)))
-  const inventory = JSON.parse(
-    fs.readFileSync("webapp-lib/compute-inventory.json", "utf8")
-  );
-
-  staticPages.push(
-    new HtmlWebpackPlugin({
-      filename: "doc/software.html",
-      date: BUILD_DATE,
-      title: TITLE,
-      description: DESCRIPTION,
-      theme,
-      COMP_ENV,
-      components,
-      inventory,
-      template: "webapp-lib/doc/software.pug",
-      chunks: ["css"],
-      inject: "head",
-      minify: htmlMinifyOpts,
-      GOOGLE_ANALYTICS,
-      hash: PRODMODE,
-      BASE_URL: base_url_html,
-      PREFIX: "../"
-    })
-  );
-
-  // table of installed software packages and libraries
-  for (let infn of glob.sync("webapp-lib/doc/software-*.pug")) {
-    const sw_env = path
-      .basename(infn)
-      .split("-")[1]
-      .split(".")[0];
-    output_fn = `doc/software-${sw_env}.html`;
-    staticPages.push(
-      new HtmlWebpackPlugin({
-        filename: output_fn,
-        date: BUILD_DATE,
-        title: TITLE,
-        description: DESCRIPTION,
-        theme,
-        COMP_ENV,
-        components,
-        inventory,
-        sw_env,
-        template: infn,
-        chunks: ["css"],
-        inject: "head",
-        minify: htmlMinifyOpts,
-        GOOGLE_ANALYTICS,
-        hash: PRODMODE,
-        BASE_URL: base_url_html,
-        PREFIX: "../"
-      })
-    );
-  }
-}
-
 // global css loader configuration
 const cssConfig = JSON.stringify({
   sourceMap: false
@@ -530,80 +364,66 @@ const loaderOptions = new webpack.LoaderOptionsPlugin({
 });
 
 if (cleanWebpackPlugin != null) {
-  // This is just a horrible hack for now, to get around how
-  // slow the pug/static functionality is (remove this when use
-  // of pug is deprecated in favor of react).
-  plugins = [cleanWebpackPlugin];
+  plugins.push(cleanWebpackPlugin);
 }
-({
-  else: (plugins = [])
-});
 
-plugins = plugins.concat([setNODE_ENV, banner, loaderOptions]);
+plugins.push(...[setNODE_ENV, banner, loaderOptions]);
 
-if (STATICPAGES) {
-  plugins = plugins.concat(staticPages);
-  entries = { css: "webapp-css.coffee" };
-} else {
-  // ATTN don't alter or add names here, without changing the sorting function above!
-  entries = {
-    css: "webapp-css.coffee",
-    fill: "@babel/polyfill",
-    smc: "webapp-smc.coffee",
-    // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
-    // this way it will have better caching/cache hits since it changes infrequently
-    vendor: [
-      // local packages
-      "./webapp-lib/primus/primus-engine.min.js"
-      // npm packages are added to vendor code separately in splitChunks config below
-    ],
-    "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
-  };
-  plugins = plugins.concat([pug2app, mathjaxVersionedSymlink]);
+// ATTN don't alter or add names here, without changing the sorting function above!
+entries = {
+  css: "webapp-css.coffee",
+  fill: "@babel/polyfill",
+  smc: "webapp-smc.coffee",
+  // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
+  // this way it will have better caching/cache hits since it changes infrequently
+  vendor: [
+    // local packages
+    "./webapp-lib/primus/primus-engine.min.js"
+    // npm packages are added to vendor code separately in splitChunks config below
+  ],
+  "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
+};
+plugins.push(...[pug2app, mathjaxVersionedSymlink]);
 
-  if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
-    console.log("Enabling ForkTsCheckerWebpackPlugin...");
-    if (process.env.TSC_WATCHDIRECTORY == null || process.env.TSC_WATCHFILE) {
-      console.log(
-        "To workaround performance issues with the default typescript watch, we set TSC_WATCH* env vars:"
-      );
-      // See https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
-      // This one seems to work well; others miss changes:
-      process.env.TSC_WATCHFILE = "UseFsEventsOnParentDirectory";
-      // Using "RecursiveDirectoryUsingFsWatchFile" for the directory is very inefficient on CoCalc.
-      process.env.TSC_WATCHDIRECTORY =
-        "RecursiveDirectoryUsingDynamicPriorityPolling";
-    }
-
-    const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
-    plugins.push(
-      new ForkTsCheckerWebpackPlugin({
-        // async false makes it much easy to see the error messages and
-        // be aware of when compilation is done,
-        // but is slower because it has to wait before showing them.
-        // We still benefit from parallel computing though.
-        // We could change this to async if there were some
-        // better way to display that output is pending and that it appeared...
-        // NOTE: it is very important to do
-        //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
-        // in package.json's watch. See
-        //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
-        async: false,
-        measureCompilationTime: true
-      })
+if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
+  console.log("Enabling ForkTsCheckerWebpackPlugin...");
+  if (process.env.TSC_WATCHDIRECTORY == null || process.env.TSC_WATCHFILE) {
+    console.log(
+      "To workaround performance issues with the default typescript watch, we set TSC_WATCH* env vars:"
     );
+    // See https://github.com/TypeStrong/fork-ts-checker-webpack-plugin/issues/236
+    // This one seems to work well; others miss changes:
+    process.env.TSC_WATCHFILE = "UseFsEventsOnParentDirectory";
+    // Using "RecursiveDirectoryUsingFsWatchFile" for the directory is very inefficient on CoCalc.
+    process.env.TSC_WATCHDIRECTORY =
+      "RecursiveDirectoryUsingDynamicPriorityPolling";
   }
+
+  const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      // async false makes it much easy to see the error messages and
+      // be aware of when compilation is done,
+      // but is slower because it has to wait before showing them.
+      // We still benefit from parallel computing though.
+      // We could change this to async if there were some
+      // better way to display that output is pending and that it appeared...
+      // NOTE: it is very important to do
+      //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
+      // in package.json's watch. See
+      //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
+      async: false,
+      measureCompilationTime: true
+    })
+  );
 }
 
 if (DEVMODE) {
-  console.log("******************************************************");
-  console.log("WARNING! You might have to visit");
-  console.log("     https://cocalc.com/[project_id]/port/[...]/app");
-  console.log("in case the / static pages are currently not built via");
-  console.log("     npm run webpack-static");
-  console.log("******************************************************");
-} else {
-  plugins = plugins.concat(staticPages);
+  console.log(`\
+******************************************************
+*             You have to visit:                     *
+*   https://cocalc.com/[project_id]/port/[...]/app   *
+******************************************************`);
 }
 
 if (PRODMODE) {
@@ -611,7 +431,7 @@ if (PRODMODE) {
   plugins.push(new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 }));
 }
 
-plugins = plugins.concat([assetsPlugin, statsWriterPlugin]);
+plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const minimizer = new UglifyJsPlugin({
@@ -649,7 +469,7 @@ if (MEASURE) {
   const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
     analyzerMode: "static"
   });
-  plugins = plugins.concat([bundleAnalyzerPlugin]);
+  plugins.push(...[bundleAnalyzerPlugin]);
 }
 
 module.exports = {
@@ -698,14 +518,11 @@ module.exports = {
         test: /\.tsx?$/,
         use: {
           loader: "ts-loader",
-          options:
-            TS_TRANSPILE_ONLY || DISABLE_TS_LOADER_OPTIMIZATIONS
-              ? { transpileOnly: TS_TRANSPILE_ONLY } // run as normal or not at all
-              : {
-                  // do not run typescript checker in same process...
-                  transpileOnly: !STATICPAGES,
-                  experimentalWatchApi: true
-                }
+          options: {
+            // do not run typescript checker in same process...
+            transpileOnly: TS_TRANSPILE_ONLY,
+            experimentalWatchApi: !DISABLE_TS_LOADER_OPTIMIZATIONS
+          }
         }
       },
       {

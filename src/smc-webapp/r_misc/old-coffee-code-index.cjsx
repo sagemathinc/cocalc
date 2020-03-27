@@ -50,9 +50,9 @@ copy_to_clipboard = require('copy-to-clipboard')
 share_server = require('./share-server');
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
-smc_version = SMC_VERSION ? 'N/A'
-build_date  = BUILD_DATE  ? 'N/A'
-smc_git_rev = SMC_GIT_REV ? 'N/A'
+exports.smc_version = smc_version = SMC_VERSION ? 'N/A'
+exports.build_date  = build_date  = BUILD_DATE  ? 'N/A'
+exports.smc_git_rev = smc_git_rev = SMC_GIT_REV ? 'N/A'
 
 Combobox    = require('react-widgets/lib/Combobox')
 
@@ -159,36 +159,11 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-exports.Footer = rclass
-    displayName : "Footer"
-
-    mixins: [ImmutablePureRenderMixin]
-
-    render: ->
-        # Have to re-import them here to deal with some sort of circular
-        # reference or something when doing the backend static
-        # rendering.  To see this run
-        #   ~/cocalc/src$ scripts/update_react_static
-        # This problem should just go away when all this code is
-        # refactored in typescript.
-        {HelpEmailLink, SiteName, CompanyName} = require('../customize')
-        <footer style={fontSize:"small",color:"gray",textAlign:"center",padding: "#{2*UNIT}px 0" }>
-            <hr/>
-            <Space/>
-            <SiteName/> by <CompanyName/>
-            {' '} &middot; {' '}
-            <a target="_blank" rel='noopener' href={PolicyIndexPageUrl}>Policies</a>
-            {' '} &middot; {' '}
-            <a target="_blank" rel='noopener' href={PolicyTOSPageUrl}>Terms of Service</a>
-            {' '} &middot; {' '}
-            <HelpEmailLink />
-            {' '} &middot; {' '}
-            <span title="Version #{smc_version} @ #{build_date} | #{smc_git_rev[..8]}">&copy; {misc.YEAR}</span>
-        </footer>
-
+# required for hub-landing -- in all other contexts import directly from customize
 exports.render_static_footer = ->
-    Footer = exports.Footer
+    {Footer} = require('smc-webapp/customize')
     <Footer />
+
 
 exports.MessageDisplay = MessageDisplay = rclass
     displayName : 'Misc-MessageDisplay'

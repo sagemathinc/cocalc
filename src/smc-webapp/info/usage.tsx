@@ -21,23 +21,27 @@ function fmt_large(num) {
 type RecentTimes = "1d" | "1h" | "7d" | "30d";
 
 interface Props {
+  is_cocalc_com?: boolean;
   loading?: boolean;
   hub_servers?: { clients: number }[];
   time?: Date;
   accounts?: number;
   projects?: number;
-  accounts_created?: { [key: RecentTimes]: number };
-  projects_created?: { [key: RecentTimes]: number };
-  projects_edited?: { [key: RecentTimes]: number };
+  accounts_created?: { [key in RecentTimes]: number };
+  projects_created?: { [key in RecentTimes]: number };
+  projects_edited?: { [key in RecentTimes]: number };
   files_opened?: {
-    total: { [key: RecentTimes]: { [ext: string]: number } };
-    distinct: { [key: RecentTimes]: { [ext: string]: number } };
+    total: { [key in RecentTimes]: { [ext: string]: number } };
+    distinct: { [key in RecentTimes]: { [ext: string]: number } };
   };
 }
 
 class Usage extends Component<Props> {
   public static reduxProps(): object {
     return {
+      customize: {
+        is_cocalc_com: rtypes.bool
+      },
       server_stats: {
         loading: rtypes.bool.isRequired,
         hub_servers: rtypes.array,
@@ -218,13 +222,19 @@ class Usage extends Component<Props> {
             Recent user activity
           </div>
           {this.render_recent_usage_stats()}
-          <Icon name="line-chart" fixedWidth />{" "}
-          <a
-            target="_blank"
-            href="https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html"
-          >
-            Historical Usage Statistics...
-          </a>
+          {this.props.is_cocalc_com ? (
+            <React.Fragment>
+              <Icon name="line-chart" fixedWidth />{" "}
+              <a
+                target="_blank"
+                href="https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html"
+              >
+                Historical Usage Statistics...
+              </a>
+            </React.Fragment>
+          ) : (
+            undefined
+          )}
           <br />
           {this.render_historical_metrics()}
         </div>

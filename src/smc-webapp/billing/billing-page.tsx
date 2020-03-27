@@ -15,12 +15,11 @@ import {
   A,
   ActivityDisplay,
   ErrorDisplay,
-  Footer,
   Icon,
   Loading,
   Space
 } from "../r_misc";
-const { HelpEmailLink, PolicyPricingPageUrl } = require("../customize");
+import { HelpEmailLink, PolicyPricingPageUrl, Footer } from "../customize";
 import { SubscriptionList } from "./subscription-list";
 import { PaymentMethods } from "./payment-methods";
 import { AddSubscription } from "./add-subscription";

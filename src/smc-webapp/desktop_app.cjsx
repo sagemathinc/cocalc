@@ -31,7 +31,6 @@ misc_page = require('./misc_page')
 # CoCalc Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{InfoPage}     = require('./info/info')
 {ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
@@ -102,6 +101,8 @@ PAGE_REDUX_PROPS =
         created                : rtypes.object
     support :
         show                   : rtypes.bool
+    customize:
+        site_name              : rtypes.string
 
 PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
 
@@ -269,7 +270,7 @@ Page = rclass
             {@render_sign_in_tab() if not logged_in}
             <NavTab
                 name           = {'about'}
-                label          = {'CoCalc'}
+                label          = {@props.site_name}
                 label_class    = {nav_class}
                 icon           = {'info-circle'}
                 inner_style    = {padding: '10px', display: 'flex'}

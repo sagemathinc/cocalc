@@ -6,15 +6,25 @@ export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
 export type RowType = "header" | "setting";
 
-type SiteSettingsKeys =
+export type SiteSettingsKeys =
+  | "theming"
   | "site_name"
   | "site_description"
   | "terms_of_service"
   | "account_creation_email_instructions"
   | "help_email"
+  | "logo_square"
+  | "logo_rectangular"
+  | "splash_image"
+  | "index_info_html"
+  | "terms_of_service_url"
+  | "organization_name"
+  | "organization_email"
+  | "organization_url"
   | "commercial"
   | "google_analytics"
   | "kucalc"
+  | "dns"
   | "ssh_gateway"
   | "version_min_project"
   | "version_min_browser"
@@ -29,6 +39,7 @@ type SiteSettingsKeys =
 export interface Config {
   readonly name: string;
   readonly desc: string;
+  // there must be a default value, even if it is just ''
   readonly default: string;
   // list of allowed strings or a validator function
   readonly valid?: ConfigValid;
@@ -40,25 +51,36 @@ export interface Config {
   readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
+  readonly clearable?: boolean; // default false
+  readonly multiline?: number;
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
 
+const fallback = (conf, name: SiteSettingsKeys): string =>
+  conf[name] ?? site_settings_conf[name].default;
+
 // little helper fuctions, used in the site settings & site settings extras
-export const is_email_enabled = conf =>
+export const is_email_enabled = (conf): boolean =>
   to_bool(conf.email_enabled) && conf.email_backend !== "none";
-export const only_for_smtp = conf =>
+export const only_for_smtp = (conf): boolean =>
   is_email_enabled(conf) && conf.email_backend === "smtp";
-export const only_for_sendgrid = conf =>
+export const only_for_sendgrid = (conf): boolean =>
   is_email_enabled(conf) && conf.email_backend === "sendgrid";
-export const only_for_password_reset_smtp = conf =>
+export const only_for_password_reset_smtp = (conf): boolean =>
   to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
-export const only_onprem = conf => conf.kucalc === KUCALC_ON_PREMISES;
-export const only_cocalc_com = conf => conf.kucalc === KUCALC_COCALC_COM;
-export const only_commercial = conf => to_bool(conf.commercial);
-export const to_bool = val => val === "true" || val === "yes";
+export const only_onprem = (conf): boolean =>
+  conf.kucalc === KUCALC_ON_PREMISES;
+export const only_cocalc_com = (conf): boolean =>
+  conf.kucalc === KUCALC_COCALC_COM;
+export const not_cocalc_com = (conf): boolean => !only_cocalc_com(conf);
+export const show_theming_vars = (conf): boolean =>
+  to_bool(fallback(conf, "theming"));
+export const only_commercial = (conf): boolean =>
+  to_bool(fallback(conf, "commercial"));
+export const to_bool = (val): boolean => val === "true" || val === "yes";
 export const only_booleans = ["yes", "no"]; // we also understand true and false
-export const to_int = val => parseInt(val);
+export const to_int = (val): number => parseInt(val);
 export const only_ints = val =>
   (v => !isNaN(v) && Number.isFinite(v) && Number.isInteger(val))(to_int(val));
 export const only_nonneg_int = val =>
@@ -80,36 +102,117 @@ const KUCALC_VALID_VALS = [
   KUCALC_DISABLED
 ];
 
+const help_email_name = "Help email";
+const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;
+
 export const site_settings_conf: SiteSettings = {
+  // ========= THEMING ===============
+  theming: {
+    name: "Show Theming",
+    desc: "If 'No', the fields below are hidden, not disabled!",
+    default: "yes",
+    valid: only_booleans,
+    to_val: to_bool
+  },
   site_name: {
     name: "Site name",
     desc: "The heading name of your CoCalc site.",
-    default: "CoCalc"
+    default: "Open CoCalc",
+    clearable: true,
+    show: show_theming_vars
   },
   site_description: {
     name: "Site description",
-    desc: "The description of your CoCalc site.",
-    default: ""
+    desc: "A tagline describing your site.",
+    default: "Collaborative Calculation Online",
+    clearable: true,
+    show: show_theming_vars
+  },
+  terms_of_service_url: {
+    name: "Terms of Service",
+    desc: "URL to a page describing ToS, Policies, etc.",
+    default: "",
+    clearable: true,
+    show: conf => show_theming_vars(conf) && conf.terms_of_service == ""
   },
   terms_of_service: {
-    name: "Terms of service",
+    name: "ToS information",
     desc:
       "The text displayed for the terms of service link (make empty to not require).",
     default:
-      'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
+      "By creating an account you agree to the <em>Terms of Service</em>.",
+    clearable: true,
+    show: show_theming_vars
   },
   account_creation_email_instructions: {
     name: "Account creation",
     desc:
       "Instructions displayed next to the box where a user creates their account using their name and email address.",
-    default: "Create an Account"
+    default: "Create an Account",
+    clearable: true,
+    show: show_theming_vars
   },
   help_email: {
-    name: "Help email",
+    name: help_email_name,
     desc: "Email address that user is directed to use for support requests",
-    default: "help@cocalc.com",
-    valid: is_valid_email_address
+    default: "",
+    valid: is_valid_email_address,
+    clearable: true,
+    show: show_theming_vars
   },
+  organization_name: {
+    name: "Organization name",
+    desc:
+      "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
+    default: "",
+    clearable: true,
+    show: show_theming_vars
+  },
+  organization_email: {
+    name: "Contact email address",
+    desc: organization_email_desc,
+    default: "",
+    clearable: true,
+    valid: is_valid_email_address,
+    show: show_theming_vars
+  },
+  organization_url: {
+    name: "Organization website",
+    desc: "URL link to your organization",
+    default: "",
+    clearable: true,
+    show: show_theming_vars
+  },
+  logo_square: {
+    name: "Logo (square)",
+    desc: "URL of a square logo (SVG or PNG, about 200x200 px)",
+    default: "",
+    clearable: true,
+    show: show_theming_vars
+  },
+  logo_rectangular: {
+    name: "Logo (rectangular)",
+    desc: "URL of a rectangular logo (about 450x75 px, SVG or PNG)",
+    default: "",
+    clearable: true,
+    show: show_theming_vars
+  },
+  splash_image: {
+    name: "Index page picture",
+    desc: "URL of an image displayed on the index page (about 1200x800 px)",
+    default: "",
+    clearable: true,
+    show: show_theming_vars
+  },
+  index_info_html: {
+    name: "Index page info",
+    desc: "An HTML string displayed on the index page.",
+    default: "",
+    clearable: true,
+    show: show_theming_vars,
+    multiline: 5
+  },
+  // ============== END THEMING ============
   commercial: {
     name: "Commercial",
     desc:
@@ -123,6 +226,12 @@ export const site_settings_conf: SiteSettings = {
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises k8s, or '${KUCALC_DISABLED}'`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS
+  },
+  dns: {
+    name: "Domain name",
+    desc: "DNS for your server, e.g. cocalc.universe.edu",
+    default: "",
+    show: not_cocalc_com
   },
   google_analytics: {
     name: "Google Analytics",

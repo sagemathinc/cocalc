@@ -43,7 +43,7 @@ export class Listings extends EventEmitter {
   private state: State = "init";
   private throttled_watch: { [path: string]: Function } = {};
 
-  constructor(project_id: string): void {
+  constructor(project_id: string) {
     super();
     this.project_id = project_id;
     this.init();

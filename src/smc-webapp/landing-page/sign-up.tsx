@@ -38,18 +38,23 @@ interface Props {
   signing_up: boolean;
   style: React.CSSProperties;
   has_remember_me: boolean;
+  help_email: string;
+  terms_of_service: string;
 }
 
 interface State {
   terms_checkbox: boolean;
   user_token: string;
+  show_terms: boolean;
 }
 
 export class SignUp extends React.Component<Props, State> {
   constructor(props) {
     super(props);
+    const show_terms = props.terms_of_service?.length > 0;
     this.state = {
-      terms_checkbox: false,
+      show_terms,
+      terms_checkbox: !show_terms,
       user_token: ""
     };
   }
@@ -115,6 +120,7 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   render_terms(): Rendered {
+    if (!this.state.show_terms) return undefined;
     return (
       <FormGroup style={{ fontSize: "12pt", margin: "20px" }}>
         <Checkbox
@@ -283,9 +289,13 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_question()}
         {this.render_terms()}
         {this.render_creation_form()}
-        <div style={{ textAlign: "center" }}>
-          Email <HelpEmailLink /> if you need help.
-        </div>
+        {this.props.help_email?.length > 0 ? (
+          <div style={{ textAlign: "center" }}>
+            Email <HelpEmailLink /> if you need help.
+          </div>
+        ) : (
+          undefined
+        )}
       </Well>
     );
   }

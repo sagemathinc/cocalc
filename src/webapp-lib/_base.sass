@@ -160,25 +160,32 @@ body
   background-color  : #c7d9f5
   &.nobg
     background-color: transparent
-  padding          : 7rem 0 3rem 0
+  padding          : 3rem 0 0 0
   .descr
     color          : $COL_GRAY
     font-size      : 2rem
   @media (max-width: $width-md)
     padding        : 3rem 0 0 0
   > div
-    margin-bottom  : 2rem
+    margin-bottom  : 1rem
 
   .headline
     font-family: 'Roboto Slab', serif
     font-size: 250%
     line-height: 175%
+    margin: 1rem auto
+    font-weight: bold
     @media (max-width: $width-md)
       font-size: 150%
       line-height: 125%
       text-align: center
       width: 75%
-      margin: 0 auto 2rem auto
+    &.headline2
+      font-weight: normal
+      font-size: 200%
+      margin: 0.5rem auto
+      @media (max-width: $width-md)
+        font-size: 125%
 
   .subheadline
     font-size: 125%

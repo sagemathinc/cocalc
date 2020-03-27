@@ -299,7 +299,14 @@ class SiteSettingsComponent extends Component<
     return this.setState({ edited: e });
   }
 
-  private render_row_entry_inner(name, value, valid, password): Rendered {
+  private render_row_entry_inner(
+    name,
+    value,
+    valid,
+    password,
+    clearable,
+    multiline
+  ): Rendered {
     if (Array.isArray(valid)) {
       return (
         <Select
@@ -325,14 +332,32 @@ class SiteSettingsComponent extends Component<
           />
         );
       } else {
-        return (
-          <Input
-            ref={name}
-            style={this.row_entry_style(value, valid)}
-            value={value}
-            onChange={() => this.on_change_entry(name)}
-          />
-        );
+        if (multiline != null) {
+          const style = Object.assign(this.row_entry_style(value, valid), {
+            fontFamily: "monospace",
+            fontSize: "80%"
+          } as React.CSSProperties);
+          return (
+            <Input.TextArea
+              rows={4}
+              ref={name}
+              style={style}
+              value={value}
+              onChange={() => this.on_change_entry(name)}
+            />
+          );
+        } else {
+          return (
+            <Input
+              ref={name}
+              style={this.row_entry_style(value, valid)}
+              value={value}
+              onChange={() => this.on_change_entry(name)}
+              // clearable disabled, otherwise it's not possible to edit the value
+              allowClear={clearable && false}
+            />
+          );
+        }
       }
     }
   }
@@ -344,7 +369,9 @@ class SiteSettingsComponent extends Component<
     displayed_val?: string,
     valid?: ConfigValid,
     hint?: Rendered,
-    row_type: RowType
+    row_type?: RowType,
+    clearable?: boolean,
+    multiline?: number
   ) {
     if (row_type == ("header" as RowType)) {
       return <div />;
@@ -356,7 +383,14 @@ class SiteSettingsComponent extends Component<
         default:
           return (
             <FormGroup>
-              {this.render_row_entry_inner(name, value, valid, password)}
+              {this.render_row_entry_inner(
+                name,
+                value,
+                valid,
+                password,
+                clearable,
+                multiline
+              )}
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
@@ -395,6 +429,8 @@ class SiteSettingsComponent extends Component<
         ? `${conf.to_val(raw_value)}`
         : undefined;
 
+    const clearable = conf.clearable ?? false;
+
     const label = (
       <>
         <strong>{conf.name}</strong>
@@ -424,7 +460,9 @@ class SiteSettingsComponent extends Component<
           parsed_value,
           conf.valid,
           hint,
-          row_type
+          row_type,
+          clearable,
+          conf.multiline
         )}
       </LabeledRow>
     );
