@@ -14,7 +14,7 @@ test("Defaulted value should be defined", () => {
   const A = define<Input, Defaults>({ foo: 0, bar: "" }, {
     foo: required,
     bar: required,
-    baz: "defaulted"
+    baz: "defaulted",
   });
 
   expectType<string>(A.baz);

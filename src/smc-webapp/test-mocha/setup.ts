@@ -11,7 +11,7 @@ export async function mocha_run(path: string): Promise<void> {
     .css({
       border: "1px solid grey",
       "border-radius": "3px",
-      "box-shadow": "3px 3px 3px 3px #CCC"
+      "box-shadow": "3px 3px 3px 3px #CCC",
     })
     .focus();
   try {
@@ -55,9 +55,7 @@ function load_mocha_tests(path: string): void {
 // make this a button click from the #mocha div.
 function test_reset(): void {
   $("#mocha").empty();
-  $(".page-container")
-    .show()
-    .css("opacity", 1);
+  $(".page-container").show().css("opacity", 1);
 }
 
 (window as any).test_reset = test_reset;

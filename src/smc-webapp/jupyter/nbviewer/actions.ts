@@ -33,7 +33,7 @@ export class NBViewerActions extends Actions<NBViewerState> {
       path,
       font_size:
         this.redux.getStore("account") &&
-        this.redux.getStore("account").get("font_size", 14)
+        this.redux.getStore("account").get("font_size", 14),
     });
     this._state = "ready";
     if (content == null) {
@@ -72,7 +72,7 @@ export class NBViewerActions extends Actions<NBViewerState> {
         } catch (error) {
           this.setState({ error: `Error parsing -- ${error}` });
         }
-      }
+      },
     });
   };
 
@@ -97,13 +97,13 @@ export class NBViewerActions extends Actions<NBViewerState> {
       output_handler: (cell: any) => {
         let k = 0;
         return {
-          message: content => {
+          message: (content) => {
             this._process(content);
             cell.output[`${k}`] = content;
             return (k += 1);
-          }
+          },
         };
-      }
+      },
     });
 
     const cells = fromJS(importer.cells());
@@ -131,12 +131,12 @@ export class NBViewerActions extends Actions<NBViewerState> {
     }
     const options = fromJS({
       markdown: undefined,
-      options: cm_options(mode)
+      options: cm_options(mode),
     });
     return this.setState({
       cells,
       cell_list,
-      cm_options: options
+      cm_options: options,
     });
   };
   close = () => {

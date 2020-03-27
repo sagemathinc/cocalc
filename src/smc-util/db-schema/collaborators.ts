@@ -7,7 +7,7 @@ Table({
     first_name: true,
     last_name: true,
     last_active: true,
-    profile: true
+    profile: true,
   },
   rules: {
     primary_key: "account_id",
@@ -19,8 +19,8 @@ Table({
         pg_where: [
           {
             "account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE users ? $::TEXT)":
-              "account_id"
-          }
+              "account_id",
+          },
         ],
         pg_changefeed: "collaborators",
         fields: {
@@ -28,11 +28,11 @@ Table({
           first_name: "",
           last_name: "",
           last_active: null,
-          profile: null
-        }
-      }
-    }
-  }
+          profile: null,
+        },
+      },
+    },
+  },
 });
 
 // This table does NOT support changefeeds.
@@ -44,7 +44,7 @@ Table({
     first_name: true,
     last_name: true,
     last_active: true,
-    profile: true
+    profile: true,
   },
   rules: {
     primary_key: "account_id",
@@ -56,11 +56,11 @@ Table({
         pg_where: [
           {
             "account_id = ANY(SELECT DISTINCT jsonb_object_keys(users)::UUID FROM projects WHERE project_id = $::UUID)":
-              "project_id"
-          }
+              "project_id",
+          },
         ],
         remove_from_query: [
-          "project_id"
+          "project_id",
         ] /* this is only used for the pg_where and removed from the actual query */,
         fields: {
           account_id: null,
@@ -68,9 +68,9 @@ Table({
           first_name: "",
           last_name: "",
           last_active: null,
-          profile: null
-        }
-      }
-    }
-  }
+          profile: null,
+        },
+      },
+    },
+  },
 });

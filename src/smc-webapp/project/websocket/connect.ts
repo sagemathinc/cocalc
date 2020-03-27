@@ -12,7 +12,7 @@ import { API } from "./api";
 const {
   callback2,
   once,
-  retry_until_success
+  retry_until_success,
 } = require("smc-util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
@@ -45,7 +45,7 @@ async function start_project(project_id: string) {
     return;
   }
   await callback2(projects.wait, {
-    until: () => projects.get_state(project_id) == "running"
+    until: () => projects.get_state(project_id) == "running",
   });
 }
 
@@ -77,7 +77,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
     let timeout: number = 750;
     await retry_until_success({
       // log: console.log,
-      f: async function() {
+      f: async function () {
         if (do_eval && READING_PRIMUS_JS) {
           throw Error("currently reading one already");
         }
@@ -109,7 +109,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
           GET, which is why we increase it each time up to MAX_AJAX_TIMEOUT_MS.
           */
 
-          const load_primus = cb => {
+          const load_primus = (cb) => {
             ajax({
               timeout,
               type: "GET",
@@ -119,7 +119,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
               error: () => {
                 cb("ajax error -- try again");
               },
-              success: async function(data) {
+              success: async function (data) {
                 // console.log("success. data:", data.slice(0, 100));
                 if (data.charAt(0) !== "<") {
                   if (do_eval) {
@@ -129,7 +129,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
                 } else {
                   cb("wrong data -- try again");
                 }
-              }
+              },
             });
           };
           log(
@@ -157,7 +157,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
       desc: "connecting to project",
       log: (...x) => {
         log("retry primus:", ...x);
-      }
+      },
     });
 
     log("got primus.js successfully");
@@ -173,7 +173,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // and you have to restart your browser complete (not good).
   const conn = (connections[project_id] = Primus.connect({
     strategy: false,
-    manual: true
+    manual: true,
   }));
   conn.open();
 
@@ -223,7 +223,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // Instead of using the primus reconnect logic, which just keeps
   // attempting websocket connections (which turns out to be very bad
   // for modern browsers!), we use our own strategy.
-  conn.on("end", async function() {
+  conn.on("end", async function () {
     log(`project websocket: reconnecting to '${project_id}'...`);
     if (conn.api == null) return; // done with this connection
     update_state("offline");

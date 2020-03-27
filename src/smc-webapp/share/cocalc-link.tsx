@@ -29,7 +29,7 @@ export class CoCalcLink extends Component<Props> {
             fontSize: "8pt",
             border: "1px solid #aaa",
             padding: "2px",
-            zIndex: 1000
+            zIndex: 1000,
           }}
         >
           {this.link("Powered by CoCalc")}
@@ -42,7 +42,7 @@ export class CoCalcLink extends Component<Props> {
             position: "absolute",
             left: "50%",
             transform: "translate(-50%)",
-            fontSize: "12pt"
+            fontSize: "12pt",
           }}
         >
           {this.link("CoCalc")}

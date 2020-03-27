@@ -18,5 +18,5 @@ require("./tab-completion");
 register_file_editor({
   ext: "lean",
   component: Editor,
-  Actions
+  Actions,
 });

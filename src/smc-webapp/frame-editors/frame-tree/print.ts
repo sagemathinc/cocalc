@@ -83,7 +83,7 @@ function write_content(w, opts: PrintOptions): void {
     const props = {
       value: opts.value,
       project_id: opts.project_id,
-      file_path: split.head
+      file_path: split.head,
     };
 
     const C = React.createElement(

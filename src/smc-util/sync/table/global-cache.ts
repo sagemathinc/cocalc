@@ -26,7 +26,7 @@ export function synctable(
   const cache_key = json_stable_stringify({
     query,
     options,
-    throttle_changes
+    throttle_changes,
   });
   let S: SyncTable | undefined = synctables[cache_key];
   if (S != null) {

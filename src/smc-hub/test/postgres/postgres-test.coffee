@@ -196,7 +196,7 @@ describe 'working with logs: ', ->
             event : 'test'
             cb    : (err, log) ->
                 expect(log.length).toBe(1)
-                expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time)
+                expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time, expire:log[0].expire)
                 done(err)
 
     it 'checks that there is nothing "old" in the log', (done) ->
@@ -228,7 +228,7 @@ describe 'working with logs: ', ->
             event : event
             cb    : (err, log) ->
                 expect(log.length).toBe(1)
-                expect(log[0]).toEqual(event:event, error:error, account_id:account_id, id:log[0].id, time:log[0].time)
+                expect(log[0]).toEqual(event:event, error:error, account_id:account_id, id:log[0].id, time:log[0].time, expire:log[0].expire)
                 done(err)
     it 'gets old log entries and makes sure there are none', (done) ->
         db.get_client_error_log

@@ -20,7 +20,7 @@ describe("test More Output button with no actions (so not enabled)", () => {
 
 describe("test More Output button with actions", () => {
   const actions = {
-    fetch_more_output: jest.fn()
+    fetch_more_output: jest.fn(),
   };
   const wrapper = shallow(
     <MoreOutput

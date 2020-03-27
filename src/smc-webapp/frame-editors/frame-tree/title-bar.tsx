@@ -9,7 +9,7 @@ import {
   Component,
   redux,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
@@ -29,7 +29,7 @@ import {
   Space,
   Tip,
   DropdownMenu,
-  MenuItem
+  MenuItem,
 } from "smc-webapp/r_misc";
 
 const { IS_TOUCH } = require("smc-webapp/feature");
@@ -59,7 +59,7 @@ const title_bar_style: CSS.Properties = {
   flexWrap: "nowrap",
   flex: "0 0 auto",
   display: "flex",
-  minHeight: "34px"
+  minHeight: "34px",
 };
 
 const path_style: CSS.Properties = {
@@ -67,7 +67,7 @@ const path_style: CSS.Properties = {
   fontSize: "13px",
   paddingRight: "15px",
   color: "#333",
-  float: "right" as "right"
+  float: "right" as "right",
 };
 
 const TITLE_STYLE: CSS.Properties = {
@@ -77,13 +77,13 @@ const TITLE_STYLE: CSS.Properties = {
   fontSize: "10pt",
   whiteSpace: "nowrap",
   flex: "1 1 auto",
-  display: "inline-block"
+  display: "inline-block",
 };
 
 const CONNECTION_STATUS_STYLE: CSS.Properties = {
   padding: "5px 5px 0 5px",
   fontSize: "10pt",
-  float: "right"
+  float: "right",
 };
 
 function connection_status_color(status: ConnectionStatus): string {
@@ -101,16 +101,16 @@ function connection_status_color(status: ConnectionStatus): string {
 
 const ICON_STYLE: CSS.Properties = {
   width: "20px",
-  display: "inline-block"
+  display: "inline-block",
 };
 
-const close_style: CSS.Properties | undefined = (function() {
+const close_style: CSS.Properties | undefined = (function () {
   if (IS_TOUCH) {
     return undefined;
   } else {
     return {
       background: "transparent",
-      borderColor: "transparent"
+      borderColor: "transparent",
     };
   }
 })();
@@ -179,14 +179,14 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         has_unsaved_changes: rtypes.bool,
         has_uncommitted_changes: rtypes.bool,
         is_saving: rtypes.bool,
-        is_public: rtypes.bool
-      }
+        is_public: rtypes.bool,
+      },
     };
     if (name == name2) {
       spec[name2].switch_to_files = rtypes.immutable.List;
     } else {
       spec[name2] = {
-        switch_to_files: rtypes.immutable.List
+        switch_to_files: rtypes.immutable.List,
       };
     }
     return spec;
@@ -219,7 +219,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         "font_size",
         "available_features",
         "switch_to_files",
-        "path"
+        "path",
       ]) || is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -320,7 +320,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         style={{ float: "left", height: this.button_height() }}
         key={"types"}
         title={title}
-        onClick={key => {
+        onClick={(key) => {
           this.select_type(key);
         }}
       >
@@ -334,7 +334,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     const style: CSS.Properties = {
       padding: 0,
       paddingLeft: "4px",
-      background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK
+      background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
     };
     if (is_active) {
       style.position = "absolute";
@@ -387,7 +387,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         key={"split-row"}
         title={"Split frame horizontally into two rows"}
         bsSize={this.button_size()}
-        onClick={e => {
+        onClick={(e) => {
           e.stopPropagation();
           if (this.props.is_full) {
             return this.props.actions.unset_frame_full();
@@ -407,7 +407,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         key={"split-col"}
         title={"Split frame vertically into two columns"}
         bsSize={this.button_size()}
-        onClick={e => {
+        onClick={(e) => {
           e.stopPropagation();
           if (this.props.is_full) {
             return this.props.actions.unset_frame_full();
@@ -458,7 +458,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       return;
     }
 
-    const items: Rendered[] = [100, 125, 150, 200].map(zoom => {
+    const items: Rendered[] = [100, 125, 150, 200].map((zoom) => {
       return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
     });
 
@@ -475,7 +475,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         button={true}
         title={title}
         style={{ height: this.button_height() }}
-        onClick={key => {
+        onClick={(key) => {
           this.props.actions.set_zoom(parseInt(key) / 100, this.props.id);
         }}
       >
@@ -546,11 +546,11 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         button={true}
         style={{ top: "-9px", height: this.button_height() }}
         title={path_split(this.props.path).tail}
-        onClick={key => {
+        onClick={(key) => {
           this.props.actions.switch_to_file(key, this.props.id);
         }}
       >
-        {this.props.switch_to_files.toJS().map(path => (
+        {this.props.switch_to_files.toJS().map((path) => (
           <MenuItem key={path}>
             {this.props.path == path ? <b>{path}</b> : path}
             {this.props.actions.path == path ? " (main)" : ""}
@@ -870,7 +870,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
         title={"Show complete edit history"}
         bsStyle={"info"}
         bsSize={this.button_size()}
-        onClick={event => {
+        onClick={(event) => {
           if (this.props.actions.name != this.props.editor_actions.name) {
             // a subframe editor -- always open time travel in a name tab.
             this.props.editor_actions.time_travel({ frame: false });
@@ -882,7 +882,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
           const frame =
             !event.shiftKey && this.props.editor_spec["time_travel"] != null;
           this.props.actions.time_travel({
-            frame
+            frame,
           });
         }}
       >
@@ -1232,12 +1232,12 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
       style = {
-        maxHeight: "30px"
+        maxHeight: "30px",
       };
     } else {
       style = {
         maxHeight: "34px",
-        marginLeft: "2px"
+        marginLeft: "2px",
       };
     }
 
@@ -1307,7 +1307,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
     // and *ALSO* have buttons that vanish when there are many of them.
     const style: CSS.Properties = {
       flexFlow: "row nowrap",
-      display: "flex"
+      display: "flex",
     };
     return (
       <div style={style}>
@@ -1333,7 +1333,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
 
     const style = is_active
       ? Object.assign({}, CONNECTION_STATUS_STYLE, {
-          background: COL_BAR_BACKGROUND
+          background: COL_BAR_BACKGROUND,
         })
       : CONNECTION_STATUS_STYLE;
 
@@ -1341,7 +1341,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
       <span style={style} title={this.props.connection_status}>
         <Icon
           style={{
-            color: connection_status_color(this.props.connection_status)
+            color: connection_status_color(this.props.connection_status),
           }}
           name={"wifi"}
         />
@@ -1393,7 +1393,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
           width: "100%",
           zIndex: 100,
           background: "white",
-          boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px"
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px",
         }}
       >
         Halt the server and close this?
@@ -1404,7 +1404,7 @@ class FrameTitleBar extends Component<Props & ReduxProps, State> {
           }}
           style={{
             marginLeft: "20px",
-            marginRight: "5px"
+            marginRight: "5px",
           }}
           bsStyle="danger"
         >

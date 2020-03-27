@@ -55,7 +55,7 @@ export function store() {
     const type = launch.split("/")[0] as LaunchTypes;
     const data: LaunchData = {
       launch,
-      type
+      type,
     };
     {
       const filepath = params.filepath;

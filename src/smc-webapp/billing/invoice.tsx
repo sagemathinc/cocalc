@@ -117,7 +117,7 @@ export class Invoice extends Component<Props, State> {
       return (
         <a
           href=""
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             return this.setState({ hide_line_items: false });
           }}
@@ -131,7 +131,7 @@ export class Invoice extends Component<Props, State> {
         <a
           key="hide"
           href=""
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             this.setState({ hide_line_items: true });
           }}
@@ -158,7 +158,7 @@ export class Invoice extends Component<Props, State> {
     const style: React.CSSProperties = {
       borderBottom: "1px solid #999",
       padding: this.state.hide_line_items ? "0" : "15px 0",
-      margin: "0"
+      margin: "0",
     };
     return (
       <Row style={style}>

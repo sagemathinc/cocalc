@@ -146,7 +146,7 @@ export class Changes extends EventEmitter {
         select: this.watch.concat(misc.keys(this.select)),
         table: this.table,
         where: where0,
-        one: false
+        one: false,
       });
     } catch (err) {
       this.fail(err); // this is game over
@@ -227,7 +227,7 @@ export class Changes extends EventEmitter {
         select: this.watch,
         table: this.table,
         where,
-        one: true
+        one: true,
       });
     } catch (err) {
       this.fail(err);
@@ -337,7 +337,7 @@ export class Changes extends EventEmitter {
       if (misc.is_array(val)) {
         if (op === "=" || op === "==") {
           // containment
-          f = function(x) {
+          f = function (x) {
             for (const v of val) {
               if (x === v) {
                 return true;
@@ -347,7 +347,7 @@ export class Changes extends EventEmitter {
           };
         } else if (op === "!=" || op === "<>") {
           // not contained in
-          f = function(x) {
+          f = function (x) {
             for (const v of val) {
               if (x === v) {
                 return false;
@@ -362,16 +362,16 @@ export class Changes extends EventEmitter {
         // Inputs to condition come back as JSON, which doesn't know
         // about timestamps, so we convert them to date objects.
         if (op == "=" || op == "==") {
-          f = x => new Date(x).valueOf() - val === 0;
+          f = (x) => new Date(x).valueOf() - val === 0;
         } else if (op == "!=" || op == "<>") {
-          f = x => new Date(x).valueOf() - val !== 0;
+          f = (x) => new Date(x).valueOf() - val !== 0;
         } else {
           g = misc.op_to_function(op);
-          f = x => g(new Date(x), val);
+          f = (x) => g(new Date(x), val);
         }
       } else {
         g = misc.op_to_function(op);
-        f = x => g(x, val);
+        f = (x) => g(x, val);
       }
       this.condition[field] = f;
     };

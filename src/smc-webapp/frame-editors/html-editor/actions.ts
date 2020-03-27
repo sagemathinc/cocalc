@@ -31,11 +31,11 @@ export class Actions extends CodeEditorActions {
         direction: "col",
         type: "node",
         first: {
-          type: "cm"
+          type: "cm",
         },
         second: {
-          type: "iframe"
-        }
+          type: "iframe",
+        },
       };
     }
   }
@@ -71,7 +71,7 @@ export class Actions extends CodeEditorActions {
           print_html({
             html: $(`#frame-${id}`).html(),
             project_id: this.project_id,
-            path: this.path
+            path: this.path,
           });
           break;
         default:

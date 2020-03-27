@@ -76,7 +76,7 @@ export const SCHEMA: DBSchema = {};
 export function Table<F extends Fields>({
   name,
   rules,
-  fields
+  fields,
 }: {
   name: string;
   fields?: F;
@@ -246,4 +246,3 @@ import { SettingsExtras } from "./site-settings-extras";
 export type AllSiteSettings = {
   [key in keyof SiteSettings | keyof SettingsExtras]?: any;
 };
-

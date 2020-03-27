@@ -3,7 +3,7 @@ import {
   unreachable,
   capitalize,
   uuid,
-  separate_file_extension
+  separate_file_extension,
 } from "smc-util/misc2";
 import { generate as heroku } from "project-name-generator";
 const superb = require("superb");
@@ -30,7 +30,7 @@ export const NewFilenameFamilies = Object.freeze<
   pet: "Pet names",
   ymd_pet: "Pet names (prefix today)",
   semantic: "Sematic",
-  ymd_semantic: "Sematic (prefix today) "
+  ymd_semantic: "Sematic (prefix today) ",
 });
 
 export class NewFilenames {
@@ -71,9 +71,9 @@ export class NewFilenames {
       // ignore all extensions in avoid "set", if we do not know the file extension
       if (this.effective_ext == null) {
         const noexts = Object.keys(avoid).map(
-          x => separate_file_extension(x).name
+          (x) => separate_file_extension(x).name
         );
-        avoid = Object.assign({}, ...noexts.map(x => ({ [x]: true })));
+        avoid = Object.assign({}, ...noexts.map((x) => ({ [x]: true })));
       }
       avoid = avoid || {}; // satisfy TS
       // incremental numbering starts at 1, natural for humans
@@ -112,13 +112,7 @@ export class NewFilenames {
     }
     // in some cases, prefix with the current day
     if (this.type.startsWith("ymd_")) {
-      tokens.unshift(
-        new Date()
-          .toISOString()
-          .slice(0, 10)
-          .split("-")
-          .join("")
-      );
+      tokens.unshift(new Date().toISOString().slice(0, 10).split("-").join(""));
     }
     switch (this.effective_ext) {
       case "java": // CamelCase!

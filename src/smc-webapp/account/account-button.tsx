@@ -18,7 +18,7 @@ export const AccountTabDropdown: React.FC<Props> = ({
   label_class,
   show_label,
   is_active,
-  user_label
+  user_label,
 }) => {
   // If icon is a string then use the Icon component
   // Else (it is a node already) just render icon
@@ -34,7 +34,7 @@ export const AccountTabDropdown: React.FC<Props> = ({
         style={{
           float: "left",
           position: "relative",
-          height: "30px"
+          height: "30px",
         }}
       >
         <div style={{ padding: "10px" }}>
@@ -55,7 +55,7 @@ interface LinksProps {
 
 export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
   account_actions, // Type AccountActions
-  page_actions // PageActions (untyped for now)
+  page_actions, // PageActions (untyped for now)
 }) => {
   return (
     <>
@@ -65,10 +65,10 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
             style={{
               width: "100%",
               padding: "4px 8px 4px 16px",
-              display: "inline-block"
+              display: "inline-block",
             }}
             className={"cocalc-account-button"}
-            onClick={event => {
+            onClick={(event) => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("account"); /// Set to the Subs and course packs tab
@@ -83,10 +83,10 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
             style={{
               width: "100%",
               padding: "4px 8px 4px 16px",
-              display: "inline-block"
+              display: "inline-block",
             }}
             className={"cocalc-account-button"}
-            onClick={event => {
+            onClick={(event) => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("billing"); /// Set to the Preferences tab
@@ -101,10 +101,10 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
             style={{
               width: "100%",
               padding: "4px 8px 4px 16px",
-              display: "inline-block"
+              display: "inline-block",
             }}
             className={"cocalc-account-button"}
-            onClick={event => {
+            onClick={(event) => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("upgrades"); /// Set to the Preferences tab
@@ -119,10 +119,10 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
             style={{
               width: "100%",
               padding: "4px 8px 4px 16px",
-              display: "inline-block"
+              display: "inline-block",
             }}
             className={"cocalc-account-button"}
-            onClick={event => {
+            onClick={(event) => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("support"); /// Set to the Preferences tab
@@ -143,7 +143,7 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               style={{
                 width: "100%",
                 padding: "4px 8px 4px 16px",
-                display: "inline-block"
+                display: "inline-block",
               }}
               className={"cocalc-account-button"}
               href=""

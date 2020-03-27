@@ -31,8 +31,8 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
-    ])
+      "format",
+    ]),
   },
 
   iframe: {
@@ -46,8 +46,8 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload",
       "decrease_font_size",
-      "increase_font_size"
-    ])
+      "increase_font_size",
+    ]),
   },
 
   preview: {
@@ -61,19 +61,19 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
-      "reload"
-    ])
+      "reload",
+    ]),
   },
 
   terminal,
 
   settings: SETTINGS_SPEC,
 
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "HTMLEditor"
+  display_name: "HTMLEditor",
 });

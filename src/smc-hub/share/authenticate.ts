@@ -28,7 +28,7 @@ export function is_authenticated(opts: {
   }
 
   let auth_info: any = undefined;
-  opts.auth.forEach(function(info, path: string): boolean | undefined {
+  opts.auth.forEach(function (info, path: string): boolean | undefined {
     if (startswith(opts.path, path)) {
       auth_info = info;
       return false;

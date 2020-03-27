@@ -11,9 +11,6 @@ const api_doc = require("../smc-util/message").documentation;
 api_doc.root = api_root;
 api_doc.timestamp = new Date().toISOString();
 const gitrev = execSync("git rev-parse HEAD");
-api_doc.gitrev = gitrev
-  .toString()
-  .split("\n")[0]
-  .trim();
+api_doc.gitrev = gitrev.toString().split("\n")[0].trim();
 
 writeFileSync("api.json", JSON.stringify(api_doc, null, 2));

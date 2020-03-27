@@ -6,7 +6,7 @@ export function language(): string {
       "language",
       "browserLanguage",
       "systemLanguage",
-      "userLanguage"
+      "userLanguage",
     ],
     i,
     language;

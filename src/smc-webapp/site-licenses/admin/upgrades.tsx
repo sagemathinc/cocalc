@@ -7,7 +7,7 @@ import { actions } from "./actions";
 import {
   license_field_names,
   upgrade_fields_type,
-  upgrade_fields
+  upgrade_fields,
 } from "./types";
 import { plural } from "smc-util/misc2";
 import { Icon } from "../../r_misc";
@@ -67,7 +67,7 @@ export class DisplayUpgrades extends Component<DisplayProps> {
       <div
         style={{
           background: "darkred",
-          color: "white"
+          color: "white",
         }}
       >
         <Icon name="warning" /> No upgrades -- please edit to set some upgrades!
@@ -109,7 +109,7 @@ export class EditUpgrades extends Component<EditProps> {
     return (
       <span>
         <DebounceInput
-          onChange={e => this.on_change(field, (e.target as any).value)}
+          onChange={(e) => this.on_change(field, (e.target as any).value)}
           value={val}
           style={INPUT_STYLE}
         />{" "}
@@ -178,9 +178,11 @@ export class EditUpgrades extends Component<EditProps> {
   }
 }
 
-export function normalize_upgrades_for_save(obj: {
-  [field: upgrade_fields_type]: any;
-}): void {
+export function normalize_upgrades_for_save(
+  obj: {
+    [field in upgrade_fields_type]: any;
+  }
+): void {
   for (const field in obj) {
     const { display_factor, input_type } = params(field as upgrade_fields_type);
     const val = (input_type == "number" ? parseFloat : parseInt)(obj[field]);

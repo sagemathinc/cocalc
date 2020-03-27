@@ -17,7 +17,7 @@ export async function count_words(
     project_id: project_id,
     path: head,
     err_on_exit: false,
-    aggregate: time
+    aggregate: time,
   });
   return res;
 }

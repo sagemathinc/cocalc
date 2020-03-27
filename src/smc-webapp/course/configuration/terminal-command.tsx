@@ -5,7 +5,7 @@ import {
   Rendered,
   rtypes,
   redux,
-  rclass
+  rclass,
 } from "../../app-framework";
 
 import { Button, Card, Form, Input } from "antd";
@@ -38,8 +38,8 @@ class TerminalCommandPanel extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        terminal_command: rtypes.immutable.Map
-      }
+        terminal_command: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -69,7 +69,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
     return (
       <div>
         <Form
-          onSubmit={e => {
+          onSubmit={(e) => {
             e.preventDefault();
             this.run_terminal_command();
           }}
@@ -79,7 +79,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
               <Input
                 style={{ width: "80%" }}
                 placeholder="Terminal command..."
-                onChange={e => {
+                onChange={(e) => {
                   this.set_field("input", e.target.value);
                 }}
               />
@@ -100,7 +100,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
             color: "#888",
             padding: "5px",
             fontSize: "16px",
-            fontWeight: "bold"
+            fontWeight: "bold",
           }}
         >
           <Icon name={"cc-icon-cocalc-ring"} spin /> Running...
@@ -115,7 +115,7 @@ class TerminalCommandPanel extends Component<Props, {}> {
     const output = c.get("output");
     if (!output) return;
     const v: Rendered[] = [];
-    output.forEach(result => {
+    output.forEach((result) => {
       v.push(this.render_result(result));
     });
     return <div style={{ maxHeight: "400px", overflowY: "auto" }}>{v}</div>;
@@ -221,7 +221,7 @@ const PROJECT_LINK_STYLE = {
   textOverflow: "ellipsis",
   cursor: "pointer",
   display: "block",
-  whiteSpace: "nowrap"
+  whiteSpace: "nowrap",
 };
 
 class Output extends Component<{ result: TerminalCommandOutput }, {}> {

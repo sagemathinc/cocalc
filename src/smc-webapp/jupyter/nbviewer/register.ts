@@ -51,6 +51,6 @@ export function register(webapp_client?) {
       redux.removeStore(name);
       redux.removeActions(name);
       return name;
-    }
+    },
   });
 }

@@ -29,7 +29,7 @@ let debug;
 if (DEBUG) {
   debug = console.log;
 } else {
-  debug = function(..._) {};
+  debug = function (..._) {};
 }
 
 // Inflates compressed data
@@ -127,7 +127,7 @@ function parsePacket(
   const proto: Proto = {
     flags: header[1],
     padding: 0,
-    crypto: header[1] & 0x2
+    crypto: header[1] & 0x2,
   };
 
   if (proto.flags !== 0 && !proto.crypto) {

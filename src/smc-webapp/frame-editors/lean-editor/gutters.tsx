@@ -72,7 +72,7 @@ function message_component(
         border: `2px solid ${color}`,
         borderRadius: "3px",
         width: "700px",
-        maxWidth: "80%"
+        maxWidth: "80%",
       }}
       delayShow={0}
       allow_touch={true}

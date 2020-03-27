@@ -18,7 +18,7 @@ const MIN_CONNECT_WAIT_MS = 5000;
 interface Client {
   touch_project: ({
     project_id,
-    cb
+    cb,
   }: {
     project_id: string;
     cb?: Function;
@@ -106,7 +106,7 @@ class SyncTableChannel extends EventEmitter {
       max_delay: 5000,
       f: this.attempt_to_connect.bind(this),
       desc: "webapp-synctable-connect",
-      log: this.log
+      log: this.log,
     });
 
     this.last_connect = new Date().valueOf();
@@ -162,7 +162,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private init_synctable_handlers(): void {
-    this.synctable.on("timed-changes", timed_changes => {
+    this.synctable.on("timed-changes", (timed_changes) => {
       this.send_mesg_to_project({ timed_changes });
     });
     this.synctable.once("closed", this.close.bind(this));

@@ -12,7 +12,7 @@ import {
   Configuration,
   SharedProject,
   Students,
-  Handouts
+  Handouts,
 } from "./course-panels";
 //import { Overview } from "./overview";
 
@@ -22,7 +22,7 @@ const buttons = set([
   "save",
   "time_travel" /*,
   "undo",
-  "redo"*/
+  "redo"*/,
 ]);
 
 export const EDITOR_SPEC = {
@@ -44,42 +44,42 @@ export const EDITOR_SPEC = {
     name: "Students",
     icon: "users",
     component: Students,
-    buttons
+    buttons,
   },
   course_assignments: {
     short: "Assignments",
     name: "Assignments",
     icon: "share-square",
     component: Assignments,
-    buttons
+    buttons,
   },
   course_handouts: {
     short: "Handouts",
     name: "Handouts",
     icon: "copy",
     component: Handouts,
-    buttons
+    buttons,
   },
   course_configuration: {
     short: "Config",
     name: "Configuration",
     icon: "cogs",
     component: Configuration,
-    buttons
+    buttons,
   },
   course_shared_project: {
     short: "Shared",
     name: "Shared Project",
     icon: "share-alt",
     component: SharedProject,
-    buttons
+    buttons,
   },
   terminal,
-  time_travel
+  time_travel,
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "CourseEditor"
+  display_name: "CourseEditor",
 });

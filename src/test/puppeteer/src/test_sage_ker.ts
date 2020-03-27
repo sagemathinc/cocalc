@@ -9,11 +9,7 @@ import screenshot from "./screenshot";
 import { Page } from "puppeteer";
 import { expect } from "chai";
 
-export const test_sage_ker = async function(
-  creds: Creds,
-  opts: Opts,
-  page: Page
-): Promise<PassFail> {
+export const test_sage_ker = async function (creds: Creds, opts: Opts, page: Page): Promise<PassFail> {
   const pfcounts: PassFail = new PassFail();
   if (opts.skip && opts.skip.test(this_file)) {
     debuglog("skipping test: " + this_file);
@@ -65,15 +61,11 @@ export const test_sage_ker = async function(
     await page.click(sel);
     debuglog("clicked Kernel button");
 
-    let linkHandlers = await page.$x(
-      "//span[contains(., 'Restart and run all (do not stop on errors)...')]"
-    );
+    let linkHandlers = await page.$x("//span[contains(., 'Restart and run all (do not stop on errors)...')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all no stop");
 
-    linkHandlers = await page.$x(
-      "//button[contains(., 'Restart and run all')]"
-    );
+    linkHandlers = await page.$x("//button[contains(., 'Restart and run all')]");
     await linkHandlers[0].click();
     debuglog("clicked Restart and run all");
 
@@ -88,11 +80,10 @@ export const test_sage_ker = async function(
     let text: string = "XX";
     let step: number = 0;
     for (; step < restart_max_tries; step++) {
-      text = await page.$eval(sel, function(e) {
+      text = await page.$eval(sel, function (e) {
         return (<HTMLElement>e).innerText.toString();
       });
-      if (step > 0 && step % 10 == 0)
-        debuglog(step, ": readout: ", text.substr(0, 40));
+      if (step > 0 && step % 10 == 0) debuglog(step, ": readout: ", text.substr(0, 40));
       if (text.startsWith(empty_exec_str)) break;
       await page.waitFor(100);
     }
@@ -119,4 +110,4 @@ export const test_sage_ker = async function(
     console.log(chalk.red(`ERROR: ${e.message}`));
   }
   return pfcounts;
-}
+};

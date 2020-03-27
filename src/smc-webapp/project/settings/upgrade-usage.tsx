@@ -46,8 +46,8 @@ class UpgradeUsage extends React.Component<Props, State> {
     return {
       customize: {
         is_commercial: rtypes.bool,
-        kucalc: rtypes.string
-      }
+        kucalc: rtypes.string,
+      },
     };
   }
 

@@ -109,7 +109,7 @@ function normalize_wheel(
     spinY,
     pixelX,
     pixelY,
-    deltaMode: ev.deltaMode || 0
+    deltaMode: ev.deltaMode || 0,
   };
 }
 
@@ -248,7 +248,7 @@ export class Mouse {
     x,
     y,
     buttons,
-    modifiers
+    modifiers,
   }: {
     ev: MouseEvent;
     wid: number;

@@ -13,7 +13,7 @@ const {
   analytics_event,
   APP_BASE_URL,
   should_load_target_url,
-  get_cookie
+  get_cookie,
 } = require("./misc_page");
 
 import { reset_password_key } from "./client/password-reset";
@@ -23,14 +23,14 @@ let first_login = true;
 // load more of the app now that user is logged in.
 // TODO: Check for side effects otherwise this is unecessary...
 // projects.cjsx definitely has side effects
-const load_app = cb =>
-  (require as any).ensure([], function() {
+const load_app = (cb) =>
+  (require as any).ensure([], function () {
     require("./r_account.cjsx"); // initialize react-related account page
     require("./projects.cjsx"); // initialize project listing
     cb();
   });
 
-webapp_client.on("mesg_info", function(info) {
+webapp_client.on("mesg_info", function (info) {
   const f = () => {
     const account_store = redux.getActions("account");
     if (account_store != undefined) {
@@ -41,7 +41,7 @@ webapp_client.on("mesg_info", function(info) {
   setTimeout(f, 1);
 });
 
-const signed_in = function(mesg) {
+const signed_in = function (mesg) {
   // the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
   // next time the main landing page is visited, haproxy or hub will redirect to the client
   // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
@@ -84,17 +84,17 @@ if (misc.get_local_storage(remember_me)) {
     45000
   );
 }
-webapp_client.on("remember_me_failed", function() {
+webapp_client.on("remember_me_failed", function () {
   redux.getActions("account").setState({ remember_me: false });
   const account_store = redux.getStore("account");
   if (account_store && account_store.get("is_logged_in")) {
     // if we thought user was logged in, but the cookie was invalid, force them to sign in again
-    const f = function() {
+    const f = function () {
       if (!misc.get_local_storage(remember_me)) {
         alert_message({
           type: "info",
           message: "You might have to sign in again.",
-          timeout: 1000000
+          timeout: 1000000,
         });
       }
     };
@@ -105,7 +105,7 @@ webapp_client.on("remember_me_failed", function() {
 // Check if user has a has_remember_me cookie (regardless if it is valid or not)
 // the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
 redux.getActions("account").setState({
-  has_remember_me: get_cookie(`${APP_BASE_URL}has_remember_me`) === "true"
+  has_remember_me: get_cookie(`${APP_BASE_URL}has_remember_me`) === "true",
 });
 
 // Ensure the hooks to process various things after user signs in

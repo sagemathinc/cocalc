@@ -6,7 +6,7 @@ const {
   ButtonToolbar,
   ControlLabel,
   Button,
-  Form
+  Form,
 } = require("react-bootstrap");
 import { SearchInput, SelectorInput, Icon } from "../r_misc";
 const { IS_TOUCH } = require("../feature");
@@ -59,7 +59,7 @@ export class AskNewFilename extends Component<Props, State> {
       name: name,
       ext: this.props.ext_selection,
       current_path: this.props.current_path,
-      switch_over: focus
+      switch_over: focus,
     });
   };
 

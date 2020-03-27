@@ -22,11 +22,11 @@ export async function unlist_all_public_paths(
 ): Promise<void> {
   const project_ids = await callback2(db.get_project_ids_with_user, {
     account_id,
-    is_owner
+    is_owner,
   });
   await query({
     db,
     query: "UPDATE public_paths SET unlisted=true",
-    where: { "project_id = ANY($)": project_ids }
+    where: { "project_id = ANY($)": project_ids },
   });
 }

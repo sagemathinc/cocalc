@@ -24,7 +24,7 @@ export function init_websocket_server(
   // Create primus server object:
   const opts = {
     pathname: join(base_url, "/.smc/ws"),
-    transformer: "websockets"
+    transformer: "websockets",
   };
   const primus = new Primus(http_server, opts);
 

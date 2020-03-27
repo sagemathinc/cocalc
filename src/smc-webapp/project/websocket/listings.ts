@@ -43,7 +43,7 @@ export class Listings extends EventEmitter {
   private state: State = "init";
   private throttled_watch: { [path: string]: Function } = {};
 
-  constructor(project_id: string): void {
+  constructor(project_id: string) {
     super();
     this.project_id = project_id;
     this.init();
@@ -62,7 +62,7 @@ export class Listings extends EventEmitter {
         WATCH_THROTTLE_MS,
         {
           leading: true,
-          trailing: true
+          trailing: true,
         }
       );
     }
@@ -75,7 +75,7 @@ export class Listings extends EventEmitter {
     if (this.state == "closed") return;
     this.set({
       path,
-      interest: webapp_client.server_time()
+      interest: webapp_client.server_time(),
     });
   }
 
@@ -136,9 +136,9 @@ export class Listings extends EventEmitter {
           project_id: this.project_id,
           path,
           listing: null,
-          missing: null
-        }
-      }
+          missing: null,
+        },
+      },
     });
     if (q.query.listings?.error) {
       throw Error(q.query.listings?.error);
@@ -158,15 +158,15 @@ export class Listings extends EventEmitter {
     // make sure that our relationship to this project is known.
     if (store == null) throw Error("bug");
     const group = await store.async_wait({
-      until: s => (s as any).get_my_group(this.project_id),
-      timeout: 60
+      until: (s) => (s as any).get_my_group(this.project_id),
+      timeout: 60,
     });
     const x = await get_directory_listing({
       project_id: this.project_id,
       path,
       hidden: true,
       max_time_s: 15 * 60,
-      group
+      group,
     });
     if (x.error != null) {
       throw Error(x.error);
@@ -207,9 +207,9 @@ export class Listings extends EventEmitter {
             time: null,
             interest: null,
             missing: null,
-            error: null
-          }
-        ]
+            error: null,
+          },
+        ],
       },
       []
     );

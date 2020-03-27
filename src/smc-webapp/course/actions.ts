@@ -36,7 +36,7 @@ import {
   CourseStore,
   AssignmentRecord,
   StudentRecord,
-  HandoutRecord
+  HandoutRecord,
 } from "./store";
 
 import { SharedProjectActions } from "./shared-project/actions";
@@ -56,7 +56,7 @@ export const PARALLEL_LIMIT = 3; // number of async things to do in parallel
 const primary_key = {
   students: "student_id",
   assignments: "assignment_id",
-  handouts: "handout_id"
+  handouts: "handout_id",
 };
 
 // Requires a syncdb to be set later
@@ -193,7 +193,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     const cur = (t = store.getState());
-    changes.map(obj => {
+    changes.map((obj) => {
       const table = obj.get("table");
       if (table == null) {
         // no idea what to do with something that doesn't have table defined
@@ -241,7 +241,7 @@ export class CourseActions extends Actions<CourseState> {
     let users = state.getIn([
       "project_map",
       store.get("course_project_id"),
-      "users"
+      "users",
     ]);
     if (users == null) return;
     users = users.keySeq();

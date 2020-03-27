@@ -27,12 +27,12 @@ export class ForgotPassword extends React.Component<Props, State> {
     super(props);
     this.state = {
       email_address: this.props.initial_email_address,
-      is_email_valid: is_valid_email_address(this.props.initial_email_address)
+      is_email_valid: is_valid_email_address(this.props.initial_email_address),
     };
     bind_methods(this, [
       "forgot_password",
       "set_email",
-      "hide_forgot_password"
+      "hide_forgot_password",
     ]);
   }
 
@@ -48,7 +48,7 @@ export class ForgotPassword extends React.Component<Props, State> {
     const email_address = evt.target.value;
     this.setState({
       email_address,
-      is_email_valid: is_valid_email_address(email_address)
+      is_email_valid: is_valid_email_address(email_address),
     });
   }
 

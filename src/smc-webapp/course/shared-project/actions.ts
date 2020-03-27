@@ -27,7 +27,7 @@ export class SharedProjectActions {
       title: `Shared Project -- ${settings.get("title")}`,
       description:
         settings.get("description") +
-        "\n\n---\n\nThis project is shared with all students in the course."
+        "\n\n---\n\nThis project is shared with all students in the course.",
     };
   }
 
@@ -77,7 +77,7 @@ export class SharedProjectActions {
       return; // no shared project
     }
     const id = this.actions.set_activity({
-      desc: "Configuring shared project..."
+      desc: "Configuring shared project...",
     });
     try {
       await this.set_project_title();
@@ -145,9 +145,7 @@ export class SharedProjectActions {
         await actions.remove_site_license_from_project(shared_project_id);
       }
     } catch (err) {
-      this.actions.set_error(
-        `Error configuring shared project - ${err}`
-      );
+      this.actions.set_error(`Error configuring shared project - ${err}`);
     } finally {
       this.actions.set_activity({ id });
     }
@@ -157,7 +155,7 @@ export class SharedProjectActions {
   private set_project_id(shared_project_id: string): void {
     this.actions.set({
       table: "settings",
-      shared_project_id
+      shared_project_id,
     });
   }
 
@@ -168,7 +166,7 @@ export class SharedProjectActions {
       return;
     }
     const id = this.actions.set_activity({
-      desc: "Creating shared project..."
+      desc: "Creating shared project...",
     });
     let project_id: string;
     try {
@@ -205,7 +203,7 @@ export class SharedProjectActions {
       const student_account_id = store.unsafe_getIn([
         "students",
         student_id,
-        "account_id"
+        "account_id",
       ]);
       if (student_account_id) {
         await project_actions.remove_collaborator(
@@ -217,7 +215,7 @@ export class SharedProjectActions {
     // make the course itself forget about the shared project:
     this.actions.set({
       table: "settings",
-      shared_project_id: ""
+      shared_project_id: "",
     });
   }
 }

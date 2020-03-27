@@ -23,7 +23,7 @@ import {
   Col,
   FormGroup,
   FormControl,
-  Radio
+  Radio,
 } from "react-bootstrap";
 
 import {
@@ -32,7 +32,7 @@ import {
   Component,
   Rendered,
   rclass,
-  rtypes
+  rtypes,
 } from "../../app-framework";
 
 const { open_new_tab } = require("../../misc_page");
@@ -88,8 +88,8 @@ class Configure extends Component<Props, State> {
   public static reduxProps(): object {
     return {
       customize: {
-        is_commercial: rtypes.bool
-      }
+        is_commercial: rtypes.bool,
+      },
     };
   }
 
@@ -121,12 +121,12 @@ class Configure extends Component<Props, State> {
       // this.props.public is suppose to work in this state
       this.props.set_public_path({
         unlisted: false,
-        disabled: false
+        disabled: false,
       });
     } else if (state === "public_unlisted") {
       this.props.set_public_path({
         unlisted: true,
-        disabled: false
+        disabled: false,
       });
     }
   }

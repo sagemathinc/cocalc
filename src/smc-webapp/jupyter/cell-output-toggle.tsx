@@ -11,7 +11,7 @@ const SCROLLED_STYLE: React.CSSProperties = {
   fontSize: "inherit",
   padding: 0,
   display: "flex", // flex used to move output prompt to bottom.
-  flexDirection: "column"
+  flexDirection: "column",
 };
 
 const NORMAL_STYLE: React.CSSProperties = merge(
@@ -78,7 +78,7 @@ export class CollapsedOutput extends Component<CollapsedOutputProps> {
           textAlign: "center",
           width: "100%",
           color: "#777",
-          padding: 0
+          padding: 0,
         }}
       >
         <Icon name="ellipsis-h" />

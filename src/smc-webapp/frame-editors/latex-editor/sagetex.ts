@@ -31,7 +31,7 @@ export async function sagetex_hash(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: true,
-    aggregate: time
+    aggregate: time,
   });
   return output.stdout.split(" ")[0];
 }
@@ -55,7 +55,7 @@ export async function sagetex(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
-    aggregate: hash ? { value: hash } : undefined
+    aggregate: hash ? { value: hash } : undefined,
   });
 }
 
@@ -90,7 +90,7 @@ export function sagetex_errors(
           level: "error",
           message: line,
           content: "",
-          raw: ""
+          raw: "",
         };
         pll.errors.push(err);
         pll.all.push(err);

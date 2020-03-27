@@ -47,7 +47,7 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
     err_on_exit: false,
     timeout: opts.timeout, // in seconds
     ulimit_timeout: true,
-    bash: true
+    bash: true,
   });
   if (output.exit_code != 0) {
     throw Error(output.stderr);

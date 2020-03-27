@@ -18,8 +18,8 @@ export class ProjectQuotaBoundsTable extends Component {
         }
       >
         {PROJECT_UPGRADES.field_order
-          .filter(name => max[name])
-          .map(name => render_project_quota(name, max[name]))}
+          .filter((name) => max[name])
+          .map((name) => render_project_quota(name, max[name]))}
       </Panel>
     );
   }

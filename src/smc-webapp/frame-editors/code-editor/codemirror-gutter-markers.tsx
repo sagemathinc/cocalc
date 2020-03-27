@@ -49,7 +49,7 @@ export class GutterMarkers extends Component<Props, {}> {
         codemirror={this.props.codemirror}
         line={line}
         gutter_id={info.gutter_id}
-        set_handle={handle => this.props.set_handle(id, handle)}
+        set_handle={(handle) => this.props.set_handle(id, handle)}
       >
         {info.component}
       </GutterMarker>

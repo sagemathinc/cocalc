@@ -36,7 +36,7 @@ export function get_state(cm: CodeMirror.Editor): State | undefined {
   const state = {
     pos,
     sel: doc.listSelections(),
-    ver: VERSION
+    ver: VERSION,
   };
   //console.log 'get_state', info, state.pos
   return state;

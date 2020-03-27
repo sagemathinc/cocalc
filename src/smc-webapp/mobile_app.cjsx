@@ -9,7 +9,6 @@ React Component for displaying the entire page on a mobile device.
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
 # So we have to require them even though they aren't used
-{InfoPage}     = require('./info/info')
 {ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
@@ -42,6 +41,8 @@ PAGE_REDUX_PROPS =
         is_logged_in      : rtypes.bool
     support :
         show : rtypes.bool
+    customize:
+        site_name         : rtypes.string
 
 PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
 
@@ -112,7 +113,7 @@ Page = rclass
                 <NavTab
                     on_click       = {@close_menu}
                     name           = {'about'}
-                    label          = {'CoCalc'}
+                    label          = {@props.site_name}
                     icon           = {'info-circle'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}

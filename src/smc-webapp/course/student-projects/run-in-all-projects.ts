@@ -37,7 +37,7 @@ export async function run_in_all_projects(
         project_id,
         stdout: "",
         stderr: err.toString(),
-        exit_code: -1
+        exit_code: -1,
       };
     }
     v.push(result);

@@ -5,25 +5,25 @@ Table({
   fields: {
     id: {
       type: "uuid",
-      desc: "primary key"
+      desc: "primary key",
     },
     time: {
       type: "timestamp",
-      desc: "time of this message"
+      desc: "time of this message",
     },
     text: {
       type: "string",
-      desc: "the text of the message"
+      desc: "the text of the message",
     },
     priority: {
       type: "string",
       pg_type: "VARCHAR(6)",
-      desc: 'one of "low", "medium", or "high"'
+      desc: 'one of "low", "medium", or "high"',
     },
     done: {
       type: "boolean",
-      desc: "if true, then this notification is no longer relevant"
-    }
+      desc: "if true, then this notification is no longer relevant",
+    },
   },
   rules: {
     primary_key: "id",
@@ -39,8 +39,8 @@ Table({
           time: null,
           text: "",
           priority: "low",
-          done: false
-        }
+          done: false,
+        },
       },
       set: {
         admin: true,
@@ -49,9 +49,9 @@ Table({
           time: true,
           text: true,
           priority: true,
-          done: true
-        }
-      }
-    }
-  }
+          done: true,
+        },
+      },
+    },
+  },
 });

@@ -101,7 +101,7 @@ export class NbgraderScores extends Component<Props, State> {
           border: "1px solid lightgray",
           width: "100%",
           borderRadius: "3px",
-          borderCollapse: "collapse"
+          borderCollapse: "collapse",
         }}
       >
         <thead>
@@ -146,7 +146,7 @@ export class NbgraderScores extends Component<Props, State> {
       fontSize: "14px",
       border: "1px solid lightgrey",
       display: "inline-block",
-      padding: "1px"
+      padding: "1px",
     };
     if (
       this.state.editing_score_filename == filename &&
@@ -158,7 +158,7 @@ export class NbgraderScores extends Component<Props, State> {
           autoFocus
           type="input"
           defaultValue={value}
-          onBlur={e => this.stop_editing_score((e.target as any).value)}
+          onBlur={(e) => this.stop_editing_score((e.target as any).value)}
           style={style}
         />
       );
@@ -169,7 +169,7 @@ export class NbgraderScores extends Component<Props, State> {
           onClick={() =>
             this.setState({
               editing_score_filename: filename,
-              editing_score_id: id
+              editing_score_id: id,
             })
           }
         >
@@ -192,7 +192,7 @@ export class NbgraderScores extends Component<Props, State> {
     }
     this.setState({
       editing_score_filename: undefined,
-      editing_score_id: undefined
+      editing_score_id: undefined,
     });
   }
 
@@ -230,9 +230,7 @@ export class NbgraderScores extends Component<Props, State> {
           <>
             <Icon name="exclamation-triangle" />{" "}
           </>
-        ) : (
-          undefined
-        )}
+        ) : undefined}
         {this.state.show_all ? "Less" : "More..."}
       </a>
     );

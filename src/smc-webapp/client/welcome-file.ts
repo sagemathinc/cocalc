@@ -32,7 +32,7 @@ const WelcomeSetups: Record<Kernel, Cell[]> = {
   ir: [
     { type: "markdown", content: ir_welcome },
     { content: "data <- rnorm(100)\nsummary(data)" },
-    { content: "hist(data)" }
+    { content: "hist(data)" },
   ],
   python3: [
     { type: "markdown", content: python3_welcome },
@@ -42,15 +42,15 @@ const WelcomeSetups: Record<Kernel, Cell[]> = {
       content: `xx = np.linspace(0, 10 * np.pi, 1000)
 yy = np.sin(xx) * np.exp(-xx / 10)
 plt.grid()
-plt.plot(xx, yy)`
-    }
+plt.plot(xx, yy)`,
+    },
   ],
   bash: [
     { type: "markdown", content: bash_welcome },
     { content: 'foo="World"\necho "Hello $foo!"' },
     { content: "date" },
-    { content: "echo '2*20 + 2' | bc -l" }
-  ]
+    { content: "echo '2*20 + 2' | bc -l" },
+  ],
 };
 
 export class WelcomeFile {
@@ -109,7 +109,7 @@ export class WelcomeFile {
     await jactions.save(); // TODO how to make sure get_cell_list() has at least one cell?
     let cell_id = jactions.store.get_cell_list().first();
 
-    WelcomeSetups[kernel].forEach(cell => {
+    WelcomeSetups[kernel].forEach((cell) => {
       jactions.set_cell_input(cell_id, cell.content);
       if (cell.type == "markdown") {
         jactions.set_cell_type(cell_id, "markdown");
@@ -131,7 +131,7 @@ export class WelcomeFile {
       name,
       ext,
       current_path: "",
-      switch_over: true
+      switch_over: true,
     });
   }
 

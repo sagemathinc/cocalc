@@ -70,7 +70,7 @@ function process_anchor_tag(y: any, opts: Options): void {
     // so we open the link directly inside this browser tab.
     // WARNING: there are cases that could be wrong via this heuristic, e.g.,
     // a raw link that happens to have /projects/ in it -- deal with them someday...
-    y.click(function(e): boolean {
+    y.click(function (e): boolean {
       let anchor;
       const url = href;
       const i = url.indexOf("/projects/");
@@ -83,7 +83,7 @@ function process_anchor_tag(y: any, opts: Options): void {
       }
       load_target(
         decodeURI(target),
-        !(e.which === 2 || (e.ctrlKey || e.metaKey)),
+        !(e.which === 2 || e.ctrlKey || e.metaKey),
         anchor
       );
       return false;
@@ -91,7 +91,7 @@ function process_anchor_tag(y: any, opts: Options): void {
   } else if (href.indexOf("http://") !== 0 && href.indexOf("https://") !== 0) {
     // does not start with http
     // internal link
-    y.click(function(e): boolean {
+    y.click(function (e): boolean {
       let anchor;
       let target = href;
       const v = target.split("#");
@@ -129,7 +129,7 @@ function process_anchor_tag(y: any, opts: Options): void {
           x
         );
       }
-      load_target(target, !(e.which === 2 || (e.ctrlKey || e.metaKey)), anchor);
+      load_target(target, !(e.which === 2 || e.ctrlKey || e.metaKey), anchor);
       return false;
     });
   } else {
@@ -200,7 +200,7 @@ function process_media_tags(e, opts: Options2) {
     ["object", "data"],
     ["video", "src"],
     ["source", "src"],
-    ["audio", "src"]
+    ["audio", "src"],
   ]) {
     for (const x of e.find(tag)) {
       process_media_tag($(x), attr, opts);
@@ -208,8 +208,8 @@ function process_media_tags(e, opts: Options2) {
   }
 }
 
-$.fn.process_smc_links = function(opts: Options = {}) {
-  this.each(function() {
+$.fn.process_smc_links = function (opts: Options = {}) {
+  this.each(function () {
     const e = $(this);
     // part #1: process <a> anchor tags
     process_anchor_tags(e, opts);

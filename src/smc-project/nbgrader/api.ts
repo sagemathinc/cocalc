@@ -1,6 +1,6 @@
 import {
   NBGraderAPIOptions,
-  NBGraderAPIResponse
+  NBGraderAPIResponse,
 } from "../smc-webapp/jupyter/nbgrader/api";
 
 export async function nbgrader(

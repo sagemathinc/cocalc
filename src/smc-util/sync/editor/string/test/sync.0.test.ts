@@ -114,12 +114,9 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
 
   it("set, then get, something from the settings field", async () => {
     await syncstring.set_settings({ foo: { bar: "none" } });
-    expect(
-      syncstring
-        .get_settings()
-        .get("foo")
-        .toJS()
-    ).toEqual({ bar: "none" });
+    expect(syncstring.get_settings().get("foo").toJS()).toEqual({
+      bar: "none",
+    });
   });
 
   it("verifies it has the full history already", () => {

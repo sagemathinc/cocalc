@@ -22,7 +22,7 @@ export const NewFileButton = React.memo(function NewFileButton({
   className,
   disabled,
   loading,
-  children
+  children,
 }: Props) {
   let displayed_icon = <Icon name={icon} />;
 

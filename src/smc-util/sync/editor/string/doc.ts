@@ -53,4 +53,3 @@ export class StringDocument implements Document {
     return this.value.length;
   }
 }
-

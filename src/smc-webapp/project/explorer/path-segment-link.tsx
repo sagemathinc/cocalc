@@ -19,7 +19,7 @@ export function PathSegmentLink({
   on_click,
   full_name,
   history,
-  active = false
+  active = false,
 }: Props): JSX.Element {
   function render_content(): JSX.Element | string | undefined {
     if (full_name && full_name !== display) {

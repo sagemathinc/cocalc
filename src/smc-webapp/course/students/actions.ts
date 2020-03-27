@@ -48,19 +48,19 @@ export class StudentsActions {
       let store = this.get_store();
       await callback2(store.wait, {
         until: (store: CourseStore) => store.get_student(student_id),
-        timeout: 60
+        timeout: 60,
       });
       this.course_actions.student_projects.create_student_project(student_id);
       store = this.get_store();
       await callback2(store.wait, {
         until: (store: CourseStore) =>
           store.getIn(["students", student_id, "project_id"]),
-        timeout: 60
+        timeout: 60,
       });
     }
 
     const id = this.course_actions.set_activity({
-      desc: `Creating ${students.length} student projects (do not close the course until done)`
+      desc: `Creating ${students.length} student projects (do not close the course until done)`,
     });
 
     try {
@@ -91,7 +91,7 @@ export class StudentsActions {
     this.course_actions.set({
       deleted: false,
       student_id,
-      table: "students"
+      table: "students",
     });
     // configure, since they may get added back to shared project, etc.
     await this.course_actions.student_projects.configure_all_projects();
@@ -99,10 +99,7 @@ export class StudentsActions {
 
   public async delete_all_students(): Promise<void> {
     const store = this.get_store();
-    const students = store
-      .get_students()
-      .valueSeq()
-      .toArray();
+    const students = store.get_students().valueSeq().toArray();
     await map(students, PARALLEL_LIMIT, this.do_delete_student.bind(this));
     await this.course_actions.student_projects.configure_all_projects();
   }
@@ -116,7 +113,7 @@ export class StudentsActions {
     this.course_actions.set({
       deleted: true,
       student_id: student.get("student_id"),
-      table: "students"
+      table: "students",
     });
   }
 
@@ -138,13 +135,13 @@ export class StudentsActions {
     try {
       const result = await callback2(webapp_client.user_search, {
         query: s.join(","),
-        limit: s.length
+        limit: s.length,
       });
       for (const x of result) {
         this.course_actions.set({
           account_id: x.account_id,
           table: "students",
-          student_id: v[x.email_address]
+          student_id: v[x.email_address],
         });
       }
     } catch (err) {
@@ -165,7 +162,7 @@ export class StudentsActions {
       is_descending = false;
     }
     this.course_actions.setState({
-      active_student_sort: { column_name, is_descending }
+      active_student_sort: { column_name, is_descending },
     });
   }
 
@@ -179,7 +176,7 @@ export class StudentsActions {
     info = defaults(info, {
       first_name: required,
       last_name: required,
-      email_address: student.get("email_address")
+      email_address: student.get("email_address"),
     });
 
     this.course_actions.set({
@@ -187,7 +184,7 @@ export class StudentsActions {
       last_name: info.last_name,
       email_address: info.email_address,
       student_id,
-      table: "students"
+      table: "students",
     });
 
     // since they may get removed from shared project, etc.
@@ -198,7 +195,7 @@ export class StudentsActions {
     this.course_actions.set({
       note,
       table: "students",
-      student_id
+      student_id,
     });
   }
 
@@ -215,7 +212,7 @@ export class StudentsActions {
     }
     const name = store.get_student_name(student_id);
     const id = this.course_actions.set_activity({
-      desc: `Catching up ${name}...`
+      desc: `Catching up ${name}...`,
     });
     try {
       for (const assignment_id of store.get_assigned_assignment_ids()) {

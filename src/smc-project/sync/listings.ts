@@ -8,7 +8,7 @@ import { field_cmp, seconds_ago } from "../smc-util/misc";
 import { get_listing } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
-  MAX_FILES_PER_PATH
+  MAX_FILES_PER_PATH,
 } from "../smc-util/db-schema/listings";
 import { Watcher } from "./path-watcher";
 
@@ -72,7 +72,7 @@ class ListingsTable {
     if (this.table.get_state() != "connected") {
       return; // game over
     }
-    this.table.get().forEach(val => {
+    this.table.get().forEach((val) => {
       const path = val.get("path");
       if (path == null) return;
       if (this.watchers[path] == null) return; // already watching -- shouldn't happen
@@ -89,7 +89,7 @@ class ListingsTable {
   private async remove_stale_watchers(): Promise<void> {
     if (this.table == null) return; // closed
     if (this.table.get_state() == "connected") {
-      this.table.get().forEach(val => {
+      this.table.get().forEach((val) => {
         const path = val.get("path");
         if (path == null) return;
         if (this.watchers[path] == null) return;
@@ -222,7 +222,11 @@ class ListingsTable {
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
     }
-    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS, this.log.bind(this));
+    this.watchers[path] = new Watcher(
+      path,
+      WATCH_DEBOUNCE_MS,
+      this.log.bind(this)
+    );
     this.watchers[path].on("change", async () => {
       try {
         await this.compute_listing(path);
@@ -253,7 +257,7 @@ class ListingsTable {
     // by "interest" timestamp, and eliminate the oldest ones that are
     // not *currently* being watched.
     const paths: { path: string; interest: Date }[] = [];
-    table.get().forEach(val => {
+    table.get().forEach((val) => {
       const path = val.get("path");
       if (this.watchers[path] != null) {
         num_to_remove -= 1;

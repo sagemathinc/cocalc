@@ -26,7 +26,7 @@ export class AccountStore extends Store<AccountState> {
       "get_confirm_close",
       "get_total_upgrades",
       "is_paying_member",
-      "get_page_size"
+      "get_page_size",
     ]);
     this.setup_selectors();
   }
@@ -53,16 +53,16 @@ export class AccountStore extends Store<AccountState> {
         "email_address",
         "passports",
         "is_logged_in",
-        "lti_id"
-      ] as const
+        "lti_id",
+      ] as const,
     },
     is_admin: {
       fn: () => {
         const groups = this.get("groups");
         return !!groups && groups.includes("admin");
       },
-      dependencies: ["groups"] as const
-    }
+      dependencies: ["groups"] as const,
+    },
   };
 
   get_terminal_settings(): { [key: string]: any } | undefined {
@@ -117,7 +117,7 @@ export class AccountStore extends Store<AccountState> {
     const stripe_data = this.getIn([
       "stripe_customer",
       "subscriptions",
-      "data"
+      "data",
     ]);
     return stripe_data && get_total_upgrades(stripe_data.toJS());
   }

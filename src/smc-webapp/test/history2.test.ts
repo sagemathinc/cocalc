@@ -12,7 +12,7 @@ describe("Testing inputs", () => {
   test("a single project with no additional target and a trailing slash", () => {
     const account_settings_descriptor = {
       page: "project",
-      target: "some-kind-of-uuid/"
+      target: "some-kind-of-uuid/",
     };
     expect(parse_target("projects/some-kind-of-uuid/")).toEqual(
       account_settings_descriptor
@@ -22,7 +22,7 @@ describe("Testing inputs", () => {
   test("a single project with no additional target and no trailing slash", () => {
     const account_settings_descriptor = {
       page: "project",
-      target: "some-kind-of-uuid"
+      target: "some-kind-of-uuid",
     };
     expect(parse_target("projects/some-kind-of-uuid")).toEqual(
       account_settings_descriptor
@@ -32,7 +32,7 @@ describe("Testing inputs", () => {
   test("a single project with a target and a trailing slash", () => {
     const account_settings_descriptor = {
       page: "project",
-      target: "some-kind-of-uuid/path-of/target/"
+      target: "some-kind-of-uuid/path-of/target/",
     };
     expect(parse_target("projects/some-kind-of-uuid/path-of/target/")).toEqual(
       account_settings_descriptor
@@ -42,7 +42,7 @@ describe("Testing inputs", () => {
   test("a single project with a target and no trailing slash", () => {
     const account_settings_descriptor = {
       page: "project",
-      target: "some-kind-of-uuid/path-of/target"
+      target: "some-kind-of-uuid/path-of/target",
     };
     expect(parse_target("projects/some-kind-of-uuid/path-of/target")).toEqual(
       account_settings_descriptor
@@ -56,7 +56,7 @@ describe("Testing inputs", () => {
       "settings/account",
       "settings/account/",
       "",
-      undefined
+      undefined,
     ];
     const account_settings_descriptor = { page: "account", tab: "account" };
     for (const path of matched_paths) {

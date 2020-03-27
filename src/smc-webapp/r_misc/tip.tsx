@@ -9,7 +9,7 @@ import { TooltipPlacement } from "antd/es/tooltip";
 
 const TIP_STYLE: React.CSSProperties = {
   wordWrap: "break-word",
-  maxWidth: "250px"
+  maxWidth: "250px",
 };
 
 type Size = "xsmall" | "small" | "medium" | "large";
@@ -45,7 +45,7 @@ export class Tip extends React.Component<Props, State> {
     rootClose: false,
     popover_style: { zIndex: 1000 },
     allow_touch: false,
-    id: "tip"
+    id: "tip",
   };
 
   shouldComponentUpdate(props) {
@@ -58,7 +58,7 @@ export class Tip extends React.Component<Props, State> {
         "delayHide",
         "rootClose",
         "icon",
-        "id"
+        "id",
       ])
     );
   }
@@ -112,7 +112,7 @@ export class Tip extends React.Component<Props, State> {
       placement: this.props.placement,
       trigger: "hover",
       mouseEnterDelay: this.props.delayShow / 1000,
-      mouseLeaveDelay: this.props.delayHide / 1000
+      mouseLeaveDelay: this.props.delayHide / 1000,
     };
 
     props.overlayStyle = Object.assign(

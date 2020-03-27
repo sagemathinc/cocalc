@@ -64,7 +64,7 @@ export class JupyterActions extends JupyterActions0 {
     this._backend_state = state;
     this._set({
       type: "settings",
-      backend_state: state
+      backend_state: state,
     });
     this.save_asap();
   }
@@ -106,7 +106,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this.setState({
       // used by jupyter.ts
-      start_time: this._client.server_time() - 0
+      start_time: this._client.server_time() - 0,
     });
     this.syncdb.delete({ type: "nbconvert" });
     // clear on init, since can't be running yet
@@ -167,7 +167,7 @@ export class JupyterActions extends JupyterActions0 {
   _backend_syncdb_change = (changes: any) => {
     const dbg = this.dbg("_backend_syncdb_change");
     if (changes != null) {
-      changes.forEach(key => {
+      changes.forEach((key) => {
         switch (key.get("type")) {
           case "settings":
             dbg("settings change");
@@ -242,7 +242,7 @@ export class JupyterActions extends JupyterActions0 {
     this.jupyter_kernel = this._client.jupyter_kernel({
       name: kernel,
       path: this.store.get("path"),
-      actions: this
+      actions: this,
     });
 
     if (this.syncdb.ipywidgets_state == null) {
@@ -268,7 +268,7 @@ export class JupyterActions extends JupyterActions0 {
     // Track backend state changes other than closing, so they
     // are visible to user etc.
     // TODO: all these need to move to ephemeral table!!
-    this.jupyter_kernel.on("state", state => {
+    this.jupyter_kernel.on("state", (state) => {
       switch (state) {
         case "spawning":
         case "starting":
@@ -279,7 +279,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this.jupyter_kernel.on("execution_state", this.set_kernel_state);
 
-    this.jupyter_kernel.on("spawn_error", err => {
+    this.jupyter_kernel.on("spawn_error", (err) => {
       // TODO: need to save so gets reported to frontend...
       dbg(`error: ${err}`);
     });
@@ -313,7 +313,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     this.setState({
-      kernels: immutable.fromJS(kernels)
+      kernels: immutable.fromJS(kernels),
     });
   };
 
@@ -482,7 +482,7 @@ export class JupyterActions extends JupyterActions0 {
       cell,
       max_output_length: this.store.get("max_output_length"),
       report_started_ms: 250,
-      dbg
+      dbg,
     });
 
     this.jupyter_kernel.once("closed", () => {
@@ -494,7 +494,7 @@ export class JupyterActions extends JupyterActions0 {
       this.set_more_output(cell.id, mesg, mesg_length);
     });
 
-    handler.on("process", mesg => {
+    handler.on("process", (mesg) => {
       if (this.jupyter_kernel != null) {
         this.jupyter_kernel.process_output(mesg);
       }
@@ -553,13 +553,13 @@ export class JupyterActions extends JupyterActions0 {
     const cell: any = {
       id,
       type: "cell",
-      kernel: this.store.get("kernel")
+      kernel: this.store.get("kernel"),
     };
 
     dbg(`using max_output_length=${this.store.get("max_output_length")}`);
     const handler = this._output_handler(cell);
 
-    handler.on("change", save => {
+    handler.on("change", (save) => {
       if (!this.store.getIn(["cells", id])) {
         // The cell was deleted, but we just got some output
         // NOTE: client shouldn't allow deleting running or queued
@@ -612,10 +612,10 @@ export class JupyterActions extends JupyterActions0 {
       code: input,
       id,
       stdin: handler.stdin,
-      halt_on_error
+      halt_on_error,
     });
 
-    exec.on("output", mesg => {
+    exec.on("output", (mesg) => {
       dbg(`got mesg='${JSON.stringify(mesg)}'`);
 
       if (mesg == null) {
@@ -654,7 +654,7 @@ export class JupyterActions extends JupyterActions0 {
           // ""Payloads are considered deprecated, though their replacement is not yet implemented."
           // we fully have to implement them, since they are used to implement (crazy, IMHO)
           // things like %load in the python2 kernel!
-          mesg.content.payload.map(p => handler.payload(p));
+          mesg.content.payload.map((p) => handler.payload(p));
           return;
         }
       } else {
@@ -664,7 +664,7 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
 
-    exec.on("error", err => {
+    exec.on("error", (err) => {
       dbg(`got error='${err}'`);
       handler.error(err);
     });
@@ -695,7 +695,7 @@ export class JupyterActions extends JupyterActions0 {
             messages: [],
             lengths: [],
             discarded: 0,
-            truncated: 0
+            truncated: 0,
           });
 
     output.length += length;
@@ -765,7 +765,7 @@ export class JupyterActions extends JupyterActions0 {
     this._file_watcher = this._client.watch_file({
       path: this.store.get("path"),
       interval: 3000,
-      debounce: 1500
+      debounce: 1500,
     });
 
     this._file_watcher.on("change", () => {
@@ -868,7 +868,7 @@ export class JupyterActions extends JupyterActions0 {
   set_last_load = () => {
     this.syncdb.set({
       type: "file",
-      last_load: new Date().getTime()
+      last_load: new Date().getTime(),
     });
     this.syncdb.commit();
   };
@@ -880,7 +880,7 @@ export class JupyterActions extends JupyterActions0 {
     let stats;
     try {
       stats = await callback2(this._client.path_stat, {
-        path: this.store.get("path")
+        path: this.store.get("path"),
       });
     } catch (err) {
       // no-op -- nothing to do.
@@ -907,7 +907,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       content = await callback2(this._client.path_read, {
         path,
-        maxsize_MB: 50
+        maxsize_MB: 50,
       });
     } catch (err) {
       const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.`;
@@ -974,7 +974,7 @@ export class JupyterActions extends JupyterActions0 {
     this._client.write_file({
       path: this.store.get("path"),
       data,
-      cb: err => {
+      cb: (err) => {
         if (err) {
           // TODO: need way to report this to frontend
           dbg(`error writing file: ${err}`);
@@ -984,7 +984,7 @@ export class JupyterActions extends JupyterActions0 {
           this.set_last_ipynb_save();
         }
         return typeof cb === "function" ? cb(err) : undefined;
-      }
+      },
     });
   };
 
@@ -998,7 +998,7 @@ export class JupyterActions extends JupyterActions0 {
         type: "cell",
         id: this.new_id(),
         pos: 0,
-        input: ""
+        input: "",
       });
       // We are obviously contributing all content to this notebook.
       return this.set_trust_notebook(true);
@@ -1055,7 +1055,7 @@ export class JupyterActions extends JupyterActions0 {
         this.syncdb.set({
           type: "nbconvert",
           state: "done",
-          error: "args must be an array"
+          error: "args must be an array",
         });
         return;
       }
@@ -1064,29 +1064,29 @@ export class JupyterActions extends JupyterActions0 {
         type: "nbconvert",
         state: "run",
         start: new Date().getTime(),
-        error: null
+        error: null,
       });
       this.ensure_backend_kernel_setup();
       this._run_nbconvert_lock = true;
       return async.series(
         [
-          cb => {
+          (cb) => {
             dbg("saving file to disk first");
             this.save_ipynb_file(cb);
           },
-          cb => {
+          (cb) => {
             dbg("now actually running nbconvert");
             if (this.jupyter_kernel == null) {
               cb("jupyter kernel not defined");
             } else {
               this.jupyter_kernel
                 .nbconvert(args)
-                .then(data => cb(undefined, data))
-                .catch(err => cb(err));
+                .then((data) => cb(undefined, data))
+                .catch((err) => cb(err));
             }
-          }
+          },
         ],
-        err => {
+        (err) => {
           dbg("finished running; removing lock");
           this._run_nbconvert_lock = false;
           if (!err) {
@@ -1109,7 +1109,7 @@ export class JupyterActions extends JupyterActions0 {
             type: "nbconvert",
             state: "done",
             error: err,
-            time: new Date().getTime()
+            time: new Date().getTime(),
           });
         }
       );
@@ -1120,7 +1120,7 @@ export class JupyterActions extends JupyterActions0 {
     // Check if any cell attachments need to be loaded.
     const cells = this.store.get("cells");
     if (cells != null) {
-      cells.forEach(cell => {
+      cells.forEach((cell) => {
         return this.handle_cell_attachments(cell);
       });
     }
@@ -1143,7 +1143,7 @@ export class JupyterActions extends JupyterActions0 {
         // need to load from disk
         this.set_cell_attachment(cell.get("id"), name, {
           type: "loading",
-          value: null
+          value: null,
         });
         let sha1: string;
         try {
@@ -1151,13 +1151,13 @@ export class JupyterActions extends JupyterActions0 {
         } catch (err) {
           this.set_cell_attachment(cell.get("id"), name, {
             type: "error",
-            value: `${err}`
+            value: `${err}`,
           });
           return;
         }
         this.set_cell_attachment(cell.get("id"), name, {
           type: "sha1",
-          value: sha1
+          value: sha1,
         });
       }
     });

@@ -57,13 +57,13 @@ export class PayBanner extends Component<PayBannerProps> {
         color: "white",
         fontSize: "16pt",
         fontWeight: "bold",
-        margin: "5px 15px"
+        margin: "5px 15px",
       };
     } else {
       style = {
         fontSize: "12pt",
         color: "#666",
-        margin: "5px 15px"
+        margin: "5px 15px",
       };
     }
 

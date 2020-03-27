@@ -51,7 +51,7 @@ const MORE: More[] = [
   "activity",
   "impersonate",
   "password",
-  "ban"
+  "ban",
 ];
 
 export class UserResult extends Component<Props, State> {
@@ -184,7 +184,7 @@ export class UserResult extends Component<Props, State> {
           fontSize: "10pt",
           color: "white",
           paddingLeft: "5px",
-          background: "red"
+          background: "red",
         }}
       >
         BANNED
@@ -208,7 +208,7 @@ export class UserResult extends Component<Props, State> {
               style={{
                 fontSize: "9px",
                 overflowX: "scroll",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
               }}
             >
               {this.props.account_id}

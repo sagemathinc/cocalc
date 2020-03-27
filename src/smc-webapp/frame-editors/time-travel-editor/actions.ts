@@ -20,7 +20,7 @@ import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 const { webapp_client } = require("../../webapp_client");
 import {
   Actions as CodeEditorActions,
-  CodeEditorState
+  CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
@@ -68,7 +68,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       loading: true,
       has_full_history: false,
       docpath: this.docpath,
-      docext: this.docext
+      docext: this.docext,
     });
     this.init_syncdoc();
   }
@@ -89,7 +89,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.syncdoc = await callback2(webapp_client.open_existing_sync_document, {
       project_id: this.project_id,
       path: this.syncpath,
-      persistent
+      persistent,
     });
     if (this.syncdoc == null) return;
     this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
@@ -98,7 +98,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
     this.setState({
       loading: false,
-      has_full_history: this.syncdoc.has_full_history()
+      has_full_history: this.syncdoc.has_full_history(),
     });
   }
 

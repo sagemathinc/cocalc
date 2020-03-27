@@ -17,7 +17,7 @@ import {
   Icon,
   MarkdownInput,
   Tip,
-  NumberInput
+  NumberInput,
 } from "../../r_misc";
 
 interface Props {
@@ -31,7 +31,7 @@ export class ConfigurePeerGrading extends Component<Props> {
       <Checkbox
         checked={config.enabled != null ? config.enabled : false}
         key="peer_grade_checkbox"
-        onChange={e =>
+        onChange={(e) =>
           this.set_peer_grade({ enabled: (e.target as any).checked })
         }
         style={{ display: "inline-block", verticalAlign: "middle" }}
@@ -52,21 +52,21 @@ export class ConfigurePeerGrading extends Component<Props> {
     }
   }
 
-  private set_peer_grade = config => {
+  private set_peer_grade = (config) => {
     this.props.actions.assignments.set_peer_grade(
       this.props.assignment.get("assignment_id"),
       config
     );
   };
 
-  private peer_due_change = date => {
+  private peer_due_change = (date) => {
     const due_date = this.peer_due(date);
     let due_date_string: string | undefined;
     if (due_date != undefined) {
       due_date_string = due_date.toISOString();
     }
     this.set_peer_grade({
-      due_date: due_date_string
+      due_date: due_date_string,
     });
   };
 
@@ -102,7 +102,7 @@ export class ConfigurePeerGrading extends Component<Props> {
         <Col span={12}>Number of students who will grade each assignment</Col>
         <Col span={12}>
           <NumberInput
-            on_change={n => this.set_peer_grade({ number: n })}
+            on_change={(n) => this.set_peer_grade({ number: n })}
             min={1}
             max={
               ((left = store != null ? store.num_students() : undefined) != null
@@ -133,7 +133,7 @@ export class ConfigurePeerGrading extends Component<Props> {
                 background: "white",
                 padding: "10px",
                 border: "1px solid #ccc",
-                borderRadius: "3px"
+                borderRadius: "3px",
               }}
             >
               <MarkdownInput
@@ -146,7 +146,7 @@ export class ConfigurePeerGrading extends Component<Props> {
                 rows={16}
                 placeholder="Enter your grading guidelines for this assignment..."
                 default_value={config.guidelines}
-                on_save={x => this.set_peer_grade({ guidelines: x })}
+                on_save={(x) => this.set_peer_grade({ guidelines: x })}
               />
             </div>
           </Col>

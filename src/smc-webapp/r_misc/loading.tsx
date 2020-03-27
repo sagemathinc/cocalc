@@ -20,8 +20,8 @@ const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
     textAlign: "center",
     marginTop: "15px",
     color: "#888",
-    background: "white"
-  }
+    background: "white",
+  },
 };
 
 export class Loading extends React.Component<Props> {
