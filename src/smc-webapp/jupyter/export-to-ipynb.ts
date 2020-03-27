@@ -25,7 +25,7 @@ export function export_to_ipynb(opts: any) {
     cells: opts.cell_list.toJS().map((id: string) => cell_to_ipynb(id, opts)),
     metadata: opts.metadata ? opts.metadata.toJS() || {} : {},
     nbformat: 4,
-    nbformat_minor: 0
+    nbformat_minor: 4
   };
 
   ipynb.metadata.kernelspec = opts.kernelspec;
