@@ -13,7 +13,7 @@ import {
   CourseStore,
   Feedback,
   NBgraderRunInfo,
-  get_nbgrader_score
+  get_nbgrader_score,
 } from "../store";
 import { callback2 } from "smc-util/async-utils";
 import { start_project, exec } from "../../frame-editors/generic/client";
@@ -26,14 +26,14 @@ import {
   peer_grading,
   mswalltime,
   defaults,
-  split
+  split,
 } from "smc-util/misc";
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
 import {
   extract_auto_scores,
-  NotebookScores
+  NotebookScores,
 } from "../../jupyter/nbgrader/autograde";
 
 import { previous_step, assignment_identifier } from "../util";
@@ -42,7 +42,7 @@ import {
   LastAssignmentCopyType,
   SyncDBRecord,
   SyncDBRecordAssignment,
-  copy_type_to_last
+  copy_type_to_last,
 } from "../types";
 
 import { export_student_file_use_times } from "../export/file-use-times";
@@ -86,7 +86,7 @@ export class AssignmentsActions {
         project_id: this.get_store().get("course_project_id"),
         command: "mkdir",
         args: ["-p", path],
-        err_on_exit: true
+        err_on_exit: true,
       });
     } catch (err) {
       this.course_actions.set_error(`error creating assignment: ${err}`);
@@ -98,7 +98,7 @@ export class AssignmentsActions {
       graded_path,
       target_path,
       table: "assignments",
-      assignment_id: uuid()
+      assignment_id: uuid(),
     });
   }
 
@@ -106,7 +106,7 @@ export class AssignmentsActions {
     this.course_actions.set({
       deleted: true,
       assignment_id,
-      table: "assignments"
+      table: "assignments",
     });
   }
 
@@ -114,7 +114,7 @@ export class AssignmentsActions {
     this.course_actions.set({
       deleted: false,
       assignment_id,
-      table: "assignments"
+      table: "assignments",
     });
   }
 
@@ -171,7 +171,7 @@ export class AssignmentsActions {
       new Feedback({ edited_grade: grade, edited_comments: comments })
     );
     this.course_actions.setState({
-      active_feedback_edits: new_edited_feedback
+      active_feedback_edits: new_edited_feedback,
     });
   }
 
@@ -188,7 +188,7 @@ export class AssignmentsActions {
     }
     const query = {
       table: "assignments",
-      assignment_id
+      assignment_id,
     };
     const assignment_data = this.course_actions.get_one(query);
     if (assignment_data == null) {
@@ -217,7 +217,7 @@ export class AssignmentsActions {
     commit: boolean = true
   ): void {
     const { assignment } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (assignment == null) {
       throw Error("no such assignment");
@@ -232,7 +232,7 @@ export class AssignmentsActions {
       {
         table: "assignments",
         assignment_id,
-        grades
+        grades,
       },
       commit
     );
@@ -243,7 +243,7 @@ export class AssignmentsActions {
     const store = this.get_store();
     const current_column = store.getIn([
       "active_assignment_sort",
-      "column_name"
+      "column_name",
     ]);
     if (current_column === column_name) {
       is_descending = !store.getIn(["active_assignment_sort", "is_descending"]);
@@ -251,7 +251,7 @@ export class AssignmentsActions {
       is_descending = false;
     }
     this.course_actions.setState({
-      active_assignment_sort: { column_name, is_descending }
+      active_assignment_sort: { column_name, is_descending },
     });
   }
 
@@ -259,7 +259,7 @@ export class AssignmentsActions {
     this.course_actions.set({
       [name]: val,
       table: "assignments",
-      assignment_id
+      assignment_id,
     });
   }
 
@@ -302,7 +302,7 @@ export class AssignmentsActions {
   // assignment, if it hasn't already been made.
   private update_peer_assignment(assignment_id: string) {
     const { store, assignment } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (!assignment) return;
     const peers = assignment.getIn(["peer_grade", "map"]);
@@ -331,9 +331,9 @@ export class AssignmentsActions {
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: "Copying assignment from a student"
+      desc: "Copying assignment from a student",
     });
-    const finish = err => {
+    const finish = (err) => {
       this.course_actions.clear_activity(id);
       this.finish_copy(assignment_id, student_id, "last_collect", err);
       if (err) {
@@ -343,7 +343,7 @@ export class AssignmentsActions {
     const { store, student, assignment } = this.course_actions.resolve({
       assignment_id,
       student_id,
-      finish
+      finish,
     });
     if (!student || !assignment) return;
     const student_name = store.get_student_name(student_id);
@@ -357,7 +357,7 @@ export class AssignmentsActions {
       assignment.get("collect_path") + "/" + student.get("student_id");
     this.course_actions.set_activity({
       id,
-      desc: `Copying assignment from ${student_name}`
+      desc: `Copying assignment from ${student_name}`,
     });
     try {
       await callback2(webapp_client.copy_path_between_projects, {
@@ -368,13 +368,13 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: false
+        exclude_history: false,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
       await this.write_text_file_to_course_project({
         path: target_path + `/STUDENT - ${name.simple}.txt`,
-        content: `This student is ${name.full}.`
+        content: `This student is ${name.full}.`,
       });
       finish("");
     } catch (err) {
@@ -398,9 +398,9 @@ export class AssignmentsActions {
       return;
     }
     const id: number = this.course_actions.set_activity({
-      desc: "Returning assignment to a student"
+      desc: "Returning assignment to a student",
     });
-    const finish = err => {
+    const finish = (err) => {
       this.course_actions.clear_activity(id);
       this.finish_copy(assignment_id, student_id, "last_return_graded", err);
       if (err) {
@@ -410,7 +410,7 @@ export class AssignmentsActions {
     const { store, student, assignment } = this.course_actions.resolve({
       assignment_id,
       student_id,
-      finish
+      finish,
     });
     if (!student || !assignment) return;
     const grade = store.get_grade(assignment_id, student_id);
@@ -432,7 +432,7 @@ export class AssignmentsActions {
     let peer_graded;
     this.course_actions.set_activity({
       id,
-      desc: `Returning assignment to ${student_name}`
+      desc: `Returning assignment to ${student_name}`,
     });
     let src_path = assignment.get("collect_path");
     if (assignment.getIn(["peer_grade", "enabled"])) {
@@ -508,7 +508,7 @@ ${details}
     try {
       await this.write_text_file_to_course_project({
         path: src_path + "/GRADE.md",
-        content
+        content,
       });
       await callback2(webapp_client.copy_path_between_projects, {
         src_project_id: store.get("course_project_id"),
@@ -518,7 +518,7 @@ ${details}
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
-        exclude_history: true
+        exclude_history: true,
       });
       if (peer_graded) {
         // Delete GRADER file
@@ -527,7 +527,7 @@ ${details}
           command: "rm ./*/GRADER*.txt",
           timeout: 60,
           bash: true,
-          path: assignment.get("graded_path")
+          path: assignment.get("graded_path"),
         });
       }
       finish("");
@@ -545,15 +545,15 @@ ${details}
       desc:
         "Returning assignments to all students " + new_only
           ? "who have not already received it"
-          : ""
+          : "",
     });
-    const finish = err => {
+    const finish = (err) => {
       this.course_actions.clear_activity(id);
       this.course_actions.set_error(`return to student: ${err}`);
     };
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
-      finish
+      finish,
     });
     if (!assignment) return;
     let errors: string = "";
@@ -613,7 +613,7 @@ ${details}
   ): void {
     const obj: SyncDBRecord = {
       table: "assignments",
-      assignment_id
+      assignment_id,
     };
     const a = this.course_actions.get_one(obj);
     if (a == null) return;
@@ -636,7 +636,7 @@ ${details}
   ): boolean {
     const obj: SyncDBRecordAssignment = {
       table: "assignments",
-      assignment_id
+      assignment_id,
     };
     const assignment_latest = this.course_actions.get_one(obj);
     if (assignment_latest == null) return false; // assignment gone
@@ -661,7 +661,7 @@ ${details}
   ): void {
     const obj: SyncDBRecordAssignment = {
       table: "assignments",
-      assignment_id
+      assignment_id,
     };
     const a = this.course_actions.get_one(obj);
     if (a == null) return;
@@ -694,14 +694,14 @@ ${details}
   ): Promise<void> {
     const { overwrite, create_due_date_file } = defaults(opts, {
       overwrite: false,
-      create_due_date_file: false
+      create_due_date_file: false,
     });
 
     if (this.start_copy(assignment_id, student_id, "last_assignment")) {
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: "Copying assignment to a student"
+      desc: "Copying assignment to a student",
     });
     const finish = (err = "") => {
       this.course_actions.clear_activity(id);
@@ -714,14 +714,14 @@ ${details}
     const { student, assignment, store } = this.course_actions.resolve({
       student_id,
       assignment_id,
-      finish
+      finish,
     });
     if (!student || !assignment) return;
 
     const student_name = store.get_student_name(student_id);
     this.course_actions.set_activity({
       id,
-      desc: `Copying assignment to ${student_name}`
+      desc: `Copying assignment to ${student_name}`,
     });
     let student_project_id: string | undefined = student.get("project_id");
     const src_path = this.assignment_src_path(assignment);
@@ -729,7 +729,7 @@ ${details}
       if (student_project_id == null) {
         this.course_actions.set_activity({
           id,
-          desc: `${student_name}'s project doesn't exist, so creating it.`
+          desc: `${student_name}'s project doesn't exist, so creating it.`,
         });
         student_project_id = await this.course_actions.student_projects.create_student_project(
           student_id
@@ -744,7 +744,7 @@ ${details}
       if (this.course_actions.is_closed()) return;
       this.course_actions.set_activity({
         id,
-        desc: `Copying files to ${student_name}'s project`
+        desc: `Copying files to ${student_name}'s project`,
       });
       await callback2(webapp_client.copy_path_between_projects, {
         src_project_id: store.get("course_project_id"),
@@ -754,7 +754,7 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
-        exclude_history: true
+        exclude_history: true,
       });
 
       // successful finish
@@ -778,7 +778,7 @@ ${details}
     assignment_id: string
   ): Promise<void> {
     const { assignment, store } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (!assignment) return;
     // write the due date to a file
@@ -789,7 +789,7 @@ ${details}
       return;
     }
     const due_id = this.course_actions.set_activity({
-      desc: `Creating ${due_date_fn} file...`
+      desc: `Creating ${due_date_fn} file...`,
     });
     const content = `This assignment is due\n\n   ${due_date.toLocaleString()}`;
     const path = src_path + "/" + due_date_fn;
@@ -797,7 +797,7 @@ ${details}
     try {
       await this.write_text_file_to_course_project({
         path,
-        content
+        content,
       });
     } catch (err) {
       throw Error(
@@ -819,7 +819,7 @@ ${details}
         await this.has_student_subdir(assignment_id); // make sure this is up to date
         // create_due_date_file = true
         await this.copy_assignment_to_student(assignment_id, student_id, {
-          create_due_date_file: true
+          create_due_date_file: true,
         });
         return;
       case "collected":
@@ -940,14 +940,14 @@ ${details}
     overwrite?: boolean
   ): Promise<void> {
     const id = this.course_actions.set_activity({ desc });
-    const finish = err => {
+    const finish = (err) => {
       this.course_actions.clear_activity(id);
       err = `${short_desc}: ${err}`;
       this.course_actions.set_error(err);
     };
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
-      finish
+      finish,
     });
     if (!assignment) return;
     let errors = "";
@@ -995,7 +995,7 @@ ${details}
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: "Copying peer grading to a student"
+      desc: "Copying peer grading to a student",
     });
     const finish = (err?) => {
       this.course_actions.clear_activity(id);
@@ -1007,14 +1007,14 @@ ${details}
     const { store, student, assignment } = this.course_actions.resolve({
       assignment_id,
       student_id,
-      finish
+      finish,
     });
     if (!student || !assignment) return;
 
     const student_name = store.get_student_name(student_id);
     this.course_actions.set_activity({
       id,
-      desc: `Copying peer grading to ${student_name}`
+      desc: `Copying peer grading to ${student_name}`,
     });
 
     const peer_map = this.update_peer_assignment(assignment_id); // synchronous
@@ -1063,8 +1063,8 @@ ${details}
           src_path + `/STUDENT - ${name.simple}.txt`,
           src_path + "/DUE_DATE.txt",
           src_path + `/STUDENT - ${name.simple}.txt~`,
-          src_path + "/DUE_DATE.txt~"
-        ]
+          src_path + "/DUE_DATE.txt~",
+        ],
       });
       if (this.course_actions.is_closed()) return;
 
@@ -1075,7 +1075,7 @@ ${details}
         target_project_id: student_project_id,
         target_path,
         overwrite_newer: false,
-        delete_missing: false
+        delete_missing: false,
       });
     };
 
@@ -1083,14 +1083,14 @@ ${details}
       // write instructions file to the student
       await this.write_text_file_to_course_project({
         path: peer_grading_guidelines_file,
-        content: guidelines
+        content: guidelines,
       });
       // copy it over
       await callback2(webapp_client.copy_path_between_projects, {
         src_project_id: store.get("course_project_id"),
         src_path: peer_grading_guidelines_file,
         target_project_id: student_project_id,
-        target_path: target_base_path + "/GRADING-GUIDE.md"
+        target_path: target_base_path + "/GRADING-GUIDE.md",
       });
       // now copy actual stuff to grade
       await map(peers, PARALLEL_LIMIT, f);
@@ -1111,7 +1111,7 @@ ${details}
       return;
     }
     const id = this.course_actions.set_activity({
-      desc: "Collecting peer grading of a student"
+      desc: "Collecting peer grading of a student",
     });
     const finish = (err?) => {
       this.course_actions.clear_activity(id);
@@ -1126,14 +1126,14 @@ ${details}
     const { store, student, assignment } = this.course_actions.resolve({
       student_id,
       assignment_id,
-      finish
+      finish,
     });
     if (!student || !assignment) return;
 
     const student_name = store.get_student_name(student_id);
     this.course_actions.set_activity({
       id,
-      desc: `Collecting peer grading of ${student_name}`
+      desc: `Collecting peer grading of ${student_name}`,
     });
 
     // list of student_id of students that graded this student (may be empty)
@@ -1162,21 +1162,21 @@ ${details}
         target_project_id: store.get("course_project_id"),
         target_path,
         overwrite_newer: false,
-        delete_missing: false
+        delete_missing: false,
       });
 
       // write local file identifying the grader
       let name = store.get_student_name_extra(student_id);
       await this.write_text_file_to_course_project({
         path: target_path + `/GRADER - ${name.simple}.txt`,
-        content: `The student who did the peer grading is named ${name.full}.`
+        content: `The student who did the peer grading is named ${name.full}.`,
       });
 
       // write local file identifying student being graded
       name = store.get_student_name_extra(our_student_id);
       await this.write_text_file_to_course_project({
         path: target_path + `/STUDENT - ${name.simple}.txt`,
-        content: `This student is ${name.full}.`
+        content: `This student is ${name.full}.`,
       });
     };
 
@@ -1205,7 +1205,7 @@ ${details}
   ): void {
     const { store, assignment, student } = this.course_actions.resolve({
       assignment_id,
-      student_id
+      student_id,
     });
     if (assignment == null || student == null) return;
     const student_project_id = student.get("project_id");
@@ -1261,7 +1261,7 @@ ${details}
     await callback2(webapp_client.write_text_file_to_project, {
       project_id: this.get_store().get("course_project_id"),
       path: opts.path,
-      content: opts.content
+      content: opts.content,
     });
   }
 
@@ -1271,7 +1271,7 @@ ${details}
   // nbgrader is probably being used.
   public async has_student_subdir(assignment_id: string): Promise<void> {
     const { store, assignment } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (assignment == null) return;
     const project_id = store.get("course_project_id");
@@ -1282,7 +1282,7 @@ ${details}
       project_id,
       command,
       args,
-      err_on_exit: false
+      err_on_exit: false,
     });
     if (this.course_actions.is_closed()) return;
 
@@ -1295,7 +1295,7 @@ ${details}
       has_student_subdir,
       nbgrader,
       assignment_id,
-      table: "assignments"
+      table: "assignments",
     });
   }
 
@@ -1313,7 +1313,7 @@ ${details}
           project_id,
           command,
           path,
-          err_on_exit: true
+          err_on_exit: true,
         })
       ).stdout
     );
@@ -1330,7 +1330,7 @@ ${details}
     assignment_id: string
   ): Promise<{ [path: string]: string }> {
     const { store, assignment } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (assignment == null || !assignment.get("has_student_subdir")) {
       return {}; // nothing case.
@@ -1346,7 +1346,7 @@ ${details}
         project_id,
         path,
         command,
-        args
+        args,
       })
     ).stdout.split("\n");
 
@@ -1418,7 +1418,7 @@ ${details}
   ): void {
     const assignment_data = this.course_actions.get_one({
       table: "assignments",
-      assignment_id
+      assignment_id,
     });
     if (assignment_data == null) return;
     const nbgrader_scores: {
@@ -1429,7 +1429,7 @@ ${details}
       {
         table: "assignments",
         assignment_id,
-        nbgrader_scores
+        nbgrader_scores,
       },
       commit
     );
@@ -1449,7 +1449,7 @@ ${details}
     commit: boolean = true
   ): void {
     const { assignment } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (assignment == null) {
       throw Error("no such assignment");
@@ -1528,7 +1528,7 @@ ${details}
 
     const { store, assignment, student } = this.course_actions.resolve({
       assignment_id,
-      student_id
+      student_id,
     });
     if (
       student == null ||
@@ -1572,7 +1572,7 @@ ${details}
       const activity_id = this.course_actions.set_activity({
         desc: `Running nbgrader on ${store.get_student_name(
           student_id
-        )}'s "${file}"`
+        )}'s "${file}"`,
       });
       if (assignment == null || student == null) {
         // This won't happen, but it makes Typescript happy.
@@ -1595,7 +1595,7 @@ ${details}
         const id = this.course_actions.set_activity({
           desc: `Ensuring ${store.get_student_name(
             student_id
-          )}'s project is running`
+          )}'s project is running`,
         });
         try {
           await start_project(student_project_id, 60);
@@ -1608,7 +1608,7 @@ ${details}
           student_ipynb,
           instructor_ipynb,
           path: student_path,
-          project_id: student_project_id
+          project_id: student_project_id,
         });
         /* console.log("nbgrader finished successfully", {
           student_id,
@@ -1682,7 +1682,7 @@ ${details}
   ): Promise<void> {
     const { assignment, student, store } = this.course_actions.resolve({
       assignment_id,
-      student_id
+      student_id,
     });
     if (assignment == null || student == null) {
       throw Error("no such student or assignment");
@@ -1734,7 +1734,7 @@ ${details}
   ): Promise<void> {
     // Get the path of the assignment
     const { assignment, store } = this.course_actions.resolve({
-      assignment_id
+      assignment_id,
     });
     if (assignment == null) {
       throw Error("no such assignment");
@@ -1756,11 +1756,11 @@ ${details}
       this.course_actions
     );
     const id = set_activity({
-      desc: "Exporting collected files..."
+      desc: "Exporting collected files...",
     });
     try {
       const { assignment, store } = this.course_actions.resolve({
-        assignment_id
+        assignment_id,
       });
       if (assignment == null) return;
       const students = store.get("students");
@@ -1771,17 +1771,17 @@ ${details}
         store.get("course_filename").slice(0, i) + "-export";
       const export_path = base_export_path + "/" + src_path;
 
-      function student_name(student_id: string): string {
+      const student_name = function (student_id: string): string {
         const v = split(store.get_student_name(student_id));
         return v.join("_");
-      }
+      };
 
-      function activity(s: string): void {
+      const activity = function (s: string): void {
         set_activity({
           id,
-          desc: "Exporting collected files... " + s
+          desc: "Exporting collected files... " + s,
         });
-      }
+      };
 
       const project_id = store.get("course_project_id");
 

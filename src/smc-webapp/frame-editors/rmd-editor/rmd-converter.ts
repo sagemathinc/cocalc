@@ -6,7 +6,7 @@ Convert R Markdown file to hidden Markdown file, then read.
 import { path_split } from "smc-util/misc2";
 import {
   exec,
-  ExecOutput /* read_text_file_from_project */
+  ExecOutput /* read_text_file_from_project */,
 } from "../generic/client";
 
 export async function convert(
@@ -43,6 +43,6 @@ export async function convert(
     project_id: project_id,
     path: x.head,
     err_on_exit: true,
-    aggregate: time
+    aggregate: time,
   });
 }

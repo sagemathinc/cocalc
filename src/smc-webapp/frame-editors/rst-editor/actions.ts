@@ -44,11 +44,11 @@ export class Actions extends CodeEditorActions {
         direction: "col",
         type: "node",
         first: {
-          type: "cm"
+          type: "cm",
         },
         second: {
-          type: "rst"
-        }
+          type: "rst",
+        },
       };
     }
   }
@@ -69,7 +69,7 @@ export class Actions extends CodeEditorActions {
 
     try {
       print_html({
-        src: raw_url(this.project_id, aux_file(this.path, "html"))
+        src: raw_url(this.project_id, aux_file(this.path, "html")),
       });
     } catch (err) {
       this.set_error(err);

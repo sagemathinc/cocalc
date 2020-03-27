@@ -17,7 +17,7 @@ export function FetchDirectoryErrors({
   quotas,
   is_commercial,
   public_view,
-  is_logged_in
+  is_logged_in,
 }: Props): JSX.Element {
   switch (error) {
     case "not_public":

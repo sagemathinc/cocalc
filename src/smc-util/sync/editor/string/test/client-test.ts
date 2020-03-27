@@ -7,7 +7,7 @@ import { bind_methods, keys } from "../../../../misc2";
 import { once } from "../../../../async-utils";
 import {
   Client as Client0,
-  FileWatcher as FileWatcher0
+  FileWatcher as FileWatcher0,
 } from "../../generic/types";
 
 import { SyncTable } from "../../../table/synctable";

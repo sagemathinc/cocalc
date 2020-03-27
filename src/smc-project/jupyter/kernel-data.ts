@@ -30,7 +30,7 @@ export async function get_kernel_data(): Promise<any> {
       language: value.spec.language,
       interrupt_mode: value.spec.interrupt_mode,
       env: value.spec.env,
-      metadata: value.spec.metadata
+      metadata: value.spec.metadata,
     });
   }
   v.sort(field_cmp("display_name"));

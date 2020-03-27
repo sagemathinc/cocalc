@@ -41,6 +41,7 @@ EventEmitter = require('events')
 fs      = require('fs')
 async   = require('async')
 escapeString = require('sql-string-escape')
+validator = require('validator')
 
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
@@ -670,12 +671,27 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.query += " WHERE #{WHERE.join(' AND ')}"
 
         if opts.order_by?
+            if opts.order_by.indexOf("'") >= 0
+                err = "ERROR -- detected ' apostrophe in order_by='#{opts.order_by}'"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " ORDER BY #{opts.order_by} "
 
-        if opts.limit?  # TODO: type checking and sanitization for limit, etc....
+        if opts.limit?
+            if not validator.isInt('' + opts.limit, min:0)
+                err = "ERROR -- opts.limit = '#{opts.limit}' is not an integer"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " LIMIT #{opts.limit} "
 
         if opts.offset?
+            if not validator.isInt('' + opts.offset, min:0)
+                err = "ERROR -- opts.offset = '#{opts.offset}' is not an integer"
+                dbg(err)
+                opts.cb?(err)
+                return
             opts.query += " OFFSET #{opts.offset} "
 
 

@@ -12,7 +12,7 @@ let the_lean_server: Lean | undefined = undefined;
 
 function init_lean_server(client: any, logger: any): void {
   the_lean_server = lean_server(client);
-  the_lean_server.on("tasks", function(path: string, tasks: object[]) {
+  the_lean_server.on("tasks", function (path: string, tasks: object[]) {
     logger.debug("lean_server:websocket:tasks -- ", path, tasks);
     const lean_file = lean_files[`lean:${path}`];
     if (lean_file !== undefined && !isEqual(lean_file.tasks, tasks)) {
@@ -21,7 +21,7 @@ function init_lean_server(client: any, logger: any): void {
     }
   });
 
-  the_lean_server.on("sync", function(path: string, hash: number) {
+  the_lean_server.on("sync", function (path: string, hash: number) {
     logger.debug("lean_server:websocket:sync -- ", path, hash);
     const lean_file = lean_files[`lean:${path}`];
     if (lean_file !== undefined && !isEqual(lean_file.sync, hash)) {
@@ -31,7 +31,7 @@ function init_lean_server(client: any, logger: any): void {
     }
   });
 
-  the_lean_server.on("messages", function(path: string, messages: object) {
+  the_lean_server.on("messages", function (path: string, messages: object) {
     logger.debug("lean_server:websocket:messages -- ", path, messages);
     const lean_file = lean_files[`lean:${path}`];
     if (lean_file !== undefined && !isEqual(lean_file.messages, messages)) {
@@ -65,10 +65,10 @@ export async function lean_channel(
   const channel = primus.channel(name);
   lean_files[name] = {
     channel,
-    messages: []
+    messages: [],
   };
 
-  channel.on("connection", function(spark: any): void {
+  channel.on("connection", function (spark: any): void {
     // make sure lean server cares:
     if (the_lean_server === undefined) {
       // just to satisfy typescript.
@@ -88,9 +88,9 @@ export async function lean_channel(
     spark.write({
       messages: lean_file.messages,
       sync: lean_file.sync,
-      tasks: lean_file.tasks
+      tasks: lean_file.tasks,
     });
-    spark.on("end", function() {});
+    spark.on("end", function () {});
   });
 
   return name;

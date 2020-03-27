@@ -13,23 +13,23 @@ Table({
   fields: {
     id: {
       type: "string",
-      pg_type: "CHAR(40)"
+      pg_type: "CHAR(40)",
     },
     project_id: {
-      type: "uuid"
+      type: "uuid",
     },
     path: {
-      type: "string"
+      type: "string",
     },
     users: {
       type: "map",
       desc:
         "{account_id1: {action1: timestamp1, action2:timestamp2}, account_id2: {...}}",
-      date: "all"
+      date: "all",
     },
     last_edited: {
-      type: "timestamp"
-    }
+      type: "timestamp",
+    },
   },
   rules: {
     primary_key: "id",
@@ -53,8 +53,8 @@ Table({
           project_id: null,
           path: null,
           users: null,
-          last_edited: null
-        }
+          last_edited: null,
+        },
       },
       set: {
         fields: {
@@ -64,12 +64,12 @@ Table({
           project_id: "project_write",
           path: true,
           users: true,
-          last_edited: true
+          last_edited: true,
         },
         required_fields: {
           id: true,
           project_id: true,
-          path: true
+          path: true,
         },
         check_hook(db, obj, account_id, _project_id, cb) {
           // hook to note that project is being used (CRITICAL: do not pass path
@@ -91,12 +91,12 @@ Table({
             db.log_file_access({
               project_id: obj.project_id,
               account_id,
-              filename: obj.path
+              filename: obj.path,
             });
           }
           cb();
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

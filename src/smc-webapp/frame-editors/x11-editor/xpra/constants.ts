@@ -114,7 +114,7 @@ export const CHARCODE_TO_NAME = (() => {
     219: "bracketleft",
     220: "backslash",
     221: "bracketright",
-    222: "apostrophe"
+    222: "apostrophe",
   };
 
   let i;
@@ -164,7 +164,7 @@ export const KEY_TO_NAME = (() => {
     PageUp: "Prior",
     Delete: "Delete",
     End: "End",
-    PageDown: "Next"
+    PageDown: "Next",
   };
 
   for (let i = 0; i <= 9; i++) {
@@ -196,7 +196,7 @@ export const NUMPAD_TO_NAME = {
   ArrowRight: "KP_Right",
   Home: "KP_Home",
   ArrowUp: "KP_Up",
-  PageUp: "KP_Prior"
+  PageUp: "KP_Prior",
 };
 
 /**
@@ -1749,13 +1749,13 @@ export const KEYSYM_TO_UNICODE = {
   Sinh_lu2: 0x0ddf,
   Sinh_ruu2: 0x0df2,
   Sinh_luu2: 0x0df3,
-  Sinh_kunddaliya: 0x0df4
+  Sinh_kunddaliya: 0x0df4,
 };
 
 export const CHAR_TO_NAME = Object.keys(KEYSYM_TO_UNICODE).reduce(
   (result, key) =>
     Object.assign({}, result, {
-      [String.fromCharCode(KEYSYM_TO_UNICODE[key])]: key
+      [String.fromCharCode(KEYSYM_TO_UNICODE[key])]: key,
     }),
   {}
 );
@@ -1775,7 +1775,7 @@ export const CODEC_DESCRIPTION = {
   "vorbis+mka": "webm: vorbis",
   "vorbis+ogg": "ogg: vorbis",
   "speex+ogg": "ogg: speex",
-  "flac+ogg": "ogg: flac"
+  "flac+ogg": "ogg: flac",
 };
 
 export const CODEC_STRING = {
@@ -1795,7 +1795,7 @@ export const CODEC_STRING = {
   "vorbis+ogg": 'audio/ogg; codecs="vorbis"',
   "speex+ogg": 'audio/ogg; codecs="speex"',
   "flac+ogg": 'audio/ogg; codecs="flac"',
-  "opus+ogg": 'audio/ogg; codecs="opus"'
+  "opus+ogg": 'audio/ogg; codecs="opus"',
 };
 
 export const PREFERRED_CODEC_ORDER = [
@@ -1812,7 +1812,7 @@ export const PREFERRED_CODEC_ORDER = [
   "mp3",
   "flac",
   "wav",
-  "wave"
+  "wave",
 ];
 
 export const H264_PROFILE_CODE = {
@@ -1820,14 +1820,14 @@ export const H264_PROFILE_CODE = {
   baseline: "42C0",
   main: "4D40",
   high: "6400",
-  extended: "58A0"
+  extended: "58A0",
 };
 
 export const H264_LEVEL_CODE = {
   "3.0": "1E",
   "3.1": "1F",
   "4.1": "29",
-  "5.1": "33"
+  "5.1": "33",
 };
 
 export const READY_STATE = {
@@ -1835,26 +1835,26 @@ export const READY_STATE = {
   1: "METADATA",
   2: "CURRENT DATA",
   3: "FUTURE DATA",
-  4: "ENOUGH DATA"
+  4: "ENOUGH DATA",
 };
 
 export const NETWORK_STATE = {
   0: "EMPTY",
   1: "IDLE",
   2: "LOADING",
-  3: "NO_SOURCE"
+  3: "NO_SOURCE",
 };
 
 export const ERROR_CODE = {
   1: "ABORTED: fetching process aborted by user",
   2: "NETWORK: error occurred when downloading",
   3: "DECODE: error occurred when decoding",
-  4: "SRC_NOT_SUPPORTED"
+  4: "SRC_NOT_SUPPORTED",
 };
 
 export const AURORA_CODECS = {
   wav: "lpcm",
   mp3: "mp3",
   flac: "flac",
-  "aac+mpeg4": "mp4a"
+  "aac+mpeg4": "mp4a",
 };

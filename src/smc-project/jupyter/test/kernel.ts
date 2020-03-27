@@ -3,19 +3,19 @@ import * as expect from "expect";
 import * as common from "./common";
 import { endswith } from "../../smc-util/misc2";
 
-describe("compute 2+7 using the python2 kernel -- ", function() {
+describe("compute 2+7 using the python2 kernel -- ", function () {
   this.timeout(5000);
   const kernel: common.JupyterKernel = common.kernel("test-python2");
 
-  it("evaluate 2+7", async function() {
+  it("evaluate 2+7", async function () {
     expect(await common.exec(kernel, "2+7")).toBe('{"text/plain":"9"}');
   });
 
-  it("closes the kernel", function() {
+  it("closes the kernel", function () {
     kernel.close();
   });
 
-  it("verifies that executing code after closing the kernel gives an appropriate error", async function() {
+  it("verifies that executing code after closing the kernel gives an appropriate error", async function () {
     try {
       await kernel.execute_code_now({ code: "2+2" });
     } catch (err) {
@@ -24,30 +24,30 @@ describe("compute 2+7 using the python2 kernel -- ", function() {
   });
 });
 
-describe("compute 2/3 using a python3 kernel -- ", function() {
+describe("compute 2/3 using a python3 kernel -- ", function () {
   this.timeout(15000);
   const kernel: common.JupyterKernel = common.kernel("test-python3");
 
-  it("evaluate 2/3", async function() {
+  it("evaluate 2/3", async function () {
     expect(await common.exec(kernel, "2/3")).toBe(
       '{"text/plain":"0.6666666666666666"}'
     );
   });
 
-  return it("closes the kernel", function() {
+  return it("closes the kernel", function () {
     kernel.close();
   });
 });
 
-describe("it tries to start a kernel that does not exist -- ", function() {
+describe("it tries to start a kernel that does not exist -- ", function () {
   let kernel: common.JupyterKernel;
 
-  it("creates a foobar kernel", function() {
+  it("creates a foobar kernel", function () {
     kernel = common.kernel("foobar");
     return expect(kernel.get_state()).toBe("off");
   });
 
-  it("then tries to use it, which will fail", async function() {
+  it("then tries to use it, which will fail", async function () {
     try {
       await kernel.execute_code_now({ code: "2+2" });
     } catch (err) {
@@ -56,12 +56,12 @@ describe("it tries to start a kernel that does not exist -- ", function() {
   });
 });
 
-describe("calling the spawn method -- ", function() {
+describe("calling the spawn method -- ", function () {
   const kernel = common.kernel("test-python2");
   this.timeout(5000);
 
-  it("observes that the state switches to running", function(done) {
-    kernel.on("state", function(state) {
+  it("observes that the state switches to running", function (done) {
+    kernel.on("state", function (state) {
       if (state !== "running") {
         return;
       }
@@ -70,8 +70,8 @@ describe("calling the spawn method -- ", function() {
     kernel.spawn();
   });
 
-  it("observes that the state switches to closed", function(done) {
-    kernel.on("state", function(state) {
+  it("observes that the state switches to closed", function (done) {
+    kernel.on("state", function (state) {
       if (state !== "closed") {
         return;
       }
@@ -81,15 +81,15 @@ describe("calling the spawn method -- ", function() {
   });
 });
 
-describe("send signals to a kernel -- ", function() {
+describe("send signals to a kernel -- ", function () {
   const kernel = common.kernel("test-python2");
   this.timeout(5000);
 
-  it("ensure kernel is running", async function() {
+  it("ensure kernel is running", async function () {
     await kernel.spawn();
   });
 
-  it("start a long sleep running... and interrupt it", async function() {
+  it("start a long sleep running... and interrupt it", async function () {
     // send an interrupt signal to stop the sleep below:
     return setTimeout(() => kernel.signal("SIGINT"), 250);
     expect(await common.exec(kernel, "import time; time.sleep(1000)")).toBe(
@@ -97,8 +97,8 @@ describe("send signals to a kernel -- ", function() {
     );
   });
 
-  it("send a kill signal", function(done) {
-    kernel.on("state", function(state) {
+  it("send a kill signal", function (done) {
+    kernel.on("state", function (state) {
       expect(state).toBe("closed");
       done();
     });
@@ -106,11 +106,11 @@ describe("send signals to a kernel -- ", function() {
   });
 });
 
-describe("start a kernel in a different directory -- ", function() {
+describe("start a kernel in a different directory -- ", function () {
   let kernel: common.JupyterKernel;
   this.timeout(5000);
 
-  it("creates a python2 kernel in current dir", async function() {
+  it("creates a python2 kernel in current dir", async function () {
     kernel = common.kernel("test-python2");
     expect(
       endswith(
@@ -121,7 +121,7 @@ describe("start a kernel in a different directory -- ", function() {
     kernel.close();
   });
 
-  it("creates a python2 kernel with path test/a.ipynb2", async function() {
+  it("creates a python2 kernel with path test/a.ipynb2", async function () {
     kernel = common.kernel("test-python2", "test/a.ipynb2");
     expect(
       endswith(
@@ -133,16 +133,16 @@ describe("start a kernel in a different directory -- ", function() {
   });
 });
 
-describe("use the key:value store -- ", function() {
+describe("use the key:value store -- ", function () {
   const kernel = common.kernel("test-python2");
   this.timeout(5000);
 
-  it("tests setting the store", function() {
+  it("tests setting the store", function () {
     kernel.store.set({ a: 5, b: 7 }, { the: "value" });
     expect(kernel.store.get({ b: 7, a: 5 })).toEqual({ the: "value" });
   });
 
-  it("tests deleting from the store", function() {
+  it("tests deleting from the store", function () {
     kernel.store.delete({ a: 5, b: 7 });
     expect(kernel.store.get({ b: 7, a: 5 })).toBe(undefined);
   });

@@ -54,10 +54,7 @@ class ComputeImagesActions<ComputeImagesState> extends Actions<
 > {}
 
 export function id2name(id: string): string {
-  return id
-    .split("-")
-    .map(capitalize)
-    .join(" ");
+  return id.split("-").map(capitalize).join(" ");
 }
 
 function fallback(
@@ -73,11 +70,11 @@ function fallback(
 }
 
 function display_fallback(img: ComputeImage, id: string) {
-  return fallback(img, "display", _ => id2name(id));
+  return fallback(img, "display", (_) => id2name(id));
 }
 
 function desc_fallback(img: ComputeImage) {
-  return fallback(img, "desc", _ => "*No description available.*");
+  return fallback(img, "desc", (_) => "*No description available.*");
 }
 
 /* if there is no URL set, derive it from the git source URL
@@ -124,21 +121,21 @@ class ComputeImagesTable extends Table {
     return (
       data
         // filter disabled ones. we still want to have the data available, though.
-        .filter(img => !img.get("disabled", false))
+        .filter((img) => !img.get("disabled", false))
         .map((img, id) => {
           const display = display_fallback(img, id);
           const desc = desc_fallback(img);
           const url = url_fallback(img);
           const search_str = `${id} ${display} ${desc} ${url}`
             .split(" ")
-            .filter(x => x.length > 0)
+            .filter((x) => x.length > 0)
             .join(" ")
             .toLowerCase();
           // derive the displayed tag, docker-like
           const tag = id.indexOf(":") >= 0 ? "" : ":latest";
           const disp_tag = `${id}${tag}`;
 
-          return img.withMutations(img =>
+          return img.withMutations((img) =>
             img
               .set("display", display)
               .set("desc", desc)

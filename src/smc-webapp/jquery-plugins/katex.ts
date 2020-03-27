@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-$.fn.katex = function() {
+$.fn.katex = function () {
   this.each(katex_plugin);
   return this;
 };
@@ -45,7 +45,7 @@ function katex_plugin(): void {
   tex2jax.PreProcess(elt[0]);
 
   // Select all the math and try to use katex on each part.
-  elt.find("script").each(function() {
+  elt.find("script").each(function () {
     const node = $(this);
     if (
       (node[0] as any).type == "math/tex" ||
@@ -54,7 +54,7 @@ function katex_plugin(): void {
       const katex_options: KatexOptions = {
         displayMode: (node[0] as any).type == "math/tex; mode=display",
         macros: macros,
-        trust: true
+        trust: true,
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
       const cached: any = math_cache.get(text);
@@ -71,7 +71,7 @@ function katex_plugin(): void {
         const j = text.indexOf("}");
         if (i != -1 && j != -1) {
           const cmd = text.slice(i + 1, j);
-          math_cache.forEach(function(_, key) {
+          math_cache.forEach(function (_, key) {
             if ((key as string).indexOf(cmd) != -1) {
               math_cache.del(key);
             }
@@ -84,7 +84,7 @@ function katex_plugin(): void {
             cb: () => {
               // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
               math_cache.set(text, node0.prev().clone());
-            }
+            },
           });
         }
       } else {
@@ -104,7 +104,7 @@ function katex_plugin(): void {
               cb: () => {
                 // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
                 math_cache.set(text, node0.prev().clone());
-              }
+              },
             });
           }
         }

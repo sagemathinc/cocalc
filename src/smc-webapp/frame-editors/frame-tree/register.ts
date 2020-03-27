@@ -95,7 +95,7 @@ function register(
       if (actions) {
         actions.save();
       }
-    }
+    },
   };
   general_register_file_editor(data);
   if (typeof ext == "string") {

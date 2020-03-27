@@ -5,23 +5,23 @@ Table({
   fields: {
     hash: {
       type: "string",
-      pg_type: "CHAR(127)"
+      pg_type: "CHAR(127)",
     },
     value: {
-      type: "map"
+      type: "map",
     },
     account_id: {
-      type: "uuid"
+      type: "uuid",
     },
     expire: {
-      type: "timestamp"
-    }
+      type: "timestamp",
+    },
   },
   rules: {
     primary_key: "hash",
     durability: "soft", // dropping this would just require a user to login again
-    pg_indexes: ["account_id"]
-  }
+    pg_indexes: ["account_id"],
+  },
 });
 
 Table({
@@ -29,16 +29,16 @@ Table({
   fields: {
     auth_token: {
       type: "string",
-      pg_type: "CHAR(24)"
+      pg_type: "CHAR(24)",
     },
     account_id: {
-      type: "uuid"
+      type: "uuid",
     },
     expire: {
-      type: "timestamp"
-    }
+      type: "timestamp",
+    },
   },
   rules: {
-    primary_key: "auth_token"
-  }
+    primary_key: "auth_token",
+  },
 });

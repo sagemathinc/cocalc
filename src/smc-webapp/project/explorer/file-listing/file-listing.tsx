@@ -278,7 +278,7 @@ export class FileListing extends React.Component<Props> {
             flex: "1 0 auto",
             zIndex: 1,
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
           }}
         >
           {!this.props.public_view && this.render_terminal_mode()}

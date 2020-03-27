@@ -20,7 +20,7 @@ import {
   Rendered,
   Component,
   rclass,
-  rtypes
+  rtypes,
 } from "../../../app-framework";
 
 import { Loading } from "../../../r_misc";
@@ -39,8 +39,8 @@ class Slideshow extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        slideshow: rtypes.immutable.Map
-      }
+        slideshow: rtypes.immutable.Map,
+      },
     };
   }
 

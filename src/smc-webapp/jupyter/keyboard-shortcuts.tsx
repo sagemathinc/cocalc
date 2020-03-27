@@ -28,7 +28,7 @@ const SYMBOLS = {
   tab: "↹",
   down: "⬇",
   up: "⬆",
-  backspace: "⌫"
+  backspace: "⌫",
 };
 
 function shortcut_to_string(shortcut: KeyboardCommand): string {
@@ -98,7 +98,7 @@ export class KeyboardShortcut extends Component<KeyboardShortcutProps> {
 
 const SHORTCUTS_STYLE: React.CSSProperties = {
   border: "1px solid transparent",
-  paddingRight: "10px"
+  paddingRight: "10px",
 };
 
 interface ShortcutsProps {
@@ -124,7 +124,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       value: "",
       taken: false,
-      shortcut: undefined
+      shortcut: undefined,
     };
   }
 
@@ -178,7 +178,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       taken: false,
       value: "",
-      shortcut: undefined
+      shortcut: undefined,
     });
   };
 
@@ -191,7 +191,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       taken: false,
       value: "",
-      shortcut: undefined
+      shortcut: undefined,
     });
   };
 
@@ -211,7 +211,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     this.setState({
       value: shortcut_to_string(shortcut),
       shortcut,
-      taken
+      taken,
     });
   };
 
@@ -298,7 +298,7 @@ function capitalize_each_word(s: string): string {
 const COMMAND_STYLE = {
   cursor: "pointer",
   borderTop: "1px solid #ccc",
-  padding: "5px 0 5px 10px"
+  padding: "5px 0 5px 10px",
 };
 
 interface CommandProps {
@@ -389,7 +389,7 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
   border: "1px solid #ccc",
   borderRadius: "3px",
   overflowY: "scroll",
-  maxHeight: "50vh"
+  maxHeight: "50vh",
 };
 
 interface CommandListProps {
@@ -484,7 +484,7 @@ export class KeyboardShortcuts extends Component<
         this.props.frame_actions,
         this.props.editor_actions
       ),
-      taken: {}
+      taken: {},
     };
     for (const name in obj.commands) {
       const val = obj.commands[name];

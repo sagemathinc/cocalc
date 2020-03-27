@@ -8,14 +8,14 @@ import { len } from "../../../misc2";
 
 import {
   make_patch as string_make_patch,
-  apply_patch as string_apply_patch
+  apply_patch as string_apply_patch,
 } from "../generic/util";
 import {
   map_merge_patch,
   merge_set,
   nonnull_cols,
   to_key,
-  to_str
+  to_str,
 } from "./util";
 
 type Record = immutable.Map<string, any> | undefined;
@@ -199,7 +199,7 @@ export class DBDocument implements Document {
     if (t1.size === 0) {
       // Special case: t1 is empty -- bunch of deletes
       const v: jsmap[] = [];
-      t0.map(x => {
+      t0.map((x) => {
         if (x != null) {
           v.push(this.primary_key_part(x.toJS()));
         }
@@ -227,7 +227,7 @@ export class DBDocument implements Document {
     // Inserts: everything in k1 that is not in k0
     const inserts = k1.subtract(k0);
     if (inserts.size > 0) {
-      inserts.map(k => {
+      inserts.map((k) => {
         if (k != null) {
           const x = other.get_one(k);
           if (x != null) {
@@ -241,7 +241,7 @@ export class DBDocument implements Document {
     // must have all changed
     const changed = k1.intersect(k0);
     if (changed.size > 0) {
-      changed.map(k => {
+      changed.map((k) => {
         if (k == null) {
           return;
         }
@@ -529,7 +529,9 @@ export class DBDocument implements Document {
     if (remove.size === this.everything.size) {
       // actually deleting everything; easy special cases
       changes = changes.union(
-        this.records.filter(record => record != null).map(this.primary_key_cols)
+        this.records
+          .filter((record) => record != null)
+          .map(this.primary_key_cols)
       );
       return new DBDocument(
         this.primary_keys,
@@ -548,7 +550,7 @@ export class DBDocument implements Document {
       if (index == null) {
         continue;
       }
-      remove.forEach(n => {
+      remove.forEach((n) => {
         if (n == null) {
           return;
         }
@@ -574,7 +576,7 @@ export class DBDocument implements Document {
     // delete corresponding records (actually set to undefined to
     // preserve index references).
     let records = this.records;
-    remove.forEach(n => {
+    remove.forEach((n) => {
       if (n == null) {
         return;
       }
@@ -644,10 +646,10 @@ export class DBDocument implements Document {
     // Get the defined records; there may be undefined ones due
     // to lazy delete.
     let t0: immutable.Set<Record> = immutable.Set(
-      immutable.Set(this.records).filter(x => x != null)
+      immutable.Set(this.records).filter((x) => x != null)
     );
     let t1: immutable.Set<Record> = immutable.Set(
-      immutable.Set(other.records).filter(x => x != null)
+      immutable.Set(other.records).filter((x) => x != null)
     );
 
     // Remove the common intersection -- nothing going on there.
@@ -670,7 +672,7 @@ export class DBDocument implements Document {
       return immutable.Set(
         immutable
           .Set(this.records)
-          .filter(x => x != null)
+          .filter((x) => x != null)
           .map(this.primary_key_cols)
       );
     }

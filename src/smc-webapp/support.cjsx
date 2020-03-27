@@ -23,12 +23,12 @@ $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./app-framework')
 {Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
-{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer, A} = require('./r_misc')
+{Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, A} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
-{HelpEmailLink, SiteName} = require('./customize')
+{HelpEmailLink, SiteName, Footer} = require('./customize')
 {DISCORD_INVITE} = require('smc-util/theme')
 
 STATE =

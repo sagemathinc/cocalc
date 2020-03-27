@@ -35,7 +35,7 @@ export class PasswordReset extends Component<Props, State> {
     let link: string;
     try {
       link = await callback2(webapp_client.admin_reset_password, {
-        email_address: this.props.email_address
+        email_address: this.props.email_address,
       });
     } catch (err) {
       if (!this.mounted) return;

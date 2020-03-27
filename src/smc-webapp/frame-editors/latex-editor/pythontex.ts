@@ -43,7 +43,7 @@ export async function pythontex(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
-    aggregate
+    aggregate,
   });
 }
 
@@ -85,7 +85,7 @@ export function pythontex_errors(
         level: "error",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.errors.push(err);
       pll.all.push(err);

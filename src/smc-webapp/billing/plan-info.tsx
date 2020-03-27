@@ -110,7 +110,7 @@ export class PlanInfo extends Component<Props> {
     const { benefits } = plan_data;
 
     const style = {
-      cursor: this.props.on_click != null ? "pointer" : undefined
+      cursor: this.props.on_click != null ? "pointer" : undefined,
     };
 
     return (
@@ -124,8 +124,8 @@ export class PlanInfo extends Component<Props> {
       >
         <Space />
         {PROJECT_UPGRADES.field_order
-          .filter(name => benefits[name])
-          .map(name =>
+          .filter((name) => benefits[name])
+          .map((name) =>
             this.render_plan_info_line(
               name,
               benefits[name] != null ? benefits[name] : 0,

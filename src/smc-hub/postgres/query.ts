@@ -59,7 +59,7 @@ function all_query(
     order_by,
     limit,
     params,
-    cb: all_results(cb)
+    cb: all_results(cb),
   });
 }
 
@@ -86,6 +86,6 @@ function one_query(
     order_by,
     limit,
     params,
-    cb: one_result(cb)
+    cb: one_result(cb),
   });
 }

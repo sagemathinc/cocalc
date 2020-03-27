@@ -7,12 +7,12 @@ import {
   after,
   it,
   expect,
-  TestEditor
+  TestEditor,
 } from "../../frame-editors/generic/test/util";
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../actions";
 
-describe("test file-->open -- ", function() {
+describe("test file-->open -- ", function () {
   let editor: TestEditor;
   let store: JupyterStore;
   let actions: JupyterActions;
@@ -25,7 +25,7 @@ describe("test file-->open -- ", function() {
   after(() => {
     editor.delete();
   });
-  it("do the file open action", function() {
+  it("do the file open action", function () {
     actions.file_open();
     // TODO: fix this "as any"
     const store2 = (actions as any).redux.getProjectStore(

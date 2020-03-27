@@ -3,17 +3,17 @@ import { Icon } from "./icon";
 
 const closex_style: React.CSSProperties = {
   float: "right",
-  marginLeft: "5px"
+  marginLeft: "5px",
 };
 
 export function CloseX({
   on_close,
-  style
+  style,
 }: {
   on_close: () => void;
   style?: React.CSSProperties;
 }) {
-  const onClick = e => {
+  const onClick = (e) => {
     if (e != undefined) {
       e.preventDefault();
     }

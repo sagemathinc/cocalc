@@ -20,7 +20,7 @@ function isStringArrayHeuristic(a: any): a is string[] {
 }
 
 export class SelectorInput extends React.Component<Props> {
-  onChange = e => {
+  onChange = (e) => {
     if (this.props.on_change !== undefined) {
       this.props.on_change(e.target.value);
     }

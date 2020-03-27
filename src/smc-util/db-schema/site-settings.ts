@@ -23,8 +23,8 @@ Table({
         admin: true,
         fields: {
           name: null,
-          value: null
-        }
+          value: null,
+        },
       },
       set: {
         admin: true,
@@ -35,9 +35,9 @@ Table({
             }
             throw Error(`setting name='${obj.name}' not allowed`);
           },
-          value: null
-        }
-      }
-    }
-  }
+          value: null,
+        },
+      },
+    },
+  },
 });

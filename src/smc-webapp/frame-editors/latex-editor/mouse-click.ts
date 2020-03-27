@@ -6,7 +6,7 @@ export function dblclick(x: number, y: number): void {
     bubbles: true,
     cancelable: true,
     clientX: x,
-    clientY: y
+    clientY: y,
   });
 
   const element = document.elementFromPoint(x, y);

@@ -52,10 +52,7 @@ function href_transform(
 function markdown_post_hook(elt) {
   return elt.find(":header").each((_, h) => {
     h = $(h);
-    const hash = h
-      .text()
-      .trim()
-      .replace(/\s/g, "-");
+    const hash = h.text().trim().replace(/\s/g, "-");
     h.attr("id", hash).addClass("cocalc-jupyter-header");
     h.append(
       $("<a/>")
@@ -301,7 +298,7 @@ export class CellInput extends Component<CellInputProps> {
           zIndex: 1,
           right: "2px",
           width: "100%",
-          paddingLeft: "5px"
+          paddingLeft: "5px",
         }}
         className="pull-right hidden-xs"
       >
@@ -313,10 +310,10 @@ export class CellInput extends Component<CellInputProps> {
             right: "5px",
             lineHeight: 1.25,
             top: "1px",
-            textAlign: "right"
+            textAlign: "right",
           }}
         >
-          <span style={{float:'right'}}>{this.render_cell_number()}</span>
+          <span style={{ float: "right" }}>{this.render_cell_number()}</span>
           {this.render_cell_timing()}
         </div>
       </div>
@@ -341,7 +338,7 @@ export class CellInput extends Component<CellInputProps> {
           marginLeft: "3px",
           padding: "0 3px",
           borderLeft: "1px solid #ccc",
-          borderBottom: "1px solid #ccc"
+          borderBottom: "1px solid #ccc",
         }}
       >
         {this.props.index + 1}
@@ -372,7 +369,7 @@ export class CellInput extends Component<CellInputProps> {
           style={{
             display: "flex",
             flexDirection: "row",
-            alignItems: "stretch"
+            alignItems: "stretch",
           }}
           cocalc-test="cell-input"
         >

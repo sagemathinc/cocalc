@@ -61,7 +61,7 @@ This is a data file that contains the state of your Octave workspace.
 Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave/doc/v4.2.1/Saving-Data-on-Unexpected-Exits.html).\
 `,
   "noext-a.out":
-    "This is a binary executable, which you can run in a Terminal by typing ./a.out."
+    "This is a binary executable, which you can run in a Terminal by typing ./a.out.",
 };
 
 interface Props {
@@ -87,7 +87,7 @@ class DataGeneric extends Component<Props, {}> {
   render() {
     const src = webapp_client.read_file_from_project({
       project_id: this.props.project_id,
-      path: this.props.path
+      path: this.props.path,
     });
     return (
       <Well style={{ margin: "15px", fontSize: "12pt" }}>
@@ -108,5 +108,5 @@ class DataGeneric extends Component<Props, {}> {
 register_file_editor({
   ext: keys(INFO),
   icon: "question",
-  component: DataGeneric
+  component: DataGeneric,
 });

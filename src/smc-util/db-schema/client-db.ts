@@ -27,7 +27,7 @@ class ClientDB {
     let v;
     try {
       v = args
-        .map(x => (typeof x === "string" ? x : JSON.stringify(x)))
+        .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
         .join("");
     } catch (err) {
       if (console != null && console.warn != null) {
@@ -69,7 +69,8 @@ class ClientDB {
     }
     if (typeof v === "string") {
       return (this._primary_keys_cache[table] = [v]);
-    } else if (is_array(v) && typeof v == "object") {   // the typeof is just to make typescript happy
+    } else if (is_array(v) && typeof v == "object") {
+      // the typeof is just to make typescript happy
       if (v.length === 0) {
         throw Error("at least one primary key must specified");
       }

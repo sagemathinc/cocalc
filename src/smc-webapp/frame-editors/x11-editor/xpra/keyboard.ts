@@ -27,14 +27,14 @@ import {
   NUMPAD_TO_NAME,
   KEY_TO_NAME,
   CHAR_TO_NAME,
-  DOM_KEY_LOCATION_RIGHT
+  DOM_KEY_LOCATION_RIGHT,
 } from "./constants";
 
 const modifierMap = {
   altKey: "alt",
   ctrlKey: "control",
   metaKey: "meta",
-  shiftKey: "shift"
+  shiftKey: "shift",
 };
 
 /**

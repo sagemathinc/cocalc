@@ -15,14 +15,14 @@ export class SyncDB extends SyncDoc {
       throw Error("primary_keys must have length at least 1");
     }
     // TS question -- What is the right way to do this?
-    opts.from_str = str => from_str(str, opts.primary_keys, opts.string_cols);
+    opts.from_str = (str) => from_str(str, opts.primary_keys, opts.string_cols);
     opts.doctype = {
       type: "db",
       patch_format: 1,
       opts: {
         primary_keys: opts.primary_keys,
-        string_cols: opts.string_cols
-      }
+        string_cols: opts.string_cols,
+      },
     };
     super(opts as SyncOpts);
   }

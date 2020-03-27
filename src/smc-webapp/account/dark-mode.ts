@@ -12,7 +12,7 @@ export function init_dark_mode(account_store: AccountStore): void {
       enable({
         brightness: 100,
         contrast: 90,
-        sepia: 10
+        sepia: 10,
       });
     } else {
       disable();

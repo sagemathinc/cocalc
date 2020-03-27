@@ -76,7 +76,7 @@ export const file_extensions = tuple([
   "cc",
   "cpp",
   "h",
-  "bib"
+  "bib",
 ]);
 
 // convert to type
@@ -109,7 +109,7 @@ export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
   xml: "xml",
   cml: "xml",
   kml: "xml",
-  bib: "bibtex" // via biber --tool
+  bib: "bibtex", // via biber --tool
 } as Ext2Parser);
 
 // those syntaxes (parser) which aren't handled by "prettier" (the default),
@@ -151,7 +151,7 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   xml: "tidy",
   "xml-tidy": "tidy",
   "html-tidy": "tidy",
-  html: "tidy"
+  html: "tidy",
   // html: "DOES_NOT_EXIST"
 } as Config);
 
@@ -176,7 +176,7 @@ export const parser2display: Readonly<Langs> = Object.freeze({
   html: "HTML",
   xml: "XML",
   postcss: "CSS",
-  javascript: "JavaScript"
+  javascript: "JavaScript",
 } as Langs);
 
 // pre-process mapping of each tool to human-readable language or text type

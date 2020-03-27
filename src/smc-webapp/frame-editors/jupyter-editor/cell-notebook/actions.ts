@@ -37,7 +37,7 @@ export class NotebookFrameActions {
     bind_methods(this, [
       "update_cur_id",
       "syncdb_before_change",
-      "syncdb_after_change"
+      "syncdb_after_change",
     ]);
 
     // General frame tree editor actions:
@@ -463,7 +463,7 @@ export class NotebookFrameActions {
     sel_ids = Set(v.slice(endpoint0, endpoint1 + 1));
     this.setState({
       sel_ids,
-      cur_id: id
+      cur_id: id,
     });
   }
 
@@ -485,7 +485,7 @@ export class NotebookFrameActions {
 
   public select_all_cells(): void {
     this.setState({
-      sel_ids: this.jupyter_actions.store.get_cell_list().toSet()
+      sel_ids: this.jupyter_actions.store.get_cell_list().toSet(),
     });
   }
 
@@ -660,7 +660,7 @@ export class NotebookFrameActions {
         this.jupyter_actions.set_cell_type(cur_id, cell_type);
       }
     } else {
-      return sel_ids.forEach(id => {
+      return sel_ids.forEach((id) => {
         this.jupyter_actions.set_cell_type(id, cell_type);
       });
     }

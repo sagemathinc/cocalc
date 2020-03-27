@@ -87,7 +87,7 @@ export class Projects extends Component<Props, State> {
 
   status_mesg(s: string): void {
     this.setState({
-      status: s
+      status: s,
     });
   }
 
@@ -108,11 +108,11 @@ export class Projects extends Component<Props, State> {
               description: null,
               users: null,
               last_active: null,
-              last_edited: null
-            }
-          ]
+              last_edited: null,
+            },
+          ],
         },
-        options: [{ account_id: this.props.account_id }]
+        options: [{ account_id: this.props.account_id }],
       };
     } else if (this.props.license_id) {
       const cutoff = this.get_cutoff();
@@ -127,10 +127,10 @@ export class Projects extends Component<Props, State> {
               users: null,
               last_active: null,
               last_edited: null,
-              cutoff
-            }
-          ]
-        }
+              cutoff,
+            },
+          ],
+        },
       };
     } else {
       throw Error("account_id or license_id must be specified");
@@ -178,9 +178,9 @@ export class Projects extends Component<Props, State> {
         number_of_projects_using_site_license: {
           license_id: this.props.license_id,
           number: null,
-          cutoff
-        }
-      }
+          cutoff,
+        },
+      },
     };
     const { number } = (
       await query(q)

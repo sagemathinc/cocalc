@@ -6,7 +6,7 @@ import { React, Component, Rendered } from "../app-framework";
 import {
   Map as ImmutableMap,
   List,
-  OrderedMap /*, List as ImmutableList*/
+  OrderedMap /*, List as ImmutableList*/,
 } from "immutable";
 import * as misc from "smc-util/misc";
 import { Icon, Loading } from "../r_misc";
@@ -16,7 +16,7 @@ const {
   Row,
   ButtonGroup,
   Checkbox,
-  Alert
+  Alert,
 } = require("react-bootstrap"); // TODO: import types
 import { Kernel } from "./util";
 const { COLORS } = require("smc-util/theme");
@@ -24,13 +24,13 @@ import { JupyterActions } from "./browser-actions";
 
 const row_style: React.CSSProperties = {
   marginTop: "5px",
-  marginBottom: "5px"
+  marginBottom: "5px",
 };
 
 const main_style: React.CSSProperties = {
   padding: "20px 10px",
   overflowY: "auto",
-  overflowX: "hidden"
+  overflowX: "hidden",
 };
 
 interface KernelSelectorProps {
@@ -194,11 +194,11 @@ export class KernelSelector extends Component<
     if (this.props.kernels_by_language == null) return;
     const label: React.CSSProperties = {
       fontWeight: "bold",
-      color: COLORS.GRAY_D
+      color: COLORS.GRAY_D,
     };
     const all: Rendered[] = [];
     this.props.kernels_by_language.forEach((names, lang) => {
-      const kernels = names.map(name =>
+      const kernels = names.map((name) =>
         this.render_kernel_button(name, "small", false)
       );
       all.push(
@@ -256,10 +256,11 @@ export class KernelSelector extends Component<
         <div>
           <Checkbox
             checked={!this.props.ask_jupyter_kernel}
-            onChange={e => this.dont_ask_again_click(e.target.checked)}
+            onChange={(e) => this.dont_ask_again_click(e.target.checked)}
           >
             Do not ask, instead default to your most recent selection (you can
-            always show this screen again by clicking on the kernel name in the upper right)
+            always show this screen again by clicking on the kernel name in the
+            upper right)
           </Checkbox>
         </div>
       </Row>

@@ -15,7 +15,7 @@ export function ProfileIcon({ size = 24, url, outer_style }: Props) {
     height: `${size}px`,
     width: `${size}px`,
     lineHeight: `${size}px`,
-    fontSize: `${0.7 * size}px`
+    fontSize: `${0.7 * size}px`,
   };
 
   return (
@@ -25,7 +25,7 @@ export function ProfileIcon({ size = 24, url, outer_style }: Props) {
         style={{
           borderRadius: "50%",
           width: "100%",
-          verticalAlign: "top"
+          verticalAlign: "top",
         }}
         src={url}
       />

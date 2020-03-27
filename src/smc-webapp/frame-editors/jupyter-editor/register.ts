@@ -14,7 +14,7 @@ export function register_cocalc_jupyter(): void {
     ext: "ipynb",
     component: Editor,
     Actions: JupyterEditorActions,
-    is_public: false
+    is_public: false,
   });
 }
 

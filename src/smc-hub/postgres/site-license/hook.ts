@@ -23,7 +23,7 @@ async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
   if (licenses == null) {
     licenses = await callback2(db.synctable.bind(db), {
       table: "site_licenses",
-      columns: ["title", "expires", "activates", "upgrades", "run_limit"]
+      columns: ["title", "expires", "activates", "upgrades", "run_limit"],
       // TODO: Not bothing with the where condition will be fine up to a few thousand (?) site
       // licenses, but after that it could take nontrivial time/memory during hub startup.
       // So... this is a ticking time bomb.
@@ -49,7 +49,7 @@ export async function site_license_hook(
     select: ["site_license"],
     table: "projects",
     where: { project_id },
-    one: true
+    one: true,
   });
   dbg(`site_license_hook -- project=${JSON.stringify(project)}`);
 
@@ -148,7 +148,7 @@ export async function site_license_hook(
       db,
       query: "UPDATE projects",
       where: { project_id },
-      jsonb_set: { site_license }
+      jsonb_set: { site_license },
     });
   }
   for (const license_id in site_license) {
@@ -180,6 +180,6 @@ async function update_last_used(
   await callback2(db._query.bind(db), {
     query: "UPDATE site_licenses",
     set: { last_used: "NOW()" },
-    where: { id: license_id }
+    where: { id: license_id },
   });
 }

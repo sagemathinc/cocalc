@@ -8,7 +8,7 @@ import { time_log2 } from "./time_log";
 import axios from "axios";
 import { expect } from "chai";
 
-export const get_project_status = async function(
+export const get_project_status = async function (
   creds: Creds,
   opts: Opts,
   api_key: string,

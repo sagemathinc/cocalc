@@ -40,13 +40,13 @@ describe("Test a cache with some contents", () => {
   const times: Date[] = [
     new Date("2019-01-03T20:34"),
     new Date("2019-01-03T20:40"),
-    new Date("2019-01-03T22:00")
+    new Date("2019-01-03T22:00"),
   ];
 
   const values: StringDocument[] = [
     new StringDocument("CoCalc"),
     new StringDocument("SageMath"),
-    new StringDocument("SageMathCloud")
+    new StringDocument("SageMathCloud"),
   ];
 
   const starts = [3, 10, 20];

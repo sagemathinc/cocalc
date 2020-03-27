@@ -79,12 +79,12 @@ async function init_syncdoc_async(
     // TODO: how to properly inform clients and deal with this?!
     return;
   }
-  synctable.on("closed", function() {
+  synctable.on("closed", function () {
     log("syncstring table closed, so closing syncdoc", opts.path);
     close_syncdoc(opts.path);
   });
 
-  syncdoc.on("error", function(err) {
+  syncdoc.on("error", function (err) {
     log(`syncdoc error -- ${err}`);
     close_syncdoc(opts.path);
   });

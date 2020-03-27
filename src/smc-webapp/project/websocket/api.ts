@@ -8,14 +8,14 @@ import {
   ConfigurationAspect,
   Capabilities,
   ProjectConfiguration,
-  isMainConfiguration
+  isMainConfiguration,
 } from "../../project_configuration";
 import { redux } from "../../app-framework";
 import { parser2tool } from "smc-util/code-formatter";
 import { Options as FormatterOptions } from "smc-project/formatters/prettier";
 import {
   NBGraderAPIOptions,
-  RunNotebookOptions
+  RunNotebookOptions,
 } from "../../jupyter/nbgrader/api";
 
 export class API {
@@ -118,7 +118,7 @@ export class API {
       {
         cmd: "prettier_string",
         str: str,
-        options: options
+        options: options,
       },
       15000
     );
@@ -153,7 +153,7 @@ export class API {
       {
         cmd: "terminal",
         path: path,
-        options
+        options,
       },
       60000
     );
@@ -166,7 +166,7 @@ export class API {
     const channel_name = await this.call(
       {
         cmd: "lean_channel",
-        path: path
+        path: path,
       },
       60000
     );
@@ -179,7 +179,7 @@ export class API {
       {
         cmd: "x11_channel",
         path,
-        display
+        display,
       },
       60000
     );
@@ -195,7 +195,7 @@ export class API {
       {
         cmd: "synctable_channel",
         query,
-        options
+        options,
       },
       10000
     );
@@ -254,7 +254,7 @@ export class API {
     const channel_name = await this.call(
       {
         cmd: "symmetric_channel",
-        name
+        name,
       },
       30000
     );
@@ -266,7 +266,7 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
   let done: boolean = false;
   let timer: any = 0;
   if (timeout_ms) {
-    timer = setTimeout(function() {
+    timer = setTimeout(function () {
       if (done) return;
       done = true;
       cb("timeout");
@@ -274,7 +274,7 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
   }
 
   const t = new Date().valueOf();
-  conn.writeAndWait(mesg, function(resp) {
+  conn.writeAndWait(mesg, function (resp) {
     if (conn.verbose) {
       console.log(`call finished ${new Date().valueOf() - t}ms`, mesg, resp);
     }

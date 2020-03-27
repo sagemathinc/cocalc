@@ -129,14 +129,11 @@ export class ChatLog extends Component<ChatLogProps> {
       let messages = this.props.messages;
       if (this.props.search) {
         const search_terms = search_split(this.props.search.toLowerCase());
-        messages = messages.filter(message =>
+        messages = messages.filter((message) =>
           search_matches(message, search_terms)
         );
       }
-      this.sorted_dates = messages
-        .keySeq()
-        .sort()
-        .toJS();
+      this.sorted_dates = messages.keySeq().sort().toJS();
     }
     return this.sorted_dates;
   }

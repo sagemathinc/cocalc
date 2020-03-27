@@ -55,7 +55,7 @@ export function cm_options(
     readOnly: read_only,
     indentWithTabs: !editor_settings.spaces_instead_of_tabs,
     showCursorWhenSelecting: true,
-    extraKeys: {}
+    extraKeys: {},
     // NOTE: "keyMap" and other properties listed below must not appear here as "undefined"
     // that is, the key should only exist if the value exists. I'm guessing Codemirror
     // actually looks at the existence of keys rather than existance of values.

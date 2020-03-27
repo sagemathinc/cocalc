@@ -10,7 +10,7 @@ import { open_file_use_entry } from "./util";
 const {
   filename_extension,
   search_match,
-  search_split
+  search_split,
 } = require("smc-util/misc");
 
 interface Props {
@@ -38,7 +38,7 @@ export class FileUseViewer extends Component<Props, State> {
     super(props);
     this.state = {
       search: "",
-      cursor: 0
+      cursor: 0,
     };
   }
 
@@ -89,11 +89,11 @@ export class FileUseViewer extends Component<Props, State> {
           autoFocus={true}
           placeholder="Search..."
           default_value={this.state.search}
-          on_change={value => this.setState({ search: value, cursor: 0 })}
+          on_change={(value) => this.setState({ search: value, cursor: 0 })}
           on_submit={() => {
             this.open_selected();
           }}
-          on_escape={before => {
+          on_escape={(before) => {
             if (!before) {
               const a = this.props.redux.getActions("page");
               if (a != null) {
@@ -153,7 +153,7 @@ export class FileUseViewer extends Component<Props, State> {
       this.visible_list = this.props.file_use_list;
       if (this.state.search) {
         const s = search_split(this.state.search.toLowerCase());
-        this.visible_list = this.visible_list.filter(info =>
+        this.visible_list = this.visible_list.filter((info) =>
           search_match(info.get("search"), s)
         );
         this.num_missing =
@@ -236,7 +236,7 @@ export class FileUseViewer extends Component<Props, State> {
 }
 
 function Link({ on_click, children }) {
-  const _on_click = e => {
+  const _on_click = (e) => {
     e.preventDefault();
     on_click(e);
   };

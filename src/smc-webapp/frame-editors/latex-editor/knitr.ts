@@ -14,7 +14,7 @@ const R_ARGS: ReadonlyArray<string> = [
   "--no-restore",
   "--quiet",
   "--no-readline",
-  "-e"
+  "-e",
 ];
 
 export async function knitr(
@@ -35,7 +35,7 @@ export async function knitr(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: time ? { value: time } : undefined // one might think to aggregate on hash, but the output could be random!
+    aggregate: time ? { value: time } : undefined, // one might think to aggregate on hash, but the output could be random!
   });
 }
 
@@ -79,7 +79,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
         level: "error",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.errors.push(err);
       pll.all.push(err);
@@ -92,7 +92,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
         level: "warning",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.warnings.push(err);
       pll.all.push(err);
@@ -138,6 +138,6 @@ export async function patch_synctex(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: time ? { value: time } : undefined
+    aggregate: time ? { value: time } : undefined,
   });
 }

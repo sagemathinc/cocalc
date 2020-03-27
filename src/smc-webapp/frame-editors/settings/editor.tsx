@@ -43,7 +43,7 @@ export class Settings extends Component<Props, {}> {
               key={key}
               value={value}
               available={af.get("spellcheck")}
-              set={value => this.props.actions.set_settings({ [key]: value })}
+              set={(value) => this.props.actions.set_settings({ [key]: value })}
             />
           );
           return;
@@ -62,13 +62,13 @@ export class Settings extends Component<Props, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "10pt"
+          fontSize: "10pt",
         }}
       >
         <h3
           style={{
             borderBottom: "1px solid #ccc",
-            paddingBottom: "15px"
+            paddingBottom: "15px",
           }}
         >
           <Icon name="wrench" /> Editor Settings
@@ -85,5 +85,5 @@ export const SETTINGS_SPEC = {
   icon: "wrench",
   buttons: {},
   component: Settings,
-  hide_public: true
+  hide_public: true,
 };

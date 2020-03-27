@@ -225,7 +225,7 @@ export class Cell extends Component<CellProps> {
         top: "2px",
         left: "5px",
         whiteSpace: "nowrap",
-        color: COLORS.GRAY_L
+        color: COLORS.GRAY_L,
       };
     } else {
       // Need arbitrarily much horizontal space, so we
@@ -280,7 +280,7 @@ export class Cell extends Component<CellProps> {
       border: `1px solid ${color1}`,
       borderLeft: `5px solid ${color2}`,
       padding: "2px 5px",
-      position: "relative"
+      position: "relative",
     };
 
     if (this.props.is_selected) {

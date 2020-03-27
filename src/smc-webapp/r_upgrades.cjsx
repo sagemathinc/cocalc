@@ -6,10 +6,10 @@ async = require('async')
 
 immutable = require('immutable')
 {React, rclass, rtypes}  = require('./app-framework')
-{ErrorDisplay, Loading, r_join, Space, UpgradeAdjustor, Footer} = require('./r_misc')
+{ErrorDisplay, Loading, r_join, Space, UpgradeAdjustor} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
-{HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
+{HelpEmailLink, SiteName, PolicyPricingPageUrl, Footer} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade-restart-warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')

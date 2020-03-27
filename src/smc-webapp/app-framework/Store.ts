@@ -179,7 +179,7 @@ export class Store<State> extends EventEmitter {
       until: required,
       throttle_ms: undefined,
       timeout: 30,
-      cb: required
+      cb: required,
     });
     let { until } = opts;
     const { cb, throttle_ms, timeout } = opts;

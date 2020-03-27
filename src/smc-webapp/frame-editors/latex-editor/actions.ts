@@ -8,7 +8,7 @@ const VIEWERS: ReadonlyArray<string> = [
   "pdfjs_canvas",
   "pdfjs_svg",
   "pdf_embed",
-  "build"
+  "build",
 ];
 
 import { delay } from "awaiting";
@@ -20,13 +20,13 @@ import { project_api } from "../generic/client";
 
 import {
   Actions as BaseActions,
-  CodeEditorState
+  CodeEditorState,
 } from "../code-editor/actions";
 import {
   latexmk,
   build_command,
   Engine,
-  get_engine_from_config
+  get_engine_from_config,
 } from "./latexmk";
 import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
 import { pythontex, pythontex_errors } from "./pythontex";
@@ -52,7 +52,7 @@ import {
   splitlines,
   startswith,
   change_filename_extension,
-  sha1
+  sha1,
 } from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
 const { open_new_tab } = require("smc-webapp/misc_page");
@@ -300,7 +300,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private ensure_output_directory(cmd: List<string>): List<string> {
-    const has_output_dir = cmd.some(x => x.indexOf("-output-directory=") != -1);
+    const has_output_dir = cmd.some(
+      (x) => x.indexOf("-output-directory=") != -1
+    );
     if (!has_output_dir && this.output_directory != null) {
       // no output directory option.
       return cmd.splice(cmd.size - 2, 0, this.output_directory_cmd_flag());
@@ -339,7 +341,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         new_cmd = `${before}${after}`;
       }
     } else {
-      const tmp = old_cmd.filter(x => x != outdirflag);
+      const tmp = old_cmd.filter((x) => x != outdirflag);
       change = !tmp.equals(old_cmd);
       new_cmd = tmp.toJS();
     }
@@ -362,16 +364,16 @@ export class Actions extends BaseActions<LatexEditorState> {
           type: "node",
           first: { type: "cm" },
           second: { type: "error" },
-          pos: 0.7
+          pos: 0.7,
         },
         second: {
           direction: "row",
           type: "node",
           first: { type: "pdfjs_canvas" },
           second: { type: "build" },
-          pos: 0.7
+          pos: 0.7,
         },
-        pos: 0.5
+        pos: 0.5,
       };
     }
   }
@@ -541,7 +543,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_knitr(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
-    const status = s => this.set_status(`Running Knitr... ${s}`);
+    const status = (s) => this.set_status(`Running Knitr... ${s}`);
     status("");
 
     try {
@@ -566,7 +568,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_patch_synctex(time: number, force: boolean): Promise<void> {
     // quotes around ${s} are just so codemirror doesn't syntax highlight the rest of this file:
-    const status = s => this.set_status(`Running Knitr/Synctex... "${s}"`);
+    const status = (s) => this.set_status(`Running Knitr/Synctex... "${s}"`);
     status("");
     try {
       await patch_synctex(
@@ -637,7 +639,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     } else {
       build_command = s.toJS();
     }
-    const status = s => this.set_status(`Running Latex... ${s}`);
+    const status = (s) => this.set_status(`Running Latex... ${s}`);
     status("");
     try {
       output = await latexmk(
@@ -654,7 +656,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.set_status("");
     this.parsed_output_log = output.parse = new LatexParser(output.stdout, {
-      ignoreDuplicates: true
+      ignoreDuplicates: true,
     }).parse();
     this.set_build_logs({ latex: output });
     // TODO: knitr complicates multifile a lot, so we do
@@ -681,7 +683,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.clear_gutters();
     update_gutters({
       log: this.parsed_output_log,
-      set_gutter: this.set_gutter
+      set_gutter: this.set_gutter,
     });
   }
 
@@ -702,7 +704,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     (actions as BaseActions<LatexEditorState>).set_gutter_marker({
       line,
       component,
-      gutter_id: "Codemirror-latex-errors"
+      gutter_id: "Codemirror-latex-errors",
     });
   }
 
@@ -745,7 +747,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     // sort and make unique.
     this.setState({
-      switch_to_files: Array.from(new Set(switch_to_files)).sort()
+      switch_to_files: Array.from(new Set(switch_to_files)).sort(),
     });
   }
 
@@ -777,7 +779,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_sagetex(time: number, force: boolean): Promise<void> {
-    const status = s => this.set_status(`Running SageTeX... ${s}`);
+    const status = (s) => this.set_status(`Running SageTeX... ${s}`);
     status("");
     // First compute hash of sagetex file.
     let hash: string = "";
@@ -846,7 +848,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_pythontex(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
-    const status = s => this.set_status(`Running PythonTeX... ${s}`);
+    const status = (s) => this.set_status(`Running PythonTeX... ${s}`);
     status("");
 
     try {
@@ -889,7 +891,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         page,
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
-        output_directory: this.get_output_directory()
+        output_directory: this.get_output_directory(),
       });
       const line = info.Line;
       if (typeof line != "number") {
@@ -944,7 +946,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_pdfjs(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").indexOf("pdfjs") != -1
+      (node) => node.get("type").indexOf("pdfjs") != -1
     );
   }
 
@@ -970,7 +972,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
         knitr: this.knitr,
-        source_dir
+        source_dir,
       });
     } catch (err) {
       console.warn("ERROR ", err);
@@ -992,7 +994,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
-      "full_id"
+      "full_id",
     ]);
     if (full_id && full_id != pdfjs_id) {
       this.unset_frame_full();
@@ -1007,8 +1009,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       scroll_pdf_into_view: new ScrollIntoViewRecord({
         page: page,
         y: y,
-        id: id
-      })
+        id: id,
+      }),
     });
   }
 
@@ -1034,7 +1036,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       log += s + "\n";
       const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_logs: build_logs.set("clean", fromJS({ stdout: log }))
+        build_logs: build_logs.set("clean", fromJS({ stdout: log })),
       });
     };
 

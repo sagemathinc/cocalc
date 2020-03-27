@@ -138,7 +138,7 @@ export async function prettier(
   const resp = await callback2(webapp_client.prettier, {
     project_id,
     path,
-    options
+    options,
   });
   if (resp.status === "error") {
     const loc = resp.error.loc;

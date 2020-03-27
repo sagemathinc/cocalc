@@ -18,24 +18,24 @@ Table({
   fields: {
     project_id: {
       type: "uuid",
-      desc: "id of a project"
+      desc: "id of a project",
     },
     account_id: {
       type: "uuid",
-      desc: "id of a user"
+      desc: "id of a user",
     },
     path: {
       type: "string",
-      desc: "path to a specific file in the project"
+      desc: "path to a specific file in the project",
     },
     edit_times: {
       type: "array",
-      desc: `array of times (as ms since epoch) when the file was edited by the given account_id, sorted from newest to oldest. At most ${LIMIT} values are returned.`
+      desc: `array of times (as ms since epoch) when the file was edited by the given account_id, sorted from newest to oldest. At most ${LIMIT} values are returned.`,
     },
     access_times: {
       type: "array",
-      desc: `array of times (as ms since epoch) when the file was accessed by the given account_id, sorted from newest to oldest.   At most ${LIMIT} values are returned.`
-    }
+      desc: `array of times (as ms since epoch) when the file was accessed by the given account_id, sorted from newest to oldest.   At most ${LIMIT} values are returned.`,
+    },
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -50,7 +50,7 @@ Table({
           account_id: null,
           path: null,
           access_times: null,
-          edit_times: null
+          edit_times: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
@@ -80,7 +80,7 @@ Table({
               path,
               limit,
               access_times,
-              edit_times
+              edit_times,
             });
             if (access_times) {
               obj.access_times = x.access_times;
@@ -92,8 +92,8 @@ Table({
           } catch (err) {
             cb(err);
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

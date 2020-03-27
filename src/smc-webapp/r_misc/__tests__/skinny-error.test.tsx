@@ -17,9 +17,6 @@ test("test interaction", () => {
 
   const evt = new MouseEvent("click");
 
-  rendered
-    .children()
-    .first()
-    .simulate("click", evt);
+  rendered.children().first().simulate("click", evt);
   expect(mock_on_close.mock.calls.length).toBe(1);
 });

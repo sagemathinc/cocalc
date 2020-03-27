@@ -76,6 +76,7 @@
     "typescript": "^3.8.2",
     "uglify-js": "^3.6.9",
     "underscore": "^1.9.1",
+    "validator": "^13.0.0",
     "winston": "^2.4.4"
   },
   "devDependencies": {

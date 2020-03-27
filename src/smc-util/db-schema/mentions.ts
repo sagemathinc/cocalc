@@ -5,45 +5,46 @@ Table({
   fields: {
     time: {
       type: "timestamp",
-      desc: "when this mention happened."
+      desc: "when this mention happened.",
     },
     project_id: {
-      type: "uuid"
+      type: "uuid",
     },
     path: {
-      type: "string"
+      type: "string",
     },
     source: {
       type: "uuid",
-      desc: "User who did the mentioning."
+      desc: "User who did the mentioning.",
     },
     target: {
       type: "string",
       desc:
-        "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc."
+        "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc.",
     },
     description: {
       type: "string",
       desc:
-        "Extra text to describe the mention. eg. could be the containing message"
+        "Extra text to describe the mention. eg. could be the containing message",
     },
     priority: {
       type: "number",
       desc:
-        "optional integer priority.  0 = default, but could be 1 = higher priority, etc."
+        "optional integer priority.  0 = default, but could be 1 = higher priority, etc.",
     },
     error: {
       type: "string",
-      desc: "some sort of error occured handling this mention"
+      desc: "some sort of error occured handling this mention",
     },
     action: {
       type: "string",
-      desc: "what action was attempted by the backend - 'email', 'ignore'"
+      desc: "what action was attempted by the backend - 'email', 'ignore'",
     },
     users: {
       type: "map",
-      desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}"
-    }
+      desc:
+        "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}",
+    },
   },
   rules: {
     primary_key: ["time", "project_id", "path", "target"],
@@ -63,8 +64,8 @@ Table({
           target: null,
           priority: null,
           description: null,
-          users: null
-        }
+          users: null,
+        },
       },
       set: {
         fields: {
@@ -77,15 +78,15 @@ Table({
           target: true,
           priority: true,
           description: true,
-          users: true
+          users: true,
         },
         required_fields: {
           project_id: true,
           source: true,
           path: true,
-          target: true
-        }
-      }
-    }
-  }
+          target: true,
+        },
+      },
+    },
+  },
 });

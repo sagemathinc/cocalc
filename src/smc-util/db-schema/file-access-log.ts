@@ -5,23 +5,23 @@ Table({
   rules: {
     primary_key: "id",
     durability: "soft", // loss of some log data not serious, since used only for analytics
-    pg_indexes: ["project_id", "account_id", "filename", "time"]
+    pg_indexes: ["project_id", "account_id", "filename", "time"],
   },
   fields: {
     id: {
-      type: "uuid"
+      type: "uuid",
     },
     project_id: {
-      type: "uuid"
+      type: "uuid",
     },
     account_id: {
-      type: "uuid"
+      type: "uuid",
     },
     filename: {
-      type: "string"
+      type: "string",
     },
     time: {
-      type: "timestamp"
-    }
-  }
+      type: "timestamp",
+    },
+  },
 });

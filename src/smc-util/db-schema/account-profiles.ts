@@ -15,10 +15,10 @@ Table({
           account_id: null,
           profile: {
             image: undefined,
-            color: undefined
-          }
-        }
-      }
-    }
-  }
+            color: undefined,
+          },
+        },
+      },
+    },
+  },
 });

@@ -11,5 +11,5 @@ register_file_editor({
   ext: "course",
   component: Editor,
   Actions: CourseEditorActions,
-  is_public: false
+  is_public: false,
 });

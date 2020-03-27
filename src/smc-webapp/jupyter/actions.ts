@@ -28,14 +28,14 @@ import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 import { Cell, KernelInfo } from "./types";
 import {
   Parser,
-  format_parser_for_extension
+  format_parser_for_extension,
 } from "../../smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
-  show_kernel_selector_reasons
+  show_kernel_selector_reasons,
 } from "./store";
 import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
@@ -54,7 +54,7 @@ import { parse_headings } from "./contents";
 import {
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
-  char_idx_to_js_idx
+  char_idx_to_js_idx,
 } from "./util";
 
 import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
@@ -112,7 +112,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error("type error -- project_id and path can't be null");
       return;
     }
-    store.dbg = f => {
+    store.dbg = (f) => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
     this._state = "init"; // 'init', 'load', 'ready', 'closed'
@@ -161,7 +161,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       directory,
       path,
       max_output_length: 10000,
-      cell_toolbar: this.store.get_local_storage("cell_toolbar")
+      cell_toolbar: this.store.get_local_storage("cell_toolbar"),
     });
 
     this.syncdb.on("change", this._syncdb_change);
@@ -180,7 +180,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
     // then set the kernel, if necessary.
     try {
-      await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+      await this.syncdb.wait((s) => !!s.get_one({ type: "file" }), 600);
     } catch (err) {
       if (this._state != "ready") {
         // Probably user just closed the notebook before it finished
@@ -272,7 +272,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // we filter kernels that are disabled for the cocalc notebook – motivated by a broken GAP kernel
     const kernels = immutable
       .fromJS(data)
-      .filter(k => !k.getIn(["metadata", "cocalc", "disabled"], false));
+      .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
     const key = this.store.jupyter_kernel_key();
     jupyter_kernels = jupyter_kernels.set(key, kernels); // global
     this.setState({ kernels });
@@ -325,7 +325,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         id,
         input,
         start: null,
-        end: null
+        end: null,
       },
       save
     );
@@ -336,7 +336,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        output
+        output,
       },
       save
     );
@@ -438,7 +438,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const obj: any = {
       type: "cell",
       id,
-      cell_type
+      cell_type,
     };
     if (cell_type !== "code") {
       // delete output and exec time info when switching to non-code cell_type
@@ -494,7 +494,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // delete cell
       this.reset_more_output(id); // free up memory locally
       if (old_cell != null) {
-        const cell_list = this.store.get_cell_list().filter(x => x !== id);
+        const cell_list = this.store.get_cell_list().filter((x) => x !== id);
         this.setState({ cells: cells.delete(id), cell_list });
       }
     } else {
@@ -556,7 +556,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       //    {type: "settings", backend_state: "running", trust: true, kernel: "python3", kernel_usage: {…}, …}
       //    {type: "cell", id: "22cc3e", pos: 0, input: "# small copy", state: "done"}
       let cells: immutable.Map<string, Cell> = immutable.Map();
-      this.syncdb.get().forEach(record => {
+      this.syncdb.get().forEach((record) => {
         switch (record.get("type")) {
           case "cell":
             cells = cells.set(record.get("id"), record);
@@ -578,7 +578,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
                 100,
                 100000,
                 20000
-              )
+              ),
             };
             if (kernel !== orig_kernel) {
               obj.kernel = kernel;
@@ -598,7 +598,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({ cells });
       cell_list_needs_recompute = true;
     } else {
-      changes.forEach(key => {
+      changes.forEach((key) => {
         const type: string = key.get("type");
         const record = this.syncdb.get_one(key);
         switch (type) {
@@ -645,7 +645,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
                 100,
                 100000,
                 20000
-              )
+              ),
             };
             if (kernel !== orig_kernel) {
               obj.kernel = kernel;
@@ -870,7 +870,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         type: "cell",
         id: new_id,
         pos,
-        input: ""
+        input: "",
       },
       save
     );
@@ -1004,7 +1004,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         output: null,
         exec_count: null,
         collapsed: null,
-        no_halt: no_halt ? no_halt : null
+        no_halt: no_halt ? no_halt : null,
       },
       save
     );
@@ -1024,7 +1024,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         end: null,
         output: null,
         exec_count: null,
-        collapsed: null
+        collapsed: null,
       },
       save
     );
@@ -1038,7 +1038,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        state: "done"
+        state: "done",
       },
       save
     );
@@ -1049,14 +1049,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_all_cells = (no_halt: boolean = false): void => {
-    this.store.get_cell_list().forEach(id => {
+    this.store.get_cell_list().forEach((id) => {
       this.run_cell(id, false, no_halt);
     });
     this.save_asap();
   };
 
   clear_all_cell_run_state = (): void => {
-    this.store.get_cell_list().forEach(id => {
+    this.store.get_cell_list().forEach((id) => {
       this.clear_cell_run_state(id, false);
     });
     this.save_asap();
@@ -1190,7 +1190,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         input,
         output: output != null ? output : null,
         start: null,
-        end: null
+        end: null,
       },
       save
     );
@@ -1255,10 +1255,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           [key]: !this.store.getIn(
             ["cells", id, "metadata", key],
             default_value
-          )
+          ),
         },
         merge: true,
-        save
+        save,
       });
     }
     if (save) {
@@ -1279,7 +1279,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id,
       metadata: { jupyter },
       merge: true,
-      save
+      save,
     });
   }
 
@@ -1302,7 +1302,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id,
       metadata: { jupyter },
       merge: true,
-      save
+      save,
     });
   }
 
@@ -1360,7 +1360,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         before_pos = cells.getIn([cell_before_pasted_id, "pos"]);
         after_pos = cells.getIn([
           this.store.get_cell_id(+1, cell_before_pasted_id),
-          "pos"
+          "pos",
         ]);
       }
       const positions = cell_utils.positions_between(
@@ -1404,7 +1404,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unset the line_numbers property from all cells
     const cells = this.store
       .get("cells")
-      .map(cell => cell.delete("line_numbers"));
+      .map((cell) => cell.delete("line_numbers"));
     if (!cells.equals(this.store.get("cells"))) {
       // actually changed
       this.setState({ cells });
@@ -1467,7 +1467,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.get("kernel") !== kernel) {
       this._set({
         type: "settings",
-        kernel
+        kernel,
       });
     }
     if (this.store.get("show_kernel_selector")) {
@@ -1480,7 +1480,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (project_actions == null) return;
     project_actions.open_file({
       path: misc.history_path(this.path),
-      foreground: true
+      foreground: true,
     });
   }
 
@@ -1536,7 +1536,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       complete = await this.api_call("complete", {
         code,
-        cursor_pos
+        cursor_pos,
       });
     } catch (err) {
       if (this._complete_request > req) return false;
@@ -1560,8 +1560,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (complete.status !== "ok") {
       this.setState({
         complete: {
-          error: complete.error ? complete.error : "completion failed"
-        }
+          error: complete.error ? complete.error : "completion failed",
+        },
       });
       return false;
     }
@@ -1640,7 +1640,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const new_input = three_way_merge({
       base,
       local: input,
-      remote
+      remote,
     });
     this.set_cell_input(id, new_input, save);
   }
@@ -1714,7 +1714,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       introspect = await this.api_call("introspect", {
         code,
         cursor_pos,
-        level
+        level,
       });
       if (introspect.status !== "ok") {
         introspect = { error: "completion failed" };
@@ -1805,7 +1805,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_delay: 1000,
         max_delay: 10000,
         f: this._fetch_backend_kernel_info_from_server,
-        desc: "jupyter:_set_backend_kernel_info_client"
+        desc: "jupyter:_set_backend_kernel_info_client",
       });
     }
   );
@@ -1819,7 +1819,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({
         backend_kernel_info: data,
         // this is when the server for this doc started, not when kernel last started!
-        start_time: data.start_time
+        start_time: data.start_time,
       });
     };
     try {
@@ -1828,7 +1828,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_delay: 500,
         max_delay: 3000,
         f,
-        desc: "jupyter:_fetch_backend_kernel_info_from_server"
+        desc: "jupyter:_fetch_backend_kernel_info_from_server",
       });
     } catch (err) {
       this.set_error(err);
@@ -1876,10 +1876,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return a.set_file_action(action_name, () => tail);
   }
 
-  set_max_output_length = n => {
+  set_max_output_length = (n) => {
     return this._set({
       type: "settings",
-      max_output_length: n
+      max_output_length: n,
     });
   };
 
@@ -1904,7 +1904,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const x = this.store.get("more_output", immutable.Map());
     this.setState({
-      more_output: x.set(id, immutable.fromJS(more_output))
+      more_output: x.set(id, immutable.fromJS(more_output)),
     });
   };
 
@@ -1933,7 +1933,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         editor_settings,
         line_numbers,
         read_only
-      )
+      ),
     });
 
     if (!x.equals(this.store.get("cm_options"))) {
@@ -1946,7 +1946,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._set(
       {
         type: "settings",
-        trust: !!trust
+        trust: !!trust,
       },
       save
     ); // case to bool
@@ -2054,7 +2054,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     let set, trust;
     if (data_only) {
       trust = undefined;
-      set = function() {};
+      set = function () {};
     } else {
       if (typeof this.reset_more_output === "function") {
         this.reset_more_output();
@@ -2070,7 +2070,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.syncdb.delete({ type: "cell" });
       // preserve trust state across file updates/loads
       trust = this.store.get("trust");
-      set = obj => {
+      set = (obj) => {
         this.syncdb.set(obj);
       };
     }
@@ -2096,7 +2096,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           ? this.jupyter_kernel.process_attachment
           : undefined,
       output_handler:
-        this.jupyter_kernel != null ? this._output_handler : undefined // undefined in client; defined in project
+        this.jupyter_kernel != null ? this._output_handler : undefined, // undefined in client; defined in project
     });
 
     if (data_only) {
@@ -2140,7 +2140,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._set({
       type: "cell",
       id,
-      slide: value
+      slide: value,
     });
   }
 
@@ -2171,7 +2171,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // set new kernel and save it
     cur.kernel = kernel;
     (this.redux.getTable("account") as any).set({
-      editor_settings: { jupyter: cur }
+      editor_settings: { jupyter: cur },
     });
   };
 
@@ -2229,7 +2229,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        attachments
+        attachments,
       },
       save
     );
@@ -2247,7 +2247,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await callback2(this.store.wait, {
       until: () =>
         this.store.getIn(["cells", id, "attachments", name, "type"]) === "sha1",
-      timeout: 0
+      timeout: 0,
     });
     // This has to happen in the next render loop, since changing immediately
     // can update before the attachments props are updated.
@@ -2278,7 +2278,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        tags: { [tag]: true }
+        tags: { [tag]: true },
       },
       save
     );
@@ -2292,7 +2292,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        tags: { [tag]: null }
+        tags: { [tag]: null },
       },
       save
     );
@@ -2329,7 +2329,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       id: required,
       metadata: required,
       save: true,
-      merge: false
+      merge: false,
     }));
 
     // Special case: delete metdata (unconditionally)
@@ -2338,7 +2338,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         {
           type: "cell",
           id,
-          metadata: null
+          metadata: null,
         },
         save
       );
@@ -2373,7 +2373,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        metadata: null
+        metadata: null,
       },
       false
     );
@@ -2382,7 +2382,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        metadata
+        metadata,
       },
       save
     );
@@ -2398,7 +2398,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     this.setState({
-      raw_ipynb: immutable.fromJS(this.store.get_ipynb())
+      raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
     });
   }
 
@@ -2527,7 +2527,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernel_selection = this.store.get_kernel_selection(kernels);
     const [
       kernels_by_name,
-      kernels_by_language
+      kernels_by_language,
     ] = this.store.get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
     // do we have a similar kernel?
@@ -2544,7 +2544,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       kernels_by_name,
       kernels_by_language,
       default_kernel,
-      closestKernel
+      closestKernel,
     });
   };
 
@@ -2566,7 +2566,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // the select dialog will show a loading spinner
     this.setState({
       show_kernel_selector_reason: reason,
-      show_kernel_selector: true
+      show_kernel_selector: true,
     });
   };
 
@@ -2575,7 +2575,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       show_kernel_selector_reason: undefined,
       show_kernel_selector: false,
       kernel_selection: undefined,
-      kernels_by_name: undefined
+      kernels_by_name: undefined,
     });
   };
 
@@ -2590,7 +2590,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // why is "as any" necessary?
     const account_table = this.redux.getTable("account") as any;
     account_table.set({
-      editor_settings: { ask_jupyter_kernel: !dont_ask }
+      editor_settings: { ask_jupyter_kernel: !dont_ask },
     });
   };
 

@@ -592,9 +592,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   public get_listings(): Listings {
     if (this.listings == null) {
       this.listings = listings(this.project_id);
-
       this.listings.on("deleted", this.close_deleted_files.bind(this));
-
       this.listings.on("change", async (paths) => {
         let directory_listings = this.get("directory_listings");
         for (const path of paths) {

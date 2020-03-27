@@ -9,7 +9,7 @@ import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 import {
   create_jupyter_actions,
-  close_jupyter_actions
+  close_jupyter_actions,
 } from "./jupyter-actions";
 
 interface JupyterEditorState extends CodeEditorState {
@@ -65,10 +65,10 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
 
   private init_changes_state(): void {
     const syncdb = this.jupyter_actions.syncdb;
-    syncdb.on("has-uncommitted-changes", has_uncommitted_changes =>
+    syncdb.on("has-uncommitted-changes", (has_uncommitted_changes) =>
       this.setState({ has_uncommitted_changes })
     );
-    syncdb.on("has-unsaved-changes", has_unsaved_changes => {
+    syncdb.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
     });
 

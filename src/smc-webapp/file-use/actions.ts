@@ -54,7 +54,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
         .get_errors()
         .push(
           immutable.Map({ time: webapp_client.server_time(), err: `${err}` })
-        )
+        ),
     });
   }
 
@@ -70,12 +70,12 @@ export class FileUseActions<T = FileUseState> extends Actions<
       this.record_error(`mark_all: unknown action '${action}'`);
       return;
     }
-    v.map(x => {
+    v.map((x) => {
       if (x != null) this.mark_file(x.project_id, x.path, action, 0, false);
     });
   }
 
-  _set = async obj => {
+  _set = async (obj) => {
     try {
       if (!webapp_client.is_signed_in()) {
         await once(webapp_client, "signed_in");
@@ -148,7 +148,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
       id: sha1(project_id, path),
       project_id,
       path,
-      users: { [account_id]: { [action]: timestamp } }
+      users: { [account_id]: { [action]: timestamp } },
     };
     if (action === "edit" || action === "chat" || action === "chatseen") {
       // Update the overall "last_edited" field for the file; this is used for sorting,

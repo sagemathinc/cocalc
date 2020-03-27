@@ -4,7 +4,7 @@ import {
   ListGroup,
   ListGroupItem,
   FormGroup,
-  HelpBlock
+  HelpBlock,
 } from "react-bootstrap";
 import "./style.scss";
 
@@ -27,7 +27,7 @@ interface PickerListProps {
 }
 
 export class PickerList extends React.Component<PickerListProps> {
-  handleInputChange = value => this.props.onInputChange(value);
+  handleInputChange = (value) => this.props.onInputChange(value);
   handleInputEnter = () => this.props.onInputEnter();
   render_input() {
     const { inputValue, results, isLoading } = this.props;
@@ -69,7 +69,7 @@ export class PickerList extends React.Component<PickerListProps> {
         <ListGroup
           style={{ maxHeight: "250px", overflow: "auto", margin: "15px" }}
         >
-          {results.map(r => (
+          {results.map((r) => (
             <ListGroupItem
               className="webapp-collaborator-choice"
               style={{
@@ -77,7 +77,7 @@ export class PickerList extends React.Component<PickerListProps> {
                 justifyContent: "space-between",
                 alignItems: "center",
                 cursor: "pointer",
-                backgroundColor: r.highlight ? "#cbe4fa" : undefined
+                backgroundColor: r.highlight ? "#cbe4fa" : undefined,
               }}
               onClick={() => this.props.onSelect(r.value)}
               key={r.key}

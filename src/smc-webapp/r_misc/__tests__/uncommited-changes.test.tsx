@@ -40,7 +40,9 @@ test("Setting it to true, waiting to trigger a warning, and then switching back"
   wrapper.setProps({ has_uncommitted_changes: false });
 
   expect(wrapper.text()).toBe("");
-  expect(wrapper).toMatchSnapshot("Should have no warning after committing changes");
+  expect(wrapper).toMatchSnapshot(
+    "Should have no warning after committing changes"
+  );
 });
 
 test("Setting it to true but switching it back early", () => {

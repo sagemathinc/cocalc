@@ -44,7 +44,7 @@ export class AuthorInfo {
     for (const path of paths) {
       const id: string = this.database.sha1(project_id, path);
       const result = await callback2(this.database._query, {
-        query: `SELECT users FROM syncstrings WHERE string_id='${id}'`
+        query: `SELECT users FROM syncstrings WHERE string_id='${id}'`,
       });
       if (result == null || result.rowCount < 1) continue;
       for (const account_id of result.rows[0].users) {
@@ -58,7 +58,7 @@ export class AuthorInfo {
     // If no accounts, use the project collaborators as a fallback.
     if (account_ids.length === 0) {
       const result = await callback2(this.database._query, {
-        query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`
+        query: `SELECT jsonb_object_keys(users) FROM projects where project_id='${project_id}'`,
       });
       if (result != null && result.rowCount >= 1) {
         for (const v of result.rows) {
@@ -71,7 +71,7 @@ export class AuthorInfo {
     const authors: Author[] = [];
     const names = await callback2(this.database.get_usernames, {
       account_ids,
-      cache_time_s: 60 * 5
+      cache_time_s: 60 * 5,
     });
     for (const account_id in names) {
       // todo really need to sort by last name
@@ -90,7 +90,7 @@ export class AuthorInfo {
   public async get_username(account_id: string): Promise<string> {
     const names = await callback2(this.database.get_usernames, {
       account_ids: [account_id],
-      cache_time_s: 60 * 5
+      cache_time_s: 60 * 5,
     });
     const { first_name, last_name } = names[account_id];
     return `${first_name} ${last_name}`;

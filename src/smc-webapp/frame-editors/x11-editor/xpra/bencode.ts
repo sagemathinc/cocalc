@@ -100,7 +100,7 @@ function bparseString(str: string): [any, string] | null {
     const len = parseInt(str2, 10);
     return [
       str.substr(str2.length + 1, len),
-      str.substr(str2.length + 1 + len)
+      str.substr(str2.length + 1 + len),
     ];
   }
   return null;

@@ -30,7 +30,7 @@ export class StatusBar extends Component<Props, {}> {
           color: "#666",
           padding: "0 5px",
           fontSize: "9pt",
-          background: "#fff"
+          background: "#fff",
         }}
       >
         {this.props.status}

@@ -22,7 +22,7 @@ export class AccountCreationToken extends Component<{}, State> {
     this.state = {
       state: "view", // view --> edit --> save --> view
       token: "",
-      error: ""
+      error: "",
     };
   }
 
@@ -37,9 +37,9 @@ export class AccountCreationToken extends Component<{}, State> {
         query: {
           server_settings: {
             name: "account_creation_token",
-            value: this.state.token
-          }
-        }
+            value: this.state.token,
+          },
+        },
       });
       this.setState({ state: "view", error: "", token: "" });
     } catch (err) {
@@ -77,7 +77,7 @@ export class AccountCreationToken extends Component<{}, State> {
                   ref="input"
                   type="text"
                   value={this.state.token}
-                  onChange={e =>
+                  onChange={(e) =>
                     this.setState({ token: (e.target as any).value })
                   }
                 />
