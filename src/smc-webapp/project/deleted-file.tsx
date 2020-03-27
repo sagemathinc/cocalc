@@ -33,14 +33,14 @@ export class DeletedFile extends Component<Props> {
     return (
       <div className="smc-vfill" style={{ background: "#aaa" }}>
         <Card title={`${path} was deleted`} style={{ margin: "auto" }}>
-          Open deleted file {path}?
+          Restore deleted file {path}?  (TimeTravel will also contain the full edit history.)
           <br />
           <br />
           <div style={{ float: "right" }}>
             <Button onClick={() => this.cancel()}>Cancel</Button>
             <Space />
             <Button onClick={() => this.open()} type="primary">
-              Open
+              Restore
             </Button>
           </div>
         </Card>
