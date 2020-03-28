@@ -11,7 +11,7 @@ export const WATCH_TIMEOUT_MS = 60000;
 // when initializing things. We might have more in the database until
 // synctable.delete gets fully and properly initialized.  The main goal
 // is to not waste bandwidth and memory in browsers.
-export const MAX_PATHS = 20;
+export const MAX_PATHS = 25;
 
 // Maximum number of entries in a directory listing.  If this is exceeded
 // we sort by last modification time, take only the first MAX_FILES_PER_PATH
