@@ -18,7 +18,7 @@ export type Parser =
   | "tidy"
   | "CSS"
   | "html"
-  | "babylon"
+  | "babel"
   | "html-tidy"
   | "xml"
   | "xml-tidy"
@@ -139,7 +139,7 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   clang: "clang-format",
   "clang-format": "clang-format",
   "c++": "clang-format",
-  babylon: "prettier",
+  babel: "prettier",
   latex: "latexindent",
   go: "gofmt",
   gofmt: "gofmt",
@@ -201,7 +201,7 @@ export function format_parser_for_extension(ext: string): Parser {
   switch (ext) {
     case "js":
     case "jsx":
-      parser = "babylon";
+      parser = "babel";
       break;
     case "json":
       parser = "json";
