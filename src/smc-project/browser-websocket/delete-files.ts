@@ -1,5 +1,9 @@
+import { stat } from "fs";
+import { callback } from "awaiting";
+
 import { exec } from "./api";
 import { get_listings_table } from "../sync/listings";
+import { deleted_file_variations } from "../smc-util/delete-files";
 
 // Delete the files/directories in the given project with the given list of paths.
 export async function delete_files(
@@ -14,10 +18,23 @@ export async function delete_files(
       await listings.set_deleted(path);
     }
   }
-  // Actually delete the files and directories
+
+  // For each path that exists and is not a directory,
+  // add in all the hidden variants.
+  let extra: string[] = [];
+  for (const path of paths) {
+    try {
+      const s = await callback(stat, path);
+      if (!s.isDirectory()) {
+        extra = extra.concat(deleted_file_variations(path));
+      }
+    } catch (_err) {}
+  }
+
+  // Actually delete the files and directories and any hidden variants
   await exec({
     command: "rm",
     timeout: 60,
-    args: ["-rf", "--"].concat(paths)
+    args: ["-rf", "--"].concat(paths).concat(extra),
   });
 }

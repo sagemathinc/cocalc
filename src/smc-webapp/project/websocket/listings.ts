@@ -416,20 +416,4 @@ export function listings(project_id: string): Listings {
   return new Listings(project_id);
 }
 
-export function deleted_file_variations(path: string): string[] {
-  let { head, tail } = path_split(path);
-  if (head != "") {
-    head = head + "/";
-  }
-  const variations: string[] = [path];
-  for (const ext of [
-    "sage-chat",
-    "sage-jupyter",
-    "sage-jupyter2",
-    "time-travel",
-    "sage-history"
-  ]) {
-    variations.push(head + "." + tail + "." + ext);
-  }
-  return variations;
-}
+

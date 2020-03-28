@@ -55,10 +55,11 @@ import { ProjectLogMap } from "./project/history/types";
 import { alert_message } from "./alerts";
 
 import {
-  deleted_file_variations,
   Listings,
   listings,
 } from "./project/websocket/listings";
+
+import { deleted_file_variations } from "smc-util/delete-files";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
