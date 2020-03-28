@@ -1938,6 +1938,9 @@ class exports.Connection extends EventEmitter
     is_deleted: (filename, project_id) =>
         return !!@_redux?.getProjectStore(project_id)?.get_listings()?.is_deleted(filename)
 
+    set_deleted: (filename, project_id) =>
+        throw Error("set_deleted doesn't make sense for the frontend")
+
     # If called on the fronted, will make the given file with the given action.
     # Does nothing on the backend.
     mark_file: (opts) =>

@@ -4,7 +4,7 @@ import { SyncTable } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
 import { merge, path_split } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
-import { get_listing } from "../directory-listing";
+import { get_listing, ListingEntry } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
@@ -29,7 +29,7 @@ import { MAX_PATHS } from "../smc-util/db-schema/listings";
 interface Listing {
   path: string;
   project_id?: string;
-  listing?: object[];
+  listing?: ListingEntry[];
   time?: Date;
   interest?: Date;
   missing?: number;
@@ -209,13 +209,44 @@ class ListingsTable {
       throw err;
     }
     let missing: number | undefined = undefined;
+
+    const y = this.get(path);
+    const previous_listing = y?.get("listing")?.toJS();
+    let deleted: any = y?.get("deleted")?.toJS();
+    if (previous_listing != null) {
+      // Check to see to what extend change in the listing is due to files
+      // being deleted.  Note that in case of a directory with a large
+      // number of files we only know about recent files (since we don't)
+      // store the full listing, so deleting a non-recent file won't get
+      // detected here -- which is fine, since deletion tracking is important
+      // mainly for recently files.
+      const cur = new Set();
+      for (const x of listing) {
+        cur.add(x.name);
+      }
+      for (const x of previous_listing) {
+        if (!cur.has(x.name)) {
+          // x.name is suddenly gone... so deleted
+          if (deleted == null) {
+            deleted = [x.name];
+          } else {
+            if (deleted.indexOf(x.name) == -1) {
+              deleted.push(x.name);
+            }
+          }
+        }
+      }
+    }
+
+    // Shrink listing length
     if (listing.length > MAX_FILES_PER_PATH) {
       listing.sort(field_cmp("mtime"));
       listing.reverse();
       missing = listing.length - MAX_FILES_PER_PATH;
       listing = listing.slice(0, MAX_FILES_PER_PATH);
     }
-    this.set({ path, listing, time, missing, error: undefined });
+
+    this.set({ path, listing, time, missing, deleted, error: undefined });
   }
 
   private start_watching(path: string): void {

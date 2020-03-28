@@ -188,7 +188,6 @@ export class SyncDoc extends EventEmitter {
   private last_snapshot: Date | undefined;
   private snapshot_interval: number;
 
-  private deleted: boolean | undefined;
   private users: string[];
 
   private settings: Map<string, any> = Map();
@@ -936,7 +935,6 @@ export class SyncDoc extends EventEmitter {
           string_id: this.string_id,
           project_id: this.project_id,
           path: this.path,
-          deleted: null,
           users: null,
           last_snapshot: null,
           snapshot_interval: null,
@@ -1052,11 +1050,6 @@ export class SyncDoc extends EventEmitter {
     if (this.client.is_project()) {
       log("init autosave");
       this.init_project_autosave();
-    } else {
-      // Ensure file is undeleted when explicitly open.
-      log("undelete");
-      await this.undelete();
-      this.assert_not_closed("init_all -- after undelete");
     }
     this.update_has_unsaved_changes();
     log("done");
@@ -1611,15 +1604,6 @@ export class SyncDoc extends EventEmitter {
     return time;
   }
 
-  public async undelete(): Promise<void> {
-    this.assert_not_closed("undelete");
-    // Version with deleted set to false:
-    const x = this.syncstring_table_get_one().set("deleted", false);
-    // Now write that as new version to table.
-    this.syncstring_table.set(x);
-    await this.syncstring_table.save();
-  }
-
   private commit_patch(time: Date, patch: XPatch): void {
     this.assert_not_closed("commit_patch");
     const obj: any = {
@@ -1634,11 +1618,6 @@ export class SyncDoc extends EventEmitter {
 
     if (this.doctype.patch_format != null) {
       obj.format = this.doctype.patch_format;
-    }
-    if (this.deleted) {
-      // file was deleted but now change is being made, so undelete it.
-      // TODO: maybe change to explicit user request!
-      this.undelete();
     }
     if (this.save_patch_prev != null) {
       // timestamp of last saved patch during this session
@@ -2050,7 +2029,6 @@ export class SyncDoc extends EventEmitter {
       path: this.path,
       last_snapshot: this.last_snapshot,
       users: this.users,
-      deleted: this.deleted,
       doctype: JSON.stringify(this.doctype),
       last_active: this.client.server_time(),
     };
@@ -2087,12 +2065,6 @@ export class SyncDoc extends EventEmitter {
       this.settings = settings;
       this.emit("settings-change", settings);
     }
-
-    if (this.deleted != null && x.deleted && !this.deleted) {
-      // change to deleted
-      this.emit("deleted");
-    }
-    this.deleted = x.deleted;
 
     // Ensure that this client is in the list of clients
     const client_id: string = this.client.client_id();
@@ -2212,17 +2184,8 @@ export class SyncDoc extends EventEmitter {
   private async handle_file_watcher_delete(): Promise<void> {
     const dbg = this.dbg("handle_file_watcher_delete");
     this.assert_is_ready("handle_file_watcher_delete");
-    dbg("delete: setting deleted=true and closing");
-    this.from_str("");
-    await this.save();
-    // NOTE: setting deleted=true must be done **after** setting
-    // document to blank above,
-    // since otherwise the set would set deleted=false.
-    this.syncstring_table.set(
-      this.syncstring_table_get_one().set("deleted", true)
-    );
-    // make sure deleted:true is saved:
-    await this.syncstring_table.save();
+    dbg("delete: set_deleted and closing");
+    await this.client.set_deleted(this.path, this.project_id);
     this.close();
   }
 
@@ -2412,13 +2375,6 @@ export class SyncDoc extends EventEmitter {
       throw Error("can't save readonly file with changes to disk");
     }
 
-    if (this.deleted) {
-      dbg("deleted, so don't save");
-      // nothing to do -- no need to attempt to save if file
-      // is already deleted
-      return;
-    }
-
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
@@ -2486,7 +2442,7 @@ export class SyncDoc extends EventEmitter {
     let last_err = undefined;
     const f = async () => {
       dbg("f");
-      if (this.state != "ready" || this.deleted) {
+      if (this.state != "ready" || this.client.is_deleted(this.path, this.project_id)) {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
@@ -2497,7 +2453,7 @@ export class SyncDoc extends EventEmitter {
         dbg("timed out after 15s");
         throw Error("timed out");
       }
-      if (this.state != "ready" || this.deleted) {
+      if (this.state != "ready" || this.client.is_deleted(this.path, this.project_id)) {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
@@ -2516,7 +2472,7 @@ export class SyncDoc extends EventEmitter {
       max_tries: 8,
       desc: "wait_for_save_to_disk_done",
     });
-    if (this.state != "ready" || this.deleted) {
+    if (this.state != "ready" || this.client.is_deleted(this.path, this.project_id)) {
       return;
     }
     if (last_err && typeof this.client.log_error === "function") {

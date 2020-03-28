@@ -543,7 +543,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   public has_file_been_viewed(path: string): boolean {
-    return this.getIn(["open_files", path, "component", "Editor"]) != null;
+    // note that component is NOT an immutable.js object:
+    return this.getIn(["open_files", path, "component"])?.Editor != null;
   }
 
   private close_deleted_file(path: string): void {

@@ -592,3 +592,7 @@ class exports.Client extends EventEmitter
     is_deleted: (filename, project_id) => # project_id is ignored, of course
         listings = get_listings_table();
         return listings.is_deleted(filename)
+
+    set_deleted: (filename, project_id) => # project_id is ignored
+        listings = get_listings_table();
+        await listings.set_deleted(filename) 
