@@ -80,7 +80,7 @@ const COLORS = {
   BS_GREEN: "#5CB85C",
   BS_GREEN_D: "#449d44",
   BS_GREEN_DD: "#398439",
-  BS_RED: "#dc3545"
+  BS_RED: "#dc3545",
 };
 
 // The definitions below add semantic meaning by using the colors
@@ -94,7 +94,7 @@ COLORS.TOP_BAR = {
   TEXT_ACTIVE: COLORS.GRAY_D,
   X: COLORS.GRAY,
   X_HOVER: COLORS.GRAY_L,
-  SIGN_IN_BG: COLORS.YELL_L
+  SIGN_IN_BG: COLORS.YELL_L,
 };
 
 // landing page
