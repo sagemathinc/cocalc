@@ -19,7 +19,7 @@ const { HTML } = require("smc-webapp/r_misc");
 const { React } = require("smc-webapp/app-framework");
 
 exports.HTML = HTML;
-exports.c = function() {
+exports.c = function () {
   return React.createElement(
     "div",
     null,
