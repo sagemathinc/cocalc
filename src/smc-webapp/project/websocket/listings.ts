@@ -180,6 +180,9 @@ export class Listings extends EventEmitter {
   }
 
   // true or false if known deleted or not; undefined if don't know yet.
+  // TODO: technically we should check the all the
+  // deleted_file_variations... but that is really an edge case
+  // that probably doesn't matter much.
   public is_deleted(filename: string): boolean | undefined {
     const { head, tail } = path_split(filename);
     if (head != "" && this.is_deleted(head)) {
@@ -411,4 +414,22 @@ export class Listings extends EventEmitter {
 
 export function listings(project_id: string): Listings {
   return new Listings(project_id);
+}
+
+export function deleted_file_variations(path: string): string[] {
+  let { head, tail } = path_split(path);
+  if (head != "") {
+    head = head + "/";
+  }
+  const variations: string[] = [path];
+  for (const ext of [
+    "sage-chat",
+    "sage-jupyter",
+    "sage-jupyter2",
+    "time-travel",
+    "sage-history"
+  ]) {
+    variations.push(head + "." + tail + "." + ext);
+  }
+  return variations;
 }

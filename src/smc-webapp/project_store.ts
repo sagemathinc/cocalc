@@ -54,7 +54,11 @@ import { ProjectLogMap } from "./project/history/types";
 
 import { alert_message } from "./alerts";
 
-import { Listings, listings } from "./project/websocket/listings";
+import {
+  deleted_file_variations,
+  Listings,
+  listings,
+} from "./project/websocket/listings";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -556,8 +560,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
         actions.set_current_path("");
       }
     }
+    const all_paths = deleted_file_variations(path);
     for (const file of this.get("open_files").keys()) {
-      if (file === path || startswith(file, path + "/")) {
+      if (all_paths.indexOf(file) != -1 || startswith(file, path + "/")) {
         if (!this.has_file_been_viewed(file)) {
           // Hasn't even been viewed yet; when user clicks on the tab
           // they get a dialog to undelete the file.
