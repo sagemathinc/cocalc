@@ -54,10 +54,7 @@ import { ProjectLogMap } from "./project/history/types";
 
 import { alert_message } from "./alerts";
 
-import {
-  Listings,
-  listings,
-} from "./project/websocket/listings";
+import { Listings, listings } from "./project/websocket/listings";
 
 import { deleted_file_variations } from "smc-util/delete-files";
 
@@ -576,6 +573,17 @@ export class ProjectStore extends Store<ProjectStoreState> {
             type: "info",
             message: `Closing '${file}' since it was deleted.`,
           });
+        }
+      } else {
+        const actions: any = redux.getEditorActions(this.project_id, file);
+        if (actions?.close_frames_with_path != null) {
+          // close subframes with given path.
+          if (actions.close_frames_with_path(path)) {
+            alert_message({
+              type: "info",
+              message: `Closed '${path}' in '${file}' since it was deleted.`,
+            });
+          }
         }
       }
     }
