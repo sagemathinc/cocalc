@@ -1,11 +1,5 @@
 {
- "language": "r",
- "argv": [
-  "R",
-  "-e",
-  "IRkernel::main()",
-  "--args",
-  "{connection_file}"
- ],
- "display_name": "R (R-Project)"
+  "language": "r",
+  "argv": ["R", "-e", "IRkernel::main()", "--args", "{connection_file}"],
+  "display_name": "R (R-Project)"
 }

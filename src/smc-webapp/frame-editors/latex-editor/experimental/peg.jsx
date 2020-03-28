@@ -22,7 +22,7 @@ import {
   React,
   ReactDOM,
   rclass,
-  rtypes
+  rtypes,
 } from "smc-webapp/app-framework";
 
 import { Alert } from "react-bootstrap";
@@ -35,7 +35,7 @@ const InlineMath = rclass({
   displayName: "LaTeXEditor-PEG-InlineMath",
 
   propTypes: {
-    value: rtypes.string.isRequired
+    value: rtypes.string.isRequired,
   },
 
   katex() {
@@ -44,14 +44,14 @@ const InlineMath = rclass({
 
   render() {
     return <span dangerouslySetInnerHTML={{ __html: this.katex() }} />;
-  }
+  },
 });
 
 const DisplayMath = rclass({
   displayName: "LaTeXEditor-PEG-DisplayMath",
 
   propTypes: {
-    value: rtypes.string.isRequired
+    value: rtypes.string.isRequired,
   },
 
   katex() {
@@ -65,14 +65,14 @@ const DisplayMath = rclass({
         dangerouslySetInnerHTML={{ __html: this.katex() }}
       />
     );
-  }
+  },
 });
 
 const Verbatim = rclass({
   displayName: "LaTeXEditor-PEG-Verbatim",
 
   propTypes: {
-    content: rtypes.string.isRequired
+    content: rtypes.string.isRequired,
   },
 
   render() {
@@ -81,20 +81,20 @@ const Verbatim = rclass({
         style={{
           display: "block",
           marginTop: "1em",
-          whiteSpace: "pre"
+          whiteSpace: "pre",
         }}
       >
         {this.props.content}
       </code>
     );
-  }
+  },
 });
 
 const Title = rclass({
   displayName: "LaTeXEditor-PEG-Title",
 
   propTypes: {
-    state: rtypes.object
+    state: rtypes.object,
   },
 
   render_date() {
@@ -116,7 +116,7 @@ const Title = rclass({
         <div style={{ fontSize: "15pt" }}>{this.render_date()}</div>
       </div>
     );
-  }
+  },
 });
 
 const Macro = rclass({
@@ -125,7 +125,7 @@ const Macro = rclass({
   propTypes: {
     name: rtypes.string.isRequired, // name of the macro
     args: rtypes.array, // 0 or more arguments
-    state: rtypes.object
+    state: rtypes.object,
   },
 
   rendered_arg(i) {
@@ -141,7 +141,7 @@ const Macro = rclass({
         style={{
           fontWeight: "bold",
           marginTop: "3.5ex",
-          marginBottom: "2.3ex"
+          marginBottom: "2.3ex",
         }}
       >
         {state.section} {this.rendered_arg(0)}
@@ -160,7 +160,7 @@ const Macro = rclass({
         style={{
           fontWeight: "bold",
           marginTop: "3.25ex",
-          marginBottom: "1.5ex"
+          marginBottom: "1.5ex",
         }}
       >
         {state.section}.{state.subsection} {this.rendered_arg(0)}
@@ -183,7 +183,7 @@ const Macro = rclass({
         style={{
           fontWeight: "bold",
           marginTop: "3.25ex",
-          marginBottom: "1.5ex"
+          marginBottom: "1.5ex",
         }}
       >
         {state.section}.{state.subsection}.{state.subsubsection}{" "}
@@ -269,7 +269,7 @@ const Macro = rclass({
     } else {
       return <pre>{`\\${this.props.name}(...)`}</pre>;
     }
-  }
+  },
 });
 
 const Environment = rclass({
@@ -279,7 +279,7 @@ const Environment = rclass({
     env: rtypes.array,
     args: rtypes.object,
     content: rtypes.array,
-    state: rtypes.object
+    state: rtypes.object,
   },
 
   rendered_content() {
@@ -340,7 +340,7 @@ const Environment = rclass({
             marginLeft: "auto",
             marginRight: "auto",
             maxWidth: "80%",
-            marginTop: "15px"
+            marginTop: "15px",
           }}
         >
           {this.rendered_content()}
@@ -387,10 +387,10 @@ const Environment = rclass({
     } else {
       return <code>{`\\begin{\\${name}}(...)\\end{\\${name}}`}</code>;
     }
-  }
+  },
 });
 
-const macro_nargs = function(name) {
+const macro_nargs = function (name) {
   switch (name) {
     case "maketitle":
     case "LaTeX":
@@ -417,7 +417,7 @@ const macro_nargs = function(name) {
   }
 };
 
-var render_group = function(group, state) {
+var render_group = function (group, state) {
   if (!group) {
     return <span />;
   }
@@ -468,7 +468,7 @@ var render_group = function(group, state) {
           macro = {
             name,
             nargs,
-            args: []
+            args: [],
           };
         }
         break;
@@ -517,7 +517,7 @@ const LaTeX = rclass({
   displayName: "LaTeXEditor-PEG-LaTeX",
 
   propTypes: {
-    value: rtypes.string
+    value: rtypes.string,
   },
 
   render_parse(parsed) {
@@ -548,7 +548,7 @@ const LaTeX = rclass({
         {this.render_parse(parsed)}
       </div>
     );
-  }
+  },
 });
 
 export let PEG = rclass({
@@ -564,7 +564,7 @@ export let PEG = rclass({
     reload: rtypes.number,
     font_size: rtypes.number,
     value: rtypes.string,
-    content: rtypes.string
+    content: rtypes.string,
   },
 
   shouldComponentUpdate(next) {
@@ -576,7 +576,7 @@ export let PEG = rclass({
       "read_only",
       "value",
       "content",
-      "reload_images"
+      "reload_images",
     ]);
   },
 
@@ -625,11 +625,11 @@ export let PEG = rclass({
           width: "100%",
           zoom: (this.props.font_size != null ? this.props.font_size : 16) / 16,
           fontFamily: "Computer Modern",
-          textAlign: "justify"
+          textAlign: "justify",
         }}
       >
         <LaTeX value={this.props.value} />
       </div>
     );
-  }
+  },
 });
