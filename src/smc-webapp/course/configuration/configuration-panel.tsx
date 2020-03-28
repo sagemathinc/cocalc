@@ -37,7 +37,7 @@ import {
 } from "../../app-framework";
 import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
 
-import { Alert, Card, Row, Col } from "antd";
+import { Alert, Card, Row, Col, Menu } from "antd";
 
 // CoCalc Components
 import {
@@ -618,7 +618,7 @@ export class ConfigurationPanel extends Component<
             this.get_actions().configuration.push_missing_handouts_and_assignments();
           }}
         >
-          <Icon name="share-square" />  Copy missing handouts and assignments
+          <Icon name="share-square" /> Copy missing handouts and assignments
         </Button>
       </Card>
     );
@@ -971,41 +971,107 @@ export class ConfigurationPanel extends Component<
     );
   }
 
+  scrollToTargetAdjusted = id => {
+    var element: HTMLElement | null = document.getElementById(id);
+    if (!element) {
+      console.log("document.getElementById(id) returned null");
+      return;
+    }
+    element.scrollIntoView(true);
+    document.getElementById("configurationpagecontainer")!.scrollTop;
+  };
+
   render() {
     return (
-      <div className="smc-vfill" style={{ overflowY: "scroll" }}>
-        <Row>
-          <Col md={12} style={{ padding: "15px" }}>
-            {this.render_require_students_pay()}
+      <div
+        className="smc-vfill"
+        id="configurationpagecontainer"
+        style={{
+          flexDirection: "row"
+        }}
+      >
+        <div
+          className="smc-vfill"
+          style={{ overflowX: "hidden", overflowY: "auto", flex: "2", minWidth:"260px" }}
+        >
+          <h1
+            style={{
+              fontSize: "20px"
+            }}
+          >
+            <Icon name="wrench" /> Configuration Settings
+          </h1>
+          <div style={{ overflow: "auto"}}>
+            <Menu
+              mode="inline"
+              onClick={e => {
+                this.scrollToTargetAdjusted(e.key);
+              }}
+            >
+              <Menu.Item key="item1">Title and Description</Menu.Item>
+              <Menu.Item key="item2">Email Invitation</Menu.Item>
+              <Menu.Item key="item3">Colaborator Policy</Menu.Item>
+              <Menu.Item key="item4">Start/Stop Projects</Menu.Item>
+              <Menu.Item key="item5">Projects Terminal</Menu.Item>
+              <Menu.Item key="item6">Delete Projects/Students</Menu.Item>
+              {this.props.settings.get("shared_project_id") ? (
+                <Menu.Item key="item7"></Menu.Item>
+              ) : (
+                undefined
+              )}
+              <Menu.Item key="item8">Copy Assiangments</Menu.Item>
+              <Menu.Item key="item9">Upgrade Settings</Menu.Item>
+              <Menu.Item key="item10">Export Grades</Menu.Item>
+              <Menu.Item key="item11">Project Configuration</Menu.Item>
+              <Menu.Item key="item12">
+                <Icon name="exclamation-circle" /> Help
+              </Menu.Item>
+            </Menu>
+          </div>
+        </div>
+        <div className="smc-vfill" style={{ overflow: "auto", flex: "13" }}>
+          <div style={{ padding: "15px", width: "1000px" }}>
+            <div id="item1"></div>
+            {this.render_title_description()}
             <br />
-            {this.render_require_institute_pay()}
+            <div id="item2"></div>
+            {this.render_email_invite_body()}
             <br />
-            {this.render_save_grades()}
+            <div id="item3"></div>
+            {this.render_disable_students()}
             <br />
+            <div id="item4"></div>
             {this.render_start_all_projects()}
             <br />
+            <div id="item5"></div>
             {this.render_terminal_command()}
             <br />
+            <div id="item6"></div>
             {this.render_delete_student_projects()}
             <br />
             {this.render_delete_all_students()}
             <br />
+            <div id="item7"></div>
             {this.render_delete_shared_project()}
-          </Col>
-          <Col md={12} style={{ padding: "15px" }}>
-            <HelpBox />
+            <div id="item8"></div>
+            {this.render_push_missing_handouts_and_assignments()}
             <br />
-            {this.render_title_description()}
+            <div id="item9"></div>
+            {this.render_require_students_pay()}
             <br />
-            {this.render_email_invite_body()}
+            {this.render_require_institute_pay()}
             <br />
-            {this.render_disable_students()}
+            <div id="item10"></div>
+            {this.render_save_grades()}
             <br />
+            <div id="item11"></div>
             {this.render_configure_all_projects()}
             <br />
-            {this.render_push_missing_handouts_and_assignments()}
-          </Col>
-        </Row>
+            <div id="item12"></div>
+            <HelpBox />
+            <div style={{ height: "700px" }}></div>
+          </div>
+        </div>
       </div>
     );
   }
