@@ -20,8 +20,8 @@ global["window"] = {};
 // webpack's injected DEBUG flag, we set it to false
 global["DEBUG"] = false;
 // jQuery mocking until feature.coffee is happy
-const $ = (global["$"] = global["window"].$ = function() {});
-$.get = function() {};
+const $ = (global["$"] = global["window"].$ = function () {});
+$.get = function () {};
 
 console.log("render react static pages: loading cocalc frontend library...");
 const static_react_pages = [];
@@ -29,7 +29,7 @@ const static_react_pages = [];
 // Code for static server-side rendering of the subscription options.
 // note, that we use renderToStaticMarkup, not renderToString
 // (see https://facebook.github.io/react/docs/top-level-api.html#reactdomserver.rendertostaticmarkup)
-exports.render_static_react_pages = function() {
+exports.render_static_react_pages = function () {
   for (let [input, outfile] of static_react_pages) {
     const filename = join("..", "webapp-lib", outfile);
     console.log(`render react static pages: rendering ${filename}...`);
