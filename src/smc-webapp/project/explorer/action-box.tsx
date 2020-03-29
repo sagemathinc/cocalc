@@ -278,11 +278,14 @@ export const ActionBox = rclass<ReactProps>(
         .value;
       switch (this.props.file_action) {
         case "rename":
-          this.props.actions.move_files({
-            src: this.props.checked_files.toArray(),
+          const checked = this.props.checked_files.toArray();
+          if (checked.length != 1) {
+            // shouldn't happen -- shouldn't even get to this point.
+            return;
+          }
+          this.props.actions.rename_file({
+            src: checked[0],
             dest: misc.path_to_file(rename_dir, destination),
-            dest_is_folder: false,
-            include_chats: true,
           });
           analytics_event("project_file_listing", "rename item");
           break;
@@ -411,8 +414,6 @@ export const ActionBox = rclass<ReactProps>(
       this.props.actions.move_files({
         src: this.props.checked_files.toArray(),
         dest: this.state.move_destination,
-        dest_is_folder: true,
-        include_chats: true,
       });
       this.props.actions.set_file_action();
       this.props.actions.set_all_files_unchecked();
