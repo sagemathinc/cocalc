@@ -7,13 +7,7 @@ depending on your tastes.  It also has a dependency on chromium.
 """
 
 import os, sys, time
-
-
-def cmd(s):
-    print(s)
-    sys.stdout.flush()
-    if os.system(s):
-        raise RuntimeError("ERROR: failed to run '%s'" % s)
+from subprocess import check_call
 
 
 def ipynb_to_pdf(path):
@@ -22,15 +16,20 @@ def ipynb_to_pdf(path):
     print("Convert %s..." % path)
     if not path.endswith('.ipynb'):
         raise ValueError("every path must end in '.ipynb' but '%s' does not" %
-                    (path))
+                         (path))
     path = os.path.abspath(path)
     base = path[:-len('ipynb')]
     pdf = base + 'pdf'
     html = base + 'tmp.html'
-    cmd("time jupyter nbconvert %s --to html --output=%s" % (path, html))
+    check_call(
+        ["jupyter", "nbconvert", path, "--to", "html",
+         "--output=%s" % html])
     # --no-sandbox so it works in cocalc-docker (see https://stackoverflow.com/questions/43665276/how-to-run-google-chrome-headless-in-docker); should be OK, given our security model...
-    cmd('time chromium-browser --headless --disable-gpu --no-sandbox --print-to-pdf="%s" --run-all-compositor-stages-before-draw   --virtual-time-budget=10000 %s'
-        % (pdf, html))
+    check_call([
+        "chromium-browser", "--headless", "--disable-gpu", "--no-sandbox",
+        "--print-to-pdf=%s" % pdf, "--run-all-compositor-stages-before-draw",
+        "--virtual-time-budget=10000", html
+    ])
     os.unlink(html)
     print("Converted %s to %s in %s seconds" % (path, pdf, time.time() - t))
     print("-" * 70)
