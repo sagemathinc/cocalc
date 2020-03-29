@@ -82,9 +82,9 @@ that same record.
 ## Representation
 
 We represent synchronized tables by an immutable.js mapping from the primary
-key to the object.  Since PostgresQL primary keys can be compound (more than
+key to the object. Since PostgresQL primary keys can be compound (more than
 just strings), e.g., they can be arrays, so we convert complicated keys to their
-JSON representation.  A binary object doesn't make sense here in pure javascript,
+JSON representation. A binary object doesn't make sense here in pure javascript,
 but these do:
 
       string, number, time, boolean, or array
@@ -94,15 +94,15 @@ main thing this function deals with below.
 
 ### Notes
 
-1. RIGHT NOW:  This should be safe to change at
-any time, since the keys aren't stored longterm.
-If we do something with localStorage, this will no longer be safe
-without a version number.
+1. RIGHT NOW: This should be safe to change at
+   any time, since the keys aren't stored longterm.
+   If we do something with localStorage, this will no longer be safe
+   without a version number.
 
 2. Of course you could use both a string and an array as primary keys
-in the same table.  You could evily make the string equal the json of an array,
-and this *would* break things.  We are thus assuming that such mixing
-doesn't happen.  An alternative would be to just *always* use a *stable* version of stringify.
+   in the same table. You could evily make the string equal the json of an array,
+   and this _would_ break things. We are thus assuming that such mixing
+   doesn't happen. An alternative would be to just _always_ use a _stable_ version of stringify.
 
 3. We use a stable version, since otherwise things will randomly break if the
-key is an object.
+   key is an object.

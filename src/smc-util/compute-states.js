@@ -44,9 +44,9 @@ exports.COMPUTE_STATES = {
     display: "Archived", // displayed name for users
     stable: true,
     to: {
-      closed: "unarchiving"
+      closed: "unarchiving",
     },
-    commands: ["unarchive"]
+    commands: ["unarchive"],
   },
 
   unarchiving: {
@@ -56,7 +56,7 @@ exports.COMPUTE_STATES = {
     display: "Unarchiving",
     to: {},
     timeout: 30 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   archiving: {
@@ -65,7 +65,7 @@ exports.COMPUTE_STATES = {
     display: "Archiving",
     to: {},
     timeout: 5 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   closed: {
@@ -76,9 +76,9 @@ exports.COMPUTE_STATES = {
     stable: true,
     to: {
       open: "opening",
-      archived: "archiving"
+      archived: "archiving",
     },
-    commands: ["open", "move", "status", "destroy", "mintime", "archive"]
+    commands: ["open", "move", "status", "destroy", "mintime", "archive"],
   },
 
   opening: {
@@ -88,7 +88,7 @@ exports.COMPUTE_STATES = {
     display: "Opening",
     to: {},
     timeout: 30 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   closing: {
@@ -97,7 +97,7 @@ exports.COMPUTE_STATES = {
     display: "Closing",
     to: {},
     timeout: 5 * 60,
-    commands: ["status", "mintime"]
+    commands: ["status", "mintime"],
   },
 
   opened: {
@@ -108,7 +108,7 @@ exports.COMPUTE_STATES = {
     to: {
       start: "starting",
       close: "closing",
-      save: "saving"
+      save: "saving",
     },
     commands: [
       "start",
@@ -125,8 +125,8 @@ exports.COMPUTE_STATES = {
       "status",
       "migrate_live",
       "ephemeral_state",
-      "ephemeral_disk"
-    ]
+      "ephemeral_disk",
+    ],
   },
 
   pending: {
@@ -136,9 +136,9 @@ exports.COMPUTE_STATES = {
     display: "Pending",
     stable: true,
     to: {
-      stop: "stopping"
+      stop: "stopping",
     },
-    command: ["stop"]
+    command: ["stop"],
   },
 
   starting: {
@@ -146,7 +146,7 @@ exports.COMPUTE_STATES = {
     icon: "flash",
     display: "Starting",
     to: {
-      save: "saving"
+      save: "saving",
     },
     timeout: 60,
     commands: [
@@ -159,8 +159,8 @@ exports.COMPUTE_STATES = {
       "mintime",
       "disk_quota",
       "compute_quota",
-      "status"
-    ]
+      "status",
+    ],
   },
 
   stopping: {
@@ -168,7 +168,7 @@ exports.COMPUTE_STATES = {
     icon: "hand-stop-o",
     display: "Stopping",
     to: {
-      save: "saving"
+      save: "saving",
     },
     timeout: 60,
     commands: [
@@ -181,8 +181,8 @@ exports.COMPUTE_STATES = {
       "mintime",
       "disk_quota",
       "compute_quota",
-      "status"
-    ]
+      "status",
+    ],
   },
 
   running: {
@@ -192,7 +192,7 @@ exports.COMPUTE_STATES = {
     stable: true,
     to: {
       stop: "stopping",
-      save: "saving"
+      save: "saving",
     },
     commands: [
       "stop",
@@ -207,8 +207,8 @@ exports.COMPUTE_STATES = {
       "disk_quota",
       "compute_quota",
       "status",
-      "migrate_live"
-    ]
+      "migrate_live",
+    ],
   },
 
   saving: {
@@ -228,7 +228,7 @@ exports.COMPUTE_STATES = {
       "mintime",
       "disk_quota",
       "compute_quota",
-      "status"
-    ]
-  }
+      "status",
+    ],
+  },
 };

@@ -1,11 +1,5 @@
 {
- "display_name": "Python 2 (Ubuntu Linux)",
- "argv": [
-  "/usr/bin/python3",
-  "-m",
-  "ipykernel",
-  "-f",
-  "{connection_file}"
- ],
- "language": "python"
+  "display_name": "Python 2 (Ubuntu Linux)",
+  "argv": ["/usr/bin/python3", "-m", "ipykernel", "-f", "{connection_file}"],
+  "language": "python"
 }
