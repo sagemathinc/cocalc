@@ -198,7 +198,7 @@ console.log(`MATHJAX_LIB      = ${MATHJAX_LIB}`);
 if (!COMP_ENV) {
   for (let fn of [
     "webapp-lib/compute-components.json",
-    "webapp-lib/compute-inventory.json"
+    "webapp-lib/compute-inventory.json",
   ]) {
     if (fs.existsSync(fn)) {
       continue;
@@ -215,7 +215,7 @@ This file is part of ${TITLE}.
 It was compiled ${BUILD_DATE} at revision ${GIT_REV} and version ${SMC_VERSION}.
 See ${SMC_REPO} for its ${SMC_LICENSE} code.\
 `,
-  entryOnly: true
+  entryOnly: true,
 });
 
 // webpack plugin to do the linking after it's "done"
@@ -225,12 +225,12 @@ class MathjaxVersionedSymlink {
     const symto = path.resolve(__dirname, `${MATHJAX_LIB}`);
     console.log(`mathjax symlink: pointing to ${symto}`);
     const mksymlink = (dir, cb) =>
-      fs.access(dir, function(err) {
+      fs.access(dir, function (err) {
         if (err) {
           fs.symlink(symto, dir, cb);
         }
       });
-    const done = compilation =>
+    const done = (compilation) =>
       async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink);
     const plugin = { name: "MathjaxVersionedSymlink" };
     compiler.hooks.done.tap(plugin, done);
@@ -245,7 +245,7 @@ if (!CC_NOCLEAN) {
   const CleanWebpackPlugin = require("clean-webpack-plugin");
   cleanWebpackPlugin = new CleanWebpackPlugin([OUTPUT], {
     verbose: true,
-    dry: false
+    dry: false,
   });
 }
 
@@ -260,8 +260,8 @@ const assetsPlugin = new AssetsPlugin({
     git_ref: GIT_REV,
     version: SMC_VERSION,
     built: BUILD_DATE,
-    timestamp: BUILD_TS
-  }
+    timestamp: BUILD_TS,
+  },
 });
 
 // https://www.npmjs.com/package/html-webpack-plugin
@@ -284,7 +284,7 @@ const htmlMinifyOpts = {
   minifyJS: true,
   minifyCSS: true,
   collapseWhitespace: true,
-  conservativeCollapse: true
+  conservativeCollapse: true,
 };
 
 // when base_url_html is set, it is hardcoded into the index page
@@ -314,12 +314,12 @@ const pug2app = new HtmlWebpackPlugin({
   hash: PRODMODE,
   template: path.join(INPUT, "app.pug"),
   minify: htmlMinifyOpts,
-  GOOGLE_ANALYTICS
+  GOOGLE_ANALYTICS,
 });
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  sourceMap: false
+  sourceMap: false,
 });
 
 // this is like C's #ifdef for the source code. It is particularly useful in the
@@ -327,20 +327,20 @@ const cssConfig = JSON.stringify({
 // mathjax is. The version&date is shown in the hover-title in the footer (year).
 const setNODE_ENV = new webpack.DefinePlugin({
   "process.env": {
-    NODE_ENV: JSON.stringify(NODE_ENV)
+    NODE_ENV: JSON.stringify(NODE_ENV),
   },
   MATHJAX_URL: JSON.stringify(MATHJAX_URL),
   SMC_VERSION: JSON.stringify(SMC_VERSION),
   SMC_GIT_REV: JSON.stringify(GIT_REV),
   BUILD_DATE: JSON.stringify(BUILD_DATE),
   BUILD_TS: JSON.stringify(BUILD_TS),
-  DEBUG: JSON.stringify(DEBUG)
+  DEBUG: JSON.stringify(DEBUG),
 });
 
 // Writes a JSON file containing the main webpack-assets and their filenames.
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const statsWriterPlugin = new StatsWriterPlugin({
-  filename: "webpack-stats.json"
+  filename: "webpack-stats.json",
 });
 
 // https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
@@ -355,9 +355,9 @@ const loaderOptions = new webpack.LoaderOptionsPlugin({
       minifyJS: true,
       minifyCSS: true,
       collapseWhitespace: true,
-      conservativeCollapse: true
-    }
-  } // absolutely necessary, also see above in module.loaders/.html
+      conservativeCollapse: true,
+    },
+  }, // absolutely necessary, also see above in module.loaders/.html
   //sassLoader:
   //    includePaths: [path.resolve(__dirname, 'src', 'scss')]
   //context: '/'
@@ -378,10 +378,10 @@ entries = {
   // this way it will have better caching/cache hits since it changes infrequently
   vendor: [
     // local packages
-    "./webapp-lib/primus/primus-engine.min.js"
+    "./webapp-lib/primus/primus-engine.min.js",
     // npm packages are added to vendor code separately in splitChunks config below
   ],
-  "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry"
+  "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
 };
 plugins.push(...[pug2app, mathjaxVersionedSymlink]);
 
@@ -413,7 +413,7 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
       // in package.json's watch. See
       //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
       async: false,
-      measureCompilationTime: true
+      measureCompilationTime: true,
     })
   );
 }
@@ -437,9 +437,9 @@ const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const minimizer = new UglifyJsPlugin({
   uglifyOptions: {
     output: {
-      comments: new RegExp(`This file is part of ${TITLE}`, "g")
-    }
-  }
+      comments: new RegExp(`This file is part of ${TITLE}`, "g"),
+    },
+  },
 }); // to keep the banner inserted above
 
 // tuning generated filenames and the configs for the aux files loader.
@@ -467,7 +467,7 @@ if (CDN_BASE_URL != null) {
 if (MEASURE) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
   const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
-    analyzerMode: "static"
+    analyzerMode: "static",
   });
   plugins.push(...[bundleAnalyzerPlugin]);
 }
@@ -490,10 +490,10 @@ module.exports = {
         commons: {
           test: /[\\/]node_modules[\\/]/,
           name: "vendor",
-          chunks: "all"
-        }
-      }
-    }
+          chunks: "all",
+        },
+      },
+    },
   },
 
   entry: entries,
@@ -503,7 +503,7 @@ module.exports = {
     publicPath,
     filename: PRODMODE ? "[name]-[hash].cacheme.js" : "[name].nocache.js",
     chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
-    hashFunction: "sha256"
+    hashFunction: "sha256",
   },
 
   module: {
@@ -521,9 +521,9 @@ module.exports = {
           options: {
             // do not run typescript checker in same process...
             transpileOnly: TS_TRANSPILE_ONLY,
-            experimentalWatchApi: !DISABLE_TS_LOADER_OPTIMIZATIONS
-          }
-        }
+            experimentalWatchApi: !DISABLE_TS_LOADER_OPTIMIZATIONS,
+          },
+        },
       },
       {
         test: /\.less$/,
@@ -532,12 +532,12 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 2
-            }
+              importLoaders: 2,
+            },
           },
           "postcss-loader",
-          `less-loader?${cssConfig}`
-        ]
+          `less-loader?${cssConfig}`,
+        ],
       },
       {
         test: /\.scss$/i,
@@ -546,12 +546,12 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 2
-            }
+              importLoaders: 2,
+            },
           },
           "postcss-loader",
-          `sass-loader?${cssConfig}`
-        ]
+          `sass-loader?${cssConfig}`,
+        ],
       },
       {
         test: /\.sass$/i,
@@ -560,12 +560,12 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 2
-            }
+              importLoaders: 2,
+            },
           },
           "postcss-loader",
-          `sass-loader?${cssConfig}&indentedSyntax`
-        ]
+          `sass-loader?${cssConfig}&indentedSyntax`,
+        ],
       },
       { test: /\.png$/, loader: `file-loader?${pngconfig}` },
       { test: /\.ico$/, loader: `file-loader?${icoconfig}` },
@@ -574,20 +574,20 @@ module.exports = {
       {
         test: /\.html$/,
         include: [path.resolve(__dirname, "smc-webapp")],
-        use: ["raw-loader", "html-minify-loader?conservativeCollapse"]
+        use: ["raw-loader", "html-minify-loader?conservativeCollapse"],
       },
       { test: /\.hbs$/, loader: "handlebars-loader" },
       {
         test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
-        loader: `url-loader?${woffconfig}`
+        loader: `url-loader?${woffconfig}`,
       },
       {
         test: /\.ttf(\?[a-z0-9\.-=]+)?$/,
-        loader: "url-loader?limit=10000&mimetype=application/octet-stream"
+        loader: "url-loader?limit=10000&mimetype=application/octet-stream",
       },
       {
         test: /\.eot(\?[a-z0-9\.-=]+)?$/,
-        loader: `file-loader?name=${hashname}`
+        loader: `file-loader?name=${hashname}`,
       },
       // ---
       {
@@ -597,14 +597,14 @@ module.exports = {
           {
             loader: "css-loader",
             options: {
-              importLoaders: 1
-            }
+              importLoaders: 1,
+            },
           },
-          "postcss-loader"
-        ]
+          "postcss-loader",
+        ],
       },
-      { test: /\.pug$/, loader: "pug-loader" }
-    ]
+      { test: /\.pug$/, loader: "pug-loader" },
+    ],
   },
 
   resolve: {
@@ -618,7 +618,7 @@ module.exports = {
       ".coffee",
       ".cjsx",
       ".scss",
-      ".sass"
+      ".sass",
     ],
     modules: [
       path.resolve(__dirname),
@@ -627,9 +627,9 @@ module.exports = {
       path.resolve(__dirname, "smc-util/node_modules"),
       path.resolve(__dirname, "smc-webapp"),
       path.resolve(__dirname, "smc-webapp/node_modules"),
-      path.resolve(__dirname, "node_modules")
-    ]
+      path.resolve(__dirname, "node_modules"),
+    ],
   },
 
-  plugins
+  plugins,
 };
