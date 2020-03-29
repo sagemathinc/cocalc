@@ -133,8 +133,7 @@ export class Client extends EventEmitter implements Client0 {
     return false;
   }
 
-  public set_deleted(_filename: string, _project_id?: string): boolean {
-  }
+  public set_deleted(_filename: string, _project_id?: string): void {}
 
   async synctable_project(
     _project_id: string,

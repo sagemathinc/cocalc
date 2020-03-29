@@ -2460,7 +2460,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       src: required,
       dest: required,
       path: undefined, // default to root of project
-      mv_args: undefined,
       cb: required,
     });
     if (!opts.dest && opts.path == null) {
@@ -2470,11 +2469,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     webapp_client.exec({
       project_id: this.project_id,
       command: "mv",
-      args: (opts.mv_args != null ? opts.mv_args : []).concat(
-        ["--"],
-        opts.src,
-        [opts.dest]
-      ),
+      args: ["--"].concat(opts.src, [opts.dest]),
       timeout: 15, // move should be fast..., unless across file systems.
       network_timeout: 20,
       err_on_exit: true, // this should fail if exit_code != 0
@@ -2490,7 +2485,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       dest: required, // Single dest string
       dest_is_folder: required,
       path: undefined, // default to root of project
-      mv_args: undefined,
       id: undefined,
       include_chats: false,
     }); // If we want to copy .filename.sage-chat

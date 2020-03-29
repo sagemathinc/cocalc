@@ -24,6 +24,7 @@ import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
 import { get_configuration } from "../configuration";
 import { delete_files } from "./delete-files";
+import { rename_file, move_files } from "./move-files";
 
 export function init_websocket_api(
   primus: any,
@@ -79,6 +80,10 @@ async function handle_api_call(
       return await listing(data.path, data.hidden);
     case "delete_files":
       return await delete_files(data.paths, logger);
+    case "move_files":
+      return await move_files(data.paths, data.dest, logger);
+    case "rename_file":
+      return await rename_file(data.src, data.dest, logger);
     case "canonical_paths":
       return canonical_paths(data.paths);
     case "configuration":
