@@ -520,8 +520,8 @@ class PassportManager {
       cookies: any;
       remember_me_cookie: string;
       get_api_key: string;
-      action: "regenerate" | "get";
-      api_key: string;
+      action: "regenerate" | "get" | undefined;
+      api_key: string | undefined;
     }
 
     const cookies = new Cookies(opts.req, opts.res);
@@ -535,6 +535,8 @@ class PassportManager {
       target: BASE_URL + "/app#login",
       remember_me_cookie: cookies.get(remember_me_cookie_name(BASE_URL)),
       get_api_key: cookies.get(api_key_cookie_name(BASE_URL)),
+      action: undefined,
+      api_key: undefined,
     };
 
     //# dbg("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
