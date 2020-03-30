@@ -131,7 +131,7 @@ async function handle_api_call(
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
       throw Error(
-        `command "${data.cmd}" not implemented -- try restarting your project`
+        `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`
       );
   }
 }
