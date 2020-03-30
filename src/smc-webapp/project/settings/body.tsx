@@ -27,7 +27,6 @@ import { SSHPanel } from "./ssh";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 
 const { webapp_client } = require("../../webapp_client");
-const { Col, Row } = require("react-bootstrap");
 
 interface ReactProps {
   project_id: string;
@@ -140,59 +139,69 @@ export const Body = rclass<ReactProps>(
           return;
         }
         element.scrollIntoView(true);
-        document.getElementById(
-          "settingspagecontainer"
-        )!.parentElement!.scrollTop -= 15;
+        //document.getElementById("thisone")!.scrollTop;
       };
-      
-      return (
-        <div>
-          <Row>
-            <Col sm={2}>
-              <div style={{ position: "fixed", width: "250px" }}>
-                <h1
-                  style={{
-                    marginTop: "0px",
-                    fontSize: "20px",
-                    position: "static"
-                  }}
-                >
-                  <Icon name="wrench" /> Project Settings
-                </h1>
-                <Menu
-                  mode="inline"
-                  onClick={e => {
-                    scrollToTargetAdjusted(e.key);
-                    console.log(e.key);
-                  }}
-                >
-                  <Menu.Item key="TitleDescriptionBox">
-                    Title and Description
-                  </Menu.Item>
-                  <Menu.Item key="UpgradeUsage">Upgrade Usage</Menu.Item>
-                  <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
-                  {this.props.ssh_gateway ||
-                  this.props.kucalc === KUCALC_COCALC_COM ? (
-                    <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
-                  ) : (
-                    undefined
-                  )}
-                  <Menu.Item key="ProjectCapabilities">
-                    Project Capabilities
-                  </Menu.Item>
-                  <Menu.Item key="CurrentCollaboratorsPanel">
-                    Current Collaborators
-                  </Menu.Item>
-                  <Menu.Item key="AddCollaboratorsPanel">
-                    Add Collaborators
-                  </Menu.Item>
-                  <Menu.Item key="ProjectControl">Project Control</Menu.Item>
-                  <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
-                </Menu>
-              </div>
-            </Col>
 
-            <Col sm={8} style={{ position: "absolute", left: "270px" }}>
+      return (
+        <div
+          className="smc-vfill"
+          style={{ flexDirection: "row" }}
+        >
+          <div
+            className="smc-vfill"
+            style={{
+              overflowX: "hidden",
+              overflowY: "auto",
+              flex: "2",
+              minWidth: "260px"
+            }}
+          >
+            <h1
+              style={{
+                marginTop: "0px",
+                fontSize: "20px"
+              }}
+            >
+              <Icon name="wrench" /> Project Settings
+            </h1>
+            <div style={{ overflow: "auto" }}>
+              <Menu
+                mode="inline"
+                onClick={e => {
+                  scrollToTargetAdjusted(e.key);
+                }}
+              >
+                <Menu.Item key="TitleDescriptionBox">
+                  Title and Description
+                </Menu.Item>
+                <Menu.Item key="UpgradeUsage">Upgrade Usage</Menu.Item>
+                <Menu.Item key="HideDeleteBox">Hide or Delete</Menu.Item>
+                {this.props.ssh_gateway ||
+                this.props.kucalc === KUCALC_COCALC_COM ? (
+                  <Menu.Item key="ProjectCapabilities">SSH panel</Menu.Item>
+                ) : (
+                  undefined
+                )}
+                <Menu.Item key="ProjectCapabilities">
+                  Project Capabilities
+                </Menu.Item>
+                <Menu.Item key="CurrentCollaboratorsPanel">
+                  Current Collaborators
+                </Menu.Item>
+                <Menu.Item key="AddCollaboratorsPanel">
+                  Add Collaborators
+                </Menu.Item>
+                <Menu.Item key="ProjectControl">Project Control</Menu.Item>
+                <Menu.Item key="SagewsControl">Sage worksheet</Menu.Item>
+              </Menu>
+            </div>
+          </div>
+          <div
+            className="smc-vfill"
+            id="thisone"
+            style={{ overflowY: "auto", flex: "13" }}
+          >
+            <div style={{ padding: "15px", width: "800px" }}>
               {commercial &&
               total_project_quotas != undefined &&
               !total_project_quotas.member_host ? (
@@ -294,9 +303,9 @@ export const Body = rclass<ReactProps>(
               <ProjectControl key="control" project={this.props.project} />
               <div id="SagewsControl"></div>
               <SagewsControl key="worksheet" project={this.props.project} />
-              <div style={{ height: "700px" }}></div>
-            </Col>
-          </Row>
+              <div style={{ height: "750px" }}></div>
+            </div>
+          </div>
         </div>
       );
     }
