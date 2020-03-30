@@ -416,7 +416,7 @@ ProjectContentViewer = rclass
                     @render_editor_tab()
 
     render: ->
-        style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
+        style = {overflow:'hidden', flex:1, height:0, position:'relative'}
         if !@props.is_visible
             style.display = "none"
         # always make div remaining height,
