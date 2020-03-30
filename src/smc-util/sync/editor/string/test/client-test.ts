@@ -129,6 +129,12 @@ export class Client extends EventEmitter implements Client0 {
 
   public alert_message(_): void {}
 
+  public is_deleted(_filename: string, _project_id?: string): boolean {
+    return false;
+  }
+
+  public set_deleted(_filename: string, _project_id?: string): void {}
+
   async synctable_project(
     _project_id: string,
     query: any,

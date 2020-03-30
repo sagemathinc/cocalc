@@ -87,7 +87,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const dbg = client.dbg("jupyter_backend");
   dbg();
-  const app_data = require("smc-webapp/app-framework");
+  const app_framework = require("smc-webapp/app-framework");
 
   const project_id = client.client_id();
 
@@ -95,23 +95,49 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
   // official ipynb format:
   const path = original_path(syncdb.get_path());
 
-  const redux_name = app_data.redux_name(project_id, path);
+  const redux_name = app_framework.redux_name(project_id, path);
   if (
-    app_data.redux.getStore(redux_name) != null &&
-    app_data.redux.getActions(redux_name) != null
+    app_framework.redux.getStore(redux_name) != null &&
+    app_framework.redux.getActions(redux_name) != null
   ) {
     // The redux info for this notebook already exists, so don't
     // try to make it again (which would be an error).
     // See https://github.com/sagemathinc/cocalc/issues/4331
     return;
   }
-  const store = app_data.redux.createStore(redux_name, JupyterStore);
-  const actions = app_data.redux.createActions(redux_name, JupyterActions);
+  const store = app_framework.redux.createStore(redux_name, JupyterStore);
+  const actions = app_framework.redux.createActions(redux_name, JupyterActions);
 
   actions._init(project_id, path, syncdb, store, client);
 
   syncdb.once("error", (err) => dbg(`syncdb ERROR -- ${err}`));
   syncdb.once("ready", () => dbg("syncdb ready"));
+}
+
+// Get rid of the store/actions for a given Jupyter notebook,
+// and also close the kernel if it is running.
+export async function remove_jupyter_backend(
+  path: string,
+  project_id: string
+): Promise<void> {
+  // if there is a kernel, close it
+  try {
+    await get_existing_kernel(path)?.close();
+  } catch (_err) {
+    // ignore
+  }
+  const app_framework = require("smc-webapp/app-framework");
+  const redux_name = app_framework.redux_name(project_id, path);
+  const actions = app_framework.redux.getActions(redux_name);
+  if (actions != null) {
+    try {
+      await actions.close();
+    } catch (_err) {
+      // ignore.
+    }
+  }
+  app_framework.redux.removeStore(redux_name);
+  app_framework.redux.removeActions(redux_name);
 }
 
 // for interactive testing

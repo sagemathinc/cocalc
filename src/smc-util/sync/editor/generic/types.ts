@@ -97,6 +97,9 @@ export interface Client extends EventEmitter {
 
   // account_id or project_id
   client_id: () => string;
+
+  is_deleted: (filename: string, project_id?: string) => boolean;
+  set_deleted: (filename: string, project_id?: string) => void;
 }
 
 export interface DocType {

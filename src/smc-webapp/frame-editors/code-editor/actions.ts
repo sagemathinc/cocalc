@@ -867,6 +867,23 @@ export class Actions<
     type = type;
   }
 
+  // Close all frames that have the given path.
+  // This will not close anything if path == this.path;
+  // this is only for when *other* files are open in frames.
+  // Returns number of frames closed.
+  close_frames_with_path(path: string): number {
+    if (path == this.path) return 0;
+    let n = 0;
+    for (const id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (path == leaf?.get("path")) {
+        this.close_frame(id);
+        n += 1;
+      }
+    }
+    return n;
+  }
+
   // Returns id of new frame, if a frame is created.
   public split_frame(
     direction: FrameDirection,

@@ -11,7 +11,7 @@ export const WATCH_TIMEOUT_MS = 60000;
 // when initializing things. We might have more in the database until
 // synctable.delete gets fully and properly initialized.  The main goal
 // is to not waste bandwidth and memory in browsers.
-export const MAX_PATHS = 20;
+export const MAX_PATHS = 25;
 
 // Maximum number of entries in a directory listing.  If this is exceeded
 // we sort by last modification time, take only the first MAX_FILES_PER_PATH
@@ -54,6 +54,12 @@ Table({
       desc:
         "Set if there is an error computing the directory listing, e.g., if there is no directory this may happen.  This will be cleared once the listing is successfully computed.",
     },
+    deleted: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc:
+        "Paths within this directory that have been explicitly deleted by a user",
+    },
   },
   rules: {
     desc: "Directory listings in projects",
@@ -70,14 +76,18 @@ Table({
           missing: null,
           interest: null,
           error: null,
+          deleted: null,
         },
       },
       set: {
-        // users can only set that they are interested in this directory
+        // users can set that they are interested in this directory and also
+        // remove paths from the list of deleted paths (e.g., in case they want
+        // to edit afile that was deleted).
         fields: {
           project_id: "project_id",
           path: true,
           interest: true,
+          deleted: true,
         },
       },
     },
@@ -94,6 +104,7 @@ Table({
           missing: null,
           interest: null,
           error: null,
+          deleted: null,
         },
       },
       set: {
@@ -108,6 +119,7 @@ Table({
           time: true,
           interest: true,
           error: true,
+          deleted: true,
         },
       },
     },

@@ -63,7 +63,7 @@ schema.syncstrings = {
     deleted: {
       type: "boolean",
       desc:
-        "if true, the file was deleted; client **must** create file on disk before editing again.",
+        "DEPRECATED (remove this field in a few months from March 2020, when no client is using it)",
     },
     init: {
       type: "map",

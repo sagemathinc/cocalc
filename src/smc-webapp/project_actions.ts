@@ -23,6 +23,7 @@ import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
+import { API } from "./project/websocket/api";
 
 import { editor_id, NewFilenames } from "./project/utils";
 import { NEW_FILENAMES } from "smc-util/db-schema";
@@ -54,6 +55,8 @@ import { alert_message } from "./alerts";
 const { webapp_client } = require("./webapp_client");
 const { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
+
+import { delete_files } from "./project/delete-files";
 
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
 
@@ -263,8 +266,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.copy_paths_between_projects = this.copy_paths_between_projects.bind(
       this
     );
-    this._move_files = this._move_files.bind(this);
-    this.move_files = this.move_files.bind(this);
     this.delete_files = this.delete_files.bind(this);
     this.download_file = this.download_file.bind(this);
     this.print_file = this.print_file.bind(this);
@@ -297,6 +298,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._activity_indicator_timers = {};
 
     this.open_files = new OpenFiles(this);
+  }
+
+  public async api(): Promise<API> {
+    return (await webapp_client.project_websocket(this.project_id)).api;
   }
 
   destroy = (): void => {
@@ -986,11 +991,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    let store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-
     if (opts.new_browser_window) {
       // options other than path are ignored in this case.
       // TODO: do not ignore anchor option.
@@ -998,8 +998,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    store = this.get_store();
-    if (store == undefined) return;
+    let store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
 
     let open_files = store.get("open_files");
     if (!open_files.has(opts.path)) {
@@ -1944,7 +1946,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const { command, args } = transform_get_url(opts.url);
 
-    require("./webapp_client").webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command,
       timeout: opts.timeout,
@@ -2455,137 +2457,48 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
   }
 
-  private _move_files(opts) {
-    //PRIVATE -- used internally to move files
-    opts = defaults(opts, {
-      src: required,
-      dest: required,
-      path: undefined, // default to root of project
-      mv_args: undefined,
-      cb: required,
-    });
-    if (!opts.dest && opts.path == null) {
-      opts.dest = ".";
-    }
+  public async rename_file(opts: { src: string; dest: string }): Promise<void> {
+    const id = misc.uuid();
+    const status = `Renaming ${opts.src} to ${opts.dest}`;
+    let error: any = undefined;
 
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "mv",
-      args: (opts.mv_args != null ? opts.mv_args : []).concat(
-        ["--"],
-        opts.src,
-        [opts.dest]
-      ),
-      timeout: 15, // move should be fast..., unless across file systems.
-      network_timeout: 20,
-      err_on_exit: true, // this should fail if exit_code != 0
-      path: opts.path,
-      cb: opts.cb,
-    });
+    this.set_activity({ id, status });
+    try {
+      const api = await this.api();
+      await api.rename_file(opts.src, opts.dest);
+    } catch (err) {
+      error = err;
+    } finally {
+      this.set_activity({ id, stop: "", error });
+    }
   }
 
-  move_files(opts): void {
-    let path;
-    opts = defaults(opts, {
-      src: required, // Array of src paths to mv
-      dest: required, // Single dest string
-      dest_is_folder: required,
-      path: undefined, // default to root of project
-      mv_args: undefined,
-      id: undefined,
-      include_chats: false,
-    }); // If we want to copy .filename.sage-chat
-
-    // TODO: Put this somewhere else!
-    const get_chat_path = (path) => misc.meta_file(path, "chat");
-    //{head, tail} = misc.path_split(path)
-    //misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
-
-    if (opts.include_chats) {
-      if (opts.dest_is_folder) {
-        const chat_paths: string[] = [];
-        for (const path of opts.src) {
-          const chat_path = get_chat_path(path);
-          if (opts.src.indexOf(chat_path) == -1) {
-            chat_paths.push(chat_path);
-          }
-        }
-        opts.src.concat(chat_paths);
-      } else {
-        const old_chat_path = get_chat_path(opts.src[0]);
-        const new_chat_path = get_chat_path(opts.dest);
-
-        this.move_files({
-          src: [old_chat_path],
-          dest: new_chat_path,
-          dest_is_folder: opts.dest_is_folder,
-        });
-      }
+  public async move_files(opts: {
+    src: string[];
+    dest: string;
+  }): Promise<void> {
+    const id = misc.uuid();
+    const status = `Moving ${opts.src.length} ${misc.plural(
+      opts.src.length,
+      "file"
+    )} to ${opts.dest}`;
+    this.set_activity({ id, status });
+    let error: any = undefined;
+    try {
+      const api = await this.api();
+      await api.move_files(opts.src, opts.dest);
+    } catch (err) {
+      error = err;
+    } finally {
+      this.set_activity({ id, stop: "", error });
     }
-
-    delete opts.include_chats;
-    delete opts.dest_is_folder;
-
-    const check_existence_of = (path: string): boolean => {
-      const store = this.get_store();
-      const path_parts = misc.path_split(path);
-      if (store == undefined) {
-        return false;
-      }
-      return store
-        .get("directory_listings")
-        .get(path_parts.head != null ? path_parts.head : "")
-        .some((item) => item.get("name") === path_parts.tail);
-    };
-
-    const valid_sources: string[] = [];
-    for (path of opts.src) {
-      if (check_existence_of(path)) {
-        valid_sources.push(path);
-      }
-    }
-    opts.src = valid_sources;
-
-    if (opts.src.length === 0) {
-      return;
-    }
-
-    const id = opts.id != null ? opts.id : misc.uuid();
-    this.set_activity({
-      id,
-      status: `Moving ${opts.src.length} ${misc.plural(
-        opts.src.length,
-        "file"
-      )} to ${opts.dest}`,
-    });
-    delete opts.id;
-
-    opts.cb = (err) => {
-      if (err) {
-        this.set_activity({ id, error: err });
-      } else {
-        this.fetch_directory_listing();
-      }
-      this.log({
-        event: "file_action",
-        action: "moved",
-        files: opts.src.slice(0, 3),
-        count: opts.src.length > 3 ? opts.src.length : undefined,
-        dest: opts.dest,
-      });
-      this.set_activity({ id, stop: "" });
-    };
-    return this._move_files(opts);
   }
 
-  delete_files(opts): void {
+  public async delete_files(opts: { paths: string[] }): Promise<void> {
     let mesg;
     opts = defaults(opts, { paths: required });
     if (opts.paths.length === 0) {
       return;
-    }
-    for (const path of opts.paths) {
-      this.close_tab(path);
     }
     const id = misc.uuid();
     if (underscore.isEqual(opts.paths, [".trash"])) {
@@ -2595,43 +2508,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } else {
       mesg = `${opts.paths.length} files`;
     }
-    this.set_activity({ id, status: `Deleting ${mesg}` });
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rm",
-      timeout: 60,
-      args: ["-rf", "--"].concat(opts.paths),
-      cb: (err, result) => {
-        this.fetch_directory_listing();
-        if (err) {
-          this.set_activity({
-            id,
-            error: `Network error while trying to delete ${mesg} -- ${err}`,
-            stop: "",
-          });
-          return;
-        } else if (result.event === "error") {
-          this.set_activity({
-            id,
-            error: `Error deleting ${mesg} -- ${result.error}`,
-            stop: "",
-          });
-          return;
-        } else {
-          this.set_activity({
-            id,
-            status: `Successfully deleted ${mesg}.`,
-            stop: "",
-          });
-          return this.log({
-            event: "file_action",
-            action: "deleted",
-            files: opts.paths.slice(0, 3),
-            count: opts.paths.length > 3 ? opts.paths.length : undefined,
-          });
-        }
-      },
-    });
+    this.set_activity({ id, status: `Deleting ${mesg}...` });
+    try {
+      await delete_files(this.project_id, opts.paths);
+      this.log({ event: "file_action", action: "deleted", files: opts.paths });
+      this.set_activity({
+        id,
+        status: `Successfully deleted ${mesg}.`,
+        stop: "",
+      });
+    } catch (err) {
+      this.set_activity({
+        id,
+        error: `Error deleting ${mesg} -- ${err}`,
+        stop: "",
+      });
+    }
   }
 
   download_file(opts): void {

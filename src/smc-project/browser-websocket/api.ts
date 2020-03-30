@@ -23,6 +23,8 @@ import { x11_channel } from "../x11/server";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
 import { get_configuration } from "../configuration";
+import { delete_files } from "./delete-files";
+import { rename_file, move_files } from "./move-files";
 
 export function init_websocket_api(
   primus: any,
@@ -76,6 +78,12 @@ async function handle_api_call(
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
+    case "delete_files":
+      return await delete_files(data.paths, logger);
+    case "move_files":
+      return await move_files(data.paths, data.dest, logger);
+    case "rename_file":
+      return await rename_file(data.src, data.dest, logger);
     case "canonical_paths":
       return canonical_paths(data.paths);
     case "configuration":
@@ -123,7 +131,7 @@ async function handle_api_call(
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
       throw Error(
-        `command "${data.cmd}" not implemented -- try restarting your project`
+        `command "${data.cmd}" not implemented -- restart your project (in Project --> Settings)`
       );
   }
 }
@@ -147,6 +155,6 @@ interface ExecuteOutput {
   stderr: string;
   exit_code: number;
 }
-async function exec(opts: any): Promise<ExecuteOutput> {
+export async function exec(opts: any): Promise<ExecuteOutput> {
   return await callback_opts(execute_code)(opts);
 }
