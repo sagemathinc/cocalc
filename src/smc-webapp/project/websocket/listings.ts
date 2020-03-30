@@ -7,6 +7,7 @@ import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
 import { merge, path_split } from "smc-util/misc2";
 import { once } from "smc-util/async-utils";
+import { deleted_file_variations } from "smc-util/delete-files";
 import { exec, query } from "../../frame-editors/generic/client";
 
 import { get_directory_listing } from "../directory-listing";
@@ -175,7 +176,8 @@ export class Listings extends EventEmitter {
       await this.undelete(head);
       return;
     }
-    deleted = deleted.filter((x) => x != tail);
+    const remove = new Set([tail].concat(deleted_file_variations(tail)));
+    deleted = deleted.filter((x) => !remove.has(x));
     await this.set({ path: head, deleted: deleted.toJS() });
   }
 
@@ -415,5 +417,3 @@ export class Listings extends EventEmitter {
 export function listings(project_id: string): Listings {
   return new Listings(project_id);
 }
-
-

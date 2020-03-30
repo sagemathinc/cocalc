@@ -4,6 +4,7 @@ import { callback } from "awaiting";
 import { exec } from "./api";
 import { get_listings_table } from "../sync/listings";
 import { deleted_file_variations } from "../smc-util/delete-files";
+import { pathExists } from "fs-extra";
 
 // Delete the files/directories in the given project with the given list of paths.
 export async function delete_files(
@@ -26,7 +27,14 @@ export async function delete_files(
     try {
       const s = await callback(stat, path);
       if (!s.isDirectory()) {
-        extra = extra.concat(deleted_file_variations(path));
+        for (const variation of deleted_file_variations(path)) {
+          if (await pathExists(variation)) {
+            if (listings != null) {
+              await listings.set_deleted(variation);
+            }
+            extra.push(variation);
+          }
+        }
       }
     } catch (_err) {}
   }
