@@ -46,7 +46,7 @@ export class RangeSlider extends Component<Props> {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          boxShadow: "0px 2px 6px #AAA"
+          boxShadow: "0px 2px 6px #AAA",
         }}
       >
         <div
@@ -60,7 +60,7 @@ export class RangeSlider extends Component<Props> {
             fontFamily: "Arial,Helvetica Neue,Helvetica,sans-serif",
             padding: "4px",
             borderRadius: "4px",
-            backgroundColor: "rgb(66, 139, 202)"
+            backgroundColor: "rgb(66, 139, 202)",
           }}
         >
           <TimeAgo date={date} />
@@ -69,7 +69,7 @@ export class RangeSlider extends Component<Props> {
           style={{
             height: "16px",
             width: "5px",
-            backgroundColor: isDragged ? "rgb(66, 139, 202)" : "#CCC"
+            backgroundColor: isDragged ? "rgb(66, 139, 202)" : "#CCC",
           }}
         />
       </div>
@@ -84,7 +84,7 @@ export class RangeSlider extends Component<Props> {
           ...props.style,
           height: "6px",
           width: "100%",
-          backgroundColor: "#ccc"
+          backgroundColor: "#ccc",
         }}
       >
         {children}
@@ -107,7 +107,7 @@ export class RangeSlider extends Component<Props> {
           height: "72px",
           paddingTop: "48px",
           width: "90%",
-          margin: "auto"
+          margin: "auto",
         }}
       >
         <Range

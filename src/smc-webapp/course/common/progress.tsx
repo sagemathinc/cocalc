@@ -12,7 +12,7 @@ import * as misc from "smc-util/misc";
 const progress_info = {
   color: COLORS.GRAY_D,
   marginLeft: "10px",
-  whiteSpace: "normal"
+  whiteSpace: "normal",
 };
 
 const progress_info_done = misc.copy(progress_info);

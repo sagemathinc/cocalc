@@ -92,7 +92,7 @@ exports.types = types;
 
 // startswith(s, x) is true if s starts with the string x or any of the strings in x.
 // It is false if s is not a string.
-exports.startswith = function(s, x) {
+exports.startswith = function (s, x) {
   if (typeof s !== "string") {
     return false;
   }
@@ -108,7 +108,7 @@ exports.startswith = function(s, x) {
   }
 };
 
-exports.endswith = function(s, t) {
+exports.endswith = function (s, t) {
   if (s == null || t == null) {
     return false; // undefined doesn't endswith anything...
   }
@@ -118,7 +118,7 @@ exports.endswith = function(s, t) {
 // Modifies in place the object dest so that it
 // includes all values in objs and returns dest
 // Rightmost object overwrites left.
-exports.merge = function(dest, ...objs) {
+exports.merge = function (dest, ...objs) {
   for (let obj of Array.from(objs)) {
     for (let k in obj) {
       const v = obj[k];
@@ -132,18 +132,18 @@ exports.merge = function(dest, ...objs) {
 exports.merge_copy = (...objs) => exports.merge({}, ...Array.from(objs));
 
 // Return a random element of an array
-exports.random_choice = array =>
+exports.random_choice = (array) =>
   array[Math.floor(Math.random() * array.length)];
 
 // Given an object map {foo:bar, ...} returns an array [foo, bar] randomly
 // chosen from the object map.
-exports.random_choice_from_obj = function(obj) {
+exports.random_choice_from_obj = function (obj) {
   const k = exports.random_choice(exports.keys(obj));
   return [k, obj[k]];
 };
 
 // Returns a random integer in the range, inclusive (like in Python)
-exports.randint = function(lower, upper) {
+exports.randint = function (lower, upper) {
   if (lower > upper) {
     throw new Error("randint: lower is larger than upper");
   }
@@ -151,7 +151,7 @@ exports.randint = function(lower, upper) {
 };
 
 // Like Python's string split -- splits on whitespace
-exports.split = function(s) {
+exports.split = function (s) {
   const r = s.match(/\S+/g);
   if (r) {
     return r;
@@ -161,7 +161,7 @@ exports.split = function(s) {
 };
 
 // Like the exports.split method, but quoted terms are grouped together for an exact search.
-exports.search_split = function(search) {
+exports.search_split = function (search) {
   const terms = [];
   search = search.split('"');
   const { length } = search;
@@ -184,7 +184,7 @@ exports.search_split = function(search) {
 
 // s = lower case string
 // v = array of terms as output by search_split above
-exports.search_match = function(s, v) {
+exports.search_match = function (s, v) {
   if (s == null) {
     return false;
   }
@@ -201,7 +201,7 @@ exports.contains = (word, sub) => word.indexOf(sub) !== -1;
 
 // Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 
-exports.count = function(str, strsearch) {
+exports.count = function (str, strsearch) {
   let index = -1;
   let count = -1;
   while (true) {
@@ -216,7 +216,7 @@ exports.count = function(str, strsearch) {
 
 // modifies target in place, so that the properties of target are the
 // same as those of upper_bound, and each is <=.
-exports.min_object = function(target, upper_bounds) {
+exports.min_object = function (target, upper_bounds) {
   if (target == null) {
     target = {};
   }
@@ -230,7 +230,7 @@ exports.min_object = function(target, upper_bounds) {
 };
 
 // Current time in milliseconds since epoch
-exports.mswalltime = function(t) {
+exports.mswalltime = function (t) {
   if (t != null) {
     return new Date().getTime() - t;
   } else {
@@ -239,7 +239,7 @@ exports.mswalltime = function(t) {
 };
 
 // Current time in seconds since epoch, as a floating point number (so much more precise than just seconds).
-exports.walltime = function(t) {
+exports.walltime = function (t) {
   if (t != null) {
     return exports.mswalltime() / 1000.0 - t;
   } else {
@@ -249,7 +249,7 @@ exports.walltime = function(t) {
 
 // We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 exports.uuid = () =>
-  "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+  "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
@@ -258,26 +258,26 @@ exports.uuid = () =>
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
 );
-exports.is_valid_uuid_string = uuid =>
+exports.is_valid_uuid_string = (uuid) =>
   typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid);
 // /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
-exports.assert_uuid = uuid => {
+exports.assert_uuid = (uuid) => {
   if (!exports.is_valid_uuid_string(uuid)) {
     throw Error(`invalid uuid='${uuid}'`);
   }
 };
 
-exports.is_valid_sha1_string = s =>
+exports.is_valid_sha1_string = (s) =>
   typeof s === "string" && s.length === 40 && /[a-fA-F0-9]{40}/i.test(s);
 
 // Compute a uuid v4 from the Sha-1 hash of data.
 // If on backend, use the version in misc_node, which is faster.
 const sha1 = require("sha1");
-exports.uuidsha1 = function(data) {
+exports.uuidsha1 = function (data) {
   const s = sha1(data);
   let i = -1;
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     i += 1;
     switch (c) {
       case "x":
@@ -290,10 +290,10 @@ exports.uuidsha1 = function(data) {
 };
 
 const zipcode = new RegExp("^\\d{5}(-\\d{4})?$");
-exports.is_valid_zipcode = zip => zipcode.test(zip);
+exports.is_valid_zipcode = (zip) => zipcode.test(zip);
 
 // Return a very rough benchmark of the number of times f will run per second.
-exports.times_per_second = function(f, max_time, max_loops) {
+exports.times_per_second = function (f, max_time, max_loops) {
   // return number of times per second that f() can be called
   if (max_time == null) {
     max_time = 5;
@@ -331,7 +331,7 @@ simultaneously restarted.
 */
 const SOCKET_DATE_KEY = "DateEpochMS";
 
-const socket_date_replacer = function(key, value) {
+const socket_date_replacer = function (key, value) {
   if (this[key] instanceof Date) {
     const date = this[key];
     return { [SOCKET_DATE_KEY]: date - 0 };
@@ -340,9 +340,9 @@ const socket_date_replacer = function(key, value) {
   }
 };
 
-exports.to_json_socket = x => JSON.stringify(x, socket_date_replacer);
+exports.to_json_socket = (x) => JSON.stringify(x, socket_date_replacer);
 
-const socket_date_parser = function(key, value) {
+const socket_date_parser = function (key, value) {
   if ((value != null ? value[SOCKET_DATE_KEY] : undefined) != null) {
     return new Date(value[SOCKET_DATE_KEY]);
   } else {
@@ -350,7 +350,7 @@ const socket_date_parser = function(key, value) {
   }
 };
 
-exports.from_json_socket = function(x) {
+exports.from_json_socket = function (x) {
   try {
     return JSON.parse(x, socket_date_parser);
   } catch (err) {
@@ -363,7 +363,7 @@ exports.from_json_socket = function(x) {
 
 // convert object x to a JSON string, removing any keys that have "pass" in them and
 // any values that are potentially big -- this is meant to only be used for logging.
-exports.to_safe_str = function(x) {
+exports.to_safe_str = function (x) {
   if (typeof x === "string") {
     // nothing we can do at this point -- already a string.
     return x;
@@ -397,7 +397,7 @@ exports.to_safe_str = function(x) {
 // convert from a JSON string to Javascript (properly dealing with ISO dates)
 //   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 const reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
-exports.date_parser = date_parser = function(k, v) {
+exports.date_parser = date_parser = function (k, v) {
   if (typeof v === "string" && v.length >= 20 && reISO.exec(v)) {
     return ISO_to_Date(v);
   } else {
@@ -405,7 +405,7 @@ exports.date_parser = date_parser = function(k, v) {
   }
 };
 
-exports.ISO_to_Date = ISO_to_Date = function(s) {
+exports.ISO_to_Date = ISO_to_Date = function (s) {
   if (s.indexOf("Z") === -1) {
     // Firefox assumes local time rather than UTC if there is no Z.   However,
     // our backend might possibly send a timestamp with no Z and it should be
@@ -417,7 +417,7 @@ exports.ISO_to_Date = ISO_to_Date = function(s) {
   return new Date(s);
 };
 
-exports.from_json = function(x) {
+exports.from_json = function (x) {
   try {
     return JSON.parse(x, date_parser);
   } catch (err) {
@@ -432,7 +432,7 @@ exports.from_json = function(x) {
 // that look like ISO dates to actual Date objects.  This mutates
 // obj in place as part of the process.
 // date_keys = 'all' or list of keys in nested object whose values should be considered.  Nothing else is considered!
-exports.fix_json_dates = fix_json_dates = function(obj, date_keys) {
+exports.fix_json_dates = fix_json_dates = function (obj, date_keys) {
   if (date_keys == null) {
     // nothing to do
     return obj;
@@ -470,21 +470,18 @@ exports.fix_json_dates = fix_json_dates = function(obj, date_keys) {
 // converts a Date object to an ISO string in UTC.
 // NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
 // the CoCalc servers are assumed to be on UTC.
-exports.to_iso = d =>
+exports.to_iso = (d) =>
   new Date(d - d.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, -5);
 
 // turns a Date object into a more human readable more friendly directory name in the local timezone
-exports.to_iso_path = d =>
-  exports
-    .to_iso(d)
-    .replace("T", "-")
-    .replace(/:/g, "");
+exports.to_iso_path = (d) =>
+  exports.to_iso(d).replace("T", "-").replace(/:/g, "");
 
 // returns true if the given object has no keys
-exports.is_empty_object = obj => Object.keys(obj).length === 0;
+exports.is_empty_object = (obj) => Object.keys(obj).length === 0;
 
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
-exports.len = function(obj) {
+exports.len = function (obj) {
   if (obj == null) {
     return 0;
   }
@@ -505,7 +502,7 @@ exports.has_key = underscore.has;
 exports.values = underscore.values;
 
 // as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
-exports.dict = function(obj) {
+exports.dict = function (obj) {
   const x = {};
   for (let a of Array.from(obj)) {
     if (a.length !== 2) {
@@ -518,7 +515,7 @@ exports.dict = function(obj) {
 
 // remove first occurrence of value (just like in python);
 // throws an exception if val not in list.
-exports.remove = function(obj, val) {
+exports.remove = function (obj, val) {
   for (
     let i = 0, end = obj.length, asc = 0 <= end;
     asc ? i < end : i > end;
@@ -533,7 +530,7 @@ exports.remove = function(obj, val) {
 };
 
 // convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
-exports.pairs_to_obj = function(v) {
+exports.pairs_to_obj = function (v) {
   const o = {};
   for (let x of Array.from(v)) {
     o[x[0]] = x[1];
@@ -541,7 +538,7 @@ exports.pairs_to_obj = function(v) {
   return o;
 };
 
-exports.obj_to_pairs = obj =>
+exports.obj_to_pairs = (obj) =>
   (() => {
     const result = [];
     for (let x in obj) {
@@ -552,7 +549,7 @@ exports.obj_to_pairs = obj =>
   })();
 
 // from http://stackoverflow.com/questions/4009756/how-to-count-string-occurrence-in-string via http://js2coffee.org/
-exports.substring_count = function(string, subString, allowOverlapping) {
+exports.substring_count = function (string, subString, allowOverlapping) {
   string += "";
   subString += "";
   if (subString.length <= 0) {
@@ -573,18 +570,18 @@ exports.substring_count = function(string, subString, allowOverlapping) {
   return n;
 };
 
-exports.max = array => array.reduce((a, b) => Math.max(a, b));
+exports.max = (array) => array.reduce((a, b) => Math.max(a, b));
 
-exports.min = array => array.reduce((a, b) => Math.min(a, b));
+exports.min = (array) => array.reduce((a, b) => Math.min(a, b));
 
 const filename_extension_re = /(?:\.([^.]+))?$/;
-exports.filename_extension = function(filename) {
+exports.filename_extension = function (filename) {
   let left;
   filename = exports.path_split(filename).tail;
   return (left = filename_extension_re.exec(filename)[1]) != null ? left : "";
 };
 
-exports.filename_extension_notilde = function(filename) {
+exports.filename_extension_notilde = function (filename) {
   let ext = exports.filename_extension(filename);
   while (ext && ext[ext.length - 1] === "~") {
     // strip tildes from the end of the extension -- put there by rsync --backup, and other backup systems in UNIX.
@@ -595,7 +592,7 @@ exports.filename_extension_notilde = function(filename) {
 
 // If input name foo.bar, returns object {name:'foo', ext:'bar'}.
 // If there is no . in input name, returns {name:name, ext:''}
-exports.separate_file_extension = function(name) {
+exports.separate_file_extension = function (name) {
   const ext = exports.filename_extension(name);
   if (ext !== "") {
     name = name.slice(0, name.length - ext.length - 1); // remove the ext and the .
@@ -605,14 +602,14 @@ exports.separate_file_extension = function(name) {
 
 // change the filename's extension to the new one.
 // if there is no extension, add it.
-exports.change_filename_extension = function(name, new_ext) {
+exports.change_filename_extension = function (name, new_ext) {
   let ext;
   ({ name, ext } = exports.separate_file_extension(name));
   return `${name}.${new_ext}`;
 };
 
 // shallow copy of a map
-exports.copy = function(obj) {
+exports.copy = function (obj) {
   if (obj == null || typeof obj !== "object") {
     return obj;
   }
@@ -629,7 +626,7 @@ exports.copy = function(obj) {
 
 // copy of map but without some keys
 // I.e., restrict a function to the complement of a subset of the domain.
-exports.copy_without = function(obj, without) {
+exports.copy_without = function (obj, without) {
   if (typeof without === "string") {
     without = [without];
   }
@@ -645,7 +642,7 @@ exports.copy_without = function(obj, without) {
 
 // copy of map but only with some keys
 // I.e., restrict a function to a subset of the domain.
-exports.copy_with = function(obj, w) {
+exports.copy_with = function (obj, w) {
   if (typeof w === "string") {
     w = [w];
   }
@@ -660,7 +657,7 @@ exports.copy_with = function(obj, w) {
 };
 
 // From http://coffeescriptcookbook.com/chapters/classes_and_objects/cloning
-exports.deep_copy = function(obj) {
+exports.deep_copy = function (obj) {
   let newInstance;
   if (obj == null || typeof obj !== "object") {
     return obj;
@@ -704,7 +701,7 @@ exports.deep_copy = function(obj) {
 // Split a pathname.  Returns an object {head:..., tail:...} where tail is
 // everything after the final slash.  Either part may be empty.
 // (Same as os.path.split in Python.)
-exports.path_split = function(path) {
+exports.path_split = function (path) {
   const v = path.split("/");
   return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
 };
@@ -715,7 +712,7 @@ exports.path_split = function(path) {
 // Each part will have exactly one '/' between it and adjacent parts
 // Does NOT resolve up-level references
 // See misc-tests for examples.
-exports.normalized_path_join = function(...parts) {
+exports.normalized_path_join = function (...parts) {
   const sep = "/";
   const replace = new RegExp(sep + "{1,}", "g");
   const s = (() => {
@@ -733,7 +730,7 @@ exports.normalized_path_join = function(...parts) {
 };
 
 // Takes a path string and file name and gives the full path to the file
-exports.path_to_file = function(path, file, line_number) {
+exports.path_to_file = function (path, file, line_number) {
   if (path === "") {
     return file;
   }
@@ -746,7 +743,7 @@ exports.path_to_file = function(path, file, line_number) {
 };
 
 const { hidden_meta_file } = require("./misc2");
-exports.meta_file = function(path, ext) {
+exports.meta_file = function (path, ext) {
   return hidden_meta_file(path, "sage-" + ext);
 };
 
@@ -757,7 +754,7 @@ exports.meta_file = function(path, ext) {
 //    .foo.txt.sage-chat --> foo.txt
 //    tmp/.foo.txt.sage-chat --> tmp/foo.txt
 
-exports.original_path = function(path) {
+exports.original_path = function (path) {
   const s = exports.path_split(path);
   if (s.tail[0] !== "." || s.tail.indexOf(".sage-") === -1) {
     return path;
@@ -775,7 +772,7 @@ exports.original_path = function(path) {
 
 const ELLIPSES = "…";
 // "foobar" --> "foo…"
-exports.trunc = function(s, max_length) {
+exports.trunc = function (s, max_length) {
   if (max_length == null) {
     max_length = 1024;
   }
@@ -796,7 +793,7 @@ exports.trunc = function(s, max_length) {
 };
 
 // "foobar" --> "fo…ar"
-exports.trunc_middle = function(s, max_length) {
+exports.trunc_middle = function (s, max_length) {
   if (max_length == null) {
     max_length = 1024;
   }
@@ -821,7 +818,7 @@ exports.trunc_middle = function(s, max_length) {
 };
 
 // "foobar" --> "…bar"
-exports.trunc_left = function(s, max_length) {
+exports.trunc_left = function (s, max_length) {
   if (max_length == null) {
     max_length = 1024;
   }
@@ -841,7 +838,7 @@ exports.trunc_left = function(s, max_length) {
   }
 };
 
-exports.pad_left = function(s, n) {
+exports.pad_left = function (s, n) {
   if (!typeof s === "string") {
     s = `${s}`;
   }
@@ -855,7 +852,7 @@ exports.pad_left = function(s, n) {
   return s;
 };
 
-exports.pad_right = function(s, n) {
+exports.pad_right = function (s, n) {
   if (!typeof s === "string") {
     s = `${s}`;
   }
@@ -870,7 +867,7 @@ exports.pad_right = function(s, n) {
 };
 
 // gives the plural form of the word if the number should be plural
-exports.plural = function(number, singular, plural) {
+exports.plural = function (number, singular, plural) {
   if (plural == null) {
     plural = `${singular}s`;
   }
@@ -887,7 +884,7 @@ exports.plural = function(number, singular, plural) {
 exports.git_author = (first_name, last_name, email_address) =>
   `${first_name} ${last_name} <${email_address}>`;
 
-const reValidEmail = (function() {
+const reValidEmail = (function () {
   const sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]";
   const sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]";
   const sAtom =
@@ -905,7 +902,7 @@ const reValidEmail = (function() {
   return new RegExp(sValidEmail);
 })();
 
-exports.is_valid_email_address = function(email) {
+exports.is_valid_email_address = function (email) {
   // From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
   // but converted to Javascript; it's near the middle but claims to be exactly RFC822.
   if (reValidEmail.test(email)) {
@@ -918,7 +915,7 @@ exports.is_valid_email_address = function(email) {
 // More canonical email address -- lower case and remove stuff between + and @.
 // This is mainly used for banning users.
 
-exports.canonicalize_email_address = function(email_address) {
+exports.canonicalize_email_address = function (email_address) {
   if (typeof email_address !== "string") {
     // silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
     email_address = JSON.stringify(email_address);
@@ -935,7 +932,7 @@ exports.canonicalize_email_address = function(email_address) {
   return email_address.toLowerCase();
 };
 
-exports.lower_email_address = function(email_address) {
+exports.lower_email_address = function (email_address) {
   if (email_address == null) {
     return;
   }
@@ -964,7 +961,7 @@ exports.lower_email_address = function(email_address) {
 //    string_queries: ["firstname", "lastname", "somestring"]
 //    email_queries: ["email@something.com", "justanemail@mail.com"]
 // }
-exports.parse_user_search = function(query) {
+exports.parse_user_search = function (query) {
   const r = { string_queries: [], email_queries: [] };
   if (typeof query !== "string") {
     return r;
@@ -972,9 +969,9 @@ exports.parse_user_search = function(query) {
   const queries = Array.from(
     query
       .split("\n")
-      .map(q1 => q1.split(/,|;/))
+      .map((q1) => q1.split(/,|;/))
       .reduce((acc, val) => acc.concat(val), []) // flatten
-      .map(q => q.trim().toLowerCase())
+      .map((q) => q.trim().toLowerCase())
   );
   const email_re = /<(.*)>/;
   for (let x of Array.from(queries)) {
@@ -1007,9 +1004,9 @@ exports.parse_user_search = function(query) {
 };
 
 // Delete trailing whitespace in the string s.
-exports.delete_trailing_whitespace = s => s.replace(/[^\S\n]+$/gm, "");
+exports.delete_trailing_whitespace = (s) => s.replace(/[^\S\n]+$/gm, "");
 
-exports.assert = function(condition, mesg) {
+exports.assert = function (condition, mesg) {
   if (!condition) {
     if (typeof mesg === "string") {
       throw new Error(mesg);
@@ -1018,7 +1015,7 @@ exports.assert = function(condition, mesg) {
   }
 };
 
-exports.retry_until_success = function(opts) {
+exports.retry_until_success = function (opts) {
   let start_time;
   opts = exports.defaults(opts, {
     f: exports.required, // f((err) => )
@@ -1030,7 +1027,7 @@ exports.retry_until_success = function(opts) {
     log: undefined,
     warn: undefined,
     name: "",
-    cb: undefined
+    cb: undefined,
   }); // called with cb() on *success*; cb(error, last_error) if max_tries is exceeded
 
   let delta = opts.start_delay;
@@ -1038,7 +1035,7 @@ exports.retry_until_success = function(opts) {
   if (opts.max_time != null) {
     start_time = new Date();
   }
-  var g = function() {
+  var g = function () {
     tries += 1;
     if (opts.log != null) {
       if (opts.max_tries != null) {
@@ -1048,17 +1045,16 @@ exports.retry_until_success = function(opts) {
       }
       if (opts.max_time != null) {
         opts.log(
-          `retry_until_success(${
-            opts.name
-          }) -- try ${tries} (started ${new Date() -
-            start_time}ms ago; will stop before ${opts.max_time}ms max time)`
+          `retry_until_success(${opts.name}) -- try ${tries} (started ${
+            new Date() - start_time
+          }ms ago; will stop before ${opts.max_time}ms max time)`
         );
       }
       if (opts.max_tries == null && opts.max_time == null) {
         opts.log(`retry_until_success(${opts.name}) -- try ${tries}`);
       }
     }
-    return opts.f(function(err) {
+    return opts.f(function (err) {
       if (err) {
         if (err === "not_public") {
           if (typeof opts.cb === "function") {
@@ -1127,9 +1123,9 @@ exports.retry_until_success = function(opts) {
 //      @foo = retry_until_success_wrapper(f:@_foo)
 //      @bar = retry_until_success_wrapper(f:@_foo, start_delay:100, max_delay:10000, exp_factor:1.5)
 //
-exports.retry_until_success_wrapper = function(opts) {
+exports.retry_until_success_wrapper = function (opts) {
   const _X = new RetryUntilSuccess(opts);
-  return cb => _X.call(cb);
+  return (cb) => _X.call(cb);
 };
 
 class RetryUntilSuccess {
@@ -1144,7 +1140,7 @@ class RetryUntilSuccess {
       max_time: undefined, // milliseconds -- don't call f again if the call would start after this much time from first call
       min_interval: 100, // if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
       logname: undefined,
-      verbose: false
+      verbose: false,
     });
     if (this.opts.min_interval != null) {
       if (this.opts.start_delay < this.opts.min_interval) {
@@ -1188,7 +1184,7 @@ class RetryUntilSuccess {
       if (this.opts.min_interval != null) {
         this._last_call_time = exports.mswalltime();
       }
-      return this.f(err => {
+      return this.f((err) => {
         this.attempts += 1;
         this._calling = false;
         if (err) {
@@ -1251,17 +1247,17 @@ class RetryUntilSuccess {
 }
 
 // WARNING: params below have different semantics than above; these are what *really* make sense....
-exports.eval_until_defined = function(opts) {
+exports.eval_until_defined = function (opts) {
   opts = exports.defaults(opts, {
     code: exports.required,
     start_delay: 100, // initial delay beforing calling f again.  times are all in milliseconds
     max_time: 10000, // error if total time spent trying will exceed this time
     exp_factor: 1.4,
-    cb: exports.required
+    cb: exports.required,
   }); // cb(err, eval(code))
   let delay = undefined;
   let total = 0;
-  var f = function() {
+  var f = function () {
     const result = eval(opts.code);
     if (result != null) {
       return opts.cb(false, result);
@@ -1289,16 +1285,16 @@ exports.eval_until_defined = function(opts) {
 
 // TODO: this is actually throttle, not debounce...
 
-exports.async_debounce = function(opts) {
+exports.async_debounce = function (opts) {
   opts = defaults(opts, {
     f: required, // async function f whose *only* argument is a callback
     interval: 1500, // call f at most this often (in milliseconds)
     state: required, // store state information about debounce in this *object*
-    cb: undefined
+    cb: undefined,
   }); // as if f(cb) happens -- cb may be undefined.
   let { f, interval, state, cb } = opts;
 
-  const call_again = function() {
+  const call_again = function () {
     const n = interval + 1 - (new Date() - state.last);
     //console.log("starting timer for #{n}ms")
     return (state.timer = setTimeout(() => {
@@ -1336,7 +1332,7 @@ exports.async_debounce = function(opts) {
   delete state.next_callbacks;
   //console.log("doing run with #{callbacks.length} callbacks")
 
-  return f(err => {
+  return f((err) => {
     // finished running... call callbacks
     //console.log("finished running -- calling #{callbacks.length} callbacks", callbacks)
     for (cb of Array.from(callbacks)) {
@@ -1366,7 +1362,7 @@ exports.StringCharMapping = class StringCharMapping {
     }
     opts = exports.defaults(opts, {
       to_char: undefined,
-      to_string: undefined
+      to_string: undefined,
     });
     this._to_char = {};
     this._to_string = {};
@@ -1422,12 +1418,12 @@ exports.StringCharMapping = class StringCharMapping {
   }
 
   to_array(string) {
-    return Array.from(string).map(s => this._to_string[s]);
+    return Array.from(string).map((s) => this._to_string[s]);
   }
 };
 
 // Given a string s, return the string obtained by deleting all later duplicate characters from s.
-exports.uniquify_string = function(s) {
+exports.uniquify_string = function (s) {
   const seen_already = {};
   let t = "";
   for (let c of Array.from(s)) {
@@ -1463,18 +1459,18 @@ exports.PROJECT_GROUPS = [
   "collaborator",
   "viewer",
   "invited_collaborator",
-  "invited_viewer"
+  "invited_viewer",
 ];
 
 // turn an arbitrary string into a nice clean identifier that can safely be used in an URL
-exports.make_valid_name = s =>
+exports.make_valid_name = (s) =>
   // for now we just delete anything that isn't alphanumeric.
   // See http://stackoverflow.com/questions/9364400/remove-not-alphanumeric-characters-from-string-having-trouble-with-the-char/9364527#9364527
   // whose existence surprised me!
   s.replace(/\W/g, "_").toLowerCase();
 
 // format is 2014-04-04-061502
-exports.parse_bup_timestamp = function(s) {
+exports.parse_bup_timestamp = function (s) {
   const v = [
     s.slice(0, 4),
     s.slice(5, 7),
@@ -1482,12 +1478,12 @@ exports.parse_bup_timestamp = function(s) {
     s.slice(11, 13),
     s.slice(13, 15),
     s.slice(15, 17),
-    "0"
+    "0",
   ];
   return new Date(`${v[1]}/${v[2]}/${v[0]} ${v[3]}:${v[4]}:${v[5]} UTC`);
 };
 
-exports.matches = function(s, words) {
+exports.matches = function (s, words) {
   for (let word of Array.from(words)) {
     if (s.indexOf(word) === -1) {
       return false;
@@ -1496,7 +1492,7 @@ exports.matches = function(s, words) {
   return true;
 };
 
-exports.hash_string = function(s) {
+exports.hash_string = function (s) {
   if (s == null) {
     return;
   }
@@ -1519,7 +1515,7 @@ exports.hash_string = function(s) {
   return hash;
 };
 
-exports.parse_hashtags = function(t) {
+exports.parse_hashtags = function (t) {
   // return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
   const v = [];
   if (t == null) {
@@ -1593,19 +1589,19 @@ const mathjax_environments = [
   "split",
   "subarray",
   "Vmatrix",
-  "vmatrix"
+  "vmatrix",
 ];
 const mathjax_delim = [
   ["$$", "$$"],
   ["\\(", "\\)"],
-  ["\\[", "\\]"]
+  ["\\[", "\\]"],
 ];
 for (let env of Array.from(mathjax_environments)) {
   mathjax_delim.push([`\\begin{${env}}`, `\\end{${env}}`]);
 }
 mathjax_delim.push(["$", "$"]); // must be after $$, best to put it at the end
 
-exports.parse_mathjax = function(t) {
+exports.parse_mathjax = function (t) {
   // Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
   // The delimiters are given in the mathjax_delim list above.
   const v = [];
@@ -1658,7 +1654,7 @@ exports.parse_mathjax = function(t) {
 };
 
 // If you're going to set some innerHTML then mathjax it,
-exports.mathjax_escape = html =>
+exports.mathjax_escape = (html) =>
   html
     .replace(/&(?!#?\w+;)/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -1677,7 +1673,7 @@ exports.path_is_in_public_paths = (path, paths) =>
 // Otherwise, returns undefined.
 // IMPORTANT: a possible returned string is "", which is falsey but defined!
 // paths can be an array or object (with keys the paths) or a Set
-exports.containing_public_path = function(path, paths) {
+exports.containing_public_path = function (path, paths) {
   let p;
   if (paths == null || path == null) {
     return;
@@ -1731,7 +1727,7 @@ exports.containing_public_path = function(path, paths) {
 
 // encode a UNIX path, which might have # and % in it.
 // Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
-exports.encode_path = function(path) {
+exports.encode_path = function (path) {
   path = encodeURI(path); // doesn't escape # and ?, since they are special for urls (but not unix paths)
   return path.replace(/#/g, "%23").replace(/\?/g, "%3F");
 };
@@ -1740,24 +1736,24 @@ exports.encode_path = function(path) {
 // one method can be called at a time of an object -- all calls until completion
 // of the first one get an error.
 
-exports.call_lock = function(opts) {
+exports.call_lock = function (opts) {
   opts = exports.defaults(opts, {
     obj: exports.required,
-    timeout_s: 30
+    timeout_s: 30,
   }); // lock expire timeout after this many seconds
 
   const { obj } = opts;
 
-  obj._call_lock = function() {
+  obj._call_lock = function () {
     obj.__call_lock = true;
-    obj.__call_lock_timeout = function() {
+    obj.__call_lock_timeout = function () {
       obj.__call_lock = false;
       return delete obj.__call_lock_timeout;
     };
     return setTimeout(obj.__call_lock_timeout, opts.timeout_s * 1000);
   };
 
-  obj._call_unlock = function() {
+  obj._call_unlock = function () {
     if (obj.__call_lock_timeout != null) {
       clearTimeout(obj.__call_lock_timeout);
       delete obj.__call_lock_timeout;
@@ -1765,7 +1761,7 @@ exports.call_lock = function(opts) {
     return (obj.__call_lock = false);
   };
 
-  return (obj._call_with_lock = function(f, cb) {
+  return (obj._call_with_lock = function (f, cb) {
     if (obj.__call_lock) {
       if (typeof cb === "function") {
         cb("error -- hit call_lock");
@@ -1773,7 +1769,7 @@ exports.call_lock = function(opts) {
       return;
     }
     obj._call_lock();
-    return f(function(...args) {
+    return f(function (...args) {
       obj._call_unlock();
       return typeof cb === "function"
         ? cb(...Array.from(args || []))
@@ -1785,7 +1781,7 @@ exports.call_lock = function(opts) {
 // "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
 exports.is_equal = underscore.isEqual;
 
-exports.cmp = function(a, b) {
+exports.cmp = function (a, b) {
   if (a < b) {
     return -1;
   } else if (a > b) {
@@ -1794,7 +1790,7 @@ exports.cmp = function(a, b) {
   return 0;
 };
 
-exports.cmp_array = function(a, b) {
+exports.cmp_array = function (a, b) {
   for (
     let i = 0, end = Math.max(a.length, b.length), asc = 0 <= end;
     asc ? i < end : i > end;
@@ -1808,7 +1804,7 @@ exports.cmp_array = function(a, b) {
   return 0;
 };
 
-exports.cmp_Date = function(a, b) {
+exports.cmp_Date = function (a, b) {
   if (a == null) {
     return -1;
   }
@@ -1818,25 +1814,25 @@ exports.cmp_Date = function(a, b) {
   return exports.cmp(a.valueOf(), b.valueOf());
 };
 
-exports.timestamp_cmp = function(a, b, field) {
+exports.timestamp_cmp = function (a, b, field) {
   if (field == null) {
     field = "timestamp";
   }
   return -exports.cmp_Date(a[field], b[field]);
 };
 
-const timestamp_cmp0 = function(a, b, field) {
+const timestamp_cmp0 = function (a, b, field) {
   if (field == null) {
     field = "timestamp";
   }
   return exports.cmp_Date(a[field], b[field]);
 };
 
-exports.field_cmp = field => (a, b) => exports.cmp(a[field], b[field]);
+exports.field_cmp = (field) => (a, b) => exports.cmp(a[field], b[field]);
 
 // Return true if and only if a[field] != b[field] for some field.
 // Here we literally just use !=, so do not use this for non-atomic values!
-exports.is_different = function(a, b, fields, why) {
+exports.is_different = function (a, b, fields, why) {
   let field;
   if (a == null) {
     if (b == null) {
@@ -1902,7 +1898,7 @@ class ActivityLog {
     opts = exports.defaults(opts, {
       events: undefined,
       account_id: exports.required, // user
-      notifications: {}
+      notifications: {},
     });
     this.notifications = opts.notifications;
     this.account_id = opts.account_id;
@@ -1940,7 +1936,7 @@ class ActivityLog {
         events_with_path = by_path[path];
         events_with_path.sort(timestamp_cmp0); // oldest to newest
         result.push(
-          Array.from(events_with_path).map(event =>
+          Array.from(events_with_path).map((event) =>
             this._process_event(event, path)
           )
         );
@@ -1995,7 +1991,7 @@ class ActivityLog {
 //    times = who[event.account_id] = []
 //times.push(event.timestamp)
 
-exports.activity_log = opts => new ActivityLog(opts);
+exports.activity_log = (opts) => new ActivityLog(opts);
 
 // see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
 exports.replace_all = (string, search, replace) =>
@@ -2003,7 +1999,7 @@ exports.replace_all = (string, search, replace) =>
 
 // Similar to misc.replace_all, except it takes as input a function replace_f, which
 // returns what to replace the i-th copy of search in string with.
-exports.replace_all_function = function(string, search, replace_f) {
+exports.replace_all_function = function (string, search, replace_f) {
   const v = string.split(search);
   const w = [];
   for (
@@ -2019,7 +2015,7 @@ exports.replace_all_function = function(string, search, replace_f) {
   return w.join("");
 };
 
-exports.remove_c_comments = function(s) {
+exports.remove_c_comments = function (s) {
   while (true) {
     const i = s.indexOf("/*");
     if (i === -1) {
@@ -2033,7 +2029,7 @@ exports.remove_c_comments = function(s) {
   }
 };
 
-exports.date_to_snapshot_format = function(d) {
+exports.date_to_snapshot_format = function (d) {
   if (d == null) {
     d = 0;
   }
@@ -2046,13 +2042,13 @@ exports.date_to_snapshot_format = function(d) {
   return s.slice(0, i);
 };
 
-exports.stripe_date = d =>
+exports.stripe_date = (d) =>
   // https://github.com/sagemathinc/cocalc/issues/3254
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
   new Date(d * 1000).toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
-    day: "numeric"
+    day: "numeric",
   });
 // fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
 //return new Date(d*1000).toLocaleDateString(
@@ -2064,12 +2060,12 @@ exports.stripe_date = d =>
 //        timeZone: 'UTC'
 //)
 
-exports.to_money = n =>
+exports.to_money = (n) =>
   // see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
   // TODO: replace by using react-intl...
   n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 
-exports.stripe_amount = function(units, currency) {
+exports.stripe_amount = function (units, currency) {
   // input is in pennies
   if (currency !== "usd") {
     throw Error(`not-implemented currency ${currency}`);
@@ -2081,34 +2077,34 @@ exports.stripe_amount = function(units, currency) {
   return s;
 };
 
-exports.capitalize = function(s) {
+exports.capitalize = function (s) {
   if (s != null) {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 };
 
-exports.is_array = is_array = obj =>
+exports.is_array = is_array = (obj) =>
   Object.prototype.toString.call(obj) === "[object Array]";
 
 exports.is_integer = Number.isInteger;
 if (exports.is_integer == null) {
-  exports.is_integer = n => typeof n === "number" && n % 1 === 0;
+  exports.is_integer = (n) => typeof n === "number" && n % 1 === 0;
 }
 
-exports.is_string = obj => typeof obj === "string";
+exports.is_string = (obj) => typeof obj === "string";
 
 // An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
 // NOT include Date.
-exports.is_object = is_object = obj =>
+exports.is_object = is_object = (obj) =>
   Object.prototype.toString.call(obj) === "[object Object]";
 
-exports.is_set = is_set = obj =>
+exports.is_set = is_set = (obj) =>
   Object.prototype.toString.call(obj) === "[object Set]";
 
-exports.is_date = is_date = obj => obj instanceof Date;
+exports.is_date = is_date = (obj) => obj instanceof Date;
 
 // get a subarray of all values between the two given values inclusive, provided in either order
-exports.get_array_range = function(arr, value1, value2) {
+exports.get_array_range = function (arr, value1, value2) {
   let index1 = arr.indexOf(value1);
   let index2 = arr.indexOf(value2);
   if (index1 > index2) {
@@ -2119,18 +2115,18 @@ exports.get_array_range = function(arr, value1, value2) {
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
-exports.milliseconds_ago = ms => new Date(new Date() - ms);
-exports.seconds_ago = s => exports.milliseconds_ago(1000 * s);
-exports.minutes_ago = m => exports.seconds_ago(60 * m);
-exports.hours_ago = h => exports.minutes_ago(60 * h);
-exports.days_ago = d => exports.hours_ago(24 * d);
-exports.weeks_ago = w => exports.days_ago(7 * w);
-exports.months_ago = m => exports.days_ago(30.5 * m);
+exports.milliseconds_ago = (ms) => new Date(new Date() - ms);
+exports.seconds_ago = (s) => exports.milliseconds_ago(1000 * s);
+exports.minutes_ago = (m) => exports.seconds_ago(60 * m);
+exports.hours_ago = (h) => exports.minutes_ago(60 * h);
+exports.days_ago = (d) => exports.hours_ago(24 * d);
+exports.weeks_ago = (w) => exports.days_ago(7 * w);
+exports.months_ago = (m) => exports.days_ago(30.5 * m);
 
 if (typeof window !== "undefined" && window !== null) {
   // BROWSER Versions of the above, but give the relevant point in time but
   // on the *server*.  These are only available in the web browser.
-  exports.server_time = function() {
+  exports.server_time = function () {
     let left;
     return new Date(
       new Date() -
@@ -2139,7 +2135,7 @@ if (typeof window !== "undefined" && window !== null) {
         )
     );
   };
-  exports.server_milliseconds_ago = function(ms) {
+  exports.server_milliseconds_ago = function (ms) {
     let left;
     return new Date(
       new Date() -
@@ -2149,12 +2145,12 @@ if (typeof window !== "undefined" && window !== null) {
         )
     );
   };
-  exports.server_seconds_ago = s => exports.server_milliseconds_ago(1000 * s);
-  exports.server_minutes_ago = m => exports.server_seconds_ago(60 * m);
-  exports.server_hours_ago = h => exports.server_minutes_ago(60 * h);
-  exports.server_days_ago = d => exports.server_hours_ago(24 * d);
-  exports.server_weeks_ago = w => exports.server_days_ago(7 * w);
-  exports.server_months_ago = m => exports.server_days_ago(30.5 * m);
+  exports.server_seconds_ago = (s) => exports.server_milliseconds_ago(1000 * s);
+  exports.server_minutes_ago = (m) => exports.server_seconds_ago(60 * m);
+  exports.server_hours_ago = (h) => exports.server_minutes_ago(60 * h);
+  exports.server_days_ago = (d) => exports.server_hours_ago(24 * d);
+  exports.server_weeks_ago = (w) => exports.server_days_ago(7 * w);
+  exports.server_months_ago = (m) => exports.server_days_ago(30.5 * m);
 } else {
   // On the server, these functions are aliased to the functions above, since
   // we assume that the server clocks are sufficiently accurate.  Providing
@@ -2183,7 +2179,7 @@ exports.weeks_before = (d, tm) => exports.days_before(7 * d, tm);
 exports.months_before = (d, tm) => exports.days_before(30.5 * d, tm);
 
 // time this many seconds in the future (or undefined)
-exports.expire_time = function(s) {
+exports.expire_time = function (s) {
   if (s) {
     return new Date(new Date() - 0 + s * 1000);
   }
@@ -2192,14 +2188,14 @@ exports.expire_time = function(s) {
 exports.YEAR = new Date().getFullYear();
 
 // Round the given number to 1 decimal place
-exports.round1 = round1 = num => Math.round(num * 10) / 10;
+exports.round1 = round1 = (num) => Math.round(num * 10) / 10;
 
 // Round given number to 2 decimal places
-exports.round2 = round2 = num =>
+exports.round2 = round2 = (num) =>
   // padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
   Math.round((num + 0.00001) * 100) / 100;
 
-const seconds2hms_days = function(d, h, m, longform) {
+const seconds2hms_days = function (d, h, m, longform) {
   let x;
   h = h % 24;
   const s = h * 60 * 60 + m * 60;
@@ -2221,7 +2217,7 @@ exports.seconds2hm = seconds2hm = (secs, longform) =>
   seconds2hms(secs, longform, false);
 
 // dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
-exports.seconds2hms = seconds2hms = function(secs, longform, show_seconds) {
+exports.seconds2hms = seconds2hms = function (secs, longform, show_seconds) {
   let ret, s;
   if (show_seconds == null) {
     show_seconds = true;
@@ -2289,7 +2285,7 @@ exports.seconds2hms = seconds2hms = function(secs, longform, show_seconds) {
 // returns the number parsed from the input text, or undefined if invalid
 // rounds to the nearest 0.01 if round_number is true (default : true)
 // allows negative numbers if allow_negative is true (default : false)
-exports.parse_number_input = function(input, round_number, allow_negative) {
+exports.parse_number_input = function (input, round_number, allow_negative) {
   let val;
   if (round_number == null) {
     round_number = true;
@@ -2320,7 +2316,7 @@ exports.parse_number_input = function(input, round_number, allow_negative) {
   return val;
 };
 
-exports.range = function(n, m) {
+exports.range = function (n, m) {
   if (m == null) {
     return __range__(0, n, false);
   } else {
@@ -2329,7 +2325,7 @@ exports.range = function(n, m) {
 };
 
 // arithmetic of maps with codomain numbers; missing values default to 0
-exports.map_sum = function(a, b) {
+exports.map_sum = function (a, b) {
   let v;
   if (a == null) {
     return b;
@@ -2351,7 +2347,7 @@ exports.map_sum = function(a, b) {
   return c;
 };
 
-exports.map_diff = function(a, b) {
+exports.map_diff = function (a, b) {
   let c, k, v;
   if (b == null) {
     return a;
@@ -2380,7 +2376,7 @@ exports.map_diff = function(a, b) {
 
 // compare the values in a map a by the values of b
 // or just by b if b is a number, using func(a, b)
-map_comp_fn = function(func, fallback) {
+map_comp_fn = function (func, fallback) {
   return (a, b) => {
     const c = {};
     if (typeof b === "number") {
@@ -2402,7 +2398,7 @@ exports.map_limit = exports.map_min = map_comp_fn(Math.min, Number.MAX_VALUE);
 exports.map_max = map_comp_fn(Math.max, Number.MIN_VALUE);
 
 // arithmetic sum of an array
-exports.sum = function(arr, start) {
+exports.sum = function (arr, start) {
   if (start == null) {
     start = 0;
   }
@@ -2411,7 +2407,7 @@ exports.sum = function(arr, start) {
 
 // replace map in place by the result of applying f to each
 // element of the codomain of the map.  Also return the modified map.
-exports.apply_function_to_map_values = apply_function_to_map_values = function(
+exports.apply_function_to_map_values = apply_function_to_map_values = function (
   map,
   f
 ) {
@@ -2423,8 +2419,8 @@ exports.apply_function_to_map_values = apply_function_to_map_values = function(
 };
 
 // modify map by coercing each element of codomain to a number, with false->0 and true->1
-exports.coerce_codomain_to_numbers = map =>
-  apply_function_to_map_values(map, function(x) {
+exports.coerce_codomain_to_numbers = (map) =>
+  apply_function_to_map_values(map, function (x) {
     if (typeof x === "boolean") {
       if (x) {
         return 1;
@@ -2437,7 +2433,7 @@ exports.coerce_codomain_to_numbers = map =>
   });
 
 // returns true if the given map is undefined or empty, or all the values are falsy
-exports.is_zero_map = function(map) {
+exports.is_zero_map = function (map) {
   if (map == null) {
     return true;
   }
@@ -2453,7 +2449,7 @@ exports.is_zero_map = function(map) {
 // Returns copy of map with no undefined/null values (recursive).
 // Doesn't modify map.  If map is an array, just returns it
 // with no change even if it has undefined values.
-exports.map_without_undefined = map_without_undefined = function(map) {
+exports.map_without_undefined = map_without_undefined = function (map) {
   if (map == null) {
     return;
   }
@@ -2472,7 +2468,7 @@ exports.map_without_undefined = map_without_undefined = function(map) {
   return new_map;
 };
 
-exports.map_mutate_out_undefined = map =>
+exports.map_mutate_out_undefined = (map) =>
   (() => {
     const result = [];
     for (let k in map) {
@@ -2487,7 +2483,7 @@ exports.map_mutate_out_undefined = map =>
   })();
 
 // foreground; otherwise, return false.
-exports.should_open_in_foreground = function(e) {
+exports.should_open_in_foreground = function (e) {
   // for react.js synthetic mouse events, where e.which is undefined!
   if (e.constructor.name === "SyntheticMouseEvent") {
     e = e.nativeEvent;
@@ -2497,7 +2493,7 @@ exports.should_open_in_foreground = function(e) {
 };
 
 // Like Python's enumerate
-exports.enumerate = function(v) {
+exports.enumerate = function (v) {
   let i = 0;
   const w = [];
   for (let x of Array.from(v)) {
@@ -2508,7 +2504,7 @@ exports.enumerate = function(v) {
 };
 
 // escape everything in a regex
-exports.escapeRegExp = escapeRegExp = str =>
+exports.escapeRegExp = escapeRegExp = (str) =>
   str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 
 // smiley-fication of an arbitrary string
@@ -2526,7 +2522,7 @@ const smileys_definition = [
   [";-)", "😉"],
   ["-_-", "😔"],
   [":-\\", "😏"],
-  [":omg:", "😱"]
+  [":omg:", "😱"],
 ];
 
 const smileys = [];
@@ -2542,10 +2538,10 @@ for (let smiley of Array.from(smileys_definition)) {
   smileys.push([RegExp(s, "g"), smiley[1]]);
 }
 
-exports.smiley = function(opts) {
+exports.smiley = function (opts) {
   opts = exports.defaults(opts, {
     s: exports.required,
-    wrap: undefined
+    wrap: undefined,
   });
   // de-sanitize possible sanitized characters
   s = opts.s.replace(/&gt;/g, ">").replace(/&lt;/g, "<");
@@ -2564,12 +2560,12 @@ _ = underscore;
 exports.smiley_strings = () =>
   _.filter(
     _.map(smileys_definition, _.first),
-    x => !_.contains(["^^ ", " ^^"], x)
+    (x) => !_.contains(["^^ ", " ^^"], x)
   );
 
 // converts an array to a "human readable" array
-exports.to_human_list = function(arr) {
-  arr = _.map(arr, x => x.toString());
+exports.to_human_list = function (arr) {
+  arr = _.map(arr, (x) => x.toString());
   if (arr.length > 1) {
     return arr.slice(0, -1).join(", ") + " and " + arr.slice(-1);
   } else if (arr.length === 1) {
@@ -2581,7 +2577,7 @@ exports.to_human_list = function(arr) {
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings());
 
-exports.history_path = function(path, old = false) {
+exports.history_path = function (path, old = false) {
   const p = exports.path_split(path);
   if (old) {
     if (p.head) {
@@ -2599,9 +2595,9 @@ exports.history_path = function(path, old = false) {
 };
 
 // This is a convenience function to provide as a callback when working interactively.
-const _done = function(n, ...args) {
+const _done = function (n, ...args) {
   const start_time = new Date();
-  const f = function(...args) {
+  const f = function (...args) {
     if (n !== 1) {
       try {
         args = [JSON.stringify(args, null, n)];
@@ -2632,7 +2628,7 @@ exports.get_start_time_ts = () => new Date(smc_start_time * 1000);
 exports.get_uptime = () =>
   seconds2hms(new Date().getTime() / 1000.0 - smc_start_time);
 
-exports.log = function() {
+exports.log = function () {
   smc_logger_timestamp = new Date().getTime() / 1000.0;
   const t = seconds2hms(smc_logger_timestamp - smc_start_time);
   const dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last);
@@ -2648,7 +2644,7 @@ exports.log = function() {
   return (smc_logger_timestamp_last = smc_logger_timestamp);
 };
 
-exports.wrap_log = function() {
+exports.wrap_log = function () {
   if (
     !exports.RUNNING_IN_NODE &&
     typeof window !== "undefined" &&
@@ -2664,7 +2660,7 @@ exports.this_fails = () => exports.op_to_function("noop");
 
 // derive the console initialization filename from the console's filename
 // used in webapp and console_server_child
-exports.console_init_filename = function(fn) {
+exports.console_init_filename = function (fn) {
   const x = exports.path_split(fn);
   x.tail = `.${x.tail}.init`;
   if (x.head === "") {
@@ -2673,7 +2669,7 @@ exports.console_init_filename = function(fn) {
   return [x.head, x.tail].join("/");
 };
 
-exports.has_null_leaf = has_null_leaf = function(obj) {
+exports.has_null_leaf = has_null_leaf = function (obj) {
   for (let k in obj) {
     const v = obj[k];
     if (v === null || (typeof v === "object" && has_null_leaf(v))) {
@@ -2687,7 +2683,7 @@ exports.has_null_leaf = has_null_leaf = function(obj) {
 // this function takes a list of students (actually, arbitrary objects)
 // and a number N of the desired number of peers per student.
 // It returns a dictionary, mapping each student to a list of peers.
-exports.peer_grading = function(students, N) {
+exports.peer_grading = function (students, N) {
   if (N == null) {
     N = 2;
   }
@@ -2700,7 +2696,7 @@ exports.peer_grading = function(students, N) {
 
   const asmnt = {};
   // make output dict keys sorted like students input array
-  students.forEach(s => (asmnt[s] = []));
+  students.forEach((s) => (asmnt[s] = []));
   // randomize peer assignments
   const s_random = underscore.shuffle(students);
 
@@ -2713,20 +2709,20 @@ exports.peer_grading = function(students, N) {
     asc ? i++ : i--
   ) {
     asmnt[s_random[i]] = __range__(1, N, true).map(
-      idx => s_random[(i + idx) % L]
+      (idx) => s_random[(i + idx) % L]
     );
   }
 
   // sort each peer group by the order of the `student` input list
   for (let k in asmnt) {
     const v = asmnt[k];
-    asmnt[k] = underscore.sortBy(v, s => students.indexOf(s));
+    asmnt[k] = underscore.sortBy(v, (s) => students.indexOf(s));
   }
   return asmnt;
 };
 
 // demonstration of the above; for tests see misc-test.coffee
-exports.peer_grading_demo = function(S, N) {
+exports.peer_grading_demo = function (S, N) {
   if (S == null) {
     S = 10;
   }
@@ -2752,14 +2748,14 @@ exports.peer_grading_demo = function(S, N) {
 };
 
 // converts ticket number to support ticket url (currently zendesk)
-exports.ticket_id_to_ticket_url = tid =>
+exports.ticket_id_to_ticket_url = (tid) =>
   `https://sagemathcloud.zendesk.com/requests/${tid}`;
 
 // Checks if the string only makes sense (heuristically) as downloadable url
-exports.is_only_downloadable = string =>
+exports.is_only_downloadable = (string) =>
   string.indexOf("://") !== -1 || exports.startswith(string, "git@github.com");
 
-exports.ensure_bound = function(x, min, max) {
+exports.ensure_bound = function (x, min, max) {
   if (x < min) {
     return min;
   }
@@ -2771,11 +2767,11 @@ exports.ensure_bound = function(x, min, max) {
 
 // convert a file path to the "name" of the underlying editor tab.
 // needed because otherwise filenames like 'log' would cause problems
-exports.path_to_tab = name => `editor-${name}`;
+exports.path_to_tab = (name) => `editor-${name}`;
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
-exports.tab_to_path = function(name) {
+exports.tab_to_path = function (name) {
   if (name != null && name.substring(0, 7) === "editor-") {
     return name.substring(7);
   }
@@ -2784,7 +2780,7 @@ exports.tab_to_path = function(name) {
 // suggest a new filename when duplicating it
 // 1. strip extension, split at '_' or '-' if it exists
 // try to parse a number, if it works, increment it, etc.
-exports.suggest_duplicate_filename = function(name) {
+exports.suggest_duplicate_filename = function (name) {
   let ext;
   ({ name, ext } = exports.separate_file_extension(name));
   const idx_dash = name.lastIndexOf("-");
@@ -2794,7 +2790,7 @@ exports.suggest_duplicate_filename = function(name) {
   if (idx > 0) {
     const [prfx, ending] = Array.from([
       name.slice(0, idx + 1),
-      name.slice(idx + 1)
+      name.slice(idx + 1),
     ]);
     const num = parseInt(ending);
     if (!Number.isNaN(num)) {
@@ -2814,7 +2810,7 @@ exports.suggest_duplicate_filename = function(name) {
 // exception if it is banned (like in some browser modes) or doesn't exist.
 // See https://github.com/sagemathinc/cocalc/issues/237
 
-exports.set_local_storage = function(key, val) {
+exports.set_local_storage = function (key, val) {
   try {
     return (localStorage[key] = val);
   } catch (e) {
@@ -2822,7 +2818,7 @@ exports.set_local_storage = function(key, val) {
   }
 };
 
-exports.get_local_storage = function(key) {
+exports.get_local_storage = function (key) {
   try {
     return localStorage[key];
   } catch (e) {
@@ -2830,7 +2826,7 @@ exports.get_local_storage = function(key) {
   }
 };
 
-exports.delete_local_storage = function(key) {
+exports.delete_local_storage = function (key) {
   try {
     return delete localStorage[key];
   } catch (e) {
@@ -2838,7 +2834,7 @@ exports.delete_local_storage = function(key) {
   }
 };
 
-exports.has_local_storage = function() {
+exports.has_local_storage = function () {
   try {
     const TEST = "__smc_test__";
     localStorage[TEST] = "x";
@@ -2849,7 +2845,7 @@ exports.has_local_storage = function() {
   }
 };
 
-exports.local_storage_length = function() {
+exports.local_storage_length = function () {
   try {
     return localStorage.length;
   } catch (e) {
@@ -2875,7 +2871,7 @@ exports.local_storage_length = function() {
 // Throws an error if cyclic
 // Runs in O(N + E) where N is the number of nodes and E the number of edges
 // Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM
-exports.top_sort = function(DAG, opts) {
+exports.top_sort = function (DAG, opts) {
   if (opts == null) {
     opts = { omit_sources: false };
   }
@@ -2976,7 +2972,7 @@ exports.top_sort = function(DAG, opts) {
 //     |                |
 //    \|/               |
 //   func_name3 <-------|
-exports.create_dependency_graph = object => {
+exports.create_dependency_graph = (object) => {
   const DAG = {};
   for (let name in object) {
     const written_func = object[name];
@@ -2993,8 +2989,8 @@ exports.create_dependency_graph = object => {
 // Returns a new array of objects in the same order given
 // Leaves arr_objects unaltered.
 exports.bind_objects = (scope, arr_objects) =>
-  underscore.map(arr_objects, object => {
-    return underscore.mapObject(object, val => {
+  underscore.map(arr_objects, (object) => {
+    return underscore.mapObject(object, (val) => {
       if (typeof val === "function") {
         const original_toString = val.toString();
         const bound_func = val.bind(scope);
@@ -3009,18 +3005,19 @@ exports.bind_objects = (scope, arr_objects) =>
 
 // Remove all whitespace from string s.
 // see http://stackoverflow.com/questions/6623231/remove-all-white-spaces-from-text
-exports.remove_whitespace = s => (s != null ? s.replace(/\s/g, "") : undefined);
+exports.remove_whitespace = (s) =>
+  s != null ? s.replace(/\s/g, "") : undefined;
 
-exports.is_whitespace = s => (s != null ? s.trim().length : undefined) === 0;
+exports.is_whitespace = (s) => (s != null ? s.trim().length : undefined) === 0;
 
-exports.lstrip = s => (s != null ? s.replace(/^\s*/g, "") : undefined);
+exports.lstrip = (s) => (s != null ? s.replace(/^\s*/g, "") : undefined);
 
-exports.rstrip = s => (s != null ? s.replace(/\s*$/g, "") : undefined);
+exports.rstrip = (s) => (s != null ? s.replace(/\s*$/g, "") : undefined);
 
 // ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
 exports.operators = ["!=", "<>", "<=", ">=", "==", "<", ">", "="];
 
-exports.op_to_function = function(op) {
+exports.op_to_function = function (op) {
   switch (op) {
     case "=":
     case "==":
@@ -3074,7 +3071,7 @@ exports.obj_key_subs = (obj, subs) =>
 // * smc-util-node/misc_node → sanitize_html
 // * smc-webapp/misc_page    → sanitize_html
 exports.sanitize_html_attributes = ($, node) =>
-  $.each(node.attributes, function() {
+  $.each(node.attributes, function () {
     // sometimes, "this" is undefined -- #2823
     if (this == null) {
       return;
@@ -3115,7 +3112,7 @@ exports.utm_keys = ["source", "medium", "campaign", "term", "content"];
 // cocalc analytics cookie name
 exports.analytics_cookie_name = "CC_ANA";
 
-exports.human_readable_size = function(bytes) {
+exports.human_readable_size = function (bytes) {
   let b;
   if (bytes == null) {
     return "?";
@@ -3137,7 +3134,7 @@ exports.human_readable_size = function(bytes) {
 
 // convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
 // to a canonical name.
-exports.jupyter_language_to_name = function(lang) {
+exports.jupyter_language_to_name = function (lang) {
   if (lang === "python") {
     return "Python";
   } else if (lang === "gap") {
@@ -3150,7 +3147,7 @@ exports.jupyter_language_to_name = function(lang) {
 };
 
 // Find the kernel whose name is closest to the given name.
-exports.closest_kernel_match = function(name, kernel_list) {
+exports.closest_kernel_match = function (name, kernel_list) {
   if (kernel_list == null) return null;
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
@@ -3199,7 +3196,7 @@ exports.closest_kernel_match = function(name, kernel_list) {
 //     - "python.1" is bigger than "sage.9" (because "python" > "sage")
 //     - "sage.1.23" is bigger than "sage.0.456" (because 1 > 0)
 //     - "sage.1.2.3" is bigger than "sage.1.2" (because "." > "")
-var compareVersionStrings = function(a, b) {
+var compareVersionStrings = function (a, b) {
   a = a.split(/(\d+)/);
   b = b.split(/(\d+)/);
   for (

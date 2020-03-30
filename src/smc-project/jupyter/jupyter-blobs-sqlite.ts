@@ -160,7 +160,7 @@ export class BlobStore implements BlobStoreInterface {
     return this._db
       .prepare("SELECT sha1 FROM blobs")
       .all()
-      .map(x => x.sha1);
+      .map((x) => x.sha1);
   }
 
   express_router(base, express) {

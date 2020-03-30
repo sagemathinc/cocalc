@@ -47,8 +47,8 @@ export class ProjectQuotaFreeTable extends Component {
           </Tip>
         </div>
         {PROJECT_UPGRADES.field_order
-          .filter(name => DEFAULT_QUOTAS[name])
-          .map(name => render_project_quota(name, DEFAULT_QUOTAS[name]))}
+          .filter((name) => DEFAULT_QUOTAS[name])
+          .map((name) => render_project_quota(name, DEFAULT_QUOTAS[name]))}
         <Space />
         <div style={{ textAlign: "center", marginTop: "10px" }}>
           <h3 style={{ textAlign: "left" }}>

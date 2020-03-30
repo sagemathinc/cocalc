@@ -35,6 +35,6 @@ export async function open_file_use_entry(
     path: path,
     foreground: true,
     foreground_project: true,
-    chat: show_chat
+    chat: show_chat,
   });
 }

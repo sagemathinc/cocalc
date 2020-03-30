@@ -9,7 +9,7 @@ export function SimpleX({ onClick }: Props) {
   return (
     <a
       href=""
-      onClick={e => {
+      onClick={(e) => {
         e.preventDefault();
         onClick();
       }}

@@ -12,7 +12,7 @@ import {
   FormGroup,
   FormControl,
   Button,
-  Grid
+  Grid,
 } from "react-bootstrap";
 import { bind_methods } from "smc-util/misc2";
 
@@ -40,7 +40,7 @@ export class SignIn extends React.Component<Props, State> {
       "remove_error",
       "sign_in",
       "display_forgot_password",
-      "change_email"
+      "change_email",
     ]);
   }
   componentDidMount(): void {
@@ -101,7 +101,7 @@ export class SignIn extends React.Component<Props, State> {
   change_email(): void {
     actions("account").setState({
       sign_in_error: undefined,
-      sign_in_email_address: ReactDOM.findDOMNode(this.refs.email).value
+      sign_in_email_address: ReactDOM.findDOMNode(this.refs.email).value,
     });
   }
 
@@ -148,7 +148,7 @@ export class SignIn extends React.Component<Props, State> {
                 style={{
                   color: this.props.color,
                   cursor: "pointer",
-                  fontSize: this.forgot_font_size()
+                  fontSize: this.forgot_font_size(),
                 }}
               >
                 Forgot Password?
@@ -228,7 +228,7 @@ export class SignIn extends React.Component<Props, State> {
                   style={{
                     color: this.props.color,
                     cursor: "pointer",
-                    fontSize: this.forgot_font_size()
+                    fontSize: this.forgot_font_size(),
                   }}
                 >
                   Forgot Password?

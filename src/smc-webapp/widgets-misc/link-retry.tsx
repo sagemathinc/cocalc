@@ -28,13 +28,13 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
     this.state = {
       working: false,
       loading: false,
-      error: false
+      error: false,
     };
     this.click = this.click.bind(this);
   }
 
   public static defaultProps = {
-    mode: "link"
+    mode: "link",
   };
 
   componentDidMount() {
@@ -66,7 +66,7 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
       }
       await $.ajax({
         url,
-        timeout: 3000
+        timeout: 3000,
       });
     };
     try {
@@ -74,7 +74,7 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
         f,
         max_delay: 1000,
         max_time: 30000,
-        desc: "opening link"
+        desc: "opening link",
       });
     } catch (err) {
       if (!this.is_mounted) {
@@ -164,6 +164,6 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
 
 export class ButtonRetryUntilSuccess extends LinkRetryUntilSuccess {
   public static defaultProps = {
-    mode: "button"
+    mode: "button",
   };
 }

@@ -21,7 +21,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import {
   getDocument as pdfjs_getDocument,
   PDFPromise,
-  PDFDocumentProxy
+  PDFDocumentProxy,
 } from "pdfjs-dist/webpack";
 
 import { raw_url } from "../frame-tree/util";
@@ -32,9 +32,9 @@ import { encode_path } from "smc-util/misc2";
 
 const options = {
   max: MAX_PAGES,
-  length: function(doc: PDFDocumentProxy): number {
+  length: function (doc: PDFDocumentProxy): number {
     return doc.numPages;
-  }
+  },
 };
 
 export function url_to_pdf(
@@ -49,13 +49,13 @@ const doc_cache = new LRU(options);
 
 export const getDocument: (
   url: string
-) => PDFPromise<PDFDocumentProxy> = reuseInFlight(async function(url) {
+) => PDFPromise<PDFDocumentProxy> = reuseInFlight(async function (url) {
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
     doc = await pdfjs_getDocument({
       url,
       disableStream: true,
-      disableAutoFetch: true
+      disableAutoFetch: true,
     }).promise;
     doc_cache.set(url, doc);
   }

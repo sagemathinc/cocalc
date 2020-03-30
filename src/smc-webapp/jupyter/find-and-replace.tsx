@@ -8,7 +8,7 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Modal
+  Modal,
 } from "react-bootstrap";
 import * as immutable from "immutable";
 import { ErrorDisplay, Icon } from "../r_misc";
@@ -47,7 +47,7 @@ export class FindAndReplace extends Component<
       case: false,
       regexp: false,
       find: "",
-      replace: ""
+      replace: "",
     };
   }
 
@@ -123,7 +123,7 @@ export class FindAndReplace extends Component<
     return (
       <FormControl
         autoFocus={true}
-        inputRef={node => (this.findRef = node)}
+        inputRef={(node) => (this.findRef = node)}
         type="text"
         placeholder={place}
         value={this.state.find}
@@ -136,7 +136,7 @@ export class FindAndReplace extends Component<
     return (
       <FormControl
         style={{ marginTop: "15px" }}
-        inputRef={node => (this.replaceRef = node)}
+        inputRef={(node) => (this.replaceRef = node)}
         type="text"
         placeholder="Replace"
         value={this.state.replace}

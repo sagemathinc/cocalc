@@ -93,6 +93,7 @@ src/smc-hub/run/hub[0-9].js
 src/smc-hub/smc-util/
 src/smc-hub/smc-util-node/
 src/smc-hub/lti
+src/smc-hub/landing
 
 src/smc_sagews/smc_sagews.egg-info/*
 src/smc_sagews/build/*

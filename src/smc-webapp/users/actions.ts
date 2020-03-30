@@ -28,7 +28,7 @@ class UsersActions extends Actions<UsersState> {
             }
           }
         }
-      }
+      },
     });
   }
 }

@@ -23,7 +23,7 @@ describe("smoke test close-x", () => {
     const close_mock = jest.fn();
     const custom_style: React.CSSProperties = {
       marginTop: "3px",
-      marginBottom: "12px"
+      marginBottom: "12px",
     };
     const rendered = shallow(
       <CloseX on_close={close_mock} style={custom_style} />

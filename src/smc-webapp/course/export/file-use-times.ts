@@ -2,7 +2,7 @@ import { StudentsMap, StudentRecord } from "../store";
 import {
   exec,
   query,
-  write_text_file_to_project
+  write_text_file_to_project,
 } from "../../frame-editors/generic/client";
 import { split } from "smc-util/misc2";
 
@@ -38,10 +38,10 @@ async function one_student_file_use_times(
           account_id,
           path,
           access_times: null,
-          edit_times: null
-        }
+          edit_times: null,
+        },
       },
-      options: [{ limit }]
+      options: [{ limit }],
     });
     const { edit_times, access_times } = q.query.file_use_times;
     times[path] = { edit_times, access_times };
@@ -58,7 +58,7 @@ function student_info(
   const x: StudentUseTimes = {
     student_id,
     student_name: get_name(student_id),
-    assignment_path
+    assignment_path,
   };
   for (const field of ["account_id", "project_id"]) {
     if (student.has(field)) {
@@ -78,7 +78,7 @@ async function paths_to_scan(
     args: ["."],
     path: src_path,
     err_on_exit: true,
-    project_id
+    project_id,
   });
   const v: string[] = [];
   for (const path of split(stdout)) {
@@ -144,6 +144,6 @@ export async function export_student_file_use_times(
   await write_text_file_to_project({
     project_id: course_project_id,
     path: target_json,
-    content: JSON.stringify(x, null, 2)
+    content: JSON.stringify(x, null, 2),
   });
 }

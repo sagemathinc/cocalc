@@ -43,7 +43,7 @@ export async function pythontex(
     project_id: project_id,
     path: output_directory || directory,
     err_on_exit: false,
-    aggregate
+    aggregate,
   });
 }
 
@@ -65,7 +65,7 @@ PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 */
 
 export function pythontex_errors(
-  path: string,
+  file: string,
   output: BuildLog
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
@@ -81,11 +81,11 @@ export function pythontex_errors(
       }
       err = {
         line: line_no,
-        file: path,
+        file,
         level: "error",
         message: line,
         content: "",
-        raw: ""
+        raw: "",
       };
       pll.errors.push(err);
       pll.all.push(err);

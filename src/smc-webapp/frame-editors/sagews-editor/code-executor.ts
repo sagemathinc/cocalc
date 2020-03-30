@@ -80,7 +80,7 @@ class CodeExecutorMock extends CodeExecutorAbstract {
         break;
       default:
         this.emit("output", {
-          stderr: `Unknown mock code "${this.request.code}"`
+          stderr: `Unknown mock code "${this.request.code}"`,
         });
     }
     this._set_state("done");

@@ -18,7 +18,7 @@ export class InputCell extends Component<Props, State> {
     return (
       <textarea
         value={this.state.input}
-        onChange={evt => {
+        onChange={(evt) => {
           this.setState({ input: evt.target.value });
         }}
       />

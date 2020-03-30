@@ -22,8 +22,8 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        word_count: rtypes.string
-      }
+        word_count: rtypes.string,
+      },
     };
   }
 
@@ -45,7 +45,7 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
           padding: "5px 15px",
           fontSize: "10pt",
           whiteSpace: "pre-wrap",
-          fontFamily: "monospace"
+          fontFamily: "monospace",
         }}
       >
         {this.props.word_count}

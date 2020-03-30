@@ -47,7 +47,7 @@ async function verify_write_access_to_projects(
       !(await callback2(db.user_is_in_project_group, {
         project_id,
         account_id,
-        groups
+        groups,
       }))
     ) {
       throw Error(

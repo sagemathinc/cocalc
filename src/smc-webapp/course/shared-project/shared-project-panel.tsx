@@ -84,7 +84,7 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
 
   open_project = () => {
     this.props.redux.getActions("projects").open_project({
-      project_id: this.props.settings.get("shared_project_id")
+      project_id: this.props.settings.get("shared_project_id"),
     });
   };
 
@@ -141,7 +141,7 @@ export class SharedProjectPanel extends Component<SharedProjectPanelProps> {
           margin: "15px auto",
           border: "1px solid #ccc",
           maxWidth: "800px",
-          overflowY: "auto"
+          overflowY: "auto",
         }}
       >
         <h4>

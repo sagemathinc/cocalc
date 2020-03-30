@@ -5,12 +5,12 @@ const row_style: React.CSSProperties = {
   textAlign: "left",
   color: "#888",
   marginTop: "5px",
-  wordWrap: "break-word"
+  wordWrap: "break-word",
 };
 
 const alert_style: React.CSSProperties = {
   marginTop: "5px",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };
 
 export function TerminalModeDisplay() {

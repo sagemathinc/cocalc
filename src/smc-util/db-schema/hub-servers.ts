@@ -4,21 +4,21 @@ Table({
   name: "hub_servers",
   rules: {
     primary_key: "host",
-    durability: "soft" // loss of some log data not serious, since ephemeral and expires quickly anyways
+    durability: "soft", // loss of some log data not serious, since ephemeral and expires quickly anyways
   },
   fields: {
     host: {
       type: "string",
-      pg_type: "VARCHAR(63)"
+      pg_type: "VARCHAR(63)",
     },
     port: {
-      type: "integer"
+      type: "integer",
     },
     clients: {
-      type: "integer"
+      type: "integer",
     },
     expire: {
-      type: "timestamp"
-    }
-  }
+      type: "timestamp",
+    },
+  },
 });

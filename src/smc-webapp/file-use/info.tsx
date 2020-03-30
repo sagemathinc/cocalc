@@ -25,7 +25,7 @@ const TRUNCATE_LENGTH = 50;
 const file_use_style = {
   border: "1px solid #aaa",
   cursor: "pointer",
-  width: "100%"
+  width: "100%",
 };
 
 interface Props {
@@ -110,7 +110,7 @@ export class FileUseInfo extends Component<Props, {}> {
       <span>
         <span
           style={{
-            fontWeight: this.props.info.get("is_unread") ? "bold" : "normal"
+            fontWeight: this.props.info.get("is_unread") ? "bold" : "normal",
           }}
         >
           {name}
@@ -163,7 +163,7 @@ export class FileUseInfo extends Component<Props, {}> {
       misc.merge(style, { background: "#08c", color: "white" });
     }
     return (
-      <Grid style={style} onClick={e => this.open(e)} fluid={true}>
+      <Grid style={style} onClick={(e) => this.open(e)} fluid={true}>
         <Row style={{ padding: "5px" }}>
           <Col key="action" sm={1} style={{ fontSize: "14pt" }}>
             {this.render_action_icon()}

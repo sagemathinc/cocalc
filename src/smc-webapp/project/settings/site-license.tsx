@@ -26,7 +26,7 @@ export class SiteLicense extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.state = {
-      site_license_ids: ""
+      site_license_ids: "",
     };
   }
 
@@ -44,7 +44,7 @@ export class SiteLicense extends Component<Props, State> {
       } catch (err) {
         alert_message({
           type: "error",
-          message: `Unable to add license key -- ${err}`
+          message: `Unable to add license key -- ${err}`,
         });
         return;
       }
@@ -65,7 +65,7 @@ export class SiteLicense extends Component<Props, State> {
           style={LICENSE_STYLE}
           type="text"
           value={this.state.site_license_ids}
-          onChange={e => this.setState({ site_license_ids: e.target.value })}
+          onChange={(e) => this.setState({ site_license_ids: e.target.value })}
         />
         <ButtonGroup>
           {" "}
@@ -112,7 +112,7 @@ export class SiteLicense extends Component<Props, State> {
         <Button
           onClick={() => {
             this.setState({
-              show_site_license: true
+              show_site_license: true,
             });
           }}
           disabled={this.state.show_site_license}

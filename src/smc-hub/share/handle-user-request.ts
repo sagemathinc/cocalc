@@ -35,6 +35,6 @@ export async function handle_user_request(opts: {
     paths_order,
     public_paths: paths,
     google_analytics,
-    base_url
+    base_url,
   });
 }

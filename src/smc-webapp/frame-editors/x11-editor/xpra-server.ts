@@ -75,7 +75,7 @@ export class XpraServer {
     const { stdout, exit_code } = await this.exec({
       command: "pgrep",
       args: ["-a", "Xvfb"],
-      err_on_exit: false
+      err_on_exit: false,
     });
     if (exit_code !== 0) {
       return;
@@ -86,7 +86,7 @@ export class XpraServer {
         await this.exec({
           command: "kill",
           args: ["-9", pid],
-          err_on_exit: false
+          err_on_exit: false,
         });
         return;
       }
@@ -127,13 +127,13 @@ export class XpraServer {
       `--bind-tcp=0.0.0.0:${port}`,
       "--html=/tmp" /* just to make it serve the websocket; path isn't actually used.  Must be absolute */,
       "--daemon=yes",
-      `--xvfb=${XVFB}`
+      `--xvfb=${XVFB}`,
     ];
     await this.exec({
       command,
       args,
       err_on_exit: true,
-      timeout: 30
+      timeout: 30,
     });
   }
 
@@ -144,7 +144,7 @@ export class XpraServer {
     }
     await this.exec({
       command: "kill",
-      args: [split(line)[0]]
+      args: [split(line)[0]],
     });
   }
 
@@ -152,7 +152,7 @@ export class XpraServer {
     const { stdout, exit_code } = await this.exec({
       command: "pgrep",
       args: ["-a", "xpra"],
-      err_on_exit: false
+      err_on_exit: false,
     });
     if (exit_code !== 0) {
       return "";
@@ -188,7 +188,7 @@ export class XpraServer {
   async get_hostname(): Promise<string> {
     const { stdout } = await this.exec({
       command: "hostname",
-      err_on_exit: true
+      err_on_exit: true,
     });
     return (this.hostname = stdout.trim());
   }
@@ -220,10 +220,12 @@ export class XpraServer {
 
   // get the current contents of the X11 clipboard
   async get_clipboard(): Promise<string> {
-    return (await this.exec({
-      command: "xsel",
-      err_on_exit: true,
-      timeout: 5
-    })).stdout;
+    return (
+      await this.exec({
+        command: "xsel",
+        err_on_exit: true,
+        timeout: 5,
+      })
+    ).stdout;
   }
 }

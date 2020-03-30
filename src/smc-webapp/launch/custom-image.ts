@@ -4,9 +4,8 @@ import { uuid } from "smc-util/misc2";
 import { retry_until_success, once } from "smc-util/async-utils";
 import {
   custom_image_name,
-  NAME as CUSTOM_SOFTWARE_NAME
+  NAME as CUSTOM_SOFTWARE_NAME,
 } from "../custom-software/init";
-
 
 export async function launch_custom_software_image(
   launch: string
@@ -24,7 +23,7 @@ export async function launch_custom_software_image(
       // what is this doing?
       await once(cst._table, "connected");
       return cst;
-    }
+    },
   });
 
   if (!custom_software_table._table.value.has(image_id)) {
@@ -46,7 +45,7 @@ export async function launch_custom_software_image(
       if (actions == null)
         throw new Error("Projects Actions not yet available...");
       return actions;
-    }
+    },
   });
 
   const token = uuid();
@@ -55,7 +54,7 @@ export async function launch_custom_software_image(
   actions.create_project({
     title: image_id,
     image: custom_image_name(image_id),
-    token
+    token,
   });
 
   // if we have project actions, we can assume project store also exists?

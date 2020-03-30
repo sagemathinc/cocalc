@@ -4,7 +4,7 @@ web browser frontend.
 */
 import { Map, Set } from "immutable";
 import { debounce, isEqual } from "underscore";
-import { merge_copy, uuid } from "smc-util/misc";
+import { merge_copy, uuid, server_time } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
@@ -15,6 +15,7 @@ import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
+import { exec } from "../frame-editors/generic/client";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -164,13 +165,13 @@ export class JupyterActions extends JupyterActions0 {
     const lang = this.store.get_kernel_language();
 
     this.snippet_actions.init(lang);
-    const wait_for_user_input = cb => {
+    const wait_for_user_input = (cb) => {
       this.snippet_actions.set({
         show: true,
         lang,
         lang_select: false,
-        handler: data => cb(undefined, data),
-        cell_id: id
+        handler: (data) => cb(undefined, data),
+        cell_id: id,
       });
     };
 
@@ -271,7 +272,7 @@ export class JupyterActions extends JupyterActions0 {
 
   _set_keyboard_settings = (k: any) => {
     return (this.redux.getTable("account") as any).set({
-      editor_settings: { jupyter_keyboard_shortcuts: JSON.stringify(k) }
+      editor_settings: { jupyter_keyboard_shortcuts: JSON.stringify(k) },
     });
   };
 
@@ -328,7 +329,7 @@ export class JupyterActions extends JupyterActions0 {
     try {
       return await callback2(this.store.wait, {
         until: dialog_is_closed,
-        timeout: 0
+        timeout: 0,
       });
     } catch (err) {
       console.warn("Jupyter modal dialog error -- ", err);
@@ -346,7 +347,7 @@ export class JupyterActions extends JupyterActions0 {
     const confirm_dialog = this.store.get("confirm_dialog");
     if (confirm_dialog != null) {
       this.setState({
-        confirm_dialog: confirm_dialog.set("choice", choice)
+        confirm_dialog: confirm_dialog.set("choice", choice),
       });
     }
   }
@@ -360,14 +361,14 @@ export class JupyterActions extends JupyterActions0 {
         ")",
       choices: [
         { title: "Switch to Classical Notebook", style: "warning" },
-        { title: "Continue using CoCalc Jupyter Notebook", default: true }
-      ]
+        { title: "Continue using CoCalc Jupyter Notebook", default: true },
+      ],
     });
     if (choice !== "Switch to Classical Notebook") {
       return;
     }
     (this.redux.getTable("account") as any).set({
-      editor_settings: { jupyter_classic: true }
+      editor_settings: { jupyter_classic: true },
     });
     await this.save();
     this.file_action("reopen_file", this.store.get("path"));
@@ -384,9 +385,9 @@ export class JupyterActions extends JupyterActions0 {
           {
             title: "Close and halt",
             style: "danger",
-            default: true
-          }
-        ]
+            default: true,
+          },
+        ],
       })) === "Close and halt"
     ) {
       await this.close_and_halt();
@@ -410,8 +411,8 @@ export class JupyterActions extends JupyterActions0 {
         "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
       choices: [
         { title: "Trust", style: "danger", default: true },
-        { title: "Cancel" }
-      ]
+        { title: "Cancel" },
+      ],
     });
     if (choice === "Trust") {
       this.set_trust_notebook(true);
@@ -425,6 +426,10 @@ export class JupyterActions extends JupyterActions0 {
 
   public show_nbconvert_dialog(to: string): void {
     this.setState({ nbconvert_dialog: { to } });
+    if (to == "chromium-pdf") {
+      this.chromium_pdf();
+      return;
+    }
     if (!this.nbconvert_has_started()) {
       this.nbconvert(["--to", to]); // start it
     }
@@ -439,16 +444,51 @@ export class JupyterActions extends JupyterActions0 {
       type: "nbconvert",
       args,
       state: "start",
-      error: null
+      error: null,
     });
     this.syncdb.commit();
+  }
+
+  public async chromium_pdf(): Promise<void> {
+    let error: string | undefined = undefined;
+    // used indirectly by the nbconvert dialog only...
+    const args = ["--to", "chromium-pdf"];
+    const start = server_time().valueOf();
+    try {
+      await this.save();
+      this.syncdb.set({
+        type: "nbconvert",
+        state: "run",
+        args,
+        start,
+        error,
+      });
+      await this.syncdb.commit();
+      await exec({
+        command: "cc-ipynb-to-pdf",
+        args: [this.path],
+        project_id: this.project_id,
+      });
+    } catch (err) {
+      error = `${err}`;
+    } finally {
+      this.syncdb.set({
+        type: "nbconvert",
+        state: "done",
+        args,
+        start,
+        time: server_time().valueOf(),
+        error,
+      });
+      await this.syncdb.commit();
+    }
   }
 
   public async nbconvert_get_error(): Promise<void> {
     const key: string | undefined = this.store.getIn([
       "nbconvert",
       "error",
-      "key"
+      "key",
     ]);
     if (key == null) {
       return;
@@ -487,7 +527,7 @@ export class JupyterActions extends JupyterActions0 {
       this.store.get_local_storage("line_numbers")
     );
     this.setState({
-      cells: cells.set(id, cell.set("line_numbers", !line_numbers))
+      cells: cells.set(id, cell.set("line_numbers", !line_numbers)),
     });
   }
 
@@ -506,9 +546,9 @@ export class JupyterActions extends JupyterActions0 {
         {
           title: "Restart and run all",
           style: "danger",
-          default: true
-        }
-      ]
+          default: true,
+        },
+      ],
     });
     if (choice === "Restart and run all") {
       await this.restart();
@@ -527,13 +567,13 @@ export class JupyterActions extends JupyterActions0 {
         {
           title: STOP,
           style: "danger",
-          default: true
+          default: true,
         },
         {
           title: NOSTOP,
-          style: "danger"
-        }
-      ]
+          style: "danger",
+        },
+      ],
     });
     if (choice === STOP) {
       await this.restart();
@@ -555,9 +595,9 @@ export class JupyterActions extends JupyterActions0 {
         {
           title: "Restart and clear all outputs",
           style: "danger",
-          default: true
-        }
-      ]
+          default: true,
+        },
+      ],
     });
     if (choice === "Restart and clear all outputs") {
       this.restart();
@@ -571,8 +611,8 @@ export class JupyterActions extends JupyterActions0 {
       body: "Do you want to restart the kernel?  All variables will be lost.",
       choices: [
         { title: "Continue running" },
-        { title: "Restart", style: "danger", default: true }
-      ]
+        { title: "Restart", style: "danger", default: true },
+      ],
     });
     if (choice === "Restart") {
       this.restart();

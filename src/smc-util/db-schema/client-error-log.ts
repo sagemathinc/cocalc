@@ -5,7 +5,7 @@ Table({
   fields: {
     id: {
       type: "uuid",
-      desc: "unique identifier for entry (randomly generated)"
+      desc: "unique identifier for entry (randomly generated)",
     },
     event: { type: "string", desc: "arbitrary event label" },
     error: { type: "string", desc: "the actual error message user saw" },
@@ -14,13 +14,13 @@ Table({
     expire: {
       type: "timestamp",
       desc:
-        "when to delete this error automatically from the table to save space"
-    }
+        "when to delete this error automatically from the table to save space",
+    },
   },
   rules: {
     desc: "Table used to log errors that clients see in their web browser.",
     primary_key: "id",
     durability: "soft", // loss of some log data not serious, since used only for analytics
-    pg_indexes: ["time", "event"]
-  }
+    pg_indexes: ["time", "event"],
+  },
 });

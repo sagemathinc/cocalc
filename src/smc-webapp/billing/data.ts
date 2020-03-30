@@ -59,7 +59,7 @@ export const STATES: { [code: string]: string } = {
   GU: "Guam",
   MP: "Northern Mariana Islands",
   PR: "Puerto Rico",
-  VI: "United States Virgin Islands"
+  VI: "United States Virgin Islands",
 };
 
 export function brand_to_icon_name(brand: undefined | string): string {

@@ -62,7 +62,7 @@ class UsersStore extends Store<UsersState> {
           (left = this.get_last_active(user.account_id)) != null ? left : 0;
       }
     }
-    return users.sort(function(a, b) {
+    return users.sort(function (a, b) {
       const c = cmp(b.last_active, a.last_active);
       if (c) {
         return c;
@@ -78,5 +78,5 @@ class UsersStore extends Store<UsersState> {
 
 // Register user store
 export const store = redux.createStore("users", UsersStore, {
-  user_map: fromJS({})
+  user_map: fromJS({}),
 });

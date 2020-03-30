@@ -217,7 +217,7 @@ exports.AddCollaborators = rclass
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
     render_send_email_invite: ->
-        if has_internet_access(this.props.project)
+        if has_internet_access(this.props.project?.get('project_id'))
             <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
                 <Icon name='envelope' />  Send Email Invitation...
             </Button>

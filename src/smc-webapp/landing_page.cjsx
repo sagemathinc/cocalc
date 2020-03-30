@@ -24,8 +24,8 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
-{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
+{HelpEmailLink, SiteName, SiteDescription, Footer} = require('./customize')
 {get_browser} = require('./feature')
 {Passports} = require('./passports')
 {SignUp} = require('./landing-page/sign-up')
@@ -51,6 +51,7 @@ ResetPassword = rclass
     propTypes: ->
         reset_key            : rtypes.string.isRequired
         reset_password_error : rtypes.string
+        help_email           : rtypes.string
 
     mixins: [ImmutablePureRenderMixin]
 
@@ -67,6 +68,10 @@ ResetPassword = rclass
         if @props.reset_password_error
             <span style={color: "red", fontSize: "90%"}>{@props.reset_password_error}</span>
 
+    render_email: ->
+        if @props.help_email?.length > 0
+            <React.Fragment>Not working? Email us at <HelpEmailLink /></React.Fragment>
+
     render: ->
         <Modal show={true} onHide={=>x=0}>
             <Modal.Body>
@@ -80,7 +85,7 @@ ResetPassword = rclass
                     </FormGroup>
                     {@display_error()}
                     <hr />
-                    Not working? Email us at <HelpEmailLink />
+                    {@render_email()}
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
                             <Button
@@ -266,7 +271,12 @@ exports.LandingPage = rclass
         page:
             get_api_key   : rtypes.string
         customize:
-            is_commercial : rtypes.bool
+            is_commercial    : rtypes.bool
+            _is_configured   : rtypes.bool
+            logo_square      : rtypes.string
+            logo_rectangular : rtypes.string
+            help_email       : rtypes.string
+            terms_of_service : rtypes.string
         account:
             sign_in_email_address : rtypes.string
         "#{LA_NAME}":
@@ -280,6 +290,7 @@ exports.LandingPage = rclass
         <ResetPassword
             reset_key            = {reset_key}
             reset_password_error = {@props.reset_password_error}
+            help_email           = {@props.help_email}
         />
 
     render_forgot_password: ->
@@ -315,6 +326,8 @@ exports.LandingPage = rclass
         </React.Fragment>
 
     render_support: ->
+        return if not @props.is_commercial
+
         <div>
             Questions? Create a <ShowSupportLink />.
         </div>
@@ -331,12 +344,17 @@ exports.LandingPage = rclass
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             return <Connecting />
 
+        img_icon = if @props.logo_square?.length > 0 then @props.logo_square else APP_ICON_WHITE
+        img_name = if @props.logo_rectangular?.length > 0 then @props.logo_rectangular else APP_LOGO_NAME_WHITE
+        customized = @props.logo_square?.length > 0 and @props.logo_rectangular?.length > 0
+
         topbar =
-            img_icon    : APP_ICON_WHITE
-            img_name    : APP_LOGO_NAME_WHITE
+            img_icon    : img_icon
+            img_name    : img_name
+            customized  : customized
             img_opacity : 1.0
-            color       : 'white'
-            bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+            color       : if customized then COLORS.GRAY_D   else 'white'
+            bg_color    : if customized then COLORS.BLUE_LLL else COLORS.LANDING.LOGIN_BAR_BG
             border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
 
         main_row_style =
@@ -390,15 +408,16 @@ exports.LandingPage = rclass
                           color         = {topbar.color} />
                   </div>
                   {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}
-                  <div style={ display          : 'inline-block', \
-                               backgroundImage  : "url('#{topbar.img_icon}')", \
-                               backgroundSize   : 'contain', \
-                               height           : 75, width: 75, \
-                               margin           : 5,\
-                               verticalAlign    : 'center',\
-                               backgroundRepeat : 'no-repeat'}>
-                  </div>
-                  <div className="hidden-sm"
+                  {<div style={ display          : 'inline-block', \
+                                backgroundImage  : "url('#{topbar.img_icon}')", \
+                                backgroundSize   : 'contain', \
+                                height           : 75, width: 75, \
+                                margin           : 5,\
+                                verticalAlign    : 'center',\
+                                backgroundRepeat : 'no-repeat'}>
+                  </div> if @props._is_configured}
+
+                  {<div className="hidden-sm"
                       style={ display          : 'inline-block',\
                               fontFamily       : DESC_FONT,\
                               fontSize         : "28px",\
@@ -412,7 +431,19 @@ exports.LandingPage = rclass
                               backgroundImage  : "url('#{topbar.img_name}')",\
                               backgroundSize   : 'contain',\
                               backgroundRepeat : 'no-repeat'}>
-                  </div>
+                  </div> if not topbar.customized}
+                  {<img className="hidden-sm"
+                      src={topbar.img_name}
+                      style={ display          : 'inline-block',\
+                              top              : UNIT,\
+                              left             : UNIT * 7,\
+                              width            : 'auto',\
+                              height           : 50,\
+                              position         : 'absolute',\
+                              color            : topbar.color,\
+                              opacity          : topbar.img_opacity}
+                  /> if topbar.customized}
+
                   <div className="hidden-sm">
                       <SiteDescription
                           style={ fontWeight   : "700",\
@@ -435,7 +466,9 @@ exports.LandingPage = rclass
                         has_remember_me = {@props.has_remember_me}
                         signing_up      = {@props.signing_up}
                         has_account     = {@props.has_account}
-                        />
+                        help_email      = {@props.help_email}
+                        terms_of_service= {@props.terms_of_service}
+                    />
                 </Col>
                 <Col sm={6}>
                     <div style={color:"#666", fontSize:'16pt', marginTop:'5px'}>

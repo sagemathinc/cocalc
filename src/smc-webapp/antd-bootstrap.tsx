@@ -27,7 +27,7 @@ const BS_STYLE_TO_TYPE = {
   info: "dashed",
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
-  link: "link"
+  link: "link",
 };
 
 export function Button(props: any) {

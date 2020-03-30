@@ -19,5 +19,5 @@ register_file_editor({
   icon: "terminal",
   ext,
   component: Editor,
-  Actions: TerminalActions
+  Actions: TerminalActions,
 });

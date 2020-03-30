@@ -9,7 +9,7 @@ import { raw_url } from "../frame-tree/util";
 
 import {
   ScrollIntoViewRecord,
-  ScrollIntoViewMap
+  ScrollIntoViewMap,
 } from "../latex-editor/actions";
 
 import { EDITOR_SPEC } from "./editor";
@@ -64,8 +64,8 @@ export class PDFActions extends Actions<PDFEditorState> {
       scroll_pdf_into_view: new ScrollIntoViewRecord({
         page: page,
         y: y,
-        id: id
-      })
+        id: id,
+      }),
     });
   }
 }

@@ -48,8 +48,8 @@ export class ProfileImageSelector extends Component<
       crop: {
         unit: "%",
         width: 100,
-        aspect: 1
-      }
+        aspect: 1,
+      },
     };
   }
 
@@ -178,7 +178,7 @@ export class ProfileImageSelector extends Component<
         </Button>{" "}
         <a
           href="#"
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             this.setState({ show_gravatar_explanation: true });
           }}
@@ -224,7 +224,7 @@ export class ProfileImageSelector extends Component<
         </Button>{" "}
         <a
           href="#"
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             this.setState({ show_adorable_explanation: true });
           }}
@@ -267,7 +267,7 @@ export class ProfileImageSelector extends Component<
         </Button>{" "}
         <a
           href="#"
-          onClick={e => {
+          onClick={(e) => {
             e.preventDefault();
             this.setState({ show_default_explanation: true });
           }}
@@ -348,13 +348,13 @@ export class ProfileImageSelector extends Component<
             circularCrop={true}
             minWidth={20}
             minHeight={20}
-            onChange={crop => {
+            onChange={(crop) => {
               this.setState({ crop });
             }}
-            onImageLoaded={image => {
+            onImageLoaded={(image) => {
               this.imageRef = image;
             }}
-            onComplete={crop => this.makeClientCrop(crop)}
+            onComplete={(crop) => this.makeClientCrop(crop)}
           />
         )}
         {this.state.croppedImageUrl && (

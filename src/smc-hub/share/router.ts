@@ -83,7 +83,7 @@ export function share_router(opts: {
   async function ready(): Promise<void> {
     if (public_paths != null) return;
     // wait until public_paths is ready.
-    await callback(cb => ready_queue.push(cb));
+    await callback((cb) => ready_queue.push(cb));
   }
 
   if (process.env.SMC_ROOT == null) {
@@ -95,7 +95,7 @@ export function share_router(opts: {
       `/${name}`,
       express.static(os_path.join(process.env.SMC_ROOT, `webapp-lib/${name}`), {
         immutable: true,
-        maxAge: 86000000
+        maxAge: 86000000,
       })
     );
   }
@@ -119,7 +119,7 @@ export function share_router(opts: {
       author_info,
       req,
       res,
-      base_url
+      base_url,
     });
   });
 
@@ -134,7 +134,7 @@ export function share_router(opts: {
       res,
       viewer: "raw",
       path_to_files,
-      base_url
+      base_url,
     });
   });
 
@@ -147,7 +147,7 @@ export function share_router(opts: {
       req,
       res,
       path_to_files,
-      base_url
+      base_url,
     });
   });
 

@@ -2,7 +2,7 @@ import * as React from "react";
 import { ProjectActions } from "../../project_actions";
 
 const a_style: React.CSSProperties = {
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
 export const PathLink = React.memo(function PathLink({
   path,
   actions,
-  default_value = "home directory of project"
+  default_value = "home directory of project",
 }: Props): JSX.Element {
   const handle_click = React.useCallback(
     function handle_click() {

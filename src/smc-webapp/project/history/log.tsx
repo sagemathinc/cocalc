@@ -29,7 +29,7 @@ import {
   rclass,
   redux,
   TypedMap,
-  Rendered
+  Rendered,
 } from "../../app-framework";
 
 import { Button } from "react-bootstrap";
@@ -69,11 +69,11 @@ export const ProjectLog = rclass<ReactProps>(
         [name]: {
           project_log: rtypes.immutable,
           project_log_all: rtypes.immutable,
-          search: rtypes.string
+          search: rtypes.string,
         },
         users: {
-          user_map: rtypes.immutable
-        }
+          user_map: rtypes.immutable,
+        },
       };
     };
 

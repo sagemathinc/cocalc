@@ -4,7 +4,7 @@ import {
   Component,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../app-framework";
 
 import { input_is_hidden, output_is_hidden } from "./flags";
@@ -38,8 +38,8 @@ class DocumentWorksheet extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        cells: rtypes.immutable.Map
-      }
+        cells: rtypes.immutable.Map,
+      },
     };
   }
 
@@ -49,7 +49,7 @@ class DocumentWorksheet extends Component<Props, {}> {
         rows={10}
         value={cells_to_value(this.props.cells)}
         style={{ width: "100%" }}
-        onChange={function() {}}
+        onChange={function () {}}
       />
     );
   }

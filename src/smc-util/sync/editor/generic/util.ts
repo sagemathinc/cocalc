@@ -32,22 +32,22 @@ function arrays_to_diffs(arrays: any[]): any[] {
 }
 
 export function compress_patch(patch: CompressedPatch): CompressedPatch {
-  return patch.map(p => [
+  return patch.map((p) => [
     diffs_to_arrays(p.diffs),
     p.start1,
     p.start2,
     p.length1,
-    p.length2
+    p.length2,
   ]);
 }
 
 export function decompress_patch(patch: CompressedPatch): CompressedPatch {
-  return patch.map(p => ({
+  return patch.map((p) => ({
     diffs: arrays_to_diffs(p[0]),
     start1: p[1],
     start2: p[2],
     length1: p[3],
-    length2: p[4]
+    length2: p[4],
   }));
 }
 

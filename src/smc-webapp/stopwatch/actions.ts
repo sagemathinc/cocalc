@@ -41,19 +41,19 @@ export const TimeActions = class TimeActions extends Actions<
     this.path = path;
     // be explicit about exactly what state is in the store
     this.setState({
-      timers: undefined
+      timers: undefined,
     });
   }
 
   public init_error(err): void {
     this.setState({
-      error: err
+      error: err,
     });
   }
 
   public _syncdb_change(): void {
     this.setState({
-      timers: this.syncdb.get()
+      timers: this.syncdb.get(),
     });
 
     if (this.syncdb.get_doc().size === 0) {
@@ -70,7 +70,7 @@ export const TimeActions = class TimeActions extends Actions<
   public add_stopwatch(): void {
     // make id equal to the largest current id (or 0 if none)
     let id = 0;
-    this.syncdb.get().map(data => {
+    this.syncdb.get().map((data) => {
       id = Math.max(data.get("id"), id);
     });
     id += 1; // our new stopwatch has the largest id (so at the bottom)
@@ -79,7 +79,7 @@ export const TimeActions = class TimeActions extends Actions<
       label: "",
       total: 0,
       state: "stopped",
-      time: webapp_client.server_time() - 0
+      time: webapp_client.server_time() - 0,
     });
   }
 
@@ -97,7 +97,7 @@ export const TimeActions = class TimeActions extends Actions<
       id,
       total: 0,
       state: "stopped",
-      time: webapp_client.server_time() - 0
+      time: webapp_client.server_time() - 0,
     });
   }
 
@@ -105,7 +105,7 @@ export const TimeActions = class TimeActions extends Actions<
     this._set({
       id,
       time: webapp_client.server_time() - 0,
-      state: "running"
+      state: "running",
     });
   }
 
@@ -116,7 +116,7 @@ export const TimeActions = class TimeActions extends Actions<
       id,
       time: webapp_client.server_time() - 0,
       total: x.get("total") + (webapp_client.server_time() - x.get("time")),
-      state: "paused"
+      state: "paused",
     });
   }
 
@@ -129,7 +129,7 @@ export const TimeActions = class TimeActions extends Actions<
   public time_travel(): void {
     this.redux.getProjectActions(this.project_id).open_file({
       path: misc.history_path(this.path),
-      foreground: true
+      foreground: true,
     });
   }
 

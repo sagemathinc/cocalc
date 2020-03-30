@@ -24,8 +24,8 @@ export const x11 = {
     "edit_init_script", */
     "close_and_halt",
     "help",
-    "connection_status"
-  ])
+    "connection_status",
+  ]),
 };
 
 export const launcher = {
@@ -33,17 +33,17 @@ export const launcher = {
   name: "Applications",
   icon: "server",
   component: Launcher,
-  buttons: set([])
+  buttons: set([]),
 };
 
 const EDITOR_SPEC = {
   x11,
   terminal,
-  launcher
+  launcher,
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "X11"
+  display_name: "X11",
 });

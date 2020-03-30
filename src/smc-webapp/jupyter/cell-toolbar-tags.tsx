@@ -15,7 +15,7 @@ const TAG_STYLE: React.CSSProperties = {
   background: "#5bc0de",
   borderRadius: "3px",
   color: "white",
-  display: "inline-block"
+  display: "inline-block",
 };
 
 interface TagsToolbarProps {
@@ -61,7 +61,7 @@ export class TagsToolbar extends Component<TagsToolbarProps, TagsToolbarState> {
         {misc
           .keys(tags.toJS())
           .sort()
-          .map(tag => this.render_tag(tag))}
+          .map((tag) => this.render_tag(tag))}
       </div>
     );
   }
@@ -76,7 +76,7 @@ export class TagsToolbar extends Component<TagsToolbarProps, TagsToolbarState> {
         onChange={(e: any) => this.setState({ input: e.target.value })}
         style={{ height: "34px" }}
         bsSize={"small"}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.which === 13) {
             this.add_tags();
             return;

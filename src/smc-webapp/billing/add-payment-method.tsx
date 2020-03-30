@@ -7,7 +7,7 @@ import {
   //  FormGroup,
   //  FormControl,
   //  InputGroup,
-  Well
+  Well,
 } from "react-bootstrap";
 
 import { Component, React, Rendered, redux } from "../app-framework";
@@ -29,7 +29,7 @@ const CARD_STYLE = {
   border: "1px solid grey",
   padding: "30px",
   background: "white",
-  borderRadius: "5px"
+  borderRadius: "5px",
 };
 
 interface State {
@@ -47,7 +47,7 @@ export class AddPaymentMethod extends Component<Props, State> {
     this.state = {
       submitting: false,
       error: "",
-      loading: true
+      loading: true,
     };
   }
 

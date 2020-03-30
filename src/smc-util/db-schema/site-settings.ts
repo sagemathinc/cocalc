@@ -1,3 +1,6 @@
+// These site-settings are visible to any user (read-only)
+// They contain information like the site's name, contact email addresses, etc.
+
 import { site_settings_conf } from "./site-defaults";
 import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 import { keys } from "../misc";
@@ -20,8 +23,8 @@ Table({
         admin: true,
         fields: {
           name: null,
-          value: null
-        }
+          value: null,
+        },
       },
       set: {
         admin: true,
@@ -32,9 +35,9 @@ Table({
             }
             throw Error(`setting name='${obj.name}' not allowed`);
           },
-          value: null
-        }
-      }
-    }
-  }
+          value: null,
+        },
+      },
+    },
+  },
 });

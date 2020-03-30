@@ -4,12 +4,12 @@ import { Alert } from "antd";
 
 const ERROR_TEXT_STYLE: React.CSSProperties = {
   marginRight: "1ex",
-  whiteSpace: "pre-line"
+  whiteSpace: "pre-line",
 };
 
 const BODY_STYLE: React.CSSProperties = {
   overflowX: "auto",
-  marginRight: "10px"
+  marginRight: "10px",
 };
 
 interface Props {

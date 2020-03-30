@@ -70,7 +70,7 @@ const NO_AVAIL: Readonly<Available> = Object.freeze({
   x11: false,
   spellcheck: false,
   library: false,
-  formatting: false
+  formatting: false,
 });
 
 export const ALL_AVAIL: Readonly<Available> = Object.freeze({
@@ -83,7 +83,7 @@ export const ALL_AVAIL: Readonly<Available> = Object.freeze({
   x11: true,
   spellcheck: true,
   library: true,
-  formatting: true
+  formatting: true,
 });
 
 // detecting certain datastructures, only used for TS typing
@@ -149,7 +149,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
       library: !!capabilities.library,
-      formatting
+      formatting,
     };
   } else {
     return NO_AVAIL;

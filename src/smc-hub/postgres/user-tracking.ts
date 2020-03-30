@@ -34,7 +34,7 @@ export async function record_user_tracking(
       "account_id :: UUID": account_id,
       "time       :: TIMESTAMP": "NOW()",
       "event      :: TEXT": event,
-      "value      :: JSONB": value
-    }
+      "value      :: JSONB": value,
+    },
   });
 }

@@ -71,7 +71,7 @@ export class ConfigurationActions {
   public async set_course_info(pay: string = ""): Promise<void> {
     this.set({
       pay,
-      table: "settings"
+      table: "settings",
     });
     await this.course_actions.student_projects.set_all_student_project_course_info(
       pay
@@ -80,7 +80,7 @@ export class ConfigurationActions {
 
   public async configure_host_project(): Promise<void> {
     const id = this.course_actions.set_activity({
-      desc: "Configuring host project."
+      desc: "Configuring host project.",
     }); // Set license key if known; remove if not.
     try {
       const store = this.course_actions.get_store();

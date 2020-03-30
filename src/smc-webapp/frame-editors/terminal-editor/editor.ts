@@ -22,18 +22,18 @@ export const terminal = {
     "pause",
     "edit_init_script",
     "help",
-    "connection_status"
+    "connection_status",
     /*"reload" */
   ]),
-  hide_public: true // never show this editor option for public view
+  hide_public: true, // never show this editor option for public view
 };
 
 const EDITOR_SPEC = {
-  terminal
+  terminal,
 };
 
 export const Editor = createEditor({
   format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "TerminalEditor"
+  display_name: "TerminalEditor",
 });

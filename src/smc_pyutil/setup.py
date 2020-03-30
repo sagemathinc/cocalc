@@ -111,7 +111,8 @@ setup(
             'cc-rmd2html         = smc_pyutil.rmd2html:main',
             'cc-java2html        = smc_pyutil.java2html:main',
             'cc-m2sagews         = smc_pyutil.m2sagews:main',
-            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main'
+            'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main',
+            'cc-ipynb-to-pdf     = smc_pyutil.ipynb_to_pdf:main'
         ]
     },
     include_package_data=True)

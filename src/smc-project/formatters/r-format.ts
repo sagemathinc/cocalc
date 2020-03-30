@@ -11,7 +11,7 @@ interface ParserOptions {
 }
 
 function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
+  proc.on("close", (code) => cb(undefined, code));
 }
 
 function formatR(input_path: string) {
@@ -37,8 +37,8 @@ export async function r_format(
     let stdout: string = "";
     let stderr: string = "";
     // read data as it is produced.
-    r_formatter.stdout.on("data", data => (stdout += data.toString()));
-    r_formatter.stderr.on("data", data => (stderr += data.toString()));
+    r_formatter.stdout.on("data", (data) => (stdout += data.toString()));
+    r_formatter.stderr.on("data", (data) => (stderr += data.toString()));
     // wait for subprocess to close.
     const code = await callback(close, r_formatter);
     if (code) {

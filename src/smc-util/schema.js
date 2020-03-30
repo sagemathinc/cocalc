@@ -24,13 +24,13 @@ NOTE: we can't convert this to typescript until converting
 
 */
 
-const constants = require("./schema-static")
+const constants = require("./schema-static");
 
 // these times in minutes are used for active/recently edited projects and accounts in postgres-server-queries.coffee's get_stats
-exports.RECENT_TIMES = constants.RECENT_TIMES
+exports.RECENT_TIMES = constants.RECENT_TIMES;
 
 // this translates the semantic meanings to the keys used in the DB, also prevents typos!
-exports.RECENT_TIMES_KEY = constants.RECENT_TIMES_KEY
+exports.RECENT_TIMES_KEY = constants.RECENT_TIMES_KEY;
 
 const db_schema = require("./db-schema");
 exports.SCHEMA = db_schema.SCHEMA;

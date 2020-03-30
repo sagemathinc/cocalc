@@ -27,7 +27,7 @@ async function main() {
     body: body,
     to: "harald.schilly+student9191919@gmail.com",
     asm_group: 147985,
-    settings: settings
+    settings: settings,
   });
   console.log(`send_email done: ${send_res}`);
 
@@ -36,7 +36,7 @@ async function main() {
     to: "harald@schil.ly",
     token: "asdf-asdf-asdf",
     only_verify: false, // if verification shows up depends on the settings
-    settings: settings
+    settings: settings,
   });
   console.log(`welcome_email done: ${welcome_res}`);
 
@@ -45,7 +45,7 @@ async function main() {
     to: "harald@schil.ly",
     token: "asdf-asdf-asdf",
     only_verify: true,
-    settings: settings
+    settings: settings,
   });
   console.log(`verify_email done: ${verify_res}`);
 
@@ -57,7 +57,7 @@ async function main() {
   const forgot_pw = await callback2(forgot_password, {
     mesg: message.forgot_password({ email_address: "harald@schil.ly" }),
     ip_address: "1.2.3.4",
-    database: db
+    database: db,
   });
   console.log(`forgot_password done: ${forgot_pw}`);
 

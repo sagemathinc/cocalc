@@ -21,67 +21,67 @@ Table({
   fields: {
     id: {
       type: "uuid",
-      desc: "ID that determines the license."
+      desc: "ID that determines the license.",
     },
     title: {
       type: "string",
       desc:
-        "Descriptive name of the license, e.g., the class and university or other information."
+        "Descriptive name of the license, e.g., the class and university or other information.",
     },
     description: {
       type: "string",
-      desc: "Longer description of the license, extra notes, etc."
+      desc: "Longer description of the license, extra notes, etc.",
     },
     info: {
       type: "map",
       desc:
-        "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map."
+        "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.",
     },
     expires: {
       type: "timestamp",
       desc:
-        "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped."
+        "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.",
     },
     activates: {
       type: "timestamp",
       desc:
-        "Date when this license starts working.  Before this date, the license can be applied to projects, but nothing happens."
+        "Date when this license starts working.  Before this date, the license can be applied to projects, but nothing happens.",
     },
     created: {
       type: "timestamp",
-      desc: "when this license was first created"
+      desc: "when this license was first created",
     },
     last_used: {
       type: "timestamp",
       desc:
-        "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute)."
+        "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute).",
     },
     managers: {
       type: "array",
       pg_type: "TEXT[]",
       desc:
-        "A list of the account_id's of users that are allowed to manage how this site license is being used."
+        "A list of the account_id's of users that are allowed to manage how this site license is being used.",
     },
     restricted: {
       type: "boolean",
       desc:
-        "NOTE IMPLEMENTED YET: If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects."
+        "NOTE IMPLEMENTED YET: If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects.",
     },
     upgrades: {
       type: "map",
       desc:
-        "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}."
+        "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.",
     },
     run_limit: {
       type: "integer",
       desc:
-        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped."
+        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped.",
     },
     apply_limit: {
       type: "integer",
       desc:
-        "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped."
-    }
+        "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
+    },
   },
   rules: {
     desc: "Site Licenses",
@@ -106,8 +106,8 @@ Table({
           restricted: null,
           upgrades: null,
           run_limit: null,
-          apply_limit: null
-        }
+          apply_limit: null,
+        },
       },
       set: {
         admin: true,
@@ -124,11 +124,11 @@ Table({
           restricted: null,
           upgrades: null,
           run_limit: null,
-          apply_limit: null
-        }
-      }
-    }
-  }
+          apply_limit: null,
+        },
+      },
+    },
+  },
 });
 
 // A virtual table that can be queried only by admins and gets global information
@@ -140,12 +140,12 @@ Table({
     running: {
       type: "map",
       desc:
-        "Map from license_id to a count of how many *running* projects are using that license right now.  Only includes licenses that are being used."
+        "Map from license_id to a count of how many *running* projects are using that license right now.  Only includes licenses that are being used.",
     },
     time: {
       type: "timestamp",
-      desc: "When the data was grabbed."
-    }
+      desc: "When the data was grabbed.",
+    },
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -157,7 +157,7 @@ Table({
         admin: true,
         fields: {
           running: null,
-          time: null
+          time: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
@@ -169,10 +169,10 @@ Table({
           } catch (err) {
             cb(err);
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });
 
 Table({
@@ -180,24 +180,24 @@ Table({
   fields: {
     license_id: {
       type: "string",
-      desc: "the id of the license -- must be specified"
+      desc: "the id of the license -- must be specified",
     },
     cutoff: {
       type: "timestamp",
       desc:
-        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW()."
+        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW().",
     },
     limit: {
       type: "integer",
       desc:
-        "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine."
+        "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine.",
     },
     project_id: SCHEMA.projects.fields.project_id, // id of project
     title: SCHEMA.projects.fields.title, // first 80 characters of title of project
     description: SCHEMA.projects.fields.description, // first 80 characters of description of project
     users: SCHEMA.projects.fields.users, // users of the project
     last_active: SCHEMA.projects.fields.last_active, // who last active used project
-    last_edited: SCHEMA.projects.fields.last_edited // when project was last edited
+    last_edited: SCHEMA.projects.fields.last_edited, // when project was last edited
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -217,12 +217,14 @@ Table({
           description: null,
           users: null,
           last_active: null,
-          last_edited: null
+          last_edited: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         async instead_of_query(database, opts, cb): Promise<void> {
           if (!opts.multi) {
-            cb("query must be an array (getting multiple values back)");
+            cb(
+              "query must be an array (you must request to get multiple values back)"
+            );
             return;
           }
           const obj = opts.query;
@@ -241,7 +243,7 @@ Table({
             "description",
             "users",
             "last_active",
-            "last_edited"
+            "last_edited",
           ]) {
             if (obj[field] === null) {
               // === is important here since we don't want to pick up not set field!
@@ -254,7 +256,7 @@ Table({
               fields: fields,
               cutoff: obj.cutoff,
               limit: obj.limit,
-              truncate: 80
+              truncate: 80,
             });
             for (const project of projects) {
               // for consistency with how queries work, we fill this in.
@@ -264,10 +266,76 @@ Table({
           } catch (err) {
             cb(err);
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
+});
+
+Table({
+  name: "number_of_projects_using_site_license",
+  fields: {
+    license_id: {
+      type: "string",
+      desc: "the id of the license -- must be specified",
+    },
+    cutoff: {
+      type: "timestamp",
+      desc:
+        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW().",
+    },
+    number: {
+      type: "integer",
+      desc:
+        "how many projects using the site license at some point since cutoff",
+    },
+  },
+  rules: {
+    virtual: true, // don't make an actual table
+    desc:
+      "Virtual table for determining the number of projects that recently used a given site license",
+    anonymous: false,
+    primary_key: ["license_id", "cutoff"],
+    user_query: {
+      get: {
+        admin: true, // for now admins only; TODO: later *managers* of the site license will also get access...
+        fields: {
+          license_id: null,
+          cutoff: null,
+          number: null,
+        },
+        // Actual query is implemented using this code below rather than an actual query directly.
+        async instead_of_query(database, opts, cb): Promise<void> {
+          if (opts.multi) {
+            cb(
+              "query must NOT be an array (do not request multiple values back)"
+            );
+            return;
+          }
+          const obj = opts.query;
+          if (
+            typeof obj != "object" ||
+            !is_valid_uuid_string(obj.license_id) ||
+            obj.number != null
+          ) {
+            cb(
+              "query must be of the form {license_id:uuid, cutoff?:<date>, count:null...}]"
+            );
+            return;
+          }
+          try {
+            obj.number = await database.number_of_projects_using_site_license({
+              license_id: obj.license_id,
+              cutoff: obj.cutoff,
+            });
+            cb(undefined, obj);
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+    },
+  },
 });
 
 // Get publicly available information about a site license.
@@ -287,8 +355,8 @@ Table({
     running: {
       type: "integer",
       desc:
-        "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it."
-    }
+        "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
+    },
   },
   rules: {
     desc: "Publicly available information about site licenses",
@@ -305,7 +373,7 @@ Table({
           activates: null,
           upgrades: null,
           run_limit: null,
-          running: null
+          running: null,
         },
         // Actual query is implemented using this code below rather than an
         // actual query directly.  TODO: Also, we're lazy and return all fields we
@@ -321,10 +389,10 @@ Table({
               cb(err);
             }
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });
 
 Table({
@@ -332,25 +400,25 @@ Table({
   fields: {
     license_id: {
       type: "uuid",
-      desc: "id of the site license"
+      desc: "id of the site license",
     },
     project_id: {
       type: "uuid",
-      desc: "id of the project"
+      desc: "id of the project",
     },
     start: {
       type: "timestamp",
-      desc: "When the project started running using this site license"
+      desc: "When the project started running using this site license",
     },
     stop: {
       type: "timestamp",
-      desc: "When the project stopped running using this site license"
-    }
+      desc: "When the project stopped running using this site license",
+    },
   },
   rules: {
     desc:
       "Table for logging when site licenses are used to upgrade running projects.",
     primary_key: ["license_id", "project_id", "start"],
-    pg_indexes: ["license_id"]
-  }
+    pg_indexes: ["license_id"],
+  },
 });

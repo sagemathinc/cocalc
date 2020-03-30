@@ -34,7 +34,7 @@ export class SpellCheck extends Component<Props, {}> {
 
   render_other_items(): Rendered[] {
     const v: Rendered[] = [];
-    const set = lang => this.props.set(lang);
+    const set = (lang) => this.props.set(lang);
     for (const lang of DICTS) {
       v.push(
         <MenuItem key={lang} eventKey={lang} onSelect={set}>

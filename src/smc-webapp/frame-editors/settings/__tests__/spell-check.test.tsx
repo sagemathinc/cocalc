@@ -16,8 +16,6 @@ test("calls set with the right lang on click", () => {
   const Selector = shallow(
     <SpellCheck value="Hello" set={mock} available={true} />
   );
-  Selector.find(MenuItem)
-    .first()
-    .simulate("select");
+  Selector.find(MenuItem).first().simulate("select");
   expect(mock).toHaveBeenCalled();
 });

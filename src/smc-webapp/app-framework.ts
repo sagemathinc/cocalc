@@ -63,27 +63,27 @@ declare type ProjectActions = import("./project_actions").ProjectActions;
 export const COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
-  FG_BLUE: "#428bca" // blue used for text
+  FG_BLUE: "#428bca", // blue used for text
 };
 
-const action_set_state = function(change) {
+const action_set_state = function (change) {
   return {
     type: "SET_STATE",
-    change: immutable.fromJS(change) // guaranteed immutable.js all the way down
+    change: immutable.fromJS(change), // guaranteed immutable.js all the way down
   };
 };
 // Deeply nested objects need to be converted with fromJS before being put in the store
 
-const action_remove_store = function(name) {
+const action_remove_store = function (name) {
   return {
     type: "REMOVE_STORE",
-    name
+    name,
   };
 };
 
 type redux_state = immutable.Map<string, immutable.Map<string, any>>;
 
-const redux_app = function(state: redux_state, action): redux_state {
+const redux_app = function (state: redux_state, action): redux_state {
   if (state == null) {
     return immutable.Map();
   }
@@ -91,7 +91,7 @@ const redux_app = function(state: redux_state, action): redux_state {
     case "SET_STATE":
       // Typically action.change has exactly one key, the name of a Store.
       // We merge in what is in action.change[name] to state[name] below.
-      action.change.map(function(val, store) {
+      action.change.map(function (val, store) {
         let new_val;
         const old_val = state.get(store);
         if (old_val !== undefined) {
@@ -347,7 +347,7 @@ export class AppRedux {
     selectFrom: (store?: ProjectStore) => T,
     project_id?: string
   ): T {
-    return useSelector<any, T>(_ => {
+    return useSelector<any, T>((_) => {
       let projectStore = undefined;
       if (project_id) {
         projectStore = this.getStore(project_redux_name(project_id)) as any;
@@ -444,12 +444,12 @@ export class AppRedux {
     const path = tab.slice("editor-".length);
     return {
       actions: this.getEditorActions(project_id, path),
-      store: this.getEditorStore(project_id, path)
+      store: this.getEditorStore(project_id, path),
     };
   }
 }
 
-const computed = rtype => {
+const computed = (rtype) => {
   const clone = rtype.bind({});
   clone.is_computed = true;
   return clone;
@@ -470,8 +470,8 @@ WARNING: If store not yet defined, then props will all be undefined for that sto
 is no warning/error in this case.
 
 */
-const connect_component = spec => {
-  const map_state_to_props = function(state) {
+const connect_component = (spec) => {
+  const map_state_to_props = function (state) {
     const props = {};
     if (state == null) {
       return props;
@@ -552,7 +552,7 @@ function compute_cache_key(data: { [key: string]: any }): string {
   return json_stable(keys(data).sort());
 }
 
-rclass = function(x: any) {
+rclass = function (x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
     // using an ES6 class *and* reduxProps...
@@ -573,7 +573,7 @@ rclass = function(x: any) {
           this.props,
           this.props.children
         );
-      }
+      },
     });
     return C;
   } else if (typeof x === "function") {
@@ -610,7 +610,7 @@ rclass = function(x: any) {
           this.props,
           this.props.children
         );
-      }
+      },
     });
 
     return cached;

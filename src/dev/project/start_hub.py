@@ -17,16 +17,23 @@ util.chdir()
 ports = util.get_ports()
 base_url = util.base_url()
 
-# these two lines are lazy hacks...
-kucalc = '--kucalc' if len(sys.argv) > 1 and 'kucalc' in sys.argv[1:] else ''
-lti = '--lti' if len(sys.argv) > 1 and 'lti' in sys.argv[1:] else ''
+# these lines are lazy hacks...
+kucalc = lti = landing = ''
+if len(sys.argv) > 1:
+    if 'kucalc' in sys.argv[1:]:
+        kucalc = '--kucalc'
+    if 'lti' in sys.argv[1:]:
+        lti = '--lti'
+    if 'landing' in sys.argv[1:]:
+        landing = '--landing'
 
-cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} start".format(
+cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} {landing} start".format(
     base_url=base_url,
     hub_port=ports['hub'],
     test=util.test(),
     kucalc=kucalc,
-    lti=lti)
+    lti=lti,
+    landing=landing)
 
 print(cmd)
 util.cmd(cmd)

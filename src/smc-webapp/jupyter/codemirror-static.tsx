@@ -30,7 +30,7 @@ const BLURRED_STYLE: React.CSSProperties = {
   whiteSpace: "pre-wrap",
   wordWrap: "break-word",
   wordBreak: "normal",
-  border: 0
+  border: 0,
 };
 
 interface CodeMirrorStaticProps {
@@ -176,7 +176,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       width: "100%",
       borderRadius: "2px",
       position: "relative",
-      overflowX: "auto"
+      overflowX: "auto",
     };
     if (!this.props.no_border) {
       style.border = "1px solid rgb(207, 207, 207)";

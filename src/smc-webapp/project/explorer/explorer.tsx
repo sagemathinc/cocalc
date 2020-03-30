@@ -10,7 +10,7 @@ import {
   ErrorDisplay,
   Loading,
   CourseProjectExtraHelp,
-  SettingBox
+  SettingBox,
 } from "../../r_misc";
 import { default_ext } from "./file-listing/utils";
 import { BillingPage } from "../../billing/billing-page";
@@ -43,7 +43,7 @@ const { Library } = require("../../library");
 const { webapp_client } = require("../../webapp_client");
 const { UsersViewing } = require("../../other-users");
 
-const pager_range = function(page_size, page_number) {
+const pager_range = function (page_size, page_number) {
   const start_index = page_size * page_number;
   return { start_index, end_index: start_index + page_size };
 };
@@ -56,7 +56,7 @@ const error_style: React.CSSProperties = {
   position: "absolute",
   zIndex: 15,
   right: "5px",
-  boxShadow: "5px 5px 5px grey"
+  boxShadow: "5px 5px 5px grey",
 } as const;
 
 interface ReactProps {
@@ -131,25 +131,25 @@ export const Explorer = rclass<ReactProps>(
           project_map: rtypes.immutable.Map,
           date_when_course_payment_required: rtypes.func.isRequired,
           get_my_group: rtypes.func.isRequired,
-          get_total_project_quotas: rtypes.func.isRequired
+          get_total_project_quotas: rtypes.func.isRequired,
         },
 
         account: {
           other_settings: rtypes.immutable.Map,
-          is_logged_in: rtypes.bool
+          is_logged_in: rtypes.bool,
         },
 
         billing: {
-          customer: rtypes.object
+          customer: rtypes.object,
         },
 
         customize: {
           kucalc: rtypes.string,
-          site_name: rtypes.string
+          site_name: rtypes.string,
         },
 
         compute_images: {
-          images: rtypes.immutable.Map
+          images: rtypes.immutable.Map,
         },
 
         [name]: {
@@ -177,8 +177,8 @@ export const Explorer = rclass<ReactProps>(
           configuration: rtypes.immutable,
           available_features: rtypes.object,
           file_listing_scroll_top: rtypes.number,
-          show_custom_software_reset: rtypes.bool
-        }
+          show_custom_software_reset: rtypes.bool,
+        },
       };
     };
 
@@ -186,14 +186,14 @@ export const Explorer = rclass<ReactProps>(
       page_number: 0,
       file_search: "",
       new_name: "",
-      redux
+      redux,
     };
 
     constructor(props) {
       super(props);
       this.state = {
         show_pay: false,
-        shift_is_down: false
+        shift_is_down: false,
       };
     }
 
@@ -232,14 +232,14 @@ export const Explorer = rclass<ReactProps>(
     previous_page = () => {
       if (this.props.page_number > 0) {
         this.props.actions.setState({
-          page_number: this.props.page_number - 1
+          page_number: this.props.page_number - 1,
         });
       }
     };
 
     next_page = () => {
       this.props.actions.setState({
-        page_number: this.props.page_number + 1
+        page_number: this.props.page_number + 1,
       });
     };
 
@@ -255,7 +255,7 @@ export const Explorer = rclass<ReactProps>(
         let disabled_ext;
         if (this.props.configuration != undefined) {
           ({ disabled_ext } = this.props.configuration.get("main", {
-            disabled_ext: []
+            disabled_ext: [],
           }));
         } else {
           disabled_ext = [];
@@ -267,7 +267,7 @@ export const Explorer = rclass<ReactProps>(
         name: file_search,
         ext,
         current_path: this.props.current_path,
-        switch_over
+        switch_over,
       });
       this.props.actions.setState({ file_search: "", page_number: 0 });
     };
@@ -276,7 +276,7 @@ export const Explorer = rclass<ReactProps>(
       this.props.actions.create_folder({
         name: this.props.file_search,
         current_path: this.props.current_path,
-        switch_over
+        switch_over,
       });
       this.props.actions.setState({ file_search: "", page_number: 0 });
     };
@@ -508,18 +508,8 @@ export const Explorer = rclass<ReactProps>(
       listing: ListingItem[] | undefined,
       file_map,
       fetch_directory_error: any,
-      project_state: ProjectStatus | undefined,
       public_view: boolean
     ) {
-      if (project_state != null) {
-        // NOTE: for public view of a projet, we do NOT know the state!
-        const state = project_state.get("state");
-        if (state != "running" && state != "saving") {
-          // Explain to user what is going on...
-          return this.render_project_state(project_state);
-        }
-      }
-
       if (fetch_directory_error) {
         // TODO: the refresh button text is inconsistant
         return (
@@ -548,14 +538,14 @@ export const Explorer = rclass<ReactProps>(
             project_id={this.props.project_id}
             dest_path={this.props.current_path}
             event_handlers={{
-              complete: () => this.props.actions.fetch_directory_listing()
+              complete: () => this.props.actions.fetch_directory_listing(),
             }}
             config={{ clickable: ".upload-button" }}
             disabled={public_view}
             style={{
               flex: "1 0 auto",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
             }}
           >
             <FileListing
@@ -606,24 +596,32 @@ export const Explorer = rclass<ReactProps>(
       const needle = (project_state && project_state.get("state")) || "";
       const enabled = ["opened", "closed", "archived"].includes(needle);
       return (
-        <Button
-          disabled={!enabled}
-          bsStyle="primary"
-          bsSize="large"
-          onClick={this.on_click_start_project}
-        >
-          <Icon name="flash" /> Start Project
-        </Button>
+        <span style={{ marginLeft: "30px" }}>
+          <Button
+            disabled={!enabled}
+            bsStyle="primary"
+            bsSize="large"
+            onClick={this.on_click_start_project}
+          >
+            <Icon name="flash" /> Start Project
+          </Button>
+        </span>
       );
     }
 
     render_project_state(project_state?: ProjectStatus) {
+      const state = project_state?.get("state");
+      if (state == "running" || state == "saving") return;
       return (
         <div
-          style={{ fontSize: "40px", textAlign: "center", color: "#666666" }}
+          style={{
+            fontSize: "40px",
+            textAlign: "center",
+            color: "#666666",
+            marginBottom: "15px",
+          }}
         >
           <ProjectState state={project_state} show_desc={true} />
-          <br />
           {this.render_start_project_button(project_state)}
         </div>
       );
@@ -646,7 +644,7 @@ export const Explorer = rclass<ReactProps>(
             display: "flex",
             flexFlow: "row wrap",
             justifyContent: "space-between",
-            alignItems: "stretch"
+            alignItems: "stretch",
           }}
         >
           <div
@@ -681,7 +679,7 @@ export const Explorer = rclass<ReactProps>(
               style={{
                 flex: "0 1 auto",
                 marginRight: "10px",
-                marginBottom: "15px"
+                marginBottom: "15px",
               }}
               className="cc-project-files-create-dropdown"
             >
@@ -693,7 +691,7 @@ export const Explorer = rclass<ReactProps>(
             style={{
               flex: "5 1 auto",
               marginRight: "10px",
-              marginBottom: "15px"
+              marginBottom: "15px",
             }}
           >
             <PathNavigator
@@ -708,7 +706,7 @@ export const Explorer = rclass<ReactProps>(
                 style={{
                   flex: "0 1 auto",
                   marginRight: "10px",
-                  marginBottom: "15px"
+                  marginBottom: "15px",
                 }}
               >
                 <UsersViewing project_id={this.props.project_id} />
@@ -805,7 +803,7 @@ export const Explorer = rclass<ReactProps>(
         if (this.props.project_map != undefined) {
           project_state = this.props.project_map.getIn([
             this.props.project_id,
-            "state"
+            "state",
           ]);
         }
         const needle = (project_state && project_state.get("state")) || "";
@@ -834,7 +832,7 @@ export const Explorer = rclass<ReactProps>(
         display: "flex",
         flexFlow: "row wrap",
         justifyContent: "space-between",
-        alignItems: "stretch"
+        alignItems: "stretch",
       };
 
       // be careful with adding height:'100%'. it could cause flex to miscalc. see #3904
@@ -845,7 +843,7 @@ export const Explorer = rclass<ReactProps>(
               flex: "0 0 auto",
               display: "flex",
               flexDirection: "column",
-              padding: "5px 5px 0 5px"
+              padding: "5px 5px 0 5px",
             }}
           >
             {pay != undefined
@@ -862,9 +860,7 @@ export const Explorer = rclass<ReactProps>(
                 new_filename={this.props.new_filename}
                 other_settings={this.props.other_settings}
               />
-            ) : (
-              undefined
-            )}
+            ) : undefined}
             {this.render_new()}
 
             <div style={FLEX_ROW_STYLE}>
@@ -872,7 +868,7 @@ export const Explorer = rclass<ReactProps>(
                 style={{
                   flex: "1 0 auto",
                   marginRight: "10px",
-                  minWidth: "20em"
+                  minWidth: "20em",
                 }}
               >
                 {listing != undefined
@@ -895,9 +891,7 @@ export const Explorer = rclass<ReactProps>(
             {this.props.checked_files.size > 0 &&
             this.props.file_action != undefined ? (
               <Row>{this.render_files_action_box(file_map, public_view)}</Row>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
           </div>
           <div
             style={{
@@ -905,17 +899,17 @@ export const Explorer = rclass<ReactProps>(
               display: "flex",
               flexDirection: "column",
               padding: "0 5px 5px 5px",
-              minHeight: "400px"
+              minHeight: "400px",
             }}
           >
             {public_view && !directory_error
               ? this.render_access_error(public_view)
               : undefined}
+            {this.render_project_state(project_state)}
             {this.render_file_listing(
               visible_listing,
               file_map,
               directory_error,
-              project_state,
               public_view
             )}
             {listing != undefined

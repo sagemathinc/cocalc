@@ -8,7 +8,7 @@ export class ReactModel extends WidgetModel {
 
   defaults() {
     return {
-      ...super.defaults()
+      ...super.defaults(),
     };
   }
 

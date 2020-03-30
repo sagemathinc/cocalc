@@ -17,7 +17,7 @@ export function init_jupyter_classic_support(
   account_store.on("change", () => {
     const jupyter_classic = account_store.getIn([
       "editor_settings",
-      "jupyter_classic"
+      "jupyter_classic",
     ]);
     if (jupyter_classic === last_jupyter_classic) return; // no change; do nothing
     if (account_table._table.get_state() != "connected") return; // data not yet valid; do nothing

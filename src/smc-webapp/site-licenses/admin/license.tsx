@@ -10,7 +10,7 @@ import {
   is_date,
   merge,
   replace_all,
-  plural
+  plural,
 } from "smc-util/misc2";
 import { hours_ago, days_ago, weeks_ago, months_ago } from "smc-util/misc";
 import { CopyToClipBoard, DateTimePicker, TimeAgo, Icon } from "../../r_misc";
@@ -18,7 +18,7 @@ import { Checkbox } from "../../antd-bootstrap";
 import {
   DisplayUpgrades,
   EditUpgrades,
-  scale_by_display_factors
+  scale_by_display_factors,
 } from "./upgrades";
 import { Projects } from "../../admin/users/projects";
 import { DisplayManagers, EditManagers } from "./managers";
@@ -45,13 +45,13 @@ function format_as_label(field: string): string {
 
 const STATUS_STYLE: React.CSSProperties = {
   display: "inline-block",
-  marginBottom: "5px"
+  marginBottom: "5px",
 };
 
 export const INPUT_STYLE: React.CSSProperties = {
   border: "1px solid lightgrey",
   borderRadius: "3px",
-  padding: "0 5px"
+  padding: "0 5px",
 };
 
 export class License extends Component<Props> {
@@ -87,7 +87,7 @@ export class License extends Component<Props> {
           style={{
             borderBottom: "1px solid lightgrey",
             backgroundColor,
-            padding: this.props.editing ? "5px 0" : undefined
+            padding: this.props.editing ? "5px 0" : undefined,
           }}
         >
           <Col span={4}>{format_as_label(field)}</Col>
@@ -106,14 +106,14 @@ export class License extends Component<Props> {
     let x: Rendered | string = undefined;
     const type: license_field_type = license_fields[field];
     if (this.props.editing) {
-      const onChange = new_val => this.on_change(field, new_val);
+      const onChange = (new_val) => this.on_change(field, new_val);
       switch (type) {
         case "string":
           x = (
             <DebounceInput
               style={merge({ width: "50ex" }, INPUT_STYLE)}
               value={val != null ? val : ""}
-              onChange={e => onChange((e.target as any).value)}
+              onChange={(e) => onChange((e.target as any).value)}
             />
           );
           if (field == "title") {
@@ -128,7 +128,7 @@ export class License extends Component<Props> {
               style={merge({ width: "100%" }, INPUT_STYLE)}
               rows={5}
               value={val != null ? val : ""}
-              onChange={e => onChange((e.target as any).value)}
+              onChange={(e) => onChange((e.target as any).value)}
             />
           );
           if (field == "description") {
@@ -168,7 +168,7 @@ export class License extends Component<Props> {
           x = (
             <Checkbox
               checked={!!val}
-              onChange={e => onChange((e.target as any).checked)}
+              onChange={(e) => onChange((e.target as any).checked)}
             />
           );
           break;
@@ -188,7 +188,7 @@ export class License extends Component<Props> {
               <DebounceInput
                 style={merge({ width: "100%" }, INPUT_STYLE)}
                 value={val != null ? val : "0"}
-                onChange={e => onChange((e.target as any).value)}
+                onChange={(e) => onChange((e.target as any).value)}
               />{" "}
               (0 = no limit)
             </span>
@@ -207,7 +207,7 @@ export class License extends Component<Props> {
               value={
                 typeof val == "string" ? val : JSON.stringify(val, undefined, 2)
               }
-              onChange={e => onChange((e.target as any).value)}
+              onChange={(e) => onChange((e.target as any).value)}
             />
           );
           break;
@@ -226,7 +226,7 @@ export class License extends Component<Props> {
             <div
               style={{
                 whiteSpace: "pre",
-                background: val ? undefined : "yellow"
+                background: val ? undefined : "yellow",
               }}
             >
               {val ? val : "Please enter a description"}
@@ -238,7 +238,7 @@ export class License extends Component<Props> {
             <div
               style={{
                 whiteSpace: "pre",
-                background: val ? undefined : "yellow"
+                background: val ? undefined : "yellow",
               }}
             >
               {val ? val : "Please enter a title"}
@@ -264,7 +264,7 @@ export class License extends Component<Props> {
                 <span
                   style={{
                     background: "darkred",
-                    color: "white"
+                    color: "white",
                   }}
                 >
                   Expired {x}
@@ -279,7 +279,7 @@ export class License extends Component<Props> {
                 <div
                   style={{
                     background: "darkred",
-                    color: "white"
+                    color: "white",
                   }}
                 >
                   <Icon name="warning" /> Never actives -- please set an
@@ -291,7 +291,7 @@ export class License extends Component<Props> {
                 <div
                   style={{
                     background: "darkred",
-                    color: "white"
+                    color: "white",
                   }}
                 >
                   Will activate {x}
@@ -326,7 +326,7 @@ export class License extends Component<Props> {
         x = (
           <div
             style={{
-              background: "yellow"
+              background: "yellow",
             }}
           >
             <Icon name="warning" /> No limit -- you should probably set a limit
@@ -397,7 +397,7 @@ export class License extends Component<Props> {
           license.
         </span>
         <br />
-        Show projects using license:{" "}
+        Projects using license:{" "}
         <a
           onClick={() =>
             actions.show_projects(this.props.license.get("id"), "now")
@@ -550,7 +550,7 @@ export class License extends Component<Props> {
         style={{
           border: "1px solid lightgrey",
           borderRadius: "5px",
-          padding: "10px"
+          padding: "10px",
         }}
       >
         {this.render_buttons()}

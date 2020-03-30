@@ -27,7 +27,7 @@ class X11Channel {
     path,
     name,
     logger,
-    display
+    display,
   }: {
     primus: any;
     path: string;
@@ -54,7 +54,7 @@ class X11Channel {
     }
     // Now handle the connection
     this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
-    spark.on("data", async data => {
+    spark.on("data", async (data) => {
       try {
         await this.handle_data(spark, data);
       } catch (err) {
@@ -97,12 +97,12 @@ class X11Channel {
       "-selection",
       "clipboard",
       "-d",
-      `:${this.display}`
+      `:${this.display}`,
     ]);
     p.stdin.write(value);
     p.stdin.end();
     // wait for exit event.
-    await callback(cb => p.on("exit", cb));
+    await callback((cb) => p.on("exit", cb));
   }
 
   cause_paste(wid: number): void {
@@ -114,7 +114,7 @@ class X11Channel {
       args.push(`${wid}`);
     }
     this.log("xdotool", args);
-    spawn("xdotool", args, { env }).on("close", code => {
+    spawn("xdotool", args, { env }).on("close", (code) => {
       console.log(`xdotool exited with code ${code}`);
     });
   }
@@ -131,7 +131,7 @@ class X11Channel {
       sub.unref();
     } catch (err) {
       this.channel.write({
-        error: `error launching ${command} -- ${err}`
+        error: `error launching ${command} -- ${err}`,
       });
       return;
     }
@@ -156,7 +156,7 @@ export async function x11_channel(
       path,
       name,
       logger,
-      display
+      display,
     });
   }
   return name;

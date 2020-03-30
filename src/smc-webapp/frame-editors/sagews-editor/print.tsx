@@ -4,7 +4,7 @@ import {
   Component,
   Rendered,
   rtypes,
-  rclass
+  rclass,
 } from "../../app-framework";
 
 import { InputCell } from "./input-cell";
@@ -19,8 +19,8 @@ class Print extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        cells: rtypes.immutable.Map
-      }
+        cells: rtypes.immutable.Map,
+      },
     };
   }
 

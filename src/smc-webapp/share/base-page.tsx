@@ -11,18 +11,18 @@ const CDN_LINKS = [
     href:
       "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css",
     integrity:
-      "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+      "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u",
   },
   // codemirror CDN -- https://cdnjs.com/libraries/codemirror
   {
     href:
       "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css",
-    integrity: "sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
+    integrity: "sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs=",
   },
   {
     href: "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css",
-    integrity: "sha256-V8SV2MO1FUb63Bwht5Wx9x6PVHNa02gv8BgH/uH3ung="
-  }
+    integrity: "sha256-V8SV2MO1FUb63Bwht5Wx9x6PVHNa02gv8BgH/uH3ung=",
+  },
 ];
 
 export type IsPublicFunction = (project_id: string, path: string) => boolean;
@@ -98,7 +98,7 @@ gtag('config', '${this.props.google_analytics}');\
         defer={true}
         src={`https://www.googletagmanager.com/gtag/js?id=${this.props.google_analytics}`}
       />,
-      <script key={1} dangerouslySetInnerHTML={{ __html: ga }} />
+      <script key={1} dangerouslySetInnerHTML={{ __html: ga }} />,
     ];
   }
 

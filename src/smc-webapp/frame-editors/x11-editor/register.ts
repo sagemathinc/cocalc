@@ -10,5 +10,5 @@ register_file_editor({
   icon: "window-restore",
   ext: "x11",
   component: Editor,
-  Actions
+  Actions,
 });

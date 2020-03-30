@@ -11,7 +11,7 @@ function fmt_large(num) {
   if (localStorage.fmt_large) {
     return num.toLocaleString(undefined, {
       useGrouping: true,
-      maximumSignificantDigits: 2
+      maximumSignificantDigits: 2,
     });
   } else {
     return num.toLocaleString();
@@ -21,23 +21,27 @@ function fmt_large(num) {
 type RecentTimes = "1d" | "1h" | "7d" | "30d";
 
 interface Props {
+  is_cocalc_com?: boolean;
   loading?: boolean;
   hub_servers?: { clients: number }[];
   time?: Date;
   accounts?: number;
   projects?: number;
-  accounts_created?: { [key: RecentTimes]: number };
-  projects_created?: { [key: RecentTimes]: number };
-  projects_edited?: { [key: RecentTimes]: number };
+  accounts_created?: { [key in RecentTimes]: number };
+  projects_created?: { [key in RecentTimes]: number };
+  projects_edited?: { [key in RecentTimes]: number };
   files_opened?: {
-    total: { [key: RecentTimes]: { [ext: string]: number } };
-    distinct: { [key: RecentTimes]: { [ext: string]: number } };
+    total: { [key in RecentTimes]: { [ext: string]: number } };
+    distinct: { [key in RecentTimes]: { [ext: string]: number } };
   };
 }
 
 class Usage extends Component<Props> {
   public static reduxProps(): object {
     return {
+      customize: {
+        is_cocalc_com: rtypes.bool,
+      },
       server_stats: {
         loading: rtypes.bool.isRequired,
         hub_servers: rtypes.array,
@@ -47,8 +51,8 @@ class Usage extends Component<Props> {
         accounts_created: rtypes.object, // {RECENT_TIMES.key → number, ...}
         projects_created: rtypes.object, // {RECENT_TIMES.key → number, ...}
         projects_edited: rtypes.object, // {RECENT_TIMES.key → number, ...}
-        files_opened: rtypes.object
-      }
+        files_opened: rtypes.object,
+      },
     };
   }
 
@@ -60,7 +64,9 @@ class Usage extends Component<Props> {
     if (this.props.hub_servers == null || this.props.hub_servers.length === 0) {
       return 0;
     } else {
-      return this.props.hub_servers.map(x => x.clients).reduce((s, t) => s + t);
+      return this.props.hub_servers
+        .map((x) => x.clients)
+        .reduce((s, t) => s + t);
     }
   }
 
@@ -95,13 +101,13 @@ class Usage extends Component<Props> {
     const stats = [
       ["Active projects", this.props.projects_edited],
       ["New projects", this.props.projects_created],
-      ["New accounts", this.props.accounts_created]
+      ["New accounts", this.props.accounts_created],
     ];
 
-    return stats.map(stat => (
+    return stats.map((stat) => (
       <tr key={stat[0] as string}>
         <th style={{ textAlign: "left" }}>{stat[0]}</th>
-        {this.timespan_keys().map(k => (
+        {this.timespan_keys().map((k) => (
           <td key={k}>
             {fmt_large(
               stat[1] != null ? stat[1][RECENT_TIMES_KEY[k]] : undefined
@@ -133,7 +139,7 @@ class Usage extends Component<Props> {
       ["Sage Worksheets", "sagews"],
       ["Jupyter Notebooks", "ipynb"],
       ["LaTeX Documents", "tex"],
-      ["Markdown Documents", "md"]
+      ["Markdown Documents", "md"],
     ];
     const result: Rendered[] = [];
     for (const [name, ext] of stats) {
@@ -218,13 +224,17 @@ class Usage extends Component<Props> {
             Recent user activity
           </div>
           {this.render_recent_usage_stats()}
-          <Icon name="line-chart" fixedWidth />{" "}
-          <a
-            target="_blank"
-            href="https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html"
-          >
-            Historical Usage Statistics...
-          </a>
+          {this.props.is_cocalc_com ? (
+            <React.Fragment>
+              <Icon name="line-chart" fixedWidth />{" "}
+              <a
+                target="_blank"
+                href="https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html"
+              >
+                Historical Usage Statistics...
+              </a>
+            </React.Fragment>
+          ) : undefined}
           <br />
           {this.render_historical_metrics()}
         </div>
