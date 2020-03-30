@@ -992,7 +992,7 @@ export class ConfigurationPanel extends Component<
       >
         <div
           className="smc-vfill"
-          style={{ overflowX: "hidden", overflowY: "auto", flex: "2", minWidth:"260px" }}
+          style={{ overflowX: "hidden", overflowY: "auto", flex: "2", minWidth:"260px", paddingLeft: "10px" }}
         >
           <h1
             style={{
