@@ -2,7 +2,7 @@ import { delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
 import { SyncTable } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
-import { merge, path_split } from "../smc-util/misc2";
+import { endswith, merge, path_split } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
 import { get_listing, ListingEntry } from "../directory-listing";
 import {
@@ -11,6 +11,7 @@ import {
 } from "../smc-util/db-schema/listings";
 import { Watcher } from "./path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
+import { remove_jupyter_backend } from "../jupyter/jupyter";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -334,8 +335,14 @@ class ListingsTable {
     await this.set({ path: head, deleted });
 
     // Also we need to close *all* syncdocs that are going to be deleted,
-    // and wait to closing is done before we return.
+    // and wait until closing is done before we return.
     await close_all_syncdocs_in_tree(filename);
+
+    // If it is a Jupyter kernel, close that too
+    if (endswith(filename, ".ipynb")) {
+      this.log(`set_deleted: handling jupyter kernel for ${filename}`);
+      await remove_jupyter_backend(filename, this.project_id);
+    }
   }
 
   public is_deleted(filename: string): boolean {
