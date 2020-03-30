@@ -64,8 +64,6 @@ Then restart the hubs.
 //  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
 
 import { Router } from "express";
-import { series } from "async";
-import { map as async_map } from "async";
 import { callback2 } from "../smc-util/async-utils";
 import * as uuid from "node-uuid";
 import * as winston from "winston";
@@ -615,6 +613,217 @@ class PassportManager {
             throw Error("no valid remember_me token");
           }
         }
+      } // end locals.remember_me_cookie
+
+      dbg(
+        "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
+      );
+
+      const _account_id = await callback2(this.database.passport_exists, {
+        strategy: opts.strategy,
+        id: opts.id,
+      });
+
+      if (
+        !_account_id &&
+        locals.has_valid_remember_me &&
+        locals.account_id != null
+      ) {
+        dbg(
+          "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
+        );
+        await callback2(this.database.create_passport, {
+          account_id: locals.account_id,
+          strategy: opts.strategy,
+          id: opts.id,
+          profile: opts.profile,
+          email_address: opts.emails != null ? opts.emails[0] : undefined,
+          first_name: opts.first_name,
+          last_name: opts.last_name,
+        });
+      } else {
+        if (locals.has_valid_remember_me && locals.account_id !== _account_id) {
+          dbg("passport exists but is associated with another account already");
+          throw Error(
+            `Your ${opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategy} in account settings if you want to instead associate it with this account.`
+          );
+        } else {
+          if (locals.has_valid_remember_me) {
+            dbg(
+              "passport already exists and is associated to the currently logged into account"
+            );
+          } else {
+            dbg(
+              "passport exists and is already associated to a valid account, which we'll log user into"
+            );
+            locals.account_id = _account_id;
+          }
+        }
+      }
+      // END -- passport check vs. eventually existing account id
+
+      // handle case where we passport doesn't exist, but we know one or more email addresses → check for matching email
+      if (!(locals.account_id || opts.emails == null)) {
+        dbg(
+          "passport doesn't exist and emails available, so check for existing account with a matching email -- if we find one it's an error"
+        );
+
+        const check_emails = opts.emails.map(async (email) => {
+          if (locals.account_id) {
+            dbg(
+              `already found a match with account_id=${locals.account_id} -- done`
+            );
+            return;
+          } else {
+            dbg(`checking for account with email ${email}...`);
+            const _account_id = await callback2(this.database.account_exists, {
+              email_address: email.toLowerCase(),
+            });
+            if (locals.account_id) {
+              // already done, so ignore
+              dbg(
+                `already found a match with account_id=${locals.account_id} -- done`
+              );
+              return;
+            } else if (!_account_id) {
+              throw Error("check_email: no _account_id");
+            } else {
+              locals.account_id = _account_id;
+              locals.email_address = email.toLowerCase();
+              dbg(
+                `found matching account ${locals.account_id} for email ${locals.email_address}`
+              );
+              throw Error(
+                `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategy} to it in account settings.`
+              );
+            }
+          }
+        });
+        await Promise.all(check_emails);
+      } // END: handle case where we passport doesn't exist but we know email addresses ...
+
+      // no account yet → create one
+
+      if (!locals.account_id) {
+        dbg(
+          "no existing account to link, so create new account that can be accessed using this passport"
+        );
+        if (opts.emails != null) {
+          locals.email_address = opts.emails[0];
+        }
+
+        locals.account_id = await create_account(opts, locals.email_address);
+        locals.new_account_created = true;
+        if (locals.email_address != null) {
+          await callback2(this.database.do_account_creation_actions, {
+            email_address: locals.email_address,
+            account_id: locals.account_id,
+          });
+        }
+        // log this
+        const data = {
+          account_id: locals.account_id,
+          first_name: opts.first_name,
+          last_name: opts.last_name,
+          email_address:
+            locals.email_address != null ? locals.email_address : null,
+          created_by: opts.req.ip,
+        };
+        // no await -- don't let client wait for *logging* the fact that we created an account
+        // failure wouldn't matter.
+        this.database.log({
+          event: "create_account",
+          value: data,
+        });
+      } // END -- no account yet
+
+      // record a sign-in activity, if we deal with an existing account
+      if (!locals.new_account_created) {
+        // don't make client wait for this -- it's just a log message for us.
+        dbg(`record_sign_in: ${opts.req.url}`);
+        sign_in.record_sign_in({
+          ip_address: opts.req.ip,
+          successful: true,
+          remember_me: locals.has_valid_remember_me,
+          email_address: locals.email_address,
+          account_id: locals.account_id,
+          database: this.database,
+        });
+      } // END -- record sign-in
+
+      // API key?
+      if (locals.get_api_key) {
+        // Just handle getting api key here.
+        const { api_key_action } = require("./api/manage"); // here, rather than at beginnig of file, due to some circular references...
+        if (locals.new_account_created) {
+          locals.action = "regenerate"; // obvious
+        } else {
+          locals.action = "get";
+        }
+
+        locals.api_key = await callback2(api_key_action, {
+          database: this.database,
+          account_id: locals.account_id,
+          passport: true,
+          action: locals.action,
+        });
+
+        // if there is no key
+        if (!locals.api_key) {
+          dbg("get_api_key -- must generate key, since don't already have it");
+          locals.api_key = await callback2(api_key_action, {
+            database: this.database,
+            account_id: locals.account_id,
+            passport: true,
+            action: "regenerate",
+          });
+        }
+        // we got a key ...
+        // NOTE: See also code to generate similar URL in smc-webapp/account/init.ts
+        locals.target = `https://authenticated?api_key=${locals.api_key}`;
+      } // END -- api key?
+
+      // check if user is banned?
+      await this.is_user_banned(locals.account_id, locals.email_address);
+
+      //  last step: set remember me cookie (for a  new sign in)
+      if (!locals.has_valid_remember_me) {
+        // make TS happy
+        if (locals.account_id == null) throw Error("locals.account_id is null");
+
+        dbg("passport created: set remember_me cookie, so user gets logged in");
+
+        // create and set remember_me cookie, then redirect.
+        // See the remember_me method of client for the algorithm we use.
+        const signed_in_mesg = message.signed_in({
+          remember_me: true,
+          hub: opts.host,
+          account_id: locals.account_id,
+          first_name: opts.first_name,
+          last_name: opts.last_name,
+        });
+
+        dbg("create remember_me cookie");
+        const session_id = uuid.v4();
+        const hash_session_id = password_hash(session_id);
+        const ttl = 24 * 3600 * 30; // 30 days
+        const x: string[] = hash_session_id.split("$");
+        const remember_me_value = [x[0], x[1], x[2], session_id].join("$");
+
+        dbg("save remember_me cookie in database");
+        await callback2(this.database.save_remember_me, {
+          account_id: locals.account_id,
+          hash: hash_session_id,
+          value: signed_in_mesg,
+          ttl,
+        });
+
+        dbg("and also set remember_me cookie in client");
+        locals.cookies.set(
+          remember_me_cookie_name(BASE_URL),
+          remember_me_value,
+          { maxAge: ttl * 1000 }
+        );
       }
     } catch (err) {
       if (err) {
@@ -624,295 +833,6 @@ class PassportManager {
         opts.res.redirect(locals.target);
       }
     }
-
-    //////////////////////////////////////////////////////////////
-
-    series(
-      [
-        function (cb) {
-          dbg(
-            "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
-          );
-          this.database.passport_exists({
-            strategy: opts.strategy,
-            id: opts.id,
-            cb(err, _account_id) {
-              if (err) {
-                cb(err);
-              } else {
-                if (
-                  !_account_id &&
-                  locals.has_valid_remember_me &&
-                  locals.account_id != null
-                ) {
-                  dbg(
-                    "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
-                  );
-                  this.database.create_passport({
-                    account_id: locals.account_id,
-                    strategy: opts.strategy,
-                    id: opts.id,
-                    profile: opts.profile,
-                    email_address:
-                      opts.emails != null ? opts.emails[0] : undefined,
-                    first_name: opts.first_name,
-                    last_name: opts.last_name,
-                    cb,
-                  });
-                } else {
-                  if (
-                    locals.has_valid_remember_me &&
-                    locals.account_id !== _account_id
-                  ) {
-                    dbg(
-                      "passport exists but is associated with another account already"
-                    );
-                    cb(
-                      `Your ${opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategy} in account settings if you want to instead associate it with this account.`
-                    );
-                  } else {
-                    if (locals.has_valid_remember_me) {
-                      dbg(
-                        "passport already exists and is associated to the currently logged into account"
-                      );
-                    } else {
-                      dbg(
-                        "passport exists and is already associated to a valid account, which we'll log user into"
-                      );
-                      locals.account_id = _account_id;
-                    }
-                    cb();
-                  }
-                }
-              }
-            },
-          });
-        },
-        function (cb) {
-          if (locals.account_id || opts.emails == null) {
-            cb();
-            return;
-          }
-          dbg(
-            "passport doesn't exist and emails available, so check for existing account with a matching email -- if we find one it's an error"
-          );
-          const f = function (email, cb) {
-            if (locals.account_id) {
-              dbg(
-                `already found a match with account_id=${locals.account_id} -- done`
-              );
-              cb();
-            } else {
-              dbg(`checking for account with email ${email}...`);
-              this.database.account_exists({
-                email_address: email.toLowerCase(),
-                cb(err, _account_id) {
-                  if (locals.account_id) {
-                    // already done, so ignore
-                    dbg(
-                      `already found a match with account_id=${locals.account_id} -- done`
-                    );
-                    cb();
-                  } else if (err || !_account_id) {
-                    cb(err);
-                  } else {
-                    locals.account_id = _account_id;
-                    locals.email_address = email.toLowerCase();
-                    dbg(
-                      `found matching account ${locals.account_id} for email ${locals.email_address}`
-                    );
-                    cb(
-                      `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategy} to it in account settings.`
-                    );
-                  }
-                },
-              });
-            }
-          };
-          async_map(opts.emails, f, cb);
-        },
-        async function (cb) {
-          if (locals.account_id) {
-            // account already made above
-            cb();
-            return;
-          }
-          dbg(
-            "no existing account to link, so create new account that can be accessed using this passport"
-          );
-          if (opts.emails != null) {
-            locals.email_address = opts.emails[0];
-          }
-
-          try {
-            locals.account_id = await create_account(
-              opts,
-              locals.email_address
-            );
-            locals.new_account_created = true;
-            if (locals.email_address != null) {
-              await callback2(this.database.do_account_creation_actions, {
-                email_address: locals.email_address,
-                account_id: locals.account_id,
-              });
-            }
-            // log this
-            const data = {
-              account_id: locals.account_id,
-              first_name: opts.first_name,
-              last_name: opts.last_name,
-              email_address:
-                locals.email_address != null ? locals.email_address : null,
-              created_by: opts.req.ip,
-            };
-            // no await -- don't let client wait for *logging* the fact that we created an account
-            // failure wouldn't matter.
-            this.database.log({
-              event: "create_account",
-              value: data,
-            });
-            cb();
-          } catch (err) {
-            cb(err);
-          }
-        },
-
-        function (cb) {
-          if (locals.new_account_created) {
-            cb();
-            return;
-          }
-          // don't make client wait for this -- it's just a log message for us.
-          dbg(`record_sign_in: ${opts.req.url}`);
-          sign_in.record_sign_in({
-            ip_address: opts.req.ip,
-            successful: true,
-            remember_me: locals.has_valid_remember_me,
-            email_address: locals.email_address,
-            account_id: locals.account_id,
-            database: this.database,
-          });
-          cb();
-        },
-
-        function (cb) {
-          if (!locals.get_api_key) {
-            cb();
-            return;
-          }
-          // Just handle getting api key here.
-          const { api_key_action } = require("./api/manage"); // here, rather than at beginnig of file, due to some circular references...
-          if (locals.new_account_created) {
-            this.action = "regenerate"; // obvious
-          } else {
-            this.action = "get";
-          }
-          series(
-            [
-              (cb) =>
-                api_key_action({
-                  database: this.database,
-                  account_id: locals.account_id,
-                  passport: true,
-                  action: this.action,
-                  cb: (err, api_key) => {
-                    this.api_key = api_key;
-                    cb(err);
-                  },
-                }),
-              function (cb) {
-                if (this.api_key) {
-                  // got it above
-                  cb();
-                  return;
-                }
-                dbg(
-                  "get_api_key -- must generate key, since don't already have it"
-                );
-                api_key_action({
-                  database: this.database,
-                  account_id: locals.account_id,
-                  passport: true,
-                  action: "regenerate",
-                  cb: (err, api_key) => {
-                    this.api_key = api_key;
-                    cb(err);
-                  },
-                });
-              },
-            ],
-            function (err) {
-              if (err) {
-                cb(err);
-              } else {
-                // NOTE: See also code to generate similar URL in smc-webapp/account/init.ts
-                locals.target = `https://authenticated?api_key=${this.api_key}`;
-                cb();
-              }
-            }
-          );
-        },
-
-        // check if user is banned:
-        (cb) => {
-          try {
-            await this.is_user_banned(locals.account_id, locals.email_address);
-            cb();
-          } catch (err) {
-            cb(err);
-          }
-        },
-
-        function (cb) {
-          if (locals.has_valid_remember_me) {
-            cb();
-            return;
-          }
-
-          // make TS happy
-          if (locals.account_id == null)
-            throw Error("locals.account_id is null");
-
-          dbg(
-            "passport created: set remember_me cookie, so user gets logged in"
-          );
-
-          // create and set remember_me cookie, then redirect.
-          // See the remember_me method of client for the algorithm we use.
-          const signed_in_mesg = message.signed_in({
-            remember_me: true,
-            hub: opts.host,
-            account_id: locals.account_id,
-            first_name: opts.first_name,
-            last_name: opts.last_name,
-          });
-
-          dbg("create remember_me cookie");
-          const session_id = uuid.v4();
-          const hash_session_id = password_hash(session_id);
-          const ttl = 24 * 3600 * 30; // 30 days
-          const x: string[] = hash_session_id.split("$");
-          const remember_me_value = [x[0], x[1], x[2], session_id].join("$");
-
-          dbg("set remember_me cookies in client");
-          locals.cookies.set(
-            remember_me_cookie_name(BASE_URL),
-            remember_me_value,
-            { maxAge: ttl * 1000 }
-          );
-
-          dbg("set remember_me cookie in database");
-          this.database.save_remember_me({
-            account_id: locals.account_id,
-            hash: hash_session_id,
-            value: signed_in_mesg,
-            ttl,
-            cb,
-          });
-        },
-      ],
-      function (err) {}
-    );
   } // end passport_login
 
   private async is_user_banned(account_id, email_address): Promise<boolean> {
@@ -928,6 +848,7 @@ class PassportManager {
         `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${email}.`
       );
     }
+    return is_banned;
   }
 }
 
