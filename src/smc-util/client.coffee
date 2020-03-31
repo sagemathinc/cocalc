@@ -67,6 +67,8 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 # if there is no response to an operation after this amount of time.
 DEFAULT_TIMEOUT = 30  # in seconds
 
+{StripeClient} = require('smc-webapp/client/stripe')
+
 class exports.Connection extends EventEmitter
     # Connection events:
     #    - 'connecting' -- trying to establish a connection
@@ -87,6 +89,9 @@ class exports.Connection extends EventEmitter
 
     constructor: (url) ->
         super()
+        @stripe = new StripeClient(@call.bind(@))
+
+
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
         # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
