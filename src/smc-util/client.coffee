@@ -30,6 +30,7 @@ DEBUG = false
 MAX_CONCURRENT = 75
 
 {EventEmitter} = require('events')
+{callback} = require('awaiting')
 
 async = require('async')
 underscore = require('underscore')
@@ -68,6 +69,7 @@ exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 DEFAULT_TIMEOUT = 30  # in seconds
 
 {StripeClient} = require('smc-webapp/client/stripe')
+{ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -90,6 +92,7 @@ class exports.Connection extends EventEmitter
     constructor: (url) ->
         super()
         @stripe = new StripeClient(@call.bind(@))
+        @project_collaborators = new ProjectCollaborators(@async_call.bind(@))
 
 
         @url = url
@@ -384,6 +387,9 @@ class exports.Connection extends EventEmitter
             {cb, error_event} = v
             v.first = false
             if error_event and mesg.event == 'error'
+                if not mesg.error
+                    # make sure mesg.error is set to something.
+                    mesg.error = 'error'
                 cb(mesg.error)
             else
                 cb(undefined, mesg)
@@ -431,6 +437,9 @@ class exports.Connection extends EventEmitter
             cb()
 
         jqXHR.done (resp) ->
+            if opts.error_event and resp?.event == 'error' and not resp.error
+                # just in case the event is sent to error, but no error is set
+                resp.error = 'error'
             if opts.error_event and resp?.error
                 opts.cb?(resp.error)
             else
@@ -490,7 +499,7 @@ class exports.Connection extends EventEmitter
                     cb = undefined
             setTimeout(f, 120*1000)
 
-    call: (opts={}) =>
+    call: (opts) =>
         # This function:
         #    * Modifies the message by adding an id attribute with a random uuid value
         #    * Sends the message to the hub
@@ -510,6 +519,17 @@ class exports.Connection extends EventEmitter
         @_call.queue.push(opts)
         @_call.sent += 1
         @_update_calls()
+
+    # ASYNC FUNCTION
+    # like call above, but async and error_event defaults to TRUE,
+    # so an exception is raised on resp messages that have event='error'.
+    async_call: (opts) =>
+        f = (cb) =>
+            opts.cb = cb
+            @call(opts)
+        if not opts.error_event?
+            opts.error_event = true
+        return await callback(f)
 
     _update_calls: =>
         while @_call.queue.length > 0 and @_call.count < MAX_CONCURRENT
@@ -869,38 +889,6 @@ class exports.Connection extends EventEmitter
         opts.cb?(false, {url:url})
         return url
 
-    invite_noncloud_collaborators: (opts) =>
-        opts = defaults opts,
-            project_id   : required
-            title        : required
-            link2proj    : required
-            replyto      : undefined
-            replyto_name : undefined
-            to           : required
-            email        : required   # body in HTML format
-            subject      : undefined
-            cb           : required
-
-        @call
-            message: message.invite_noncloud_collaborators
-                project_id    : opts.project_id
-                title         : opts.title
-                link2proj     : opts.link2proj
-                email         : opts.email
-                replyto       : opts.replyto
-                replyto_name  : opts.replyto_name
-                to            : opts.to
-                subject       : opts.subject
-            cb : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    if not resp.error
-                        resp.error = "error inviting collaborators"
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp)
-
     copy_path_between_projects: (opts) =>
         opts = defaults opts,
             public            : false
@@ -1169,64 +1157,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.results, opts.query_id)
 
-    project_invite_collaborator: (opts) =>
-        opts = defaults opts,
-            project_id   : required
-            account_id   : required
-            title        : undefined
-            link2proj    : undefined
-            replyto      : undefined
-            replyto_name : undefined
-            email        : undefined
-            subject      : undefined
-            cb           : (err) =>
-
-        @call
-            error_event : true
-            message : message.invite_collaborator(
-                project_id   : opts.project_id
-                account_id   : opts.account_id
-                title        : opts.title
-                link2proj    : opts.link2proj
-                replyto      : opts.replyto
-                replyto_name : opts.replyto_name
-                email        : opts.email
-                subject      : opts.subject
-            )
-            cb      : opts.cb
-
-    project_remove_collaborator: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : (err) =>
-
-        @call
-            message : message.remove_collaborator(project_id:opts.project_id, account_id:opts.account_id)
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else if result.event == 'error'
-                    opts.cb(result.error)
-                else
-                    opts.cb(undefined, result)
-
-    # Directly add one (or more) collaborators to (one or more) projects via
-    # a single API call.  There is no invite process, etc.
-    project_add_collaborator: (opts) =>
-        opts = defaults opts,
-            project_id : required   # string or array of strings
-            account_id : required   # string or array of strings
-            cb         : (err) =>
-        @call
-            message : message.add_collaborator(project_id:opts.project_id, account_id:opts.account_id)
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else if result.event == 'error'
-                    opts.cb(result.error)
-                else
-                    opts.cb(undefined, result)
 
     ###
     Bulk information about several accounts (may be used by chat, etc.).

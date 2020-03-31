@@ -435,19 +435,15 @@ class ProjectsActions extends Actions
     # **THIS IS AN ASYNC FUNCTION!**
     remove_collaborator: (project_id, account_id) =>
         name = redux.getStore('users').get_name(account_id)
-        f = (cb) =>
-            webapp_client.project_remove_collaborator
+        try
+            await webapp_client.project_collaborators.remove
                 project_id : project_id
                 account_id : account_id
-                cb         : (err) =>
-                    if err # TODO: -- set error in store for this project...
-                        err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
-                        alert_message(type:'error', message:err)
-                        cb(err)
-                    else
-                        cb()
-        await callback(f)
-        await @redux.getProjectActions(project_id).async_log({event: 'remove_collaborator', removed_name : name})
+            await @redux.getProjectActions(project_id).async_log({event: 'remove_collaborator', removed_name : name})
+        catch err
+            # TODO: -- set error in store for this project...?
+            err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
+            alert_message(type:'error', message:err)
 
     # this is for inviting existing users, the email is only known by the back-end
     # **THIS IS AN ASYNC FUNCTION!**
@@ -468,8 +464,8 @@ class ProjectsActions extends Actions
         if body?
             body = markdown.markdown_to_html(body)
 
-        f = (cb) =>
-            webapp_client.project_invite_collaborator
+        try
+            await webapp_client.project_collaborators.invite
                 project_id   : project_id
                 account_id   : account_id
                 title        : title
@@ -478,13 +474,12 @@ class ProjectsActions extends Actions
                 replyto_name : replyto_name
                 email        : body         # no body? no email will be sent
                 subject      : subject
-                cb         : (err) =>
-                    if not silent
-                        if err # TODO: -- set error in store for this project...
-                            err = "Error inviting collaborator #{account_id} from #{project_id} -- #{JSON.stringify(err)}"
-                            alert_message(type:'error', message:err)
-                    cb(err)
-        await callback(f)
+        catch err
+            if not silent
+                 # TODO: -- set error in store for this project...?
+                err = "Error inviting collaborator #{account_id} from #{project_id} -- #{JSON.stringify(err)}"
+                alert_message(type:'error', message:err)
+
 
     # this is for inviting non-existing users, email is set via the UI
     # **THIS IS AN ASYNC FUNCTION!**
@@ -504,8 +499,8 @@ class ProjectsActions extends Actions
         # convert body from markdown to html, which is what the backend expects
         body = markdown.markdown_to_html(body)
 
-        f = (cb) =>
-            webapp_client.invite_noncloud_collaborators
+        try
+            resp = await webapp_client.project_collaborators.invite_noncloud
                 project_id   : project_id
                 title        : title
                 link2proj    : link2proj
@@ -514,14 +509,11 @@ class ProjectsActions extends Actions
                 to           : to
                 email        : body
                 subject      : subject
-                cb           : (err, resp) =>
-                    if not silent
-                        if err
-                            alert_message(type:'error', message:err, timeout:60)
-                        else
-                            alert_message(message:resp.mesg)
-                    cb(err)
-        await callback(f)
+            if not silent
+                alert_message(message:resp.mesg)
+        catch err
+            if not silent
+                alert_message(type:'error', message:err, timeout:60)
 
     ###
     # Upgrades

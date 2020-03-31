@@ -33,9 +33,11 @@ import { handle_hash_url } from "./client/handle-hash-url";
 
 import { EventEmitter } from "events";
 import { StripeClient } from "./client/stripe";
+import { ProjectCollaborators } from "./client/project-collaborators";
 
 interface WebappClient extends EventEmitter {
-  stripe : StripeClient;
+  stripe: StripeClient;
+  project_collaborators: ProjectCollaborators;
 
   user_search: Function;
   server_time: Function;
