@@ -4,7 +4,7 @@ import { Button } from "react-bootstrap";
 
 import { Icon, ErrorDisplay, TimeAgo } from "smc-webapp/r_misc";
 
-import { stripe_admin_create_customer } from "smc-webapp/frame-editors/generic/client";
+import { webapp_client} from "../../webapp-client";
 
 interface Props {
   account_id: string;
@@ -32,7 +32,9 @@ export class Subscriptions extends Component<Props, State> {
   async sync(): Promise<void> {
     try {
       this.setState({ sync: "running" });
-      await stripe_admin_create_customer({ account_id: this.props.account_id });
+      await webapp_client.stripe.admin_create_customer({
+        account_id: this.props.account_id,
+      });
     } catch (err) {
       if (this.mounted) {
         this.setState({ error: err, sync: "none" });
@@ -89,6 +91,7 @@ export class Subscriptions extends Component<Props, State> {
       />
     );
   }
+
   render(): Rendered {
     return (
       <div>

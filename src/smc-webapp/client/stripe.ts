@@ -22,7 +22,10 @@ export class StripeClient {
 
   // gets custormer info (if any) and stripe public api key
   // for this user, if they are logged in
-  public async get_customer(): Promise<any> {
+  public async get_customer(): Promise<{
+    stripe_publishable_key?: string;
+    customer: any;
+  }> {
     const mesg = await this.call(message.stripe_get_customer());
     if (mesg == null) {
       // evidently this happened -- see

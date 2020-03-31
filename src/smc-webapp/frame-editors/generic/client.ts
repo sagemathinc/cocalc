@@ -263,13 +263,6 @@ export function get_editor_settings(): Map<string, any> {
   return Map(); // not loaded
 }
 
-export async function stripe_admin_create_customer(opts: {
-  account_id?: string;
-  email_address?: string;
-}): Promise<void> {
-  return callback2(webapp_client.stripe_admin_create_customer, opts);
-}
-
 export interface User {
   account_id: string;
   created: string;
