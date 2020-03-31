@@ -71,6 +71,7 @@ import * as uuid from "node-uuid";
 import * as winston from "winston";
 import * as passport from "passport";
 import * as dot from "dot-object";
+import * as _ from "lodash";
 const misc = require("smc-util/misc");
 import message from "smc-util/message"; // message protocol between front-end and back-end
 const { sign_in } = require("./sign-in");
@@ -83,6 +84,15 @@ import {
   welcome_email,
 } from "./email";
 import { PostgreSQL } from "./postgres/types";
+import { PassportStrategy, LEGACY_SSO } from "../smc-webapp/passport-types";
+
+interface PassportStrategyDB extends PassportStrategy {
+  auth?: string; // site_conf
+  clientID?: string; // Google, Twitter, ... and OAuth2
+  clientSecret?: string; // Google, Twitter, ... and OAuth2
+  authorizationURL?: string; // OAuth2
+  tokenURL?: string; // --*--
+}
 
 const { defaults, required } = misc;
 
@@ -144,7 +154,7 @@ async function create_account(opts, email_address): Promise<string> {
     first_name: opts.first_name,
     last_name: opts.last_name,
     email_address,
-    PassportStrategy: opts.strategy,
+    PassportStrategyConstructor: opts.strategy,
     passport_id: opts.id,
     passport_profile: opts.profile,
   });
@@ -170,7 +180,7 @@ type LoginInfoDerivator<T> = (profile: any) => T;
 
 interface StrategyConf {
   strategy: string;
-  PassportStrategy: any;
+  PassportStrategyConstructor: any;
   extra_opts?: {
     enableProof?: boolean;
   };
@@ -204,7 +214,8 @@ interface StrategyConf {
 // library hid the errors (**WHY**!!?).
 const GoogleStrategyConf: StrategyConf = {
   strategy: "google",
-  PassportStrategy: require("@passport-next/passport-google-oauth2").Strategy,
+  PassportStrategyConstructor: require("@passport-next/passport-google-oauth2")
+    .Strategy,
   auth_opts: { scope: "openid email profile" },
   login_info: {
     id: (profile) => profile.id,
@@ -221,7 +232,7 @@ const GoogleStrategyConf: StrategyConf = {
 
 const GithubStrategyConf: StrategyConf = {
   strategy: "github",
-  PassportStrategy: require("passport-github").Strategy,
+  PassportStrategyConstructor: require("passport-github").Strategy,
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) =>
@@ -240,7 +251,7 @@ const GithubStrategyConf: StrategyConf = {
 
 const FacebookStrategyConf: StrategyConf = {
   strategy: "facebook",
-  PassportStrategy: require("passport-facebook").Strategy,
+  PassportStrategyConstructor: require("passport-facebook").Strategy,
   extra_opts: {
     enableProof: false,
   },
@@ -259,7 +270,7 @@ const FacebookStrategyConf: StrategyConf = {
 
 const TwitterStrategyConf: StrategyConf = {
   strategy: "twitter",
-  PassportStrategy: require("passport-twitter").Strategy,
+  PassportStrategyConstructor: require("passport-twitter").Strategy,
   login_info: {
     id: (profile) => profile.id,
     full_name: (profile) => profile.displayName,
@@ -268,7 +279,7 @@ const TwitterStrategyConf: StrategyConf = {
 
 //const Oauth2StrategyConf: StrategyConf = {
 //  strategy: "oauth2",
-//  PassportStrategy: require("@passport-next/passport-oauth2").Strategy,
+//  PassportStrategyConstructor: require("@passport-next/passport-oauth2").Strategy,
 //  login_info: {
 //      id: "id"
 //    };
@@ -328,7 +339,9 @@ class PassportManager {
   readonly database: PostgreSQL;
   readonly base_url: string;
   readonly host: string; // e.g. 127.0.0.1
-  private strategies: string[] = []; // configured strategies listed here.
+  private strategies:
+    | { [k: string]: PassportStrategyDB }
+    | undefined = undefined; // configured strategies
   private auth_url: string | undefined = undefined;
 
   constructor(opts: PassportManagerOpts) {
@@ -340,26 +353,37 @@ class PassportManager {
     this.host = host;
   }
 
-  private async get_conf(strategy): Promise<any> {
-    const dbg = (m) => winston.debug(`get_conf: ${m}`);
-    try {
-      const settings = await callback2(this.database.get_passport_settings, {
-        strategy,
-      });
+  private async get_conf(strategy): Promise<PassportStrategyDB> {
+    if (this.strategies == null) {
+      throw Error("get_conf strategies are null -- forgot to init first?");
+    }
+    return this.strategies[strategy];
+  }
 
-      if (settings != null) {
-        if (strategy !== "site_conf") {
-          this.strategies.push(strategy);
-        }
-        return settings;
-      } else {
-        dbg(`WARNING: passport strategy ${strategy} not configured`);
-        return undefined;
+  private async init_passport_settings(): Promise<{
+    [k: string]: PassportStrategyDB;
+  }> {
+    const dbg = (m) => winston.debug(`init_passport_settings: ${m}`);
+    if (this.strategies != null) {
+      dbg("already initialized -- just returning what we have");
+      return this.strategies;
+    }
+    try {
+      // we always offer email!
+      this.strategies = { email: { name: "email" } };
+      const settings = await callback2(this.database.get_all_passport_settings);
+      for (const setting of settings) {
+        const name = setting.strategy;
+        const conf = setting.conf as PassportStrategyDB;
+        conf.name = name;
+        this.strategies[name] = conf;
       }
+      return this.strategies;
     } catch (err) {
-      dbg(`error getting passport settings for ${strategy} -- ${err}`);
+      dbg(`error getting passport settings -- ${err}`);
       throw err;
     }
+    return {};
   }
 
   // Define handler for api key cookie setting.
@@ -376,10 +400,35 @@ class PassportManager {
     next();
   }
 
+  // this is for pure backwards compatibility. at some point remove this!
+  // it only returns a string[] array of the legacy authentication strategies
+  private strategies_v1(res): void {
+    const data: string[] = [];
+    const known = ["email", ...LEGACY_SSO];
+    for (const name in this.strategies) {
+      if (name === "site_conf") continue;
+      if (known.indexOf(name) >= 0) {
+        data.push(name);
+      }
+    }
+    res.json(data);
+  }
+
+  // version 2 tells the web client a little bit more. the additional info is used to
+  // render customizeable SSO icons
   private strategies_v2(res): void {
-    const data = this.strategies.map((s) => {
-      return { name: s };
-    });
+    const data: PassportStrategyDB[] = [];
+    for (const name in this.strategies) {
+      if (name === "site_conf") continue;
+      // this is sent to the web client → do not include any secret info!
+      const info = _.pick(this.strategies[name], [
+        "name",
+        "display",
+        "type",
+        "icon",
+      ]);
+      data.push(info);
+    }
     res.json(data);
   }
 
@@ -402,7 +451,7 @@ class PassportManager {
       if (req.query.v === "2") {
         this.strategies_v2(res);
       } else {
-        res.json(this.strategies);
+        this.strategies_v1(res);
       }
     });
 
@@ -433,8 +482,10 @@ class PassportManager {
       });
     });
 
+    const all_settings = await this.init_passport_settings();
+
     this.auth_url = await (async () => {
-      const site_conf = await this.get_conf("site_conf");
+      const site_conf = all_settings.site_conf;
       if (site_conf != null) {
         return site_conf.auth;
       }
@@ -451,8 +502,6 @@ class PassportManager {
         this.init_extra_strategies(),
       ]);
     }
-    this.strategies.sort();
-    this.strategies.unshift("email");
   }
 
   // this maps additional strategy configurations to a list of StrategyConf objects
@@ -464,7 +513,7 @@ class PassportManager {
   private async init_strategy(strategy_config: StrategyConf): Promise<void> {
     const {
       strategy,
-      PassportStrategy,
+      PassportStrategyConstructor,
       extra_opts,
       auth_opts,
       login_info,
@@ -489,7 +538,7 @@ class PassportManager {
 
     const verify = (_accessToken, _refreshToken, profile, done) =>
       done(undefined, { profile });
-    passport.use(new PassportStrategy(opts, verify));
+    passport.use(new PassportStrategyConstructor(opts, verify));
 
     this.router.get(
       `/auth/${strategy}`,

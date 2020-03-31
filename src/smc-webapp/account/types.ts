@@ -1,6 +1,6 @@
 import * as immutable from "immutable";
 import { NewFilenameTypes } from "../project/utils";
-import { PassportStrategy } from "../passports";
+import { PassportStrategy } from "../passport-types";
 
 export interface AccountState {
   active_page: string;
