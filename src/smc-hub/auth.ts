@@ -42,12 +42,14 @@ The other services are similar.
 
 Now, connect to the database, where the setup is in the passports_settings table:
 
-1. there sould be a site_conf entry:
+1. In order to get this to work, there must be a site_conf entry:
 ```
 insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME]/auth"}'::JSONB );
 ```
 e.g., {"auth": "https://cocalc.com/auth"} is used on the live site
 and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain dev project.
+
+(if site_conf isn't set, email sign ups are the only ones that work)
 
 2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
 
@@ -186,7 +188,8 @@ interface StrategyConf {
 }
 
 // docs for getting these for your app
-// https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
+// https://developers.google.com/identity/protocols/oauth2/openid-connect#appsetup
+// and https://console.developers.google.com/apis/credentials
 //
 // You must then put them in the database, via
 //
@@ -392,6 +395,7 @@ class PassportManager {
       res.json(this.strategies)
     );
 
+    // email verification
     this.router.get("/auth/verify", function (req, res) {
       const { DOMAIN_NAME } = require("smc-util/theme");
       const path = require("path").join("/", this.base_url, "/app");
@@ -582,8 +586,6 @@ class PassportManager {
     }
 
     opts.id = `${opts.id}`; // convert to string (id is often a number)
-
-    //////////////////////////////////////////////////////////////
 
     try {
       await this.check_remember_me_cookie(locals);
