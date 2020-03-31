@@ -2,7 +2,7 @@ import { delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
 import { SyncTable } from "../smc-util/sync/table";
 import { TypedMap } from "../smc-webapp/app-framework";
-import { endswith, merge, path_split } from "../smc-util/misc2";
+import { endswith, merge, path_split, startswith } from "../smc-util/misc2";
 import { field_cmp, seconds_ago } from "../smc-util/misc";
 import { get_listing, ListingEntry } from "../directory-listing";
 import {
@@ -321,18 +321,28 @@ class ListingsTable {
   // for the containing path in the database.  (TODO: we may change this
   // to create the record if it doesn't exist.)
   public async set_deleted(filename: string): Promise<void> {
+    if (filename[0] == "/") {
+      // absolute path
+      if (process.env.HOME == null || !startswith(filename, process.env.HOME)) {
+        // can't do anything with this.
+        return;
+      }
+      filename = filename.slice(process.env.HOME.length + 1);
+    }
     const { head, tail } = path_split(filename);
     const x = this.get(head);
-    if (x == null) return; // no such entry -- TODO: maybe create it?
-    let deleted: any = x.get("deleted");
-    if (deleted == null) {
-      deleted = [tail];
-    } else {
-      if (deleted.indexOf(tail) != -1) return;
-      deleted = deleted.toJS();
-      deleted.push(tail);
+    if (x != null) {
+      // TODO/edge case: if x is null we *could* create the path here...
+      let deleted: any = x.get("deleted");
+      if (deleted == null) {
+        deleted = [tail];
+      } else {
+        if (deleted.indexOf(tail) != -1) return;
+        deleted = deleted.toJS();
+        deleted.push(tail);
+      }
+      await this.set({ path: head, deleted });
     }
-    await this.set({ path: head, deleted });
 
     // Also we need to close *all* syncdocs that are going to be deleted,
     // and wait until closing is done before we return.
