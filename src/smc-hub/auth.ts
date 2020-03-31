@@ -343,7 +343,7 @@ class PassportManager {
   private async get_conf(strategy): Promise<any> {
     const dbg = (m) => winston.debug(`get_conf: ${m}`);
     try {
-      const settings = callback2(this.database.get_passport_settings, {
+      const settings = await callback2(this.database.get_passport_settings, {
         strategy,
       });
 
@@ -376,6 +376,13 @@ class PassportManager {
     next();
   }
 
+  private strategies_v2(res): void {
+    const data = this.strategies.map((s) => {
+      return { name: s };
+    });
+    res.json(data);
+  }
+
   async init(): Promise<void> {
     // Initialize authentication plugins using Passport
     const dbg = (m) => winston.debug(`init_passport: ${m}`);
@@ -391,9 +398,13 @@ class PassportManager {
     passport.deserializeUser((user, done) => done(null, user));
 
     // Return the configured and supported authentication strategies.
-    this.router.get("/auth/strategies", (_req, res) =>
-      res.json(this.strategies)
-    );
+    this.router.get("/auth/strategies", (req, res) => {
+      if (req.query.v === "2") {
+        this.strategies_v2(res);
+      } else {
+        res.json(this.strategies);
+      }
+    });
 
     // email verification
     this.router.get("/auth/verify", function (req, res) {
@@ -432,16 +443,22 @@ class PassportManager {
     dbg(`auth_url='${this.auth_url}'`);
 
     if (this.auth_url != null) {
-      Promise.all([
+      await Promise.all([
         this.init_strategy(GoogleStrategyConf),
         this.init_strategy(GithubStrategyConf),
         this.init_strategy(FacebookStrategyConf),
         this.init_strategy(TwitterStrategyConf),
+        this.init_extra_strategies(),
       ]);
     }
     this.strategies.sort();
     this.strategies.unshift("email");
   }
+
+  // this maps additional strategy configurations to a list of StrategyConf objects
+  // the overall goal is to support custom OAuth2 and LDAP endpoints, where additional
+  // info is sent to the webapp client to properly present them. Google&co are legacy configurations.
+  private async init_extra_strategies(): Promise<void> {}
 
   // a generalized strategy initizalier
   private async init_strategy(strategy_config: StrategyConf): Promise<void> {
@@ -454,10 +471,11 @@ class PassportManager {
     } = strategy_config;
     const dbg = (m) => winston.debug(`init_strategy ${strategy}: ${m}`);
     dbg("start");
-    const conf = await this.get_conf(strategy);
 
+    const conf = await this.get_conf(strategy);
     if (conf == null) {
-      throw Error(`init_strategy ${strategy}: conf is null`);
+      dbg(`conf is null -- aborting initialization`);
+      return;
     }
 
     const opts = Object.assign(
@@ -505,6 +523,7 @@ class PassportManager {
         await this.passport_login(login_opts as PassportLogin);
       }
     );
+    dbg("initialization successful");
   }
 
   private async passport_login(opts: PassportLogin): Promise<void> {

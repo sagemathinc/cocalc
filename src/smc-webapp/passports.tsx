@@ -2,9 +2,14 @@ import * as React from "react";
 import { List } from "immutable";
 import * as misc from "smc-util/misc";
 import { Icon, Tip } from "./r_misc";
+import { SiteName } from "./customize";
+
+export interface PassportStrategy {
+  name: string;
+}
 
 interface Props {
-  strategies?: List<string>;
+  strategies?: List<PassportStrategy>;
   get_api_key?: string;
   no_heading?: boolean;
   style?: object;
@@ -45,7 +50,17 @@ export class Passports extends React.Component<Props> {
     strategies: List([]),
   };
 
-  render_strategy(name) {
+  render_tip(passport_name: string) {
+    return (
+      <>
+        Use {passport_name} to sign into your <SiteName /> account instead of an
+        email address and password.
+      </>
+    );
+  }
+
+  render_strategy(strategy: PassportStrategy) {
+    const { name } = strategy;
     if (name === "email") {
       return;
     }
@@ -87,7 +102,7 @@ export class Passports extends React.Component<Props> {
           <Tip
             placement="bottom"
             title={title}
-            tip={`Use ${passport_name} to sign into your CoCalc account instead of an email address and password.`}
+            tip={this.render_tip(passport_name)}
           >
             <Icon name={name} style={icon_style} />
           </Tip>
@@ -113,7 +128,9 @@ export class Passports extends React.Component<Props> {
     return (
       <div style={this.props.style}>
         {this.render_heading()}
-        <div>{strategies.map((name) => this.render_strategy(name))}</div>
+        <div>
+          {strategies.map((strategy) => this.render_strategy(strategy))}
+        </div>
         <hr style={{ marginTop: 10, marginBottom: 10 }} />
       </div>
     );

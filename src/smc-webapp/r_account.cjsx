@@ -1610,9 +1610,9 @@ exports.AccountSettingsTop = rclass
             <Footer/>
         </div>
 
-STRATEGIES = ['email']
-f = () ->
-    $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
+STRATEGIES = [{name:'email'}]
+(->
+    $.get "#{window.app_base_url}/auth/strategies?v=2", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
 
@@ -1629,7 +1629,7 @@ f = () ->
             redux.getActions('account').setState(strategies:strategies)
         else
             setTimeout(f, 60000)
-f()
+)()
 
 ugly_error = (err) ->
     if typeof(err) != 'string'

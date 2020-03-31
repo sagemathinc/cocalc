@@ -5,7 +5,7 @@ import { ReactDOM, Rendered } from "../app-framework";
 import { List } from "immutable";
 import { ErrorDisplay } from "../r_misc/error-display";
 import { Markdown } from "../r_misc";
-import { Passports } from "../passports";
+import { Passports, PassportStrategy } from "../passports";
 import {
   Col,
   Row,
@@ -24,7 +24,7 @@ interface Props {
   has_account: boolean;
   xs: boolean; // extra small
   color: string;
-  strategies: List<string>;
+  strategies: List<PassportStrategy>;
   get_api_key: string;
 }
 

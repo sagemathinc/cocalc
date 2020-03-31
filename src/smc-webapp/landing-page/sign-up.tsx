@@ -1,6 +1,6 @@
 import * as React from "react";
 import { ReactDOM, Rendered, redux } from "../app-framework";
-import { Passports } from "../passports";
+import { Passports , PassportStrategy} from "../passports";
 import { List } from "immutable";
 
 import { COLORS, UNIT, Icon, Loading } from "../r_misc";
@@ -30,7 +30,7 @@ const ERROR_STYLE: React.CSSProperties = {
 };
 
 interface Props {
-  strategies: List<string>;
+  strategies: List<PassportStrategy>;
   get_api_key: string;
   sign_up_error: any;
   token: boolean;
