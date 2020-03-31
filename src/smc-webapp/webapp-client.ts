@@ -36,11 +36,13 @@ import { EventEmitter } from "events";
 import { StripeClient } from "./client/stripe";
 import { ProjectCollaborators } from "./client/project-collaborators";
 import { SupportTickets } from "./client/support";
+import { QueryClient } from "./client/query";
 
 interface WebappClient extends EventEmitter {
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   support_tickets: SupportTickets;
+  query_client : QueryClient;
 
   user_search: Function;
   server_time: Function;

@@ -49,8 +49,6 @@ client_aggregate = require('./client-aggregate')
 
 {once} = require('./async-utils')
 
-{validate_client_query} = require('./schema-validate')
-
 {NOT_SIGNED_IN} = require('./consts')
 
 defaults = misc.defaults
@@ -71,6 +69,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 {StripeClient} = require('smc-webapp/client/stripe')
 {ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
 {SupportTickets} = require('smc-webapp/client/support')
+{QueryClient} = require('smc-webapp/client/query')
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -97,6 +96,7 @@ class exports.Connection extends EventEmitter
         @stripe = new StripeClient(@call.bind(@))
         @project_collaborators = new ProjectCollaborators(@async_call.bind(@))
         @support_tickets = new SupportTickets(@async_call.bind(@))
+        @query_client = new QueryClient(@)
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -1372,41 +1372,6 @@ class exports.Connection extends EventEmitter
         # Will only do something if @_redux has been set.
         @_redux?.getActions('file_use')?.mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
-    _post_query: (opts) =>
-        opts = defaults opts,
-            query   : required
-            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
-            standby : false        # if true, use standby server; query must be 100% read only.
-            cb      : undefined
-        data =
-            query   : misc.to_json(opts.query)
-            options : if opts.options then misc.to_json(opts.options)
-        #tt0 = new Date()
-        #console.log '_post_query', data
-        if opts.standby
-            path = 'db_standby'
-            #console.log("doing db_standby query -- ", opts.query)
-        else
-            path = 'user_query'
-        jqXHR = $.post("#{window?.app_base_url ? ''}/#{path}", data, null, 'text')
-        if not opts.cb?
-            #console.log 'no cb'
-            return
-        jqXHR.fail ->
-            #console.log 'failed'
-            opts.cb("failed")
-            return
-        jqXHR.done (data) ->
-            #console.log 'got back ', JSON.stringify(resp)
-            #console.log 'TIME: ', new Date() - tt0
-            window.data = data
-            resp = misc.from_json(data)
-            if resp.error
-                opts.cb(resp.error)
-            else
-                opts.cb(undefined, {query:resp.result})
-        return
-
     query: (opts) =>
         opts = defaults opts,
             query   : required
@@ -1416,82 +1381,34 @@ class exports.Connection extends EventEmitter
             timeout : 30
             no_post : false        # if true, will not use a post query
             cb      : undefined
-        # console.log("QUERY ", JSON.stringify(opts.query))
-        if opts.options? and not misc.is_array(opts.options)
-            throw Error("options must be an array")
-
-        if not opts.no_post and @_signed_in and not opts.changes and $?.post? and @_enable_post
-            # Can do via http POST request, rather than websocket messages
-            # (NOTE: signed_in required because POST fails everything when
-            # user is not signed in.)
-            @_post_query
-                query   : opts.query
-                options : opts.options
-                standby : opts.standby
-                cb      : (err, resp) =>
-                    if err == NOT_SIGNED_IN
-                        if new Date().valueOf() - @_signed_in_time >= 60000
-                            # If you did NOT recently sign in, and you're
-                            # getting this error, we sign you out.  Right
-                            # when you first sign in, you might get this
-                            # error because the cookie hasn't been set
-                            # in your browser yet and you're doing a POST
-                            # request to do a query thinking you are fully
-                            # signed in.  The root cause
-                            # of this is that it's tricky for both the frontend
-                            # and the backend
-                            # to know when the REMEMBER_ME cookie has finished
-                            # being set in the browser since it is not
-                            # visible to Javascript.
-                            # See https://github.com/sagemathinc/cocalc/issues/2204
-                            @_set_signed_out()
-                        opts.cb?(err, resp)
-                        return
-                    if not err or not opts.standby
-                        opts.cb?(err, resp)
-                        return
-                    # Note, right when signing in this can fail, since
-                    # sign_in = got websocket sign in mesg, which is NOT
-                    # the same thing as setting up cookies. For security
-                    # reasons it is difficult to know exactly when the
-                    # remember-me cookie has been set.
-                    console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
-                    opts.standby = false
-                    @query(opts)
+        if opts.changes
+            # changefeed does a normal call with a opts.cb
+            @query_client.query(opts)
             return
+        # Use the async api
+        cb = opts.cb
+        if not cb?
+            opts.ignore_response = true
+        delete opts.cb
+        try
+            cb?(undefined, await @query_client.query(opts))
+        catch err
+            cb?(err.message)
 
-        #@__query_id ?= 0; @__query_id += 1; id = @__query_id
-        #console.log("#{(new Date()).toISOString()} -- #{id}: query=#{misc.to_json(opts.query)}")
-        #tt0 = new Date()
-        err = validate_client_query(opts.query, @account_id)
-        if err
-            opts.cb?(err)
-            return
-        mesg = message.query
-            query          : opts.query
-            options        : opts.options
-            changes        : opts.changes
-            multi_response : opts.changes
-        @call
-            allow_post  : false   # since that would happen via @_post_query
-            message     : mesg
-            error_event : true
-            timeout     : opts.timeout
-            cb          : (args...) ->
-                #console.log("#{(new Date()).toISOString()} -- #{id}: query_resp=#{misc.to_json(args)}")
-                #console.log 'TIME: ', new Date() - tt0
-                opts.cb?(args...)
+    async_query: (opts) =>
+        return await @query_client.query(opts)
 
     query_cancel: (opts) =>
         opts = defaults opts,
             id : required
             cb : undefined
-        @call
-            allow_post  : false   # since this is cancelling a changefeed
-            message     : message.query_cancel(id:opts.id)
-            error_event : true
-            timeout     : 30
-            cb          : opts.cb
+        try
+            opts.cb?(undefined, await @query_client.cancel(opts.id))
+        catch err
+            opts.cb?(err)
+
+    async_query_cancel: (id) =>
+        return await @query_client.cancel(id)
 
     # Send metrics to the hub this client is connected to.
     # There is no confirmation or response.
