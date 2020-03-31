@@ -70,6 +70,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 
 {StripeClient} = require('smc-webapp/client/stripe')
 {ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
+{SupportTickets} = require('smc-webapp/client/support')
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -91,9 +92,11 @@ class exports.Connection extends EventEmitter
 
     constructor: (url) ->
         super()
+
+        # Refactored functionality
         @stripe = new StripeClient(@call.bind(@))
         @project_collaborators = new ProjectCollaborators(@async_call.bind(@))
-
+        @support_tickets = new SupportTickets(@async_call.bind(@))
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -1244,35 +1247,6 @@ class exports.Connection extends EventEmitter
 
     webapp_error: (opts) =>
         @call(message : message.webapp_error(opts))
-
-
-    # Support Tickets
-
-    create_support_ticket: ({opts, cb}) =>
-        if opts.body?
-            # Make it so the session is ignored in any URL appearing in the body.
-            # Obviously, this is not 100% bullet proof, but should help enormously.
-            opts.body = misc.replace_all(opts.body, '?session=', '?session=#')
-        @call
-            message      : message.create_support_ticket(opts)
-            timeout      : 20
-            error_event  : true
-            cb           : (err, resp) ->
-                if err
-                    cb?(err)
-                else
-                    cb?(undefined, resp.url)
-
-    get_support_tickets: (cb) =>
-        @call
-            message      : message.get_support_tickets()
-            timeout      : 20
-            error_event  : true
-            cb           : (err, tickets) ->
-                if err
-                    cb?(err)
-                else
-                    cb?(undefined, tickets.tickets)
 
     # This is probably just for testing -- it's used by the HTTP API, but websocket clients
     # can just compute this themselves via results of DB query.

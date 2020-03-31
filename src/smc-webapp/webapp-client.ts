@@ -32,12 +32,15 @@ import { handle_hash_url } from "./client/handle-hash-url";
 // actual webapp client isn't here, add it (there api is huge).
 
 import { EventEmitter } from "events";
+
 import { StripeClient } from "./client/stripe";
 import { ProjectCollaborators } from "./client/project-collaborators";
+import { SupportTickets } from "./client/support";
 
 interface WebappClient extends EventEmitter {
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
+  support_tickets: SupportTickets;
 
   user_search: Function;
   server_time: Function;

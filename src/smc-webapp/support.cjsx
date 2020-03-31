@@ -92,18 +92,16 @@ class SupportActions extends Actions
                 ]
                 support_ticket_error : null
         else
-            webapp_client.get_support_tickets (err, tickets) =>
-                # console.log("tickets: #{misc.to_json(tickets)}")
-                # sort by .updated_at
-                if err?
-                    @setState
-                        support_ticket_error : err
-                        support_tickets      : []
-                else
-                    tickets = tickets.sort(cmp_tickets)
-                    @setState
-                        support_ticket_error : err
-                        support_tickets      : tickets
+            try
+                tickets = await webapp_client.support_tickets.get()
+                tickets = tickets.sort(cmp_tickets)
+                @setState
+                    support_ticket_error : undefined
+                    support_tickets      : tickets
+            catch err
+                @setState
+                    support_ticket_error : err
+                    support_tickets      : []
 
     reset: =>
         @init_email_address()
@@ -213,8 +211,8 @@ class SupportActions extends Actions
 
         name = account.get_fullname()
         name = if name?.trim?().length > 0 then name else null
-        webapp_client.create_support_ticket
-            opts:
+        try
+            url = await webapp_client.support_tickets.create
                 username     : name
                 email_address: @get('email')
                 subject      : @get('subject')
@@ -223,18 +221,15 @@ class SupportActions extends Actions
                 location     : @location()
                 account_id   : account_id
                 info         : info
-            cb : @process_support
-
-    process_support: (err, url) =>
-        if not err?
             @set    # only clear subject/body, if there has been a success!
                 subject  : ''
                 body     : ''
                 url      : url
-        @set
-            state  : if err? then STATE.ERROR else STATE.CREATED
-            err    : err ? ''
-
+                state    : STATE.CREATED
+        catch err
+            @set
+                state : STATE.ERROR
+                err   : err
 
 exports.SupportPage = rclass
     displayName : "SupportPage"
