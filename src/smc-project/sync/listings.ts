@@ -16,7 +16,7 @@ import { remove_jupyter_backend } from "../jupyter/jupyter";
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
-const WATCH_DEBOUNCE_MS = 1000;
+const WATCH_DEBOUNCE_MS = 2000;
 
 // Watch directories for which some client has shown interest recently:
 const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
