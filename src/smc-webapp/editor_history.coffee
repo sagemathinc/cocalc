@@ -85,16 +85,14 @@ class exports.HistoryEditor extends FileEditor
             @_path = s.head + '/' + @_path
 
     init_syncstring: (cb) =>
-        webapp_client.open_existing_sync_document
-            project_id : @project_id
-            path       : @_path
-            persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
-            cb         : (err, syncstring) =>
-                if err
-                    cb?(err)
-                else
-                    @syncstring = syncstring
-                    @syncstring.once('ready', cb)
+        try
+            @syncstring = await webapp_client.open_existing_sync_document
+                project_id : @project_id
+                path       : @_path
+                persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
+            @syncstring.once('ready', cb)
+        catch err
+            cb?(err)
 
     init_ui: =>
         @render_slider()

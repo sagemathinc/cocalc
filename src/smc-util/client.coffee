@@ -1647,16 +1647,16 @@ class exports.Connection extends EventEmitter
         return new SyncDB2(opts)
 
     # This now returns the new sync_db2 and sync_string2 objects.
+    # ASYNC function
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
             data_server : undefined
             persistent : false
-            cb         : required  # cb(err, document)
         opts.client = @
-        open_existing_sync_document(opts)
-        return
+        {open_existing_sync_document} = require('smc-webapp/client/sync')
+        return await open_existing_sync_document(opts)
 
     # Returns true if the given file in the given project is currently marked as deleted.
     is_deleted: (filename, project_id) =>
@@ -1958,42 +1958,4 @@ exports.issues_with_create_account = (mesg) ->
             issues.password = reason
     return issues
 
-
-# This is mainly used for TimeTravel view...
-open_existing_sync_document = (opts) ->
-    opts = defaults opts,
-        client     : required
-        project_id : required
-        path       : required
-        data_server : undefined
-        persistent : false
-        cb         : required
-    opts.client.query
-        query :
-            syncstrings:
-                project_id : opts.project_id
-                path       : opts.path
-                doctype    : null
-        cb: (err, resp) ->
-            if err
-                opts.cb(err)
-                return
-            if resp.event == 'error'
-                opts.cb(resp.error)
-                return
-            if not resp.query?.syncstrings?
-                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
-                return
-            doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
-            opts2 =
-                project_id : opts.project_id
-                path       : opts.path
-            if opts.data_server
-                opts2.data_server = opts.data_server
-            if opts.persistent
-                opts2.persistent = opts.persistent
-            if doctype.opts?
-                opts2 = misc.merge(opts2, doctype.opts)
-            doc = opts.client["sync_#{doctype.type}2"](opts2)
-            opts.cb(undefined, doc)
 
