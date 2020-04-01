@@ -460,7 +460,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query    : 'SELECT id, size FROM blobs'
             where    : "expire IS NULL AND gcloud IS NULL and (last_active <= NOW() - INTERVAL '#{opts.cutoff}' OR last_active IS NULL)"
             limit    : opts.limit
-            order_by : 'id'
+            ##  order_by : 'id'  # this is not important and was causing VERY excessive load in production (due to bad query plannnig?!)
             cb       : all_results (err, v) =>
                 if err
                     dbg("fail: #{err}")
