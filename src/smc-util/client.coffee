@@ -70,6 +70,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 {ProjectCollaborators} = require('smc-webapp/client/project-collaborators')
 {SupportTickets} = require('smc-webapp/client/support')
 {QueryClient} = require('smc-webapp/client/query')
+{TimeClient} = require('smc-webapp/client/time')
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -97,6 +98,7 @@ class exports.Connection extends EventEmitter
         @project_collaborators = new ProjectCollaborators(@async_call.bind(@))
         @support_tickets = new SupportTickets(@async_call.bind(@))
         @query_client = new QueryClient(@)
+        @time_client = new TimeClient(@)
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
