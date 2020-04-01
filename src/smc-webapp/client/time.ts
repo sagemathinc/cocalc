@@ -12,7 +12,7 @@ export class TimeClient {
   private last_server_time?: Date;
   private closed: boolean = false;
 
-  constructor(client: any) {
+  constructor(client: any  )  {
     this.client = client;
   }
 

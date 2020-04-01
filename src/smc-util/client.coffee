@@ -71,6 +71,8 @@ DEFAULT_TIMEOUT = 30  # in seconds
 {SupportTickets} = require('smc-webapp/client/support')
 {QueryClient} = require('smc-webapp/client/query')
 {TimeClient} = require('smc-webapp/client/time')
+{AccountClient} = require('smc-webapp/client/account')
+
 
 class exports.Connection extends EventEmitter
     # Connection events:
@@ -99,6 +101,7 @@ class exports.Connection extends EventEmitter
         @support_tickets = new SupportTickets(@async_call.bind(@))
         @query_client = new QueryClient(@)
         @time_client = new TimeClient(@)
+        @account_client = new AccountClient(@)
 
         @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
@@ -248,7 +251,10 @@ class exports.Connection extends EventEmitter
             console.log("handle_json_data: #{data}")
         switch mesg.event
             when "cookies"
-                @_cookies?(mesg)
+                try
+                    @account_client.cookies(mesg)
+                catch err
+                    console.warn("Error handling cookie ", mesg, err)
 
             when "signed_in"
                 @account_id = mesg.account_id
@@ -572,7 +578,7 @@ class exports.Connection extends EventEmitter
         mesg =
             url  : base_url + '/cookies'
             set  : base_url + 'remember_me'
-        @_cookies(mesg, cb)
+        @account_client.cookies(mesg, cb)
 
     sign_out: (opts) ->
         opts = defaults opts,
