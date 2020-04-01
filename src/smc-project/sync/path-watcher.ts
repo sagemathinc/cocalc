@@ -54,7 +54,10 @@ export class Watcher extends EventEmitter {
   private init_watch_contents(): void {
     this.watch_contents = watch(
       this.path,
-      debounce(this.change.bind(this), this.debounce_ms)
+      debounce(this.change.bind(this), this.debounce_ms, {
+        leading: true,
+        trailing: true,
+      })
     );
   }
 
