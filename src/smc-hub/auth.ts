@@ -42,31 +42,18 @@ The other services are similar.
 
 Now, connect to the database, where the setup is in the passports_settings table:
 
-1. In order to get this to work, there must be a site_conf entry:
-```
-insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME]/auth"}'::JSONB );
-```
-e.g., {"auth": "https://cocalc.com/auth"} is used on the live site
-and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain dev project.
+In older code, there was a "site_conf". We fix it to be $base_url/auth. There is no need to configure it, and existing configurations are ignored. Besides that, it wasn't properly used for all SSO strategies anyways …
 
-(if site_conf isn't set, email sign ups are the only ones that work)
+What's important is to configure the individual passport settings:
 
 2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
 
 Then restart the hubs.
 */
 
-// Set the site conf like this:
-//
-//  require 'c'; db()
-//  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/auth'}, cb:done())
-//
-//  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
-//
-//  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
-
 import { Router } from "express";
-import { callback2 } from "../smc-util/async-utils";
+import { callback2 as cb2 } from "../smc-util/async-utils";
+import { join as path_join } from "path";
 import * as uuid from "node-uuid";
 import * as winston from "winston";
 import * as passport from "passport";
@@ -77,7 +64,7 @@ import message from "smc-util/message"; // message protocol between front-end an
 const { sign_in } = require("./sign-in");
 import Cookies from "cookies";
 import * as express_session from "express-session";
-import { HELP_EMAIL } from "smc-util/theme";
+import { HELP_EMAIL, DNS } from "smc-util/theme";
 import {
   email_verified_successfully,
   email_verification_problem,
@@ -86,8 +73,10 @@ import {
 import { PostgreSQL } from "./postgres/types";
 import { PassportStrategy, LEGACY_SSO } from "../smc-webapp/passport-types";
 
+// root for authentication related endpoints -- will be prefixed with the base_url
+const AUTH_BASE = "/auth";
+
 interface PassportStrategyDB extends PassportStrategy {
-  auth?: string; // site_conf
   clientID?: string; // Google, Twitter, ... and OAuth2
   clientSecret?: string; // Google, Twitter, ... and OAuth2
   authorizationURL?: string; // OAuth2
@@ -150,7 +139,7 @@ export function password_hash(password): string {
 }
 
 async function create_account(opts, email_address): Promise<string> {
-  return await callback2(opts.database.create_account, {
+  return await cb2(opts.database.create_account, {
     first_name: opts.first_name,
     last_name: opts.last_name,
     email_address,
@@ -335,13 +324,18 @@ interface PassportLoginLocals {
 }
 
 class PassportManager {
+  // express js, passed in from hub's main file
   readonly router: Router;
+  // the database, for various server queries
   readonly database: PostgreSQL;
+  // set in the hub, passed in -- not used by "site_conf", though
   readonly base_url: string;
   readonly host: string; // e.g. 127.0.0.1
+  // configured strategies
   private strategies:
     | { [k: string]: PassportStrategyDB }
-    | undefined = undefined; // configured strategies
+    | undefined = undefined;
+  // prefix for those endpoints, where SSO services return back
   private auth_url: string | undefined = undefined;
 
   constructor(opts: PassportManagerOpts) {
@@ -371,7 +365,7 @@ class PassportManager {
     try {
       // we always offer email!
       this.strategies = { email: { name: "email" } };
-      const settings = await callback2(this.database.get_all_passport_settings);
+      const settings = await cb2(this.database.get_all_passport_settings);
       for (const setting of settings) {
         const name = setting.strategy;
         const conf = setting.conf as PassportStrategyDB;
@@ -447,7 +441,7 @@ class PassportManager {
     passport.deserializeUser((user, done) => done(null, user));
 
     // Return the configured and supported authentication strategies.
-    this.router.get("/auth/strategies", (req, res) => {
+    this.router.get(`${AUTH_BASE}/strategies`, (req, res) => {
       if (req.query.v === "2") {
         this.strategies_v2(res);
       } else {
@@ -456,7 +450,7 @@ class PassportManager {
     });
 
     // email verification
-    this.router.get("/auth/verify", function (req, res) {
+    this.router.get(`${AUTH_BASE}/verify`, function (req, res) {
       const { DOMAIN_NAME } = require("smc-util/theme");
       const path = require("path").join("/", this.base_url, "/app");
       const url = `${DOMAIN_NAME}${path}`;
@@ -482,26 +476,22 @@ class PassportManager {
       });
     });
 
-    const all_settings = await this.init_passport_settings();
+    // prerequesite for setting up any SSO endpoints
+    await this.init_passport_settings();
 
-    this.auth_url = await (async () => {
-      const site_conf = all_settings.site_conf;
-      if (site_conf != null) {
-        return site_conf.auth;
-      }
-    })();
-
+    const settings = await cb2(this.database.get_server_settings_cached);
+    const dns = settings.dns || DNS;
+    this.auth_url = `https://${dns}${path_join("/", this.base_url, AUTH_BASE)}`;
     dbg(`auth_url='${this.auth_url}'`);
 
-    if (this.auth_url != null) {
-      await Promise.all([
-        this.init_strategy(GoogleStrategyConf),
-        this.init_strategy(GithubStrategyConf),
-        this.init_strategy(FacebookStrategyConf),
-        this.init_strategy(TwitterStrategyConf),
-        this.init_extra_strategies(),
-      ]);
-    }
+    await Promise.all([
+      this.init_strategy(GoogleStrategyConf),
+      this.init_strategy(GithubStrategyConf),
+      this.init_strategy(FacebookStrategyConf),
+      this.init_strategy(TwitterStrategyConf),
+      this.init_extra_strategies(),
+    ]);
+    process.exit();
   }
 
   // this maps additional strategy configurations to a list of StrategyConf objects
@@ -536,18 +526,20 @@ class PassportManager {
       extra_opts
     );
 
+    dbg(`opts = ${JSON.stringify(opts)}`);
+
     const verify = (_accessToken, _refreshToken, profile, done) =>
       done(undefined, { profile });
     passport.use(new PassportStrategyConstructor(opts, verify));
 
     this.router.get(
-      `/auth/${strategy}`,
+      `${AUTH_BASE}/${strategy}`,
       this.handle_get_api_key,
       passport.authenticate(strategy, auth_opts)
     );
 
     this.router.get(
-      `/auth/${strategy}/return`,
+      `${AUTH_BASE}/${strategy}/return`,
       passport.authenticate(strategy),
       async (req, res) => {
         const { profile } = req.user;
@@ -702,7 +694,7 @@ class PassportManager {
       );
     }
     if (hash != null) {
-      const signed_in_mesg = await callback2(this.database.get_remember_me, {
+      const signed_in_mesg = await cb2(this.database.get_remember_me, {
         hash,
       });
       if (signed_in_mesg != null) {
@@ -723,7 +715,7 @@ class PassportManager {
       "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
     );
 
-    const _account_id = await callback2(this.database.passport_exists, {
+    const _account_id = await cb2(this.database.passport_exists, {
       strategy: opts.strategy,
       id: opts.id,
     });
@@ -736,7 +728,7 @@ class PassportManager {
       locals.dbg(
         "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
       );
-      await callback2(this.database.create_passport, {
+      await cb2(this.database.create_passport, {
         account_id: locals.account_id,
         strategy: opts.strategy,
         id: opts.id,
@@ -786,7 +778,7 @@ class PassportManager {
           return;
         } else {
           locals.dbg(`checking for account with email ${email}...`);
-          const _account_id = await callback2(this.database.account_exists, {
+          const _account_id = await cb2(this.database.account_exists, {
             email_address: email.toLowerCase(),
           });
           if (locals.account_id) {
@@ -829,7 +821,7 @@ class PassportManager {
     locals.account_id = await create_account(opts, locals.email_address);
     locals.new_account_created = true;
     if (locals.email_address != null) {
-      await callback2(this.database.do_account_creation_actions, {
+      await cb2(this.database.do_account_creation_actions, {
         email_address: locals.email_address,
         account_id: locals.account_id,
       });
@@ -881,7 +873,7 @@ class PassportManager {
       locals.action = "get";
     }
 
-    locals.api_key = await callback2(api_key_action, {
+    locals.api_key = await cb2(api_key_action, {
       database: this.database,
       account_id: locals.account_id,
       passport: true,
@@ -893,7 +885,7 @@ class PassportManager {
       locals.dbg(
         "get_api_key -- must generate key, since don't already have it"
       );
-      locals.api_key = await callback2(api_key_action, {
+      locals.api_key = await cb2(api_key_action, {
         database: this.database,
         account_id: locals.account_id,
         passport: true,
@@ -937,7 +929,7 @@ class PassportManager {
     const remember_me_value = [x[0], x[1], x[2], session_id].join("$");
 
     locals.dbg("save remember_me cookie in database");
-    await callback2(this.database.save_remember_me, {
+    await cb2(this.database.save_remember_me, {
       account_id: locals.account_id,
       hash: hash_session_id,
       value: signed_in_mesg,
@@ -951,13 +943,11 @@ class PassportManager {
   }
 
   private async is_user_banned(account_id, email_address): Promise<boolean> {
-    const is_banned = await callback2(this.database.is_banned_user, {
+    const is_banned = await cb2(this.database.is_banned_user, {
       account_id,
     });
     if (is_banned) {
-      const settings = await callback2(
-        this.database.get_server_settings_cached
-      );
+      const settings = await cb2(this.database.get_server_settings_cached);
       const email = settings.help_email || HELP_EMAIL;
       throw Error(
         `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${email}.`
@@ -1007,7 +997,7 @@ export async function is_password_correct(
     opts.cb(undefined, r);
   } else if (opts.account_id != null || opts.email_address != null) {
     try {
-      const account = await callback2(opts.database.get_account, {
+      const account = await cb2(opts.database.get_account, {
         account_id: opts.account_id,
         email_address: opts.email_address,
         columns: ["password_hash"],
@@ -1051,14 +1041,14 @@ export async function verify_email_send_token(opts) {
   });
 
   try {
-    const { token, email_address } = await callback2(
+    const { token, email_address } = await cb2(
       opts.database.verify_email_create_token,
       {
         account_id: opts.account_id,
       }
     );
-    const settings = await callback2(opts.database.get_server_settings_cached);
-    await callback2(welcome_email, {
+    const settings = await cb2(opts.database.get_server_settings_cached);
+    await cb2(welcome_email, {
       to: email_address,
       token,
       only_verify: opts.only_verify,

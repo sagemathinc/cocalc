@@ -375,14 +375,25 @@ describe 'testing the server settings table: ', ->
 describe 'testing the passport settings table: ', ->
     before(setup)
     after(teardown)
-    it 'creates the site_conf passport auth', (done) ->
-        db.set_passport_settings(strategy:'site_conf', conf:{auth:DOMAIN_NAME + '/auth'},  cb: done)
-    it 'verifies that the site_conf passport was created', (done) ->
+    it 'creates a fake passport auth', (done) ->
+        db.set_passport_settings(strategy:'fake', conf:{token:'foo'},  cb: done)
+    it 'verifies that the fake passport was created', (done) ->
         db.get_passport_settings
-            strategy : 'site_conf'
+            strategy : 'fake'
             cb       : (err, value) ->
-                expect(value).toEqual({auth:DOMAIN_NAME + '/auth'})
+                expect(value).toEqual(token:'foo')
                 done(err)
+    it 'checks that it is also in the list of all passport entries', (done) ->
+        db.get_all_passport_settings
+            cb : (err, settings) ->
+                if err
+                    done(err)
+                else
+                    for s in settings
+                        if s.strategy == 'fake' and s.conf?.token == 'foo'
+                            done()
+                            return
+                        expect(false) # not found!
 
 describe 'user enumeration functionality: ', ->
     before(setup)
