@@ -29,7 +29,7 @@ import {
   server_time,
 } from "smc-util/misc";
 
-const { webapp_client } = require("./webapp_client");
+import { webapp_client } from "./webapp-client";
 
 type NotificationType = "error" | "default" | "success" | "info" | "warning";
 
@@ -104,7 +104,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
 function check_for_clock_skew() {
   const local_time = new Date().valueOf();
   const s = Math.ceil(
-    Math.abs(webapp_client.server_time() - local_time) / 1000
+    Math.abs(webapp_client.time_client.server_time().valueOf() - local_time.valueOf()) / 1000
   );
   if (s > 120) {
     return exports.alert_message({

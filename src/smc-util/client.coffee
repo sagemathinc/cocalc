@@ -168,12 +168,10 @@ class exports.Connection extends EventEmitter
 
         # start pinging -- not used/needed for primus,
         # but *is* needed for getting information about
-        # server_time skew and showing ping time
-        # to user.
-        @_ping_interval = 30000
+        # server_time skew and showing ping time to user.
         # Starting pinging a few seconds after connecting the first time,
         # after things have settled down a little (to not throw off ping time).
-        @once("connected", => setTimeout(@_ping, 5000))
+        @once("connected", => setTimeout((=> @time_client.ping()), 5000))
 
     dbg: (f) =>
         return (m...) ->
@@ -186,51 +184,6 @@ class exports.Connection extends EventEmitter
                     s = JSON.stringify(m)
             console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
 
-    _ping: () =>
-        @_ping_interval ?= 30000 # frequency to ping
-        start = @_last_ping = new Date()
-        @call
-            allow_post : false
-            message    : message.ping()
-            timeout    : 10     # CRITICAL that this timeout be less than the @_ping_interval
-            cb         : (err, pong) =>
-                # console.log("response to ping message", err, pong)
-                if err
-                    # try again **sooner**
-                    setTimeout(@_ping, @_ping_interval/2)
-                    return
-                now = new Date()
-                # Only record something if success, got a pong, and the round trip is short!
-                # If user messes with their clock during a ping and we don't do this, then
-                # bad things will happen.
-                if pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                    @_last_pong = {server:pong.now, local:now}
-                    # See the function server_time below; subtract @_clock_skew from local time to get a better
-                    # estimate for server time.
-                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    misc.set_local_storage('clock_skew', @_clock_skew)
-
-                this._emit_latency(now.valueOf() - start.valueOf(), @_clock_skew)
-
-                # try again later
-                setTimeout(@_ping, @_ping_interval)
-
-    _emit_latency: (latency, clock_skew) =>
-        # console.log("_emit_latency", latency, clock_skew)
-        if not window?.document?.hasFocus?()
-            # console.log("latency: not in focus")
-            return
-        # networking/pinging slows down when browser not in focus...
-        if latency > 10000
-            # console.log("latency: discarding huge latency", latency)
-            # We get some ridiculous values from Primus when the browser
-            # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
-            # that throttle.  Just discard them, since otherwise they lead to ridiculous false
-            # numbers displayed in the browser.
-            return
-        @emit("ping", latency, clock_skew)
-
-
     # Returns (approximate) time in ms since epoch on the server.
     # NOTE:
     #     This is guaranteed to be an *increasing* function, with an arbitrary
@@ -238,71 +191,8 @@ class exports.Connection extends EventEmitter
     #     Also, if the user changes their clock back a little, this will still
     #     increase... very slowly until things catch up.  This avoids any
     #     possibility of weird random re-ordering of patches within a given session.
-    server_time: =>
-        t = @_server_time()
-        last = @_last_server_time
-        if last? and last >= t
-            # That's annoying -- time is not marching forward... let's fake it until it does.
-            t = new Date((last - 0) + 1)
-        @_last_server_time = t
-        return t
-
-    _server_time: =>
-        # Add _clock_skew to our local time to get a better estimate of the actual time on the server.
-        # This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,
-        # or even hours due to totally wrong time (e.g. ignoring time zone), which is relevant for
-        # some algorithms including sync which uses time.  Getting the clock right up to a small multiple
-        # of ping times is fine for our application.
-        if not @_clock_skew?
-            x = misc.get_local_storage('clock_skew')
-            if x?
-                @_clock_skew = parseFloat(x)
-        if @_clock_skew?
-            return new Date(new Date() - @_clock_skew)
-        else
-            return new Date()
-
-    ping_test: (opts) =>
-        opts = defaults opts,
-            packets  : 20
-            timeout  : 5   # any ping that takes this long in seconds is considered a fail
-            delay_ms : 200  # wait this long between doing pings
-            log      : undefined  # if set, use this to log output
-            cb       : undefined   # cb(err, ping_times)
-
-        ###
-        Use like this in a Sage Worksheet:
-
-            %coffeescript
-            s = require('webapp_client').webapp_client
-            s.ping_test(delay_ms:100, packets:40, log:print)
-        ###
-        ping_times = []
-        do_ping = (i, cb) =>
-            t = new Date()
-            @call
-                message : message.ping()
-                timeout : opts.timeout
-                cb      : (err, pong) =>
-                    heading = "#{i}/#{opts.packets}: "
-                    if not err and pong?.event == 'pong'
-                        ping_time = new Date() - t
-                        bar = ('*' for j in [0...Math.floor(ping_time/10)]).join('')
-                        mesg = "#{heading}time=#{ping_time}ms"
-                    else
-                        bar = "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-                        mesg = "#{heading}Request error -- #{err}, #{misc.to_json(pong)}"
-                        ping_time = Infinity
-                    while mesg.length < 40
-                        mesg += ' '
-                    mesg += bar
-                    if opts.log?
-                        opts.log(mesg)
-                    else
-                        console.log(mesg)
-                    ping_times.push(ping_time)
-                    setTimeout(cb, opts.delay_ms)
-        async.mapSeries([1..opts.packets], do_ping, (err) => opts.cb?(err, ping_times))
+    server_time: => @time_client.server_time()
+    ping_test: (opts={}) => @time_client.ping_test(opts)
 
 
     close: () =>

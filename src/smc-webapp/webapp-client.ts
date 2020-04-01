@@ -37,12 +37,14 @@ import { StripeClient } from "./client/stripe";
 import { ProjectCollaborators } from "./client/project-collaborators";
 import { SupportTickets } from "./client/support";
 import { QueryClient } from "./client/query";
+import { TimeClient } from "./client/time";
 
 interface WebappClient extends EventEmitter {
   stripe: StripeClient;
   project_collaborators: ProjectCollaborators;
   support_tickets: SupportTickets;
-  query_client : QueryClient;
+  query_client: QueryClient;
+  time_client: TimeClient;
 
   user_search: Function;
   server_time: Function;
@@ -57,6 +59,7 @@ interface WebappClient extends EventEmitter {
   remember_me_key: Function;
   synctable_project: Function;
   project_websocket: Function;
+  log_error: (any) => void;
 }
 
 export let webapp_client: WebappClient;

@@ -10,13 +10,13 @@ export class TimeClient {
   private last_pong?: { server: Date; local: Date };
   private clock_skew_ms?: number;
   private last_server_time?: Date;
-  private closed : boolean = false;
+  private closed: boolean = false;
 
   constructor(client: any) {
     this.client = client;
   }
 
-  close() : void {
+  close(): void {
     this.closed = true;
   }
 
@@ -168,7 +168,7 @@ export class TimeClient {
     }
 
     for (let i = 0; i < opts.packets; i++) {
-      await do_ping(i);
+      await do_ping.bind(this)(i);
     }
 
     return ping_times;
